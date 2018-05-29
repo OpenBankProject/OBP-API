@@ -536,7 +536,7 @@ object Glossary {
 		  """)
 
 	glossaryItems += GlossaryItem(
-		title = "OAuth 1.0",
+		title = "OAuth 1.0a",
 		description =
 			s"""
 			|The following steps will explain how to connect an instance of the Open Bank Project OAuth Server 1.0a. You may well want to use a different host. This authentication mechanism is necessary so a third party application can consume the Open Bank project API securely.
@@ -549,7 +549,7 @@ object Glossary {
 			|
 			|To start a sign in flow, the application must obtain a request token by sending a signed message to :
 			|
-			|    POST $getObpApiRoot/oauth/initiate
+			|    POST $getServerUrl/oauth/initiate
 			|
 			|* oauth_callback: an absolute URI back to which the server will redirect the resource owner (user) when Authorization step is completed. If the application is unable to receive callbacks the parameter value MUST be set to “oob” (case sensitive), to indicate an out-of-band configuration.
 			|
@@ -569,7 +569,7 @@ object Glossary {
 			|
 			|    POST /oauth/initiate HTTP/1.1
 			|
-			|    Host: $getObpApiRoot
+			|    Host: $getServerUrl
 			|
 			|    Authorization: OAuth
 			|
@@ -615,7 +615,7 @@ object Glossary {
 			|
 			|Example :
 			|
-			|    $getObpApiRoot/oauth/authorize?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0
+			|    $getServerUrl/oauth/authorize?oauth_token=NPcudxy0yU5T3tBzho7iCotZ3cnetKwcTIRlX0iwRl0
 			|
 			|Upon a successful authentication, the callback URL would receive a request containing the oauth_token and oauth_verifier parameters. The application should verify that the token matches the request token received in step 1.
 			|
@@ -625,7 +625,7 @@ object Glossary {
 			|
 			|To convert the request token into a usable access token, the application must make a:
 			|
-			|    POST $getObpApiRoot/oauth/token
+			|    POST $getServerUrl/oauth/token
 			|
 			|request containing the oauth_verifier value obtained in step 2. The request token is also passed as oauth_token parameter of the header.
 			|
@@ -635,7 +635,7 @@ object Glossary {
 			|
 			|    POST /oauth/token HTTP/1.1
 			|
-			|    Host: $getObpApiRoot
+			|    Host: $getServerUrl
 			|
 			|    Authorization: OAuth
 			|
@@ -728,7 +728,7 @@ object Glossary {
 			|Example:
 			|
 			|    POST /oauth/token HTTP/1.1
-			|    Host: $getObpApiRoot
+			|    Host: $getServerUrl
 			|    Content-Type: application/x-www-form-urlencoded
 			|    Authorization: OAuth
 			|    oauth_consumer_key="91919",
@@ -740,7 +740,7 @@ object Glossary {
 			|
 			|Is represented by the following signature base string (line breaks are for display purposes only):
 			|
-			|    POST&https%3A%2F%2Fapi.openbankproject.com&oauth_consumer_key%3D91919%26oauth_nonce%3DDFXOQFZVK8K46KDR11%26oauth_signature_method%3Dhmac-sha256%26oauth_timestamp%3D1340878170%26oauth_token%3DOGESD9MrWQEGPXOyPjHCRrCw7BPelWJjnomibV6bePU%26oauth_verifier%3DT0dXUDBZR09LUVlGTU9NSlhIUUc%26oauth_version%3D1
+			|    POST&https%3A%2F%2F$getServerUrl&oauth_consumer_key%3D91919%26oauth_nonce%3DDFXOQFZVK8K46KDR11%26oauth_signature_method%3Dhmac-sha256%26oauth_timestamp%3D1340878170%26oauth_token%3DOGESD9MrWQEGPXOyPjHCRrCw7BPelWJjnomibV6bePU%26oauth_verifier%3DT0dXUDBZR09LUVlGTU9NSlhIUUc%26oauth_version%3D1
 			|
 			|The request parameters normalization :
 			|
@@ -766,119 +766,122 @@ object Glossary {
 			|
 			""")
 
-	glossaryItems += GlossaryItem(
-		title = "OAuth 2",
-		description =
-			s"""
-			|OAuth 2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service, in this case any OBP REST call. It works by delegating user authentication to the service that hosts the user account, and authorizing third-party applications to access the user account. OAuth 2 provides authorization flows for web and desktop applications, and mobile devices.
-			|
-			|### OAuth 2 Roles
-			|
-			|* Resource Owner
-			|* Client
-			|* Resource Server
-			|* Authorization Server
-			|
-			|### Resource Owner: User
-			|
-			|The resource owner is the user who authorizes an application to access their account. The application's access to the user's account is limited to the "scope" of the authorization granted (e.g. openid).
-			|
-			|### Authorization Server: API
-			|
-			|The authorization server verifies the identity of the user then issues access tokens to the application. E.g. MITREid Connect
-			|
-			|### Resource Server: API
-			|
-			|The resource server hosts the protected user resources. E.g. OP-API
-			|
-			|### Client: Application
-			|
-			|The client is the application that wants to access the user's resource. In order to do that, it must be authorized by the user, and the authorization must be validated by the Authorization Server: API.
-			|
-			|### Authorization Grant
-			|
-			|OAuth 2 defines four grant types, each of which is useful in different cases:
-			|
-			|* Authorization Code: used with server-side Applications
-			|
-			|* Implicit: used with Mobile Apps or Web Applications (applications that run on the user's device)
-			|
-			|* Resource Owner Password Credentials: used with trusted Applications, such as those owned by the service itself
-			|
-			|* Client Credentials: used with Applications API access
-			|
-			|OBP-API supports at the moment only Authorization Code
-			|
-			|### Step 1: Authorization Code Link
-			|
-			|    http://localhost:8080/openid-connect-server-webapp/authorize?response_type=code&client_id=client&redirect_uri=https://openbankproject.com/&scope=openid
-			|
-			|Here is an explanation of the link components:
-			|
-			|* http://localhost:8080/openid-connect-server-webapp/authorize: the API authorization endpoint
-			|
-			|* client_id=client_id: the application's client ID (how the API identifies the application)
-			|
-			|* redirect_uri=CALLBACK_URL: where the service redirects the user-agent after an authorization code is granted
-			|
-			|* response_type=code: specifies that your application is requesting an authorization code grant
-			|
-			|* scope=openid: specifies the level of access that the application is requesting
-			|
-			|### Step 2: User Authorizes Application
-			|
-			|### Step 3: Application Receives Authorization Code
-			|
-			|If the user clicks "Authorize Application", the service redirects the user-agent to the application redirect URI, which was specified during the client registration, along with an authorization code.
-			|
-			|    https://openbankproject.com/?code=AUTHORIZATION_CODE
-			|
-			|The redirect would look something like this: https://openbankproject.com/?code=htm4zN
-			|
-			|### Step 4: Application Requests Access Token
-			|
-			|The application requests an access token from the API, by passing the authorization code along with authentication details, including the client secret, to the API token endpoint.
-			|
-			|    http://localhost:8080/openid-connect-server-webapp/token?client_id=CLIENT_ID&client_secret=CLIENT_SECRET&grant_type=authorization_code&code=AUTHORIZATION_CODE&redirect_uri=CALLBACK_URL
-			|
-			|E.g. :
-			|
-			|    curl -i -X POST "http://localhost:8080/openid-connect-server-webapp/token?client_id=client&client_secret=1234&grant_type=authorization_code&code=gHOPDa&redirect_uri=https://openbankproject.com/"
-			|
-			|### Step 5: Application Receives Access Token
-			|
-			|If the authorization is valid, the API will send a response containing the access token to the application. The entire response will look something like this:
-			|
-			|    {
-			|    "access_token": "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw",
-			|    "token_type": "Bearer",
-			|    "expires_in": 3599,
-			|    "scope": "openid"
-			|    }
-			|
-			|### Step 6: Try a REST call using the header
-			|
-			|Using your favorite http client:
-			|
-			|    GET /obp/v3.0.0/users/current
-			|
-			|Body
-			|
-			|    Leave Empty!
-			|
-			|Headers:
-			|
-			|    Authorization: Bearer ACCESS_TOKEN
-			|
-			|Here is it all together:
-			|
-			|    GET /obp/v3.0.0/users/current HTTP/1.1 Host: localhost:8080 User-Agent: curl/7.47.0 Accept: / Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw"
-			|
-			|CURL example:
-			|
-			|    curl -v -H 'Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw" http://localhost:8080/obp/v3.0.0/users/current
-			|
+  if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false) == true) {
+
+    glossaryItems += GlossaryItem(
+      title = "OAuth 2",
+      description =
+        s"""
+        |OAuth 2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service, in this case any OBP REST call. It works by delegating user authentication to the service that hosts the user account, and authorizing third-party applications to access the user account. OAuth 2 provides authorization flows for web and desktop applications, and mobile devices.
+        |
+        |### OAuth 2 Roles
+        |
+        |* Resource Owner
+        |* Client
+        |* Resource Server
+        |* Authorization Server
+        |
+        |### Resource Owner: User
+        |
+        |The resource owner is the user who authorizes an application to access their account. The application's access to the user's account is limited to the "scope" of the authorization granted (e.g. openid).
+        |
+        |### Authorization Server: API
+        |
+        |The authorization server verifies the identity of the user then issues access tokens to the application. E.g. MITREid Connect
+        |
+        |### Resource Server: API
+        |
+        |The resource server hosts the protected user resources. E.g. OP-API
+        |
+        |### Client: Application
+        |
+        |The client is the application that wants to access the user's resource. In order to do that, it must be authorized by the user, and the authorization must be validated by the Authorization Server: API.
+        |
+        |### Authorization Grant
+        |
+        |OAuth 2 defines four grant types, each of which is useful in different cases:
+        |
+        |* Authorization Code: used with server-side Applications
+        |
+        |* Implicit: used with Mobile Apps or Web Applications (applications that run on the user's device)
+        |
+        |* Resource Owner Password Credentials: used with trusted Applications, such as those owned by the service itself
+        |
+        |* Client Credentials: used with Applications API access
+        |
+        |OBP-API supports at the moment only Authorization Code
+        |
+        |### Step 1: Authorization Code Link
+        |
+        |    $getServerUrl/openid-connect-server-webapp/authorize?response_type=code&client_id=client&redirect_uri=CALLBACK_URL/&scope=openid
+        |
+        |Here is an explanation of the link components:
+        |
+        |* $getServerUrl/openid-connect-server-webapp/authorize: the API authorization endpoint
+        |
+        |* client_id=client_id: the application's client ID (how the API identifies the application)
+        |
+        |* redirect_uri=CALLBACK_URL: where the service redirects the user-agent after an authorization code is granted
+        |
+        |* response_type=code: specifies that your application is requesting an authorization code grant
+        |
+        |* scope=openid: specifies the level of access that the application is requesting
+        |
+        |### Step 2: User Authorizes Application
+        |
+        |### Step 3: Application Receives Authorization Code
+        |
+        |If the user clicks "Authorize Application", the service redirects the user-agent to the application redirect URI, which was specified during the client registration, along with an authorization code.
+        |
+        |    CALLBACK_URL/?code=AUTHORIZATION_CODE
+        |
+        |The redirect would look something like this: https://openbankproject.com/?code=htm4zN
+        |
+        |### Step 4: Application Requests Access Token
+        |
+        |The application requests an access token from the API, by passing the authorization code along with authentication details, including the client secret, to the API token endpoint.
+        |
+        |    $getServerUrl/openid-connect-server-webapp/token?client_id=CLIENT_ID&client_secret=CLIENT_SECRET&grant_type=authorization_code&code=AUTHORIZATION_CODE&redirect_uri=CALLBACK_URL
+        |
+        |E.g. :
+        |
+        |    curl -i -X POST "$getServerUrl/openid-connect-server-webapp/token?client_id=client&client_secret=1234&grant_type=authorization_code&code=gHOPDa&redirect_uri=https://openbankproject.com/"
+        |
+        |### Step 5: Application Receives Access Token
+        |
+        |If the authorization is valid, the API will send a response containing the access token to the application. The entire response will look something like this:
+        |
+        |    {
+        |    "access_token": "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw",
+        |    "token_type": "Bearer",
+        |    "expires_in": 3599,
+        |    "scope": "openid"
+        |    }
+        |
+        |### Step 6: Try a REST call using the header
+        |
+        |Using your favorite http client:
+        |
+        |    GET /obp/v3.0.0/users/current
+        |
+        |Body
+        |
+        |    Leave Empty!
+        |
+        |Headers:
+        |
+        |    Authorization: Bearer ACCESS_TOKEN
+        |
+        |Here is it all together:
+        |
+        |    GET /obp/v3.0.0/users/current HTTP/1.1 Host: $getServerUrl User-Agent: curl/7.47.0 Accept: / Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw"
+        |
+        |CURL example:
+        |
+        |    curl -v -H 'Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw" $getServerUrl/obp/v3.0.0/users/current
+        |
 			""")
+  }
 
 
 
