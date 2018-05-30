@@ -36,6 +36,8 @@ connector=mapped
 
 ## If using kafka, set the brokers
 #kafka.bootstrap_hosts=localhost:9092
+# WARNING: if this number does not match the partitions in Kafka config, you will SUFFER !
+#kafka.partitions=10
 
 
 ## Enable user authentication via kafka

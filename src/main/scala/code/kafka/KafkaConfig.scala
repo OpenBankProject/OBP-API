@@ -11,6 +11,7 @@ trait KafkaConfig {
   val bootstrapServers = APIUtil.getPropsValue("kafka.bootstrap_hosts")openOr("localhost:9092")
   val groupId = APIUtil.getPropsValue("Kafka.group.id").openOr("obp-api")
   val clientId = APIUtil.getPropsValue("Kafka.client.id").openOrThrowException(s"${ErrorMessages.MissingPropsValueAtThisInstance} Kafka.client.id") 
+  val partitions = APIUtil.getPropsAsIntValue("kafka.partitions", 10)
 
   val autoOffsetResetConfig = "earliest"
   val maxWakeups = 50
