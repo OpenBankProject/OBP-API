@@ -431,6 +431,14 @@ import net.liftweb.util.Helpers._
     }
   }
 
+  def agreePrivacyPolicy = {
+    val url = APIUtil.getPropsValue("webui_agree_privacy_policy_url", "")
+    if (url.isEmpty) {
+      s""
+    } else {
+      scala.xml.Unparsed(s"""<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE Ltd according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>""")
+    }
+  }
 
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup">
@@ -439,12 +447,14 @@ import net.liftweb.util.Helpers._
           <div id="signup-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
           {localForm(user, false, signupFields)}
           {agreeTerms}
+          {agreePrivacyPolicy}
           <div id="signup-submit">
             <input type="submit" />
           </div>
       </form>
     </div>
   }
+
 
   override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = {
     for {
