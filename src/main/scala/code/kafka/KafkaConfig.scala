@@ -1,10 +1,6 @@
 package code.kafka
 
-import java.util.UUID
-
-import code.api.util.APIUtil
-import net.liftweb.util.Props
-
+import code.api.util.{APIUtil, ErrorMessages}
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 
 /**
@@ -13,9 +9,8 @@ import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 trait KafkaConfig {
 
   val bootstrapServers = APIUtil.getPropsValue("kafka.bootstrap_hosts")openOr("localhost:9092")
-
-  val clientId = UUID.randomUUID().toString
-  val groupId = "obp-api"
+  val groupId = APIUtil.getPropsValue("Kafka.group.id").openOr("obp-api")
+  val clientId = APIUtil.getPropsValue("Kafka.client.id").openOrThrowException(s"${ErrorMessages.MissingPropsValueAtThisInstance} Kafka.client.id") 
 
   val autoOffsetResetConfig = "earliest"
   val maxWakeups = 50
