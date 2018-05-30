@@ -38,7 +38,7 @@ connector=mapped
 #kafka.bootstrap_hosts=localhost:9092
 # WARNING: if this number does not match the partitions in Kafka config, you will SUFFER !
 #kafka.partitions=10
-
+#kafka.client.id=obp-api-1
 
 ## Enable user authentication via kafka
 #kafka.user.authentication=true
