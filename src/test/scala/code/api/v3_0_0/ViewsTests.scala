@@ -35,11 +35,12 @@ import _root_.net.liftweb.json.Serialization.write
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
-import code.api.v1_2_1.APIInfoJSON
+import code.api.v1_2_1.{APIInfoJSON, PermissionJSON, PermissionsJSON}
 import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
 import code.model.{CreateViewJson, UpdateViewJSON}
 import code.setup.APIResponse
 import net.liftweb.util.Helpers._
+import scala.util.Random.nextInt
 
 class ViewsTests extends V300ServerSetup {
   
@@ -63,6 +64,23 @@ class ViewsTests extends V300ServerSetup {
     makePutRequest(request, write(view))
   }
 
+  def getAccountAccesForUser(bankId: String, accountId: String, provider : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId).GET <@(consumerAndToken)
+    makeGetRequest(request)
+  }
+  
+  //This will call v1_2_1Request and we need it here to prepare the data for further tests
+  def getAccountPermissions(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
+    makeGetRequest(request)
+  }
+  //This is a helper method, used to prepare the test parameters
+  def randomAccountPermission(bankId : String, accountId : String) : PermissionJSON = {
+    val persmissionsInfo = getAccountPermissions(bankId, accountId, user1).body.extract[PermissionsJSON]
+    val randomPermission = nextInt(persmissionsInfo.permissions.size)
+    persmissionsInfo.permissions(randomPermission)
+  }
+  
 /************************ the tests ************************/
   feature("/root"){
     scenario("The root of the API") {
@@ -321,6 +339,28 @@ class ViewsTests extends V300ServerSetup {
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  }
+  
+  feature("Get Account access for User. - v3.0.0")
+  {
+    scenario("we will Get Account access for User.")
+    {
+      Given("Prepare all the parameters:")
+      val bankId = randomBankId
+      val bankAccountId = randomPrivateAccountId(bankId)
+      val provider = defaultProvider
+      val permission = randomAccountPermission(bankId, bankAccountId)
+      val providerId = permission.user.id
+  
+      When("We use a valid access token and valid put json")
+      val reply = getAccountAccesForUser(bankId, bankAccountId, provider,
+                                         providerId, user1
+      )
+      Then("We should get back the updated view")
+      reply.code should equal(200)
+      val response = reply.body.extract[ViewsJsonV300]
+      response.views.length should not equal (0)
     }
   }
 

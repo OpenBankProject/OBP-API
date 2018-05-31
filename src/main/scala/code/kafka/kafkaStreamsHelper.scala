@@ -4,12 +4,13 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorRef}
 import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, ProducerSettings, Subscriptions}
+import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.api.util.APIUtil
+import code.api.util.APIUtil.initPasswd
 import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
 import code.kafka.Topics.TopicTrait
@@ -19,6 +20,7 @@ import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
@@ -33,7 +35,11 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   implicit val materializer = ActorMaterializer()
 
   import materializer._
-  private def key = UUID.randomUUID().toString
+  /**
+    *Random select the partitions number from 0 to kafka.partitions value
+    *The specified partition number will be inside the Key.
+    */
+  private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString
 
   private val consumerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
     ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
@@ -56,10 +62,15 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
   }
 
-  private val consumer: ((String) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic) =>
-    val assignment = Subscriptions.topics(topic)
-    Consumer.plainSource(consumerSettings, assignment)
-      .completionTimeout(completionTimeout)
+  //https://doc.akka.io/docs/akka-stream-kafka/current/consumer.html#sharing-kafkaconsumer
+  private val kafkaConsumer: ActorRef = system.actorOf(KafkaConsumerActor.props(consumerSettings))
+  
+  //we set up the AkkaStreams with one sharing-kafka-consumer pattern
+  //Important: this is the sharing pattern 
+  private val consumerStream: ((String, Int) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic, partition) =>
+    Consumer
+    .plainExternalSource[String, String](kafkaConsumer, Subscriptions.assignment(new TopicPartition(topic, partition)))
+    .completionTimeout(completionTimeout)
   }
 
   private val producerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
@@ -88,20 +99,26 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     * And get the message from the specified partition and filter by key
     */
   private val sendRequestAndGetResponseFromKafka: ((TopicPair, String, String) => Future[String]) = { (topic, key, value) =>
+    //When we send RequestTopic message, contain the partition in it, and when we get the ResponseTopic according to the partition.
+    val specifiedPartition = key.split("_")(0).toInt 
     val requestTopic = topic.request
     val responseTopic = topic.response
     //producer will publish the message to broker
-    val message = new ProducerRecord[String, String](requestTopic, key, value)
+    val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
     producer.send(message)
     
-    //consumer will wait for the message from broker
-    consumer(responseTopic)
+    //consumer will wait for the message from broker, 
+    //we use `sharing-kafka-consumer` from //https://doc.akka.io/docs/akka-stream-kafka/current/consumer.html#sharing-kafkaconsumer
+    //we must specify the partition here, otherwise we can not use the `sharing-kafkaconsumer` pattern. 
+    consumerStream(responseTopic, specifiedPartition)
       .filter(_.key() == key) // double check the key 
       .map { msg => 
         logger.debug(s"sendRequestAndGetResponseFromKafka ~~$topic with $msg")
         msg.value
       }
       // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
+      // Connect this Source to a Sink and run it. The returned value is the materialized value of the Sink.
+      // Here, we return the first value from the Source, eg: Once the kafka message in the Streams, we can get the value. 
       .runWith(Sink.head)
   }
 
@@ -166,7 +183,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       logger.debug("kafka_request[value]: " + value)
       for {
         t <- Future(Topics.topicPairHardCode) // Just have two Topics: obp.request.version and obp.response.version
-        r <- sendRequestAndGetResponseFromKafka(t, key, value)
+        r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, value)
         jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
@@ -181,7 +198,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         t <- Future(Topics.createTopicByClassName(request.getClass.getSimpleName))
         d <- anyToJValueF(request)
         s <- serializeF(d)
-        r <- sendRequestAndGetResponseFromKafka(t,key, s)
+        r <- sendRequestAndGetResponseFromKafka(t,keyAndPartition, s)
         jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {
@@ -197,7 +214,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         t <- Future(Topics.topicPairFromProps) // Just have two Topics: Request and Response
         d <- anyToJValueF(request)
         v <- serializeF(d)
-        r <- sendRequestAndGetResponseFromKafka(t, key, v)
+        r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, v)
         jv <- stringToJValueF(r)
         any <- extractJValueToAnyF(jv)
       } yield {

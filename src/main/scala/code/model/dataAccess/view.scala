@@ -399,9 +399,6 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canDeleteWhereTag_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canInitiateTransaction_ extends MappedBoolean(this){
-    override def defaultValue = false
-  }
   object canAddTransactionRequestToOwnAccount_ extends MappedBoolean(this){ 
     override def defaultValue = false
   }
@@ -513,7 +510,6 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeWhereTag : Boolean = canSeeWhereTag_.get
   def canDeleteWhereTag : Boolean = canDeleteWhereTag_.get
 
-  def canInitiateTransaction: Boolean = canInitiateTransaction_.get
   def canAddTransactionRequestToOwnAccount: Boolean = canAddTransactionRequestToOwnAccount_.get //added following two for payments
   def canAddTransactionRequestToAnyAccount: Boolean = canAddTransactionRequestToAnyAccount_.get
   def canSeeBankAccountCreditLimit: Boolean = canSeeBankAccountCreditLimit_.get

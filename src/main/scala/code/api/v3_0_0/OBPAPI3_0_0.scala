@@ -77,7 +77,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.addTransactionNarrative ::
                           Implementations1_2_1.addWhereTagForViewOnTransaction ::
                           // Now in 3.0.0 "allAccountsAllBanks"::
-                          Implementations1_2_1.bankById ::
+//                          Implementations1_2_1.bankById ::
                           // Implementations1_2_1.createViewForBankAccount ::
                           Implementations1_2_1.deleteCommentForViewOnTransaction ::
                           Implementations1_2_1.deleteCommentForViewOnTransaction ::
@@ -94,7 +94,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.deleteTransactionNarrative ::
                           Implementations1_2_1.deleteViewForBankAccount::
                           Implementations1_2_1.deleteWhereTagForViewOnTransaction ::
-                          Implementations1_2_1.getBanks ::
+//                          Implementations1_2_1.getBanks ::
                           Implementations1_2_1.getCommentsForViewOnTransaction ::
 //                          Implementations1_2_1.getOtherAccountsForBankAccount ::
 //                          Implementations1_2_1.getOtherAccountByIdForBankAccount ::
@@ -172,7 +172,6 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.getKycStatuses ::
                           Implementations2_0_0.getMeeting ::
                           Implementations2_0_0.getMeetings ::
-                          Implementations2_0_0.getPermissionForUserForBankAccount ::
                           Implementations2_0_0.getPermissionsForBankAccount ::
                           Implementations2_0_0.getSocialMediaHandles ::
                           Implementations2_0_0.getTransactionTypes ::
@@ -272,6 +271,9 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.addScope ::
                           Implementations3_0_0.deleteScope ::
                           Implementations3_0_0.getScopes ::
+                          Implementations3_0_0.getBanks ::
+                          Implementations3_0_0.bankById ::
+                          Implementations3_0_0.getPermissionForUserForBankAccount ::
                           Nil
 
 

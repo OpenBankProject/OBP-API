@@ -32,7 +32,7 @@ import java.util.Date
 
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
-import code.api.v1_2_1.JSONFactory._
+import code.api.v1_2_1.JSONFactory.{createViewJSON, _}
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs}
@@ -415,6 +415,7 @@ case class GlossaryItemsJsonV300 (glossary_items: List[GlossaryItemJsonV300])
 
 case class ScopeJson(scope_id: String, role_name: String, bank_id: String)
 case class ScopeJsons(list: List[ScopeJson])
+case class BanksJson(banks: List[BankJSON])
 case class CreateScopeJson(bank_id: String, role_name: String)
 
 object JSONFactory300{
@@ -1079,5 +1080,9 @@ object JSONFactory300{
   
   def createScopeJSONs(l: List[Scope]): ScopeJsons = {
     ScopeJsons(l.map(createScopeJson))
+  }
+
+  def createBanksJson(l: List[Bank]): BanksJson = {
+    BanksJson(l.map(JSONFactory.createBankJSON))
   }
 }
