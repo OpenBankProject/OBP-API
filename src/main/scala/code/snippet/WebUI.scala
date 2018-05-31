@@ -175,6 +175,18 @@ class WebUI extends MdcLoggable{
           ".faq-direct-login-link a [href]" #> faqdirectloginlink
   }
 
+  // OAuth1.0a link on FAQ
+  def faqOAuth1: CssSel = {
+    val faqoauth1link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_1_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server/"))
+    ".faq-oauth-1-link a [href]" #> faqoauth1link
+  }
+
+  // OAuth2.0 link on FAQ
+  def faqOAuth2: CssSel = {
+    val faqoauth2link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_2_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth2-Login/"))
+    ".faq-oauth-2-link a [href]" #> faqoauth2link
+  }
+
   // Support platform link
   def supportPlatformLink: CssSel = {
     val supportplatformlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))
