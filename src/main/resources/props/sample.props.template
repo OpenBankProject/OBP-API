@@ -295,6 +295,9 @@ webui_oauth_2_url =
 # Link to the Glossary on API Explorer
 webui_glossary_url =
 
+# URL of OAuth2.0 server
+oauth2_server_url =
+
 # Link to Privacy Policy on signup page
 webui_agree_privacy_policy_url = https://openbankproject.com/privacy-policy
 
