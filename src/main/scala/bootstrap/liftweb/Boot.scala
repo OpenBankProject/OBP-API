@@ -306,6 +306,13 @@ class Boot extends MdcLoggable {
       logger.info("writeMetrics is false. We will NOT write API metrics")
     }
 
+    // API Metrics (logs of Connector calls)
+    // If set to true we will write each URL with params to a datastore / log file
+    if (APIUtil.getPropsAsBoolValue("write_connector_metrics", false)) {
+      logger.info("writeConnectorMetrics is true. We will write connector metrics")
+    } else {
+      logger.info("writeConnectorMetrics is false. We will NOT write connector metrics")
+    }
 
     // Build SiteMap
     val sitemap = List(
