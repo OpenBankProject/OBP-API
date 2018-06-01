@@ -187,6 +187,12 @@ class WebUI extends MdcLoggable{
     ".faq-oauth-2-link a [href]" #> faqoauth2link
   }
 
+  // Link to Glossary on API Explorer
+  def glossaryLink: CssSel = {
+    val glossarylink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_glossary_url", "https://github.com/OpenBankProject/OBP-API/wiki/Glossary"))
+    ".glossary-link a [href]" #> glossarylink
+  }
+
   // Support platform link
   def supportPlatformLink: CssSel = {
     val supportplatformlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))

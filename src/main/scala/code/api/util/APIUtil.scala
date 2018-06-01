@@ -2030,5 +2030,5 @@ Returns a string showed to the developer
   def getObpApiRoot: String = s"$getServerUrl/obp"
   
   lazy val defaultBankId = APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
-  
+
 }
