@@ -1,6 +1,6 @@
 package code.api.util
 
-import code.api.util.APIUtil.{getObpApiRoot, getServerUrl}
+import code.api.util.APIUtil.{getObpApiRoot, getServerUrl, getOAuth2ServerUrl}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -791,7 +791,7 @@ object Glossary {
         |
         |### Resource Server: API
         |
-        |The resource server hosts the protected user resources. E.g. OP-API
+        |The resource server hosts the protected user resources. E.g. OBP-API
         |
         |### Client: Application
         |
@@ -811,9 +811,28 @@ object Glossary {
         |
         |OBP-API supports at the moment only Authorization Code
         |
-        |### Step 1: Authorization Code Link
+        |### Step 1: Register a new client (aka application or consumer)
         |
-        |    $getServerUrl/openid-connect-server-webapp/authorize?response_type=code&client_id=client&redirect_uri=CALLBACK_URL/&scope=openid
+        |Go to the link [$getOAuth2ServerUrl/manage/dev/dynreg] ($getOAuth2ServerUrl/manage/dev/dynreg)
+				|
+        |Mandatory fields at Main tab:
+				|
+				|* Client name
+				|* Redirect URI(s)
+				|
+				|Mandatory fields at Access tab:
+				|
+				|* Scope
+				|* Grant Types
+				|
+        |### Step 2: Authorization Code Link
+        |
+        |Using your favorite web browser request a URL like this one
+				|
+        |    $getOAuth2ServerUrl/authorize?response_type=code&client_id=CLIENTID&redirect_uri=CALLBACK_URL/&scope=openid
+        |
+        |This assumes that that you are already logged in at the OAuth2 authentication server [$getOAuth2ServerUrl]($getOAuth2ServerUrl). Otherwise, you will be redirected to [$getOAuth2ServerUrl/login]($getOAuth2ServerUrl/login).
+        |Please note that you use the same credentials as the sandbox [$getServerUrl]($getServerUrl) to login to the OAuth2 authentication server.
         |
         |Here is an explanation of the link components:
         |
@@ -827,27 +846,25 @@ object Glossary {
         |
         |* scope=openid: specifies the level of access that the application is requesting
         |
-        |### Step 2: User Authorizes Application
+        |### Step 3: User Authorizes Application
         |
-        |### Step 3: Application Receives Authorization Code
+        |Please authorize the application on the OAuth2 server web interface by clicking on "Authorize".
         |
-        |If the user clicks "Authorize Application", the service redirects the user-agent to the application redirect URI, which was specified during the client registration, along with an authorization code.
+        |### Step 4: Application Receives Authorization Code
         |
-        |    CALLBACK_URL/?code=AUTHORIZATION_CODE
+        |If the user clicks "Authorize", the service redirects the user-agent to the application redirect URI, which was specified during the client registration, along with an authorization code.
         |
-        |The redirect would look something like this: https://openbankproject.com/?code=htm4zN
+        |    CALLBACK_URL/&scope=openid/?code=AUTHORIZATION_CODE
         |
-        |### Step 4: Application Requests Access Token
+        |The redirect would look something like this: https://YOUR-APPLICATION.com/&scope=openid/?code=h7jSgP
+        |
+        |### Step 5: Application Requests Access Token
         |
         |The application requests an access token from the API, by passing the authorization code along with authentication details, including the client secret, to the API token endpoint.
         |
-        |    $getServerUrl/openid-connect-server-webapp/token?client_id=CLIENT_ID&client_secret=CLIENT_SECRET&grant_type=authorization_code&code=AUTHORIZATION_CODE&redirect_uri=CALLBACK_URL
+        |    $getOAuth2ServerUrl/token?client_id=CLIENT_ID&client_secret=CLIENT_SECRET&grant_type=authorization_code&code=AUTHORIZATION_CODE&redirect_uri=CALLBACK_URL
         |
-        |E.g. :
-        |
-        |    curl -i -X POST "$getServerUrl/openid-connect-server-webapp/token?client_id=client&client_secret=1234&grant_type=authorization_code&code=gHOPDa&redirect_uri=https://openbankproject.com/"
-        |
-        |### Step 5: Application Receives Access Token
+        |### Step 6: Application Receives Access Token
         |
         |If the authorization is valid, the API will send a response containing the access token to the application. The entire response will look something like this:
         |
@@ -858,11 +875,11 @@ object Glossary {
         |    "scope": "openid"
         |    }
         |
-        |### Step 6: Try a REST call using the header
+        |### Step 7: Try a REST call using the header
         |
         |Using your favorite http client:
         |
-        |    GET /obp/v3.0.0/users/current
+        |    GET $getServerUrl/obp/v3.0.0/users/current
         |
         |Body
         |
@@ -878,7 +895,7 @@ object Glossary {
         |
         |CURL example:
         |
-        |    curl -v -H 'Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw" $getServerUrl/obp/v3.0.0/users/current
+        |    curl -v -H 'Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw"' $getServerUrl/obp/v3.0.0/users/current
         |
 			""")
   }
