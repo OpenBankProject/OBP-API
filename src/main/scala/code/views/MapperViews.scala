@@ -655,7 +655,6 @@ object MapperViews extends Views with MdcLoggable {
       .canAddWhereTag_(true)
       .canSeeWhereTag_(true)
       .canDeleteWhereTag_(true)
-      .canInitiateTransaction_(true)
       .canSeeBankRoutingScheme_(true) //added following in V300
       .canSeeBankRoutingAddress_(true)
       .canSeeBankAccountRoutingScheme_(true)
@@ -742,7 +741,6 @@ object MapperViews extends Views with MdcLoggable {
       .canAddWhereTag_(true)
       .canSeeWhereTag_(true)
       .canDeleteWhereTag_(true)
-      .canInitiateTransaction_(false)
       .canSeeBankRoutingScheme_(true) //added following in V300
       .canSeeBankRoutingAddress_(true)
       .canSeeBankAccountRoutingScheme_(true)

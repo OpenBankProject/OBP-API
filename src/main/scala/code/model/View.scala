@@ -184,7 +184,6 @@ case class UpdateViewJSON(
   * @define canSeeWhereTag If true, the view can show the Transaction Where Tag
   * @define canDeleteWhereTag If true, the view can delete the Transaction Where Tag
 
-  * @define canInitiateTransaction If true, view can initiate Transaction Request. Note. Owner view may be required. TODO check this.
   * @define canAddCounterparty If true, view can add counterparty / create counterparty.
 
 
@@ -306,7 +305,6 @@ trait View {
   def canSeeWhereTag : Boolean
   def canDeleteWhereTag : Boolean
 
-  def canInitiateTransaction: Boolean  
   def canAddTransactionRequestToOwnAccount: Boolean   //added following two for payments
   def canAddTransactionRequestToAnyAccount: Boolean  
   def canSeeBankAccountCreditLimit: Boolean

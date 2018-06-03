@@ -264,12 +264,16 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second){
         val req = OutboundGetBanks(AuthInfo())
-        logger.info(s"Kafka getBanks Req is: $req")
+        logger.debug(s"Kafka getBanks Req is: $req")
 
         val box: Box[(List[InboundBank], Status)] = for {
+         _ <- Full(logger.debug("Enter GetBanks BOX1: prekafka") )
           kafkaMessage <- processToBox[OutboundGetBanks](req)
-          inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error"
-          (inboundBanks, status) <- Full(inboundGetBanks.data, inboundGetBanks.status)
+         _ <- Full(logger.debug(s"Enter GetBanks BOX2: postkafka: $kafkaMessage") )
+         inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error"
+         _ <- Full(logger.debug(s"Enter GetBanks BOX3 : $inboundGetBanks") )
+         (inboundBanks, status) <- Full(inboundGetBanks.data, inboundGetBanks.status)
+         _ <- Full(logger.debug(s"Enter GetBanks BOX4: $inboundBanks") )
         } yield {
           (inboundBanks, status)
         }
@@ -287,12 +291,49 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
-        logger.info(s"Kafka getBanks says res is $res")
+        logger.debug(s"Kafka getBanks says res is $res")
         res
       }
     }
   }("getBanks")
-  
+
+  override def getBanksFuture(): Future[Box[List[Bank]]] = saveConnectorMetric {
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val req = OutboundGetBanks(AuthInfo())
+        logger.debug(s"Kafka getBanksFuture Req is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetBanks](req) map {
+            f =>
+              try {
+                f.extract[InboundGetBanks]
+              } catch {
+                case e: Exception => throw new MappingException(s"$InboundGetBanks extract error", e)
+              }
+          } map {
+            (x => (x.data, x.status))
+          }
+        } yield {
+          Full(res)
+        }
+
+        val res = future map {
+          case Full((banks, status)) if (status.errorCode=="") =>
+            val banksResponse =  banks map (new Bank2(_))
+            logger.debug(s"Kafka getBanksFuture Res says:  is: $banksResponse")
+            Full(banksResponse)
+          case Full((banks, status)) if (status.errorCode!="") =>
+            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
+          case _ =>
+            Failure(ErrorMessages.UnknownError)
+        }
+        logger.debug(s"Kafka getBanksFuture says res is $res")
+        res
+      }
+    }
+  }("getBanks")
   
   messageDocs += MessageDoc(
     process = "obp.get.Bank",
@@ -356,6 +397,44 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             Failure(ErrorMessages.UnknownError)
         }
 
+      }
+    }
+  }("getBank")
+  
+  override def getBankFuture(bankId: BankId): Future[Box[Bank]] = saveConnectorMetric {
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val req = OutboundGetBank(authInfo = AuthInfo(), bankId.toString)
+        logger.debug(s"Kafka getBankFuture Req is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetBank](req) map {
+            f =>
+              try {
+                f.extract[InboundGetBank]
+              } catch {
+                case e: Exception => throw new MappingException(s"$InboundGetBank extract error", e)
+              }
+          } map {
+            (x => (x.data, x.status))
+          }
+        } yield {
+          Full(res)
+        }
+
+        val res = future map {
+          case Full((bank, status)) if (status.errorCode=="") =>
+            val bankResponse =  (new Bank2(bank))
+            logger.debug(s"Kafka getBankFuture Res says:  is: $bankResponse")
+            Full(bankResponse)
+          case Full((bank, status)) if (status.errorCode!="") =>
+            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
+          case _ =>
+            Failure(ErrorMessages.UnknownError)
+        }
+        logger.debug(s"Kafka getBankFuture says res is $res")
+        res
       }
     }
   }("getBank")
@@ -1572,7 +1651,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchesTTL second){
         val req = OutboundGetBranches(AuthInfo(), bankId.toString)
-        logger.info(s"Kafka getBranchesFuture Req is: $req")
+        logger.debug(s"Kafka getBranchesFuture Req is: $req")
 
         val future: Future[(List[InboundBranchVJune2017], Status)] = for {
           res <- processToFuture[OutboundGetBranches](req) map {
@@ -1660,7 +1739,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(branchTTL second){
         val req = OutboundGetBranch(AuthInfo(), bankId.toString, branchId.toString)
-        logger.info(s"Kafka getBranchFuture Req is: $req")
+        logger.debug(s"Kafka getBranchFuture Req is: $req")
 
         val future: Future[(Option[InboundBranchVJune2017], Status)] = for {
           res <- processToFuture[OutboundGetBranch](req) map {
@@ -1753,7 +1832,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second){
         val req = OutboundGetAtms(AuthInfo(), bankId.value)
-        logger.info(s"Kafka getAtmsFuture Req is: $req")
+        logger.debug(s"Kafka getAtmsFuture Req is: $req")
 
         val future = for {
           res <- processToFuture[OutboundGetAtms](req) map {
@@ -1845,7 +1924,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmTTL second){
         val req = OutboundGetAtm(AuthInfo(), bankId.value, atmId.value)
-        logger.info(s"Kafka getAtmFuture Req is: $req")
+        logger.debug(s"Kafka getAtmFuture Req is: $req")
 
         val future: Future[(Option[InboundAtmJune2017], Status)] = for {
           res <- processToFuture[OutboundGetAtm](req) map {

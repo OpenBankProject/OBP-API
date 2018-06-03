@@ -7,12 +7,13 @@ import java.util.{Date, Locale}
 import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, _}
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.Glossary.GlossaryItem
 import code.api.util._
+import code.api.v1_2_1.{BankJSON, BanksJSON, JSONFactory}
 import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
@@ -45,6 +46,7 @@ import scala.concurrent.Future
 import code.metrics.AggregateMetrics
 import code.scope.Scope
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 
 
@@ -193,6 +195,46 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getPermissionForUserForBankAccount,
+      implementedInApiVersion,
+      "getPermissionForUserForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
+      "Get Account access for User.",
+      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
+         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+        |The user needs to have access to the owner view.""",
+      emptyObjectJson,
+      viewsJsonV300,
+      List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagView, apiTagAccount, apiTagUser))
+  
+    lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
+      //get access for specific user
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: provider :: providerId :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            bank <- Future { Bank(bankId) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            account <- Future { BankAccount(bankId, accountId, callContext) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(AccountNotFound, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            permission <- Future { account permission(u, provider, providerId) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+          } yield {
+            (createViewsJSON(permission.views.sortBy(_.viewId.value)), callContext)
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       updateViewForBankAccount,
@@ -2243,6 +2285,70 @@ trait APIMethods300 {
            
           } yield
             (JSONFactory300.createScopeJSONs(scopes), callContext)
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getBanks,
+      implementedInApiVersion,
+      "getBanks",
+      "GET",
+      "/banks",
+      "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server:
+        |
+        |* ID used as parameter in URLs
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
+      emptyObjectJson,
+      banksJSON,
+      List(UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    //The Json Body is totally the same as V121, just use new style endpoint.
+    lazy val getBanks : OBPEndpoint = {
+      case "banks" :: Nil JsonGet req => {
+        cc =>
+          for {
+            banksBox <- Connector.connector.vend.getBanksFuture()
+            banks <- unboxFullAndWrapIntoFuture{ banksBox }
+          } yield 
+            (JSONFactory300.createBanksJson(banks), Some(cc))
+      }
+    }
+  
+    resourceDocs += ResourceDoc(
+      bankById,
+      implementedInApiVersion,
+      "bankById",
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
+      emptyObjectJson,
+      bankJSON,
+      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    //The Json Body is totally the same as V121, just use new style endpoint.
+    lazy val bankById : OBPEndpoint = {
+      //get bank by id
+      case "banks" :: BankId(bankId) :: Nil JsonGet req => {
+        cc =>
+          for {
+            bankBox <- Connector.connector.vend.getBankFuture(bankId)
+            bank <- unboxFullAndWrapIntoFuture{ bankBox }
+          } yield
+            (JSONFactory.createBankJSON(bank), Some(cc))
       }
     }
 

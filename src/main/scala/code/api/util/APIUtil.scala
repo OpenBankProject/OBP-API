@@ -1764,7 +1764,7 @@ Returns a string showed to the developer
                       val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
                       val callContext = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
-                      (Full(u), callContext.map(_.copy(consumer=consumer)))
+                      (Full(u), callContext.map(_.copy(consumer=consumer, user = Full(u))))
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)
                     case _ =>
@@ -2028,7 +2028,10 @@ Returns a string showed to the developer
 
   // All OBP REST end points start with /obp
   def getObpApiRoot: String = s"$getServerUrl/obp"
+
+  // Get OAuth2 Authentication Server URL
+  def getOAuth2ServerUrl: String = getPropsValue("oauth2_server_url").openOr(MissingPropsValueAtThisInstance + "oauth2_server_url")
   
   lazy val defaultBankId = APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
-  
+
 }
