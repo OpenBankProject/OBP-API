@@ -10,7 +10,6 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.api.util.APIUtil
-import code.api.util.APIUtil.initPasswd
 import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
 import code.kafka.Topics.TopicTrait
@@ -62,15 +61,22 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
   }
 
+  def createKafkaConsumer= {
+    val kafkaConsumer= system.actorOf(KafkaConsumerActor.props(consumerSettings))
+    logger.debug(s"KafkaStreamsHelperActor.createKafkaConsumer :$kafkaConsumer")
+    kafkaConsumer
+  }
   //https://doc.akka.io/docs/akka-stream-kafka/current/consumer.html#sharing-kafkaconsumer
-  private val kafkaConsumer: ActorRef = system.actorOf(KafkaConsumerActor.props(consumerSettings))
+  private val kafkaConsumer: ActorRef = createKafkaConsumer
   
   //we set up the AkkaStreams with one sharing-kafka-consumer pattern
   //Important: this is the sharing pattern 
-  private val consumerStream: ((String, Int) => Source[ConsumerRecord[String, String], Consumer.Control]) = { (topic, partition) =>
-    Consumer
+  def consumerStream (topic: String, partition: Int): Source[ConsumerRecord[String, String], Consumer.Control] = {
+    val consumerStream =Consumer
     .plainExternalSource[String, String](kafkaConsumer, Subscriptions.assignment(new TopicPartition(topic, partition)))
     .completionTimeout(completionTimeout)
+    logger.debug(s"KafkaStreamsHelperActor.consumerStream :$consumerStream")
+    consumerStream
   }
 
   private val producerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {

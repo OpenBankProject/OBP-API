@@ -1287,11 +1287,11 @@ Returns a string showed to the developer
 
 
   def saveConnectorMetric[R](blockOfCode: => R)(nameOfFunction: String = "")(implicit nameOfConnector: String): R = {
-    val t0 = System.currentTimeMillis()
     val result = blockOfCode
-    // call-by-name
-    val t1 = System.currentTimeMillis()
-    if (getPropsAsBoolValue("write_metrics", false)){
+    if (getPropsAsBoolValue("write_connector_metrics", false)){
+      val t0 = System.currentTimeMillis()
+      // call-by-name
+      val t1 = System.currentTimeMillis()
       val correlationId = getCorrelationId()
       Future {
         ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
