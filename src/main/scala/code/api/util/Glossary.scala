@@ -815,7 +815,7 @@ object Glossary {
         |
         |[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer
         |
-        |Reggister your App key [HERE]($getServerUrl/consumer-registration)
+        |Register your App key [HERE]($getServerUrl/consumer-registration)
         |
         |Copy and paste the CONSUMER_KEY, CONSUMER_SECRET and REDIRECT_URL for the subsequent steps below.
         |
@@ -844,6 +844,8 @@ object Glossary {
         |### Step 3: User Authorizes Application
         |
         |Please authorize the application on the OAuth2 server web interface by clicking on "Authorize".
+        |
+        |<img src="https://static.openbankproject.com/images/sandbox/oauth2-authorize.png" width="885" height="402.75"></img>
         |
         |### Step 4: Application Receives Authorization Code
         |
