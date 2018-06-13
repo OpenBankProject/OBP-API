@@ -18,7 +18,7 @@ import net.liftweb.common.{Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
-import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 
@@ -109,9 +109,26 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     val specifiedPartition = key.split("_")(0).toInt 
     val requestTopic = topic.request
     val responseTopic = topic.response
-    //producer will publish the message to broker
-    val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
-    producer.send(message)
+
+    /**
+      * In order to send messages asynchronously and still handle error scenarios, the producer supports adding a callback when sending a record.
+      * Ths function is an example of how we send a message and use a callback to log the message error if any
+      */
+    def sendAsync(requestTopic: String, specifiedPartition: Int, key: String, value: String): Unit = {
+      val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
+      producer.send(message, new Callback {
+        //producer will publish the message to broker
+        override def onCompletion(metadata: RecordMetadata, e: Exception): Unit = {
+          if (e != null) {
+            val msg = e.printStackTrace()
+            logger.error(s"sendRequestAndGetResponseFromKafka ~~$topic with $msg")
+          }
+        }
+      })
+
+    }
+    // Sending a Message Asynchronously
+    sendAsync(requestTopic, specifiedPartition, key, value)
     
     //consumer will wait for the message from broker, 
     //we use `sharing-kafka-consumer` from //https://doc.akka.io/docs/akka-stream-kafka/current/consumer.html#sharing-kafkaconsumer
