@@ -17,7 +17,7 @@ import code.api.v1_2_1.{BankJSON, BanksJSON, JSONFactory}
 import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
-import code.bankconnectors.{Connector, OBPFromDate, OBPQueryParam, OBPToDate}
+import code.bankconnectors._
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches
 import code.branches.Branches.BranchId
@@ -1434,14 +1434,33 @@ trait APIMethods300 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
         cc =>
+          val limit = S.param("limit")
+          val offset = S.param("offset")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            queryParams <- unboxFullAndWrapIntoFuture{ getHttpParams(callContext.get.requestHeaders) }
-            users <- Users.users.vend.getAllUsersF(queryParams)
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
+              limit match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
+              offset match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            users <- Users.users.vend.getAllUsersF(List(OBPLimit(limit.getOrElse("1000").toInt), OBPOffset(offset.getOrElse("0").toInt)))
           } yield {
             (JSONFactory300.createUserJSONs (users), callContext)
           }

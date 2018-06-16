@@ -811,36 +811,31 @@ object Glossary {
         |
         |OBP-API supports at the moment only Authorization Code
         |
-        |### Step 1: Register a new client (aka application or consumer)
+        |### Step 1: Get your App key
         |
-        |Go to the link [$getOAuth2ServerUrl/manage/dev/dynreg] ($getOAuth2ServerUrl/manage/dev/dynreg)
-				|
-        |Mandatory fields at Main tab:
-				|
-				|* Client name
-				|* Redirect URI(s)
-				|
-				|Mandatory fields at Access tab:
-				|
-				|* Scope
-				|* Grant Types
-				|
+        |[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer
+        |
+        |Register your App key [HERE]($getServerUrl/consumer-registration)
+        |
+        |Copy and paste the CONSUMER_KEY, CONSUMER_SECRET and REDIRECT_URL for the subsequent steps below.
+        |
+        |
         |### Step 2: Authorization Code Link
         |
         |Using your favorite web browser request a URL like this one
 				|
-        |    $getOAuth2ServerUrl/authorize?response_type=code&client_id=CLIENTID&redirect_uri=CALLBACK_URL/&scope=openid
+        |    $getOAuth2ServerUrl/authorize?response_type=code&client_id=CONSUMER_KEY&redirect_uri=REDIRECT_URL&scope=openid
         |
         |This assumes that that you are already logged in at the OAuth2 authentication server [$getOAuth2ServerUrl]($getOAuth2ServerUrl). Otherwise, you will be redirected to [$getOAuth2ServerUrl/login]($getOAuth2ServerUrl/login).
         |Please note that you use the same credentials as the sandbox [$getServerUrl]($getServerUrl) to login to the OAuth2 authentication server.
         |
         |Here is an explanation of the link components:
         |
-        |* $getServerUrl/openid-connect-server-webapp/authorize: the API authorization endpoint
+        |* $getOAuth2ServerUrl/authorize: the API authorization endpoint
         |
-        |* client_id=client_id: the application's client ID (how the API identifies the application)
+        |* client_id=CONSUMER_KEY: the application's client ID (how the API identifies the application)
         |
-        |* redirect_uri=CALLBACK_URL: where the service redirects the user-agent after an authorization code is granted
+        |* redirect_uri=REDIRECT_URL: where the service redirects the user-agent after an authorization code is granted
         |
         |* response_type=code: specifies that your application is requesting an authorization code grant
         |
@@ -850,11 +845,13 @@ object Glossary {
         |
         |Please authorize the application on the OAuth2 server web interface by clicking on "Authorize".
         |
+        |<img src="https://static.openbankproject.com/images/sandbox/oauth2-authorize.png" width="885" height="402.75"></img>
+        |
         |### Step 4: Application Receives Authorization Code
         |
         |If the user clicks "Authorize", the service redirects the user-agent to the application redirect URI, which was specified during the client registration, along with an authorization code.
         |
-        |    CALLBACK_URL/&scope=openid/?code=AUTHORIZATION_CODE
+        |    REDIRECT_URL/&scope=openid/?code=AUTHORIZATION_CODE
         |
         |The redirect would look something like this: https://YOUR-APPLICATION.com/&scope=openid/?code=h7jSgP
         |
@@ -862,7 +859,7 @@ object Glossary {
         |
         |The application requests an access token from the API, by passing the authorization code along with authentication details, including the client secret, to the API token endpoint.
         |
-        |    $getOAuth2ServerUrl/token?client_id=CLIENT_ID&client_secret=CLIENT_SECRET&grant_type=authorization_code&code=AUTHORIZATION_CODE&redirect_uri=CALLBACK_URL
+        |    POST $getOAuth2ServerUrl/token?client_id=CONSUMER_KEY&client_secret=CONSUMER_SECRET&grant_type=authorization_code&code=AUTHORIZATION_CODE&redirect_uri=REDIRECT_URL
         |
         |### Step 6: Application Receives Access Token
         |
@@ -895,7 +892,7 @@ object Glossary {
         |
         |CURL example:
         |
-        |    curl -v -H 'Authorization: Bearer "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw"' $getServerUrl/obp/v3.0.0/users/current
+        |    curl -v -H 'Authorization: Bearer eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw' $getServerUrl/obp/v3.0.0/users/current
         |
 			""")
   }

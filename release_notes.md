@@ -4,6 +4,7 @@
 ```
 Date          Commit        Action 
 
+01/06/2018    a286684       Added Props write_connector_metrics, default is false. This decides whether the connector level metric save or not
 29/05/2018    c0d50b5       Added Props kafka.partitions, default is 10. This should match the partitions in Kafka config
 29/05/2018    c0d50b5       Added Props kafka.client.id, default is false.This is a unique id for each api instance. Must set it manully in props
 08/05/2018    38e8641       Added Props require_scopes, default is false. Api will not use the scope role guards.
