@@ -309,18 +309,18 @@ trait View {
   def canAddTransactionRequestToAnyAccount: Boolean  
   def canSeeBankAccountCreditLimit: Boolean
 
-  def moderate(transaction : Transaction): Box[ModeratedTransaction] = {
-    moderate(transaction, moderate(transaction.thisAccount))
+  def moderateTransaction(transaction : Transaction): Box[ModeratedTransaction] = {
+    moderateTransactionUsingModeratedAccount(transaction, moderateAccount(transaction.thisAccount))
   }
 
   // In the future we can add a method here to allow someone to show only transactions over a certain limit
-  private def moderate(transaction: Transaction, moderatedAccount : Option[ModeratedBankAccount]): Box[ModeratedTransaction] = {
+  private def moderateTransactionUsingModeratedAccount(transaction: Transaction, moderatedAccount : Option[ModeratedBankAccount]): Box[ModeratedTransaction] = {
 
     lazy val moderatedTransaction = {
       //transaction data
       val transactionId = transaction.id
       val transactionUUID = transaction.uuid
-      val otherBankAccount = moderate(transaction.otherAccount)
+      val otherBankAccount = moderateOtherAccount(transaction.otherAccount)
 
       //transaction metadata
       val transactionMetadata =
@@ -464,42 +464,42 @@ trait View {
     }
 
   }
-  
+
   private def moderateCore(transactionCore: TransactionCore, moderatedAccount : Option[ModeratedBankAccount]): Box[ModeratedTransactionCore] = {
-    
+
     lazy val moderatedTransaction = {
       //transaction data
       val transactionId = transactionCore.id
       val otherBankAccount = moderateCore(transactionCore.otherAccount)
-      
+
       val transactionType =
         if (canSeeTransactionType) Some(transactionCore.transactionType)
         else None
-      
+
       val transactionAmount =
         if (canSeeTransactionAmount) Some(transactionCore.amount)
         else None
-      
+
       val transactionCurrency =
         if (canSeeTransactionCurrency) Some(transactionCore.currency)
         else None
-      
+
       val transactionDescription =
         if (canSeeTransactionDescription) transactionCore.description
         else None
-      
+
       val transactionStartDate =
         if (canSeeTransactionStartDate) Some(transactionCore.startDate)
         else None
-      
+
       val transactionFinishDate =
         if (canSeeTransactionFinishDate) Some(transactionCore.finishDate)
         else None
-      
+
       val transactionBalance =
         if (canSeeTransactionBalance) transactionCore.balance.toString()
         else ""
-      
+
       new ModeratedTransactionCore(
         id = transactionId,
         bankAccount = moderatedAccount,
@@ -513,13 +513,13 @@ trait View {
         balance = transactionBalance
       )
     }
-    
-    
+
+
     val belongsToModeratedAccount : Boolean = moderatedAccount match {
       case Some(acc) => acc.accountId == transactionCore.thisAccount.accountId && acc.bankId == transactionCore.thisAccount.bankId
       case None => true
     }
-    
+
     if(!belongsToModeratedAccount) {
       val failMsg = "Attempted to moderate a transaction using the incorrect moderated account"
       viewLogger.warn(failMsg)
@@ -527,10 +527,10 @@ trait View {
     } else {
       Full(moderatedTransaction)
     }
-    
+
   }
-  
-  
+
+
   def moderateTransactionsWithSameAccount(transactions : List[Transaction]) : Box[List[ModeratedTransaction]] = {
 
     val accountUids = transactions.map(t => BankIdAccountId(t.bankId, t.accountId))
@@ -543,19 +543,19 @@ trait View {
       transactions.headOption match {
         case Some(firstTransaction) =>
           // Moderate the *This Account* based on the first transaction, Because all the transactions share the same thisAccount. So we only need modetaed one account is enough for all the transctions.
-          val moderatedAccount = moderate(firstTransaction.thisAccount)
+          val moderatedAccount = moderateAccount(firstTransaction.thisAccount)
           // Moderate each *Transaction* based on the moderated Account
-          Full(transactions.flatMap(transaction => moderate(transaction, moderatedAccount)))
+          Full(transactions.flatMap(transaction => moderateTransactionUsingModeratedAccount(transaction, moderatedAccount)))
         case None =>
           Full(Nil)
       }
     }
   }
-  
+
   def moderateTransactionsWithSameAccountCore(transactionsCore : List[TransactionCore]) : Box[List[ModeratedTransactionCore]] = {
-    
+
     val accountUids = transactionsCore.map(t => BankIdAccountId(t.thisAccount.bankId, t.thisAccount.accountId))
-    
+
     // This function will only accept transactions which have the same This Account.
     if(accountUids.toSet.size > 1) {
       viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
@@ -564,7 +564,7 @@ trait View {
       transactionsCore.headOption match {
         case Some(firstTransaction) =>
           // Moderate the *This Account* based on the first transaction, Because all the transactions share the same thisAccount. So we only need modetaed one account is enough for all the transctions.
-          val moderatedAccount = moderate(firstTransaction.thisAccount)
+          val moderatedAccount = moderateAccount(firstTransaction.thisAccount)
           // Moderate each *Transaction* based on the moderated Account
           Full(transactionsCore.flatMap(transactionCore => moderateCore(transactionCore, moderatedAccount)))
         case None =>
@@ -573,7 +573,7 @@ trait View {
     }
   }
 
-  def moderate(bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
+  def moderateAccount(bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
     if(canSeeTransactionThisBankAccount)
     {
       val owners : Set[User] = if(canSeeBankAccountOwners) bankAccount.owners else Set()
@@ -588,9 +588,9 @@ trait View {
       val bankName = if(canSeeBankAccountBankName) Some(bankAccount.bankName) else None
       val bankId = bankAccount.bankId
       //From V300, use scheme and address stuff...
-      val bankRoutingScheme = if(canSeeBankRoutingScheme) Some(bankAccount.bankRoutingScheme) else None 
-      val bankRoutingAddress = if(canSeeBankRoutingAddress) Some(bankAccount.bankRoutingAddress) else None 
-      val accountRoutingScheme = if(canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None 
+      val bankRoutingScheme = if(canSeeBankRoutingScheme) Some(bankAccount.bankRoutingScheme) else None
+      val bankRoutingAddress = if(canSeeBankRoutingAddress) Some(bankAccount.bankRoutingAddress) else None
+      val accountRoutingScheme = if(canSeeBankAccountRoutingScheme) Some(bankAccount.accountRoutingScheme) else None
       val accountRoutingAddress = if(canSeeBankAccountRoutingAddress) Some(bankAccount.accountRoutingAddress) else None
       val accountRoutings = if(canSeeBankAccountRoutingScheme && canSeeBankAccountRoutingAddress) bankAccount.accountRoutings else Nil
       val accountRules = if(canSeeBankAccountCreditLimit) bankAccount.accountRules else Nil
@@ -623,7 +623,7 @@ trait View {
   }
 
   // Moderate the Counterparty side of the Transaction (i.e. the Other Account involved in the transaction)
-  def moderate(otherBankAccount : Counterparty) : Box[ModeratedOtherBankAccount] = {
+  def moderateOtherAccount(otherBankAccount : Counterparty) : Box[ModeratedOtherBankAccount] = {
     if (canSeeTransactionOtherBankAccount)
     {
       //other account data
