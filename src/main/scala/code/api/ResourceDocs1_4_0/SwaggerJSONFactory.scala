@@ -216,7 +216,7 @@ object SwaggerJSONFactory {
     val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       
       //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
-      val pathAddedObpandVersion = s"/$ApiPathZero/" + infoApiVersion.vDottedApiVersion + mrd._1
+      val pathAddedObpandVersion = mrd._1
       //`/obp/v3.0.0/banks/BANK_ID` --> `/obp/v3.0.0/banks/{BANK_ID}`
       val path =
         pathAddedObpandVersion

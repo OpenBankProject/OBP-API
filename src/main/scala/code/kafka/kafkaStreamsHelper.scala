@@ -2,23 +2,25 @@ package code.kafka
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import akka.kafka.scaladsl.Consumer
 import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.Source
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
 import code.kafka.Topics.TopicTrait
+import code.kafka.actor.RequestResponseActor
+import code.kafka.actor.RequestResponseActor.Request
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
-import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 
@@ -106,45 +108,62 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     */
   private val sendRequestAndGetResponseFromKafka: ((TopicPair, String, String) => Future[String]) = { (topic, key, value) =>
     //When we send RequestTopic message, contain the partition in it, and when we get the ResponseTopic according to the partition.
-    val specifiedPartition = key.split("_")(0).toInt 
     val requestTopic = topic.request
     val responseTopic = topic.response
-    //producer will publish the message to broker
-    val message = new ProducerRecord[String, String](requestTopic, specifiedPartition, key, value)
-    producer.send(message)
-    
-    //consumer will wait for the message from broker, 
-    //we use `sharing-kafka-consumer` from //https://doc.akka.io/docs/akka-stream-kafka/current/consumer.html#sharing-kafkaconsumer
-    //we must specify the partition here, otherwise we can not use the `sharing-kafkaconsumer` pattern. 
-    consumerStream(responseTopic, specifiedPartition)
-      .filter(_.key() == key) // double check the key 
-      .map { msg => 
-        logger.debug(s"sendRequestAndGetResponseFromKafka ~~$topic with $msg")
-        msg.value
-      }
-      // .throttle(1, FiniteDuration(10, MILLISECONDS), 1, Shaping)
-      // Connect this Source to a Sink and run it. The returned value is the materialized value of the Sink.
-      // Here, we return the first value from the Source, eg: Once the kafka message in the Streams, we can get the value. 
-      .runWith(Sink.head)
+    if (NorthSideConsumer.listOfTopics.exists(_ == responseTopic)) {
+      logger.error(s"North Kafka Consumer is not subscribed to a topic: $responseTopic")
+    }
+    // This actor is used to listen to a message which will be sent by NorthSideConsumer
+    val actorListener = context.actorOf(Props[RequestResponseActor], key)
+    // Start North Side Consumer if it's not already started
+    KafkaConsumer.consumer001.start(context)
+
+    /**
+      * This function is used o send Kafka message in Async way to a Kafka broker
+      * In case the the broker cannot accept the message an error is logged
+      * @param requestTopic A topic used to send Kafka message to Adapter side
+      * @param key Kafka Message key
+      * @param value Kafka Message value
+      */
+    def sendAsync(requestTopic: String, key: String, value: String): Unit = {
+      val message = new ProducerRecord[String, String](requestTopic, key, value)
+      logger.debug(s" kafka producer : $message")
+      producer.send(message, new Callback {
+        override def onCompletion(metadata: RecordMetadata, e: Exception): Unit = {
+          if (e != null) {
+            val msg = e.printStackTrace()
+            logger.error(s"unknown error happened in kafka producer,the following message to do producer properly: $message")
+            actorListener ! PoisonPill
+          }
+        }
+      })
+
+    }
+    //producer publishes the message to a broker
+    sendAsync(requestTopic, key, value)
+
+    import akka.pattern.ask
+    // Listen to a message which will be sent by NorthSideConsumer
+    (actorListener ? Request(key, value)).mapTo[String]
   }
 
   private val stringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
-    logger.debug("kafka-response-stringToJValueF:" + r)
+    logger.debug("kafka-consumer-stringToJValueF:" + r)
     Future(json.parse(r))
   }
 
   val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
-    logger.debug("kafka-response-extractJValueToAnyF:" + r)
+    logger.debug("kafka-consumer-extractJValueToAnyF:" + r)
     Future(extractResult(r))
   }
 
   val anyToJValueF: (Any => Future[json.JValue]) = { m =>
-    logger.debug("kafka-request-anyToJValueF:" + m)
+    logger.debug("kafka-produce-anyToJValueF:" + m)
     Future(Extraction.decompose(m))
   }
 
   val serializeF: (json.JValue => Future[String]) = { m =>
-    logger.debug("kafka-request-serializeF:" + m)
+    logger.debug("kafka-produce-serializeF:" + m)
     Future(json.compactRender(m))
   }
 
@@ -237,7 +256,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
   */
 case class TopicPair(request: String, response: String)
 
-object Topics {
+object Topics extends KafkaConfig {
   
   /**
     * Two topics:
@@ -255,25 +274,16 @@ object Topics {
   def topicPairHardCode = TopicPair("obp.Request.version", "obp.Response.version")
 
   def createTopicByClassName(className: String): TopicPair = {
-    /**
-      * get the connectorVersion from Props connector attribute
-      * eg: in Props, connector=kafka_vJune2017
-      *     -->
-      *     connectorVersion = June2017
-      */
-    val connectorVersion = {
-      val connectorNameFromProps = APIUtil.getPropsValue("connector").openOr("June2017")
-      val c = if (connectorNameFromProps.contains("_")) connectorNameFromProps.split("_")(1) else connectorNameFromProps
-      c.replaceFirst("v", "")
-    }
   
     /**
       *  eg: 
-      *  obp.June2017.N.GetBank
-      *  obp.June2017.S.GetBank
+      *  from.obp.api.1.to.adapter.mf.caseclass.GetBank
+      *  to.obp.api.1.caseclass.GetBank
       */
-    TopicPair(s"obp.${connectorVersion}.N." + className.replace("$", ""),
-      s"obp.${connectorVersion}.S." + className.replace("$", ""))
+    TopicPair(
+      s"from.${clientId}.to.adapter.mf.caseclass.${className.replace("$", "")}",
+      s"to.${clientId}.caseclass.${className.replace("$", "")}"
+    )
   }
   
   // @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala 

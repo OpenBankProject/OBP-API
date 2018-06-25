@@ -14,7 +14,7 @@ object JSONFactory_UKOpenBanking_200 {
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
-  case class Accounts(Data: AccountList, Links: Links, Meta: Meta)
+  case class Accounts(Data: AccountList, Links: Links, Meta: MetaUK)
   case class AccountList(Account: List[Account])
   case class Account(
                       AccountId: String,
@@ -32,7 +32,7 @@ object JSONFactory_UKOpenBanking_200 {
                          )
 
   case class Links(Self: String)
-  case class Meta(TotalPages: Int)
+  case class MetaUK(TotalPages: Int)
 
   case class TransactionsJsonUKV200(
     Data: TransactionsInnerJson,
@@ -128,7 +128,7 @@ object JSONFactory_UKOpenBanking_200 {
     Accounts(
       Data = AccountList(list),
       Links = Links(Self = Constant.HostName + "/open-banking/v2.0/accounts"),
-      Meta = Meta(TotalPages = 1)
+      Meta = MetaUK(TotalPages = 1)
     )
   }
   
@@ -188,7 +188,7 @@ object JSONFactory_UKOpenBanking_200 {
     Accounts(
       Data = AccountList(list),
       Links = Links(Self = s"${Constant.HostName}/open-banking/v2.0/accounts/" + list.head.AccountId),
-      Meta = Meta(TotalPages = 1)
+      Meta = MetaUK(TotalPages = 1)
     )
   }
   
