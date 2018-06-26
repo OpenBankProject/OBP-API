@@ -2,9 +2,10 @@ package code.bankconnectors.vJune2017
 
 import java.lang
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale}
+import java.util.{Date, Locale, UUID}
 
 import code.api.util.APIUtil.InboundMessageBase
+import code.api.v3_1_0.CheckbookOrdersJson
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
@@ -75,6 +76,26 @@ case class OutboundGetCustomersByUserId(
   authInfo: AuthInfo
 ) extends TopicTrait
 
+case class OutboundGetChecksOrderStatus(
+  authInfo: AuthInfo, 
+  bankId: String, 
+  accountId: String, 
+  originatorApplication: String, 
+  originatorStationIP: String, 
+  primaryAccount: String
+)extends TopicTrait
+
+case class OutboundGetCreditCardOrderStatus(
+  authInfo: AuthInfo, 
+  bankId: String, 
+  accountId: String, 
+  originatorApplication: String, 
+  originatorStationIP: String, 
+  primaryAccount: String
+)extends TopicTrait
+
+
+
 /**
   * case classes used in Kafka message, these are InBound Kafka messages
   */
@@ -100,14 +121,8 @@ case class InboundGetBranches(authInfo: AuthInfo,status: Status,data: List[Inbou
 case class InboundGetBranch(authInfo: AuthInfo,status: Status, data: Option[InboundBranchVJune2017])
 case class InboundGetAtms(authInfo: AuthInfo, status: Status, data: List[InboundAtmJune2017])
 case class InboundGetAtm(authInfo: AuthInfo, status: Status, data: Option[InboundAtmJune2017])
-
-
-
-
-
-
-
-
+case class InboundGetChecksOrderStatus(authInfo: AuthInfo, status: Status, data: CheckbookOrdersJson)
+case class InboundGetCreditCardOrderStatus(authInfo: AuthInfo, status: Status, data: List[InboundCardDetails])
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +140,7 @@ case class Status(
                    errorCode: String,
                    backendMessages: List[InboundStatusMessage]
                  )
-case class AuthInfo(userId: String = "", username: String ="", cbsToken: String ="", isFirst: Boolean = true)
+case class AuthInfo(userId: String = "", username: String ="", cbsToken: String ="", isFirst: Boolean = true, correlationId: String="")
 case class AccountRule(scheme: String, value: String)
 case class InboundAccountJune2017(
   errorCode: String,
@@ -340,6 +355,16 @@ case class InternalTransaction_vJune2017(
                                 userId: String
                               )
 
+case class InboundCardDetails(
+  orderId: String,
+  creditCardType: String,
+  cardDescription: String,
+  useType: String,
+  orderDate: String,
+  deliveryStatus: String,
+  statusDate: String,
+  branch: String
+)
 
 object JsonFactory_vJune2017 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {

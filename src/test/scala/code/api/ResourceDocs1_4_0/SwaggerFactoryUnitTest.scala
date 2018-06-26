@@ -67,6 +67,7 @@ class SwaggerFactoryUnitTest extends FlatSpec
     allStrings.toString() should not include ("JNull")
     allStrings.toString() should not include ("JObject")
     allStrings.toString() should not include ("JString")
+    allStrings.toString() should not include ("None$")
   
     logger.debug(allStrings)
   }

@@ -181,9 +181,11 @@ object ErrorMessages {
   val CreateOrUpdateCounterpartyMetadataError = "OBP-30036: Could not create or update CounterpartyMetadata"
   val CounterpartyMetadataNotFound = "OBP-30037: CounterpartyMetadata not found. Please specify valid values for BANK_ID, ACCOUNT_ID and COUNTERPARTY_ID. "
 
-  val CreateFxRateError = "OBP-30032: Could not insert the Fx Rate"
-  val UpdateFxRateError = "OBP-30033: Could not update the Fx Rate"
-  val UnknownFxRateError = "OBP-30033: Unknown Fx Rate error"
+  val CreateFxRateError = "OBP-30038: Could not insert the Fx Rate"
+  val UpdateFxRateError = "OBP-30039: Could not update the Fx Rate"
+  val UnknownFxRateError = "OBP-30040: Unknown Fx Rate error"
+  
+  val CheckbookOrderNotFound = "OBP-30041: CheckbookOrder not found for Account. "
 
 
   // Meetings

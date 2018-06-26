@@ -11,6 +11,7 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
+import code.api.v3_1_0._
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
@@ -298,7 +299,7 @@ object SwaggerDefinitionsJSON {
 
   val toAccountTransferToAtm = ToAccountTransferToAtm(
     legal_name = "String",
-    date_of_birth = "String",
+    date_of_birth = "20181230",
     mobile_phone_number = "String",
     kyc_document = toAccountTransferToAtmKycDocument
   )
@@ -340,7 +341,7 @@ object SwaggerDefinitionsJSON {
     value = amountOfMoneyJsonV121,
     description = "String",
     transfer_type = "String",
-    future_date = "String",
+    future_date = "20181230",
     to = toAccountTransferToAccount
   )
   
@@ -349,9 +350,9 @@ object SwaggerDefinitionsJSON {
     to_sandbox_tan = Some(transactionRequestAccount),
     to_sepa = Some(transactionRequestIban),
     to_counterparty = Some(transactionRequestCounterpartyId),
-    to_transfer_to_phone = None,//Some(transactionRequestTransferToPhone),
-    to_transfer_to_atm = None, // Some(transactionRequestTransferToAtm),
-    to_transfer_to_account = None, //Some(transactionRequestTransferToAccount),
+    to_transfer_to_phone = Some(transactionRequestTransferToPhone),
+    to_transfer_to_atm = Some(transactionRequestTransferToAtm),
+    to_transfer_to_account = Some(transactionRequestTransferToAccount),
     value = amountOfMoney,
     description = "String" 
   )
@@ -389,7 +390,9 @@ object SwaggerDefinitionsJSON {
     message_format = "KafkaV2017",
     description = "get Banks",
     example_outbound_message = defaultJValue,
-    example_inbound_message = defaultJValue
+    example_inbound_message = defaultJValue,
+    outboundAvroSchema = Some(defaultJValue),
+    inboundAvroSchema = Some(defaultJValue)
   )
   
   val messageDocsJson = MessageDocsJson(messageDocs = List(messageDocJson))
@@ -466,8 +469,8 @@ object SwaggerDefinitionsJSON {
   )
   
   val accountRoutingJsonV121 = AccountRoutingJsonV121(
-    scheme = "IBAN",
-    address = "DE89 3704 0044 0532 0130 00"
+    scheme = "AccountNumber",
+    address = "4930396"
   )
 
   val accountRuleJsonV300 = AccountRuleJsonV300(
@@ -974,8 +977,8 @@ object SwaggerDefinitionsJSON {
   )
 
   val branchRoutingJSON = BranchRoutingJsonV141(
-    scheme = "String",
-    address = "String"
+    scheme = "BranchNumber",
+    address = "678"
   )
 
   val branchJson = BranchJson(
@@ -1624,7 +1627,7 @@ object SwaggerDefinitionsJSON {
     implemented_in_version = "v210",
     consumer_id = "123",
     verb = "get",
-    correlationId = "v8ho6h5ivel3uq7a5zcnv0w1",
+    correlation_id = "v8ho6h5ivel3uq7a5zcnv0w1",
     duration = 39
   )
 
@@ -2185,6 +2188,10 @@ object SwaggerDefinitionsJSON {
   )
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccount))
 
+  val balances = Balances("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances")
+  
+  val transactions  = Transactions("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions")
+  
   val coreAccountJson_v1 = CoreAccountJsonV1(
     id = "3dc3d5b3-7023-4848-9853-f5400a64e80f",
     iban = "DE2310010010123456789",
@@ -2192,8 +2199,9 @@ object SwaggerDefinitionsJSON {
     accountType = "Girokonto",
     cashAccountType = "CurrentAccount",
     _links = List(
-      Balances("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances"),
-      Transactions("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions")),
+      balances,
+      transactions
+    ),
     name = "Main Account"
   )
   val coreAccountsJsonV1 = CoreAccountsJsonV1(List(coreAccountJson_v1))
@@ -2219,10 +2227,16 @@ object SwaggerDefinitionsJSON {
     Account = accountInnerJsonUKOpenBanking_v200
   )
 
+  val accountList = AccountList(List(accountJsonUKOpenBanking_v200))
+  
+  val links =  Links(Self = s"${Constant.HostName}/open-banking/v2.0/accounts/")
+  
+  val metaUK = JSONFactory_UKOpenBanking_200.MetaUK(1) 
+  
   val accountsJsonUKOpenBanking_v200 = Accounts(
-    Data = AccountList(List(accountJsonUKOpenBanking_v200)),
-    Links = Links(Self = s"${Constant.HostName}/open-banking/v2.0/accounts/"),
-    Meta = JSONFactory_UKOpenBanking_200.Meta(TotalPages = 1)
+    Data = accountList,
+    Links = links,
+    Meta = metaUK
   )
   
   val closingBookedBody = ClosingBookedBody(
@@ -2422,7 +2436,7 @@ object SwaggerDefinitionsJSON {
 
   val transactionsJsonUKV200 = TransactionsJsonUKV200(
     Data = transactionsInnerJson,
-    Links = Links(Self=s"${Constant.HostName}/open-banking/v2.0/accounts/22289/transactions/"),
+    Links = links.copy(s"${Constant.HostName}/open-banking/v2.0/accounts/22289/transactions/"),
     Meta = metaInnerJson
   )
   
@@ -2451,7 +2465,7 @@ object SwaggerDefinitionsJSON {
   
   val accountBalancesUKV200 = AccountBalancesUKV200(
     Data = dataJsonUK200,
-    Links = Links(s"${Constant.HostName}/open-banking/v2.0/accounts/22289/balances/"),
+    Links = links.copy(s"${Constant.HostName}/open-banking/v2.0/accounts/22289/balances/"),
     Meta = metaBisJson
   )
   
@@ -2464,6 +2478,61 @@ object SwaggerDefinitionsJSON {
   )
   val scopeJsons = ScopeJsons(List(scopeJson))
   
+  
+  
+  //V310 
+  
+  val orderObjectJson = OrderObjectJson(
+    order_id ="xjksajfkj",
+    order_date = "07082013",
+    number_of_checkbooks = "4",
+    distribution_channel = "1201",
+    status = "2",
+    first_check_number = "5165276",
+    shipping_code = "1"
+  )
+  
+  val orderJson = OrderJson(orderObjectJson)
+  
+  val accountV310Json = AccountV310Json(
+    bank_id = "10",
+    account_id = "xjfsafjj" ,
+    account_type  ="330",
+    account_routings  = List(accountRoutingJsonV121),
+    branch_routings = List(branchRoutingJSON)
+  )
+  
+  val checkbookOrdersJson = CheckbookOrdersJson(
+    account = accountV310Json ,
+    orders = List(orderJson)
+  )
+  
+  val cardObjectJson = CardObjectJson(
+    card_type = "5",
+    card_description= "good",
+    use_type  ="3"
+  )
+  
+  val creditCardOrderStatusResponseJson = CreditCardOrderStatusResponseJson(
+    cards = List(cardObjectJson)
+  )
+  
+  val creditLineOrderRequestJson = CreditLineOrderRequestJson(
+    requested_current_rate_amount1 = "String",
+    requested_current_rate_amount2 = "String",
+    requested_current_valid_end_date = "String",
+    current_credit_documentation = "String",
+    temporary_requested_current_amount = "String",
+    requested_temporary_valid_end_date = "String",
+    temporary_credit_documentation = "String",
+  )
+  
+  val creditLineOrderResponseJson = CreditLineOrderResponseJson(
+    execution_time = "String",
+    execution_date = "String",
+    token = "String",
+    short_reference = "String"
+  )
   
   //The common error or success format.
   //Just some helper format to use in Json 

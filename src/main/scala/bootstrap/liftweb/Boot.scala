@@ -38,6 +38,7 @@ import javax.mail.internet.MimeMessage
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
+import code.api.ResourceDocs1_4_0.ResourceDocs300.ResourceDocs310
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.sandbox.SandboxApiCalls
@@ -238,6 +239,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v2_1_0)
     enableVersionIfAllowed(ApiVersion.v2_2_0)
     enableVersionIfAllowed(ApiVersion.v3_0_0)
+    enableVersionIfAllowed(ApiVersion.v3_1_0)
     enableVersionIfAllowed(ApiVersion.berlinGroupV1)
     enableVersionIfAllowed(ApiVersion.ukOpenBankingV200)
 
@@ -258,6 +260,7 @@ class Boot extends MdcLoggable {
     LiftRules.statelessDispatch.append(ResourceDocs210)
     LiftRules.statelessDispatch.append(ResourceDocs220)
     LiftRules.statelessDispatch.append(ResourceDocs300)
+    LiftRules.statelessDispatch.append(ResourceDocs310)
     ////////////////////////////////////////////////////
 
 

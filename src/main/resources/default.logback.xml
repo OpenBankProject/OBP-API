@@ -9,4 +9,5 @@
   <root level="DEBUG">
     <appender-ref ref="STDOUT"/>
   </root>
+  <logger name="org.apache.kafka.clients.consumer" level="INFO"/>
 </configuration>

@@ -12,6 +12,7 @@ import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
+import code.api.v3_1_0.OBPAPI3_1_0
 import code.util.Helper.MdcLoggable
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
@@ -114,6 +115,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
+        case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.allResourceDocs
@@ -128,6 +130,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
+        case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
@@ -162,10 +165,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         x <- activePlusLocalResourceDocs
         // This is the "implemented in" url
         url = x.implementedInApiVersion match {
-          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
+          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
           // We add the /obp/vX prefix here
-          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
         }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),

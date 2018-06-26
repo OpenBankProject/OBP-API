@@ -347,8 +347,8 @@ object JSONFactory1_4_0 {
                          is_psd2: Boolean,
                          is_obwg: Boolean,
                          tags: List[String],
-                         typed_request_body: JValue,
-                         typed_success_response_body: JValue,
+                         typed_request_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
+                         typed_success_response_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
                          roles: Option[List[ApiRole]] = None,
                          is_featured: Boolean,
                          special_instructions: String)
@@ -431,12 +431,14 @@ object JSONFactory1_4_0 {
         case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
         case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
           
-        //String   
-        case i: String if(key.contains("date"))  => "\""  + key + """": {"type": "string","format": "date-time"}"""
-        case Some(i: String) if(key.contains("date"))  => "\""  + key + """": {"type": "string","format": "date-time"}"""
-        case List(i: String, _*) if(key.contains("date"))  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
-        case Some(List(i: String, _*)) if(key.contains("date"))  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
-          
+        //String --> Some field calleds `date`, we will treat the filed as a `date` object.
+        //String --> But for some are not, eg: `date_of_birth` and `future_date` in V300Custom  
+        case i: String if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case Some(i: String) if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case List(i: String, _*) if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
+        case Some(List(i: String, _*)) if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
+         
+        //String-->
         case i: String                     => "\""  + key + """": {"type":"string"}"""
         case Some(i: String)               => "\""  + key + """": {"type":"string"}"""
         case List(i: String, _*)           => "\""  + key + """": {"type": "array","items": {"type": "string"}}""" 
