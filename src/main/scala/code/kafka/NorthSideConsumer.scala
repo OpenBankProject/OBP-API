@@ -39,7 +39,7 @@ object NorthSideConsumer {
     "OutboundGetCounterpartyById",
     "OutboundTransactionRequests",
     "OutboundGetCustomersByUserId",
-    "OutboundGetChecksOrderStatus",
+    "OutboundGetCheckbookOrderStatus",
     "OutboundGetCreditCardOrderStatus",
   )
 

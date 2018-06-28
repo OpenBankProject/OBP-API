@@ -1494,7 +1494,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     messageFormat = messageFormat,
     description = "getStatusOfCheckbookOrdersFuture from kafka ",
     exampleOutboundMessage = decompose(
-      OutboundGetChecksOrderStatus(
+      OutboundGetCheckbookOrderStatus(
         authInfoExample,
         bankId = "bankId", 
         accountId ="accountId", 
@@ -1521,7 +1521,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(statusOfCheckbookOrders second) {
 
-        val req = OutboundGetChecksOrderStatus(
+        val req = OutboundGetCheckbookOrderStatus(
           authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext), 
           bankId = bankId, 
           accountId =accountId, 
@@ -1532,7 +1532,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCheckbookOrdersFuture Req says: is: $req")
 
         val future = for {
-          res <- processToFuture[OutboundGetChecksOrderStatus](req) map {
+          res <- processToFuture[OutboundGetCheckbookOrderStatus](req) map {
             f =>
               try {
                 f.extract[InboundGetChecksOrderStatus]
