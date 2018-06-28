@@ -916,7 +916,7 @@ object APIUtil extends MdcLoggable {
                           implementedInApiVersion: ApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
-                          requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+                          requestUrl: String, // The URL (includes implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                           description: String, // Longer description (originally taken from github wiki)
                           exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
@@ -1532,6 +1532,7 @@ Returns a string showed to the developer
         case ApiVersion.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
         case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
+        case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
       }

@@ -40,14 +40,14 @@ object SwaggerJSONFactory {
   )
   case class DirectLoginJson(
     `type`: String = "apiKey",
-    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login",
+    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login", // TODO replace with Glossary link
     in: String = "header",
     name: String = "Authorization"
   )
   
   case class GatewayLoginJson(
     `type`: String = "apiKey",
-    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Gateway-Login",
+    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Gateway-Login", // TODO replace with Glossary link
     in: String = "header",
     name: String = "Authorization"
   )
@@ -216,7 +216,7 @@ object SwaggerJSONFactory {
     val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       
       //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
-      val pathAddedObpandVersion = s"/$ApiPathZero/" + infoApiVersion.vDottedApiVersion + mrd._1
+      val pathAddedObpandVersion = mrd._1
       //`/obp/v3.0.0/banks/BANK_ID` --> `/obp/v3.0.0/banks/{BANK_ID}`
       val path =
         pathAddedObpandVersion
@@ -306,7 +306,7 @@ object SwaggerJSONFactory {
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId =
               rd.partialFunctionName match {
-                //No longer need this special case since all transaction reqquest Resource Docs have explicit URL
+                //No longer need this special case since all transaction request Resource Docs have explicit URL
                 //case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
                 // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
                 case _ => s"v${rd.implementedInApiVersion.toString }-${rd.partialFunctionName.toString }"

@@ -32,6 +32,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, CallContext, ErrorMessages}
+import code.api.v3_1_0.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
@@ -52,6 +53,7 @@ import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers.tryo
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -82,6 +84,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val branchTTL = getSecondsCache("getBranch")
   val atmsTTL = getSecondsCache("getAtms")
   val atmTTL = getSecondsCache("getAtm")
+  val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
+  val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
 
 
   // "Versioning" of the messages sent by this or similar connector works like this:
@@ -108,8 +112,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload
       cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
       isFirst <- Full(gatewayLoginPayLoad.is_first)
+      correlationId <- Full(cc.correlationId)
     } yield{
-      AuthInfo(currentResourceUserId,username, cbs_token, isFirst)
+      AuthInfo(currentResourceUserId,username, cbs_token, isFirst,correlationId)
     }
 
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
@@ -146,7 +151,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
     val box = for {
       kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
-      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"$InboundAdapterInfo extract error"
+      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"$InboundAdapterInfo extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
       inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
     } yield{
       inboundAdapterInfoInternal
@@ -207,7 +212,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
         val box = for {
           kafkaMessage <- processToBox[OutboundGetUserByUsernamePassword](req)
-          inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! s"$InboundGetUserByUsernamePassword extract error"
+          inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! s"$InboundGetUserByUsernamePassword extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           inboundValidatedUser <- Full(inboundGetUserByUsernamePassword.data)
         } yield{
           inboundValidatedUser
@@ -270,7 +275,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
          _ <- Full(logger.debug("Enter GetBanks BOX1: prekafka") )
           kafkaMessage <- processToBox[OutboundGetBanks](req)
          _ <- Full(logger.debug(s"Enter GetBanks BOX2: postkafka: $kafkaMessage") )
-         inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error"
+         inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
          _ <- Full(logger.debug(s"Enter GetBanks BOX3 : $inboundGetBanks") )
          (inboundBanks, status) <- Full(inboundGetBanks.data, inboundGetBanks.status)
          _ <- Full(logger.debug(s"Enter GetBanks BOX4: $inboundBanks") )
@@ -310,7 +315,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBanks]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBanks extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetBanks extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             (x => (x.data, x.status))
@@ -373,7 +378,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetBank](req)
           inboundGetBank <- tryo {
             kafkaMessage.extract[InboundGetBank]
-          } ?~! s"$InboundGetBank extract error"
+          } ?~! s"$InboundGetBank extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundBank, status) <- Full(inboundGetBank.data, inboundGetBank.status)
         } yield {
           (inboundBank, status)
@@ -414,7 +419,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBank]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBank extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetBank extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             (x => (x.data, x.status))
@@ -475,7 +480,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
         val box = for {
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
-          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error"
+          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountJune2017, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
         } yield{
           (inboundAccountJune2017, status)
@@ -517,7 +522,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetAccounts]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetAccounts extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             (x => (x.data, x.status))
@@ -567,7 +572,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           req = OutboundGetAccountbyAccountID(authInfo, bankId.toString, accountId.value)
           _ <- Full(logger.debug(s"Kafka getBankAccount says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
-          inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error"
+          inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountJune2017, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
         } yield{
           (inboundAccountJune2017, status)
@@ -621,7 +626,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           )
           _ <- Full(logger.debug(s"Kafka checkBankAccountExists says: req is: $req"))
           kafkaMessage <- processToBox[OutboundCheckBankAccountExists](req)
-          inboundCheckBankAccountExists <- tryo{kafkaMessage.extract[InboundCheckBankAccountExists]} ?~! s"$InboundCheckBankAccountExists extract error"
+          inboundCheckBankAccountExists <- tryo{kafkaMessage.extract[InboundCheckBankAccountExists]} ?~! s"$InboundCheckBankAccountExists extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountJune2017, status) <- Full(inboundCheckBankAccountExists.data, inboundCheckBankAccountExists.status)
         } yield{
           (inboundAccountJune2017, status)
@@ -673,7 +678,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           )
           _<-Full(logger.debug(s"Kafka getCoreBankAccounts says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
-          inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"$InboundGetCoreBankAccounts extract error"
+          inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
         } yield{
           internalInboundCoreAccounts
@@ -713,7 +718,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetCoreBankAccounts]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetCoreBankAccounts extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             _.data
@@ -796,7 +801,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             kafkaMessage <- processToBox[OutboundGetTransactions](req)
             inboundGetTransactions <- tryo {
               kafkaMessage.extract[InboundGetTransactions]
-            } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error"
+            } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
             (internalTransactions, status) <- Full(inboundGetTransactions.data, inboundGetTransactions.status)
           } yield {
             (internalTransactions, status)
@@ -858,7 +863,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             kafkaMessage <- processToBox[OutboundGetTransactions](req)
             inboundGetTransactions <- tryo {
               kafkaMessage.extract[InboundGetTransactions]
-            } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error"
+            } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
             (internalTransactions, status) <- Full(inboundGetTransactions.data, inboundGetTransactions.status)
           } yield {
             (internalTransactions, status)
@@ -935,7 +940,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           req =  OutboundGetTransaction(authInfo,bankId.value, accountId.value, transactionId.value)
           _ <- Full(logger.debug(s"Kafka getTransaction Req says:  is: $req"))
           kafkaMessage <- processToBox[OutboundGetTransaction](req)
-          inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InvalidConnectorResponseForGetTransaction $InboundGetTransaction extract error"
+          inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InvalidConnectorResponseForGetTransaction $InboundGetTransaction extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (internalTransaction, status) <- Full(inboundGetTransaction.data, inboundGetTransaction.status)
         } yield{
           (internalTransaction, status)
@@ -1011,7 +1016,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
       _ <- Full(logger.debug(s"Kafka createChallenge Req says:  is: $req"))
       kafkaMessage <- processToBox[OutboundCreateChallengeJune2017](req)
-      inboundCreateChallengeJune2017 <- tryo{kafkaMessage.extract[InboundCreateChallengeJune2017]} ?~! s"$InboundCreateChallengeJune2017 extract error"
+      inboundCreateChallengeJune2017 <- tryo{kafkaMessage.extract[InboundCreateChallengeJune2017]} ?~! s"$InboundCreateChallengeJune2017 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
       internalCreateChallengeJune2017 <- Full(inboundCreateChallengeJune2017.data)
     } yield{
       internalCreateChallengeJune2017
@@ -1131,7 +1136,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
       _<- Full(logger.debug(s"Kafka createCounterparty Req says: is: $req"))
       kafkaMessage <- processToBox[OutboundCreateCounterparty](req)
-      inboundCreateCounterparty <- tryo{kafkaMessage.extract[InboundCreateCounterparty]} ?~! s"$InboundCreateCounterparty extract error"
+      inboundCreateCounterparty <- tryo{kafkaMessage.extract[InboundCreateCounterparty]} ?~! s"$InboundCreateCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
       (internalCounterparty, status) <- Full(inboundCreateCounterparty.data, inboundCreateCounterparty.status)
     } yield{
       (internalCounterparty, status)
@@ -1230,7 +1235,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           )
           _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
-          inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InboundGetTransactionRequests210 extract error"
+          inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InboundGetTransactionRequests210 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (internalGetTransactionRequests, status) <- Full(inboundGetTransactionRequests210.data, inboundGetTransactionRequests210.status)
         } yield{
           (internalGetTransactionRequests, status)
@@ -1316,7 +1321,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           )
           _<-Full(logger.debug(s"Kafka getCounterparties Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterparties](req)
-          inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"$InboundGetCounterparties extract error"
+          inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"$InboundGetCounterparties extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (internalCounterparties, status) <- Full(inboundGetCounterparties.data, inboundGetCounterparties.status)
         } yield{
           (internalCounterparties, status)
@@ -1367,7 +1372,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetCounterpartyByCounterpartyId](req)
           inboundGetCustomersByUserIdFuture <- tryo {
             kafkaMessage.extract[InboundGetCounterparty]
-          } ?~! s"$InboundGetCustomersByUserId extract error"
+          } ?~! s"$InboundGetCustomersByUserId extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (internalCustomer, status) <- Full(inboundGetCustomersByUserIdFuture.data, inboundGetCustomersByUserIdFuture.status)
         } yield {
           (internalCustomer, status)
@@ -1401,7 +1406,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           req = OutboundGetCounterparty(authInfo, thisBankId.value, thisAccountId.value, couterpartyId)
           _ <- Full(logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterparty](req)
-          inboundGetCounterparty <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCounterparty extract error"
+          inboundGetCounterparty <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (data, status) <- Full(inboundGetCounterparty.data, inboundGetCounterparty.status)
         } yield{
           (data, status)
@@ -1460,7 +1465,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetCustomersByUserId]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetCustomersByUserId extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetCustomersByUserId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {x => (x.data, x.status)}
         } yield{
@@ -1484,6 +1489,165 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getCustomersByUserIdFuture")
   
   
+  messageDocs += MessageDoc(
+    process = "obp.get.getStatusOfCheckbookOrdersFuture",
+    messageFormat = messageFormat,
+    description = "getStatusOfCheckbookOrdersFuture from kafka ",
+    exampleOutboundMessage = decompose(
+      OutboundGetChecksOrderStatus(
+        authInfoExample,
+        bankId = "bankId", 
+        accountId ="accountId", 
+        originatorApplication ="String", 
+        originatorStationIP = "String", 
+        primaryAccount =""//TODO not sure for now.
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetChecksOrderStatus(
+        authInfoExample,
+        statusExample,
+        SwaggerDefinitionsJSON.checkbookOrdersJson
+      )
+    )
+  )
+
+  override def getCheckbookOrdersFuture(
+    bankId: String, 
+    accountId: String, 
+    @CacheKeyOmit callContext: Option[CallContext]
+  ): Future[Box[CheckbookOrdersJson]] = saveConnectorMetric{
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(statusOfCheckbookOrders second) {
+
+        val req = OutboundGetChecksOrderStatus(
+          authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext), 
+          bankId = bankId, 
+          accountId =accountId, 
+          originatorApplication = "String", 
+          originatorStationIP = "String", 
+          primaryAccount = ""
+        )
+        logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCheckbookOrdersFuture Req says: is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetChecksOrderStatus](req) map {
+            f =>
+              try {
+                f.extract[InboundGetChecksOrderStatus]
+              } catch {
+                case e: Exception => throw new MappingException(s"correlationId(${req.authInfo.correlationId}): $InboundGetChecksOrderStatus extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+              }
+          } map {x => (x.data, x.status)}
+        } yield{
+          res
+        }
+        
+        val res = future map {
+          case (checksOrderStatusResponseDetails, status) if (status.errorCode=="") =>
+            logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCheckbookOrdersFuture Res says: is: $checksOrderStatusResponseDetails")
+            Full(checksOrderStatusResponseDetails)
+          case (accountDetails, status) if (status.errorCode!="") =>
+            val errorMessage = "INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages
+            logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCheckbookOrdersFuture Res says: is: $errorMessage")
+            Failure(errorMessage)
+          case _ =>
+            logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCheckbookOrdersFuture Res says: is: $UnknownError")
+            Failure(UnknownError)
+        }
+        res
+      }
+    }
+  }("getCheckbookOrdersFuture")
+  
+  
+  messageDocs += MessageDoc(
+    process = "obp.get.getStatusOfCreditCardOrderFuture",
+    messageFormat = messageFormat,
+    description = "getStatusOfCreditCardOrderFuture from kafka ",
+    exampleOutboundMessage = decompose(
+      OutboundGetCreditCardOrderStatus(
+        authInfoExample,
+        bankId = "bankId", 
+        accountId ="accountId", 
+        originatorApplication = "String", 
+        originatorStationIP = "String", 
+        primaryAccount = ""
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetCreditCardOrderStatus(
+        authInfoExample,
+        statusExample,
+        List(InboundCardDetails(
+          "OrderId",
+          "CreditCardType" ,
+          "CardDescription",
+          "UseType",
+          "OrderDate",
+          "DeliveryStatus",
+          "StatusDate",
+          "Branch"
+        )
+        )
+    ))
+  )
+
+  override def getStatusOfCreditCardOrderFuture(
+    bankId: String, 
+    accountId: String, 
+    @CacheKeyOmit callContext: Option[CallContext]
+  ): Future[Box[List[CardObjectJson]]] = saveConnectorMetric{
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(statusOfCreditcardOrders second) {
+
+        val req = OutboundGetCreditCardOrderStatus(
+          authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext), 
+          bankId = bankId, 
+          accountId =accountId, 
+          originatorApplication ="String", 
+          originatorStationIP = "String", 
+          primaryAccount =""//TODO not sure for now.
+        )
+        logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCreditCardOrderFuture Req says: is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetCreditCardOrderStatus](req) map {
+            f =>
+              try {
+                f.extract[InboundGetCreditCardOrderStatus]
+              } catch {
+                case e: Exception => throw new MappingException(s"correlationId(${req.authInfo.correlationId}): $InboundCardDetails extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+              }
+          } map {x => (x.data, x.status)}
+        } yield{
+          res
+        }
+        
+        val res = future map {
+          case (checksOrderStatusResponseDetails, status) if (status.errorCode=="") =>
+            logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCreditCardOrderFuture Res says: is: $checksOrderStatusResponseDetails")
+            Full(checksOrderStatusResponseDetails.map(
+              card =>CardObjectJson(
+                card_type= card.creditCardType,
+                card_description = card.cardDescription,
+                use_type= card.creditCardType
+              )))
+          case (accountDetails, status) if (status.errorCode!="") =>
+            val errorMessage = "INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages
+            logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCreditCardOrderFuture Res says: is: $errorMessage")
+            Failure(errorMessage)
+          case _ =>
+            logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCreditCardOrderFuture Res says: is: $UnknownError")
+            Failure(UnknownError)
+        }
+        res
+      }
+    }
+  }("getStatusOfCreditCardOrderFuture")
+    
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
   def createInMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction_vJune2017): Box[Transaction] = {
@@ -1659,7 +1823,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBranches]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBranches extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetBranches extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             d => (d.data, d.status)
@@ -1747,7 +1911,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBranch]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBranch extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetBranch extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             d => (d.data, d.status)
@@ -1840,7 +2004,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetAtms]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetAtms extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetAtms extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             d => (d.data, d.status)
@@ -1932,7 +2096,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetAtm]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetAtm extract error", e)
+                case e: Exception => throw new MappingException(s"$InboundGetAtm extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
             d => (d.data, d.status)

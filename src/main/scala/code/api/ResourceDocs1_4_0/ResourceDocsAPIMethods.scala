@@ -12,6 +12,7 @@ import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
+import code.api.v3_1_0.OBPAPI3_1_0
 import code.util.Helper.MdcLoggable
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
@@ -51,12 +52,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     val emptyObjectJson = EmptyClassJson()
     // val statedApiVersion : String = "1_4_0"
 
-    val statedApiVersion : ApiVersion = ApiVersion.v1_4_0
+    val implementedInApiVersion : ApiVersion = ApiVersion.v1_4_0
 
     val exampleDateString : String ="22/08/2013"
     val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
     val exampleDate = simpleDateFormat.parse(exampleDateString)
-  
+
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
@@ -114,6 +115,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
+        case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.allResourceDocs
@@ -128,6 +130,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
+        case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
@@ -160,10 +163,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       // Overwrite the requestUrl adding /obp
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
+        // This is the "implemented in" url
         url = x.implementedInApiVersion match {
-          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
+          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
+          // We add the /obp/vX prefix here
+          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
         }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),
@@ -308,8 +313,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
     val exampleResourceDoc =  ResourceDoc(
-      dummy(statedApiVersion.toString, "DUMMY"),
-      statedApiVersion,
+      dummy(implementedInApiVersion.toString, "DUMMY"),
+      implementedInApiVersion,
       "testResourceDoc",
       "GET",
       "/dummy",
@@ -357,7 +362,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     localResourceDocs += ResourceDoc(
       getResourceDocsObp,
-      statedApiVersion,
+      implementedInApiVersion,
       "getResourceDocsObp",
       "GET",
       "/resource-docs/API_VERSION/obp",
@@ -417,7 +422,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     localResourceDocs += ResourceDoc(
       getResourceDocsSwagger,
-      statedApiVersion,
+      implementedInApiVersion,
       "getResourceDocsSwagger",
       "GET",
       "/resource-docs/API_VERSION/swagger",
@@ -579,8 +584,8 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
     if (Props.devMode) {
       localResourceDocs += ResourceDoc(
-        dummy(statedApiVersion.vDottedApiVersion, "DUMMY"),
-        statedApiVersion,
+        dummy(implementedInApiVersion.vDottedApiVersion, "DUMMY"),
+        implementedInApiVersion,
         "testResourceDoc",
         "GET",
         "/dummy",

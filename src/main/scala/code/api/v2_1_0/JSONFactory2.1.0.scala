@@ -439,7 +439,7 @@ case class MetricJson(
                        implemented_in_version: String,
                        consumer_id: String,
                        verb: String,
-                       correlationId: String,
+                       correlation_id: String,
                        duration: Long
                      )
 case class MetricsJson(metrics: List[MetricJson])
@@ -652,7 +652,7 @@ object JSONFactory210{
       verb = metric.getVerb(),
       implemented_in_version = metric.getImplementedInVersion(),
       implemented_by_partial_function = metric.getImplementedByPartialFunction(),
-      correlationId = metric.getCorrelationId(),
+      correlation_id = metric.getCorrelationId(),
       duration = metric.getDuration()
     )
   }

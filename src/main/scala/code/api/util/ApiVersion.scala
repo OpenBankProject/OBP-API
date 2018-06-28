@@ -32,6 +32,8 @@ object ApiVersion {
   case class V3_0_0() extends ApiVersion
   lazy val v3_0_0 = V3_0_0()
   case class V3_3_0() extends ApiVersion
+  lazy val v3_1_0 = V3_1_0()
+  case class V3_1_0() extends ApiVersion
   lazy val v3_3_0 = V3_3_0()
   case class ImporterApi() extends ApiVersion
   lazy val importerApi = ImporterApi()
@@ -66,6 +68,7 @@ object ApiVersion {
       v2_1_0 ::
       v2_2_0 ::
       v3_0_0 ::
+      v3_1_0 ::
       v3_3_0 ::
       importerApi ::
       accountsApi ::
