@@ -3,11 +3,9 @@ package code.kafka
 import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
-import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, KafkaConsumerActor, ProducerSettings, Subscriptions}
+import akka.kafka.ProducerSettings
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Source
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
@@ -19,10 +17,8 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
-import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetadata}
-import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.common.serialization.StringSerializer
 
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
 
@@ -42,45 +38,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     */
   private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString
 
-  private val consumerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
-    ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
-      .withBootstrapServers(bootstrapServers)
-      .withGroupId(groupId)
-      .withClientId(clientId)
-      .withMaxWakeups(maxWakeups)
-      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
-      .withProperty("security.protocol","SSL")
-      .withProperty("ssl.truststore.location", APIUtil.getPropsValue("truststore.path").getOrElse(""))
-      .withProperty("ssl.truststore.password", APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd))
-      .withProperty("ssl.keystore.location",APIUtil.getPropsValue("keystore.path").getOrElse(""))
-      .withProperty("ssl.keystore.password", APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd))
-  } else {
-    ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
-      .withBootstrapServers(bootstrapServers)
-      .withGroupId(groupId)
-      .withClientId(clientId)
-      .withMaxWakeups(maxWakeups)
-      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig)
-  }
-
-  def createKafkaConsumer= {
-    val kafkaConsumer= system.actorOf(KafkaConsumerActor.props(consumerSettings))
-    logger.debug(s"KafkaStreamsHelperActor.createKafkaConsumer :$kafkaConsumer")
-    kafkaConsumer
-  }
-  //https://doc.akka.io/docs/akka-stream-kafka/current/consumer.html#sharing-kafkaconsumer
-  private val kafkaConsumer: ActorRef = createKafkaConsumer
-  
-  //we set up the AkkaStreams with one sharing-kafka-consumer pattern
-  //Important: this is the sharing pattern 
-  def consumerStream (topic: String, partition: Int): Source[ConsumerRecord[String, String], Consumer.Control] = {
-    val consumerStream =Consumer
-    .plainExternalSource[String, String](kafkaConsumer, Subscriptions.assignment(new TopicPartition(topic, partition)))
-    .completionTimeout(completionTimeout)
-    logger.debug(s"KafkaStreamsHelperActor.consumerStream :$consumerStream")
-    consumerStream
-  }
-
   private val producerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
     ProducerSettings(system, new StringSerializer, new StringSerializer)
       .withBootstrapServers(bootstrapServers)
@@ -98,8 +55,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       .withParallelism(3)
   }
 
-  private val producer = producerSettings
-    .createKafkaProducer()
+  private val producer = producerSettings.createKafkaProducer()
 
   /**
     * communication with Kafka, send and receive message.
