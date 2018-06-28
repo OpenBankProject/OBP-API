@@ -8,9 +8,6 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.common.serialization.StringDeserializer
 
 object NorthSideConsumer {
-  private val AUTOCOMMITINTERVAL = "1000" // Frequency off offset commits
-  private val SESSIONTIMEOUT = "30000"    // The timeout used to detect failures - should be greater then processing time
-  private val MAXPOLLRECORDS = "10"       // Max number of records consumed in a single poll
 
   val listOfTopics = List(
     "OutboundGetAdapterInfo",
@@ -79,38 +76,6 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
   import scala.collection.JavaConversions._
 
   val consumer = new KafkaConsumer[K, V](consumerProperties(brokers, group, keyDeserealizer, valueDeserealizer))
-
-  /*
-  import java.util
-  import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
-  import org.apache.kafka.common.TopicPartition
-  val listener: ConsumerRebalanceListener = new ConsumerRebalanceListener() {
-  public void onPartitionsAssigned(Collection<TopicPartition>
-      partitions) { 2
-    }
-
-    public void onPartitionsRevoked(Collection<TopicPartition>
-      partitions) {
-        System.out.println("Lost partitions in rebalance.
-          Committing current
-        offsets:" + currentOffsets);
-        consumer.commitSync(currentOffsets); 3
-    }
-
-
-    override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = {}
-
-    override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = consumer.commitSync()
-  }
-
-  import java.util.regex.Pattern
-  val string = s"to.obp.api.1.caseclass.*"
-  val pattern: Pattern = Pattern.compile(string)
-  
-  consumer.subscribe(pattern, listener)
-  pattern.matcher("to.obp.api.1.caseclass.*")
-  */
-
   consumer.subscribe(listOfTopics.map(t => s"to.${clientId}.caseclass.$t"))
 
   var completed = false
