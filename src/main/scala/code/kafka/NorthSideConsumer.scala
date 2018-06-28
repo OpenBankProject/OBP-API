@@ -39,18 +39,33 @@ object NorthSideConsumer {
     "OutboundGetCounterpartyById",
     "OutboundTransactionRequests",
     "OutboundGetCustomersByUserId",
-    "OutboundGetChecksOrderStatus",
+    "OutboundGetCheckbookOrderStatus",
     "OutboundGetCreditCardOrderStatus",
   )
 
   def consumerProperties(brokers: String, group: String, keyDeserealizer: String, valueDeserealizer: String): Map[String, String] = {
-    Map[String, String](
-      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> brokers,
-      ConsumerConfig.GROUP_ID_CONFIG -> group,
-      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> KafkaConsumer.autoOffsetResetConfig,
-      ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> keyDeserealizer,
-      ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> valueDeserealizer
-    )
+    if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
+      Map[String, String](
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> brokers,
+        ConsumerConfig.GROUP_ID_CONFIG -> group,
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> KafkaConsumer.autoOffsetResetConfig,
+        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> keyDeserealizer,
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> valueDeserealizer,
+        "security.protocol" -> "SSL",
+        "ssl.truststore.location" -> APIUtil.getPropsValue("truststore.path").getOrElse(""),
+        "ssl.truststore.password" -> APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd),
+        "ssl.keystore.location" -> APIUtil.getPropsValue("keystore.path").getOrElse(""),
+        "ssl.keystore.password" -> APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd)
+      )
+    } else {
+      Map[String, String](
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> brokers,
+        ConsumerConfig.GROUP_ID_CONFIG -> group,
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> KafkaConsumer.autoOffsetResetConfig,
+        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> keyDeserealizer,
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> valueDeserealizer
+      )
+    }
   }
 
   def apply[K, V](brokers: String, topic: String, group: String, processor: RecordProcessorTrait[K, V]): NorthSideConsumer[K, V] =
