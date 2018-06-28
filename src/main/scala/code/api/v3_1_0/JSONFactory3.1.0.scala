@@ -68,7 +68,7 @@ case class CreditCardOrderStatusResponseJson(
 )
 
 
-case class CreditLineOrderRequestJson(
+case class CreditLimitOrderRequestJson(
   requested_current_rate_amount1: String,
   requested_current_rate_amount2: String,
   requested_current_valid_end_date: String,
@@ -78,11 +78,18 @@ case class CreditLineOrderRequestJson(
   temporary_credit_documentation: String
 )
 
-case class CreditLineOrderResponseJson(
+case class CreditLimitOrderResponseJson(
   execution_time: String,
   execution_date: String,
   token: String,
   short_reference: String
+)
+
+case class CreditLimitOrderJson(
+  rank_amount_1: String,
+  nominal_interest_1: String,
+  rank_amount_2: String,
+  nominal_interest_2: String
 )
 
 object JSONFactory310{
@@ -92,6 +99,12 @@ object JSONFactory310{
   def createStatisOfCreditCardJson(cards: List[CardObjectJson]): CreditCardOrderStatusResponseJson =
     CreditCardOrderStatusResponseJson(cards)
   
-  def createCreditLineOrderResponseJson(): CreditLineOrderResponseJson =
-    SwaggerDefinitionsJSON.creditLineOrderResponseJson
+  def createCreditLimitOrderResponseJson(): CreditLimitOrderResponseJson =
+    SwaggerDefinitionsJSON.creditLimitOrderResponseJson
+  
+  def getCreditLimitOrderResponseJson(): CreditLimitOrderJson =
+    SwaggerDefinitionsJSON.creditLimitOrderJson
+  
+  def getCreditLimitOrderByRequestIdResponseJson(): CreditLimitOrderJson =
+    SwaggerDefinitionsJSON.creditLimitOrderJson
 }

@@ -31,7 +31,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "getCheckbookOrders",
       "GET",
-      "banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "get Checkbook orders",
       """Get all checkbook orders""",
       emptyObjectJson,
@@ -72,7 +72,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "getStatusOfCreditCardOrder",
       "GET",
-      "banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/credit_cards/orders",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/credit_cards/orders",
       "Get status of Credit Card order ",
       """Get status of Credit Card orders
         |Get all orders
@@ -111,32 +111,83 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      createCreditLineOrderRequest,
+      createCreditLimitOrderRequest,
       implementedInApiVersion,
-      "createCreditLineOrderRequest",
+      "createCreditLimitOrderRequest",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
-      "Get status of Credit Card order ",
-      """Get status of Credit Card orders
-        |Get all orders
+      "Create Credit Limit Order Request",
+      """Create credit limit order request
         |""",
-      creditLineOrderRequestJson,
-      creditLineOrderResponseJson,
+      creditLimitOrderRequestJson,
+      creditLimitOrderResponseJson,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
-    lazy val createCreditLineOrderRequest : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonPost json -> _ => {
+    lazy val createCreditLimitOrderRequest : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonPost json -> _  => {
         cc =>
 //          val a: Future[(ChecksOrderStatusResponseDetails, Some[CallContext])] = for {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLineOrderResponseJson(), Some(cc))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), Some(cc))}
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getCreditLimitOrderRequests,
+      implementedInApiVersion,
+      "getCreditLimitOrderRequests",
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
+      "Get Credit Limit Order Requests ",
+      """Get Credit Limit Order Requests 
+        |""",
+      emptyObjectJson,
+      creditLimitOrderJson,
+      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    lazy val getCreditLimitOrderRequests : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonGet req => {
+        cc =>
+//          val a: Future[(ChecksOrderStatusResponseDetails, Some[CallContext])] = for {
+//            banksBox <- Connector.connector.vend.getBanksFuture()
+//            banks <- unboxFullAndWrapIntoFuture{ banksBox }
+//          } yield
+           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), Some(cc))}
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getCreditLimitOrderRequestByRequestId,
+      implementedInApiVersion,
+      "getCreditLimitOrderRequestByRequestId",
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests/REQUEST_ID",
+      "Get Creadit Limit Order Request By Request Id",
+      """Get Creadit Limit Order Request By Request Id
+        |""",
+      emptyObjectJson,
+      creditLimitOrderJson,
+      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    lazy val getCreditLimitOrderRequestByRequestId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: requestId :: Nil JsonGet req => {
+        cc =>
+//          val a: Future[(ChecksOrderStatusResponseDetails, Some[CallContext])] = for {
+//            banksBox <- Connector.connector.vend.getBanksFuture()
+//            banks <- unboxFullAndWrapIntoFuture{ banksBox }
+//          } yield
+           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), Some(cc))}
+      }
+    }
+    
   }
 }
 
