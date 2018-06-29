@@ -13,7 +13,19 @@ object MappedAggregateMetrics extends AggregateMetrics {
       * First value of the Tuple is a List of field names returned by SQL query.
       * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
       */
-    val (_, List(count :: avg :: min :: max :: _)): (List[String], List[List[String]]) = DB.runQuery(dbQuery)
+    val (_, List(count :: avg :: min :: max :: _)) = DB.use(DefaultConnectionIdentifier)
+    {
+      conn =>
+          DB.prepareStatement(dbQuery, conn)
+          {
+            stmt =>
+              stmt.setDate(1, new java.sql.Date(startDate.getTime))
+              stmt.setDate(2, new java.sql.Date(endDate.getTime))
+              DB.resultSetTo(stmt.executeQuery())
+              
+          }
+    }
+    
 
     val totalCount = count
     val avgResponseTime = "%.2f".format(avg.toDouble)
