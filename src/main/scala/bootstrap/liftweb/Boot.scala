@@ -54,7 +54,7 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
-import code.kafka.KafkaHelperActors
+import code.kafka.{KafkaConsumer, KafkaHelperActors}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -289,6 +289,8 @@ class Boot extends MdcLoggable {
     if (connector.startsWith("kafka")) {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
+      // Start North Side Consumer if it's not already started
+      KafkaConsumer.consumer001.start()
     }
 
     if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {

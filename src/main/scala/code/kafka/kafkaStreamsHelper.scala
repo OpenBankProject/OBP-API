@@ -71,8 +71,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     }
     // This actor is used to listen to a message which will be sent by NorthSideConsumer
     val actorListener = context.actorOf(Props[RequestResponseActor], key)
-    // Start North Side Consumer if it's not already started
-    KafkaConsumer.consumer001.start(context)
 
     /**
       * This function is used o send Kafka message in Async way to a Kafka broker
