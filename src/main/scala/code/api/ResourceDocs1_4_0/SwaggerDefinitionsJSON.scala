@@ -2517,7 +2517,7 @@ object SwaggerDefinitionsJSON {
     cards = List(cardObjectJson)
   )
   
-  val creditLineOrderRequestJson = CreditLineOrderRequestJson(
+  val creditLimitOrderRequestJson = CreditLimitOrderRequestJson(
     requested_current_rate_amount1 = "String",
     requested_current_rate_amount2 = "String",
     requested_current_valid_end_date = "String",
@@ -2527,11 +2527,18 @@ object SwaggerDefinitionsJSON {
     temporary_credit_documentation = "String",
   )
   
-  val creditLineOrderResponseJson = CreditLineOrderResponseJson(
+  val creditLimitOrderResponseJson = CreditLimitOrderResponseJson(
     execution_time = "String",
     execution_date = "String",
     token = "String",
     short_reference = "String"
+  )
+  
+  val creditLimitOrderJson = CreditLimitOrderJson(
+    rank_amount_1 = "String",
+    nominal_interest_1 = "String",
+    rank_amount_2 = "String",
+    nominal_interest_2 = "String"
   )
   
   //The common error or success format.

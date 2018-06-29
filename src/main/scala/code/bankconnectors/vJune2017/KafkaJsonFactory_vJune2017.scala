@@ -76,7 +76,7 @@ case class OutboundGetCustomersByUserId(
   authInfo: AuthInfo
 ) extends TopicTrait
 
-case class OutboundGetChecksOrderStatus(
+case class OutboundGetCheckbookOrderStatus(
   authInfo: AuthInfo, 
   bankId: String, 
   accountId: String, 

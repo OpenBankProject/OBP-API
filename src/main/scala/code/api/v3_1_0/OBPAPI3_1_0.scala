@@ -282,7 +282,9 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Possible Endpoints from 3.1.0
   val endpointsOf3_1_0 =  Implementations3_1_0.getCheckbookOrders :: 
                           Implementations3_1_0.getStatusOfCreditCardOrder ::
-                          Implementations3_1_0.createCreditLineOrderRequest ::
+                          Implementations3_1_0.createCreditLimitOrderRequest ::
+                          Implementations3_1_0.getCreditLimitOrderRequests ::
+                          Implementations3_1_0.getCreditLimitOrderRequestByRequestId ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
