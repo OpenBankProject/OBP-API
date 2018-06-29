@@ -6,7 +6,7 @@ import net.liftweb.mapper._
 object MappedAggregateMetrics extends AggregateMetrics {
   override def getAllAggregateMetrics(startDate: Date, endDate: Date): List[Double] = {
 
-    val dbQuery = s"SELECT count(*), avg(duration), min(duration), max(duration) FROM mappedmetric WHERE date_c >= '$startDate' AND date_c <= '$endDate'"
+    val dbQuery = s"SELECT count(*), avg(duration), min(duration), max(duration) FROM mappedmetric WHERE date_c >= ? AND date_c <= ?"
     /**
       * Example of a Tuple response
       * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
