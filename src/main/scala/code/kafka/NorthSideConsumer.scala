@@ -64,12 +64,12 @@ object NorthSideConsumer {
     }
   }
 
-  def apply[K, V](brokers: String, topic: String, group: String, processor: RecordProcessorTrait[K, V]): NorthSideConsumer[K, V] =
+  def apply[K, V](brokers: String, topic: String, group: String, processor: MessageProcessorTrait[K, V]): NorthSideConsumer[K, V] =
     new NorthSideConsumer[K, V](brokers, topic, group, classOf[StringDeserializer].getName, classOf[StringDeserializer].getName, processor)
 }
 
 class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, keyDeserealizer: String, valueDeserealizer: String,
-                              processor: RecordProcessorTrait[K, V]) extends Runnable with MdcLoggable with KafkaConfig {
+                              processor: MessageProcessorTrait[K, V]) extends Runnable with MdcLoggable with KafkaConfig {
 
   import NorthSideConsumer._
 
@@ -89,7 +89,7 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
     while (!completed) {
       val records = consumer.poll(100)
       for (record <- records) {
-        processor.processRecord(record)
+        processor.processMessage(record)
       }
     }
     consumer.close()
