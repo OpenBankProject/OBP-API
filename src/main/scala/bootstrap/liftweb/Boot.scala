@@ -290,7 +290,7 @@ class Boot extends MdcLoggable {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
       // Start North Side Consumer if it's not already started
-      KafkaConsumer.consumer001.start()
+      KafkaConsumer.primaryConsumer.start()
     }
 
     if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
