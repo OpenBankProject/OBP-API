@@ -60,8 +60,9 @@ trait APIMethods310 {
               } map { unboxFull(_) }
             
             //TODO need error handling here
-            checkbookOrders <- Connector.connector.vend.getCheckbookOrdersFuture(bankId.value,accountId.value, Some(cc)) map { unboxFull(_) }
-            
+            checkbookOrders <- Connector.connector.vend.getCheckbookOrdersFuture(bankId.value,accountId.value, Some(cc)) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetCheckbookOrdersFuture, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
           } yield
            (JSONFactory310.createCheckbookOrdersJson(checkbookOrders), Some(cc))
       }
@@ -103,7 +104,9 @@ trait APIMethods310 {
               } map { unboxFull(_) }
             
             //TODO need error handling here
-            checkbookOrders <- Connector.connector.vend.getStatusOfCreditCardOrderFuture(bankId.value,accountId.value, Some(cc)) map { unboxFull(_) }
+            checkbookOrders <- Connector.connector.vend.getStatusOfCreditCardOrderFuture(bankId.value,accountId.value, Some(cc)) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
             
           } yield
            (JSONFactory310.createStatisOfCreditCardJson(checkbookOrders), Some(cc))
