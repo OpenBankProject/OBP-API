@@ -109,6 +109,6 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
   }
   override def bulkDeleteMetrics(): Boolean = ???
   
-  override def getAllAggregateMetrics(startDate: Date, endDate: Date): List[Double] = ???
+  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] = ???
 
 }

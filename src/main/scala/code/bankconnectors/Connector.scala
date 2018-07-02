@@ -106,6 +106,7 @@ case class OBPConsumerId(value: String) extends OBPQueryParam
 case class OBPUserId(value: String) extends OBPQueryParam
 case class OBPUrl(value: String) extends OBPQueryParam
 case class OBPAppName(value: String) extends OBPQueryParam
+case class OBPExcludeAppNames(value: String) extends OBPQueryParam
 case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
 case class OBPImplementedInVersion(value: String) extends OBPQueryParam
 case class OBPVerb(value: String) extends OBPQueryParam

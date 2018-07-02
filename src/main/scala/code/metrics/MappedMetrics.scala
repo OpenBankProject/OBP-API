@@ -40,7 +40,8 @@ object MappedMetrics extends APIMetrics {
 //    MappedMetric.findAll.groupBy(_.getUrl())
 //  }
 
-  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
+  //TODO, maybe move to `APIUtil.scala`
+ private def getQueryParams(queryParams: List[OBPQueryParam]) = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedMetric](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedMetric.date, date) }.headOption
@@ -81,8 +82,14 @@ object MappedMetrics extends APIMetrics {
       case OBPAnon(value) if value == "true" => By(MappedMetric.userId, "null")
       case OBPAnon(value) if value == "false" => NotBy(MappedMetric.userId, "null")
     }.headOption
+    val excludeAppNames = queryParams.collect { 
+      case OBPExcludeAppNames(values) => 
+        //TODO, this may be improved later. 
+        val valueList: Array[String] = values.split(",").filter(_!=",")
+        valueList.map(NotBy(MappedMetric.appName, _)) 
+    }.headOption
 
-    val optionalParams: Seq[QueryParam[MappedMetric]] = Seq(
+    Seq(
       offset.toSeq,
       fromDate.toSeq,
       toDate.toSeq,
@@ -97,41 +104,25 @@ object MappedMetrics extends APIMetrics {
       limit.toSeq,
       correlationId.toSeq,
       duration.toSeq,
-      anon.toSeq
+      anon.toSeq,
+      excludeAppNames.toSeq.flatten
     ).flatten
-
+  }
+  
+  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
+    val optionalParams = getQueryParams(queryParams)
     MappedMetric.findAll(optionalParams: _*)
   }
   
-  override def getAllAggregateMetrics(startDate: Date, endDate: Date): List[Double] = {
+  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] = {
 
-    val dbQuery = s"SELECT count(*), avg(duration), min(duration), max(duration) FROM mappedmetric WHERE date_c >= ? AND date_c <= ?"
-    /**
-      * Example of a Tuple response
-      * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
-      * First value of the Tuple is a List of field names returned by SQL query.
-      * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
-      */
-    val (_, List(count :: avg :: min :: max :: _)) = DB.use(DefaultConnectionIdentifier)
-    {
-      conn =>
-          DB.prepareStatement(dbQuery, conn)
-          {
-            stmt =>
-              stmt.setDate(1, new java.sql.Date(startDate.getTime))
-              stmt.setDate(2, new java.sql.Date(endDate.getTime))
-              DB.resultSetTo(stmt.executeQuery())
-              
-          }
-    }
+    val optionalParams = getQueryParams(queryParams)
+    val mappedMetrics = MappedMetric.findAll(optionalParams: _*)
+    val totalCount = mappedMetrics.length
+    val minResponseTime = if (totalCount ==0) 0 else mappedMetrics.map(_.duration.get).min
+    val maxResponseTime = if (totalCount ==0) 0 else mappedMetrics.map(_.duration.get).max
+    val avgResponseTime = if (totalCount ==0) 0 else mappedMetrics.map(_.duration.get).sum/totalCount
     
-
-    val totalCount = count
-    val avgResponseTime = "%.2f".format(avg.toDouble)
-    val minResponseTime = min
-    val maxResponseTime = max
-
-
     List(totalCount.toDouble, avgResponseTime.toDouble, minResponseTime.toDouble, maxResponseTime.toDouble)
   }
 

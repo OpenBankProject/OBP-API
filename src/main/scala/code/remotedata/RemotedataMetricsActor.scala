@@ -36,9 +36,9 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       logger.debug("getAllMetrics()")
       sender ! extractResult(mapper.getAllMetrics(queryParams))
 
-    case cc.getAllAggregateMetrics(startDate: Date, endDate: Date) =>
+    case cc.getAllAggregateMetrics(queryParams: List[OBPQueryParam]) =>
       logger.debug("getAllAggregateMetrics()")
-      sender ! extractResult(mapper.getAllAggregateMetrics(startDate: Date, endDate: Date))
+      sender ! extractResult(mapper.getAllAggregateMetrics(queryParams: List[OBPQueryParam]))
       
     case cc.bulkDeleteMetrics() =>
       logger.debug("bulkDeleteMetrics()")

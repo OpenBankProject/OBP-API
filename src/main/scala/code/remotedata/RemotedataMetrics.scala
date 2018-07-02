@@ -28,8 +28,8 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] =
     extractFuture(actor ? cc.getAllMetrics(queryParams))
   
-  def getAllAggregateMetrics(startDate: Date, endDate: Date): List[Double] ={
-    extractFuture(actor ? cc.getAllAggregateMetrics(startDate: Date, endDate: Date))
+  def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] ={
+    extractFuture(actor ? cc.getAllAggregateMetrics(queryParams: List[OBPQueryParam]))
   }
 
   def bulkDeleteMetrics(): Boolean =

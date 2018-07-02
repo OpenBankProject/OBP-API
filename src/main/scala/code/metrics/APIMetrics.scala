@@ -67,7 +67,7 @@ trait APIMetrics {
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
   
-  def getAllAggregateMetrics(startDate: Date, endDate: Date): List[Double]
+  def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double]
 
   def bulkDeleteMetrics(): Boolean
 
@@ -79,7 +79,7 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
-  case class getAllAggregateMetrics(startDate: Date, endDate: Date)
+  case class getAllAggregateMetrics(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()
 }
 
