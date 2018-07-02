@@ -9,8 +9,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
   * This class implements behavior of North Side Consumer
   * i.e. how the consumer processes a received Kafka message
   */
-class NorthSideConsumerRecordProcessor extends RecordProcessorTrait[String, String] with MdcLoggable with KafkaHelper {
-  override def processRecord(record: ConsumerRecord[String, String]): Unit = {
+class NorthSideConsumerMessageProcessor extends MessageProcessorTrait[String, String] with MdcLoggable with KafkaHelper {
+  override def processMessage(record: ConsumerRecord[String, String]): Unit = {
     val backendRequestId = record.key()
     val payload = record.value()
     logger.debug(s"kafka consumer :$record")
