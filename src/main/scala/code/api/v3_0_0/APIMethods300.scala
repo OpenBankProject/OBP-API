@@ -24,7 +24,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.metrics.MappedMetric
+import code.metrics.{APIMetrics, MappedMetric}
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -43,7 +43,6 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.metrics.AggregateMetrics
 import code.scope.Scope
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.json.JsonAST.JValue
@@ -2129,7 +2128,7 @@ trait APIMethods300 {
               endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
                 s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
 
-              aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
+              aggregatemetrics <- Full(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(startDate, endDate))
 
             } yield {
               val json = getAggregateMetricJSON(aggregatemetrics)

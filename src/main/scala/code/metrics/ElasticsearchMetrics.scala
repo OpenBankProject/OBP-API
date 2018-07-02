@@ -52,6 +52,8 @@ object ElasticsearchMetrics extends APIMetrics {
 
     MappedMetric.findAll(optionalParams: _*)
   }
+  
+  override def getAllAggregateMetrics(startDate: Date, endDate: Date): List[Double] = ???
 
   override def bulkDeleteMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()
