@@ -539,7 +539,7 @@ object Glossary {
 		title = "OAuth 1.0a",
 		description =
 			s"""
-			|The following steps will explain how to connect an instance of the Open Bank Project OAuth Server 1.0a. You may well want to use a different host. This authentication mechanism is necessary so a third party application can consume the Open Bank project API securely.
+			|The following steps will explain how to connect an instance of the Open Bank Project OAuth Server 1.0a. This authentication mechanism is necessary so a third party application can consume the Open Bank project API securely.
 			|
 			|The following documentation is based on the OAuth 1.0a specification so if you need more details you can refer to it.
 			|
@@ -898,7 +898,15 @@ object Glossary {
   }
 
 
+else {
 
+		glossaryItems += GlossaryItem(
+			title = "OAuth 2",
+			description =
+					s"""
+						 |OAuth 2 is not enabled for this OBP API instance.
+			""")
+	}
 
 
 }
