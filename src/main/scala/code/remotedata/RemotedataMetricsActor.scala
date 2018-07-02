@@ -14,6 +14,9 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
   val mapper = MappedMetrics
   val cc = RemotedataMetricsCaseClasses
 
+  override def postStop() = logger.debug(s"RemotedataMetricsActor is stopping !")
+  override def preStart() = logger.debug(s"RemotedataMetricsActor is starting !")
+  
   def receive = {
 
     case cc.saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String) =>
@@ -39,6 +42,14 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
     case cc.getAllAggregateMetrics(queryParams: List[OBPQueryParam]) =>
       logger.debug("getAllAggregateMetrics()")
       sender ! extractResult(mapper.getAllAggregateMetrics(queryParams: List[OBPQueryParam]))
+      
+    case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
+      logger.debug(s"getTopApisFuture($queryParams)")
+      sender ! (mapper.getTopApisBox(queryParams: List[OBPQueryParam]))
+      
+    case cc.getTopConsumersFuture(queryParams: List[OBPQueryParam]) =>
+      logger.debug(s"getTopConsumersFuture($queryParams)")
+      sender ! (mapper.getTopConsumersBox(queryParams: List[OBPQueryParam]))
       
     case cc.bulkDeleteMetrics() =>
       logger.debug("bulkDeleteMetrics()")

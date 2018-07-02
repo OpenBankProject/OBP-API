@@ -6,7 +6,9 @@ import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.bankconnectors.OBPQueryParam
 import code.customer.{AmountOfMoneyTrait => _}
-import code.metrics.{APIMetric, APIMetrics, RemotedataMetricsCaseClasses}
+import code.metrics._
+import net.liftweb.common.Box
+import scala.concurrent.Future
 
 
 object RemotedataMetrics extends ObpActorInit with APIMetrics {
@@ -31,7 +33,14 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
   def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] ={
     extractFuture(actor ? cc.getAllAggregateMetrics(queryParams: List[OBPQueryParam]))
   }
+  
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] ={
+    (actor ? cc.getTopApisFuture(queryParams: List[OBPQueryParam])).mapTo[Box[List[TopApi]]]
+  }
 
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]  ={
+    (actor ? cc.getTopConsumersFuture(queryParams: List[OBPQueryParam])).mapTo[Box[List[TopConsumer]]]
+  }
   def bulkDeleteMetrics(): Boolean =
     extractFuture(actor ? cc.bulkDeleteMetrics())
 

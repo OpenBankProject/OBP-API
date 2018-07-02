@@ -5,12 +5,13 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, OBPQueryParam}
+import code.metrics.APIMetrics
 import code.model._
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -190,6 +191,66 @@ trait APIMethods310 {
            Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), Some(cc))}
       }
     }
+    
+    resourceDocs += ResourceDoc(
+      getTopAPIs,
+      implementedInApiVersion,
+      "getTopAPIs",
+      "GET",
+      "/management/metrics/top-apis",
+      "get top apis",
+      """get top apis """,
+      emptyObjectJson,
+      List(topApiJson),
+      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    lazy val getTopAPIs : OBPEndpoint = {
+      case "management" :: "metrics" :: "top-apis" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(List.empty[OBPQueryParam]) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+          } yield
+           (JSONFactory310.createTopApisJson(toApis), Some(cc))
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getMetricsTopConsumers,
+      implementedInApiVersion,
+      "getMetricsTopConsumers",
+      "GET",
+      "/management/metrics/top-consumers",
+      "get metrics top consumers",
+      """get metrics top consumers """,
+      emptyObjectJson,
+      List(topConsumerJson),
+      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    lazy val getMetricsTopConsumers : OBPEndpoint = {
+      case "management" :: "metrics" :: "top-consumers" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+
+            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(List.empty[OBPQueryParam]) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(GetMetricsTopConsumersError, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+            
+          } yield
+           (JSONFactory310.createTopConsumersJson(topConsumers), Some(cc))
+      }
+    }
+    
+    
     
   }
 }

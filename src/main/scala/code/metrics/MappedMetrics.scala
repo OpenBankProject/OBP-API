@@ -2,11 +2,19 @@ package code.metrics
 
 import java.util.Date
 
+import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPImplementedByPartialFunction, _}
+import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.{Index, _}
+import net.liftweb.util.Helpers.tryo
 
-object MappedMetrics extends APIMetrics {
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.collection.immutable.List
+import scala.concurrent.Future
+
+object MappedMetrics extends APIMetrics with MdcLoggable{
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,correlationId: String): Unit = {
     MappedMetric.create
@@ -129,6 +137,56 @@ object MappedMetrics extends APIMetrics {
   override def bulkDeleteMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()
   }
+  
+  //This is tricky for now, we call it only in Actor. 
+  //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
+  def getTopApisBox(queryParams: List[OBPQueryParam]): Box[List[TopApi]] = {
+    for{
+       dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " + 
+                       "FROM mappedmetric " +
+                       "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
+                       "ORDER BY count(*) DESC")
+       resultSet <- tryo(DB.runQuery(dbQuery))?~! {logger.error(s"getTopApisBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopApisBox.DB.runQuery(dbQuery) read database issue. "}
+       
+       topApis <- tryo(resultSet._2.map(
+         a =>
+           TopApi(
+             if (a(0) != null) a(0).toInt else 0,
+             if (a(1) != null) a(1).toString else "",
+             if (a(2) != null) a(2).toString else ""))) ?~! {logger.error(s"getTopApisBox.create TopApi class error. Here is the result from database $resultSet ");s"$UnknownError getTopApisBox.create TopApi class error. "}
+      
+    } yield {
+      topApis
+    }
+  }
+  
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{getTopApisBox(queryParams: List[OBPQueryParam])}
+  
+  //This is tricky for now, we call it only in Actor. 
+  //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
+  def getTopConsumersBox(queryParams: List[OBPQueryParam]): Box[List[TopConsumer]] = {
+    for{
+       dbQuery <- Full("SELECT count(*), consumer.consumerid, consumer.name " + 
+                       "FROM consumer "+
+                       "GROUP BY consumer.consumerid, consumer.name "+
+                       "ORDER BY count(*) DESC")
+       
+       resultSet <- tryo(DB.runQuery(dbQuery))?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
+       
+       topApis <- tryo(resultSet._2.map(
+         a =>
+           TopConsumer(
+             if (a(0) != null) a(0).toInt else 0,
+             if (a(1) != null) a(1).toString else "", 
+             if (a(2) != null) a(2).toString else ""))) ?~! {logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");s"$UnknownError getTopConsumersBox.create TopApi class error. "}
+      
+    } yield {
+      topApis
+    }
+  }
+  
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{getTopConsumersBox(queryParams: List[OBPQueryParam])}
+  
 
 }
 

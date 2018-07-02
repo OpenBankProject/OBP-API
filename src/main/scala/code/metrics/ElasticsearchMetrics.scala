@@ -5,8 +5,11 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.bankconnectors._
 import code.search.elasticsearchMetrics
+import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Props
+
+import scala.concurrent.Future
 
 object ElasticsearchMetrics extends APIMetrics {
 
@@ -54,6 +57,10 @@ object ElasticsearchMetrics extends APIMetrics {
   }
   
   override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] = ???
+  
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = ???
+  
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = ???
 
   override def bulkDeleteMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()
