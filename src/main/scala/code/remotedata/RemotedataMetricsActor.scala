@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.bankconnectors.OBPQueryParam
+import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 
@@ -39,9 +39,9 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       logger.debug("getAllMetrics()")
       sender ! extractResult(mapper.getAllMetrics(queryParams))
 
-    case cc.getAllAggregateMetrics(queryParams: List[OBPQueryParam]) =>
-      logger.debug("getAllAggregateMetrics()")
-      sender ! extractResult(mapper.getAllAggregateMetrics(queryParams: List[OBPQueryParam]))
+    case cc.getAllAggregateMetrics(queryParams: OBPQueryParamPlain) =>
+      logger.debug(s"getAllAggregateMetrics($queryParams)")
+      sender ! extractResult(mapper.getAllAggregateMetrics(queryParams: OBPQueryParamPlain))
       
     case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopApisFuture($queryParams)")

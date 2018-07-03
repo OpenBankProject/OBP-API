@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.bankconnectors.OBPQueryParam
+import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
 import code.customer.{AmountOfMoneyTrait => _}
 import code.metrics._
 import net.liftweb.common.Box
@@ -30,8 +30,9 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] =
     extractFuture(actor ? cc.getAllMetrics(queryParams))
   
-  def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] ={
-    extractFuture(actor ? cc.getAllAggregateMetrics(queryParams: List[OBPQueryParam]))
+  def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics] ={
+    logger.debug(s"getAllAggregateMetrics($queryParams)")
+    extractFuture(actor ? cc.getAllAggregateMetrics(queryParams))
   }
   
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] ={

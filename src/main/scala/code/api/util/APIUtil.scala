@@ -51,7 +51,7 @@ import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metrics.{APIMetrics, ConnectorMetricsProvider}
+import code.metrics.{APIMetrics, AggregateMetrics, ConnectorMetricsProvider}
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
@@ -933,29 +933,6 @@ object APIUtil extends MdcLoggable {
   def getGlossaryItems : List[GlossaryItem] = {
     Glossary.glossaryItems.toList.sortBy(_.title)
   }
-
-/*  def getAggregateMetricJSON(count: Long, avg_duration: (List[String],List[List[String]]), min_duration: (List[String],List[List[String]]), max_duration: (List[String],List[List[String]])) = {
-    val aggregateMetricJVALUE: JValue = {
-      val aggregateMetricJSON = new AggregateMetricJSON(
-        count,
-        avg_duration._2.headOr(Nil).headOr("null"),
-        min_duration._2.headOr(Nil).headOr("null"),
-        max_duration._2.headOr(Nil).headOr("null"))
-      Extraction.decompose(aggregateMetricJSON)
-    }
-
-    aggregateMetricJVALUE
-  }*/
-
-//  def getAggregateMetricJSON(count:Long, avg_duration: String, min_duration: String, max_duration: String) = {
-  def getAggregateMetricJSON(aggregatemetrics: List[Double]) = {
-    val aggregateMetricJVALUE: JValue = {
-      val aggregateMetricJSON = new AggregateMetricJSON(aggregatemetrics(0).toInt, aggregatemetrics(1), aggregatemetrics(2), aggregatemetrics(3))
-      Extraction.decompose(aggregateMetricJSON)
-    }
-    aggregateMetricJVALUE
-  }
-
 
   /**
     *

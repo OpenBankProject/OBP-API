@@ -45,9 +45,12 @@ import code.branches.Branches._
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
+import code.metrics.AggregateMetrics
 import code.model.dataAccess.ResourceUser
 import code.scope.Scope
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.JValue
 import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.List
@@ -1084,5 +1087,17 @@ object JSONFactory300{
 
   def createBanksJson(l: List[Bank]): BanksJson = {
     BanksJson(l.map(JSONFactory.createBankJSON))
+  }
+  
+  
+  def createAggregateMetricJson(aggregateMetrics: List[AggregateMetrics]) = {
+      aggregateMetrics.map(
+        aggregateMetric => AggregateMetricJSON(
+          aggregateMetric.totalCount, 
+          aggregateMetric.avgResponseTime, 
+          aggregateMetric.minResponseTime,
+          aggregateMetric.maxResponseTime
+        )
+      )
   }
 }

@@ -3,7 +3,7 @@ package code.metrics
 import java.util.{Calendar, Date}
 
 import code.api.util.APIUtil
-import code.bankconnectors.OBPQueryParam
+import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
 import code.remotedata.RemotedataMetrics
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
@@ -70,7 +70,7 @@ trait APIMetrics {
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
   
-  def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double]
+  def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics]
   
   def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]]
   
@@ -86,7 +86,7 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
-  case class getAllAggregateMetrics(queryParams: List[OBPQueryParam])
+  case class getAllAggregateMetrics(queryParams: OBPQueryParamPlain)
   case class getTopApisFuture(queryParams: List[OBPQueryParam])
   case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()
@@ -111,6 +111,12 @@ trait APIMetric {
 
 }
 
+case class AggregateMetrics(
+  totalCount: Int,
+  avgResponseTime: Double,
+  minResponseTime: Double,
+  maxResponseTime: Double
+)
 
 case class TopApi(
   count: Int,

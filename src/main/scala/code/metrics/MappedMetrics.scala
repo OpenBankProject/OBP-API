@@ -122,16 +122,70 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     MappedMetric.findAll(optionalParams: _*)
   }
   
-  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] = {
+  override def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics] = {
 
-    val optionalParams = getQueryParams(queryParams)
-    val mappedMetrics = MappedMetric.findAll(optionalParams: _*)
-    val totalCount = mappedMetrics.length
-    val minResponseTime = if (totalCount ==0) 0 else mappedMetrics.map(_.duration.get).min
-    val maxResponseTime = if (totalCount ==0) 0 else mappedMetrics.map(_.duration.get).max
-    val avgResponseTime = if (totalCount ==0) 0 else mappedMetrics.map(_.duration.get).sum/totalCount
+    val dbQuery = 
+      "SELECT count(*), avg(duration), min(duration), max(duration) "+ 
+      "FROM mappedmetric "+   
+      "WHERE date_c >= ? "+ 
+      "AND date_c <= ? "+ 
+      "AND (? or consumerid = ?) "+ 
+      "AND (? or userid = ?) "+ 
+      "AND (? or implementedbypartialfunction = ? ) "+ 
+      "AND (? or implementedinversion = ?) "+ 
+      "AND (? or url= ?) "+ 
+      "And (? or appname = ?) "+ 
+      "AND (? or verb = ? ) "+ 
+      "AND (? or appname not in (?)) "+
+      "AND (? or userid = 'null' ) "+  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
+      "AND (? or userid != 'null' ) "  // anon == false (return where user_id is not null.)
+      
+    /**
+      * Example of a Tuple response
+      * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
+      * First value of the Tuple is a List of field names returned by SQL query.
+      * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
+      */
     
-    List(totalCount.toDouble, avgResponseTime.toDouble, minResponseTime.toDouble, maxResponseTime.toDouble)
+    val (_, List(count :: avg :: min :: max :: _)) = DB.use(DefaultConnectionIdentifier)
+    {
+      conn =>
+          DB.prepareStatement(dbQuery, conn)
+          {
+            stmt =>
+              stmt.setDate(1, new java.sql.Date(queryParams.startDate.getTime))
+              stmt.setDate(2, new java.sql.Date(queryParams.endDate.getTime))
+              stmt.setBoolean(3, if (queryParams.consumerId=="true") true else false)
+              stmt.setString(4, queryParams.consumerId)
+              stmt.setBoolean(5, if (queryParams.userId=="true") true else false)
+              stmt.setString(6, queryParams.userId)
+              stmt.setBoolean(7, if (queryParams.implementedByPartialFunction=="true") true else false)
+              stmt.setString(8, queryParams.implementedByPartialFunction)
+              stmt.setBoolean(9, if (queryParams.implementedInVersion=="true") true else false)
+              stmt.setString(10, queryParams.implementedInVersion)
+              stmt.setBoolean(11, if (queryParams.url=="true") true else false)
+              stmt.setString(12, queryParams.url)
+              stmt.setBoolean(13, if (queryParams.appName=="true") true else false)
+              stmt.setString(14,queryParams.appName)
+              stmt.setBoolean(15, if (queryParams.verb=="true") true else false)
+              stmt.setString(16, queryParams.verb)
+              stmt.setBoolean(17, if (queryParams.excludeAppNames=="true") true else false)
+              stmt.setString(18, queryParams.excludeAppNames)
+              stmt.setBoolean(19, if (queryParams.anon=="true") false  else true) // anon == true (return where user_id is null.) 
+              stmt.setBoolean(20, if (queryParams.anon=="false") false  else true) // anon == false (return where user_id is not null.)
+              DB.resultSetTo(stmt.executeQuery())
+              
+          }
+    }
+    
+
+    val totalCount = if (count != null ) count.toInt else 0 
+    val avgResponseTime = if (avg != null ) "%.2f".format(avg.toDouble).toDouble else 0
+    val minResponseTime = if (min != null ) min.toDouble else 0
+    val maxResponseTime = if (max != null ) max.toDouble else 0
+
+
+    List(AggregateMetrics(totalCount, avgResponseTime, minResponseTime, maxResponseTime))
   }
 
   override def bulkDeleteMetrics(): Boolean = {

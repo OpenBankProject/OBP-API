@@ -2074,7 +2074,7 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?start_date=2010-05-10 01:20:03&end_date=2017-05-22 01:02:03&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |eg: /management/aggregate-metrics?start_date=2010-05-10 01:20:03&end_date=2017-05-22 01:02:03&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
         |1 start_date (defaults to the day before the current date): eg:start_date=2018-03-26
         |
@@ -2155,29 +2155,30 @@ trait APIMethods300 {
               //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
               anon <- tryo(
                 S.param("anon") match {
-                  case Full(x) if x.toLowerCase == "true"  => OBPAnon(x)
-                  case Full(x) if x.toLowerCase == "false" => OBPAnon(x)
-                  case _                                   => OBPEmpty()
+                  case Full(x) if x.toLowerCase == "true"  => x
+                  case Full(x) if x.toLowerCase == "false" => x
+                  case _                                   => ""
                 }
               )
-              consumerId <- tryo(S.param("consumer_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPConsumerId(x))
-              userId <- tryo(S.param("user_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUserId(x))
-              url <- tryo(S.param("url").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUrl(x))
-              appName <- tryo(S.param("app_name").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPAppName(x))
-              implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedByPartialFunction(x))
-              implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
-              verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPVerb(x))
-              correlationId <- tryo(S.param("correlationId").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
-              duration <- tryo(S.param("duration").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPDuration(x.filter(_.isDigit == true).toLong))
-              excludeAppNames <- tryo(S.param("exclude_app_names").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPExcludeAppNames(x))
+              consumerId <- tryo(S.param("consumer_id").openOr("true"))
+              userId <- tryo(S.param("user_id").openOr("true"))
+              url <- tryo(S.param("url").openOr("true"))
+              appName <- tryo(S.param("app_name").openOr("true"))
+              implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("true"))
+              implementedInVersion <- tryo(S.param("implemented_in_version").openOr("true"))
+              verb <- tryo(S.param("verb").openOr("true"))
+              correlationId <- tryo(S.param("correlationId").openOr("true"))
+              duration <- tryo(S.param("duration").openOr("true"))
+              excludeAppNames <- tryo(S.param("exclude_app_names").openOr("true"))
               
-              parameters <- Full(List(OBPFromDate(startDate),OBPToDate(endDate),consumerId,userId,url,appName,
-                                      implementedByPartialFunction,implementedInVersion,verb,anon,correlationId,duration,excludeAppNames))
+              obpQueryParamPlain = OBPQueryParamPlain(startDate,endDate,consumerId,userId,url,appName, 
+                                                      implementedByPartialFunction,implementedInVersion,verb,
+                                                      anon,correlationId,duration,excludeAppNames)
               
-              aggregatemetrics <- Full(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(parameters))
+              aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpQueryParamPlain)) ?~! GetAggregateMetricsError
 
             } yield {
-              val json = getAggregateMetricJSON(aggregatemetrics)
+              val json = createAggregateMetricJson(aggregateMetrics)
               successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
             }
           }

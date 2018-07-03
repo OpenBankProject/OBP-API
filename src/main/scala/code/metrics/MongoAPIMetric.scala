@@ -34,7 +34,7 @@ Berlin 13359, Germany
 
 import java.util.Date
 
-import code.bankconnectors.OBPQueryParam
+import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
 import net.liftweb.common.Box
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
@@ -112,7 +112,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
   }
   override def bulkDeleteMetrics(): Boolean = ???
   
-  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[Double] = ???
+  override def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics] = ???
   
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = ???
   
