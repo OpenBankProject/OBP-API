@@ -84,6 +84,7 @@ import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequ
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
+import net.liftweb.db.DBLogEntry
 import net.liftweb.http._
 import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
@@ -185,6 +186,22 @@ class Boot extends MdcLoggable {
 
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
+    
+    if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
+      DB.addLogFunc
+     {
+       case (log, duration) =>
+       {
+         logger.debug("Total query time : %d ms".format(duration))
+         log.allEntries.foreach
+         {
+           case DBLogEntry(stmt, duration) =>
+             logger.debug("The query :  %s in %d ms".format(stmt, duration))
+         }
+       }
+     }
+    }
+    
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")

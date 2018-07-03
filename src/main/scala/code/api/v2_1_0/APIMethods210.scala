@@ -1648,16 +1648,17 @@ trait APIMethods210 {
             //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
 
             inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
-            // set the long,long ago as the default date.
+            //set `defaultStartDate` = 0000-00-00
             defautStartDate <- Full("0000-00-00")
-            tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
+            //set `defaultEndDate` = tomorrow. 
+            defaultEndDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
 
             //(defaults to one week before current date
             startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defautStartDate))) ?~!
-              s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } start_date:${S.param("start_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Support format is yyyy-MM-dd"
             // defaults to current date
-            endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
-              s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
+            endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(defaultEndDate))) ?~!
+              s"${InvalidDateFormat } end_date:${S.param("end_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Support format is yyyy-MM-dd"
             // default 1000, return 1000 items
             limit <- tryo(
                         S.param("limit") match {
@@ -1676,9 +1677,6 @@ trait APIMethods210 {
                 case _                                        => OBPDescending
               }
             )
-            //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
-            // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
-            //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
 
             //Filters Part 2. -- the optional varibles:
             //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
@@ -1699,28 +1697,10 @@ trait APIMethods210 {
             correlationId <- tryo(S.param("correlationId").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
             duration <- tryo(S.param("duration").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPDuration(x.filter(_.isDigit == true).toLong))
 
-            parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
-            _ <- Full(
-              parameters
-                += OBPLimit(limit)
-                += OBPOffset(offset)
-                += OBPFromDate(startDate)
-                += OBPToDate(endDate)
-                += consumerId
-                += userId
-                += userId
-                += url
-                += appName
-                += implementedByPartialFunction
-                += implementedInVersion
-                += verb
-                += anon
-                += correlationId
-                += duration
-                += OBPOrdering(Some(sortBy) , direction)
-            )
-
-            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters.toList))
+            parameters <- Full(List(OBPLimit(limit),OBPOffset(offset),OBPFromDate(startDate),OBPToDate(endDate),consumerId,userId,url,appName,
+                                      implementedByPartialFunction,implementedInVersion,verb,anon,correlationId,duration,OBPOrdering(Some(sortBy) , direction)))
+            
+            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters))
             
           } yield {
             val json = JSONFactory210.createMetricsJson(metrics)

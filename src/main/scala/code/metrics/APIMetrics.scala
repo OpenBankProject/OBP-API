@@ -3,9 +3,12 @@ package code.metrics
 import java.util.{Calendar, Date}
 
 import code.api.util.APIUtil
-import code.bankconnectors.OBPQueryParam
+import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
 import code.remotedata.RemotedataMetrics
+import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+
+import scala.concurrent.Future
 
 object APIMetrics extends SimpleInjector {
 
@@ -66,6 +69,12 @@ trait APIMetrics {
 //  def getAllGroupedByUserId() : Map[String, List[APIMetric]]
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
+  
+  def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics]
+  
+  def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]]
+  
+  def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]
 
   def bulkDeleteMetrics(): Boolean
 
@@ -77,6 +86,9 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
+  case class getAllAggregateMetrics(queryParams: OBPQueryParamPlain)
+  case class getTopApisFuture(queryParams: List[OBPQueryParam])
+  case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()
 }
 
@@ -98,3 +110,23 @@ trait APIMetric {
   def getCorrelationId(): String
 
 }
+
+case class AggregateMetrics(
+  totalCount: Int,
+  avgResponseTime: Double,
+  minResponseTime: Double,
+  maxResponseTime: Double
+)
+
+case class TopApi(
+  count: Int,
+  ImplementedByPartialFunction: String,
+  implementedInVersion: String
+)
+
+
+case class TopConsumer(
+  count: Int,
+  consumerId: String,
+  appName: String
+)

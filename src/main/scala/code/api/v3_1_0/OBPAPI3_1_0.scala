@@ -285,6 +285,8 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.createCreditLimitOrderRequest ::
                           Implementations3_1_0.getCreditLimitOrderRequests ::
                           Implementations3_1_0.getCreditLimitOrderRequestByRequestId ::
+                          Implementations3_1_0.getTopAPIs ::
+                          Implementations3_1_0.getMetricsTopConsumers ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

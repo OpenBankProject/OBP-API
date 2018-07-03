@@ -2,11 +2,19 @@ package code.metrics
 
 import java.util.Date
 
+import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPImplementedByPartialFunction, _}
+import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.{Index, _}
+import net.liftweb.util.Helpers.tryo
 
-object MappedMetrics extends APIMetrics {
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.collection.immutable.List
+import scala.concurrent.Future
+
+object MappedMetrics extends APIMetrics with MdcLoggable{
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,correlationId: String): Unit = {
     MappedMetric.create
@@ -40,7 +48,8 @@ object MappedMetrics extends APIMetrics {
 //    MappedMetric.findAll.groupBy(_.getUrl())
 //  }
 
-  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
+  //TODO, maybe move to `APIUtil.scala`
+ private def getQueryParams(queryParams: List[OBPQueryParam]) = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedMetric](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedMetric.date, date) }.headOption
@@ -81,8 +90,14 @@ object MappedMetrics extends APIMetrics {
       case OBPAnon(value) if value == "true" => By(MappedMetric.userId, "null")
       case OBPAnon(value) if value == "false" => NotBy(MappedMetric.userId, "null")
     }.headOption
+    val excludeAppNames = queryParams.collect { 
+      case OBPExcludeAppNames(values) => 
+        //TODO, this may be improved later. 
+        val valueList: Array[String] = values.split(",").filter(_!=",")
+        valueList.map(NotBy(MappedMetric.appName, _)) 
+    }.headOption
 
-    val optionalParams: Seq[QueryParam[MappedMetric]] = Seq(
+    Seq(
       offset.toSeq,
       fromDate.toSeq,
       toDate.toSeq,
@@ -97,15 +112,135 @@ object MappedMetrics extends APIMetrics {
       limit.toSeq,
       correlationId.toSeq,
       duration.toSeq,
-      anon.toSeq
+      anon.toSeq,
+      excludeAppNames.toSeq.flatten
     ).flatten
-
+  }
+  
+  override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
+    val optionalParams = getQueryParams(queryParams)
     MappedMetric.findAll(optionalParams: _*)
+  }
+  
+  override def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics] = {
+
+    val dbQuery = 
+      "SELECT count(*), avg(duration), min(duration), max(duration) "+ 
+      "FROM mappedmetric "+   
+      "WHERE date_c >= ? "+ 
+      "AND date_c <= ? "+ 
+      "AND (? or consumerid = ?) "+ 
+      "AND (? or userid = ?) "+ 
+      "AND (? or implementedbypartialfunction = ? ) "+ 
+      "AND (? or implementedinversion = ?) "+ 
+      "AND (? or url= ?) "+ 
+      "And (? or appname = ?) "+ 
+      "AND (? or verb = ? ) "+ 
+      "AND (? or appname not in (?)) "+
+      "AND (? or userid = 'null' ) "+  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
+      "AND (? or userid != 'null' ) "  // anon == false (return where user_id is not null.)
+      
+    /**
+      * Example of a Tuple response
+      * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
+      * First value of the Tuple is a List of field names returned by SQL query.
+      * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
+      */
+    
+    val (_, List(count :: avg :: min :: max :: _)) = DB.use(DefaultConnectionIdentifier)
+    {
+      conn =>
+          DB.prepareStatement(dbQuery, conn)
+          {
+            stmt =>
+              stmt.setDate(1, new java.sql.Date(queryParams.startDate.getTime))
+              stmt.setDate(2, new java.sql.Date(queryParams.endDate.getTime))
+              stmt.setBoolean(3, if (queryParams.consumerId=="true") true else false)
+              stmt.setString(4, queryParams.consumerId)
+              stmt.setBoolean(5, if (queryParams.userId=="true") true else false)
+              stmt.setString(6, queryParams.userId)
+              stmt.setBoolean(7, if (queryParams.implementedByPartialFunction=="true") true else false)
+              stmt.setString(8, queryParams.implementedByPartialFunction)
+              stmt.setBoolean(9, if (queryParams.implementedInVersion=="true") true else false)
+              stmt.setString(10, queryParams.implementedInVersion)
+              stmt.setBoolean(11, if (queryParams.url=="true") true else false)
+              stmt.setString(12, queryParams.url)
+              stmt.setBoolean(13, if (queryParams.appName=="true") true else false)
+              stmt.setString(14,queryParams.appName)
+              stmt.setBoolean(15, if (queryParams.verb=="true") true else false)
+              stmt.setString(16, queryParams.verb)
+              stmt.setBoolean(17, if (queryParams.excludeAppNames=="true") true else false)
+              stmt.setString(18, queryParams.excludeAppNames)
+              stmt.setBoolean(19, if (queryParams.anon=="true") false  else true) // anon == true (return where user_id is null.) 
+              stmt.setBoolean(20, if (queryParams.anon=="false") false  else true) // anon == false (return where user_id is not null.)
+              DB.resultSetTo(stmt.executeQuery())
+              
+          }
+    }
+    
+
+    val totalCount = if (count != null ) count.toInt else 0 
+    val avgResponseTime = if (avg != null ) "%.2f".format(avg.toDouble).toDouble else 0
+    val minResponseTime = if (min != null ) min.toDouble else 0
+    val maxResponseTime = if (max != null ) max.toDouble else 0
+
+
+    List(AggregateMetrics(totalCount, avgResponseTime, minResponseTime, maxResponseTime))
   }
 
   override def bulkDeleteMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()
   }
+  
+  //This is tricky for now, we call it only in Actor. 
+  //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
+  def getTopApisBox(queryParams: List[OBPQueryParam]): Box[List[TopApi]] = {
+    for{
+       dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " + 
+                       "FROM mappedmetric " +
+                       "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
+                       "ORDER BY count(*) DESC")
+       resultSet <- tryo(DB.runQuery(dbQuery))?~! {logger.error(s"getTopApisBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopApisBox.DB.runQuery(dbQuery) read database issue. "}
+       
+       topApis <- tryo(resultSet._2.map(
+         a =>
+           TopApi(
+             if (a(0) != null) a(0).toInt else 0,
+             if (a(1) != null) a(1).toString else "",
+             if (a(2) != null) a(2).toString else ""))) ?~! {logger.error(s"getTopApisBox.create TopApi class error. Here is the result from database $resultSet ");s"$UnknownError getTopApisBox.create TopApi class error. "}
+      
+    } yield {
+      topApis
+    }
+  }
+  
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{getTopApisBox(queryParams: List[OBPQueryParam])}
+  
+  //This is tricky for now, we call it only in Actor. 
+  //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
+  def getTopConsumersBox(queryParams: List[OBPQueryParam]): Box[List[TopConsumer]] = {
+    for{
+       dbQuery <- Full("SELECT count(*), consumer.consumerid, consumer.name " + 
+                       "FROM consumer "+
+                       "GROUP BY consumer.consumerid, consumer.name "+
+                       "ORDER BY count(*) DESC")
+       
+       resultSet <- tryo(DB.runQuery(dbQuery))?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
+       
+       topApis <- tryo(resultSet._2.map(
+         a =>
+           TopConsumer(
+             if (a(0) != null) a(0).toInt else 0,
+             if (a(1) != null) a(1).toString else "", 
+             if (a(2) != null) a(2).toString else ""))) ?~! {logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");s"$UnknownError getTopConsumersBox.create TopApi class error. "}
+      
+    } yield {
+      topApis
+    }
+  }
+  
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{getTopConsumersBox(queryParams: List[OBPQueryParam])}
+  
 
 }
 
