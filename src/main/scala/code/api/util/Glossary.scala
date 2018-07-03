@@ -142,6 +142,51 @@ object Glossary {
 			|Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
 		  """)
 
+
+	glossaryItems += GlossaryItem(
+		title = "Consent / Account Onboarding",
+		description =
+				"""|*Consent*, or *Account onboarding*, is the process by which the account owner gives permission for their account(s) to be accessible to the API endpoints.
+|
+|In OBP, the account, transaction and payment APIs are all guarded by Account *Views* - with one exception, the account holders endpoint which can be used to
+|bootstrap account on-boarding.
+|
+|Note: the account holders endpoint is generally made available only to the Account Onboarding App, so if a View does not exist, no API access to the account is possible.
+|
+|*Consent* or *Account onboarding* can be managed in one of two ways:
+|
+|1) A backend system (CBS or other) is the system of record for User Consent, and OBP mirrors this.
+|
+|In this case:
+|
+| a) OBP requires the CBS or other backend system to return a list of accounts and permissions associated with a User.
+|
+| b) At User login, OBP automatically creates one or more Views for that User based on the permissions supplied by the CBS.
+|
+|2) OBP is the system of record for User Consent.
+|
+|In this case:
+|
+|  a) OBP requires the CBS, Gateway or other system to provide just a basic list of accounts owned by the User.
+|
+|  b) The Onboarding App or Bank's Onboarding Page then authenticates the User and calls the Create View endpoint.
+|
+|  c) The account, transaction and payment API endpoints then work as moderated by the relevant View permissions.
+|
+|  d) The User can revoke access by calling the delete View endpoint.
+|
+|
+|In summary:
+|
+|Prior to Views being created on an Account for a User, only the 'accounts held' endpoint will work for the account holder, and this endpoint only provides enough information
+|to identify the account so it can be selected and on-boarded into the API.
+|
+|Once a View exists for an Account, a User can interact with the Account via the API based on permissions defined in the View.
+|
+|""")
+
+
+
 	  glossaryItems += GlossaryItem(
 		title = "Direct Login",
 		description =
