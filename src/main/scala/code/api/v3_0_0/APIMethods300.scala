@@ -24,7 +24,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.metrics.MappedMetric
+import code.metrics.{APIMetrics, MappedMetric}
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -43,7 +43,6 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.metrics.AggregateMetrics
 import code.scope.Scope
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.json.JsonAST.JValue
@@ -2075,11 +2074,33 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?start_date=2018-03-26&end_date=2018-03-29
+        |eg: /management/aggregate-metrics?start_date=2010-05-10 01:20:03&end_date=2017-05-22 01:02:03&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
         |1 start_date (defaults to the day before the current date): eg:start_date=2018-03-26
         |
         |2 end_date (defaults to the current date) eg:end_date=2018-03-29
+        |
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore),
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlationId (if null ignore)
+        |
+        |12 duration (if null ignore) non digit chars will be silently omitted
+        |
+        |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -2104,12 +2125,12 @@ trait APIMethods300 {
 
               // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
 
-              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
+              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH))
 
               // Date format of now.getTime
               nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
 
-              defaultStartDate <- Full("0000-00-00")
+              defaultStartDate <- Full("0000-00-00 00:00:00")
 
               // Get tomorrow's date
 
@@ -2120,19 +2141,44 @@ trait APIMethods300 {
               tomorrowUnformatted <- Full(nowDateFormat.parse(tomorrowDate))
 
               //Format tomorrow's date with the inputDateFormat
-              tomorrowDate <- Full(inputDateFormat.format(tomorrowUnformatted))
+              defaultEndDate <- Full(inputDateFormat.format(tomorrowUnformatted))
 
               //(defaults to one week before current date
               startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
-                s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
+                s"${InvalidDateFormat } start_date:${S.param("start_date").openOrThrowException(attemptedToOpenAnEmptyBox)}. Supported format is yyyy-MM-dd HH:mm:ss"
+              
               // defaults to current date
-              endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
-                s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
-
-              aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
+              endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(defaultEndDate))) ?~!
+                s"${InvalidDateFormat } end_date:${S.param("end_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Supported format is yyyy-MM-dd HH:mm:ss"
+  
+              //Filters Part 2. -- the optional varibles:
+              //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+              anon <- tryo(
+                S.param("anon") match {
+                  case Full(x) if x.toLowerCase == "true"  => x
+                  case Full(x) if x.toLowerCase == "false" => x
+                  case _                                   => ""
+                }
+              )
+              consumerId <- tryo(S.param("consumer_id").openOr("true"))
+              userId <- tryo(S.param("user_id").openOr("true"))
+              url <- tryo(S.param("url").openOr("true"))
+              appName <- tryo(S.param("app_name").openOr("true"))
+              implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("true"))
+              implementedInVersion <- tryo(S.param("implemented_in_version").openOr("true"))
+              verb <- tryo(S.param("verb").openOr("true"))
+              correlationId <- tryo(S.param("correlationId").openOr("true"))
+              duration <- tryo(S.param("duration").openOr("true"))
+              excludeAppNames <- tryo(S.param("exclude_app_names").openOr("true"))
+              
+              obpQueryParamPlain = OBPQueryParamPlain(startDate,endDate,consumerId,userId,url,appName, 
+                                                      implementedByPartialFunction,implementedInVersion,verb,
+                                                      anon,correlationId,duration,excludeAppNames)
+              
+              aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpQueryParamPlain)) ?~! GetAggregateMetricsError
 
             } yield {
-              val json = getAggregateMetricJSON(aggregatemetrics)
+              val json = createAggregateMetricJson(aggregateMetrics)
               successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
             }
           }

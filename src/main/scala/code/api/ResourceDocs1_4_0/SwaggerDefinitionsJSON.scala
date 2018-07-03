@@ -2541,6 +2541,18 @@ object SwaggerDefinitionsJSON {
     nominal_interest_2 = "String"
   )
   
+  val topApiJson = TopApiJson(
+    count = 7076,
+    Implemented_by_partial_function = "getBanks",
+    implemented_in_version = "v1.2.1"
+  )
+  
+  val topConsumerJson = TopConsumerJson(
+    count = 7076,
+    consumer_id = "12312312",
+    app_name = "Api Explorer"
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

@@ -29,6 +29,7 @@ package code.api.v3_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.BranchRoutingJsonV141
+import code.metrics.{TopApi, TopConsumer}
 
 import scala.collection.immutable.List
 
@@ -92,6 +93,19 @@ case class CreditLimitOrderJson(
   nominal_interest_2: String
 )
 
+
+case class TopApiJson(
+  count: Int,
+  Implemented_by_partial_function: String,
+  implemented_in_version: String
+)
+
+case class TopConsumerJson(
+  count: Int,
+  consumer_id: String,
+  app_name: String
+)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson = 
     checkbookOrders
@@ -107,4 +121,12 @@ object JSONFactory310{
   
   def getCreditLimitOrderByRequestIdResponseJson(): CreditLimitOrderJson =
     SwaggerDefinitionsJSON.creditLimitOrderJson
+  
+  def createTopApisJson(topApis: List[TopApi]): List[TopApiJson] ={
+    topApis.map(topApi => TopApiJson(topApi.count, topApi.ImplementedByPartialFunction, topApi.implementedInVersion))
+  }
+  
+  def createTopConsumersJson(topConsumers: List[TopConsumer]): List[TopConsumerJson] ={
+    topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName))
+  }
 }
