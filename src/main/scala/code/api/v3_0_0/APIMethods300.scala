@@ -2130,7 +2130,7 @@ trait APIMethods300 {
               // Date format of now.getTime
               nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
 
-              defaultStartDate <- Full("0000-00-00 00:00:00")
+              defaultStartDate <- Full("0000-00-00T00:00:00")
 
               // Get tomorrow's date
 
