@@ -2216,7 +2216,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
-      Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
+      Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)))
   
     lazy val addScope : OBPEndpoint = {
       //add access for specific user to a list of views
