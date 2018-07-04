@@ -24,7 +24,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.metrics.{APIMetrics, MappedMetric}
+import code.metrics.{APIMetrics, MappedMetric, OBPUrlQueryParams}
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -2125,7 +2125,7 @@ trait APIMethods300 {
 
               // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
 
-              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH))
+              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH))
 
               // Date format of now.getTime
               nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
@@ -2171,11 +2171,11 @@ trait APIMethods300 {
               duration <- tryo(S.param("duration").openOr("true"))
               excludeAppNames <- tryo(S.param("exclude_app_names").openOr("true"))
               
-              obpQueryParamPlain = OBPQueryParamPlain(startDate,endDate,consumerId,userId,url,appName, 
-                                                      implementedByPartialFunction,implementedInVersion,verb,
-                                                      anon,correlationId,duration,excludeAppNames)
+              obpUrlQueryParams = OBPUrlQueryParams(startDate, endDate, consumerId, userId, url, appName,
+                                                    implementedByPartialFunction, implementedInVersion, verb,
+                                                    anon, correlationId, duration, excludeAppNames)
               
-              aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpQueryParamPlain)) ?~! GetAggregateMetricsError
+              aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpUrlQueryParams)) ?~! GetAggregateMetricsError
 
             } yield {
               val json = createAggregateMetricJson(aggregateMetrics)

@@ -4,8 +4,8 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
-import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
+import code.bankconnectors.OBPQueryParam
+import code.metrics.{MappedMetrics, OBPUrlDateQueryParam, OBPUrlQueryParams, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 
 
@@ -39,17 +39,17 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       logger.debug("getAllMetrics()")
       sender ! extractResult(mapper.getAllMetrics(queryParams))
 
-    case cc.getAllAggregateMetrics(queryParams: OBPQueryParamPlain) =>
-      logger.debug(s"getAllAggregateMetrics($queryParams)")
-      sender ! extractResult(mapper.getAllAggregateMetrics(queryParams: OBPQueryParamPlain))
+    case cc.getAllAggregateMetrics(queryParams: OBPUrlQueryParams) =>
+      logger.debug(s"RemotedataMetricsActor.getAllAggregateMetrics($queryParams)")
+      sender ! extractResult(mapper.getAllAggregateMetrics(queryParams))
       
-    case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
+    case cc.getTopApisFuture(queryParams: OBPUrlDateQueryParam) =>
       logger.debug(s"getTopApisFuture($queryParams)")
-      sender ! (mapper.getTopApisBox(queryParams: List[OBPQueryParam]))
+      sender ! (mapper.getTopApisBox(queryParams))
       
-    case cc.getTopConsumersFuture(queryParams: List[OBPQueryParam]) =>
+    case cc.getTopConsumersFuture(queryParams: OBPUrlDateQueryParam) =>
       logger.debug(s"getTopConsumersFuture($queryParams)")
-      sender ! (mapper.getTopConsumersBox(queryParams: List[OBPQueryParam]))
+      sender ! (mapper.getTopConsumersBox(queryParams))
       
     case cc.bulkDeleteMetrics() =>
       logger.debug("bulkDeleteMetrics()")

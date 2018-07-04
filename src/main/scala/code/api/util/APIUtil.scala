@@ -35,7 +35,7 @@ package code.api.util
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.{Date, Locale, UUID}
 
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -51,7 +51,7 @@ import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metrics.{APIMetrics, AggregateMetrics, ConnectorMetricsProvider}
+import code.metrics._
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
@@ -89,6 +89,7 @@ object APIUtil extends MdcLoggable {
   val emptyObjectJson = EmptyClassJson()
   val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  val inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH)
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
 
@@ -685,6 +686,41 @@ object APIUtil extends MdcLoggable {
       val ordering = OBPOrdering(sortBy, sortDirection)
       limit :: offset :: ordering :: fromDate :: toDate :: Nil
     }
+  }
+  
+  //TODO this can be enhanced later, support all the parameters
+  def getHttpRequestUrlParams(httpRequestUrl: String): Box[OBPUrlDateQueryParam] =
+  {
+    val startDate = for
+      {
+      startDateString <- getHttpRequestUrlParam(httpRequestUrl, "start_date")
+      startDate <- tryo(inputDateFormat.parse(startDateString)) ?~! s"${InvalidDateFormat } start_date:${startDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+    } yield
+      startDate
+    
+    val endDate = for
+      {
+      endDateString <- getHttpRequestUrlParam(httpRequestUrl, "end_date")
+      endDate <- tryo(Some(inputDateFormat.parse(endDateString))) ?~! s"${InvalidDateFormat} start_date:${endDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+    } yield
+      endDate
+    
+    
+    (startDate, endDate) match {
+      case (Failure(msg, t, c),_)  => Failure(msg, t, c)
+      case (_,Failure(msg, t, c))  => Failure(msg, t, c)
+      case _ => Full(OBPUrlDateQueryParam(startDate.toOption, endDate.openOr(None)))
+    }
+  }
+
+  //eg: httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03
+  def getHttpRequestUrlParam(httpRequestUrl: String, name: String): Box[String] ={
+    for{
+      urlAndQueryString <- if (httpRequestUrl.contains("?")) Full(httpRequestUrl.split("\\?",2)(1)) else Empty // Full(start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03)
+      queryStrings <- Full(urlAndQueryString.split("&").map(_.split("=")).flatten)  //Full(start_date, 2010-05-10T01:20:03, end_date, 2017-05-22T01:02:03)
+      queryStringValue <- if (queryStrings.contains(name)) Full(queryStrings(queryStrings.indexOf(name)+1)) else Empty //Full(2010-05-10T01:20:03)
+    } yield 
+      queryStringValue
   }
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 

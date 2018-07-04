@@ -1,5 +1,6 @@
 package code.metrics
 
+import java.sql.{Time, Timestamp}
 import java.util.Date
 
 import code.api.util.ErrorMessages._
@@ -122,7 +123,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     MappedMetric.findAll(optionalParams: _*)
   }
   
-  override def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics] = {
+  override def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics] = {
 
     val dbQuery = 
       "SELECT count(*), avg(duration), min(duration), max(duration) "+ 
@@ -153,8 +154,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
           DB.prepareStatement(dbQuery, conn)
           {
             stmt =>
-              stmt.setDate(1, new java.sql.Date(queryParams.startDate.getTime))
-              stmt.setDate(2, new java.sql.Date(queryParams.endDate.getTime))
+              stmt.setTimestamp(1, new Timestamp(queryParams.startDate.getTime))
+              stmt.setTimestamp(2, new Timestamp(queryParams.endDate.getTime))
               stmt.setBoolean(3, if (queryParams.consumerId=="true") true else false)
               stmt.setString(4, queryParams.consumerId)
               stmt.setBoolean(5, if (queryParams.userId=="true") true else false)
@@ -194,13 +195,28 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   
   //This is tricky for now, we call it only in Actor. 
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
-  def getTopApisBox(queryParams: List[OBPQueryParam]): Box[List[TopApi]] = {
+  def getTopApisBox(queryParams: OBPUrlDateQueryParam): Box[List[TopApi]] = {
     for{
        dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " + 
                        "FROM mappedmetric " +
+                       "WHERE (? or date_c >= ?) "+ 
+                       "AND (? or date_c <= ?) "+
                        "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
                        "ORDER BY count(*) DESC")
-       resultSet <- tryo(DB.runQuery(dbQuery))?~! {logger.error(s"getTopApisBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopApisBox.DB.runQuery(dbQuery) read database issue. "}
+       resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
+         {
+          conn =>
+              DB.prepareStatement(dbQuery, conn)
+              {
+                stmt =>
+                  stmt.setBoolean(1, if (queryParams.startDate.isEmpty) true else false)
+                  stmt.setTimestamp(2, if (queryParams.startDate.isEmpty) null else new Timestamp(queryParams.startDate.get.getTime))
+                  stmt.setBoolean(3, if (queryParams.endDate.isEmpty) true else false)
+                  stmt.setTimestamp(4, if (queryParams.endDate.isEmpty) null else new Timestamp(queryParams.endDate.get.getTime))
+                  DB.resultSetTo(stmt.executeQuery())
+                  
+              }
+         })?~! {logger.error(s"getTopApisBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopApisBox.DB.runQuery(dbQuery) read database issue. "}
        
        topApis <- tryo(resultSet._2.map(
          a =>
@@ -214,18 +230,35 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   }
   
-  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{getTopApisBox(queryParams: List[OBPQueryParam])}
+  override def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]] = Future{getTopApisBox(queryParams)}
   
   //This is tricky for now, we call it only in Actor. 
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
-  def getTopConsumersBox(queryParams: List[OBPQueryParam]): Box[List[TopConsumer]] = {
+  def getTopConsumersBox(queryParams: OBPUrlDateQueryParam): Box[List[TopConsumer]] = {
     for{
        dbQuery <- Full("SELECT count(*), consumer.consumerid, consumer.name " + 
                        "FROM consumer "+
+                       "WHERE (? or createdat >= ?) "+ 
+                       "AND (? or createdat <= ?) "+
                        "GROUP BY consumer.consumerid, consumer.name "+
-                       "ORDER BY count(*) DESC")
+                       "ORDER BY count(*) DESC ")
        
-       resultSet <- tryo(DB.runQuery(dbQuery))?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
+       
+       
+       resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
+         {
+          conn =>
+              DB.prepareStatement(dbQuery, conn)
+              {
+                stmt =>
+                  stmt.setBoolean(1, if (queryParams.startDate.isEmpty) true else false)
+                  stmt.setTimestamp(2, if (queryParams.startDate.isEmpty) null else new Timestamp(queryParams.startDate.get.getTime))
+                  stmt.setBoolean(3, if (queryParams.endDate.isEmpty) true else false)
+                  stmt.setTimestamp(4, if (queryParams.endDate.isEmpty) null else new Timestamp(queryParams.endDate.get.getTime))
+                  DB.resultSetTo(stmt.executeQuery())
+                  
+              }
+         })?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
        
        topApis <- tryo(resultSet._2.map(
          a =>
@@ -239,7 +272,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   }
   
-  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{getTopConsumersBox(queryParams: List[OBPQueryParam])}
+  override def getTopConsumersFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopConsumer]]] = Future{getTopConsumersBox(queryParams: OBPUrlDateQueryParam)}
   
 
 }

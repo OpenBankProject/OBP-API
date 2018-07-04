@@ -212,7 +212,10 @@ trait APIMethods310 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(List.empty[OBPQueryParam]) map {
+            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(urlQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
           } yield
@@ -240,8 +243,12 @@ trait APIMethods310 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-
-            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(List.empty[OBPQueryParam]) map {
+            
+            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+            
+            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(urlQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetMetricsTopConsumersError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
             

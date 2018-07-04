@@ -3,7 +3,7 @@ package code.metrics
 import java.util.{Calendar, Date}
 
 import code.api.util.APIUtil
-import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
+import code.bankconnectors.OBPQueryParam
 import code.remotedata.RemotedataMetrics
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
@@ -70,11 +70,11 @@ trait APIMetrics {
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
   
-  def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics]
+  def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics]
   
-  def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]]
+  def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]]
   
-  def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]
+  def getTopConsumersFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopConsumer]]]
 
   def bulkDeleteMetrics(): Boolean
 
@@ -86,9 +86,9 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
-  case class getAllAggregateMetrics(queryParams: OBPQueryParamPlain)
-  case class getTopApisFuture(queryParams: List[OBPQueryParam])
-  case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
+  case class getAllAggregateMetrics(queryParams: OBPUrlQueryParams)
+  case class getTopApisFuture(queryParams: OBPUrlDateQueryParam)
+  case class getTopConsumersFuture(queryParams: OBPUrlDateQueryParam)
   case class bulkDeleteMetrics()
 }
 
@@ -110,6 +110,27 @@ trait APIMetric {
   def getCorrelationId(): String
 
 }
+
+case class OBPUrlQueryParams(
+  startDate: Date,
+  endDate: Date,
+  consumerId: String,
+  userId: String,
+  url: String,
+  appName: String,
+  implementedByPartialFunction: String,
+  implementedInVersion: String,
+  verb: String,
+  anon: String,
+  correlationId: String,
+  duration: String,
+  excludeAppNames: String
+)
+
+case class OBPUrlDateQueryParam(
+  startDate: Option[Date],
+  endDate: Option[Date]
+)
 
 case class AggregateMetrics(
   totalCount: Int,
