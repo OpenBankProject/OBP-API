@@ -2145,11 +2145,11 @@ trait APIMethods300 {
 
               //(defaults to one week before current date
               startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
-                s"${InvalidDateFormat } start_date:${S.param("start_date").openOrThrowException(attemptedToOpenAnEmptyBox)}. Supported format is yyyy-MM-dd HH:mm:ss"
+                s"${InvalidDateFormat } start_date:${S.param("start_date").openOrThrowException(attemptedToOpenAnEmptyBox)}. Supported format is yyyy-MM-dd'T'HH:mm:ss"
               
               // defaults to current date
               endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(defaultEndDate))) ?~!
-                s"${InvalidDateFormat } end_date:${S.param("end_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Supported format is yyyy-MM-dd HH:mm:ss"
+                s"${InvalidDateFormat } end_date:${S.param("end_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Supported format is yyyy-MM-dd'T'HH:mm:ss"
   
               //Filters Part 2. -- the optional varibles:
               //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
