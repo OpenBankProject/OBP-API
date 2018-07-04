@@ -199,7 +199,17 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-apis",
       "get top apis",
-      """get top apis """,
+      """get top apis. eg count, Implemented_by_partial_function and implemented_in_version.
+        |
+        |Should be able to filter on the following fields:
+        |
+        |eg: /management/metrics/top-apis?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03
+        |
+        |1 start_date (defaults to the day before the current date): eg:start_date=2010-05-10T01:20:03
+        |
+        |2 end_date (defaults to the current date) eg:end_date=2018-05-10T01:20:03
+        |
+        |""",
       emptyObjectJson,
       List(topApiJson),
       List(UserNotLoggedIn, UnknownError, BankNotFound),
@@ -230,7 +240,17 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-consumers",
       "get metrics top consumers",
-      """get metrics top consumers """,
+      """get metrics top consumers on api usage eg. total count, consumer_id and app_name.
+        |
+        |Should be able to filter on the following fields:
+        |
+        |eg: /management/metrics/top-consumers?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03
+        |
+        |1 start_date (defaults to the day before the current date): eg:start_date=2010-05-10T01:20:03
+        |
+        |2 end_date (defaults to the current date) eg:end_date=2018-05-10T01:20:03
+        |
+      """.stripMargin,
       emptyObjectJson,
       List(topConsumerJson),
       List(UserNotLoggedIn, UnknownError, BankNotFound),

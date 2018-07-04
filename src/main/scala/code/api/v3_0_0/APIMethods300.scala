@@ -2074,11 +2074,11 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?start_date=2010-05-10 01:20:03&end_date=2017-05-22 01:02:03&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |eg: /management/aggregate-metrics?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&verb=GET&anon=false&app_name=MapperPostman&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 start_date (defaults to the day before the current date): eg:start_date=2018-03-26
+        |1 start_date (defaults to the day before the current date): eg:start_date=2010-05-10T01:20:03
         |
-        |2 end_date (defaults to the current date) eg:end_date=2018-03-29
+        |2 end_date (defaults to the current date) eg:end_date=2018-05-10T01:20:03
         |
         |3 consumer_id  (if null ignore)
         |
