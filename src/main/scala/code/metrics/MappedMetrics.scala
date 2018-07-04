@@ -127,6 +127,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
     // null,API-EXPLORER,null,null --> Set(null,API-EXPLORER)
     val excludeAppNames = queryParams.excludeAppNames.split(",").toSet
+    val excludeImplementedByPartialfunctions = queryParams.excludeImplementedByPartialfunctions.split(",").toSet
     //
     def extendCurrentQuery (length: Int) ={
       // --> "?,?,"
@@ -135,7 +136,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       a.mkString("").concat("?")
     }
 
-    val extendedQueries = extendCurrentQuery(excludeAppNames.size)
+    val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNames.size)
+    val extedndedExcludeImplementedByPartialfunctionsQueries = extendCurrentQuery(excludeImplementedByPartialfunctions.size)
 
     
     val dbQuery = 
@@ -150,10 +152,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       "AND (? or url= ?) "+ 
       "And (? or appname = ?) "+ 
       "AND (? or verb = ? ) "+ 
-      "AND (? or userid = 'null' ) "+  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
-      "AND (? or userid != 'null' ) " + // anon == false (return where user_id is not null.)
-      s"AND (? or appname not in ($extendedQueries)) "
+      "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
+      "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
+      "AND (? or url NOT LIKE ?) "+
+      s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
+      s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialfunctionsQueries)) "
     
+    logger.debug(s"getAllAggregateMetrics.dbQuery = $dbQuery")
     /**
       * Example of a Tuple response
       * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
@@ -161,9 +166,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
       */
       
-    def extendPrepareStement(stmt:PreparedStatement, excludeAppNames : Set[String]) = {
-      for(i <- 0 until  excludeAppNames.size) yield {
-        stmt.setString(20+i, excludeAppNames.toList(i))
+    def extendPrepareStement(startLine: Int, stmt:PreparedStatement, excludeFiledValues : Set[String]) = {
+      for(i <- 0 until  excludeFiledValues.size) yield {
+        stmt.setString(startLine+i, excludeFiledValues.toList(i))
       }
     }
     
@@ -189,10 +194,14 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               stmt.setString(14,queryParams.appName)
               stmt.setBoolean(15, if (queryParams.verb=="true") true else false)
               stmt.setString(16, queryParams.verb)
-              stmt.setBoolean(17, if (queryParams.anon=="true") false  else true) // anon == true (return where user_id is null.) 
+              stmt.setBoolean(17, if (queryParams.anon=="true") false else true) // anon == true (return where user_id is null.) 
               stmt.setBoolean(18, if (queryParams.anon=="false") false  else true) // anon == false (return where user_id is not null.)
-              stmt.setBoolean(19, if (queryParams.excludeAppNames=="true") true else false)
-              extendPrepareStement(stmt, excludeAppNames)
+              stmt.setBoolean(19, if (queryParams.excludeUrlPattern=="true") true else false)
+              stmt.setString(20, queryParams.excludeUrlPattern)
+              stmt.setBoolean(21, if (queryParams.excludeAppNames=="true") true else false)
+              extendPrepareStement(22, stmt, excludeAppNames)
+              stmt.setBoolean(22+excludeAppNames.size, if (queryParams.excludeImplementedByPartialfunctions=="true") true else false)
+              extendPrepareStement(22+excludeAppNames.size+1,stmt, excludeImplementedByPartialfunctions)
               DB.resultSetTo(stmt.executeQuery())
           }
     }

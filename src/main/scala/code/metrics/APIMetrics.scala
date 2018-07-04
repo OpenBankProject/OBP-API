@@ -124,7 +124,9 @@ case class OBPUrlQueryParams(
   anon: String,
   correlationId: String,
   duration: String,
-  excludeAppNames: String
+  excludeAppNames: String,
+  excludeUrlPattern: String,
+  excludeImplementedByPartialfunctions: String
 )
 
 case class OBPUrlDateQueryParam(
