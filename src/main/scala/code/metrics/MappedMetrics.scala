@@ -1,6 +1,6 @@
 package code.metrics
 
-import java.sql.{Time, Timestamp}
+import java.sql.{PreparedStatement, Time, Timestamp}
 import java.util.Date
 
 import code.api.util.ErrorMessages._
@@ -125,6 +125,19 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   
   override def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics] = {
 
+    // null,API-EXPLORER,null,null --> Set(null,API-EXPLORER)
+    val excludeAppNames = queryParams.excludeAppNames.split(",").toSet
+    //
+    def extendCurrentQuery (length: Int) ={
+      // --> "?,?,"
+      val a = for(i <- 1 to (length-1) ) yield {"?,"}
+      //"?,?,--> "?,?,?"
+      a.mkString("").concat("?")
+    }
+
+    val extendedQueries = extendCurrentQuery(excludeAppNames.size)
+
+    
     val dbQuery = 
       "SELECT count(*), avg(duration), min(duration), max(duration) "+ 
       "FROM mappedmetric "+   
@@ -137,16 +150,22 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       "AND (? or url= ?) "+ 
       "And (? or appname = ?) "+ 
       "AND (? or verb = ? ) "+ 
-      "AND (? or appname not in (?)) "+
       "AND (? or userid = 'null' ) "+  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
-      "AND (? or userid != 'null' ) "  // anon == false (return where user_id is not null.)
-      
+      "AND (? or userid != 'null' ) " + // anon == false (return where user_id is not null.)
+      s"AND (? or appname not in ($extendedQueries)) "
+    
     /**
       * Example of a Tuple response
       * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
       * First value of the Tuple is a List of field names returned by SQL query.
       * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
       */
+      
+    def extendPrepareStement(stmt:PreparedStatement, excludeAppNames : Set[String]) = {
+      for(i <- 0 until  excludeAppNames.size) yield {
+        stmt.setString(20+i, excludeAppNames.toList(i))
+      }
+    }
     
     val (_, List(count :: avg :: min :: max :: _)) = DB.use(DefaultConnectionIdentifier)
     {
@@ -170,12 +189,11 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               stmt.setString(14,queryParams.appName)
               stmt.setBoolean(15, if (queryParams.verb=="true") true else false)
               stmt.setString(16, queryParams.verb)
-              stmt.setBoolean(17, if (queryParams.excludeAppNames=="true") true else false)
-              stmt.setString(18, queryParams.excludeAppNames)
-              stmt.setBoolean(19, if (queryParams.anon=="true") false  else true) // anon == true (return where user_id is null.) 
-              stmt.setBoolean(20, if (queryParams.anon=="false") false  else true) // anon == false (return where user_id is not null.)
+              stmt.setBoolean(17, if (queryParams.anon=="true") false  else true) // anon == true (return where user_id is null.) 
+              stmt.setBoolean(18, if (queryParams.anon=="false") false  else true) // anon == false (return where user_id is not null.)
+              stmt.setBoolean(19, if (queryParams.excludeAppNames=="true") true else false)
+              extendPrepareStement(stmt, excludeAppNames)
               DB.resultSetTo(stmt.executeQuery())
-              
           }
     }
     

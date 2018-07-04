@@ -214,7 +214,7 @@ trait APIMethods310 {
       List(topApiJson),
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagMetric :: Nil)
 
     lazy val getTopAPIs : OBPEndpoint = {
       case "management" :: "metrics" :: "top-apis" :: Nil JsonGet req => {
@@ -255,7 +255,7 @@ trait APIMethods310 {
       List(topConsumerJson),
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagMetric :: Nil)
 
     lazy val getMetricsTopConsumers : OBPEndpoint = {
       case "management" :: "metrics" :: "top-consumers" :: Nil JsonGet req => {
