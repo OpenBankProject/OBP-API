@@ -88,8 +88,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MappedMetric.correlationId, value) }.headOption
     val duration = queryParams.collect { case OBPDuration(value) => By(MappedMetric.duration, value) }.headOption
     val anon = queryParams.collect {
-      case OBPAnon(value) if value == "true" => By(MappedMetric.userId, "null")
-      case OBPAnon(value) if value == "false" => NotBy(MappedMetric.userId, "null")
+      case OBPAnon(true) => By(MappedMetric.userId, "null")
+      case OBPAnon(false) => NotBy(MappedMetric.userId, "null")
     }.headOption
     val excludeAppNames = queryParams.collect { 
       case OBPExcludeAppNames(values) => 

@@ -3,6 +3,7 @@ package code.metrics
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.getCorrelationId
 import code.bankconnectors.OBPLimit
 import code.setup.ServerSetup
@@ -26,11 +27,11 @@ class MetricsTest extends ServerSetup with WipeMetrics {
   val testVersion = "i.i.v"
   val testVerb = "verb"
 
-  val dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+  val dateFormatter = APIUtil.DateWithSecondsFormat
   val day1 = dateFormatter.parse("2015-01-12T01:00:00")
   val day2 = dateFormatter.parse("2015-01-13T14:00:00")
 
-  val startOfDayFormat = new SimpleDateFormat("yyyy-MM-dd")
+  val startOfDayFormat = APIUtil.DateWithDayFormat
   val startOfDay1 = startOfDayFormat.parse("2015-01-12")
   val startOfDay2 = startOfDayFormat.parse("2015-01-13")
 

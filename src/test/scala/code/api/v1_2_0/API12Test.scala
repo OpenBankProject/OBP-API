@@ -3657,7 +3657,7 @@
 //  feature("transactions with params"){
 //    import java.text.SimpleDateFormat
 //    import java.util.Calendar
-//    val defaultFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+//    val defaultFormat = APIUtil.DateWithMsFormat
 //    val rollbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 //    scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
 //      Given("We will use an access token")

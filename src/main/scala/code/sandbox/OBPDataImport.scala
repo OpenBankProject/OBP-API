@@ -44,7 +44,7 @@ trait Saveable[T] {
  * gets saved. That's the reason for the use of the Saveable trait.
  */
 trait OBPDataImport extends MdcLoggable {
-  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  val datePattern = APIUtil.DateWithMs
   val dateFormat = new SimpleDateFormat(datePattern)
 
   type BankType <: Bank
@@ -826,7 +826,7 @@ object SandboxData{
   val standardDate = format.parse("30/03/2015")
 
 
-  val dataImportDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+  val dataImportDateFormat = APIUtil.DateWithMsFormat
 
   val standardDateString = dataImportDateFormat.format(standardDate)
 

@@ -84,7 +84,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   
   // Maybe we should read the date format from props?
   //val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-  val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm'Z'"
+  val DATE_FORMAT = APIUtil.DateWithMs
 
   val getBankTTL                            = APIUtil.getPropsValue("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds
   val getBanksTTL                           = APIUtil.getPropsValue("connector.cache.ttl.seconds.getBanks", "0").toInt * 1000 // Miliseconds
@@ -1407,7 +1407,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def iban : Option[String]       = Some(r.iban)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bankId)
-    def lastUpdate : Date           = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(today.getTime.toString)
+    def lastUpdate : Date           = APIUtil.DateWithMsFormat.parse(today.getTime.toString)
     def accountHolder : String      = "NONE" //TODO
     def accountRoutingScheme: String = "NONE" //TODO
     def accountRoutingAddress: String = "NONE" //TODO
@@ -1431,7 +1431,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def conversionValue : Double= kafkaInboundFxRate.conversion_value
     def inverseConversionValue : Double= kafkaInboundFxRate.inverse_conversion_value
     //TODO need to add error handling here for String --> Date transfer
-    def effectiveDate : Date= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(kafkaInboundFxRate.effective_date)
+    def effectiveDate : Date= APIUtil.DateWithMsFormat.parse(kafkaInboundFxRate.effective_date)
   }
 
   case class KafkaCounterparty(counterparty: KafkaInboundCounterparty) extends CounterpartyTrait {

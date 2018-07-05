@@ -65,7 +65,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   // Maybe we should read the date format from props?
   //val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-  val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm'Z'"
+  val DATE_FORMAT = APIUtil.DateWithMs
 
   var jvmNorth : JConnector = null
 

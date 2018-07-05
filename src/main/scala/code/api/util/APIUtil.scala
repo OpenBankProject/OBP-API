@@ -79,17 +79,31 @@ import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable {
 
+  val DateWithDay = "yyyy-MM-dd"
+  val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss"
+  val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  
+  val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
+  val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
+  val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
+  
+  
+  val DateWithDayExampleString: String = "2017-09-19"
+  val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
+  
+  // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
+  // (Else caching is invlidated by constantly changing date)
+  
+  val DefaultFromDate = DateWithMsFormat.parse("0000-00-00T00:00:00.000Z")
+  val DefaultToDate = DateWithMsFormat.parse("3049-01-01T00:00:00.000Z")
+  
+  
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
   val defaultJValue = Extraction.decompose(EmptyClassJson())
-  val exampleDateString: String = "22/08/2013"
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
   val emptyObjectJson = EmptyClassJson()
-  val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-  val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-  val inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+  
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
 
@@ -520,45 +534,24 @@ object APIUtil extends MdcLoggable {
     }
 
   //started -- Filtering and Paging revelent methods////////////////////////////
-  object DateParser {
-    /**
-      * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2012-07-01T00:00:00.000Z) ==> time zone is UTC
-      * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2012-07-01T00:00:00.000+0000) ==> time zone has to be specified
-      */
-    def parse(date: String): Box[Date] = {
-      val parsedDate = tryo{
-        defaultFilterFormat.parse(date)
-      }
-
-      lazy val fallBackParsedDate = tryo{
-        fallBackFilterFormat.parse(date)
-      }
-
-      if(parsedDate.isDefined){
-        Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
-      }
-      else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
-      }
-      else{
-        Failure(FilterDateFormatError)
-      }
-    }
+  def parseObpStandardDate(date: String): Box[Date] = 
+    for{
+      parsedDate <- tryo(DateWithMsFormat.parse(date)) ?~! FilterDateFormatError
+    } yield 
+      parsedDate
+  
+  /**
+    * Return the values according to the @name, it is a List[String]
+    */
+  def getHttpValues(httpParams: List[HTTPParam], name: String): Box[List[String]] ={
+   for{
+      httpParams <- Full(httpParams)
+      valueList <- Full(httpParams.filter(_.name.equalsIgnoreCase(name)).map(_.values).flatten)
+      values <- Full(valueList) if(valueList.length > 0)
+    } yield values
   }
 
-  private def getHeader(requestHeaders: List[HTTPParam], name: String ) ={
-    val headers: List[(String, String)] =
-      for (h <- requestHeaders;
-           p <- h.values
-      ) yield (h.name, p)
-
-    headers.filter(_._1.equalsIgnoreCase(name)).map(_._2) match {
-      case x :: _ => Full(x)
-      case _ => Empty
-    }
-  }
-
-   def getSortDirection(headers: List[HTTPParam]): Box[OBPOrder] = {
+   def getSortDirection(httpParams: List[HTTPParam]): Box[OBPOrder] = {
 
      def validate(v: String) = {
        if (v.toLowerCase == "desc" || v.toLowerCase == "asc") {
@@ -569,48 +562,45 @@ object APIUtil extends MdcLoggable {
        }
      }
 
-     (getHeader(headers, "sort_direction"), getHeader(headers, "obp_sort_direction")) match {
+     (getHttpValues(httpParams, "sort_direction"), getHttpValues(httpParams, "obp_sort_direction")) match {
       case (Full(left), _) =>
-        validate(left)
+        validate(left.head)
       case (_, Full(r)) =>
-        validate(r)
+        validate(r.head)
       case _ => Full(OBPOrder(None))
     }
 
   }
 
-   def getFromDate(headers: List[HTTPParam]): Box[OBPFromDate] = {
-    val date: Box[Date] = (getHeader(headers, "from_date"), getHeader(headers, "obp_from_date")) match {
+   def getFromDate(httpParams: List[HTTPParam]): Box[OBPFromDate] = {
+    val date: Box[Date] = (getHttpValues(httpParams, "from_date"), getHttpValues(httpParams, "obp_from_date")) match {
       case (Full(left),_) =>
-        DateParser.parse(left)
+        parseObpStandardDate(left.head)
       case (_, Full(right)) =>
-        DateParser.parse(right)
+        parseObpStandardDate(right.head)
       case _ =>
-        Full(new Date(0))
+        Full(DefaultFromDate)
     }
 
     date.map(OBPFromDate(_))
   }
 
-   def getToDate(headers: List[HTTPParam]): Box[OBPToDate] = {
-    val date: Box[Date] = (getHeader(headers, "to_date"), getHeader(headers, "obp_to_date")) match {
+   def getToDate(httpParams: List[HTTPParam]): Box[OBPToDate] = {
+    val date: Box[Date] = (getHttpValues(httpParams, "to_date"), getHttpValues(httpParams, "obp_to_date")) match {
       case (Full(left),_) =>
-        DateParser.parse(left)
+        parseObpStandardDate(left.head)
       case (_, Full(right)) =>
-        DateParser.parse(right)
+        parseObpStandardDate(right.head)
       case _ => {
-        // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
-        // (Else caching is invlidated by constantly changing date)
-        val toDate = dateformat.parse("3049-01-01")
-        Full (toDate)
+        Full(APIUtil.DefaultToDate)
       }
     }
 
     date.map(OBPToDate(_))
   }
 
-   def getOffset(headers: List[HTTPParam]): Box[OBPOffset] = {
-     (getPaginationParam(headers, "offset", None, 0, FilterOffersetError), getPaginationParam(headers, "obp_offset", Some(0), 0, FilterOffersetError)) match {
+   def getOffset(httpParams: List[HTTPParam]): Box[OBPOffset] = {
+     (getPaginationParam(httpParams, "offset", None, 0, FilterOffersetError), getPaginationParam(httpParams, "obp_offset", Some(0), 0, FilterOffersetError)) match {
        case (Full(left), _) =>
          Full(OBPOffset(left))
        case (Failure(m, e, c), _) =>
@@ -623,8 +613,8 @@ object APIUtil extends MdcLoggable {
      }
   }
 
-   def getLimit(headers: List[HTTPParam]): Box[OBPLimit] = {
-     (getPaginationParam(headers, "limit", None, 1, FilterLimitError), getPaginationParam(headers, "obp_limit", Some(50), 1, FilterLimitError)) match {
+   def getLimit(httpParams: List[HTTPParam]): Box[OBPLimit] = {
+     (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(50), 1, FilterLimitError)) match {
        case (Full(left), _) =>
          Full(OBPLimit(left))
        case (Failure(m, e, c), _) =>
@@ -637,11 +627,11 @@ object APIUtil extends MdcLoggable {
      }
   }
 
-   def getPaginationParam(headers: List[HTTPParam], paramName: String, defaultValue: Option[Int], minimumValue: Int, errorMsg: String): Box[Int]= {
-     getHeader(headers, paramName) match {
+   private def getPaginationParam(httpParams: List[HTTPParam], paramName: String, defaultValue: Option[Int], minimumValue: Int, errorMsg: String): Box[Int]= {
+     getHttpValues(httpParams, paramName) match {
       case Full(v) => {
         tryo{
-          v.toInt
+          v.head.toInt
         } match {
           case Full(value) => {
             if(value >= minimumValue){
@@ -662,13 +652,36 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def getHttpParams(headers: List[HTTPParam]): Box[List[OBPQueryParam]] = {
+   def getAnon(httpParams: List[HTTPParam]): Box[OBPAnon] = {
+     for{
+       values <- getHttpValues(httpParams, "anon")
+       value <- tryo(values.head.toBoolean)?~! FilterAnonFormatError
+       anon  = OBPAnon(value)
+     } yield
+       anon
+  }
+  
+  
+   def getHttpParams(httpParams: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
-      sortDirection <- getSortDirection(headers)
-      fromDate <- getFromDate(headers)
-      toDate <- getToDate(headers)
-      limit <- getLimit(headers)
-      offset <- getOffset(headers)
+      sortDirection <- getSortDirection(httpParams)
+      fromDate <- getFromDate(httpParams)
+      toDate <- getToDate(httpParams)
+      limit <- getLimit(httpParams)
+      offset <- getOffset(httpParams)
+//      anon <- getAnon(httpParams)
+//      consumerId <- getConsumerId(httpParams)
+//      userId <- getConsumerId(httpParams)
+//      url <- getConsumerId(httpParams)
+//      appName <- getConsumerId(httpParams)
+//      implementedByPartialFunction <- getConsumerId(httpParams)
+//      implementedInVersion <- getConsumerId(httpParams)
+//      verb <- getConsumerId(httpParams)
+//      correlationId <- getConsumerId(httpParams)
+//      duration <- getConsumerId(httpParams)
+//      excludeAppNames <- getConsumerId(httpParams)
+//      excludeUrlPattern <- getConsumerId(httpParams)
+//      excludeImplementedByPartialfunctions <- getConsumerId(httpParams)
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -685,6 +698,9 @@ object APIUtil extends MdcLoggable {
       val sortBy = None
       val ordering = OBPOrdering(sortBy, sortDirection)
       limit :: offset :: ordering :: fromDate :: toDate :: Nil
+      
+//       List(limit, offset, ordering, fromDate, toDate, anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion,
+//        verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions)
     }
   }
   
@@ -694,14 +710,14 @@ object APIUtil extends MdcLoggable {
     val fromDate = for
       {
       fromDateString <- getHttpRequestUrlParam(httpRequestUrl, "from_date")
-      fromDate <- tryo(inputDateFormat.parse(fromDateString)) ?~! s"${InvalidDateFormat } from_date:${fromDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+      fromDate <- tryo(DateWithMsFormat.parse(fromDateString)) ?~! s"${InvalidDateFormat } from_date:${fromDateString}. Supported format is ${APIUtil.DateWithSeconds}. eg: 2010-05-10T01:20:03"
     } yield
       fromDate
     
     val toDate = for
       {
       endDateString <- getHttpRequestUrlParam(httpRequestUrl, "to_date")
-      endDate <- tryo(Some(inputDateFormat.parse(endDateString))) ?~! s"${InvalidDateFormat} from_date:${endDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+      endDate <- tryo(Some(DateWithMsFormat.parse(endDateString))) ?~! s"${InvalidDateFormat} from_date:${endDateString}. Supported format is yyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
     } yield
       endDate
     

@@ -243,7 +243,7 @@ object Helper{
       }
     }
   
-    protected def dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    protected def dateFormatter = APIUtil.DateWithMsFormat
   }
 
   def getHostname(): String = {

@@ -2,9 +2,6 @@ package code.api.util
 
 object ErrorMessages {
   import code.api.util.APIUtil._
-
-  val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
-
   // Notes to developers. Please:
   // 1) Follow (the existing) grouping of messages
   // 2) Stick to existing terminology e.g. use "invalid" or "incorrect" rather than "wrong"
@@ -55,7 +52,8 @@ object ErrorMessages {
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
   val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
-  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!" // OBP-20026
+  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
+  val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!" // OBP-20026
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
 

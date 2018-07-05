@@ -779,8 +779,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   // TODO Get rid on these param lookups and document.
   override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = saveConnectorMetric {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
-    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
-    val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(new Date(0).toString)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
+    val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
     val req = OutboundGetTransactions(
       authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
@@ -840,8 +840,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] = saveConnectorMetric{
     val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
-    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(dateformat.parse("3049-01-01").toString)
-    val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(new Date(0).toString)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
+    val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(APIUtil.DefaultToDate.toString)
   
     val req = OutboundGetTransactions(
       authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),

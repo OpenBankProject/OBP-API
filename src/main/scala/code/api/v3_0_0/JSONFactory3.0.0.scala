@@ -30,6 +30,7 @@ import java.lang
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.JSONFactory.{createViewJSON, _}
@@ -1038,10 +1039,10 @@ object JSONFactory300{
       email = cInfo.email,
       face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
         date = cInfo.faceImage.date),
-      date_of_birth = (if (cInfo.dateOfBirth==null) "" else (new SimpleDateFormat("yyyy-MM-dd")).format(cInfo.dateOfBirth)),
+      date_of_birth = (if (cInfo.dateOfBirth==null) "" else (APIUtil.DateWithDayFormat).format(cInfo.dateOfBirth)),
       relationship_status = cInfo.relationshipStatus,
       dependants = cInfo.dependents,
-      dob_of_dependants = cInfo.dobOfDependents.map(x => if (x==null) "" else (new SimpleDateFormat("yyyy-MM-dd")).format(x)),
+      dob_of_dependants = cInfo.dobOfDependents.map(x => if (x==null) "" else (APIUtil.DateWithDayFormat).format(x)),
       credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
       credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
       highest_education_attained = cInfo.highestEducationAttained,

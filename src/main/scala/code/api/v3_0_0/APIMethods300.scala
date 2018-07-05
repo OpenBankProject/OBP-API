@@ -45,6 +45,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.scope.Scope
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 
@@ -633,8 +634,8 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: Thu Jan 01 01:00:00 CET 1970 (format below)
-        |* to_date=DATE => default value: 3049-01-01
+        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
+        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
@@ -698,8 +699,8 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: date of the oldest transaction registered (format below)
-        |* to_date=DATE => default value: 3049-01-01
+        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
+        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
@@ -2133,7 +2134,7 @@ trait APIMethods300 {
 
               // Filter by date // eg: /management/aggregate-metrics?from_date=2010-05-22&to_date=2017-05-22
 
-              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"))
+              inputDateFormat <- Full(APIUtil.DateWithSecondsFormat)
 
               // Date format of now.getTime
               nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy"))
@@ -2185,6 +2186,8 @@ trait APIMethods300 {
                                                     implementedByPartialFunction, implementedInVersion, verb,
                                                     anon, correlationId, duration, excludeAppNames,
                                                     excludeUrlPattern,excludeImplementedByPartialfunctions)
+              
+              params <- getHttpParams(List(HTTPParam("from_date",S.param("from_date").getOrElse(defaultStartDate))))
               
               aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpUrlQueryParams)) ?~! GetAggregateMetricsError
 

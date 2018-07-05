@@ -1647,7 +1647,7 @@ trait APIMethods210 {
 
             //Note: Filters Part 1: //eg: /management/metrics?from_date=2010-05-22&to_date=2017-05-22&limit=200&offset=0
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd"))
+            inputDateFormat <- Full(APIUtil.DateWithDayFormat)
             //set `defautFromDate` = 0000-00-00
             defautFromDate <- Full("0000-00-00")
             //set `defaultToDate` = tomorrow. 
@@ -1682,11 +1682,11 @@ trait APIMethods210 {
             //eg: /management/metrics?from_date=2010-05-22&to_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
             anon <- tryo(
               S.param("anon") match {
-                case Full(x) if x.toLowerCase == "true"  => OBPAnon(x)
-                case Full(x) if x.toLowerCase == "false" => OBPAnon(x)
-                case _                                   => OBPEmpty()
+                case Full(x) if x.toLowerCase == "true"  => OBPAnon(true)
+                case Full(x) if x.toLowerCase == "false" => OBPAnon(false)
+                case _                                   => throw new RuntimeException(s"$FilterAnonFormatError")
               }
-            )
+            )?~! FilterAnonFormatError
             consumerId <- tryo(S.param("consumer_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPConsumerId(x))
             userId <- tryo(S.param("user_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUserId(x))
             url <- tryo(S.param("url").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUrl(x))
