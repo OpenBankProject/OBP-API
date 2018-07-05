@@ -2133,10 +2133,10 @@ trait APIMethods300 {
 
               // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
 
-              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH))
+              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"))
 
               // Date format of now.getTime
-              nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
+              nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy"))
 
               defaultStartDate <- Full("0000-00-00T00:00:00")
 

@@ -89,7 +89,7 @@ object APIUtil extends MdcLoggable {
   val emptyObjectJson = EmptyClassJson()
   val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-  val inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH)
+  val inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
 
@@ -1489,7 +1489,7 @@ Returns a string showed to the developer
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
     import java.util.Locale
-    val format = new SimpleDateFormat(dateFormat, Locale.ENGLISH)
+    val format = new SimpleDateFormat(dateFormat)
     format.setLenient(false)
     format.parse(value)
   }

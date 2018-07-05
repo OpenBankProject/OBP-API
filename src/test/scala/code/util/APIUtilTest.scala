@@ -47,7 +47,7 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
   val startDateStringWrongFormat = "2010-05-10 01:20:03"
   val endDateString = "2017-05-22T01:02:03"
   val endDateStringWrongFormat = "2017-05-22 01:02:03"
-  val inputStringDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH)
+  val inputStringDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
   val startDateObject: Date = inputStringDateFormat.parse(startDateString)
   val endDateObject: Date = inputStringDateFormat.parse(endDateString)
   

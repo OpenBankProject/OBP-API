@@ -1647,7 +1647,7 @@ trait APIMethods210 {
 
             //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
+            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd"))
             //set `defaultStartDate` = 0000-00-00
             defautStartDate <- Full("0000-00-00")
             //set `defaultEndDate` = tomorrow. 

@@ -378,7 +378,7 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   def iban: Option[String] = Some(r.iban)
   def number: String = r.number
   def bankId: BankId = BankId(r.bankId)
-  def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
+  def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(today.getTime.toString)
   def accountHolder: String = r.owners.head
   
   // Fields modifiable from OBP are stored in mapper
@@ -415,7 +415,7 @@ case class FXRate2(inboundFxRate: InboundFXRate) extends FXRate {
   def conversionValue: Double = inboundFxRate.conversionValue
   def inverseConversionValue: Double = inboundFxRate.inverseConversionValue
   //TODO need to add error handling here for String --> Date transfer
-  def effectiveDate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(inboundFxRate.effectiveDate)
+  def effectiveDate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(inboundFxRate.effectiveDate)
 }
 
 case class InboundTransactionRequestTypeCharge(

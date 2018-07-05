@@ -857,7 +857,7 @@ trait APIMethods220 {
             //Note: Filters Part 1:
             //?start_date=100&end_date=1&limit=200&offset=0
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
+            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd"))
             // set the long,long ago as the default date.
             nowTime <- Full(System.currentTimeMillis())
             defaultStartDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago

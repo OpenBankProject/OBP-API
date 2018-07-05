@@ -177,7 +177,7 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def iban: Option[String] = Some("iban")
   def number: String = r.accountNumber
   def bankId: BankId = BankId(r.bankId)
-  def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
+  def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(today.getTime.toString)
   def accountHolder: String = r.owners.head
 
   // Fields modifiable from OBP are stored in mapper
