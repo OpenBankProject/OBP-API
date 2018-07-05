@@ -36,7 +36,7 @@ import java.io.InputStream
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
-
+import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
@@ -712,7 +712,7 @@ object APIUtil extends MdcLoggable {
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
     object Token {
-      def apply[T <: Any](m: Map[String, T]): Option[Token] = List("oauth_token", "oauth_token_secret").flatMap(m.get) match {
+      def apply[T <: Any](m: Map[String, T]): Option[Token] = List(TokenName, TokenSecretName).flatMap(m.get) match {
         case value :: secret :: Nil => Some(Token(value.toString, secret.toString))
         case _ => None
       }
@@ -722,13 +722,13 @@ object APIUtil extends MdcLoggable {
     def sign(method: String, url: String, user_params: Map[String, Any], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
       val oauth_params = IMap(
         "oauth_consumer_key" -> consumer.key,
-        "oauth_signature_method" -> "HMAC-SHA1",
-        "oauth_timestamp" -> (System.currentTimeMillis / 1000).toString,
-        "oauth_nonce" -> System.nanoTime.toString,
-        "oauth_version" -> "1.0"
-      ) ++ token.map { "oauth_token" -> _.value } ++
-        verifier.map { "oauth_verifier" -> _ } ++
-        callback.map { "oauth_callback" -> _ }
+        SignatureMethodName -> "HMAC-SHA1",
+        TimestampName -> (System.currentTimeMillis / 1000).toString,
+        NonceName -> System.nanoTime.toString,
+        VersionName -> "1.0"
+      ) ++ token.map { TokenName -> _.value } ++
+        verifier.map { VerifierName -> _ } ++
+        callback.map { CallbackName -> _ }
 
       val encoded_ordered_params = (
         new TreeMap[String, String] ++ (user_params ++ oauth_params map %%)
@@ -745,14 +745,14 @@ object APIUtil extends MdcLoggable {
         mac.init(key)
         base64Encode(mac.doFinal(bytes(message)))
       }
-      oauth_params + ("oauth_signature" -> sig)
+      oauth_params + (SignatureName -> sig)
     }
 
     /** Out-of-band callback code */
     val oob = "oob"
 
     /** Map with oauth_callback set to the given url */
-    def callback(url: String) = IMap("oauth_callback" -> url)
+    def callback(url: String) = IMap(CallbackName -> url)
 
     //normalize to OAuth percent encoding
     private def %% (str: String): String = {

@@ -50,7 +50,7 @@
 //import net.liftweb.common.Full
 //import code.metrics.APIMetrics
 //import code.util.Helper.MdcLoggable
-//
+//import code.api.oauth1a.OauthParams._
 //object OBPAPI1_0 extends RestHelper with MdcLoggable {
 //  import java.text.SimpleDateFormat
 //
@@ -140,7 +140,7 @@
 //      val response = for {
 //        bankAccount <- BankAccount(bankId, accountId)
 //        view <- Views.views.vend.view(viewName, bankAccount)
-//        transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get("oauth_token")), view, params : _*)
+//        transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get(TokenName)), view, params : _*)
 //      } yield {
 //        JsonResponse("transactions" -> transactions.map(t => t.toJson(view)))
 //      }
@@ -159,7 +159,7 @@
 //      logAPICall
 //
 //      val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
-//      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//      val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //
 //      val moderatedTransactionAndView = for {
 //        bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
@@ -183,7 +183,7 @@
 //      logAPICall
 //
 //      val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
-//      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//      val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //
 //      val comments = for {
 //        bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
@@ -206,7 +206,7 @@
 //
 //      val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
 //      val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-//      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//      val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //
 //      def bankAccountSet2JsonResponse(bankAccounts: Set[BankAccount]): LiftResponse = {
 //        val accJson = bankAccounts.map(bAcc => bAcc.overviewJson(user))
@@ -240,7 +240,7 @@
 //
 //      val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
 //      val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-//      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//      val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //
 //      case class ModeratedAccountAndViews(account: ModeratedBankAccount, views: List[View])
 //
