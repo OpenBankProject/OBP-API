@@ -380,6 +380,7 @@ class Boot extends MdcLoggable {
 
     //set base localization to english (instead of computer default)
     Locale.setDefault(Locale.ENGLISH)
+    logger.info("Current Project Locale is :" +Locale.getDefault)
 
     //override locale calculated from client request with default (until we have translations)
     LiftRules.localeCalculator = {

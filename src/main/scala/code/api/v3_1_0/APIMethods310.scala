@@ -199,12 +199,22 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-apis",
       "get top apis",
-      """get top apis """,
+      """get top apis. eg count, Implemented_by_partial_function and implemented_in_version.
+        |
+        |Should be able to filter on the following fields:
+        |
+        |eg: /management/metrics/top-apis?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+        |
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
+        |
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
+        |
+        |""",
       emptyObjectJson,
       List(topApiJson),
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagMetric :: Nil)
 
     lazy val getTopAPIs : OBPEndpoint = {
       case "management" :: "metrics" :: "top-apis" :: Nil JsonGet req => {
@@ -212,7 +222,10 @@ trait APIMethods310 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(List.empty[OBPQueryParam]) map {
+            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(urlQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
           } yield
@@ -227,12 +240,22 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-consumers",
       "get metrics top consumers",
-      """get metrics top consumers """,
+      """get metrics top consumers on api usage eg. total count, consumer_id and app_name.
+        |
+        |Should be able to filter on the following fields:
+        |
+        |eg: /management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+        |
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
+        |
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
+        |
+      """.stripMargin,
       emptyObjectJson,
       List(topConsumerJson),
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagMetric :: Nil)
 
     lazy val getMetricsTopConsumers : OBPEndpoint = {
       case "management" :: "metrics" :: "top-consumers" :: Nil JsonGet req => {
@@ -240,8 +263,12 @@ trait APIMethods310 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-
-            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(List.empty[OBPQueryParam]) map {
+            
+            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+            
+            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(urlQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetMetricsTopConsumersError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
             

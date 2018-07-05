@@ -114,21 +114,6 @@ case class OBPAnon(value: String) extends OBPQueryParam
 case class OBPCorrelationId(value: String) extends OBPQueryParam
 case class OBPDuration(value: Long) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam
-case class OBPQueryParamPlain(
-  startDate: Date,
-  endDate: Date,
-  consumerId: String,
-  userId: String,
-  url: String,
-  appName: String,
-  implementedByPartialFunction: String,
-  implementedInVersion: String,
-  verb: String,
-  anon: String,
-  correlationId: String,
-  duration: String,
-  excludeAppNames: String
-) extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
 case class InboundUser(
