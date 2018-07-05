@@ -691,33 +691,33 @@ object APIUtil extends MdcLoggable {
   //TODO this can be enhanced later, support all the parameters
   def getHttpRequestUrlParams(httpRequestUrl: String): Box[OBPUrlDateQueryParam] =
   {
-    val startDate = for
+    val fromDate = for
       {
-      startDateString <- getHttpRequestUrlParam(httpRequestUrl, "start_date")
-      startDate <- tryo(inputDateFormat.parse(startDateString)) ?~! s"${InvalidDateFormat } start_date:${startDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+      fromDateString <- getHttpRequestUrlParam(httpRequestUrl, "from_date")
+      fromDate <- tryo(inputDateFormat.parse(fromDateString)) ?~! s"${InvalidDateFormat } from_date:${fromDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
     } yield
-      startDate
+      fromDate
     
-    val endDate = for
+    val toDate = for
       {
-      endDateString <- getHttpRequestUrlParam(httpRequestUrl, "end_date")
-      endDate <- tryo(Some(inputDateFormat.parse(endDateString))) ?~! s"${InvalidDateFormat} start_date:${endDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+      endDateString <- getHttpRequestUrlParam(httpRequestUrl, "to_date")
+      endDate <- tryo(Some(inputDateFormat.parse(endDateString))) ?~! s"${InvalidDateFormat} from_date:${endDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
     } yield
       endDate
     
     
-    (startDate, endDate) match {
+    (fromDate, toDate) match {
       case (Failure(msg, t, c),_)  => Failure(msg, t, c)
       case (_,Failure(msg, t, c))  => Failure(msg, t, c)
-      case _ => Full(OBPUrlDateQueryParam(startDate.toOption, endDate.openOr(None)))
+      case _ => Full(OBPUrlDateQueryParam(fromDate.toOption, toDate.openOr(None)))
     }
   }
 
-  //eg: httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03
+  //eg: httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
   def getHttpRequestUrlParam(httpRequestUrl: String, name: String): Box[String] ={
     for{
-      urlAndQueryString <- if (httpRequestUrl.contains("?")) Full(httpRequestUrl.split("\\?",2)(1)) else Empty // Full(start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03)
-      queryStrings <- Full(urlAndQueryString.split("&").map(_.split("=")).flatten)  //Full(start_date, 2010-05-10T01:20:03, end_date, 2017-05-22T01:02:03)
+      urlAndQueryString <- if (httpRequestUrl.contains("?")) Full(httpRequestUrl.split("\\?",2)(1)) else Empty // Full(from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03)
+      queryStrings <- Full(urlAndQueryString.split("&").map(_.split("=")).flatten)  //Full(from_date, 2010-05-10T01:20:03, to_date, 2017-05-22T01:02:03)
       queryStringValue <- if (queryStrings.contains(name)) Full(queryStrings(queryStrings.indexOf(name)+1)) else Empty //Full(2010-05-10T01:20:03)
     } yield 
       queryStringValue

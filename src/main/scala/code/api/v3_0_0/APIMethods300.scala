@@ -2074,15 +2074,15 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03&consumer_id=5
+        |eg: /management/aggregate-metrics?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 start_date (defaults to the day before the current date): eg:start_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
         |
-        |2 end_date (defaults to the current date) eg:end_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
         |
         |3 consumer_id  (if null ignore)
         |
@@ -2131,7 +2131,7 @@ trait APIMethods300 {
               u <- cc.user ?~! UserNotLoggedIn
               _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
 
-              // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
+              // Filter by date // eg: /management/aggregate-metrics?from_date=2010-05-22&to_date=2017-05-22
 
               inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"))
 
@@ -2152,15 +2152,15 @@ trait APIMethods300 {
               defaultEndDate <- Full(inputDateFormat.format(tomorrowUnformatted))
 
               //(defaults to one week before current date
-              startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
-                s"${InvalidDateFormat } start_date:${S.param("start_date").openOrThrowException(attemptedToOpenAnEmptyBox)}. Supported format is yyyy-MM-dd'T'HH:mm:ss"
+              fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defaultStartDate))) ?~!
+                s"${InvalidDateFormat } from_date:${S.param("from_date").openOrThrowException(attemptedToOpenAnEmptyBox)}. Supported format is yyyy-MM-dd'T'HH:mm:ss"
               
               // defaults to current date
-              endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(defaultEndDate))) ?~!
-                s"${InvalidDateFormat } end_date:${S.param("end_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Supported format is yyyy-MM-dd'T'HH:mm:ss"
+              endDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaultEndDate))) ?~!
+                s"${InvalidDateFormat } to_date:${S.param("to_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Supported format is yyyy-MM-dd'T'HH:mm:ss"
   
               //Filters Part 2. -- the optional varibles:
-              //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+              //eg: /management/metrics?from_date=2010-05-22&to_date=2017-05-22&&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
               anon <- tryo(
                 S.param("anon") match {
                   case Full(x) if x.toLowerCase == "true"  => x
@@ -2181,7 +2181,7 @@ trait APIMethods300 {
               excludeUrlPattern <- tryo(S.param("exclude_url_pattern").openOr("true"))
               excludeImplementedByPartialfunctions <- tryo(S.param("exclude_implemented_by_partial_functions").openOr("true"))
               
-              obpUrlQueryParams = OBPUrlQueryParams(startDate, endDate, consumerId, userId, url, appName,
+              obpUrlQueryParams = OBPUrlQueryParams(fromDate, endDate, consumerId, userId, url, appName,
                                                     implementedByPartialFunction, implementedInVersion, verb,
                                                     anon, correlationId, duration, excludeAppNames,
                                                     excludeUrlPattern,excludeImplementedByPartialfunctions)

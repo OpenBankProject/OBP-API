@@ -203,11 +203,11 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields:
         |
-        |eg: /management/metrics/top-apis?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03
+        |eg: /management/metrics/top-apis?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
         |
-        |1 start_date (defaults to the day before the current date): eg:start_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
         |
-        |2 end_date (defaults to the current date) eg:end_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
         |
         |""",
       emptyObjectJson,
@@ -244,11 +244,11 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields:
         |
-        |eg: /management/metrics/top-consumers?start_date=2010-05-10T01:20:03&end_date=2017-05-22T01:02:03
+        |eg: /management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
         |
-        |1 start_date (defaults to the day before the current date): eg:start_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
         |
-        |2 end_date (defaults to the current date) eg:end_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
         |
       """.stripMargin,
       emptyObjectJson,
