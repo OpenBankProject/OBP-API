@@ -32,57 +32,54 @@
 
 package code.util
 
-import java.text.SimpleDateFormat
-import java.util.{Date, Locale}
-
-import code.api.util.APIUtil
+import java.util.Date
+import code.api.util.APIUtil._
 import code.api.util.APIUtil.{DateWithMsFormat, DefaultFromDate, DefaultToDate}
 import code.api.util.ErrorMessages._
 import code.bankconnectors._
 import code.metrics.OBPUrlDateQueryParam
 import code.util.Helper.MdcLoggable
-import net.liftweb.common
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
-import org.scalatest.{FeatureSpec, Matchers}
+import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
-class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
+class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
   
-  val startDateString = "2010-05-10T01:20:03"
-  val startDateStringWrongFormat = "2010-05-10 01:20:03"
-  val endDateString = "2017-05-22T01:02:03"
-  val endDateStringWrongFormat = "2017-05-22 01:02:03"
-  val inputStringDateFormat = APIUtil.DateWithSecondsFormat
-  val startDateObject: Date = inputStringDateFormat.parse(startDateString)
-  val endDateObject: Date = inputStringDateFormat.parse(endDateString)
+  val startDateString = DateWithMsForFilteringFromDateString
+  val startDateStringWrongFormat = "Wrong Date Format"
+  val endDateString = DateWithMsForFilteringEenDateString
+  val endDateStringWrongFormat = "Wrong Date Format"
+  val inputStringDateFormat = DateWithMsFormat
+  val startDateObject: Date = DefaultFromDate
+  val endDateObject: Date = DefaultToDate
   
   feature("test APIUtil.getHttpRequestUrlParams method") 
   {
     scenario("no parameters in the URL") 
     {
       val httpRequestUrl= "/obp/v3.1.0/management/metrics/top-consumers"
-      val obpQueryParamPlain = APIUtil.getHttpRequestUrlParams(httpRequestUrl)
+      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
       obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(None,None)))
     }
 
     scenario(s"only one `from_date` in URL") 
     {
       val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString"
-      val obpQueryParamPlain = APIUtil.getHttpRequestUrlParams(httpRequestUrl)
+      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
       obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject), None)))
     }
 
     scenario(s"only one `to_date` in URL") 
     {
       val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?to_date=$endDateString"
-      val obpQueryParamPlain = APIUtil.getHttpRequestUrlParams(httpRequestUrl)
+      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
       obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(None,Some(endDateObject))))
     }
 
     scenario(s"Both `from_date` and `to_date` in URL") 
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
-      val obpQueryParamPlain = APIUtil.getHttpRequestUrlParams(httpRequestUrl)
+      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
       obpQueryParamPlain should be (Full(OBPUrlDateQueryParam((Some(startDateObject)),Some(endDateObject))))
     }
 
@@ -90,11 +87,11 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     scenario(s" exceptions in date format, it should return failure ") 
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateStringWrongFormat&to_date=$endDateString"
-      val obpQueryParamPlain = APIUtil.getHttpRequestUrlParams(httpRequestUrl)
+      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
       obpQueryParamPlain.toString contains (InvalidDateFormat)  should be (true)
 
       val httpRequestUrl2= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateStringWrongFormat"
-      val obpQueryParamPlain2 = APIUtil.getHttpRequestUrlParams(httpRequestUrl)
+      val obpQueryParamPlain2 = getHttpRequestUrlParams(httpRequestUrl)
       obpQueryParamPlain2.toString contains (InvalidDateFormat)  should be (true)
     }
   } 
@@ -104,14 +101,14 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     scenario("no parameters in the URL") 
     {
       val httpRequestUrl= "/obp/v3.1.0/management/metrics/top-consumers"
-      val returnValue = APIUtil.getHttpRequestUrlParam(httpRequestUrl,"from_date")
+      val returnValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
       returnValue should be (Empty)
     }
     
     scenario(s"only one `from_date` in URL") 
     {
       val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString"
-      val startdateValue = APIUtil.getHttpRequestUrlParam(httpRequestUrl,"from_date")
+      val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
       startdateValue should be (Full(s"$startDateString"))
     }
     
@@ -119,18 +116,18 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     scenario(s"Both `from_date` and `to_date` in URL") 
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
-      val startdateValue = APIUtil.getHttpRequestUrlParam(httpRequestUrl,"from_date")
+      val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
       startdateValue should be (Full(s"$startDateString"))
-      val endDateValue = APIUtil.getHttpRequestUrlParam(httpRequestUrl,"to_date")
+      val endDateValue = getHttpRequestUrlParam(httpRequestUrl,"to_date")
       endDateValue should be (Full(s"$endDateString"))
-      val noneFieldValue = APIUtil.getHttpRequestUrlParam(httpRequestUrl,"none_field")
+      val noneFieldValue = getHttpRequestUrlParam(httpRequestUrl,"none_field")
       noneFieldValue should be (Empty)
     }
     
     scenario(s"test the error case, eg: not proper parameter name") 
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
-      val noneFieldValue = APIUtil.getHttpRequestUrlParam(httpRequestUrl,"none_field")
+      val noneFieldValue = getHttpRequestUrlParam(httpRequestUrl,"none_field")
       noneFieldValue should be (Empty)
     }
   } 
@@ -140,28 +137,28 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     scenario("test the one value case in HTTPParam , eg: (one name : one value)") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date","2001-07-01T00:00:00.000Z"))
-      val returnValue = APIUtil.getHttpValues(httpParams, "from_date")
+      val returnValue = getHttpValues(httpParams, "from_date")
       returnValue should be (List("2001-07-01T00:00:00.000Z"))
     }
     
     scenario(s"test the many values case in HTTPParam, eg (one name : value1,value2,value3)") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List("2001-07-01T00:00:00.000Z","2002-07-01T00:00:00.000Z")))
-      val returnValue = APIUtil.getHttpValues(httpParams, "from_date")
+      val returnValue = getHttpValues(httpParams, "from_date")
       returnValue should be (List("2001-07-01T00:00:00.000Z","2002-07-01T00:00:00.000Z"))
     }
     
     scenario(s"test error cases, get wrong name ") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List("2001-07-01T00:00:00.000Z","2002-07-01T00:00:00.000Z")))
-      val returnValue = APIUtil.getHttpValues(httpParams, "wrongName")
+      val returnValue = getHttpValues(httpParams, "wrongName")
       returnValue should be (Empty)
     }
     
     scenario(s"test None case, httpParams == Empty ") 
     {
       val httpParams: List[HTTPParam] = List.empty[HTTPParam]
-      val returnValue = APIUtil.getHttpValues(httpParams, "wrongName")
+      val returnValue = getHttpValues(httpParams, "wrongName")
       returnValue should be (Empty)
     }
   }
@@ -171,14 +168,14 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     scenario(s"test the correct format") 
     {
       val correctDateFormatString = "2001-07-01T00:00:00.000Z"
-      val returnValue: Box[Date] = APIUtil.parseObpStandardDate(correctDateFormatString)
+      val returnValue: Box[Date] = parseObpStandardDate(correctDateFormatString)
       returnValue.isDefined should be (true)
       returnValue.openOrThrowException("") should be (DateWithMsFormat.parse(correctDateFormatString))
     }
     
     scenario(s"test the wrong data format") 
     {
-      val returnValue: Box[Date] = APIUtil.parseObpStandardDate("2001-07-01T00:00:00.000+0000")
+      val returnValue: Box[Date] = parseObpStandardDate("2001-07-01T00:00:00.000+0000")
       returnValue.isDefined should be (false)
       returnValue.toString contains FilterDateFormatError should be (true)
     }
@@ -189,7 +186,7 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     scenario(s"test the correct case: ASC or DESC") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("sort_direction", List("ASC")))
-      val returnValue = APIUtil.getSortDirection(httpParams)
+      val returnValue = getSortDirection(httpParams)
       returnValue.isDefined should be (true)
       returnValue.openOrThrowException("") should be (OBPAscending)
     }
@@ -197,14 +194,14 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("sort_direction", List("wrongValue")))
-      val returnValue = APIUtil.getSortDirection(httpParams)
+      val returnValue = getSortDirection(httpParams)
       returnValue.toString contains FilterSortDirectionError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam. It will return the default Sort Direction = DESC ") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("ASC")))
-      val returnValue = APIUtil.getSortDirection(httpParams)
+      val returnValue = getSortDirection(httpParams)
       returnValue should be (Full(OBPDescending))
     }
   }
@@ -215,28 +212,28 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     {
       val correctDateFormatString = "2001-07-01T00:00:00.000Z"
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(correctDateFormatString)))
-      val returnValue = APIUtil.getFromDate(httpParams)
+      val returnValue = getFromDate(httpParams)
       returnValue should be (Full(OBPFromDate(DateWithMsFormat.parse(correctDateFormatString))))
     }
     
     scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List("wrongValue")))
-      val returnValue = APIUtil.getFromDate(httpParams)
+      val returnValue = getFromDate(httpParams)
       returnValue.toString contains FilterDateFormatError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("2001-07-01T00:00:00.000Z")))
-      val returnValue = APIUtil.getFromDate(httpParams)
+      val returnValue = getFromDate(httpParams)
       returnValue should be (OBPFromDate(DefaultFromDate))
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
-      val returnValue = APIUtil.getFromDate(httpParams)
+      val returnValue = getFromDate(httpParams)
       returnValue should be (OBPFromDate(DefaultFromDate))
     }
   }
@@ -247,28 +244,28 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
     {
       val correctDateFormatString = "2001-07-01T00:00:00.000Z"
       val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List(correctDateFormatString)))
-      val returnValue = APIUtil.getToDate(httpParams)
+      val returnValue = getToDate(httpParams)
       returnValue should be (Full(OBPToDate(DateWithMsFormat.parse(correctDateFormatString))))
     }
     
     scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List("wrongValue")))
-      val returnValue = APIUtil.getToDate(httpParams)
+      val returnValue = getToDate(httpParams)
       returnValue.toString contains FilterDateFormatError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("2001-07-01T00:00:00.000Z")))
-      val returnValue = APIUtil.getToDate(httpParams)
+      val returnValue = getToDate(httpParams)
       returnValue should be (OBPToDate(DefaultToDate))
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
-      val returnValue = APIUtil.getToDate(httpParams)
+      val returnValue = getToDate(httpParams)
       returnValue should be (OBPToDate(DefaultToDate))
     }
   }
@@ -277,34 +274,34 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
   {
     scenario(s"test the correct case: offset = 100") 
     {
-      val correcOffset = "100"
-      val httpParams: List[HTTPParam] = List(HTTPParam("offset", List(correcOffset)))
-      val returnValue = APIUtil.getOffset(httpParams)
+      val correctValue = "100"
+      val httpParams: List[HTTPParam] = List(HTTPParam("offset", List(correctValue)))
+      val returnValue = getOffset(httpParams)
       returnValue should be (Full(OBPOffset(100)))
     }
     
     scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("offset", List("wrongValue")))
-      val returnValue = APIUtil.getOffset(httpParams)
+      val returnValue = getOffset(httpParams)
       returnValue.toString contains FilterOffersetError should be (true)
       
       val httpParams2: List[HTTPParam] = List(HTTPParam("offset", List("-1")))
-      val returnValue2 = APIUtil.getOffset(httpParams)
+      val returnValue2 = getOffset(httpParams)
       returnValue2.toString contains FilterOffersetError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("100")))
-      val returnValue = APIUtil.getOffset(httpParams)
+      val returnValue = getOffset(httpParams)
       returnValue should be (OBPOffset(0))
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
-      val returnValue = APIUtil.getOffset(httpParams)
+      val returnValue = getOffset(httpParams)
       returnValue should be (OBPOffset(0))
     }
   }
@@ -313,67 +310,191 @@ class APIUtilTest extends FeatureSpec with Matchers with MdcLoggable  {
   {
     scenario(s"test the correct case: limit = 100") 
     {
-      val correcOffset = "100"
-      val httpParams: List[HTTPParam] = List(HTTPParam("limit", List(correcOffset)))
-      val returnValue = APIUtil.getLimit(httpParams)
+      val correctValue = "100"
+      val httpParams: List[HTTPParam] = List(HTTPParam("limit", List(correctValue)))
+      val returnValue = getLimit(httpParams)
       returnValue should be (Full(OBPLimit(100)))
     }
     
     scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("limit", List("wrongValue")))
-      val returnValue = APIUtil.getLimit(httpParams)
+      val returnValue = getLimit(httpParams)
       returnValue.toString contains FilterLimitError should be (true)
       
       val httpParams2: List[HTTPParam] = List(HTTPParam("limit", List("-1")))
-      val returnValue2 = APIUtil.getLimit(httpParams)
+      val returnValue2 = getLimit(httpParams)
       returnValue2.toString contains FilterLimitError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("100")))
-      val returnValue = APIUtil.getLimit(httpParams)
+      val returnValue = getLimit(httpParams)
       returnValue should be (OBPLimit(50))
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
-      val returnValue = APIUtil.getLimit(httpParams)
+      val returnValue = getLimit(httpParams)
       returnValue should be (OBPLimit(50))
     }
   }
   
-  feature("test APIUtil.getAnon method") 
+  feature("test APIUtil.getHttpParamValuesByName method") 
   {
-    scenario(s"test the correct case: limit = 100") 
+    scenario(s"test the correct case, single value = anon") 
     {
-      val correcOffset = "true"
-      val httpParams: List[HTTPParam] = List(HTTPParam("anon", List(correcOffset)))
-      val returnValue = APIUtil.getAnon(httpParams)
+      val correctValue = "true"
+      val httpParams: List[HTTPParam] = List(HTTPParam("anon", List(correctValue)))
+      val returnValue = getHttpParamValuesByName(httpParams, "anon")
       returnValue should be (Full(OBPAnon(true)))
+    }
+    
+    scenario(s"test the correct case2, multi values = anon,consumer_id") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"), HTTPParam("consumer_id", "1"))
+      val returnValue = getHttpParamValuesByName(httpParams, "anon")
+      returnValue should be (Full(OBPAnon(true)))
+      val returnValue1 = getHttpParamValuesByName(httpParams, "consumer_id")
+      returnValue1 should be (Full(OBPConsumerId("1")))
     }
     
     scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", List("wrongValue")))
-      val returnValue = APIUtil.getAnon(httpParams)
+      val returnValue = getHttpParamValuesByName(httpParams, "anon")
       returnValue.toString contains FilterAnonFormatError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("true")))
-      val returnValue = APIUtil.getAnon(httpParams)
-      returnValue should be (common.Empty)
+      val returnValue = getHttpParamValuesByName(httpParams, "anon")
+      returnValue should be (Full(OBPEmpty()))
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
-      val returnValue = APIUtil.getAnon(httpParams)
-      returnValue should be (common.Empty)
+      val returnValue = getHttpParamValuesByName(httpParams, "anon")
+      returnValue should be (Full(OBPEmpty()))
     }
+  }
+  
+  feature("test APIUtil.getHttpParams method") 
+  {
+    val RetrunDefaultParams = Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
+    
+    scenario(s"test the correct case1: empty list for httpParams") 
+    {
+      val ExpectResult = RetrunDefaultParams 
+      
+      val httpParams: List[HTTPParam] = List.empty[HTTPParam]
+      val returnValue = getHttpParams(httpParams)
+      returnValue should be (ExpectResult)
+    }
+    
+    scenario(s"test the correct case2: contains the `anon` ") 
+    {
+      val ExpectResult = 
+        Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending)
+                  ,OBPFromDate(startDateObject),OBPToDate(endDateObject),
+                  OBPAnon(true)))
+      val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"))
+      val returnValue = getHttpParams(httpParams)
+      returnValue should be (ExpectResult)
+    }
+    
+    scenario(s"test the correct case3: contains the `anon` and `consumer_id` ") 
+    {
+      val ExpectResult = 
+        Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending),
+             OBPFromDate(startDateObject),OBPToDate(endDateObject),
+             OBPAnon(true),OBPConsumerId("1")))
+      val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"), HTTPParam("consumer_id", "1"))
+      val returnValue = getHttpParams(httpParams)
+      returnValue should be (ExpectResult)
+    }
+    
+    scenario(s"test the correct case4: contains all the fields") 
+    {
+      val ExpectResult = 
+        Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending),
+             OBPFromDate(startDateObject),OBPToDate(endDateObject),
+             OBPAnon(true),OBPConsumerId("1"), OBPUserId("2"), OBPUrl("obp/v1.2.1/getBanks"), 
+             OBPAppName("PlaneApp"), OBPImplementedByPartialFunction("getBanks"), 
+             OBPImplementedInVersion("v1.2.1"), OBPVerb("GET"), OBPCorrelationId("123"), OBPDuration(1000), 
+             OBPExcludeAppNames(List("TrainApp", "BusApp")), OBPExcludeUrlPattern("%/obp/v1.2.1%"), 
+             OBPExcludeImplementedByPartialFunctions(List("getBank", "getAccounts"))))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("anon", "true"), 
+        HTTPParam("consumer_id", "1"), 
+        HTTPParam("user_id", "2"), 
+        HTTPParam("url", "obp/v1.2.1/getBanks"), 
+        HTTPParam("app_name","PlaneApp"),
+        HTTPParam("implemented_by_partial_function","getBanks"),
+        HTTPParam("implemented_in_version","v1.2.1"),
+        HTTPParam("verb","GET"),
+        HTTPParam("correlation_id","123"),
+        HTTPParam("duration","1000"),
+        HTTPParam("exclude_app_names",List("TrainApp","BusApp")),
+        HTTPParam("exclude_url_pattern","%/obp/v1.2.1%"),
+        HTTPParam("exclude_implemented_by_partial_functions",List("getBank","getAccounts"))
+      )
+      val returnValue = getHttpParams(httpParams)
+      returnValue should be (ExpectResult)
+    }
+    
+    
+    scenario(s"test the wrong case: values (wrongValue)- limit in HTTPParam") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("limit", List("wrongValue")))
+      val returnValue = getHttpParams(httpParams)
+      returnValue.toString contains FilterLimitError should be (true)
+    }
+    
+    
+    scenario(s"test the wrong case: wrong values - anon (wrongValue) in HTTPParam") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("anon", List("wrongValue")))
+      val returnValue = getHttpParams(httpParams)
+      returnValue.toString contains FilterAnonFormatError should be (true)
+    }
+    
+    
+    scenario(s"test the wrong case: wrong values-offset(wrongValue) in HTTPParam") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("offset", List("wrongValue")))
+      val returnValue = getHttpParams(httpParams)
+      returnValue.toString contains FilterOffersetError should be (true)
+      
+      val httpParams2: List[HTTPParam] = List(HTTPParam("offset", List("-1")))
+      val returnValue2 = getHttpParams(httpParams)
+      returnValue2.toString contains FilterOffersetError should be (true)
+    }
+    
+    scenario(s"test the wrong case: wrong values - duration (wrongValue) in HTTPParam") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("duration", List("wrongValue")))
+      val returnValue = getHttpParams(httpParams)
+      returnValue.toString contains FilterDurationFormatError should be (true)
+    }
+    
+    scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("true")))
+      val returnValue = getHttpParams(httpParams)
+      returnValue should be (RetrunDefaultParams)
+    }
+    
+    scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List("wrongValue")))
+      val returnValue = getHttpParams(httpParams)
+      returnValue.toString contains FilterDateFormatError should be (true)
+    }
+    
   }
 }

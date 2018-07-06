@@ -53,7 +53,8 @@ object ErrorMessages {
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
   val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
   val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
-  val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!" // OBP-20026
+  val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!" 
+  val FilterDurationFormatError = s"OBP-10029: wrong value for obp_limit parameter `duration` parameter. Please send a positive integer (=>0)!" 
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
 

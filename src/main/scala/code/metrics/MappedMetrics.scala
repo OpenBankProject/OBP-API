@@ -72,7 +72,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
           case Some(s) if s == "verb" => OrderBy(MappedMetric.verb, direction)
           case Some(s) if s == "implemented_in_version" => OrderBy(MappedMetric.implementedInVersion, direction)
           case Some(s) if s == "implemented_by_partial_function" => OrderBy(MappedMetric.implementedByPartialFunction, direction)
-          case Some(s) if s == "correlationId" => OrderBy(MappedMetric.correlationId, direction)
+          case Some(s) if s == "correlation_id" => OrderBy(MappedMetric.correlationId, direction)
           case Some(s) if s == "duration" => OrderBy(MappedMetric.duration, direction)
           case _ => OrderBy(MappedMetric.date, Descending)
         }
@@ -93,9 +93,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }.headOption
     val excludeAppNames = queryParams.collect { 
       case OBPExcludeAppNames(values) => 
-        //TODO, this may be improved later. 
-        val valueList: Array[String] = values.split(",").filter(_!=",")
-        valueList.map(NotBy(MappedMetric.appName, _)) 
+        values.map(NotBy(MappedMetric.appName, _)) 
     }.headOption
 
     Seq(

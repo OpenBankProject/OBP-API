@@ -1622,7 +1622,7 @@ trait APIMethods210 {
         |
         |14 verb (if null ignore)
         |
-        |15 correlationId (if null ignore)
+        |15 correlation_id (if null ignore)
         |
         |16 duration (if null ignore) non digit chars will be silently omitted
         |
@@ -1694,7 +1694,7 @@ trait APIMethods210 {
             implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedByPartialFunction(x))
             implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
             verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPVerb(x))
-            correlationId <- tryo(S.param("correlationId").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
+            correlationId <- tryo(S.param("correlation_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
             duration <- tryo(S.param("duration").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPDuration(x.filter(_.isDigit == true).toLong))
 
             parameters <- Full(List(OBPLimit(limit),OBPOffset(offset),OBPFromDate(fromDate),OBPToDate(toDate),consumerId,userId,url,appName,

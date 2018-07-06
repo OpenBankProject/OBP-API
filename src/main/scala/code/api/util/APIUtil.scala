@@ -67,7 +67,7 @@ import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.{toDate, _}
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
 import scala.collection.JavaConverters._
@@ -89,13 +89,19 @@ object APIUtil extends MdcLoggable {
   
   
   val DateWithDayExampleString: String = "2017-09-19"
-  val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
+  val DateWithSecondsExampleString: String = "2017-09-19T02:31:05"
+  val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
+  
+  val DateWithMsForFilteringFromDateString: String = "0000-00-00T00:00:00.000Z"
+  val DateWithMsForFilteringEenDateString: String = "3049-01-01T00:00:00.000Z"
+  
   
   // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
   // (Else caching is invlidated by constantly changing date)
   
-  val DefaultFromDate = DateWithMsFormat.parse("0000-00-00T00:00:00.000Z")
-  val DefaultToDate = DateWithMsFormat.parse("3049-01-01T00:00:00.000Z")
+  val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
+  val DefaultFromDate = DateWithMsFormat.parse(DateWithMsForFilteringFromDateString)
+  val DefaultToDate = DateWithMsFormat.parse(DateWithMsForFilteringEenDateString)
   
   
   implicit val formats = net.liftweb.json.DefaultFormats
@@ -534,20 +540,18 @@ object APIUtil extends MdcLoggable {
     }
 
   //started -- Filtering and Paging revelent methods////////////////////////////
-  def parseObpStandardDate(date: String): Box[Date] = 
-    for{
-      parsedDate <- tryo(DateWithMsFormat.parse(date)) ?~! FilterDateFormatError
-    } yield 
-      parsedDate
+  def parseObpStandardDate(date: String): Box[Date] = tryo(DateWithMsFormat.parse(date)) ?~! FilterDateFormatError
   
   /**
-    * Return the values according to the @name, it is a List[String]
+    * Extract the `values` from HTTPParam by the `name`.
+    * In HTTPParam, the values is a List[String], It supports many values for one name
+    * So this method returns a Box[List[String]. If there is no values, we return Empty instead of Full(List())
     */
   def getHttpValues(httpParams: List[HTTPParam], name: String): Box[List[String]] ={
    for{
       httpParams <- Full(httpParams)
       valueList <- Full(httpParams.filter(_.name.equalsIgnoreCase(name)).map(_.values).flatten)
-      values <- Full(valueList) if(valueList.length > 0)
+      values <- Full(valueList) if(valueList.length > 0)//return Empty instead of Full(List())
     } yield values
   }
 
@@ -652,15 +656,42 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-   def getAnon(httpParams: List[HTTPParam]): Box[OBPAnon] = {
-     for{
-       values <- getHttpValues(httpParams, "anon")
-       value <- tryo(values.head.toBoolean)?~! FilterAnonFormatError
-       anon  = OBPAnon(value)
+  def getHttpParamValuesByName(httpParams: List[HTTPParam], name: String): Box[OBPQueryParam] = {
+     val obpQueryParam = for {
+       values <- getHttpValues(httpParams, name)
+       obpQueryParam <- name match {
+         case "anon" => 
+           for{
+            value <- tryo(values.head.toBoolean)?~! FilterAnonFormatError
+            anon = OBPAnon(value)
+           }yield anon
+           
+         case "consumer_id" => Full(OBPConsumerId(values.head))
+         case "user_id" => Full(OBPUserId(values.head))
+         case "url" => Full(OBPUrl(values.head))
+         case "app_name" => Full(OBPAppName(values.head))
+         case "implemented_by_partial_function" => Full(OBPImplementedByPartialFunction(values.head))
+         case "implemented_in_version" => Full(OBPImplementedInVersion(values.head))
+         case "verb" => Full(OBPVerb(values.head))
+         case "correlation_id" => Full(OBPCorrelationId(values.head))
+         case "duration" => 
+           for{
+            value <- tryo(values.head.toLong )?~! FilterDurationFormatError
+            anon = OBPDuration(value)
+           }yield anon
+         case "exclude_app_names" => Full(OBPExcludeAppNames(values)) //This will return a string list. 
+         case "exclude_url_pattern" => Full(OBPExcludeUrlPattern(values.head))
+         case "exclude_implemented_by_partial_functions" => Full(OBPExcludeImplementedByPartialFunctions(values)) //This will return a string list. 
+         case _ => Full(OBPEmpty())
+       }
      } yield
-       anon
+       obpQueryParam
+     
+     obpQueryParam match {
+       case Empty => Full(OBPEmpty()) //Only Map Empty to Full(OBPEmpty())
+       case others => others
+     }
   }
-  
   
    def getHttpParams(httpParams: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
@@ -669,19 +700,20 @@ object APIUtil extends MdcLoggable {
       toDate <- getToDate(httpParams)
       limit <- getLimit(httpParams)
       offset <- getOffset(httpParams)
-//      anon <- getAnon(httpParams)
-//      consumerId <- getConsumerId(httpParams)
-//      userId <- getConsumerId(httpParams)
-//      url <- getConsumerId(httpParams)
-//      appName <- getConsumerId(httpParams)
-//      implementedByPartialFunction <- getConsumerId(httpParams)
-//      implementedInVersion <- getConsumerId(httpParams)
-//      verb <- getConsumerId(httpParams)
-//      correlationId <- getConsumerId(httpParams)
-//      duration <- getConsumerId(httpParams)
-//      excludeAppNames <- getConsumerId(httpParams)
-//      excludeUrlPattern <- getConsumerId(httpParams)
-//      excludeImplementedByPartialfunctions <- getConsumerId(httpParams)
+      //all optional fields
+      anon <- getHttpParamValuesByName(httpParams,"anon")
+      consumerId <- getHttpParamValuesByName(httpParams,"consumer_id")
+      userId <- getHttpParamValuesByName(httpParams, "user_id")
+      url <- getHttpParamValuesByName(httpParams, "url")
+      appName <- getHttpParamValuesByName(httpParams, "app_name")
+      implementedByPartialFunction <- getHttpParamValuesByName(httpParams, "implemented_by_partial_function")
+      implementedInVersion <- getHttpParamValuesByName(httpParams, "implemented_in_version")
+      verb <- getHttpParamValuesByName(httpParams, "verb")
+      correlationId <- getHttpParamValuesByName(httpParams, "correlation_id")
+      duration <- getHttpParamValuesByName(httpParams, "duration")
+      excludeAppNames <- getHttpParamValuesByName(httpParams, "exclude_app_names")
+      excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_pattern")
+      excludeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "exclude_implemented_by_partial_functions")
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -697,10 +729,11 @@ object APIUtil extends MdcLoggable {
       //val sortBy = json.header("obp_sort_by")
       val sortBy = None
       val ordering = OBPOrdering(sortBy, sortDirection)
-      limit :: offset :: ordering :: fromDate :: toDate :: Nil
-      
-//       List(limit, offset, ordering, fromDate, toDate, anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion,
-//        verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions)
+      //This guarantee the order 
+      List(limit, offset, ordering, fromDate, toDate, 
+           anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
+           verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions
+       ).filter(_ != OBPEmpty())
     }
   }
   

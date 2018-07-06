@@ -106,13 +106,15 @@ case class OBPConsumerId(value: String) extends OBPQueryParam
 case class OBPUserId(value: String) extends OBPQueryParam
 case class OBPUrl(value: String) extends OBPQueryParam
 case class OBPAppName(value: String) extends OBPQueryParam
-case class OBPExcludeAppNames(value: String) extends OBPQueryParam
+case class OBPExcludeAppNames(values: List[String]) extends OBPQueryParam
 case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
 case class OBPImplementedInVersion(value: String) extends OBPQueryParam
 case class OBPVerb(value: String) extends OBPQueryParam
 case class OBPAnon(value: Boolean) extends OBPQueryParam
 case class OBPCorrelationId(value: String) extends OBPQueryParam
 case class OBPDuration(value: Long) extends OBPQueryParam
+case class OBPExcludeUrlPattern(value: String) extends OBPQueryParam
+case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'

@@ -2101,7 +2101,7 @@ trait APIMethods300 {
         |
         |10 verb (if null ignore)
         |
-        |11 correlationId (if null ignore)
+        |11 correlation_id (if null ignore)
         |
         |12 duration (if null ignore) non digit chars will be silently omitted
         |
@@ -2176,7 +2176,7 @@ trait APIMethods300 {
               implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("true"))
               implementedInVersion <- tryo(S.param("implemented_in_version").openOr("true"))
               verb <- tryo(S.param("verb").openOr("true"))
-              correlationId <- tryo(S.param("correlationId").openOr("true"))
+              correlationId <- tryo(S.param("correlation_id").openOr("true"))
               duration <- tryo(S.param("duration").openOr("true"))
               excludeAppNames <- tryo(S.param("exclude_app_names").openOr("true"))
               excludeUrlPattern <- tryo(S.param("exclude_url_pattern").openOr("true"))
