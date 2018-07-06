@@ -36,6 +36,7 @@ import java.io.InputStream
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
+
 import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -769,6 +770,8 @@ object APIUtil extends MdcLoggable {
 
       val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
       val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""))
+      logger.debug("signatureBase: " + signatureBase)
+      logger.debug("computedSignature: " + computedSignature)
       oauth_params + (SignatureName -> computedSignature)
     }
 

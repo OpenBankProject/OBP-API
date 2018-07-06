@@ -29,26 +29,29 @@ package code.api
 import java.net.{URLDecoder, URLEncoder}
 import java.util.Date
 
-import code.api.Constant._
-import code.api.oauth1a.Arithmetics
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import code.api.oauth1a.OauthParams._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.Constant._
+import code.api.oauth1a.Arithmetics
+import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
 import code.consumer.Consumers
+import code.model.dataAccess.ResourceUserCaseClass
 import code.model.{Consumer, TokenType, User}
 import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
-import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
-import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.{Helpers, Props}
+import net.liftweb.util.Helpers.{tryo, _}
+import code.util.Helper.MdcLoggable
 
 import scala.compat.Platform
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -252,23 +255,26 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
       val tokenSecret = OAuthparameters.get(TokenName) match {
         case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
-            case Full(token) =>
-              token.secret.toString()
-            case _ => ""
-          }
+          case Full(token) =>
+            token.secret.toString()
+          case _ => ""
+        }
         case _ => ""
       }
 
       val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + S.uri, urlParameters(), Nil, OAuthparameters.toList)
       val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
       val received: String = OAuthparameters.get(SignatureName).get
+      val receivedAndEncoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
       val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
+      logger.debug("OAuthparameters: " + OAuthparameters)
       logger.debug("signature's base: " + signatureBase)
       logger.debug("computedSignature: " + computedSignature)
       logger.debug("computed and encoded signature: " + computedAndEncoded)
-      logger.debug("received signature:" + OAuthparameters.get(SignatureName).get)
+      logger.debug("received signature:" + received)
+      logger.debug("received and encoded signature:" + receivedAndEncoded)
 
-      computedSignature == received
+      computedAndEncoded == received || computedSignature == received
     }
 
     //check if the token exists and is still valid
@@ -519,6 +525,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       }
     }
 
+    // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String) = {
       /**
         * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
@@ -551,13 +558,16 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(), Nil, OAuthparameters.toList)
       val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
       val received: String = OAuthparameters.get(SignatureName).get
+      val receivedAndEncoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
       val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
+      logger.debug("OAuthparameters: " + OAuthparameters)
       logger.debug("signature's base: " + signatureBase)
       logger.debug("computedSignature: " + computedSignature)
       logger.debug("computed and encoded signature: " + computedAndEncoded)
-      logger.debug("received signature:" + OAuthparameters.get(SignatureName).get)
+      logger.debug("received signature:" + received)
+      logger.debug("received and encoded signature:" + receivedAndEncoded)
 
-      computedSignature == received
+      computedAndEncoded == received || computedSignature == received
     }
 
     //check if the token exists and is still valid
@@ -738,7 +748,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
     val callbackURL =
       if(! oAuthParameters.get(CallbackName).get.isEmpty)
-        URLDecoder.decode(oAuthParameters.get(CallbackName).get,"UTF-8")
+       oAuthParameters.get(CallbackName).get
       else
         "oob"
     val currentTime = Platform.currentTime
