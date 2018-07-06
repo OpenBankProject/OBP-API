@@ -3,6 +3,7 @@ package code.metrics
 import java.sql.{PreparedStatement, Time, Timestamp}
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.{OBPImplementedByPartialFunction, _}
 import code.util.Helper.MdcLoggable
@@ -234,9 +235,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               DB.prepareStatement(dbQuery, conn)
               {
                 stmt =>
-                  stmt.setBoolean(1, if (queryParams.startDate.isEmpty) true else false)
+                  stmt.setBoolean(1, if (queryParams.startDate.equals(Some(APIUtil.DefaultFromDate))) true else false)
                   stmt.setTimestamp(2, if (queryParams.startDate.isEmpty) null else new Timestamp(queryParams.startDate.get.getTime))
-                  stmt.setBoolean(3, if (queryParams.endDate.isEmpty) true else false)
+                  stmt.setBoolean(3, if (queryParams.endDate.equals(Some(APIUtil.DefaultToDate))) true else false)
                   stmt.setTimestamp(4, if (queryParams.endDate.isEmpty) null else new Timestamp(queryParams.endDate.get.getTime))
                   DB.resultSetTo(stmt.executeQuery())
                   
@@ -276,9 +277,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               DB.prepareStatement(dbQuery, conn)
               {
                 stmt =>
-                  stmt.setBoolean(1, if (queryParams.startDate.isEmpty) true else false)
+                  stmt.setBoolean(1, if (queryParams.startDate.equals(Some(APIUtil.DefaultFromDate))) true else false)
                   stmt.setTimestamp(2, if (queryParams.startDate.isEmpty) null else new Timestamp(queryParams.startDate.get.getTime))
-                  stmt.setBoolean(3, if (queryParams.endDate.isEmpty) true else false)
+                  stmt.setBoolean(3, if (queryParams.endDate.equals(Some(APIUtil.DefaultToDate))) true else false)
                   stmt.setTimestamp(4, if (queryParams.endDate.isEmpty) null else new Timestamp(queryParams.endDate.get.getTime))
                   DB.resultSetTo(stmt.executeQuery())
                   

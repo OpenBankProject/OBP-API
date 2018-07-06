@@ -608,7 +608,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -670,7 +670,7 @@ trait APIMethods300 {
             } yield {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), callContext)
@@ -735,7 +735,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -2187,7 +2187,8 @@ trait APIMethods300 {
                                                     anon, correlationId, duration, excludeAppNames,
                                                     excludeUrlPattern,excludeImplementedByPartialfunctions)
               
-              params <- getHttpParams(List(HTTPParam("from_date",S.param("from_date").getOrElse(defaultStartDate))))
+              httpParams <- createHttpParamsByUrl(cc.url)
+              obpQueryParams <- createQueriesByHttpParams(httpParams)
               
               aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpUrlQueryParams)) ?~! GetAggregateMetricsError
 

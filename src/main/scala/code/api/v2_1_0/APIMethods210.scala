@@ -1006,7 +1006,7 @@ trait APIMethods210 {
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            queryParams <- unboxFullAndWrapIntoFuture{ getHttpParams(callContext.get.requestHeaders) }
+            queryParams <- unboxFullAndWrapIntoFuture{ createQueriesByHttpParams(callContext.get.requestHeaders) }
             users <- Users.users.vend.getAllUsersF(queryParams)
           } yield {
             (JSONFactory210.createUserJSONs (users), callContext)

@@ -721,7 +721,7 @@ object APIUtil extends MdcLoggable {
      }
   }
   
-   def getHttpParams(httpParams: List[HTTPParam]): Box[List[OBPQueryParam]] = {
+   def createQueriesByHttpParams(httpParams: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
       sortDirection <- getSortDirection(httpParams)
       fromDate <- getFromDate(httpParams)
@@ -765,20 +765,55 @@ object APIUtil extends MdcLoggable {
     }
   }
   
+  //eg: httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+  def createHttpParamsByUrl(httpRequestUrl: String): Box[List[HTTPParam]] = {
+    val sortDirection = getHttpRequestUrlParam(httpRequestUrl,"sort_direction")
+    val fromDate =  getHttpRequestUrlParam(httpRequestUrl,"from_date")
+    val toDate =  getHttpRequestUrlParam(httpRequestUrl,"to_date")
+    val limit =  getHttpRequestUrlParam(httpRequestUrl,"limit")
+    val offset =  getHttpRequestUrlParam(httpRequestUrl,"offset")
+    val anon =  getHttpRequestUrlParam(httpRequestUrl,"anon")
+    val consumerId =  getHttpRequestUrlParam(httpRequestUrl,"consumer_id")
+    val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
+    val url =  getHttpRequestUrlParam(httpRequestUrl, "url")
+    val appName =  getHttpRequestUrlParam(httpRequestUrl, "app_name")
+    val implementedByPartialFunction =  getHttpRequestUrlParam(httpRequestUrl, "implemented_by_partial_function")
+    val implementedInVersion =  getHttpRequestUrlParam(httpRequestUrl, "implemented_in_version")
+    val verb =  getHttpRequestUrlParam(httpRequestUrl, "verb")
+    val correlationId =  getHttpRequestUrlParam(httpRequestUrl, "correlation_id")
+    val duration =  getHttpRequestUrlParam(httpRequestUrl, "duration")
+    val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names")
+    val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_pattern")
+    val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions")
+    
+    Full(List(
+      HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset), 
+      HTTPParam("anon", anon), HTTPParam("consumer_id", consumerId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName), 
+      HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
+      HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
+      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions)
+    ).filter(_.values.isEmpty))
+    
+  }
+  
   //TODO this can be enhanced later, support all the parameters
   def getHttpRequestUrlParams(httpRequestUrl: String): Box[OBPUrlDateQueryParam] =
   {
-    val fromDate = for
-      {
-      fromDateString <- getHttpRequestUrlParam(httpRequestUrl, "from_date")
-      fromDate <- tryo(DateWithMsFormat.parse(fromDateString)) ?~! s"${InvalidDateFormat } from_date:${fromDateString}. Supported format is ${APIUtil.DateWithSeconds}. eg: 2010-05-10T01:20:03"
+    val fromDateString = getHttpRequestUrlParam(httpRequestUrl, "from_date") match {
+      case "" => DateWithMsForFilteringFromDateString
+      case others => others
+    }
+    val fromDate = for{
+      fromDate <- tryo(DateWithMsFormat.parse(fromDateString)) ?~! s"${InvalidDateFormat } from_date:${fromDateString}. Supported format is ${APIUtil.DateWithSeconds}."
     } yield
       fromDate
     
-    val toDate = for
-      {
-      endDateString <- getHttpRequestUrlParam(httpRequestUrl, "to_date")
-      endDate <- tryo(Some(DateWithMsFormat.parse(endDateString))) ?~! s"${InvalidDateFormat} from_date:${endDateString}. Supported format is yyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+    val endDateString =  getHttpRequestUrlParam(httpRequestUrl, "to_date") match {
+      case "" => DateWithMsForFilteringEenDateString
+      case others => DateWithMsForFilteringEenDateString
+    }
+    val toDate = for {
+      endDate <- tryo(DateWithMsFormat.parse(endDateString)) ?~! s"${InvalidDateFormat} from_date:${endDateString}. Supported format is ${APIUtil.DateWithSeconds}."
     } yield
       endDate
     
@@ -786,19 +821,23 @@ object APIUtil extends MdcLoggable {
     (fromDate, toDate) match {
       case (Failure(msg, t, c),_)  => Failure(msg, t, c)
       case (_,Failure(msg, t, c))  => Failure(msg, t, c)
-      case _ => Full(OBPUrlDateQueryParam(fromDate.toOption, toDate.openOr(None)))
+      case _ => Full(OBPUrlDateQueryParam(fromDate.toOption, toDate.toOption))
     }
   }
 
-  //eg: httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
-  def getHttpRequestUrlParam(httpRequestUrl: String, name: String): Box[String] ={
-    for{
-      urlAndQueryString <- if (httpRequestUrl.contains("?")) Full(httpRequestUrl.split("\\?",2)(1)) else Empty // Full(from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03)
-      queryStrings <- Full(urlAndQueryString.split("&").map(_.split("=")).flatten)  //Full(from_date, 2010-05-10T01:20:03, to_date, 2017-05-22T01:02:03)
-      queryStringValue <- if (queryStrings.contains(name)) Full(queryStrings(queryStrings.indexOf(name)+1)) else Empty //Full(2010-05-10T01:20:03)
-    } yield 
-      queryStringValue
+  /**
+    * 
+    * @param httpRequestUrl eg:  /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z
+    * @param name eg: from_date
+    * @return the 2010-05-10T01:20:03.000Z for the from_date.
+    *         There is no error handling here, just extract whatever it got from the Url string. If not value for that name, just return ""
+    */
+  def getHttpRequestUrlParam(httpRequestUrl: String, name: String): String = {
+    val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03)
+    val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, 2010-05-10T01:20:03, to_date, 2017-05-22T01:02:03)
+    if (queryStrings.contains(name)) queryStrings(queryStrings.indexOf(name)+1) else ""//Full(2010-05-10T01:20:03)
   }
+  
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
 

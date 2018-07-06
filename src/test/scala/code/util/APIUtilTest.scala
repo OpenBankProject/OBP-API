@@ -59,21 +59,21 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     {
       val httpRequestUrl= "/obp/v3.1.0/management/metrics/top-consumers"
       val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(None,None)))
+      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject),Some(endDateObject))))
     }
 
     scenario(s"only one `from_date` in URL") 
     {
       val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString"
       val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject), None)))
+      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject), Some(endDateObject))))
     }
 
     scenario(s"only one `to_date` in URL") 
     {
       val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?to_date=$endDateString"
       val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(None,Some(endDateObject))))
+      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject),Some(endDateObject))))
     }
 
     scenario(s"Both `from_date` and `to_date` in URL") 
@@ -102,14 +102,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     {
       val httpRequestUrl= "/obp/v3.1.0/management/metrics/top-consumers"
       val returnValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
-      returnValue should be (Empty)
+      returnValue should be ("")
     }
     
     scenario(s"only one `from_date` in URL") 
     {
       val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString"
       val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
-      startdateValue should be (Full(s"$startDateString"))
+      startdateValue should be (s"$startDateString")
     }
     
     
@@ -117,18 +117,18 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
       val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"from_date")
-      startdateValue should be (Full(s"$startDateString"))
+      startdateValue should be (s"$startDateString")
       val endDateValue = getHttpRequestUrlParam(httpRequestUrl,"to_date")
-      endDateValue should be (Full(s"$endDateString"))
+      endDateValue should be (s"$endDateString")
       val noneFieldValue = getHttpRequestUrlParam(httpRequestUrl,"none_field")
-      noneFieldValue should be (Empty)
+      noneFieldValue should be ("")
     }
     
     scenario(s"test the error case, eg: not proper parameter name") 
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
       val noneFieldValue = getHttpRequestUrlParam(httpRequestUrl,"none_field")
-      noneFieldValue should be (Empty)
+      noneFieldValue should be ("")
     }
   } 
   
@@ -400,7 +400,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
       val ExpectResult = RetrunDefaultParams 
       
       val httpParams: List[HTTPParam] = List.empty[HTTPParam]
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
     
@@ -411,7 +411,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
                   ,OBPFromDate(startDateObject),OBPToDate(endDateObject),
                   OBPAnon(true)))
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
     
@@ -422,7 +422,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
              OBPFromDate(startDateObject),OBPToDate(endDateObject),
              OBPAnon(true),OBPConsumerId("1")))
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"), HTTPParam("consumer_id", "1"))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
     
@@ -451,7 +451,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
         HTTPParam("exclude_url_pattern","%/obp/v1.2.1%"),
         HTTPParam("exclude_implemented_by_partial_functions",List("getBank","getAccounts"))
       )
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
     
@@ -459,7 +459,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     scenario(s"test the wrong case: values (wrongValue)- limit in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("limit", List("wrongValue")))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterLimitError should be (true)
     }
     
@@ -467,7 +467,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     scenario(s"test the wrong case: wrong values - anon (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", List("wrongValue")))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterAnonFormatError should be (true)
     }
     
@@ -475,34 +475,66 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     scenario(s"test the wrong case: wrong values-offset(wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("offset", List("wrongValue")))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterOffersetError should be (true)
       
       val httpParams2: List[HTTPParam] = List(HTTPParam("offset", List("-1")))
-      val returnValue2 = getHttpParams(httpParams)
+      val returnValue2 = createQueriesByHttpParams(httpParams)
       returnValue2.toString contains FilterOffersetError should be (true)
     }
     
     scenario(s"test the wrong case: wrong values - duration (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("duration", List("wrongValue")))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterDurationFormatError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("true")))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (RetrunDefaultParams)
     }
     
     scenario(s"test the wrong case: wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List("wrongValue")))
-      val returnValue = getHttpParams(httpParams)
+      val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterDateFormatError should be (true)
     }
     
+  }
+  
+  feature("test APIUtil.createHttpParamsByUrl method") 
+  {
+    val RetrunDefaultParams = Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
+    
+    scenario(s"test the correct case1: all the params are in the `URL` ") 
+    {
+      val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List("2010-05-10T01:20:03.000Z")), 
+                                   HTTPParam("to_date",List("2017-05-22T01:02:03.000Z")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
+                                   HTTPParam("anon",List("false")), HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), HTTPParam("url",List("/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions")), HTTPParam("app_name",List("MapperPostman")), HTTPParam("implemented_by_partial_function",List("getTransactionsForBankAccount")), HTTPParam("implemented_in_version",List("v3.0.0")), HTTPParam("verb",List("GET")), HTTPParam("correlation_id",List("123")), HTTPParam("duration",List("100")), HTTPParam("exclude_app_names",List("API-EXPLORER,API-Manager,SOFI,null,SOFIT")), HTTPParam("exclude_url_pattern",List("%25management/metrics%25")), HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics,getConnectorMetrics,getAggregateMetrics")))) 
+      
+      val httpRequestUrl = "http://127.0.0.1:8080/obp/v3.0.0/management/aggregate-metrics?" +
+        "offset=3&limit=10&sort_direction=ASC&from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
+        "implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&" +
+        "url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&" +
+        "verb=GET&anon=false&app_name=MapperPostman&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null,SOFIT&" +
+        "exclude_url_pattern=%25management/metrics%25&exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics&"+ 
+        "correlation_id=123&duration=100"
+      val returnValue = createHttpParamsByUrl(httpRequestUrl)
+      returnValue should be (ExpectResult)
+    }
+    
+    scenario(s"test the correct case2: no parameters in the Url ") 
+    {
+      val ExpectResult = Full(List())
+      val httpRequestUrl = "http://127.0.0.1:8080/obp/v3.0.0/management/aggregate-metrics"
+      val returnValue = createHttpParamsByUrl(httpRequestUrl)
+      returnValue should be (ExpectResult)
+    }
+    
+
   }
 }
