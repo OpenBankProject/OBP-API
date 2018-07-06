@@ -82,15 +82,18 @@ object APIUtil extends MdcLoggable {
   val DateWithDay = "yyyy-MM-dd"
   val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss"
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
   
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
+  val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
   
   
   val DateWithDayExampleString: String = "2017-09-19"
   val DateWithSecondsExampleString: String = "2017-09-19T02:31:05"
   val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
+  val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
   
   val DateWithMsForFilteringFromDateString: String = "0000-00-00T00:00:00.000Z"
   val DateWithMsForFilteringEenDateString: String = "3049-01-01T00:00:00.000Z"
@@ -100,6 +103,9 @@ object APIUtil extends MdcLoggable {
   // (Else caching is invlidated by constantly changing date)
   
   val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
+  val DateWithMsExampleObject = DateWithDayFormat.parse(DateWithMsExampleString)
+  val DateWithMsRollbackExampleObject = DateWithDayFormat.parse(DateWithMsRollbackExampleString)
+  
   val DefaultFromDate = DateWithMsFormat.parse(DateWithMsForFilteringFromDateString)
   val DefaultToDate = DateWithMsFormat.parse(DateWithMsForFilteringEenDateString)
   
@@ -540,7 +546,29 @@ object APIUtil extends MdcLoggable {
     }
 
   //started -- Filtering and Paging revelent methods////////////////////////////
-  def parseObpStandardDate(date: String): Box[Date] = tryo(DateWithMsFormat.parse(date)) ?~! FilterDateFormatError
+  def parseObpStandardDate(date: String): Box[Date] =
+  {
+    val parsedDate = tryo{DateWithMsFormat.parse(date)}
+  
+    //This is for V1.0 V1.1 and V1.2.0 and V1.2.1 
+    lazy val fallBackParsedDate = tryo{DateWithMsRollbackFormat.parse(date)}
+  
+    if (parsedDate.isDefined)
+    {
+      Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
+    }
+    else if (fallBackParsedDate.isDefined)
+    {
+      Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
+    }
+    else
+    {
+      Failure(FilterDateFormatError)
+    }
+  }
+  
+  
+  
   
   /**
     * Extract the `values` from HTTPParam by the `name`.

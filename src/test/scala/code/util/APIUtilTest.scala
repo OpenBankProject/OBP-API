@@ -165,17 +165,25 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   
   feature("test APIUtil.parseObpStandardDate method") 
   {
-    scenario(s"test the correct format") 
+    scenario(s"test the correct format- DateWithMsFormat") 
     {
-      val correctDateFormatString = "2001-07-01T00:00:00.000Z"
+      val correctDateFormatString = DateWithMsExampleString
       val returnValue: Box[Date] = parseObpStandardDate(correctDateFormatString)
       returnValue.isDefined should be (true)
       returnValue.openOrThrowException("") should be (DateWithMsFormat.parse(correctDateFormatString))
     }
     
+    scenario(s"test the correct format- DateWithMsRollbackFormat") 
+    {
+      val correctDateFormatString = DateWithMsRollbackExampleString
+      val returnValue: Box[Date] = parseObpStandardDate(correctDateFormatString)
+      returnValue should be (Full(DateWithMsRollbackFormat.parse(correctDateFormatString)))
+    }
+    
+    
     scenario(s"test the wrong data format") 
     {
-      val returnValue: Box[Date] = parseObpStandardDate("2001-07-01T00:00:00.000+0000")
+      val returnValue: Box[Date] = parseObpStandardDate("2001.07-01T00:00:00.000+0000")
       returnValue.isDefined should be (false)
       returnValue.toString contains FilterDateFormatError should be (true)
     }

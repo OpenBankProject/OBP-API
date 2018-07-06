@@ -83,7 +83,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   implicit override val nameOfConnector = KafkaMappedConnector_JVMcompatible.getClass.getSimpleName
   
   // Maybe we should read the date format from props?
-  //val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DATE_FORMAT = APIUtil.DateWithMs
 
   val getBankTTL                            = APIUtil.getPropsValue("connector.cache.ttl.seconds.getBank", "0").toInt * 1000 // Miliseconds

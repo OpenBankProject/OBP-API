@@ -62,7 +62,7 @@ class TransactionsTest extends V300ServerSetup {
     import java.util.{Calendar, Date}
 
     val defaultFormat = APIUtil.DateWithMsFormat
-    val rollbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    val rollbackFormat = APIUtil.DateWithMsRollbackFormat
 
     scenario("we don't get transactions due to wrong value for sort_direction parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")

@@ -56,7 +56,7 @@
 //
 //  implicit val _formats = Serialization.formats(NoTypeHints)
 //
-//  val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+//  val dateFormat = APIUtil.DateWithMsRollbackFormat
 //
 //  private def logAPICall = {
 //    val correlationId = getCorrelationId()

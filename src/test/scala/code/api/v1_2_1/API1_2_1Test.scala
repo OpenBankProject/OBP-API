@@ -4350,7 +4350,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     import java.util.{Calendar, Date}
 
     val defaultFormat = APIUtil.DateWithMsFormat
-    val rollbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    val rollbackFormat = APIUtil.DateWithMsRollbackFormat
 
     scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
