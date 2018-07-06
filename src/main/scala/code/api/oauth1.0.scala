@@ -28,28 +28,27 @@ package code.api
 
 import java.net.{URLDecoder, URLEncoder}
 import java.util.Date
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
+
+import code.api.Constant._
+import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.ErrorMessages._
-import code.api.Constant._
-import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.consumer.Consumers
-import code.model.dataAccess.ResourceUserCaseClass
 import code.model.{Consumer, TokenType, User}
 import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
-import net.liftweb.util.{Helpers, Props}
-import net.liftweb.util.Helpers.{tryo, _}
-import code.util.Helper.MdcLoggable
+import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
 
 import scala.compat.Platform
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -230,23 +229,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       ) !=0
     }
 
+    // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
-      //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
-      //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-      def generateOAuthParametersString(OAuthparameters : List[(String, String)]) : String = {
-        def sortParam( keyAndValue1 : (String, String), keyAndValue2 : (String, String))= keyAndValue1._1.compareTo(keyAndValue2._1) < 0
-        var parameters =""
-
-        //sort the parameters by name
-        OAuthparameters.sortWith(sortParam _).foreach(
-          t =>
-            if(t._1 != SignatureName)
-              parameters += URLEncoder.encode(t._1,"UTF-8")+"%3D"+ URLEncoder.encode(t._2,"UTF-8")+"%26"
-
-        )
-        parameters = parameters.dropRight(3) //remove the "&" encoded sign
-        parameters
-      }
       /**
         * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
         * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
@@ -262,44 +246,29 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
           }
         listOfTuples
       }
-      //prepare the base string
-      var baseString = httpMethod+"&"+URLEncoder.encode(HostName + S.uri ,"UTF-8")+"&"
-      // Add OAuth and URL parameters to the base string
-      // Parameters are provided as List[(String, String)]
-      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
 
-      val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
-      //get the key to sign
       val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
-      var secret= consumer.secret.toString
+      val consumerSecret = consumer.secret.toString
 
-      OAuthparameters.get(TokenName) match {
+      val tokenSecret = OAuthparameters.get(TokenName) match {
         case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
-            case Full(token) => secret+= "&" +token.secret.toString()
-            case _ => secret+= "&"
+            case Full(token) =>
+              token.secret.toString()
+            case _ => ""
           }
-        case _ => secret+= "&"
+        case _ => ""
       }
-      //logger.debug("base string: " + baseString)
-      //signing process // TODO default to HmacSHA256?
-      val signingAlgorithm : String = if(OAuthparameters.get(SignatureMethodName).get.toLowerCase == "hmac-sha256")
-        "HmacSHA256"
-      else
-        "HmacSHA1"
 
-      //logger.debug("signing method: " + signingAlgorithm)
-      //logger.debug("signing key: " + secret)
-      //logger.debug("signing key in bytes: " + secret.getBytes("UTF-8"))
+      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + S.uri, urlParameters(), Nil, OAuthparameters.toList)
+      val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
+      val received: String = OAuthparameters.get(SignatureName).get
+      val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
+      logger.debug("signature's base: " + signatureBase)
+      logger.debug("computedSignature: " + computedSignature)
+      logger.debug("computed and encoded signature: " + computedAndEncoded)
+      logger.debug("received signature:" + OAuthparameters.get(SignatureName).get)
 
-      var m = Mac.getInstance(signingAlgorithm);
-      m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
-      val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
-
-      //logger.debug("calculatedSignature: " + calculatedSignature)
-      //logger.debug("received signature:" + OAuthparameters.get(SignatureName).get)
-      //logger.debug("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get(SignatureName).get))
-
-      calculatedSignature== URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
+      computedSignature == received
     }
 
     //check if the token exists and is still valid
@@ -551,22 +520,6 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
 
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String) = {
-      //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
-      //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-      def generateOAuthParametersString(OAuthparameters : List[(String, String)]) : String = {
-        def sortParam( keyAndValue1 : (String, String), keyAndValue2 : (String, String))= keyAndValue1._1.compareTo(keyAndValue2._1) < 0
-        var parameters =""
-
-        //sort the parameters by name
-        OAuthparameters.sortWith(sortParam _).foreach(
-          t =>
-            if(t._1 != SignatureName)
-              parameters += URLEncoder.encode(t._1,"UTF-8")+"%3D"+ URLEncoder.encode(t._2,"UTF-8")+"%26"
-
-        )
-        parameters = parameters.dropRight(3) //remove the "&" encoded sign
-        parameters
-      }
       /**
         * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
         * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
@@ -582,44 +535,29 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
           }
         listOfTuples
       }
-      //prepare the base string
-      var baseString = httpMethod+"&"+URLEncoder.encode(HostName + sUri ,"UTF-8")+"&"
-      // Add OAuth and URL parameters to the base string
-      // Parameters are provided as List[(String, String)]
-      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
 
-      val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
-      //get the key to sign
       val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
-      var secret= consumer.secret.toString
+      val consumerSecret = consumer.secret.toString
 
-      OAuthparameters.get(TokenName) match {
+      val tokenSecret = OAuthparameters.get(TokenName) match {
         case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
-          case Full(token) => secret+= "&" +token.secret.toString()
-          case _ => secret+= "&"
+          case Full(token) =>
+            token.secret.toString()
+          case _ => ""
         }
-        case _ => secret+= "&"
+        case _ => ""
       }
-      //logger.debug("base string: " + baseString)
-      //signing process // TODO default to HmacSHA256?
-      val signingAlgorithm : String = if(OAuthparameters.get(SignatureMethodName).get.toLowerCase == "hmac-sha256")
-        "HmacSHA256"
-      else
-        "HmacSHA1"
 
-      //logger.debug("signing method: " + signingAlgorithm)
-      //logger.debug("signing key: " + secret)
-      //logger.debug("signing key in bytes: " + secret.getBytes("UTF-8"))
+      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(), Nil, OAuthparameters.toList)
+      val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
+      val received: String = OAuthparameters.get(SignatureName).get
+      val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
+      logger.debug("signature's base: " + signatureBase)
+      logger.debug("computedSignature: " + computedSignature)
+      logger.debug("computed and encoded signature: " + computedAndEncoded)
+      logger.debug("received signature:" + OAuthparameters.get(SignatureName).get)
 
-      var m = Mac.getInstance(signingAlgorithm);
-      m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
-      val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
-
-      //logger.debug("calculatedSignature: " + calculatedSignature)
-      //logger.debug("received signature:" + OAuthparameters.get(SignatureName).get)
-      //logger.debug("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get(SignatureName).get))
-
-      calculatedSignature== URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
+      computedSignature == received
     }
 
     //check if the token exists and is still valid

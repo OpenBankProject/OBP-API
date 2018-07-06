@@ -42,6 +42,7 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.oauth1a.Arithmetics
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
@@ -719,7 +720,7 @@ object APIUtil extends MdcLoggable {
     }
 
     /** @return oauth parameter map including signature */
-    def sign(method: String, url: String, user_params: Map[String, Any], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
+    def sign(method: String, url: String, user_params: Map[String, String], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]): IMap[String, String] = {
       val oauth_params = IMap(
         "oauth_consumer_key" -> consumer.key,
         SignatureMethodName -> "HMAC-SHA1",
@@ -730,22 +731,9 @@ object APIUtil extends MdcLoggable {
         verifier.map { VerifierName -> _ } ++
         callback.map { CallbackName -> _ }
 
-      val encoded_ordered_params = (
-        new TreeMap[String, String] ++ (user_params ++ oauth_params map %%)
-      ) map { case (k, v) => k + "=" + v } mkString "&"
-
-      val message =
-        %%(method.toUpperCase :: url :: encoded_ordered_params :: Nil)
-
-      val SHA1 = "HmacSHA1"
-      val key_str = %%(consumer.secret :: (token map { _.secret } getOrElse "") :: Nil)
-      val key = new crypto.spec.SecretKeySpec(bytes(key_str), SHA1)
-      val sig = {
-        val mac = crypto.Mac.getInstance(SHA1)
-        mac.init(key)
-        base64Encode(mac.doFinal(bytes(message)))
-      }
-      oauth_params + (SignatureName -> sig)
+      val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
+      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""))
+      oauth_params + (SignatureName -> computedSignature)
     }
 
     /** Out-of-band callback code */
@@ -826,7 +814,7 @@ object APIUtil extends MdcLoggable {
           body,
           if (body_encoding == null) "null" else body_encoding.name(),
           IMap("Authorization" -> ("OAuth " + oauth_params.map {
-            case (k, v) => encode_%(k) + "=\"%s\"".format(encode_%(v.toString))
+            case (k, v) => (k) + "=\"%s\"".format((v.toString))
           }.mkString(",") )),
           query_params,
           form_params
