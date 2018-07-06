@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.bankconnectors.{OBPQueryParam, OBPQueryParamPlain}
+import code.bankconnectors.OBPQueryParam
 import code.customer.{AmountOfMoneyTrait => _}
 import code.metrics._
 import net.liftweb.common.Box
@@ -30,17 +30,17 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] =
     extractFuture(actor ? cc.getAllMetrics(queryParams))
   
-  def getAllAggregateMetrics(queryParams: OBPQueryParamPlain): List[AggregateMetrics] ={
-    logger.debug(s"getAllAggregateMetrics($queryParams)")
+  def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics] ={
+    logger.debug(s"RemotedataMetrics.getAllAggregateMetrics($queryParams)")
     extractFuture(actor ? cc.getAllAggregateMetrics(queryParams))
   }
   
-  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] ={
-    (actor ? cc.getTopApisFuture(queryParams: List[OBPQueryParam])).mapTo[Box[List[TopApi]]]
+  override def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]] ={
+    (actor ? cc.getTopApisFuture(queryParams: OBPUrlDateQueryParam)).mapTo[Box[List[TopApi]]]
   }
 
-  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]  ={
-    (actor ? cc.getTopConsumersFuture(queryParams: List[OBPQueryParam])).mapTo[Box[List[TopConsumer]]]
+  override def getTopConsumersFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopConsumer]]]  ={
+    (actor ? cc.getTopConsumersFuture(queryParams: OBPUrlDateQueryParam)).mapTo[Box[List[TopConsumer]]]
   }
   def bulkDeleteMetrics(): Boolean =
     extractFuture(actor ? cc.bulkDeleteMetrics())

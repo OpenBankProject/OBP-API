@@ -815,17 +815,17 @@ trait APIMethods220 {
         |
         |Should be able to filter on the following metrics fields
         |
-        |eg: /management/connector/metrics?start_date=2017-03-01&end_date=2017-03-04&limit=50&offset=2
+        |eg: /management/connector/metrics?from_date=2017-03-01&to_date=2017-03-04&limit=50&offset=2
         |
-        |1 start_date (defaults to one week before current date): eg:start_date=2017-03-01
+        |1 from_date (defaults to one week before current date): eg:from_date=2017-03-01
         |
-        |2 end_date (defaults to current date) eg:end_date=2017-03-05
+        |2 to_date (defaults to current date) eg:to_date=2017-03-05
         |
         |3 limit (for pagination: defaults to 1000)  eg:limit=2000
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
-        |eg: /management/connector/metrics?start_date=2016-03-05&end_date=2017-03-08&limit=100&offset=300
+        |eg: /management/connector/metrics?from_date=2016-03-05&to_date=2017-03-08&limit=100&offset=300
         |
         |Other filters:
         |
@@ -855,20 +855,20 @@ trait APIMethods220 {
 
             //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
             //Note: Filters Part 1:
-            //?start_date=100&end_date=1&limit=200&offset=0
+            //?from_date=100&to_date=1&limit=200&offset=0
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
+            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd"))
             // set the long,long ago as the default date.
             nowTime <- Full(System.currentTimeMillis())
-            defaultStartDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
-            defaultEndDate <- Full(new Date(nowTime).toInstant.toString)
+            defaultFromDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
+            defaulToDate <- Full(new Date(nowTime).toInstant.toString)
 
             //(defaults to one week before current date
-            startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
-              s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
+            fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defaultFromDate))) ?~!
+              s"${InvalidDateFormat } from_date:${S.param("from_date").get }. Support format is yyyy-MM-dd"
             // defaults to current date
-            endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(defaultEndDate))) ?~!
-              s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
+            toDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaulToDate))) ?~!
+              s"${InvalidDateFormat } to_date:${S.param("to_date").get }. Support format is yyyy-MM-dd"
             // default 1000, return 1000 items
             limit <- tryo(
               S.param("limit") match {
@@ -881,13 +881,13 @@ trait APIMethods220 {
             offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
               s"${InvalidNumber } offset:${S.param("offset").get }"
 
-            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(startDate), OBPToDate(endDate))))
+            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(fromDate), OBPToDate(toDate))))
 
             //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
-            // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
-            //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
+            // add because of toDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
+            //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(toDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
 
-            ///filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(startDate)) && (rd.getDate().before(startDatePlusOneDay))))
+            ///filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(fromDate)) && (rd.getDate().before(startDatePlusOneDay))))
 
             /** pages:
               * eg: total=79
@@ -901,7 +901,7 @@ trait APIMethods220 {
             //filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
 
             //Filters Part 2.
-            //eg: /management/metrics?start_date=100&end_date=1&limit=200&offset=0
+            //eg: /management/metrics?from_date=100&to_date=1&limit=200&offset=0
             //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
             // consumer_id (if null ignore)
             // user_id (if null ignore)
@@ -919,7 +919,7 @@ trait APIMethods220 {
             filterByFields: List[ConnectorMetric] = metrics
               .filter(i => (if (!connectorName.isEmpty) i.getConnectorName().equals(connectorName.get) else true))
               .filter(i => (if (!functionName.isEmpty) i.getFunctionName().equals(functionName.get) else true))
-              //TODO url can not contain '&', if url is /management/metrics?start_date=100&end_date=1&limit=200&offset=0, it can not work.
+              //TODO url can not contain '&', if url is /management/metrics?from_date=100&to_date=1&limit=200&offset=0, it can not work.
               .filter(i => (if (!correlationId.isEmpty) i.getCorrelationId().equals(correlationId.get) else true))
           } yield {
             val json = JSONFactory220.createConnectorMetricsJson(filterByFields)

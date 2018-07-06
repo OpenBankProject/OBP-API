@@ -35,7 +35,7 @@ package code.api.util
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.{Date, Locale, UUID}
 import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -52,7 +52,7 @@ import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metrics.{APIMetrics, AggregateMetrics, ConnectorMetricsProvider}
+import code.metrics._
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
@@ -90,6 +90,7 @@ object APIUtil extends MdcLoggable {
   val emptyObjectJson = EmptyClassJson()
   val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  val inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
 
@@ -686,6 +687,41 @@ object APIUtil extends MdcLoggable {
       val ordering = OBPOrdering(sortBy, sortDirection)
       limit :: offset :: ordering :: fromDate :: toDate :: Nil
     }
+  }
+
+  //TODO this can be enhanced later, support all the parameters
+  def getHttpRequestUrlParams(httpRequestUrl: String): Box[OBPUrlDateQueryParam] =
+  {
+    val fromDate = for
+      {
+      fromDateString <- getHttpRequestUrlParam(httpRequestUrl, "from_date")
+      fromDate <- tryo(inputDateFormat.parse(fromDateString)) ?~! s"${InvalidDateFormat } from_date:${fromDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+    } yield
+      fromDate
+
+    val toDate = for
+      {
+      endDateString <- getHttpRequestUrlParam(httpRequestUrl, "to_date")
+      endDate <- tryo(Some(inputDateFormat.parse(endDateString))) ?~! s"${InvalidDateFormat} from_date:${endDateString}. Supported format is yyyy-MM-dd'T'HH:mm:ss. eg: 2010-05-10T01:20:03"
+    } yield
+      endDate
+
+
+    (fromDate, toDate) match {
+      case (Failure(msg, t, c),_)  => Failure(msg, t, c)
+      case (_,Failure(msg, t, c))  => Failure(msg, t, c)
+      case _ => Full(OBPUrlDateQueryParam(fromDate.toOption, toDate.openOr(None)))
+    }
+  }
+
+  //eg: httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+  def getHttpRequestUrlParam(httpRequestUrl: String, name: String): Box[String] ={
+    for{
+      urlAndQueryString <- if (httpRequestUrl.contains("?")) Full(httpRequestUrl.split("\\?",2)(1)) else Empty // Full(from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03)
+      queryStrings <- Full(urlAndQueryString.split("&").map(_.split("=")).flatten)  //Full(from_date, 2010-05-10T01:20:03, to_date, 2017-05-22T01:02:03)
+      queryStringValue <- if (queryStrings.contains(name)) Full(queryStrings(queryStrings.indexOf(name)+1)) else Empty //Full(2010-05-10T01:20:03)
+    } yield
+      queryStringValue
   }
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
@@ -1441,7 +1477,7 @@ Returns a string showed to the developer
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
     import java.util.Locale
-    val format = new SimpleDateFormat(dateFormat, Locale.ENGLISH)
+    val format = new SimpleDateFormat(dateFormat)
     format.setLenient(false)
     format.parse(value)
   }

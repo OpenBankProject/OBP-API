@@ -286,7 +286,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
       // todo response.error().isPresent
 
-      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
+      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT)
 
       response.data().map(d => new TransactionReader(d)).headOption match {
         case Some(t) =>
@@ -324,7 +324,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
       implicit val formats = net.liftweb.json.DefaultFormats
 
-      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
+      val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT)
 
       val parameters = new JHashMap
       val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
@@ -1036,11 +1036,11 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   def createNewTransaction(r: ObpJvmInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(r.details.posted)
+      datePosted = new SimpleDateFormat(DATE_FORMAT).parse(r.details.posted)
 
     var dateCompleted: Date = null
     if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(r.details.completed)
+      dateCompleted = new SimpleDateFormat(DATE_FORMAT).parse(r.details.completed)
 
     for {
         cparty <- r.counterparty
@@ -1118,7 +1118,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     def iban : Option[String]       = Some(r.IBAN)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bank)
-    def lastUpdate : Date           = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(today.getTime.toString)
+    def lastUpdate : Date           = new SimpleDateFormat(DATE_FORMAT).parse(today.getTime.toString)
     def accountHolder : String      = r.owners.head
     def accountRoutingScheme: String = r.account_routing_scheme
     def accountRoutingAddress: String = r.account_routing_address

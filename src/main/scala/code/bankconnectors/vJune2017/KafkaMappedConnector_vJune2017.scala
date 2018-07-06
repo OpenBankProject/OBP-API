@@ -1656,10 +1656,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(memoryTransactionTTL second) {
         for {
           datePosted <- tryo {
-            new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)
+            new SimpleDateFormat("yyyyMMdd").parse(internalTransaction.postedDate)
           } ?~! s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
           dateCompleted <- tryo {
-            new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)
+            new SimpleDateFormat("yyyyMMdd").parse(internalTransaction.completedDate)
           } ?~! s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
 
           counterpartyName <- tryo {
@@ -1694,10 +1694,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(memoryTransactionTTL second) {
         for {
           datePosted <- tryo {
-            new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.postedDate)
+            new SimpleDateFormat("yyyyMMdd").parse(internalTransaction.postedDate)
           } ?~! s"$InvalidConnectorResponseForGetTransaction Wrong posteDate format should be yyyyMMdd, current is ${internalTransaction.postedDate}"
           dateCompleted <- tryo {
-            new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).parse(internalTransaction.completedDate)
+            new SimpleDateFormat("yyyyMMdd").parse(internalTransaction.completedDate)
           } ?~! s"$InvalidConnectorResponseForGetTransaction Wrong completedDate format should be yyyyMMdd, current is ${internalTransaction.completedDate}"
           counterpartyCore <- Full(CounterpartyCore(
             counterpartyId = APIUtil.createImplicitCounterpartyId(bankAccount.bankId.value, bankAccount.accountId.value, internalTransaction.counterpartyName),

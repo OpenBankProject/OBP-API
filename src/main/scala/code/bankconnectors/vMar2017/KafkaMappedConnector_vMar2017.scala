@@ -1021,7 +1021,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
   
-    val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
+    val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(now)
     val transactionId = UUID.randomUUID().toString
 
     val req = OutboundSaveTransactionBase(
@@ -1671,11 +1671,11 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   def createNewTransaction(r: InternalTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.postedDate != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.postedDate)
+      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(r.postedDate)
 
     var dateCompleted: Date = null
     if (r.completedDate != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.completedDate)
+      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(r.completedDate)
 
     for {
         counterpartyId <- tryo{r.counterpartyId}
