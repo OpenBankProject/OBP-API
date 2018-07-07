@@ -1,27 +1,26 @@
 /**
   * Open Bank Project - API
   * Copyright (C) 2011-2018, TESOBE Ltd
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the Apache License, Version 2.0.
   **
-  *This program is free software: you can redistribute it and/or modify
-  *it under the terms of the Apache License, Version 2.0.
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. the Apache License, Version 2.0 for more details.
   **
-  *This program is distributed in the hope that it will be useful,
-  *but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  *GNU Affero General Public License for more details.
+  * You should have received a copy of the Apache License, Version 2.0 License
+  * along with this program. If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
   **
-  *You should have received a copy of the Apache License, Version 2.0 License
-  *along with this program. If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
+  * Email: contact@tesobe.com
+  * TESOBE Ltd
+  * Osloerstrasse 16/17
+  * Berlin 13359, Germany
   **
-  *Email: contact@tesobe.com
-  *TESOBE Ltd
-  *Osloerstrasse 16/17
-  *Berlin 13359, Germany
-  **
-  *This product includes software developed at
-  *https://github.com/kovacshuni/koauth
-  *by
-  *Hunor Kovács : kovacshuni@yahoo.com
+  * This product includes software developed at
+  * https://github.com/kovacshuni/koauth
+  * by
+  * Hunor Kovács: kovacshuni@yahoo.com
   *
   */
 
