@@ -47,7 +47,13 @@ object Arithmetics {
   }
 
   private def encodeAndSort(params: List[(String, String)]): List[(String, String)] = {
-    params map { p => (urlEncode(p._1), urlEncode(p._2)) } sortWith paramSortOrder
+    params map {
+      p =>
+        p._1 match {
+          case x if x == OauthParams.CallbackName => (p._1, p._2)
+          case _                                  => (urlEncode(p._1), urlEncode(p._2))
+        }
+    } sortWith paramSortOrder
   }
 
   def urlDecode(s: String) = URLDecoder.decode(s, "UTF-8")
