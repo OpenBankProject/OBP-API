@@ -203,11 +203,11 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields:
         |
-        |eg: /management/metrics/top-apis?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+        |eg: /management/metrics/top-apis?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z 
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
         |
-        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
         |
         |""",
       emptyObjectJson,
@@ -222,10 +222,14 @@ trait APIMethods310 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
-              } map { unboxFull(_) }
-            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(urlQueryParams) map {
+            
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(obpQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
           } yield
@@ -244,11 +248,11 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields:
         |
-        |eg: /management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+        |eg: /management/metrics/top-consumers?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
         |
-        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
         |
       """.stripMargin,
       emptyObjectJson,
@@ -264,11 +268,13 @@ trait APIMethods310 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             
-            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
-              } map { unboxFull(_) }
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
             
-            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(urlQueryParams) map {
+            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(obpQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetMetricsTopConsumersError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
             

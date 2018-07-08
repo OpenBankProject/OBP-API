@@ -58,9 +58,9 @@ object ElasticsearchMetrics extends APIMetrics {
   
   override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = ???
   
-  override def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]] = ???
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = ???
   
-  override def getTopConsumersFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopConsumer]]] = ???
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = ???
 
   override def bulkDeleteMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()

@@ -809,35 +809,6 @@ object APIUtil extends MdcLoggable {
     createHttpParamsByUrl(httpRequestUrl: String)
   }
   
-  //TODO this can be enhanced later, support all the parameters
-  def getHttpRequestUrlParams(httpRequestUrl: String): Box[OBPUrlDateQueryParam] =
-  {
-    val fromDateString = getHttpRequestUrlParam(httpRequestUrl, "from_date") match {
-      case "" => DateWithMsForFilteringFromDateString
-      case others => others
-    }
-    val fromDate = for{
-      fromDate <- tryo(DateWithMsFormat.parse(fromDateString)) ?~! s"${InvalidDateFormat } from_date:${fromDateString}. Supported format is ${APIUtil.DateWithSeconds}."
-    } yield
-      fromDate
-    
-    val endDateString =  getHttpRequestUrlParam(httpRequestUrl, "to_date") match {
-      case "" => DateWithMsForFilteringEenDateString
-      case others => DateWithMsForFilteringEenDateString
-    }
-    val toDate = for {
-      endDate <- tryo(DateWithMsFormat.parse(endDateString)) ?~! s"${InvalidDateFormat} from_date:${endDateString}. Supported format is ${APIUtil.DateWithSeconds}."
-    } yield
-      endDate
-    
-    
-    (fromDate, toDate) match {
-      case (Failure(msg, t, c),_)  => Failure(msg, t, c)
-      case (_,Failure(msg, t, c))  => Failure(msg, t, c)
-      case _ => Full(OBPUrlDateQueryParam(fromDate.toOption, toDate.toOption))
-    }
-  }
-
   /**
     * 
     * @param httpRequestUrl eg:  /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z

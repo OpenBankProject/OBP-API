@@ -53,49 +53,6 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   val startDateObject: Date = DefaultFromDate
   val endDateObject: Date = DefaultToDate
   
-  feature("test APIUtil.getHttpRequestUrlParams method") 
-  {
-    scenario("no parameters in the URL") 
-    {
-      val httpRequestUrl= "/obp/v3.1.0/management/metrics/top-consumers"
-      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject),Some(endDateObject))))
-    }
-
-    scenario(s"only one `from_date` in URL") 
-    {
-      val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString"
-      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject), Some(endDateObject))))
-    }
-
-    scenario(s"only one `to_date` in URL") 
-    {
-      val httpRequestUrl= s"/obp/v3.1.0/management/metrics/top-consumers?to_date=$endDateString"
-      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam(Some(startDateObject),Some(endDateObject))))
-    }
-
-    scenario(s"Both `from_date` and `to_date` in URL") 
-    {
-      val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
-      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain should be (Full(OBPUrlDateQueryParam((Some(startDateObject)),Some(endDateObject))))
-    }
-
-
-    scenario(s" exceptions in date format, it should return failure ") 
-    {
-      val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateStringWrongFormat&to_date=$endDateString"
-      val obpQueryParamPlain = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain.toString contains (InvalidDateFormat)  should be (true)
-
-      val httpRequestUrl2= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateStringWrongFormat"
-      val obpQueryParamPlain2 = getHttpRequestUrlParams(httpRequestUrl)
-      obpQueryParamPlain2.toString contains (InvalidDateFormat)  should be (true)
-    }
-  } 
-
   feature("test APIUtil.getHttpRequestUrlParam method") 
   {
     scenario("no parameters in the URL") 

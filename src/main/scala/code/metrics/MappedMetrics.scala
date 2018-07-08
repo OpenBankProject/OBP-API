@@ -239,24 +239,27 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   
   //This is tricky for now, we call it only in Actor. 
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
-  def getTopApisBox(queryParams: OBPUrlDateQueryParam): Box[List[TopApi]] = {
+  def getTopApisBox(queryParams: List[OBPQueryParam]): Box[List[TopApi]] = {
     for{
        dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " + 
                        "FROM mappedmetric " +
-                       "WHERE (? or date_c >= ?) "+ 
-                       "AND (? or date_c <= ?) "+
+                       "WHERE (date_c >= ?) "+ 
+                       "AND (date_c <= ?) "+
                        "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
                        "ORDER BY count(*) DESC")
+       
+       //Both two dates are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
+       fromDate <- Full(queryParams.collect { case OBPFromDate(value) => value }.head)
+       toDate <- Full(queryParams.collect { case OBPToDate(value) => value }.head)
+       
        resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
          {
           conn =>
               DB.prepareStatement(dbQuery, conn)
               {
                 stmt =>
-                  stmt.setBoolean(1, if (queryParams.startDate.equals(Some(APIUtil.DefaultFromDate))) true else false)
-                  stmt.setTimestamp(2, if (queryParams.startDate.isEmpty) null else new Timestamp(queryParams.startDate.get.getTime))
-                  stmt.setBoolean(3, if (queryParams.endDate.equals(Some(APIUtil.DefaultToDate))) true else false)
-                  stmt.setTimestamp(4, if (queryParams.endDate.isEmpty) null else new Timestamp(queryParams.endDate.get.getTime))
+                  stmt.setTimestamp(1, new Timestamp(fromDate.getTime))
+                  stmt.setTimestamp(2, new Timestamp(toDate.getTime))
                   DB.resultSetTo(stmt.executeQuery())
                   
               }
@@ -274,20 +277,22 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   }
   
-  override def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]] = Future{getTopApisBox(queryParams)}
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{getTopApisBox(queryParams)}
   
   //This is tricky for now, we call it only in Actor. 
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
-  def getTopConsumersBox(queryParams: OBPUrlDateQueryParam): Box[List[TopConsumer]] = {
+  def getTopConsumersBox(queryParams: List[OBPQueryParam]): Box[List[TopConsumer]] = {
     for{
        dbQuery <- Full("SELECT count(*), consumer.consumerid, consumer.name " + 
                        "FROM consumer "+
-                       "WHERE (? or createdat >= ?) "+ 
-                       "AND (? or createdat <= ?) "+
+                       "WHERE (createdat >= ?) "+ 
+                       "AND (createdat <= ?) "+
                        "GROUP BY consumer.consumerid, consumer.name "+
                        "ORDER BY count(*) DESC ")
        
-       
+       //Both two dates are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
+       fromDate <- Full(queryParams.collect { case OBPFromDate(value) => value }.head)
+       toDate <- Full(queryParams.collect { case OBPToDate(value) => value }.head)
        
        resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
          {
@@ -295,12 +300,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               DB.prepareStatement(dbQuery, conn)
               {
                 stmt =>
-                  stmt.setBoolean(1, if (queryParams.startDate.equals(Some(APIUtil.DefaultFromDate))) true else false)
-                  stmt.setTimestamp(2, if (queryParams.startDate.isEmpty) null else new Timestamp(queryParams.startDate.get.getTime))
-                  stmt.setBoolean(3, if (queryParams.endDate.equals(Some(APIUtil.DefaultToDate))) true else false)
-                  stmt.setTimestamp(4, if (queryParams.endDate.isEmpty) null else new Timestamp(queryParams.endDate.get.getTime))
+                  stmt.setTimestamp(1, new Timestamp(fromDate.getTime))
+                  stmt.setTimestamp(2, new Timestamp(toDate.getTime))
                   DB.resultSetTo(stmt.executeQuery())
-                  
               }
          })?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
        
@@ -316,7 +318,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   }
   
-  override def getTopConsumersFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopConsumer]]] = Future{getTopConsumersBox(queryParams: OBPUrlDateQueryParam)}
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{getTopConsumersBox(queryParams: List[OBPQueryParam])}
   
 
 }

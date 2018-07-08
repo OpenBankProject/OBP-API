@@ -5,7 +5,7 @@ import java.util.Date
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.bankconnectors.OBPQueryParam
-import code.metrics.{MappedMetrics, OBPUrlDateQueryParam, OBPUrlQueryParams, RemotedataMetricsCaseClasses}
+import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 
 
@@ -43,11 +43,11 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       logger.debug(s"RemotedataMetricsActor.getAllAggregateMetricsFuture($queryParams)")
       sender ! (mapper.getAllAggregateMetricsBox(queryParams))
       
-    case cc.getTopApisFuture(queryParams: OBPUrlDateQueryParam) =>
+    case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopApisFuture($queryParams)")
       sender ! (mapper.getTopApisBox(queryParams))
       
-    case cc.getTopConsumersFuture(queryParams: OBPUrlDateQueryParam) =>
+    case cc.getTopConsumersFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopConsumersFuture($queryParams)")
       sender ! (mapper.getTopConsumersBox(queryParams))
       

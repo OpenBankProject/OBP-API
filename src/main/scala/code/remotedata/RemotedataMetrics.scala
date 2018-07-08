@@ -35,12 +35,12 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
     (actor ? cc.getAllAggregateMetricsFuture(queryParams)).mapTo[Box[List[AggregateMetrics]]]
   }
   
-  override def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]] ={
-    (actor ? cc.getTopApisFuture(queryParams: OBPUrlDateQueryParam)).mapTo[Box[List[TopApi]]]
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] ={
+    (actor ? cc.getTopApisFuture(queryParams: List[OBPQueryParam])).mapTo[Box[List[TopApi]]]
   }
 
-  override def getTopConsumersFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopConsumer]]]  ={
-    (actor ? cc.getTopConsumersFuture(queryParams: OBPUrlDateQueryParam)).mapTo[Box[List[TopConsumer]]]
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]  ={
+    (actor ? cc.getTopConsumersFuture(queryParams)).mapTo[Box[List[TopConsumer]]]
   }
   def bulkDeleteMetrics(): Boolean =
     extractFuture(actor ? cc.bulkDeleteMetrics())

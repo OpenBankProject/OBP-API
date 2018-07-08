@@ -2136,7 +2136,7 @@ trait APIMethods300 {
                 hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
               }
               
-              httpParams <- createHttpParamsByUrlFuture(callContext.getOrElse(cc).url) map { unboxFull(_) }
+              httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
