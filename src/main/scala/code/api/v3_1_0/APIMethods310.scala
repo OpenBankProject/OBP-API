@@ -3,11 +3,13 @@ package code.api.v3_1_0
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ApiRole.CanReadMetrics
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.bankconnectors.{Connector, OBPQueryParam}
+import code.bankconnectors.Connector
 import code.metrics.APIMetrics
 import code.model._
+import code.util.Helper
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
 
@@ -220,8 +222,13 @@ trait APIMethods310 {
       case "management" :: "metrics" :: "top-apis" :: Nil JsonGet req => {
         cc =>
           for {
+            
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
+            
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
+              hasEntitlement("", u.userId, ApiRole.canReadMetrics)
+            }
             
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
@@ -265,8 +272,13 @@ trait APIMethods310 {
       case "management" :: "metrics" :: "top-consumers" :: Nil JsonGet req => {
         cc =>
           for {
+            
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
+            
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
+              hasEntitlement("", u.userId, ApiRole.canReadMetrics)
+            }
             
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               

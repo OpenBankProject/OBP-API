@@ -37,7 +37,6 @@ import code.api.util.APIUtil._
 import code.api.util.APIUtil.{DateWithMsFormat, DefaultFromDate, DefaultToDate}
 import code.api.util.ErrorMessages._
 import code.bankconnectors._
-import code.metrics.OBPUrlDateQueryParam
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
