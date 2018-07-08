@@ -2129,14 +2129,26 @@ trait APIMethods300 {
         case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
           cc => {
             for {
-              u <- cc.user ?~! UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
-              httpParams <- createHttpParamsByUrl(cc.url)
-              obpQueryParams <- createQueriesByHttpParams(httpParams)
-              aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpQueryParams)) ?~! GetAggregateMetricsError
+              (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture{ user }
+              
+              _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadAggregateMetrics) {
+                hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
+              }
+              
+              httpParams <- createHttpParamsByUrlFuture(callContext.getOrElse(cc).url) map { unboxFull(_) }
+              
+              obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+              
+              
+              aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(GetAggregateMetricsError, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+              
             } yield {
-              val json = createAggregateMetricJson(aggregateMetrics)
-              successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+              (createAggregateMetricJson(aggregateMetrics), Some(cc))
             }
           }
 

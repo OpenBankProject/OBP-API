@@ -56,7 +56,7 @@ object ElasticsearchMetrics extends APIMetrics {
     MappedMetric.findAll(optionalParams: _*)
   }
   
-  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[AggregateMetrics] = ???
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = ???
   
   override def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]] = ???
   

@@ -765,6 +765,10 @@ object APIUtil extends MdcLoggable {
     }
   }
   
+  def createQueriesByHttpParamsFuture(httpParams: List[HTTPParam]) = Future {
+    createQueriesByHttpParams(httpParams: List[HTTPParam])
+  }
+  
   /**
     * Here we use the HTTPParam case class from liftweb.
     * We try to keep it the same as `S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers`, so we unite the URLs and headers. 
@@ -799,7 +803,10 @@ object APIUtil extends MdcLoggable {
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
-    
+  }
+  
+  def createHttpParamsByUrlFuture(httpRequestUrl: String) = Future {
+    createHttpParamsByUrl(httpRequestUrl: String)
   }
   
   //TODO this can be enhanced later, support all the parameters

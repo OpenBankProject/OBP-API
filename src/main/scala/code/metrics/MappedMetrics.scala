@@ -122,7 +122,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     MappedMetric.findAll(optionalParams: _*)
   }
   
-  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[AggregateMetrics] = {
+  def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam]): Box[List[AggregateMetrics]] = {
     
     val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
     val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -225,10 +225,14 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val minResponseTime = if (min != null ) min.toDouble else 0
     val maxResponseTime = if (max != null ) max.toDouble else 0
 
-
-    List(AggregateMetrics(totalCount, avgResponseTime, minResponseTime, maxResponseTime))
+    //TODO, here just use Full(), can do more error handling for this method
+    Full(List(AggregateMetrics(totalCount, avgResponseTime, minResponseTime, maxResponseTime)))
   }
-
+  
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = Future{
+    getAllAggregateMetricsBox(queryParams: List[OBPQueryParam])
+  }
+  
   override def bulkDeleteMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()
   }
