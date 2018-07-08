@@ -112,7 +112,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
   }
   override def bulkDeleteMetrics(): Boolean = ???
   
-  override def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics] = ???
+  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[AggregateMetrics] = ???
   
   override def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]] = ???
   

@@ -223,6 +223,7 @@ object Helper{
     * trait DefaultFormats
     * extends Formats
     */
+    //TODO need clean this format, we have set the TimeZone in boot.scala
   val DateFormatWithCurrentTimeZone = new Formats {
   
     import java.text.{ParseException, SimpleDateFormat}

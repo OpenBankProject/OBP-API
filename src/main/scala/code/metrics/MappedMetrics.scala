@@ -122,23 +122,37 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     MappedMetric.findAll(optionalParams: _*)
   }
   
-  override def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics] = {
-
-    // null,API-EXPLORER,null,null --> Set(null,API-EXPLORER)
-    val excludeAppNames = queryParams.excludeAppNames.split(",").toSet
-    val excludeImplementedByPartialfunctions = queryParams.excludeImplementedByPartialfunctions.split(",").toSet
-    //
+  override def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[AggregateMetrics] = {
+    
+    val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+    val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+    val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+    val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+    val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+    val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+    val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+    val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+    val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+    val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+    val anon = queryParams.collect { case OBPAnon(value) => value }.headOption 
+    val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+    val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
+    val excludeUrlPattern = queryParams.collect { case OBPExcludeUrlPattern(value) => value }.headOption
+    val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
+        
     def extendCurrentQuery (length: Int) ={
       // --> "?,?,"
       val a = for(i <- 1 to (length-1) ) yield {"?,"}
       //"?,?,--> "?,?,?"
       a.mkString("").concat("?")
     }
-
-    val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNames.size)
-    val extedndedExcludeImplementedByPartialfunctionsQueries = extendCurrentQuery(excludeImplementedByPartialfunctions.size)
-
+  
+    val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
+    val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
     
+    val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
+    val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+
     val dbQuery = 
       "SELECT count(*), avg(duration), min(duration), max(duration) "+ 
       "FROM mappedmetric "+   
@@ -155,7 +169,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
       "AND (? or url NOT LIKE ?) "+
       s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
-      s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialfunctionsQueries)) "
+      s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "
     
     logger.debug(s"getAllAggregateMetrics.dbQuery = $dbQuery")
     /**
@@ -177,30 +191,30 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
           DB.prepareStatement(dbQuery, conn)
           {
             stmt =>
-              stmt.setTimestamp(1, new Timestamp(queryParams.startDate.getTime))
-              stmt.setTimestamp(2, new Timestamp(queryParams.endDate.getTime))
-              stmt.setBoolean(3, if (queryParams.consumerId=="true") true else false)
-              stmt.setString(4, queryParams.consumerId)
-              stmt.setBoolean(5, if (queryParams.userId=="true") true else false)
-              stmt.setString(6, queryParams.userId)
-              stmt.setBoolean(7, if (queryParams.implementedByPartialFunction=="true") true else false)
-              stmt.setString(8, queryParams.implementedByPartialFunction)
-              stmt.setBoolean(9, if (queryParams.implementedInVersion=="true") true else false)
-              stmt.setString(10, queryParams.implementedInVersion)
-              stmt.setBoolean(11, if (queryParams.url=="true") true else false)
-              stmt.setString(12, queryParams.url)
-              stmt.setBoolean(13, if (queryParams.appName=="true") true else false)
-              stmt.setString(14,queryParams.appName)
-              stmt.setBoolean(15, if (queryParams.verb=="true") true else false)
-              stmt.setString(16, queryParams.verb)
-              stmt.setBoolean(17, if (queryParams.anon=="true") false else true) // anon == true (return where user_id is null.) 
-              stmt.setBoolean(18, if (queryParams.anon=="false") false  else true) // anon == false (return where user_id is not null.)
-              stmt.setBoolean(19, if (queryParams.excludeUrlPattern=="true") true else false)
-              stmt.setString(20, queryParams.excludeUrlPattern)
-              stmt.setBoolean(21, if (queryParams.excludeAppNames=="true") true else false)
-              extendPrepareStement(22, stmt, excludeAppNames)
-              stmt.setBoolean(22+excludeAppNames.size, if (queryParams.excludeImplementedByPartialfunctions=="true") true else false)
-              extendPrepareStement(22+excludeAppNames.size+1,stmt, excludeImplementedByPartialfunctions)
+              stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
+              stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
+              stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
+              stmt.setString(4, consumerId.getOrElse(""))
+              stmt.setBoolean(5, if (userId.isEmpty) true else false)
+              stmt.setString(6, userId.getOrElse(""))
+              stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
+              stmt.setString(8, implementedByPartialFunction.getOrElse(""))
+              stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
+              stmt.setString(10, implementedInVersion.getOrElse(""))
+              stmt.setBoolean(11, if (url.isEmpty) true else false)
+              stmt.setString(12, url.getOrElse(""))
+              stmt.setBoolean(13, if (appName.isEmpty) true else false)
+              stmt.setString(14,appName.getOrElse(""))
+              stmt.setBoolean(15, if (verb.isEmpty) true else false)
+              stmt.setString(16, verb.getOrElse(""))
+              stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.) 
+              stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
+              stmt.setBoolean(19, if (excludeUrlPattern.isEmpty) true else false)
+              stmt.setString(20, excludeUrlPattern.getOrElse(""))
+              stmt.setBoolean(21, if (excludeAppNames.isEmpty) true else false)
+              extendPrepareStement(22, stmt, excludeAppNamesNumberSet)
+              stmt.setBoolean(22+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
+              extendPrepareStement(22+excludeAppNamesNumberSet.size+1,stmt, excludeImplementedByPartialFunctionsNumberSet)
               DB.resultSetTo(stmt.executeQuery())
           }
     }

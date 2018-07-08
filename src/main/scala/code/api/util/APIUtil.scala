@@ -765,7 +765,13 @@ object APIUtil extends MdcLoggable {
     }
   }
   
-  //eg: httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+  /**
+    * Here we use the HTTPParam case class from liftweb.
+    * We try to keep it the same as `S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers`, so we unite the URLs and headers. 
+    * 
+    * @param httpRequestUrl  = eg: /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+    * @return List(HTTPParam("from_date","2010-05-10T01:20:03.000Z"),HTTPParam("to_date","2017-05-22T01:02:03.000Z"))
+    */
   def createHttpParamsByUrl(httpRequestUrl: String): Box[List[HTTPParam]] = {
     val sortDirection = getHttpRequestUrlParam(httpRequestUrl,"sort_direction")
     val fromDate =  getHttpRequestUrlParam(httpRequestUrl,"from_date")
@@ -792,7 +798,7 @@ object APIUtil extends MdcLoggable {
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions)
-    ).filter(_.values.isEmpty))
+    ).filter(_.values.head != ""))//Here filter the filed when value = "". 
     
   }
   

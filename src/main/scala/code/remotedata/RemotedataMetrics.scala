@@ -30,7 +30,7 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] =
     extractFuture(actor ? cc.getAllMetrics(queryParams))
   
-  def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics] ={
+  def getAllAggregateMetrics(queryParams: List[OBPQueryParam]): List[AggregateMetrics] ={
     logger.debug(s"RemotedataMetrics.getAllAggregateMetrics($queryParams)")
     extractFuture(actor ? cc.getAllAggregateMetrics(queryParams))
   }

@@ -514,9 +514,15 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     {
       val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List("2010-05-10T01:20:03.000Z")), 
                                    HTTPParam("to_date",List("2017-05-22T01:02:03.000Z")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
-                                   HTTPParam("anon",List("false")), HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), HTTPParam("url",List("/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions")), HTTPParam("app_name",List("MapperPostman")), HTTPParam("implemented_by_partial_function",List("getTransactionsForBankAccount")), HTTPParam("implemented_in_version",List("v3.0.0")), HTTPParam("verb",List("GET")), HTTPParam("correlation_id",List("123")), HTTPParam("duration",List("100")), HTTPParam("exclude_app_names",List("API-EXPLORER,API-Manager,SOFI,null,SOFIT")), HTTPParam("exclude_url_pattern",List("%25management/metrics%25")), HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics,getConnectorMetrics,getAggregateMetrics")))) 
+                                   HTTPParam("anon",List("false")), HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), 
+                                   HTTPParam("url",List("/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions")), 
+                                   HTTPParam("app_name",List("MapperPostman")), HTTPParam("implemented_by_partial_function",List("getTransactionsForBankAccount")), 
+                                   HTTPParam("implemented_in_version",List("v3.0.0")), HTTPParam("verb",List("GET")), HTTPParam("correlation_id",List("123")), 
+                                   HTTPParam("duration",List("100")), HTTPParam("exclude_app_names",List("API-EXPLORER,API-Manager,SOFI,null,SOFIT")), 
+                                   HTTPParam("exclude_url_pattern",List("%25management/metrics%25")), 
+                                   HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics,getConnectorMetrics,getAggregateMetrics")))) 
       
-      val httpRequestUrl = "http://127.0.0.1:8080/obp/v3.0.0/management/aggregate-metrics?" +
+      val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics?" +
         "offset=3&limit=10&sort_direction=ASC&from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
         "implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&" +
         "url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&" +
@@ -530,11 +536,24 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     scenario(s"test the correct case2: no parameters in the Url ") 
     {
       val ExpectResult = Full(List())
-      val httpRequestUrl = "http://127.0.0.1:8080/obp/v3.0.0/management/aggregate-metrics"
+      val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics"
       val returnValue = createHttpParamsByUrl(httpRequestUrl)
       returnValue should be (ExpectResult)
     }
     
-
+    scenario(s"test the correct case3: some params are in the `URL` ") 
+    {
+      val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List("2010-05-10T01:20:03.000Z")), 
+                                   HTTPParam("to_date",List("2017-05-22T01:02:03.000Z")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
+                                   HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), 
+                                   HTTPParam("implemented_by_partial_function",List("getTransactionsForBankAccount")), 
+                                   HTTPParam("implemented_in_version",List("v3.0.0"))))
+      val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics?" +
+        "offset=3&limit=10&sort_direction=ASC&from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
+        "implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0"
+      val returnValue = createHttpParamsByUrl(httpRequestUrl)
+      returnValue should be (ExpectResult)
+    }
+    
   }
 }
