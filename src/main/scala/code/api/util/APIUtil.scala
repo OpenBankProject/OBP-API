@@ -91,7 +91,7 @@ object APIUtil extends MdcLoggable {
   
   
   val DateWithDayExampleString: String = "2017-09-19"
-  val DateWithSecondsExampleString: String = "2017-09-19T02:31:05"
+  val DateWithSecondsExampleString: String = "2017-09-19T02:31:05Z"
   val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
   val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
   
@@ -103,6 +103,7 @@ object APIUtil extends MdcLoggable {
   // (Else caching is invlidated by constantly changing date)
   
   val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
+  val DateWithSecondsExampleObject = DateWithDayFormat.parse(DateWithSecondsExampleString)
   val DateWithMsExampleObject = DateWithDayFormat.parse(DateWithMsExampleString)
   val DateWithMsRollbackExampleObject = DateWithDayFormat.parse(DateWithMsRollbackExampleString)
   

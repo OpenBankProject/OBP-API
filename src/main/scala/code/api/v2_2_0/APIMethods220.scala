@@ -72,10 +72,6 @@ trait APIMethods220 {
     val emptyObjectJson = EmptyClassJson()
     val implementedInApiVersion: ApiVersion = ApiVersion.v2_2_0 // was String "2_2_0"
 
-    val exampleDateString: String = "22/08/2013"
-    val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-    val exampleDate = simpleDateFormat.parse(exampleDateString)
-
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
 

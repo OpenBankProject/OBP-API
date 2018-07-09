@@ -1530,21 +1530,21 @@ object SwaggerDefinitionsJSON {
   )
 
   val postKycDocumentJSON = PostKycDocumentJSON(
-    customer_number = "String",
-    `type` = "String",
-    number = "String",
+    customer_number = "1234",
+    `type` = "passport",
+    number = "12345",
     issue_date = DateWithDayExampleObject,
-    issue_place = "String",
+    issue_place = "Berlin",
     expiry_date = DateWithDayExampleObject
   )
 
   val postKycMediaJSON = PostKycMediaJSON(
-    customer_number = "String",
-    `type` = "String",
-    url = "String",
+    customer_number = "1239879",
+    `type` = "image",
+    url = "http://www.example.com/id-docs/123/image.png",
     date = DateWithDayExampleObject,
-    relates_to_kyc_document_id = "String",
-    relates_to_kyc_check_id = "String"
+    relates_to_kyc_document_id = "123",
+    relates_to_kyc_check_id = "123"
   )
 
   val postKycCheckJSON = PostKycCheckJSON(
