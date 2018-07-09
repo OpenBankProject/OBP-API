@@ -509,7 +509,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   val standardCustomer1 = SandboxCustomerImport("James Brown", "698761728934")
 
 
-  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
+  val format = new java.text.SimpleDateFormat(DateWithDay3)
   val standardDate = format.parse("30/03/2015")
 
 

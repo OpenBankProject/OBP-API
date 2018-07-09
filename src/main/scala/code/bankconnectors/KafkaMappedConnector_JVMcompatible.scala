@@ -1333,11 +1333,11 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     var datePosted: Date = null
     val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT)
     if (r.postedDate != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'").parse(r.postedDate)
+      datePosted = new SimpleDateFormat(APIUtil.DateWithMinutes).parse(r.postedDate)
 
     var dateCompleted: Date = null
     if (r.completedDate != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'").parse(r.completedDate)
+      dateCompleted = new SimpleDateFormat(APIUtil.DateWithMinutes).parse(r.completedDate)
 
     for {
         counterpartyId <- tryo{r.counterpartyId}

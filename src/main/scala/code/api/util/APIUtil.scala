@@ -80,6 +80,9 @@ import scala.xml.{Elem, XML}
 object APIUtil extends MdcLoggable {
 
   val DateWithDay = "yyyy-MM-dd"
+  val DateWithDay2 = "yyyyMMdd"
+  val DateWithDay3 = "dd/MM/yyyy"
+  val DateWithMinutes = "yyyy-MM-dd'T'HH:mm'Z'"
   val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"

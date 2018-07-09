@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.util.APIUtil.DateWithDay3
 import code.api.util.{APIUtil, ErrorMessages}
 import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
@@ -822,7 +823,7 @@ object SandboxData{
   val standardCustomer1 = SandboxCustomerImport("James Brown", "698761728934")
 
 
-  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
+  val format = new java.text.SimpleDateFormat(DateWithDay3)
   val standardDate = format.parse("30/03/2015")
 
 

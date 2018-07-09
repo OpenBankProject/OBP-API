@@ -861,10 +861,10 @@ trait APIMethods220 {
 
             //(defaults to one week before current date
             fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defaultFromDate))) ?~!
-              s"${InvalidDateFormat } from_date:${S.param("from_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } from_date:${S.param("from_date").get }. Support format is $DateWithDay"
             // defaults to current date
             toDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaulToDate))) ?~!
-              s"${InvalidDateFormat } to_date:${S.param("to_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } to_date:${S.param("to_date").get }. Support format is $DateWithDay"
             // default 1000, return 1000 items
             limit <- tryo(
               S.param("limit") match {
