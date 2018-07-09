@@ -94,9 +94,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDateString: String = "22/08/2013"
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
   val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
 

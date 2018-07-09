@@ -32,6 +32,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiSession, CallContext, ErrorMessages}
+import code.api.util.APIUtil._
 import code.api.v3_1_0.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
@@ -99,8 +100,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse("22/08/2013")
   val emptyObjectJson: JValue = decompose(Nil)
   
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
@@ -127,7 +126,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     messageFormat = messageFormat,
     description = "getAdapterInfo from kafka ",
     exampleOutboundMessage = decompose(
-      OutboundGetAdapterInfo(date = (new Date()).toString)
+      OutboundGetAdapterInfo(date = DateWithSecondsExampleString)
     ),
     exampleInboundMessage = decompose(
       InboundAdapterInfo(
@@ -137,7 +136,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           name = "Obp-Kafka-South",
           version = "June2017",
           git_commit = "...",
-          date = (new Date()).toString
+          date = DateWithSecondsExampleString
         )
       )
     ),
@@ -145,7 +144,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true)))
   )
   override def getAdapterInfo: Box[InboundAdapterInfoInternal] = {
-    val req = OutboundGetAdapterInfo((new Date()).toString)
+    val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
     
     logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
   
@@ -458,7 +457,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             customerId = "customerId",
             customerNumber = "customerNumber",
             legalName = "legalName",
-            dateOfBirth = exampleDate
+            dateOfBirth = DateWithSecondsExampleObject
           ))))
     ),
     exampleInboundMessage = decompose(
@@ -752,8 +751,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         bankId = "bankId",
         accountId = "accountId",
         limit =100,
-        fromDate="exampleDate",
-        toDate="exampleDate"
+        fromDate="DateWithSecondsExampleObject",
+        toDate="DateWithSecondsExampleObject"
       )
     ),
     exampleInboundMessage = decompose(
@@ -1190,8 +1189,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           body = SwaggerDefinitionsJSON.transactionRequestBodyAllTypes,
           transaction_ids = "",
           status = "COMPLETED",
-          start_date = exampleDate,
-          end_date = exampleDate,
+          start_date = DateWithSecondsExampleObject,
+          end_date = DateWithSecondsExampleObject,
           challenge = TransactionRequestChallenge("", 0, ""),
           charge = TransactionRequestCharge(
             "", 
@@ -1444,7 +1443,17 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetCustomersByUserId(
         authInfoExample,
         statusExample,
-        InternalCustomer(customerId = "String", bankId = "String", number = "String", legalName = "String", mobileNumber = "String", email = "String", faceImage = CustomerFaceImage(date = exampleDate, url = "String"), dateOfBirth = exampleDate, relationshipStatus= "String", dependents = 1, dobOfDependents = List(exampleDate), highestEducationAttained= "String", employmentStatus= "String", creditRating = CreditRating(rating ="String", source = "String"), creditLimit=  CreditLimit(currency ="String", amount= "String"), kycStatus = false, lastOkDate = exampleDate)::Nil
+        InternalCustomer(
+          customerId = "String", bankId = "String", number = "String",
+          legalName = "String", mobileNumber = "String", email = "String",
+          faceImage = CustomerFaceImage(date = DateWithSecondsExampleObject, url = "String"),
+          dateOfBirth = DateWithSecondsExampleObject, relationshipStatus = "String",
+          dependents = 1, dobOfDependents = List(DateWithSecondsExampleObject),
+          highestEducationAttained = "String", employmentStatus = "String",
+          creditRating = CreditRating(rating = "String", source = "String"),
+          creditLimit = CreditLimit(currency = "String", amount = "String"),
+          kycStatus = false, lastOkDate = DateWithSecondsExampleObject
+        ) :: Nil
       )
     ),
     outboundAvroSchema = None,
