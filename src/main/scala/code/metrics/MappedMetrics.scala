@@ -122,6 +122,27 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     MappedMetric.findAll(optionalParams: _*)
   }
   
+  private def extendCurrentQuery (length: Int) ={
+      // --> "?,?,"
+      val a = for(i <- 1 to (length-1) ) yield {"?,"}
+      //"?,?,--> "?,?,?"
+      a.mkString("").concat("?")
+    }
+  
+  
+    /**
+      * Example of a Tuple response
+      * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
+      * First value of the Tuple is a List of field names returned by SQL query.
+      * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
+      */
+      
+  private def extendPrepareStement(startLine: Int, stmt:PreparedStatement, excludeFiledValues : Set[String]) = {
+    for(i <- 0 until  excludeFiledValues.size) yield {
+      stmt.setString(startLine+i, excludeFiledValues.toList(i))
+    }
+  }
+  
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam]): Box[List[AggregateMetrics]] = {
     
     val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
@@ -140,13 +161,6 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val excludeUrlPattern = queryParams.collect { case OBPExcludeUrlPattern(value) => value }.headOption
     val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
         
-    def extendCurrentQuery (length: Int) ={
-      // --> "?,?,"
-      val a = for(i <- 1 to (length-1) ) yield {"?,"}
-      //"?,?,--> "?,?,?"
-      a.mkString("").concat("?")
-    }
-  
     val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
     val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
     
@@ -172,18 +186,6 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "
     
     logger.debug(s"getAllAggregateMetrics.dbQuery = $dbQuery")
-    /**
-      * Example of a Tuple response
-      * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
-      * First value of the Tuple is a List of field names returned by SQL query.
-      * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
-      */
-      
-    def extendPrepareStement(startLine: Int, stmt:PreparedStatement, excludeFiledValues : Set[String]) = {
-      for(i <- 0 until  excludeFiledValues.size) yield {
-        stmt.setString(startLine+i, excludeFiledValues.toList(i))
-      }
-    }
     
     val (_, List(count :: avg :: min :: max :: _)) = DB.use(DefaultConnectionIdentifier)
     {
@@ -241,16 +243,22 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
   def getTopApisBox(queryParams: List[OBPQueryParam]): Box[List[TopApi]] = {
     for{
+      //Both two dates are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
+       fromDate <- Full(queryParams.collect { case OBPFromDate(value) => value }.head)
+       toDate <- Full(queryParams.collect { case OBPToDate(value) => value }.head)
+       excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+       excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
+       appName = queryParams.collect { case OBPAppName(value) => value }.headOption 
+       extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
+       
        dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " + 
                        "FROM mappedmetric " +
                        "WHERE (date_c >= ?) "+ 
                        "AND (date_c <= ?) "+
+                       "And (? or appname = ?) "+
+                       s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
                        "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
                        "ORDER BY count(*) DESC")
-       
-       //Both two dates are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
-       fromDate <- Full(queryParams.collect { case OBPFromDate(value) => value }.head)
-       toDate <- Full(queryParams.collect { case OBPToDate(value) => value }.head)
        
        resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
          {
@@ -260,6 +268,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 stmt =>
                   stmt.setTimestamp(1, new Timestamp(fromDate.getTime))
                   stmt.setTimestamp(2, new Timestamp(toDate.getTime))
+                  stmt.setBoolean(3, if (appName.isEmpty) true else false)
+                  stmt.setString(4,appName.getOrElse(""))
+                  stmt.setBoolean(5, if (excludeAppNames.isEmpty) true else false)
+                  extendPrepareStement(6, stmt, excludeAppNamesNumberSet)
                   DB.resultSetTo(stmt.executeQuery())
                   
               }
