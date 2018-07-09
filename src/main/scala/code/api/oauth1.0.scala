@@ -22,7 +22,7 @@ Berlin 13359, Germany
 
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
-  
+
  */
 package code.api
 
@@ -232,57 +232,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       ) !=0
     }
 
-    // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-    def verifySignature(OAuthparameters : Map[String, String], httpMethod : String) = {
-      /**
-        * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
-        * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
-        * @return the Url parameters as list of Tuples
-        */
 
-      def urlParameters(): List[(String, String)] = {
-        val mapOfParams: Map[String, List[String]] = for ((k, l) <- S.request.map(_.params).getOrElse(Map.empty)) yield (k, l.sortWith(_ < _))
-        val listOfTuples: List[(String, String)] = for {(k, l) <- mapOfParams.toList
-                                                        v <- l}
-          yield {
-            (k, v)
-          }
-        listOfTuples
-      }
-
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
-      val consumerSecret = consumer.secret.toString
-
-      val tokenSecret = OAuthparameters.get(TokenName) match {
-        case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
-          case Full(token) =>
-            token.secret.toString()
-          case _ => ""
-        }
-        case _ => ""
-      }
-
-      val decodedOAuthParams = OAuthparameters.toList map {
-        t => (
-          URLDecoder.decode(t._1,"UTF-8"),
-          URLDecoder.decode(t._2,"UTF-8")
-        )
-      }
-      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + S.uri, urlParameters(), Nil, decodedOAuthParams)
-      val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
-      val received: String = OAuthparameters.get(SignatureName).get
-      val receivedAndDecoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
-      val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
-      logger.debug("OAuthparameters: " + OAuthparameters)
-      logger.debug("Decoded OAuthparameters: " + decodedOAuthParams)
-      logger.debug("Signature's base: " + signatureBase)
-      logger.debug("Computed signature: " + computedSignature)
-      logger.debug("Computed and encoded signature: " + computedAndEncoded)
-      logger.debug("Received signature:" + received)
-      logger.debug("Received and decoded signature:" + receivedAndDecoded)
-
-      computedAndEncoded == received
-    }
 
     //check if the token exists and is still valid
     def validToken(tokenKey : String, verifier : String) ={
@@ -330,6 +280,10 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     var httpCode : Int = 500
 
     var parameters = getAllParameters
+
+    val sRequest = S.request
+    val urlParams: Map[String, List[String]] = sRequest.map(_.params).getOrElse(Map.empty)
+    val sUri = S.uri
 
     //are all the necessary OAuth parameters present?
     val missingParams = missingOAuthParameters(parameters,requestType)
@@ -391,7 +345,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       httpCode = 401
     }
     //checking if the signature is correct
-    else if(! verifySignature(parameters, httpMethod))
+    else if(! verifySignature(parameters, httpMethod, urlParams, sUri))
     {
       message = "Invalid signature"
       httpCode = 401
@@ -532,57 +486,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       }
     }
 
-    // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-    def verifySignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String) = {
-      /**
-        * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
-        * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
-        * @return the Url parameters as list of Tuples
-        */
 
-      def urlParameters(): List[(String, String)] = {
-        val mapOfParams: Map[String, List[String]] = for ((k, l) <- req.map(_.params).getOrElse(Map.empty)) yield (k, l.sortWith(_ < _))
-        val listOfTuples: List[(String, String)] = for {(k, l) <- mapOfParams.toList
-                                                        v <- l}
-          yield {
-            (k, v)
-          }
-        listOfTuples
-      }
 
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
-      val consumerSecret = consumer.secret.toString
-
-      val tokenSecret = OAuthparameters.get(TokenName) match {
-        case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
-          case Full(token) =>
-            token.secret.toString()
-          case _ => ""
-        }
-        case _ => ""
-      }
-
-      val decodedOAuthParams = OAuthparameters.toList map {
-        t => (
-          URLDecoder.decode(t._1,"UTF-8"),
-          URLDecoder.decode(t._2,"UTF-8")
-        )
-      }
-      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(), Nil, decodedOAuthParams)
-      val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
-      val received: String = OAuthparameters.get(SignatureName).get
-      val receivedAndDecoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
-      val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
-      logger.debug("OAuthparameters: " + OAuthparameters)
-      logger.debug("Decoded OAuthparameters: " + decodedOAuthParams)
-      logger.debug("Signature's base: " + signatureBase)
-      logger.debug("Computed signature: " + computedSignature)
-      logger.debug("Computed and encoded signature: " + computedAndEncoded)
-      logger.debug("Received signature:" + received)
-      logger.debug("Received and decoded signature:" + receivedAndDecoded)
-
-      computedAndEncoded == received
-    }
 
     //check if the token exists and is still valid
     def validTokenFuture(tokenKey : String, verifier : String) = {
@@ -648,6 +553,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
     val registeredApplicationF = APIUtil.registeredApplicationFuture(parameters.get("oauth_consumer_key").get)
     val sRequest = S.request
+    val urlParams: Map[String, List[String]] = sRequest.map(_.params).getOrElse(Map.empty)
     val sUri = S.uri
 
     // Please note that after this point S.request for instance cannot be used directly
@@ -716,7 +622,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         httpCode = 401
       }
       //checking if the signature is correct
-      else if(! verifySignature(parameters, httpMethod, sRequest, sUri))
+      else if(! verifySignature(parameters, httpMethod, urlParams, sUri))
       {
         message = "Invalid signature"
         httpCode = 401
@@ -729,6 +635,73 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
       (httpCode, message, parameters)
     }
+  }
+
+
+  private def decodeOAuthParams(OAuthparameters: Map[String, String]) = {
+    val decodedOAuthParams = OAuthparameters.toList map {
+      t =>
+        (
+          URLDecoder.decode(t._1, "UTF-8"),
+          URLDecoder.decode(t._2, "UTF-8")
+        )
+    }
+    decodedOAuthParams
+  }
+
+  /**
+    * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
+    * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
+    *
+    * @return the Url parameters as list of Tuples
+    */
+
+  private def urlParameters(urlParams: Map[String, List[String]]): List[(String, String)] = {
+    val mapOfParams: Map[String, List[String]] = for ((k, l) <- urlParams) yield (k, l.sortWith(_ < _))
+    val listOfTuples: List[(String, String)] =
+      for {
+        (k, l) <- mapOfParams.toList
+        v <- l
+      }
+        yield {
+          (k, v)
+        }
+    listOfTuples
+  }
+
+  private def getConsumerAndTokenSecret(OAuthparameters: Map[String, String]) = {
+    val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val consumerSecret = consumer.secret.toString
+
+    val tokenSecret = OAuthparameters.get(TokenName) match {
+      case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
+        case Full(token) =>
+          token.secret.toString()
+        case _ => ""
+      }
+      case _ => ""
+    }
+    (consumerSecret, tokenSecret)
+  }
+
+  // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
+  private def verifySignature(OAuthparameters : Map[String, String], httpMethod : String, urlParams: Map[String, List[String]], sUri: String) = {
+    val (consumerSecret: String, tokenSecret: String) = getConsumerAndTokenSecret(OAuthparameters)
+    val decodedOAuthParams: List[(String, String)] = decodeOAuthParams(OAuthparameters)
+    val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(urlParams), Nil, decodedOAuthParams)
+    val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
+    val received: String = OAuthparameters.get(SignatureName).get
+    val receivedAndDecoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
+    val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
+    logger.debug("OAuthparameters: " + OAuthparameters)
+    logger.debug("Decoded OAuthparameters: " + decodedOAuthParams)
+    logger.debug("Signature's base: " + signatureBase)
+    logger.debug("Computed signature: " + computedSignature)
+    logger.debug("Computed and encoded signature: " + computedAndEncoded)
+    logger.debug("Received signature:" + received)
+    logger.debug("Received and decoded signature:" + receivedAndDecoded)
+
+    computedAndEncoded == received
   }
 
 
@@ -881,7 +854,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       val consumer = getConsumer(oauthToken.getOrElse(""))
       (getUser(httpCode, oauthToken), cc.copy(oAuthParams = oAuthParameters, consumer = consumer))
     }
-    else 
+    else
       (ParamFailure(message, Empty, Empty, APIFailure(message, httpCode)), cc)
   }
 
@@ -942,7 +915,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
 
   }
-  
+
   def getConsumerFromTokenFuture(httpCode : Int, key: Box[String]) : Future[Box[Consumer]] = {
     httpCode match {
       case 200 =>
