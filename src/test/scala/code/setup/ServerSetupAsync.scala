@@ -66,10 +66,6 @@ trait ServerSetupAsync extends AsyncFeatureSpec with SendServerRequests
     case _ => baseRequest
   }
   
-  val exampleDateString: String = "22/08/2013"
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
-  
   // @code.setup.TestConnectorSetup.createBanks we can know, the bankIds in test database.
   val testBankId1 = BankId("testBank1")
   val testBankId2 = BankId("testBank2")
