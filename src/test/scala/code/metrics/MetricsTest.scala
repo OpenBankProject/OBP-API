@@ -28,8 +28,8 @@ class MetricsTest extends ServerSetup with WipeMetrics {
   val testVerb = "verb"
 
   val dateFormatter = APIUtil.DateWithSecondsFormat
-  val day1 = dateFormatter.parse("2015-01-12T01:00:00")
-  val day2 = dateFormatter.parse("2015-01-13T14:00:00")
+  val day1 = dateFormatter.parse("2015-01-12T01:00:00Z")
+  val day2 = dateFormatter.parse("2015-01-13T14:00:00Z")
 
   val startOfDayFormat = APIUtil.DateWithDayFormat
   val startOfDay1 = startOfDayFormat.parse("2015-01-12")
