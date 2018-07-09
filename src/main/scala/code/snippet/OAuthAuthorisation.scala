@@ -49,7 +49,7 @@ import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.S
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Helpers, Props}
-
+import code.api.oauth1a.OauthParams._
 import scala.xml.NodeSeq
 
 object OAuthAuthorisation {
@@ -116,7 +116,7 @@ object OAuthAuthorisation {
             "#account" #> ""
         else {
           //send the user to another obp page that handles the redirect
-          val oauthQueryParams: List[(String, String)] = ("oauth_token", unencodedTokenParam) ::("oauth_verifier", verifier) :: Nil
+          val oauthQueryParams: List[(String, String)] = (TokenName, unencodedTokenParam) ::(VerifierName, verifier) :: Nil
           val applicationRedirectionUrl = appendParams(appToken.callbackURL.get, oauthQueryParams)
           val encodedApplicationRedirectionUrl = urlEncode(applicationRedirectionUrl)
           val redirectionUrl = APIUtil.getPropsValue("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref
@@ -164,7 +164,7 @@ object OAuthAuthorisation {
 
     //TODO: improve error messages
     val cssSel = for {
-      tokenParam <- S.param("oauth_token") ?~! "There is no Token."
+      tokenParam <- S.param(TokenName) ?~! "There is no Token."
       token <- Tokens.tokens.vend.getTokenByKeyAndType(Helpers.urlDecode(tokenParam.toString), TokenType.Request) ?~! "This token does not exist"
       tokenValid <- Helper.booleanToBox(token.isValid, "Token expired")
     } yield {

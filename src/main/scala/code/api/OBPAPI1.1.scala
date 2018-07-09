@@ -320,7 +320,7 @@ case class SuccessMessage(
 //      logAPICall
 //
 //      val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
-//      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//      val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //
 //      def viewToJson(v : View) : JObject = {
 //        ("view" -> (
@@ -386,7 +386,7 @@ case class SuccessMessage(
 //      logAPICall
 //      val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //      val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-//      val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//      val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //
 //      case class ModeratedAccountAndViews(account: ModeratedBankAccount, views: List[View])
 //
@@ -457,7 +457,7 @@ case class SuccessMessage(
 //        params <- getTransactionParams(json)
 //        bankAccount <- BankAccount(bankId, accountId)
 //        view <- Views.views.vend.view(viewId, bankAccount)
-//        transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get("oauth_token")), view, params: _*)
+//        transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get(TokenName)), view, params: _*)
 //      } yield {
 //        JsonResponse(transactionsJson(transactions, view),Nil, Nil, 200)
 //      }
@@ -489,7 +489,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //          transactionInJson(bankId, accountId, viewId, transactionId, user)
 //        }
 //        else
@@ -522,7 +522,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //          narrativeInJson(bankId, accountId, viewId, transactionId, user)
 //        }
 //        else
@@ -546,7 +546,7 @@ case class SuccessMessage(
 //          } match {
 //            case Full(narrativeJson) => {
 //
-//              val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//              val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //
 //              val addNarrativeFunc = for {
 //                  metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,user)
@@ -587,7 +587,7 @@ case class SuccessMessage(
 //          } match {
 //            case Full(narrativeJson) => {
 //
-//              val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//              val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //
 //              val addNarrativeFunc = for {
 //                  metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,user)
@@ -650,7 +650,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //          commentsResponse(bankId, accountId, viewId, transactionId, user)
 //        }
 //        else
@@ -688,7 +688,7 @@ case class SuccessMessage(
 //              }
 //
 //              val comment = for{
-//                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
+//                  user <- getUser(httpCode,oAuthParameters.get(TokenName)) ?~ "User not found. Authentication via OAuth is required"
 //                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  postedComment <- addComment(user, viewId, commentJson.value, commentJson.posted_date)
 //                } yield postedComment
@@ -744,7 +744,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //          tagsResponse(bankId, accountId, viewId, transactionId, user)
 //        }
 //        else
@@ -784,7 +784,7 @@ case class SuccessMessage(
 //                }
 //
 //                val tag = for{
-//                    user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
+//                    user <- getUser(httpCode,oAuthParameters.get(TokenName)) ?~ "User not found. Authentication via OAuth is required"
 //                    view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                    postedTagID <- addTag(user, viewId, tagJson.value, tagJson.posted_date)
 //                  } yield postedTagID
@@ -846,7 +846,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode,oAuthParameters.get(TokenName))
 //          imagesResponse(bankId, accountId, viewId, transactionId, user)
 //        }
 //        else
@@ -885,7 +885,7 @@ case class SuccessMessage(
 //              }
 //
 //              val imageId = for{
-//                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
+//                  user <- getUser(httpCode,oAuthParameters.get(TokenName)) ?~ "User not found. Authentication via OAuth is required"
 //                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
 //                  postedImageId <- addImage(user, viewId, imageJson.label, url.toString)
@@ -929,7 +929,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          whereTagResponse(bankId, accountId, viewId, transactionId, user)
 //        }
 //        else
@@ -967,7 +967,7 @@ case class SuccessMessage(
 //              }
 //
 //              val postedGeoTag = for{
-//                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
+//                  user <- getUser(httpCode,oAuthParameters.get(TokenName)) ?~ "User not found. Authentication via OAuth is required"
 //                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  posterWheteTag <- addWhereTag(user, viewId, whereTagJson.where.longitude, whereTagJson.where.latitude)
 //                } yield posterWheteTag
@@ -1019,7 +1019,7 @@ case class SuccessMessage(
 //              }
 //
 //              val postedGeoTag = for{
-//                  user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
+//                  user <- getUser(httpCode,oAuthParameters.get(TokenName)) ?~ "User not found. Authentication via OAuth is required"
 //                  view <- Views.views.vend.view(ViewIdBankIdAccountId(viewId, bankId, accountId)) ?~ {"view " + viewId +" view not found"}
 //                  posterWheteTag <- addWhereTag(user, viewId, whereTagJson.where.longitude, whereTagJson.where.latitude)
 //                } yield posterWheteTag
@@ -1074,7 +1074,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          otherAccountResponse(bankId, accountId, viewId, transactionId, user)
 //        }
 //        else
@@ -1116,7 +1116,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          otherAccountMetadataResponse(bankId, accountId, viewId, other_account_ID, user)
 //        }
 //        else
@@ -1171,7 +1171,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postMoreInfoResponse(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1224,7 +1224,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          updateMoreInfoResponse(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1279,7 +1279,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postURLResponse(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1332,7 +1332,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          updateURLResponse(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1387,7 +1387,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postImageUrlResponse(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1440,7 +1440,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          updateImageUrlResponse(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1495,7 +1495,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postOpenCorporatesUrlResponse(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1548,7 +1548,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          updateOpenCorporatesURL(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1607,7 +1607,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postCorporateLocation(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1666,7 +1666,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postCorporateLocation(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1725,7 +1725,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postPhysicalLocation(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else
@@ -1784,7 +1784,7 @@ case class SuccessMessage(
 //        val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 //        if(httpCode == 200)
 //        {
-//          val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
+//          val user = getUser(httpCode, oAuthParameters.get(TokenName))
 //          postPhysicalLocation(bankId, accountId, viewId, otherAccountId, user)
 //        }
 //        else

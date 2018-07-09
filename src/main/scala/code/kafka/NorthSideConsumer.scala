@@ -1,7 +1,6 @@
 package code.kafka
 
 
-import akka.actor.ActorContext
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
@@ -65,14 +64,15 @@ object NorthSideConsumer {
     }
   }
 
-  def apply[K, V](brokers: String, topic: String, group: String, processor: RecordProcessorTrait[K, V]): NorthSideConsumer[K, V] =
+  def apply[K, V](brokers: String, topic: String, group: String, processor: MessageProcessorTrait[K, V]): NorthSideConsumer[K, V] =
     new NorthSideConsumer[K, V](brokers, topic, group, classOf[StringDeserializer].getName, classOf[StringDeserializer].getName, processor)
 }
 
 class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, keyDeserealizer: String, valueDeserealizer: String,
-                              processor: RecordProcessorTrait[K, V]) extends Runnable with MdcLoggable with KafkaConfig {
+                              processor: MessageProcessorTrait[K, V]) extends Runnable with MdcLoggable with KafkaConfig {
 
   import NorthSideConsumer._
+
   import scala.collection.JavaConversions._
 
   val consumer = new KafkaConsumer[K, V](consumerProperties(brokers, group, keyDeserealizer, valueDeserealizer))
@@ -80,7 +80,6 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
 
   var completed = false
   var started = false
-  var actorContext: ActorContext = null
 
   def complete(): Unit = {
     completed = true
@@ -90,16 +89,15 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
     while (!completed) {
       val records = consumer.poll(100)
       for (record <- records) {
-        processor.processRecord(record, actorContext)
+        processor.processMessage(record)
       }
     }
     consumer.close()
     logger.info("Consumer closed")
   }
 
-  def start(cnt: ActorContext): Unit = {
+  def start(): Unit = {
     if(!started) {
-      actorContext = cnt
       logger.info("Consumer started")
       val t = new Thread(this)
       t.start()

@@ -33,7 +33,7 @@ package code.setup
 
 import java.nio.charset.Charset
 import java.util.TimeZone
-
+import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
 import code.token.Tokens
@@ -93,14 +93,14 @@ trait SendServerRequests {
         val oauthPossibleParameters =
           List(
             "oauth_consumer_key",
-            "oauth_nonce",
-            "oauth_signature_method",
-            "oauth_timestamp",
-            "oauth_version",
-            "oauth_signature",
-            "oauth_callback",
-            "oauth_token",
-            "oauth_verifier"
+            NonceName,
+            SignatureMethodName,
+            TimestampName,
+            VersionName,
+            SignatureName,
+            CallbackName,
+            TokenName,
+            VerifierName
           )
         if (input contains "=") {
           val split = input.split("=",2)
@@ -158,13 +158,13 @@ trait SendServerRequests {
     if (headers.isDefinedAt("Authorization") && headers("Authorization").contains("OAuth")) {
       val oauth_params = getOAuthParameters(headers)
       val consumer_secret = getConsumerSecret(oauth_params("oauth_consumer_key"))
-      val token_secret = getTokenSecret(oauth_params("oauth_token"))
+      val token_secret = getTokenSecret(oauth_params(TokenName))
       val new_oauth_params = OAuth.sign(
         method,
         url,
         query_params ++ form_params, // ++ extra_headers,
         OAuth.Consumer(oauth_params("oauth_consumer_key"), consumer_secret),
-        Option(OAuth.Token(oauth_params.getOrElse("oauth_token", ""), token_secret)),
+        Option(OAuth.Token(oauth_params.getOrElse(TokenName, ""), token_secret)),
         oauth_params.get("verifier"),
         oauth_params.get("callback"))
       val new_oauth_headers = (new TreeMap[String, String] ++ (new_oauth_params map %%)
