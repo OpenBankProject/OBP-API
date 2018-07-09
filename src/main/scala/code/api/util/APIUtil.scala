@@ -853,7 +853,7 @@ object APIUtil extends MdcLoggable {
           body,
           if (body_encoding == null) "null" else body_encoding.name(),
           IMap("Authorization" -> ("OAuth " + oauth_params.map {
-            case (k, v) => (k) + "=\"%s\"".format((v.toString))
+            case (k, v) => encode_%(k) + "=\"%s\"".format(encode_%(v.toString))
           }.mkString(",") )),
           query_params,
           form_params

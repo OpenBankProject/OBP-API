@@ -167,7 +167,7 @@ trait SendServerRequests {
         Option(OAuth.Token(oauth_params.getOrElse(TokenName, ""), token_secret)),
         oauth_params.get("verifier"),
         oauth_params.get("callback"))
-      val new_oauth_headers = (new TreeMap[String, String] ++ (new_oauth_params)
+      val new_oauth_headers = (new TreeMap[String, String] ++ (new_oauth_params map %%)
       ) map { case (k, v) => k + """="""" + v + """"""" } mkString ","
       headers = Map("Authorization" -> ("OAuth " + new_oauth_headers))
     }

@@ -233,7 +233,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
 
     // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-    def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
+    def verifySignature(OAuthparameters : Map[String, String], httpMethod : String) = {
       /**
         * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
         * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
@@ -262,19 +262,26 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         case _ => ""
       }
 
-      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + S.uri, urlParameters(), Nil, OAuthparameters.toList)
+      val decodedOAuthParams = OAuthparameters.toList map {
+        t => (
+          URLDecoder.decode(t._1,"UTF-8"),
+          URLDecoder.decode(t._2,"UTF-8")
+        )
+      }
+      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + S.uri, urlParameters(), Nil, decodedOAuthParams)
       val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
       val received: String = OAuthparameters.get(SignatureName).get
       val receivedAndDecoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
       val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
       logger.debug("OAuthparameters: " + OAuthparameters)
-      logger.debug("signature's base: " + signatureBase)
-      logger.debug("computedSignature: " + computedSignature)
-      logger.debug("computed and encoded signature: " + computedAndEncoded)
-      logger.debug("received signature:" + received)
-      logger.debug("received and decoded signature:" + receivedAndDecoded)
+      logger.debug("Decoded OAuthparameters: " + decodedOAuthParams)
+      logger.debug("Signature's base: " + signatureBase)
+      logger.debug("Computed signature: " + computedSignature)
+      logger.debug("Computed and encoded signature: " + computedAndEncoded)
+      logger.debug("Received signature:" + received)
+      logger.debug("Received and decoded signature:" + receivedAndDecoded)
 
-      computedAndEncoded == received || computedSignature == received
+      computedAndEncoded == received
     }
 
     //check if the token exists and is still valid
@@ -384,7 +391,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       httpCode = 401
     }
     //checking if the signature is correct
-    else if(! correctSignature(parameters, httpMethod))
+    else if(! verifySignature(parameters, httpMethod))
     {
       message = "Invalid signature"
       httpCode = 401
@@ -526,7 +533,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
 
     // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-    def correctSignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String) = {
+    def verifySignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String) = {
       /**
         * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
         * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
@@ -555,19 +562,26 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         case _ => ""
       }
 
-      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(), Nil, OAuthparameters.toList)
+      val decodedOAuthParams = OAuthparameters.toList map {
+        t => (
+          URLDecoder.decode(t._1,"UTF-8"),
+          URLDecoder.decode(t._2,"UTF-8")
+        )
+      }
+      val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(), Nil, decodedOAuthParams)
       val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
       val received: String = OAuthparameters.get(SignatureName).get
       val receivedAndDecoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
       val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
       logger.debug("OAuthparameters: " + OAuthparameters)
-      logger.debug("signature's base: " + signatureBase)
-      logger.debug("computedSignature: " + computedSignature)
-      logger.debug("computed and encoded signature: " + computedAndEncoded)
-      logger.debug("received signature:" + received)
-      logger.debug("received and decoded signature:" + receivedAndDecoded)
+      logger.debug("Decoded OAuthparameters: " + decodedOAuthParams)
+      logger.debug("Signature's base: " + signatureBase)
+      logger.debug("Computed signature: " + computedSignature)
+      logger.debug("Computed and encoded signature: " + computedAndEncoded)
+      logger.debug("Received signature:" + received)
+      logger.debug("Received and decoded signature:" + receivedAndDecoded)
 
-      computedAndEncoded == received || computedSignature == received
+      computedAndEncoded == received
     }
 
     //check if the token exists and is still valid
@@ -702,7 +716,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         httpCode = 401
       }
       //checking if the signature is correct
-      else if(! correctSignature(parameters, httpMethod, sRequest, sUri))
+      else if(! verifySignature(parameters, httpMethod, sRequest, sUri))
       {
         message = "Invalid signature"
         httpCode = 401
