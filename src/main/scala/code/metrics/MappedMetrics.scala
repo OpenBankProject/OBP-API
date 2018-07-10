@@ -295,16 +295,28 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
   def getTopConsumersBox(queryParams: List[OBPQueryParam]): Box[List[TopConsumer]] = {
     for{
-       dbQuery <- Full("SELECT count(*), consumer.consumerid, consumer.name " + 
-                       "FROM consumer "+
-                       "WHERE (createdat >= ?) "+ 
-                       "AND (createdat <= ?) "+
-                       "GROUP BY consumer.consumerid, consumer.name "+
-                       "ORDER BY count(*) DESC ")
-       
-       //Both two dates are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
+       //first three fields are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
        fromDate <- Full(queryParams.collect { case OBPFromDate(value) => value }.head)
        toDate <- Full(queryParams.collect { case OBPToDate(value) => value }.head)
+       limit <- Full(queryParams.collect { case OBPLimit(value) => value }.head)
+       appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+       excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+       excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
+       extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
+       implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+       implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+       
+       dbQuery <- Full("SELECT count(*) as count, mappedmetric.appname as appname, consumer.id as consumerprimaryid, consumer.developeremail as email " +
+                         "FROM mappedmetric, consumer \nWHERE mappedmetric.appname = consumer.name " +
+                         "AND date_c >= ? " +
+                         "AND date_c <= ? " +
+                         "AND (? or implementedbypartialfunction = ?) " +
+                         "AND (? or implementedinversion =?) " +
+                         "And (? or appname =?) " +
+                         s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
+                         "GROUP BY appname, email, consumerprimaryid " +
+                         "ORDER BY count DESC " +
+                         "LIMIT ? ")
        
        resultSet <- tryo(DB.use(DefaultConnectionIdentifier)
          {
@@ -314,6 +326,15 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 stmt =>
                   stmt.setTimestamp(1, new Timestamp(fromDate.getTime))
                   stmt.setTimestamp(2, new Timestamp(toDate.getTime))
+                  stmt.setBoolean(3, if (implementedByPartialFunction.isEmpty) true else false)
+                  stmt.setString(4, implementedByPartialFunction.getOrElse(""))
+                  stmt.setBoolean(5, if (implementedInVersion.isEmpty) true else false)
+                  stmt.setString(6, implementedInVersion.getOrElse(""))
+                  stmt.setBoolean(7, if (appName.isEmpty) true else false)
+                  stmt.setString(8,appName.getOrElse(""))
+                  stmt.setBoolean(9, if (excludeAppNames.isEmpty) true else false)
+                  extendPrepareStement(10, stmt, excludeAppNamesNumberSet)
+                  stmt.setInt(10 + excludeAppNamesNumberSet.size, limit)
                   DB.resultSetTo(stmt.executeQuery())
               }
          })?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
