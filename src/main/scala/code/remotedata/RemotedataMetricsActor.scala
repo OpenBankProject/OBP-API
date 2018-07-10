@@ -7,7 +7,8 @@ import code.actorsystem.ObpActorHelper
 import code.bankconnectors.OBPQueryParam
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
-
+import akka.pattern.pipe
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -45,7 +46,7 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       
     case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopApisFuture($queryParams)")
-      sender ! (mapper.getTopApisBox(queryParams))
+      (mapper.getTopApisFuture(queryParams)) pipeTo sender
       
     case cc.getTopConsumersFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopConsumersFuture($queryParams)")
