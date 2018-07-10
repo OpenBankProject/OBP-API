@@ -2550,7 +2550,8 @@ object SwaggerDefinitionsJSON {
   val topConsumerJson = TopConsumerJson(
     count = 7076,
     consumer_id = "12312312",
-    app_name = "Api Explorer"
+    app_name = "Api Explorer",
+    developer_email = "tesobe@tesobe.com"
   )
   
   //The common error or success format.

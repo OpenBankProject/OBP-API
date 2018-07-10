@@ -146,5 +146,6 @@ case class TopApi(
 case class TopConsumer(
   count: Int,
   consumerId: String,
-  appName: String
+  appName: String,
+  developerEmail: String
 )

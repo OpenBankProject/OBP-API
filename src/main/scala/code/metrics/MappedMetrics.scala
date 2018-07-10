@@ -344,7 +344,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
            TopConsumer(
              if (a(0) != null) a(0).toInt else 0,
              if (a(1) != null) a(1).toString else "", 
-             if (a(2) != null) a(2).toString else ""))) ?~! {logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");s"$UnknownError getTopConsumersBox.create TopApi class error. "}
+             if (a(2) != null) a(2).toString else "",
+             if (a(3) != null) a(3).toString else ""
+             ))) ?~! {logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");s"$UnknownError getTopConsumersBox.create TopApi class error. "}
       
     } yield {
       topApis
