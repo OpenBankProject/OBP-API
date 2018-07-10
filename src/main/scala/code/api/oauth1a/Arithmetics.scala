@@ -35,7 +35,8 @@ import javax.crypto.spec.SecretKeySpec
 
 object Arithmetics {
 
-  private val HmacSha1Algorithm = "HmacSHA1"
+  val HmacSha1Algorithm = "HmacSHA1"
+  val HmacSha256Algorithm = "HmacSHA256"
   private val FirstSlash = "(?<!/)/(?!/)"
   private val Base64Encoder = Base64.getEncoder
 
@@ -94,10 +95,10 @@ object Arithmetics {
     keyValueList sortWith paramSortOrder map { p =>  p._1 + "=" + p._2 } mkString "&"
   }
 
-  def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
+  def sign(base: String, consumerSecret: String, tokenSecret: String, signingAlgorithm: String): String = {
     val key = List(consumerSecret, tokenSecret) map urlEncode mkString "&"
-    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF_8), HmacSha1Algorithm)
-    val mac = Mac.getInstance(HmacSha1Algorithm)
+    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF_8), signingAlgorithm)
+    val mac = Mac.getInstance(signingAlgorithm)
     mac.init(secretkeySpec)
     val bytesToSign = base.getBytes(UTF_8)
     val digest = mac.doFinal(bytesToSign)

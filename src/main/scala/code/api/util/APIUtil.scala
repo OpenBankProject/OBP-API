@@ -769,7 +769,7 @@ object APIUtil extends MdcLoggable {
         callback.map { CallbackName -> _ }
 
       val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
-      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""))
+      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha1Algorithm)
       logger.debug("signatureBase: " + signatureBase)
       logger.debug("computedSignature: " + computedSignature)
       oauth_params + (SignatureName -> computedSignature)

@@ -686,10 +686,14 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
   // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
   private def verifySignature(OAuthparameters : Map[String, String], httpMethod : String, urlParams: Map[String, List[String]], sUri: String) = {
+    val signingAlgorithm: String = OAuthparameters.get(SignatureMethodName).get.toLowerCase match {
+      case "hmac-sha256" => Arithmetics.HmacSha256Algorithm
+      case _             => Arithmetics.HmacSha1Algorithm
+    }
     val (consumerSecret: String, tokenSecret: String) = getConsumerAndTokenSecret(OAuthparameters)
     val decodedOAuthParams: List[(String, String)] = decodeOAuthParams(OAuthparameters)
     val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(urlParams), Nil, decodedOAuthParams)
-    val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret)
+    val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret, signingAlgorithm)
     val received: String = OAuthparameters.get(SignatureName).get
     val receivedAndDecoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
     val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
