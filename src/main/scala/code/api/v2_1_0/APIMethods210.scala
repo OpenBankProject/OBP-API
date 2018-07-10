@@ -1580,7 +1580,7 @@ trait APIMethods210 {
         |
         |2 to_date (defaults to current date) eg:to_date=2017-03-05
         |
-        |3 limit (for pagination: defaults to 200)  eg:limit=200
+        |3 limit (for pagination: defaults to 50)  eg:limit=200
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |

@@ -211,6 +211,11 @@ trait APIMethods310 {
         |
         |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
         |
+        |3 app_name (if null ignore)
+        |
+        |4 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |
+        |
         |""",
       emptyObjectJson,
       List(topApiJson),
@@ -260,6 +265,12 @@ trait APIMethods310 {
         |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
         |
         |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
+        |
+        |3 limit (defaults to 50)  eg:limit=200
+        |
+        |4 app_name (if null ignore)
+        |
+        |5 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
       """.stripMargin,
       emptyObjectJson,
