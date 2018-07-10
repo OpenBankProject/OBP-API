@@ -537,7 +537,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case (data, status) if (status.errorCode=="") =>
             Full(data)
           case (data, status) if (status.errorCode!="") =>
-            Failure("INTERNAL-OBP-ADAPTER-xxx: "+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages)
+            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
@@ -733,7 +733,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case list if (list.head.errorCode=="") =>
             Full(list.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
           case list if (list.head.errorCode!="") =>
-            Failure("INTERNAL-OBP-ADAPTER-xxx: "+ list.head.errorCode+". + CoreBank-Error:"+ list.head.backendMessages)
+            Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
