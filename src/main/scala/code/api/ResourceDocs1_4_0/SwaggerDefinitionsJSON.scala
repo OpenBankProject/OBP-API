@@ -56,8 +56,8 @@ object SwaggerDefinitionsJSON {
   )
   
   val accountRouting =  AccountRouting(
-    scheme = "String",
-    address = "String" 
+    scheme = "accountNumber",
+    address = "123456" 
   )
   
   val coreAccount = CoreAccount(
@@ -2186,7 +2186,16 @@ object SwaggerDefinitionsJSON {
     bank_id = "gh.29.uk",
     account_routing = accountRoutingJsonV121
   )
-  val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccount))
+  
+  val coreAccountJson = CoreAccountJson(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    label = "String",
+    bank_id = "gh.29.uk",
+    account_routing = accountRouting,
+    allowed_view_ids =  List("owner","auditor")
+  )
+  
+  val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJson))
 
   val balances = Balances("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances")
   

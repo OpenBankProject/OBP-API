@@ -47,6 +47,7 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.model.dataAccess.ResourceUser
 import code.scope.Scope
+import code.views.Views
 import net.liftweb.common.{Box, Full}
 import org.pegdown.PegDownProcessor
 
@@ -235,7 +236,16 @@ case class CoreAccountJsonV300(
   bank_id : String,
   account_routing: AccountRoutingJsonV121
 )
-case class CoreAccountsJsonV300(accounts: List[CoreAccount])
+
+case class CoreAccountJson(
+  id: String,
+  label: String,
+  bank_id: String,
+  account_routing: AccountRouting,
+  allowed_view_ids: List[String]
+)
+
+case class CoreAccountsJsonV300(accounts: List[CoreAccountJson])
 case class CoreAccountsHeldJsonV300(accounts: List[AccountHeld])
 
 case class AccountIdJson(
@@ -673,7 +683,13 @@ object JSONFactory300{
     )
 
   def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
-    CoreAccountsJsonV300(coreAccounts)
+    CoreAccountsJsonV300(coreAccounts.map(coreAccount => CoreAccountJson(
+      coreAccount.id,
+      coreAccount.label,
+      coreAccount.bank_id,
+      coreAccount.account_routing,
+      allowed_view_ids = Views.views.vend.viewsForAccount(BankIdAccountId(BankId(coreAccount.bank_id), AccountId(coreAccount.id))).map(_.viewId.value)
+    )))
   
   def createCoreAccountsByCoreAccountsJSON(accountsHeld : List[AccountHeld]): CoreAccountsHeldJsonV300 =
     CoreAccountsHeldJsonV300(accountsHeld)
