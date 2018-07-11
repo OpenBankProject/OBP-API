@@ -29,29 +29,26 @@ package code.api
 import java.net.{URLDecoder, URLEncoder}
 import java.util.Date
 
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
-import code.api.oauth1a.OauthParams._
-import code.api.util.ErrorMessages._
 import code.api.Constant._
 import code.api.oauth1a.Arithmetics
-import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
+import code.api.oauth1a.OauthParams._
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.consumer.Consumers
-import code.model.dataAccess.ResourceUserCaseClass
 import code.model.{Consumer, TokenType, User}
 import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
-import net.liftweb.util.{Helpers, Props}
-import net.liftweb.util.Helpers.{tryo, _}
-import code.util.Helper.MdcLoggable
+import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
 
 import scala.compat.Platform
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -684,14 +681,51 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     (consumerSecret, tokenSecret)
   }
 
-  // OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-  private def verifySignature(OAuthparameters : Map[String, String], httpMethod : String, urlParams: Map[String, List[String]], sUri: String) = {
+  /**
+    * OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
+    * Recalculating the request signature independently as described in Section 3.4 and
+    * comparing it to the value received from the client via the "oauth_signature" parameter.
+    * For example, the HTTP request:
+    * POST /request?b5=%3D%253D&a3=a&c%40=&a2=r%20b HTTP/1.1
+    * Host: example.com
+    * Content-Type: application/x-www-form-urlencoded
+    * Authorization: OAuth realm="Example",
+    *                oauth_consumer_key="9djdj82h48djs9d2",
+    *                oauth_token="kkk9d7dh3k39sjv7",
+    *                oauth_signature_method="HMAC-SHA1",
+    *                oauth_timestamp="137131201",
+    *                oauth_nonce="7d8f3e4a",
+    *                oauth_signature="bYT5CMsGcbgUdFHObYMEfcx6bsw%3D"
+    *
+    * c2&a3=2+q
+    * is represented by the following signature base string (line breaks are for display purposes only):
+    * POST&http%3A%2F%2Fexample.com%2Frequest&a2%3Dr%2520b%26a3%3D2%2520q
+    * %26a3%3Da%26b5%3D%253D%25253D%26c%2540%3D%26c2%3D%26oauth_consumer_
+    * key%3D9djdj82h48djs9d2%26oauth_nonce%3D7d8f3e4a%26oauth_signature_m
+    * ethod%3DHMAC-SHA1%26oauth_timestamp%3D137131201%26oauth_token%3Dkkk
+    * 9d7dh3k39sjv7
+    *
+    * @param OAuthparameters List of URL encoded OAuth parameters
+    * @param httpMethod The HTTP request method in uppercase. For example: "HEAD", "GET", "POST", etc.  If the request uses a custom HTTP method, it MUST be encoded
+    * @param urlParams For example: b5=%3D%253D&a3=a&c%40=&a2=r%20b
+    * @param sUri For example: http://example.com
+    * @return Boolean: True/False
+    */
+  private def verifySignature(OAuthparameters : Map[String, String], httpMethod : String, urlParams: Map[String, List[String]], sUri: String): Boolean = {
+    // Chose signature algorithm according to a value of parameter of OAuth.
+    // For example: oauth_signature_method="HMAC-SHA1"
     val signingAlgorithm: String = OAuthparameters.get(SignatureMethodName).get.toLowerCase match {
       case "hmac-sha256" => Arithmetics.HmacSha256Algorithm
       case _             => Arithmetics.HmacSha1Algorithm
     }
+    // Find secret of consumer and token by oauth_consumer_key and oauth_token parameters
+    // For example:
+    // oauth_consumer_key="9djdj82h48djs9d2"
+    // oauth_token="kkk9d7dh3k39sjv7"
     val (consumerSecret: String, tokenSecret: String) = getConsumerAndTokenSecret(OAuthparameters)
+    // Decode OAuth parameters in order to get original state
     val decodedOAuthParams: List[(String, String)] = decodeOAuthParams(OAuthparameters)
+    // Signature Base String Construction
     val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(urlParams), Nil, decodedOAuthParams)
     val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret, signingAlgorithm)
     val received: String = OAuthparameters.get(SignatureName).get
@@ -705,6 +739,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     logger.debug("Received signature:" + received)
     logger.debug("Received and decoded signature:" + receivedAndDecoded)
 
+    // Please note that received OAuth signature is encoded so we need to encode computed signature as well.
+    // For example: oauth_signature="bYT5CMsGcbgUdFHObYMEfcx6bsw%3D"
     computedAndEncoded == received
   }
 
