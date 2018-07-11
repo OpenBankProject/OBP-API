@@ -342,6 +342,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             account.accountId.value, 
             stringOrNull(account.label),
             account.bankId.value, 
+            account.accountType,
             List(AccountRouting(account.accountRoutingScheme,account.accountRoutingAddress))))
     )
   }

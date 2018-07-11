@@ -817,8 +817,9 @@ case class AccountRouting(
 case class CoreAccount(
   id: String,
   label: String,
-  bank_id: String,
-  account_routings: List[AccountRouting]
+  bankId: String,
+  accountType: String,
+  accountRoutings: List[AccountRouting]
 )
 
 case class AccountHeld(

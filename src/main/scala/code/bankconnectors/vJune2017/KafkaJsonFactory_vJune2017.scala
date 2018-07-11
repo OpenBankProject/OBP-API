@@ -134,8 +134,9 @@ case class InternalInboundCoreAccount(
   backendMessages: List[InboundStatusMessage],
   id : String,
   label : String,
-  bank_id : String,
-  account_routing: AccountRouting
+  bankId : String,
+  accountType: String, 
+  accountRoutings: List[AccountRouting]
 )
 case class Status(
                    errorCode: String,

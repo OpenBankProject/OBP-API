@@ -68,7 +68,7 @@ object JSONFactory_BERLIN_GROUP_1 {
     CoreAccountsJsonV1(coreAccounts.map(
       x => CoreAccountJsonV1(
         id = x.id,
-        iban = if (x.account_routings.headOption.isDefined && x.account_routings.head.scheme == "IBAN") x.account_routings.head.address else "",
+        iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else "",
         currency = "",
         accountType = "",
         cashAccountType = "",

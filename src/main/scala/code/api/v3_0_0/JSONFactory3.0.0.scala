@@ -253,6 +253,7 @@ case class CoreAccountJson(
   id: String,
   label: String,
   bank_id: String,
+  account_type: String,
   account_routings: List[AccountRouting],
   views: List[ViewBasic]
 )
@@ -698,10 +699,11 @@ object JSONFactory300{
     CoreAccountsJsonV300(coreAccounts.map(coreAccount => CoreAccountJson(
       coreAccount.id,
       coreAccount.label,
-      coreAccount.bank_id,
-      coreAccount.account_routings,
+      coreAccount.bankId,
+      coreAccount.accountType,
+      coreAccount.accountRoutings,
       views = Views.views.vend
-        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bank_id), AccountId(coreAccount.id)))
+        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id)))
         .map(mappedView => 
           ViewBasic(
             mappedView.viewId.value,
