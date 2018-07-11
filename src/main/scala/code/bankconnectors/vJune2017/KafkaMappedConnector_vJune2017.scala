@@ -686,7 +686,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
         box match {
           case Full(f) if (f.head.errorCode=="") =>
-            Full(f.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
+            Full(f.map( x => CoreAccount(x.id,x.label,x.bank_id,List(x.account_routing))))
           case Full(f) if (f.head.errorCode!="") =>
             Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
           case Empty =>
@@ -731,7 +731,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case List() =>
             Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case list if (list.head.errorCode=="") =>
-            Full(list.map( x => CoreAccount(x.id,x.label,x.bank_id,x.account_routing)))
+            Full(list.map( x => CoreAccount(x.id,x.label,x.bank_id,List(x.account_routing))))
           case list if (list.head.errorCode!="") =>
             Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
           case _ =>

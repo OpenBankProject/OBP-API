@@ -241,12 +241,20 @@ case class CoreAccountJsonV300(
   account_routing: AccountRoutingJsonV121
 )
 
+
+case class ViewBasic(
+  id: String,
+  short_name: String,
+  description: String,
+  is_public: Boolean
+)
+
 case class CoreAccountJson(
   id: String,
   label: String,
   bank_id: String,
-  account_routing: AccountRouting,
-  allowed_view_ids: List[String]
+  account_routings: List[AccountRouting],
+  views: List[ViewBasic]
 )
 
 case class CoreAccountsJsonV300(accounts: List[CoreAccountJson])
@@ -691,8 +699,16 @@ object JSONFactory300{
       coreAccount.id,
       coreAccount.label,
       coreAccount.bank_id,
-      coreAccount.account_routing,
-      allowed_view_ids = Views.views.vend.viewsForAccount(BankIdAccountId(BankId(coreAccount.bank_id), AccountId(coreAccount.id))).map(_.viewId.value)
+      coreAccount.account_routings,
+      views = Views.views.vend
+        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bank_id), AccountId(coreAccount.id)))
+        .map(mappedView => 
+          ViewBasic(
+            mappedView.viewId.value,
+            mappedView.name,
+            mappedView.description,
+            mappedView.isPublic
+          ))
     )))
   
   def createCoreAccountsByCoreAccountsJSON(accountsHeld : List[AccountHeld]): CoreAccountsHeldJsonV300 =

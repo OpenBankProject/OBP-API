@@ -64,7 +64,7 @@ object SwaggerDefinitionsJSON {
     id ="String",
     label=" String",
     bank_id=" String",
-    account_routing= accountRouting
+    account_routings= List(accountRouting)
   )
   
   val createViewJson = CreateViewJson(
@@ -2187,12 +2187,18 @@ object SwaggerDefinitionsJSON {
     account_routing = accountRoutingJsonV121
   )
   
+  val viewBasic = ViewBasic(
+    id = "123",
+  short_name ="short_name",
+  description = "description",
+  is_public = false
+  )
   val coreAccountJson = CoreAccountJson(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     label = "String",
     bank_id = "gh.29.uk",
-    account_routing = accountRouting,
-    allowed_view_ids =  List("owner","auditor")
+    account_routings = List(accountRouting),
+    views =  List(viewBasic)
   )
   
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJson))
