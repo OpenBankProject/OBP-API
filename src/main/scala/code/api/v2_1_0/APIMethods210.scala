@@ -72,10 +72,6 @@ trait APIMethods210 {
     val emptyObjectJson = EmptyClassJson()
     val apiVersion: util.ApiVersion = util.ApiVersion.v2_1_0 // was String "2_1_0"
 
-    val exampleDateString: String = "22/08/2013"
-    val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-    val exampleDate = simpleDateFormat.parse(exampleDateString)
-
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
 
@@ -1006,7 +1002,7 @@ trait APIMethods210 {
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            queryParams <- unboxFullAndWrapIntoFuture{ getHttpParams(callContext.get.requestHeaders) }
+            queryParams <- unboxFullAndWrapIntoFuture{ createQueriesByHttpParams(callContext.get.requestHeaders) }
             users <- Users.users.vend.getAllUsersF(queryParams)
           } yield {
             (JSONFactory210.createUserJSONs (users), callContext)
@@ -1344,7 +1340,7 @@ trait APIMethods210 {
               Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
               Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount))) ?~! CreateConsumerError
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! CustomerAlreadyExistsForUser
-            _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! CreateUserCustomerLinksError
+            _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, new Date(), true) ?~! CreateUserCustomerLinksError
             _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(customer_user.name)
             
           } yield {
@@ -1578,13 +1574,13 @@ trait APIMethods210 {
         |
         |Should be able to filter on the following metrics fields
         |
-        |eg: /management/metrics?start_date=2017-03-01&end_date=2017-03-04&limit=50&offset=2
+        |eg: /management/metrics?from_date=2017-03-01&to_date=2017-03-04&limit=50&offset=2
         |
-        |1 start_date (defaults to one week before current date): eg:start_date=2017-03-01
+        |1 from_date (defaults to one week before current date): eg:from_date=2017-03-01
         |
-        |2 end_date (defaults to current date) eg:end_date=2017-03-05
+        |2 to_date (defaults to current date) eg:to_date=2017-03-05
         |
-        |3 limit (for pagination: defaults to 200)  eg:limit=200
+        |3 limit (for pagination: defaults to 50)  eg:limit=200
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
@@ -1602,7 +1598,7 @@ trait APIMethods210 {
         |
         |6 direction (defaults to date desc) eg: direction=desc
         |
-        |eg: /management/metrics?start_date=2016-03-05&end_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+        |eg: /management/metrics?from_date=2016-03-05&to_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
         |
         |Other filters:
         |
@@ -1622,7 +1618,7 @@ trait APIMethods210 {
         |
         |14 verb (if null ignore)
         |
-        |15 correlationId (if null ignore)
+        |15 correlation_id (if null ignore)
         |
         |16 duration (if null ignore) non digit chars will be silently omitted
         |
@@ -1645,19 +1641,20 @@ trait APIMethods210 {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadMetrics), UserHasMissingRoles + CanReadMetrics )
 
-            //Note: Filters Part 1: //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0
+            //Note: Filters Part 1: //eg: /management/metrics?from_date=2010-05-22&to_date=2017-05-22&limit=200&offset=0
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
-            // set the long,long ago as the default date.
-            defautStartDate <- Full("0000-00-00")
-            tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
+            inputDateFormat <- Full(APIUtil.DateWithDayFormat)
+            //set `defautFromDate` = 0000-00-00
+            defautFromDate <- Full("0000-00-00")
+            //set `defaultToDate` = tomorrow. 
+            defaultToDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
 
             //(defaults to one week before current date
-            startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defautStartDate))) ?~!
-              s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
+            fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defautFromDate))) ?~!
+              s"${InvalidDateFormat } from_date:${S.param("from_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Support format is $DateWithDay"
             // defaults to current date
-            endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
-              s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
+            toDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaultToDate))) ?~!
+              s"${InvalidDateFormat } to_date:${S.param("to_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Support format is $DateWithDay"
             // default 1000, return 1000 items
             limit <- tryo(
                         S.param("limit") match {
@@ -1676,19 +1673,16 @@ trait APIMethods210 {
                 case _                                        => OBPDescending
               }
             )
-            //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
-            // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
-            //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
 
             //Filters Part 2. -- the optional varibles:
-            //eg: /management/metrics?start_date=2010-05-22&end_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
+            //eg: /management/metrics?from_date=2010-05-22&to_date=2017-05-22&limit=200&offset=0&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
             anon <- tryo(
               S.param("anon") match {
-                case Full(x) if x.toLowerCase == "true"  => OBPAnon(x)
-                case Full(x) if x.toLowerCase == "false" => OBPAnon(x)
-                case _                                   => OBPEmpty()
+                case Full(x) if x.toLowerCase == "true"  => OBPAnon(true)
+                case Full(x) if x.toLowerCase == "false" => OBPAnon(false)
+                case _                                   => throw new RuntimeException(s"$FilterAnonFormatError")
               }
-            )
+            )?~! FilterAnonFormatError
             consumerId <- tryo(S.param("consumer_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPConsumerId(x))
             userId <- tryo(S.param("user_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUserId(x))
             url <- tryo(S.param("url").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPUrl(x))
@@ -1696,31 +1690,13 @@ trait APIMethods210 {
             implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedByPartialFunction(x))
             implementedInVersion <- tryo(S.param("implemented_in_version").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPImplementedInVersion(x))
             verb <- tryo(S.param("verb").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPVerb(x))
-            correlationId <- tryo(S.param("correlationId").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
+            correlationId <- tryo(S.param("correlation_id").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPCorrelationId(x))
             duration <- tryo(S.param("duration").openOr("None")).map(x => if (x == "None") OBPEmpty()  else OBPDuration(x.filter(_.isDigit == true).toLong))
 
-            parameters = new collection.mutable.ListBuffer[OBPQueryParam]()
-            _ <- Full(
-              parameters
-                += OBPLimit(limit)
-                += OBPOffset(offset)
-                += OBPFromDate(startDate)
-                += OBPToDate(endDate)
-                += consumerId
-                += userId
-                += userId
-                += url
-                += appName
-                += implementedByPartialFunction
-                += implementedInVersion
-                += verb
-                += anon
-                += correlationId
-                += duration
-                += OBPOrdering(Some(sortBy) , direction)
-            )
-
-            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters.toList))
+            parameters <- Full(List(OBPLimit(limit),OBPOffset(offset),OBPFromDate(fromDate),OBPToDate(toDate),consumerId,userId,url,appName,
+                                      implementedByPartialFunction,implementedInVersion,verb,anon,correlationId,duration,OBPOrdering(Some(sortBy) , direction)))
+            
+            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics(parameters))
             
           } yield {
             val json = JSONFactory210.createMetricsJson(metrics)

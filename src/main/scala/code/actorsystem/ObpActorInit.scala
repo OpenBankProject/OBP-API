@@ -17,6 +17,7 @@ trait ObpActorInit extends MdcLoggable{
 
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
   val actor = ObpLookupSystem.getRemotedataActor(actorName)
+  logger.debug(s"Create this Actor: $actorName: ${actor}")
   val TIMEOUT = (ACTOR_TIMEOUT seconds)
   implicit val timeout = Timeout(ACTOR_TIMEOUT * (1000 milliseconds))
 

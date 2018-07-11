@@ -93,7 +93,7 @@ object JSONFactory_BERLIN_GROUP_1 {
     AccountBalances(
       AccountBalance(
         closingBooked = ClosingBookedBody(amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance ), 
-                                          date = new SimpleDateFormat("yyyy-MM-dd").format(latestCompletedEndDate)),
+                                          date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)),
         expected = ExpectedBody (amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = sumOfAll), lastActionDateTime = latestUncompletedEndDate)
       ) :: Nil
     )

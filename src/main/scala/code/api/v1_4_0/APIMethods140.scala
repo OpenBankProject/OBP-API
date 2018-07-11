@@ -55,11 +55,6 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     val apiVersion : ApiVersion = ApiVersion.v1_4_0 // was noV i.e.  "1_4_0"
     val apiVersionStatus : String = "STABLE"
 
-    val exampleDateString : String ="22/08/2013"
-    val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-    val exampleDate = simpleDateFormat.parse(exampleDateString)
-
-
     resourceDocs += ResourceDoc(
       getCustomer,
       apiVersion,
@@ -708,7 +703,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 postedData.last_ok_date,
                 None,
                 None) ?~! "Could not create customer"
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, DateWithMsExampleObject, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = JSONFactory1_4_0.createCustomerJson(customer)
             successJsonResponse(Extraction.decompose(successJson))

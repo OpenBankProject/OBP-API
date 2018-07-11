@@ -94,9 +94,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDateString: String = "22/08/2013"
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
   val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
 
@@ -1021,7 +1018,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
   
-    val postedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(now)
+    val postedDate = APIUtil.DateWithMsFormat.format(now)
     val transactionId = UUID.randomUUID().toString
 
     val req = OutboundSaveTransactionBase(
@@ -1671,11 +1668,11 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   def createNewTransaction(r: InternalTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.postedDate != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.postedDate)
+      datePosted = APIUtil.DateWithMsFormat.parse(r.postedDate)
 
     var dateCompleted: Date = null
     if (r.completedDate != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.completedDate)
+      dateCompleted = APIUtil.DateWithMsFormat.parse(r.completedDate)
 
     for {
         counterpartyId <- tryo{r.counterpartyId}

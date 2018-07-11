@@ -13,8 +13,9 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.4</scala.compiler>
-    <akka.version>2.5.1</akka.version>
-    <akka-streams-kafka.version>0.16</akka-streams-kafka.version>
+    <akka.version>2.5.13</akka.version>
+    <akka-streams-kafka.version>0.22</akka-streams-kafka.version>
+    <kafka.version>1.1.0</kafka.version>
     <avro.version>1.8.3</avro.version>
     <lift.version>3.1.0</lift.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
@@ -111,12 +112,12 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
-      <version>0.11.0.0</version>
+      <version>${kafka.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>connect-json</artifactId>
-      <version>0.11.0.0</version>
+      <version>${kafka.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>

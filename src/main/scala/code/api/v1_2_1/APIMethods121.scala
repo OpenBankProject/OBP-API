@@ -2127,7 +2127,7 @@ trait APIMethods121 {
     lazy val getTransactionsForBankAccount : OBPEndpoint =  {
       //get transactions
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
-        val paramsBox: Box[List[OBPQueryParam]] = getHttpParams(req.request.headers)
+        val paramsBox: Box[List[OBPQueryParam]] = createQueriesByHttpParams(req.request.headers)
         cc => getTransactionsForBankAccountCached(
           paramsBox:  Box[List[OBPQueryParam]],
           cc.user: Box[User],

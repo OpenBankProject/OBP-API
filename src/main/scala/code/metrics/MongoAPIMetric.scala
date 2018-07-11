@@ -35,9 +35,12 @@ Berlin 13359, Germany
 import java.util.Date
 
 import code.bankconnectors.OBPQueryParam
+import net.liftweb.common.Box
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.record.field.{LongField, StringField}
+
+import scala.concurrent.Future
 
  private class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
    def meta = MongoAPIMetric
@@ -108,5 +111,11 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
     MongoAPIMetric.findAll
   }
   override def bulkDeleteMetrics(): Boolean = ???
+  
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = ???
+  
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = ???
+  
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = ???
 
 }

@@ -37,8 +37,8 @@ case class TwoClass(
 case class AllCases(
   string: String = "String",
   strings: List[String] = List("String"),
-  date: Date = APIUtil.exampleDate,
-  dates: List[Date] = List(APIUtil.exampleDate),
+  date: Date = APIUtil.DateWithDayExampleObject,
+  dates: List[Date] = List(APIUtil.DateWithDayExampleObject),
   boolean: Boolean = true,
   booleans: List[Boolean]= List(true),
   int: Int = 3,

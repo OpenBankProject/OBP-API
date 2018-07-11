@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.api
 
 import java.util.ResourceBundle
-
+import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages}
@@ -169,7 +169,7 @@ class OAuthTest extends ServerSetup {
 
   def getVerifier(requestToken: String, userName: String, password: String): Box[String] = {
     val b = Browser()
-    val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken))).toRequest.getUrl
+    val loginPage = (oauthRequest / "authorize" <<? List((TokenName, requestToken))).toRequest.getUrl
     b.getVerifier(loginPage, userName, password)
   }
 

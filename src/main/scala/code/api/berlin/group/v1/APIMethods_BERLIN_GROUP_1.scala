@@ -153,7 +153,7 @@ trait APIMethods_BERLIN_GROUP_1 {
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
-            params <- Future { getHttpParams(callContext.get.requestHeaders)} map {
+            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           

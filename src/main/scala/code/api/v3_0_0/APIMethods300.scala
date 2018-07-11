@@ -24,7 +24,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.metrics.MappedMetric
+import code.metrics.{APIMetrics, MappedMetric, OBPUrlQueryParams}
 import code.model.{BankId, ViewId, _}
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -43,9 +43,9 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.metrics.AggregateMetrics
 import code.scope.Scope
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 
@@ -608,7 +608,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -634,8 +634,8 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: Thu Jan 01 01:00:00 CET 1970 (format below)
-        |* to_date=DATE => default value: 3049-01-01
+        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
+        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
@@ -670,7 +670,7 @@ trait APIMethods300 {
             } yield {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), callContext)
@@ -699,8 +699,8 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: date of the oldest transaction registered (format below)
-        |* to_date=DATE => default value: 3049-01-01
+        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
+        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
         |
         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
@@ -735,7 +735,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -2075,11 +2075,41 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?start_date=2018-03-26&end_date=2018-03-29
+        |eg: /management/aggregate-metrics?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
+        |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+        |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+        |&verb=GET&anon=false&app_name=MapperPostman
+        |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 start_date (defaults to the day before the current date): eg:start_date=2018-03-26
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
         |
-        |2 end_date (defaults to the current date) eg:end_date=2018-03-29
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
+        |
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore),
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlation_id (if null ignore)
+        |
+        |12 duration (if null ignore) non digit chars will be silently omitted
+        |
+        |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |
+        |14 exclude_url_pattern (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_pattern=%management/metrics%
+        |
+        |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -2099,41 +2129,26 @@ trait APIMethods300 {
         case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
           cc => {
             for {
-              u <- cc.user ?~! UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
-
-              // Filter by date // eg: /management/aggregate-metrics?start_date=2010-05-22&end_date=2017-05-22
-
-              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
-
-              // Date format of now.getTime
-              nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH))
-
-              defaultStartDate <- Full("0000-00-00")
-
-              // Get tomorrow's date
-
-              tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
-
-              // Parse tomorrow's date
-
-              tomorrowUnformatted <- Full(nowDateFormat.parse(tomorrowDate))
-
-              //Format tomorrow's date with the inputDateFormat
-              tomorrowDate <- Full(inputDateFormat.format(tomorrowUnformatted))
-
-              //(defaults to one week before current date
-              startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defaultStartDate))) ?~!
-                s"${InvalidDateFormat } start_date:${S.param("start_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
-              // defaults to current date
-              endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
-                s"${InvalidDateFormat } end_date:${S.param("end_date").get }. Supported format is yyyy-MM-dd HH:mm:ss"
-
-              aggregatemetrics <- Full(AggregateMetrics.aggregateMetrics.vend.getAllAggregateMetrics(startDate, endDate))
-
+              (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture{ user }
+              
+              _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadAggregateMetrics) {
+                hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
+              }
+              
+              httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+              obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+              
+              
+              aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(GetAggregateMetricsError, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+              
             } yield {
-              val json = getAggregateMetricJSON(aggregatemetrics)
-              successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+              (createAggregateMetricJson(aggregateMetrics), Some(cc))
             }
           }
 
@@ -2170,7 +2185,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
-      Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
+      Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)))
   
     lazy val addScope : OBPEndpoint = {
       //add access for specific user to a list of views
