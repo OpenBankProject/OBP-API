@@ -1,4 +1,6 @@
 /**
+  * This particular file is marked with the Apache license (unless specified otherwise, OBP API is licensed with the AGPL v3)
+  *
   * Copyright 2018 Hunor Kovács: kovacshuni@yahoo.com
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
