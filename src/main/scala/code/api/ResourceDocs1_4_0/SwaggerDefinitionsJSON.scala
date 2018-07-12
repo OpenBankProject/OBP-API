@@ -68,6 +68,14 @@ object SwaggerDefinitionsJSON {
     accountRoutings= List(accountRouting)
   )
   
+  
+  val accountHeld = AccountHeld(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    bankId = "gh.29.uk",
+    number = "String",
+    accountRouting = accountRouting
+  )
+  
   val createViewJson = CreateViewJson(
     name = "_test",
     description = "This view is for family",
@@ -2365,16 +2373,15 @@ object SwaggerDefinitionsJSON {
   //stated -- account relevant case classes /////
   
   
-  val accountHeld = AccountHeld(
-    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
-    bank_id = "gh.29.uk",
-    number = "String",
-    account_routing = accountRouting
+  val accountHeldJson  = AccountHeldJson(
+    id = "12314",
+    bank_id=  "123",
+    number = "123",
+    account_routing =  accountRouting
   )
   
-  
   val coreAccountsHeldJsonV300 = CoreAccountsHeldJsonV300(
-    accounts= List(accountHeld)
+    accounts= List(accountHeldJson)
   )
   val moderatedAccountJsonV300 = ModeratedAccountJsonV300(
     id= "String",

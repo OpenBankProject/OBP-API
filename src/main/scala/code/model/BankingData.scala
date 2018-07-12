@@ -824,9 +824,9 @@ case class CoreAccount(
 
 case class AccountHeld(
   id: String,
-  bank_id: String,
+  bankId: String,
   number: String,
-  account_routing: AccountRouting
+  accountRouting: AccountRouting
 )
 
 case class CounterpartyBespoke(
