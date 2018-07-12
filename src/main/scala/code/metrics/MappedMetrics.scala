@@ -242,21 +242,47 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   //This is tricky for now, we call it only in Actor. 
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
   def getTopApisBox(queryParams: List[OBPQueryParam]): Box[List[TopApi]] = {
+    
+    val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+    val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+    val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+    val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+    val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+    val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+    val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+    val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+    val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+    val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+    val anon = queryParams.collect { case OBPAnon(value) => value }.headOption 
+    val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+    val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
+    val excludeUrlPattern = queryParams.collect { case OBPExcludeUrlPattern(value) => value }.headOption
+    val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
+        
+    val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
+    val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
+    
+    val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
+    val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+    
     for{
-      //Both two dates are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
-       fromDate <- Full(queryParams.collect { case OBPFromDate(value) => value }.head)
-       toDate <- Full(queryParams.collect { case OBPToDate(value) => value }.head)
-       excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
-       excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
-       appName = queryParams.collect { case OBPAppName(value) => value }.headOption 
-       extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
        
        dbQuery <- Full("SELECT count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " + 
                        "FROM mappedmetric " +
-                       "WHERE (date_c >= ?) "+ 
-                       "AND (date_c <= ?) "+
-                       "And (? or appname = ?) "+
+                       "WHERE date_c >= ? "+ 
+                       "AND date_c <= ? "+ 
+                       "AND (? or consumerid = ?) "+ 
+                       "AND (? or userid = ?) "+ 
+                       "AND (? or implementedbypartialfunction = ? ) "+ 
+                       "AND (? or implementedinversion = ?) "+ 
+                       "AND (? or url= ?) "+ 
+                       "And (? or appname = ?) "+ 
+                       "AND (? or verb = ? ) "+ 
+                       "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
+                       "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
+                       "AND (? or url NOT LIKE ?) "+
                        s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
+                       s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "+
                        "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
                        "ORDER BY count(*) DESC")
        
@@ -266,12 +292,30 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               DB.prepareStatement(dbQuery, conn)
               {
                 stmt =>
-                  stmt.setTimestamp(1, new Timestamp(fromDate.getTime))
-                  stmt.setTimestamp(2, new Timestamp(toDate.getTime))
-                  stmt.setBoolean(3, if (appName.isEmpty) true else false)
-                  stmt.setString(4,appName.getOrElse(""))
-                  stmt.setBoolean(5, if (excludeAppNames.isEmpty) true else false)
-                  extendPrepareStement(6, stmt, excludeAppNamesNumberSet)
+                  stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
+                  stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
+                  stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
+                  stmt.setString(4, consumerId.getOrElse(""))
+                  stmt.setBoolean(5, if (userId.isEmpty) true else false)
+                  stmt.setString(6, userId.getOrElse(""))
+                  stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
+                  stmt.setString(8, implementedByPartialFunction.getOrElse(""))
+                  stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
+                  stmt.setString(10, implementedInVersion.getOrElse(""))
+                  stmt.setBoolean(11, if (url.isEmpty) true else false)
+                  stmt.setString(12, url.getOrElse(""))
+                  stmt.setBoolean(13, if (appName.isEmpty) true else false)
+                  stmt.setString(14,appName.getOrElse(""))
+                  stmt.setBoolean(15, if (verb.isEmpty) true else false)
+                  stmt.setString(16, verb.getOrElse(""))
+                  stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.) 
+                  stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
+                  stmt.setBoolean(19, if (excludeUrlPattern.isEmpty) true else false)
+                  stmt.setString(20, excludeUrlPattern.getOrElse(""))
+                  stmt.setBoolean(21, if (excludeAppNames.isEmpty) true else false)
+                  extendPrepareStement(22, stmt, excludeAppNamesNumberSet)
+                  stmt.setBoolean(22+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
+                  extendPrepareStement(22+excludeAppNamesNumberSet.size+1,stmt, excludeImplementedByPartialFunctionsNumberSet)
                   DB.resultSetTo(stmt.executeQuery())
                   
               }
@@ -294,26 +338,48 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   //This is tricky for now, we call it only in Actor. 
   //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
   def getTopConsumersBox(queryParams: List[OBPQueryParam]): Box[List[TopConsumer]] = {
+    
+    val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
+    val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
+    val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
+    val userId = queryParams.collect { case OBPUserId(value) => value }.headOption
+    val url = queryParams.collect { case OBPUrl(value) => value }.headOption
+    val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
+    val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+    val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
+    val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
+    val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
+    val anon = queryParams.collect { case OBPAnon(value) => value }.headOption 
+    val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
+    val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
+    val excludeUrlPattern = queryParams.collect { case OBPExcludeUrlPattern(value) => value }.headOption
+    val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
+    val limit = queryParams.collect { case OBPLimit(value) => value }.headOption
+        
+    val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
+    val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
+    
+    val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
+    val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+    
     for{
-       //first three fields are mandatory fields in queryParams, if null, they will have the default value. We checked them in up level, so no need here.
-       fromDate <- Full(queryParams.collect { case OBPFromDate(value) => value }.head)
-       toDate <- Full(queryParams.collect { case OBPToDate(value) => value }.head)
-       limit <- Full(queryParams.collect { case OBPLimit(value) => value }.head)
-       appName = queryParams.collect { case OBPAppName(value) => value }.headOption
-       excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
-       excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
-       extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-       implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
-       implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
-       
-       dbQuery <- Full("SELECT count(*) as count, mappedmetric.appname as appname, consumer.id as consumerprimaryid, consumer.developeremail as email " +
-                         "FROM mappedmetric, consumer \nWHERE mappedmetric.appname = consumer.name " +
-                         "AND date_c >= ? " +
-                         "AND date_c <= ? " +
-                         "AND (? or implementedbypartialfunction = ?) " +
-                         "AND (? or implementedinversion =?) " +
-                         "And (? or appname =?) " +
-                         s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
+       dbQuery <- Full("SELECT count(*) as count, mappedmetric.appname as appname, consumer.id as consumerprimaryid, consumer.developeremail as email " + 
+                        "FROM mappedmetric, consumer " +
+                        "WHERE mappedmetric.appname = consumer.name " +
+                        "AND date_c >= ? "+ 
+                        "AND date_c <= ? "+ 
+                        "AND (? or mappedmetric.consumerid = ?) "+ 
+                        "AND (? or mappedmetric.userid = ?) "+ 
+                        "AND (? or mappedmetric.implementedbypartialfunction = ? ) "+ 
+                        "AND (? or mappedmetric.implementedinversion = ?) "+ 
+                        "AND (? or url= ?) "+ 
+                        "And (? or appname = ?) "+ 
+                        "AND (? or verb = ? ) "+ 
+                        "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
+                        "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
+                        "AND (? or url NOT LIKE ?) "+
+                        s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
+                        s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "+
                          "GROUP BY appname, email, consumerprimaryid " +
                          "ORDER BY count DESC " +
                          "LIMIT ? ")
@@ -324,17 +390,32 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               DB.prepareStatement(dbQuery, conn)
               {
                 stmt =>
-                  stmt.setTimestamp(1, new Timestamp(fromDate.getTime))
-                  stmt.setTimestamp(2, new Timestamp(toDate.getTime))
-                  stmt.setBoolean(3, if (implementedByPartialFunction.isEmpty) true else false)
-                  stmt.setString(4, implementedByPartialFunction.getOrElse(""))
-                  stmt.setBoolean(5, if (implementedInVersion.isEmpty) true else false)
-                  stmt.setString(6, implementedInVersion.getOrElse(""))
-                  stmt.setBoolean(7, if (appName.isEmpty) true else false)
-                  stmt.setString(8,appName.getOrElse(""))
-                  stmt.setBoolean(9, if (excludeAppNames.isEmpty) true else false)
-                  extendPrepareStement(10, stmt, excludeAppNamesNumberSet)
-                  stmt.setInt(10 + excludeAppNamesNumberSet.size, limit)
+                  stmt.setTimestamp(1, new Timestamp(fromDate.get.getTime)) //These two fields will always have the value. If null, set the default value.
+                  stmt.setTimestamp(2, new Timestamp(toDate.get.getTime))
+                  stmt.setBoolean(3, if (consumerId.isEmpty) true else false)
+                  stmt.setString(4, consumerId.getOrElse(""))
+                  stmt.setBoolean(5, if (userId.isEmpty) true else false)
+                  stmt.setString(6, userId.getOrElse(""))
+                  stmt.setBoolean(7, if (implementedByPartialFunction.isEmpty) true else false)
+                  stmt.setString(8, implementedByPartialFunction.getOrElse(""))
+                  stmt.setBoolean(9, if (implementedInVersion.isEmpty) true else false)
+                  stmt.setString(10, implementedInVersion.getOrElse(""))
+                  stmt.setBoolean(11, if (url.isEmpty) true else false)
+                  stmt.setString(12, url.getOrElse(""))
+                  stmt.setBoolean(13, if (appName.isEmpty) true else false)
+                  stmt.setString(14,appName.getOrElse(""))
+                  stmt.setBoolean(15, if (verb.isEmpty) true else false)
+                  stmt.setString(16, verb.getOrElse(""))
+                  stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.) 
+                  stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
+                  stmt.setBoolean(19, if (excludeUrlPattern.isEmpty) true else false)
+                  stmt.setString(20, excludeUrlPattern.getOrElse(""))
+                  stmt.setBoolean(21, if (excludeAppNames.isEmpty) true else false)
+                  extendPrepareStement(22, stmt, excludeAppNamesNumberSet)
+                  stmt.setBoolean(22+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
+                  extendPrepareStement(22+excludeAppNamesNumberSet.size+1,stmt, excludeImplementedByPartialFunctionsNumberSet)
+                  (22+excludeAppNamesNumberSet.size+1+excludeImplementedByPartialFunctionsNumberSet.size, stmt, excludeAppNamesNumberSet)
+                  stmt.setInt(22+excludeAppNamesNumberSet.size+1+excludeImplementedByPartialFunctionsNumberSet.size, limit.get)
                   DB.resultSetTo(stmt.executeQuery())
               }
          })?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
