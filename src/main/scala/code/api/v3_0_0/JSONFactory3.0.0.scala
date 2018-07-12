@@ -170,7 +170,7 @@ case class BasicViewJson(
 case class ThisAccountJsonV300(
   id: String,
   bank_routing: BankRoutingJsonV121,
-  account_routing: AccountRoutingJsonV121,
+  account_routings: List[AccountRoutingJsonV121],
   holders: List[AccountHolderJSON]
 )
 
@@ -178,7 +178,7 @@ case class OtherAccountJsonV300(
   id: String,
   holder: AccountHolderJSON,
   bank_routing: BankRoutingJsonV121,
-  account_routing: AccountRoutingJsonV121,
+  account_routings: List[AccountRoutingJsonV121],
   metadata: OtherAccountMetadataJSON
 )
 
@@ -202,7 +202,7 @@ case class CoreCounterpartyJsonV300(
   id: String,
   holder: AccountHolderJSON,
   bank_routing: BankRoutingJsonV121,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class CoreTransactionJsonV300(
@@ -232,13 +232,13 @@ case class ModeratedAccountJsonV300(
   `type`: String,
   balance: AmountOfMoneyJsonV121,
   views_available: List[ViewJsonV300],
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 case class CoreAccountJsonV300(
   id : String,
   label : String,
   bank_id : String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 
@@ -254,7 +254,7 @@ case class CoreAccountJson(
   label: String,
   bank_id: String,
   account_type: String,
-  account_routings: List[AccountRouting],
+  account_routings: List[AccountRoutingJsonV121],
   views: List[ViewBasic]
 )
 
@@ -262,7 +262,7 @@ case class AccountHeldJson(
   id: String,
   bank_id: String,
   number: String,
-  account_routing: AccountRouting
+  account_routings: List[AccountRoutingJsonV121]
 )
 case class CoreAccountsJsonV300(accounts: List[CoreAccountJson])
 case class CoreAccountsHeldJsonV300(accounts: List[AccountHeldJson])
@@ -514,7 +514,7 @@ object JSONFactory300{
     ThisAccountJsonV300(
       id = bankAccount.accountId.value,
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress))),
       holders = bankAccount.owners.map(x => x.toList.map(holder => AccountHolderJSON(name = holder.name, is_alias = false))).getOrElse(null)
     )
   }
@@ -537,7 +537,7 @@ object JSONFactory300{
       id = bankAccount.id,
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress))),
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
     )
   }
@@ -577,7 +577,7 @@ object JSONFactory300{
       id = bankAccount.id,
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress))
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)))
     )
   }
 
@@ -698,7 +698,7 @@ object JSONFactory300{
       account.accountId.value,
       stringOrNull(account.label),
       account.bankId.value,
-      AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)
+      List(AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress))
     )
 
   def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
@@ -707,7 +707,7 @@ object JSONFactory300{
       coreAccount.label,
       coreAccount.bankId,
       coreAccount.accountType,
-      coreAccount.accountRoutings,
+      coreAccount.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address)),
       views = Views.views.vend
         .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id)))
         .map(mappedView => 
@@ -720,7 +720,13 @@ object JSONFactory300{
     )))
   
   def createCoreAccountsByCoreAccountsJSON(accountsHeld : List[AccountHeld]): CoreAccountsHeldJsonV300 =
-    CoreAccountsHeldJsonV300(accountsHeld.map(account => AccountHeldJson(account.id, account.bankId, account.number, account.accountRouting)))
+    CoreAccountsHeldJsonV300(accountsHeld.map(
+      account => AccountHeldJson(
+        account.id,
+        account.bankId, 
+        account.number, 
+        account.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address))
+        )))
   
   def createAccountsIdsByBankIdAccountIds(bankaccountIds :  List[BankIdAccountId]): AccountsIdsJsonV300 =
     AccountsIdsJsonV300(bankaccountIds.map(x => AccountIdJson(x.accountId.value)))

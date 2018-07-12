@@ -826,7 +826,7 @@ case class AccountHeld(
   id: String,
   bankId: String,
   number: String,
-  accountRouting: AccountRouting
+  accountRoutings: List[AccountRouting]
 )
 
 case class CounterpartyBespoke(
