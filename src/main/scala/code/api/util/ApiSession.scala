@@ -1,7 +1,7 @@
 package code.api.util
 
 import java.util.Date
-
+import code.api.oauth1a.OauthParams._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
 import code.model.{Consumer, User}
@@ -44,7 +44,7 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
       authReqHeaderField = this.authReqHeaderField.toOption,
       partialFunctionName = this.resourceDocument.map(_.partialFunctionName).getOrElse(""),
       directLoginToken = this.directLoginParams.get("token").getOrElse(""),
-      oAuthToken = this.oAuthParams.get("oauth_token").getOrElse("")
+      oAuthToken = this.oAuthParams.get(TokenName).getOrElse("")
     )
   }
 }

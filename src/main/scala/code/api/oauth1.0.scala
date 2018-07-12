@@ -22,34 +22,33 @@ Berlin 13359, Germany
 
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
-  
+
  */
 package code.api
 
 import java.net.{URLDecoder, URLEncoder}
 import java.util.Date
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
-import code.api.util.ErrorMessages._
 import code.api.Constant._
-import code.api.util.{APIUtil, CallContext, CallContextLight, ErrorMessages}
+import code.api.oauth1a.Arithmetics
+import code.api.oauth1a.OauthParams._
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.consumer.Consumers
-import code.model.dataAccess.ResourceUserCaseClass
 import code.model.{Consumer, TokenType, User}
 import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
-import net.liftweb.util.{Helpers, Props}
-import net.liftweb.util.Helpers.{tryo, _}
-import code.util.Helper.MdcLoggable
+import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
 
 import scala.compat.Platform
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -93,7 +92,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         if(saveAuthorizationToken(oAuthParameters,token, secret))
         //remove the request token so the application could not exchange it
         //again to get an other access token
-         Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token").get) match {
+         Tokens.tokens.vend.getTokenByKey(oAuthParameters.get(TokenName).get) match {
             case Full(requestToken) => Tokens.tokens.vend.deleteToken(requestToken.id.get) match {
               case true  =>
               case false => logger.warn("Request token: " + requestToken + " is not deleted. The application could exchange it again to get an other access token!")
@@ -122,14 +121,14 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
           val oauthPossibleParameters =
             List(
               "oauth_consumer_key",
-              "oauth_nonce",
-              "oauth_signature_method",
-              "oauth_timestamp",
-              "oauth_version",
-              "oauth_signature",
-              "oauth_callback",
-              "oauth_token",
-              "oauth_verifier"
+              NonceName,
+              SignatureMethodName,
+              TimestampName,
+              VersionName,
+              SignatureName,
+              CallbackName,
+              TokenName,
+              VerifierName
             )
 
           if (input contains "=") {
@@ -222,85 +221,15 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       * The nonce value MUST be unique across all requests with the
       * same timestamp, client credentials, and token combinations.
       */
-      val token = parameters.get("oauth_token") getOrElse ""
+      val token = parameters.get(TokenName) getOrElse ""
       Nonces.nonces.vend.countNonces(consumerKey = parameters.get("oauth_consumer_key").get,
         tokenKey = token,
-        timestamp = new Date(parameters.get("oauth_timestamp").get.toLong),
-        value = parameters.get("oauth_nonce").get
+        timestamp = new Date(parameters.get(TimestampName).get.toLong),
+        value = parameters.get(NonceName).get
       ) !=0
     }
 
-    def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
-      //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
-      //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-      def generateOAuthParametersString(OAuthparameters : List[(String, String)]) : String = {
-        def sortParam( keyAndValue1 : (String, String), keyAndValue2 : (String, String))= keyAndValue1._1.compareTo(keyAndValue2._1) < 0
-        var parameters =""
 
-        //sort the parameters by name
-        OAuthparameters.sortWith(sortParam _).foreach(
-          t =>
-            if(t._1 != "oauth_signature")
-              parameters += URLEncoder.encode(t._1,"UTF-8")+"%3D"+ URLEncoder.encode(t._2,"UTF-8")+"%26"
-
-        )
-        parameters = parameters.dropRight(3) //remove the "&" encoded sign
-        parameters
-      }
-      /**
-        * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
-        * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
-        * @return the Url parameters as list of Tuples
-        */
-
-      def urlParameters(): List[(String, String)] = {
-        val mapOfParams: Map[String, List[String]] = for ((k, l) <- S.request.map(_.params).getOrElse(Map.empty)) yield (k, l.sortWith(_ < _))
-        val listOfTuples: List[(String, String)] = for {(k, l) <- mapOfParams.toList
-                                                        v <- l}
-          yield {
-            (k, v)
-          }
-        listOfTuples
-      }
-      //prepare the base string
-      var baseString = httpMethod+"&"+URLEncoder.encode(HostName + S.uri ,"UTF-8")+"&"
-      // Add OAuth and URL parameters to the base string
-      // Parameters are provided as List[(String, String)]
-      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
-
-      val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
-      //get the key to sign
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
-      var secret= consumer.secret.toString
-
-      OAuthparameters.get("oauth_token") match {
-        case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
-            case Full(token) => secret+= "&" +token.secret.toString()
-            case _ => secret+= "&"
-          }
-        case _ => secret+= "&"
-      }
-      //logger.debug("base string: " + baseString)
-      //signing process // TODO default to HmacSHA256?
-      val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
-        "HmacSHA256"
-      else
-        "HmacSHA1"
-
-      //logger.debug("signing method: " + signingAlgorithm)
-      //logger.debug("signing key: " + secret)
-      //logger.debug("signing key in bytes: " + secret.getBytes("UTF-8"))
-
-      var m = Mac.getInstance(signingAlgorithm);
-      m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
-      val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
-
-      //logger.debug("calculatedSignature: " + calculatedSignature)
-      //logger.debug("received signature:" + OAuthparameters.get("oauth_signature").get)
-      //logger.debug("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
-
-      calculatedSignature== URLDecoder.decode(OAuthparameters.get("oauth_signature").get,"UTF-8")
-    }
 
     //check if the token exists and is still valid
     def validToken(tokenKey : String, verifier : String) ={
@@ -323,17 +252,17 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       val parametersBase =
         List(
           "oauth_consumer_key",
-          "oauth_nonce",
-          "oauth_signature_method",
-          "oauth_timestamp",
-          "oauth_signature"
+          NonceName,
+          SignatureMethodName,
+          TimestampName,
+          SignatureName
         )
       if(requestType == "requestToken")
-        ("oauth_callback" :: parametersBase).toSet diff parameters.keySet
+        (CallbackName :: parametersBase).toSet diff parameters.keySet
       else if(requestType=="authorizationToken")
-        ("oauth_token" :: "oauth_verifier" :: parametersBase).toSet diff parameters.keySet
+        (TokenName :: VerifierName :: parametersBase).toSet diff parameters.keySet
       else if(requestType=="protectedResource")
-        ("oauth_token" :: parametersBase).toSet diff parameters.keySet
+        (TokenName :: parametersBase).toSet diff parameters.keySet
       else
         parameters.keySet
     }
@@ -349,6 +278,10 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
     var parameters = getAllParameters
 
+    val sRequest = S.request
+    val urlParams: Map[String, List[String]] = sRequest.map(_.params).getOrElse(Map.empty)
+    val sUri = S.uri
+
     //are all the necessary OAuth parameters present?
     val missingParams = missingOAuthParameters(parameters,requestType)
     if( missingParams.size != 0 )
@@ -363,13 +296,13 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       httpCode = 400
     }
     //valid OAuth
-    else if(!supportedOAuthVersion(parameters.get("oauth_version")))
+    else if(!supportedOAuthVersion(parameters.get(VersionName)))
     {
       message = "OAuth version not supported"
       httpCode = 400
     }
     //supported signature method
-    else if (!supportedSignatureMethod(parameters.get("oauth_signature_method").get))
+    else if (!supportedSignatureMethod(parameters.get(SignatureMethodName).get))
     {
       message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
       httpCode = 400
@@ -382,9 +315,9 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       httpCode = 401
     }
     //valid timestamp
-    else if(! wrongTimestamp(parameters.get("oauth_timestamp")).isEmpty)
+    else if(! wrongTimestamp(parameters.get(TimestampName)).isEmpty)
     {
-      message = wrongTimestamp(parameters.get("oauth_timestamp")).get
+      message = wrongTimestamp(parameters.get(TimestampName)).get
       httpCode = 400
     }
     //unused nonce
@@ -394,22 +327,22 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       httpCode = 401
     }
     //In the case OAuth authorization token request, check if the token is still valid and the verifier is correct
-    else if(requestType=="authorizationToken" && !validToken(parameters.get("oauth_token").get, parameters.get("oauth_verifier").get))
+    else if(requestType=="authorizationToken" && !validToken(parameters.get(TokenName).get, parameters.get(VerifierName).get))
     {
-      message = "Invalid or expired request token: " + parameters.get("oauth_token").get
+      message = "Invalid or expired request token: " + parameters.get(TokenName).get
       httpCode = 401
     }
     //In the case protected resource access request, check if the token is still valid
     else if (
         requestType=="protectedResource" &&
-      ! validToken2(parameters.get("oauth_token").get)
+      ! validToken2(parameters.get(TokenName).get)
     )
     {
-      message = "Invalid or expired access token: " + parameters.get("oauth_token").get
+      message = "Invalid or expired access token: " + parameters.get(TokenName).get
       httpCode = 401
     }
     //checking if the signature is correct
-    else if(! correctSignature(parameters, httpMethod))
+    else if(! verifySignature(parameters, httpMethod, urlParams, sUri))
     {
       message = "Invalid signature"
       httpCode = 401
@@ -437,14 +370,14 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
           val oauthPossibleParameters =
             List(
               "oauth_consumer_key",
-              "oauth_nonce",
-              "oauth_signature_method",
-              "oauth_timestamp",
-              "oauth_version",
-              "oauth_signature",
-              "oauth_callback",
-              "oauth_token",
-              "oauth_verifier"
+              NonceName,
+              SignatureMethodName,
+              TimestampName,
+              VersionName,
+              SignatureName,
+              CallbackName,
+              TokenName,
+              VerifierName
             )
 
           if (input contains "=") {
@@ -538,89 +471,20 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       * The nonce value MUST be unique across all requests with the
       * same timestamp, client credentials, and token combinations.
       */
-      val token = parameters.get("oauth_token") getOrElse ""
+      val token = parameters.get(TokenName) getOrElse ""
       for {
         cnt <- Nonces.nonces.vend.countNoncesFuture(consumerKey = parameters.get("oauth_consumer_key").get,
                                                     tokenKey = token,
-                                                    timestamp = new Date(parameters.get("oauth_timestamp").get.toLong),
-                                                    value = parameters.get("oauth_nonce").get
+                                                    timestamp = new Date(parameters.get(TimestampName).get.toLong),
+                                                    value = parameters.get(NonceName).get
                                                     )
       } yield {
         cnt != 0
       }
     }
 
-    def correctSignature(OAuthparameters : Map[String, String], httpMethod : String, req: Box[Req], sUri: String) = {
-      //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
-      //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-      def generateOAuthParametersString(OAuthparameters : List[(String, String)]) : String = {
-        def sortParam( keyAndValue1 : (String, String), keyAndValue2 : (String, String))= keyAndValue1._1.compareTo(keyAndValue2._1) < 0
-        var parameters =""
 
-        //sort the parameters by name
-        OAuthparameters.sortWith(sortParam _).foreach(
-          t =>
-            if(t._1 != "oauth_signature")
-              parameters += URLEncoder.encode(t._1,"UTF-8")+"%3D"+ URLEncoder.encode(t._2,"UTF-8")+"%26"
 
-        )
-        parameters = parameters.dropRight(3) //remove the "&" encoded sign
-        parameters
-      }
-      /**
-        * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
-        * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
-        * @return the Url parameters as list of Tuples
-        */
-
-      def urlParameters(): List[(String, String)] = {
-        val mapOfParams: Map[String, List[String]] = for ((k, l) <- req.map(_.params).getOrElse(Map.empty)) yield (k, l.sortWith(_ < _))
-        val listOfTuples: List[(String, String)] = for {(k, l) <- mapOfParams.toList
-                                                        v <- l}
-          yield {
-            (k, v)
-          }
-        listOfTuples
-      }
-      //prepare the base string
-      var baseString = httpMethod+"&"+URLEncoder.encode(HostName + sUri ,"UTF-8")+"&"
-      // Add OAuth and URL parameters to the base string
-      // Parameters are provided as List[(String, String)]
-      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
-
-      val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
-      //get the key to sign
-      val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
-      var secret= consumer.secret.toString
-
-      OAuthparameters.get("oauth_token") match {
-        case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
-          case Full(token) => secret+= "&" +token.secret.toString()
-          case _ => secret+= "&"
-        }
-        case _ => secret+= "&"
-      }
-      //logger.debug("base string: " + baseString)
-      //signing process // TODO default to HmacSHA256?
-      val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
-        "HmacSHA256"
-      else
-        "HmacSHA1"
-
-      //logger.debug("signing method: " + signingAlgorithm)
-      //logger.debug("signing key: " + secret)
-      //logger.debug("signing key in bytes: " + secret.getBytes("UTF-8"))
-
-      var m = Mac.getInstance(signingAlgorithm);
-      m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
-      val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
-
-      //logger.debug("calculatedSignature: " + calculatedSignature)
-      //logger.debug("received signature:" + OAuthparameters.get("oauth_signature").get)
-      //logger.debug("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
-
-      calculatedSignature== URLDecoder.decode(OAuthparameters.get("oauth_signature").get,"UTF-8")
-    }
 
     //check if the token exists and is still valid
     def validTokenFuture(tokenKey : String, verifier : String) = {
@@ -643,17 +507,17 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       val parametersBase =
         List(
           "oauth_consumer_key",
-          "oauth_nonce",
-          "oauth_signature_method",
-          "oauth_timestamp",
-          "oauth_signature"
+          NonceName,
+          SignatureMethodName,
+          TimestampName,
+          SignatureName
         )
       if(requestType == "requestToken")
-        ("oauth_callback" :: parametersBase).toSet diff parameters.keySet
+        (CallbackName :: parametersBase).toSet diff parameters.keySet
       else if(requestType=="authorizationToken")
-        ("oauth_token" :: "oauth_verifier" :: parametersBase).toSet diff parameters.keySet
+        (TokenName :: VerifierName :: parametersBase).toSet diff parameters.keySet
       else if(requestType=="protectedResource")
-        ("oauth_token" :: parametersBase).toSet diff parameters.keySet
+        (TokenName :: parametersBase).toSet diff parameters.keySet
       else
         parameters.keySet
     }
@@ -672,20 +536,21 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     val alreadyUsedNonceF = alreadyUsedNonceFuture(parameters)
     val validToken2F = {
       if (requestType == "protectedResource") {
-        validToken2Future(parameters.get("oauth_token").get)
+        validToken2Future(parameters.get(TokenName).get)
       } else {
         Future{true}
       }
     }
     val validTokenF = {
       if (requestType == "authorizationToken") {
-        validTokenFuture(parameters.get("oauth_token").get, parameters.get("oauth_verifier").get)
+        validTokenFuture(parameters.get(TokenName).get, parameters.get(VerifierName).get)
       } else {
         Future{true}
       }
     }
     val registeredApplicationF = APIUtil.registeredApplicationFuture(parameters.get("oauth_consumer_key").get)
     val sRequest = S.request
+    val urlParams: Map[String, List[String]] = sRequest.map(_.params).getOrElse(Map.empty)
     val sUri = S.uri
 
     // Please note that after this point S.request for instance cannot be used directly
@@ -711,13 +576,13 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         httpCode = 400
       }
       //valid OAuth
-      else if(!supportedOAuthVersion(parameters.get("oauth_version")))
+      else if(!supportedOAuthVersion(parameters.get(VersionName)))
       {
         message = "OAuth version not supported"
         httpCode = 400
       }
       //supported signature method
-      else if (!supportedSignatureMethod(parameters.get("oauth_signature_method").get))
+      else if (!supportedSignatureMethod(parameters.get(SignatureMethodName).get))
       {
         message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
         httpCode = 400
@@ -730,9 +595,9 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
         httpCode = 401
       }
       //valid timestamp
-      else if(! wrongTimestamp(parameters.get("oauth_timestamp")).isEmpty)
+      else if(! wrongTimestamp(parameters.get(TimestampName)).isEmpty)
       {
-        message = wrongTimestamp(parameters.get("oauth_timestamp")).get
+        message = wrongTimestamp(parameters.get(TimestampName)).get
         httpCode = 400
       }
       //unused nonce
@@ -744,17 +609,17 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       //In the case OAuth authorization token request, check if the token is still valid and the verifier is correct
       else if(!validToken)
       {
-        message = "Invalid or expired request token: " + parameters.get("oauth_token").get
+        message = "Invalid or expired request token: " + parameters.get(TokenName).get
         httpCode = 401
       }
       //In the case protected resource access request, check if the token is still valid
       else if (!validToken2)
       {
-        message = "Invalid or expired access token: " + parameters.get("oauth_token").get
+        message = "Invalid or expired access token: " + parameters.get(TokenName).get
         httpCode = 401
       }
       //checking if the signature is correct
-      else if(! correctSignature(parameters, httpMethod, sRequest, sUri))
+      else if(! verifySignature(parameters, httpMethod, urlParams, sUri))
       {
         message = "Invalid signature"
         httpCode = 401
@@ -767,6 +632,116 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
 
       (httpCode, message, parameters)
     }
+  }
+
+
+  private def decodeOAuthParams(OAuthparameters: Map[String, String]) = {
+    val decodedOAuthParams = OAuthparameters.toList map {
+      t =>
+        (
+          URLDecoder.decode(t._1, "UTF-8"),
+          URLDecoder.decode(t._2, "UTF-8")
+        )
+    }
+    decodedOAuthParams
+  }
+
+  /**
+    * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
+    * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
+    *
+    * @return the Url parameters as list of Tuples
+    */
+
+  private def urlParameters(urlParams: Map[String, List[String]]): List[(String, String)] = {
+    val mapOfParams: Map[String, List[String]] = for ((k, l) <- urlParams) yield (k, l.sortWith(_ < _))
+    val listOfTuples: List[(String, String)] =
+      for {
+        (k, l) <- mapOfParams.toList
+        v <- l
+      }
+        yield {
+          (k, v)
+        }
+    listOfTuples
+  }
+
+  private def getConsumerAndTokenSecret(OAuthparameters: Map[String, String]) = {
+    val consumer = Consumers.consumers.vend.getConsumerByConsumerKey(OAuthparameters.get("oauth_consumer_key").get).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val consumerSecret = consumer.secret.toString
+
+    val tokenSecret = OAuthparameters.get(TokenName) match {
+      case Some(tokenKey) => Tokens.tokens.vend.getTokenByKey(tokenKey) match {
+        case Full(token) =>
+          token.secret.toString()
+        case _ => ""
+      }
+      case _ => ""
+    }
+    (consumerSecret, tokenSecret)
+  }
+
+  /**
+    * OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
+    * Recalculating the request signature independently as described in Section 3.4 and
+    * comparing it to the value received from the client via the "oauth_signature" parameter.
+    * For example, the HTTP request:
+    * POST /request?b5=%3D%253D&a3=a&c%40=&a2=r%20b HTTP/1.1
+    * Host: example.com
+    * Content-Type: application/x-www-form-urlencoded
+    * Authorization: OAuth realm="Example",
+    *                oauth_consumer_key="9djdj82h48djs9d2",
+    *                oauth_token="kkk9d7dh3k39sjv7",
+    *                oauth_signature_method="HMAC-SHA1",
+    *                oauth_timestamp="137131201",
+    *                oauth_nonce="7d8f3e4a",
+    *                oauth_signature="bYT5CMsGcbgUdFHObYMEfcx6bsw%3D"
+    *
+    * c2&a3=2+q
+    * is represented by the following signature base string (line breaks are for display purposes only):
+    * POST&http%3A%2F%2Fexample.com%2Frequest&a2%3Dr%2520b%26a3%3D2%2520q
+    * %26a3%3Da%26b5%3D%253D%25253D%26c%2540%3D%26c2%3D%26oauth_consumer_
+    * key%3D9djdj82h48djs9d2%26oauth_nonce%3D7d8f3e4a%26oauth_signature_m
+    * ethod%3DHMAC-SHA1%26oauth_timestamp%3D137131201%26oauth_token%3Dkkk
+    * 9d7dh3k39sjv7
+    *
+    * @param OAuthparameters List of URL encoded OAuth parameters
+    * @param httpMethod The HTTP request method in uppercase. For example: "HEAD", "GET", "POST", etc.  If the request uses a custom HTTP method, it MUST be encoded
+    * @param urlParams For example: b5=%3D%253D&a3=a&c%40=&a2=r%20b
+    * @param sUri For example: http://example.com
+    * @return Boolean: True/False
+    */
+  private def verifySignature(OAuthparameters : Map[String, String], httpMethod : String, urlParams: Map[String, List[String]], sUri: String): Boolean = {
+    // Chose signature algorithm according to a value of parameter of OAuth.
+    // For example: oauth_signature_method="HMAC-SHA1"
+    val signingAlgorithm: String = OAuthparameters.get(SignatureMethodName).get.toLowerCase match {
+      case "hmac-sha256" => Arithmetics.HmacSha256Algorithm
+      case _             => Arithmetics.HmacSha1Algorithm
+    }
+    // Find secret of consumer and token by oauth_consumer_key and oauth_token parameters
+    // For example:
+    // oauth_consumer_key="9djdj82h48djs9d2"
+    // oauth_token="kkk9d7dh3k39sjv7"
+    val (consumerSecret: String, tokenSecret: String) = getConsumerAndTokenSecret(OAuthparameters)
+    // Decode OAuth parameters in order to get original state
+    val decodedOAuthParams: List[(String, String)] = decodeOAuthParams(OAuthparameters)
+    // Signature Base String Construction
+    val signatureBase = Arithmetics.concatItemsForSignature(httpMethod, HostName + sUri, urlParameters(urlParams), Nil, decodedOAuthParams)
+    val computedSignature = Arithmetics.sign(signatureBase, consumerSecret, tokenSecret, signingAlgorithm)
+    val received: String = OAuthparameters.get(SignatureName).get
+    val receivedAndDecoded: String = URLDecoder.decode(OAuthparameters.get(SignatureName).get,"UTF-8")
+    val computedAndEncoded: String = URLEncoder.encode(computedSignature, "UTF-8")
+    logger.debug("OAuthparameters: " + OAuthparameters)
+    logger.debug("Decoded OAuthparameters: " + decodedOAuthParams)
+    logger.debug("Signature's base: " + signatureBase)
+    logger.debug("Computed signature: " + computedSignature)
+    logger.debug("Computed and encoded signature: " + computedAndEncoded)
+    logger.debug("Received signature:" + received)
+    logger.debug("Received and decoded signature:" + receivedAndDecoded)
+
+    // Please note that received OAuth signature is encoded so we need to encode computed signature as well.
+    // For example: oauth_signature="bYT5CMsGcbgUdFHObYMEfcx6bsw%3D"
+    computedAndEncoded == received
   }
 
 
@@ -787,8 +762,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       id = None,
       consumerKey = Some(oAuthParameters.get("oauth_consumer_key").get),
       tokenKey = None,
-      timestamp = Some(new Date(oAuthParameters.get("oauth_timestamp").get.toLong)),
-      value = Some(oAuthParameters.get("oauth_nonce").get)
+      timestamp = Some(new Date(oAuthParameters.get(TimestampName).get.toLong)),
+      value = Some(oAuthParameters.get(NonceName).get)
     ) match {
       case Full(_) => true
       case _ => false
@@ -799,8 +774,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       case _ => None
     }
     val callbackURL =
-      if(! oAuthParameters.get("oauth_callback").get.isEmpty)
-        URLDecoder.decode(oAuthParameters.get("oauth_callback").get,"UTF-8")
+      if(! oAuthParameters.get(CallbackName).get.isEmpty)
+        URLDecoder.decode(oAuthParameters.get(CallbackName).get,"UTF-8")
       else
         "oob"
     val currentTime = Platform.currentTime
@@ -830,9 +805,9 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     val nonceSaved = Nonces.nonces.vend.createNonce(
       id = None,
       consumerKey = Some(oAuthParameters.get("oauth_consumer_key").get),
-      tokenKey = Some(oAuthParameters.get("oauth_token").get),
-      timestamp = Some(new Date(oAuthParameters.get("oauth_timestamp").get.toLong)),
-      value = Some(oAuthParameters.get("oauth_nonce").get)
+      tokenKey = Some(oAuthParameters.get(TokenName).get),
+      timestamp = Some(new Date(oAuthParameters.get(TimestampName).get.toLong)),
+      value = Some(oAuthParameters.get(NonceName).get)
     ) match {
       case Full(_) => true
       case _ => false
@@ -842,7 +817,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       case Full(consumer) => Some(consumer.id.get)
       case _ => None
     }
-    val userId = Tokens.tokens.vend.getTokenByKey(oAuthParameters.get("oauth_token").get) match {
+    val userId = Tokens.tokens.vend.getTokenByKey(oAuthParameters.get(TokenName).get) match {
       case Full(requestToken) => Some(requestToken.userForeignKey.get)
       case _ => None
     }
@@ -875,7 +850,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
     import code.model.Token
     val consumer: Option[Consumer] = for {
-      tokenId: String <- oAuthParameters.get("oauth_token")
+      tokenId: String <- oAuthParameters.get(TokenName)
       token: Token <- Tokens.tokens.vend.getTokenByKey(tokenId)
       consumer: Consumer <- token.consumer
     } yield {
@@ -904,7 +879,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
     val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 
-    if(httpCode== 200) getUser(httpCode, oAuthParameters.get("oauth_token"))
+    if(httpCode== 200) getUser(httpCode, oAuthParameters.get(TokenName))
     else ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
   }
   def getUserAndCallContext(cc: CallContext) : (Box[User], CallContext)  = {
@@ -915,11 +890,11 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
 
     if(httpCode== 200) {
-      val oauthToken = oAuthParameters.get("oauth_token")
+      val oauthToken = oAuthParameters.get(TokenName)
       val consumer = getConsumer(oauthToken.getOrElse(""))
       (getUser(httpCode, oauthToken), cc.copy(oAuthParams = oAuthParameters, consumer = consumer))
     }
-    else 
+    else
       (ParamFailure(message, Empty, Empty, APIFailure(message, httpCode)), cc)
   }
 
@@ -955,8 +930,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     for {
       (httpCode, message, oAuthParameters) <- validatorFuture("protectedResource", httpMethod)
       _ <- Future { if (httpCode == 200) Full("ok") else Empty } map { x => APIUtil.fullBoxOrException(x ?~! message) }
-      consumer <- getConsumerFromTokenFuture(httpCode, oAuthParameters.get("oauth_token"))
-      user <- getUserFromTokenFuture(httpCode, oAuthParameters.get("oauth_token"))
+      consumer <- getConsumerFromTokenFuture(httpCode, oAuthParameters.get(TokenName))
+      user <- getUserFromTokenFuture(httpCode, oAuthParameters.get(TokenName))
     } yield {
       (user, Some(sc.copy(user = user, oAuthParams = oAuthParameters, consumer=consumer)))
     }
@@ -980,7 +955,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
 
   }
-  
+
   def getConsumerFromTokenFuture(httpCode : Int, key: Box[String]) : Future[Box[Consumer]] = {
     httpCode match {
       case 200 =>
