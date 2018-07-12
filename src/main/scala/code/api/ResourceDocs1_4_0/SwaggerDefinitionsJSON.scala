@@ -151,7 +151,7 @@ object SwaggerDefinitionsJSON {
       "can_see_other_bank_routing_scheme",
       "can_see_other_bank_routing_address",
       "can_see_other_account_routing_scheme",
-      "can_see_other_account_routing_addres"
+      "can_see_other_account_routing_address"
     )
   )
   
@@ -228,7 +228,7 @@ object SwaggerDefinitionsJSON {
       "can_see_other_bank_routing_scheme",
       "can_see_other_bank_routing_address",
       "can_see_other_account_routing_scheme",
-      "can_see_other_account_routing_addres"
+      "can_see_other_account_routing_address"
     )
   )
   
