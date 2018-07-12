@@ -37,11 +37,13 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.oauth1a.Arithmetics
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
@@ -67,7 +69,7 @@ import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
-import net.liftweb.util.Helpers.{toDate, _}
+import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
 import scala.collection.JavaConverters._
@@ -825,7 +827,6 @@ object APIUtil extends MdcLoggable {
     val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, 2010-05-10T01:20:03, to_date, 2017-05-22T01:02:03)
     if (queryStrings.contains(name)) queryStrings(queryStrings.indexOf(name)+1) else ""//Full(2010-05-10T01:20:03)
   }
-  
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
 
@@ -852,47 +853,36 @@ object APIUtil extends MdcLoggable {
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
     object Token {
-      def apply[T <: Any](m: Map[String, T]): Option[Token] = List("oauth_token", "oauth_token_secret").flatMap(m.get) match {
+      def apply[T <: Any](m: Map[String, T]): Option[Token] = List(TokenName, TokenSecretName).flatMap(m.get) match {
         case value :: secret :: Nil => Some(Token(value.toString, secret.toString))
         case _ => None
       }
     }
 
     /** @return oauth parameter map including signature */
-    def sign(method: String, url: String, user_params: Map[String, Any], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
+    def sign(method: String, url: String, user_params: Map[String, String], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]): IMap[String, String] = {
       val oauth_params = IMap(
         "oauth_consumer_key" -> consumer.key,
-        "oauth_signature_method" -> "HMAC-SHA1",
-        "oauth_timestamp" -> (System.currentTimeMillis / 1000).toString,
-        "oauth_nonce" -> System.nanoTime.toString,
-        "oauth_version" -> "1.0"
-      ) ++ token.map { "oauth_token" -> _.value } ++
-        verifier.map { "oauth_verifier" -> _ } ++
-        callback.map { "oauth_callback" -> _ }
+        SignatureMethodName -> "HMAC-SHA1",
+        TimestampName -> (System.currentTimeMillis / 1000).toString,
+        NonceName -> System.nanoTime.toString,
+        VersionName -> "1.0"
+      ) ++ token.map { TokenName -> _.value } ++
+        verifier.map { VerifierName -> _ } ++
+        callback.map { CallbackName -> _ }
 
-      val encoded_ordered_params = (
-        new TreeMap[String, String] ++ (user_params ++ oauth_params map %%)
-      ) map { case (k, v) => k + "=" + v } mkString "&"
-
-      val message =
-        %%(method.toUpperCase :: url :: encoded_ordered_params :: Nil)
-
-      val SHA1 = "HmacSHA1"
-      val key_str = %%(consumer.secret :: (token map { _.secret } getOrElse "") :: Nil)
-      val key = new crypto.spec.SecretKeySpec(bytes(key_str), SHA1)
-      val sig = {
-        val mac = crypto.Mac.getInstance(SHA1)
-        mac.init(key)
-        base64Encode(mac.doFinal(bytes(message)))
-      }
-      oauth_params + ("oauth_signature" -> sig)
+      val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
+      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha1Algorithm)
+      logger.debug("signatureBase: " + signatureBase)
+      logger.debug("computedSignature: " + computedSignature)
+      oauth_params + (SignatureName -> computedSignature)
     }
 
     /** Out-of-band callback code */
     val oob = "oob"
 
     /** Map with oauth_callback set to the given url */
-    def callback(url: String) = IMap("oauth_callback" -> url)
+    def callback(url: String) = IMap(CallbackName -> url)
 
     //normalize to OAuth percent encoding
     private def %% (str: String): String = {

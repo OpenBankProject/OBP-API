@@ -1,27 +1,19 @@
 /**
-  * Open Bank Project - API
-  * Copyright (C) 2011-2018, TESOBE Ltd
+  * This particular file is marked with the Apache license (unless specified otherwise, OBP API is licensed with the AGPL v3)
   *
-  * This program is free software: you can redistribute it and/or modify
-  * it under the terms of the Apache License, Version 2.0.
-  **
-  * This program is distributed in the hope that it will be useful,
-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. the Apache License, Version 2.0 for more details.
-  **
-  * You should have received a copy of the Apache License, Version 2.0 License
-  * along with this program. If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
-  **
-  * Email: contact@tesobe.com
-  * TESOBE Ltd
-  * Osloerstrasse 16/17
-  * Berlin 13359, Germany
-  **
-  * This product includes software developed at
-  * https://github.com/kovacshuni/koauth
-  * by
-  * Hunor Kovács: kovacshuni@yahoo.com
+  * Copyright 2018 Hunor Kovács: kovacshuni@yahoo.com
   *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  *  http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
   */
 
 package code.api.oauth1a
@@ -35,7 +27,8 @@ import javax.crypto.spec.SecretKeySpec
 
 object Arithmetics {
 
-  private val HmacSha1Algorithm = "HmacSHA1"
+  val HmacSha1Algorithm = "HmacSHA1"
+  val HmacSha256Algorithm = "HmacSHA256"
   private val FirstSlash = "(?<!/)/(?!/)"
   private val Base64Encoder = Base64.getEncoder
 
@@ -94,10 +87,10 @@ object Arithmetics {
     keyValueList sortWith paramSortOrder map { p =>  p._1 + "=" + p._2 } mkString "&"
   }
 
-  def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
+  def sign(base: String, consumerSecret: String, tokenSecret: String, signingAlgorithm: String): String = {
     val key = List(consumerSecret, tokenSecret) map urlEncode mkString "&"
-    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF_8), HmacSha1Algorithm)
-    val mac = Mac.getInstance(HmacSha1Algorithm)
+    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF_8), signingAlgorithm)
+    val mac = Mac.getInstance(signingAlgorithm)
     mac.init(secretkeySpec)
     val bytesToSign = base.getBytes(UTF_8)
     val digest = mac.doFinal(bytesToSign)

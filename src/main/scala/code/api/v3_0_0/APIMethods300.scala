@@ -2164,13 +2164,13 @@ trait APIMethods300 {
       "Add Scope for a Consumer.",
       """Create Scope. Grant Role to Consumer.
         |
-        |Scopes are used to grant System or Bank level roles to Consumer. (For Account level privileges, see Views)
+        |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)
         |
         |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
         |
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
         |
-        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+        |""",
       SwaggerDefinitionsJSON.createScopeJson,
       scopeJson,
       List(
