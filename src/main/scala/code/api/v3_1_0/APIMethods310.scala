@@ -292,6 +292,7 @@ trait APIMethods310 {
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |&limit=100
         |
         |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
         |
@@ -322,6 +323,8 @@ trait APIMethods310 {
         |14 exclude_url_pattern (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_pattern=%management/metrics%
         |
         |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+        |
+        |16 limit (for pagination: defaults to 50)  eg:limit=200
         |
         |${authenticationRequiredMessage(true)}
         |
