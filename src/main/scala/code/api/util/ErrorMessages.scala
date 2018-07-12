@@ -189,6 +189,8 @@ object ErrorMessages {
   val GetTopApisError = "OBP-30042: Could not get the top apis from database.  "
   val GetMetricsTopConsumersError = "OBP-30042: Could not get the top consumers from database.  "
   val GetAggregateMetricsError = "OBP-30043: Could not get the aggregate metrics from database.  "
+  
+  val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
 
 
   // Meetings

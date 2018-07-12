@@ -348,7 +348,7 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(BankId(defaultBankId))
+            bank <- Bank(BankId(defaultBankId)) ?~! ErrorMessages.DefaultBankIdNotSet
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
