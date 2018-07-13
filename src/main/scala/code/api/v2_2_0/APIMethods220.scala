@@ -72,10 +72,6 @@ trait APIMethods220 {
     val emptyObjectJson = EmptyClassJson()
     val implementedInApiVersion: ApiVersion = ApiVersion.v2_2_0 // was String "2_2_0"
 
-    val exampleDateString: String = "22/08/2013"
-    val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-    val exampleDate = simpleDateFormat.parse(exampleDateString)
-
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
 
@@ -857,7 +853,7 @@ trait APIMethods220 {
             //Note: Filters Part 1:
             //?from_date=100&to_date=1&limit=200&offset=0
 
-            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd"))
+            inputDateFormat <- Full(APIUtil.DateWithDayFormat)
             // set the long,long ago as the default date.
             nowTime <- Full(System.currentTimeMillis())
             defaultFromDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
@@ -865,10 +861,10 @@ trait APIMethods220 {
 
             //(defaults to one week before current date
             fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defaultFromDate))) ?~!
-              s"${InvalidDateFormat } from_date:${S.param("from_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } from_date:${S.param("from_date").get }. Support format is $DateWithDay"
             // defaults to current date
             toDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaulToDate))) ?~!
-              s"${InvalidDateFormat } to_date:${S.param("to_date").get }. Support format is yyyy-MM-dd"
+              s"${InvalidDateFormat } to_date:${S.param("to_date").get }. Support format is $DateWithDay"
             // default 1000, return 1000 items
             limit <- tryo(
               S.param("limit") match {

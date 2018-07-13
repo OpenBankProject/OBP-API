@@ -3,11 +3,13 @@ package code.api.v3_1_0
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ApiRole.CanReadMetrics
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.bankconnectors.{Connector, OBPQueryParam}
+import code.bankconnectors.Connector
 import code.metrics.APIMetrics
 import code.model._
+import code.util.Helper
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
 
@@ -199,17 +201,49 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-apis",
       "get top apis",
-      """get top apis. eg count, Implemented_by_partial_function and implemented_in_version.
+      s"""Returns get top apis. eg. total count, response time (in ms), etc.
         |
-        |Should be able to filter on the following fields:
+        |Should be able to filter on the following fields
         |
-        |eg: /management/metrics/top-apis?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+        |eg: /management/metrics/top-apis?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
+        |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+        |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+        |&verb=GET&anon=false&app_name=MapperPostman
+        |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
         |
-        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
         |
-        |""",
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore),
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlation_id (if null ignore)
+        |
+        |12 duration (if null ignore) non digit chars will be silently omitted
+        |
+        |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |
+        |14 exclude_url_pattern (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_pattern=%management/metrics%
+        |
+        |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+      """.stripMargin,
       emptyObjectJson,
       List(topApiJson),
       List(UserNotLoggedIn, UnknownError, BankNotFound),
@@ -220,12 +254,21 @@ trait APIMethods310 {
       case "management" :: "metrics" :: "top-apis" :: Nil JsonGet req => {
         cc =>
           for {
+            
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
-              } map { unboxFull(_) }
-            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(urlQueryParams) map {
+            
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
+              hasEntitlement("", u.userId, ApiRole.canReadMetrics)
+            }
+            
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(obpQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
           } yield
@@ -240,15 +283,50 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-consumers",
       "get metrics top consumers",
-      """get metrics top consumers on api usage eg. total count, consumer_id and app_name.
+      s"""get metrics top consumers on api usage eg. total count, consumer_id and app_name.
         |
-        |Should be able to filter on the following fields:
+        |Should be able to filter on the following fields
         |
-        |eg: /management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
+        |eg: /management/metrics/top-consumers?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
+        |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+        |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+        |&verb=GET&anon=false&app_name=MapperPostman
+        |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |&limit=100
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
         |
-        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
+        |
+        |3 consumer_id  (if null ignore)
+        |
+        |4 user_id (if null ignore)
+        |
+        |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+        |
+        |6 url (if null ignore), note: can not contain '&'.
+        |
+        |7 app_name (if null ignore)
+        |
+        |8 implemented_by_partial_function (if null ignore),
+        |
+        |9 implemented_in_version (if null ignore)
+        |
+        |10 verb (if null ignore)
+        |
+        |11 correlation_id (if null ignore)
+        |
+        |12 duration (if null ignore) non digit chars will be silently omitted
+        |
+        |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+        |
+        |14 exclude_url_pattern (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_pattern=%management/metrics%
+        |
+        |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+        |
+        |16 limit (for pagination: defaults to 50)  eg:limit=200
+        |
+        |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
       emptyObjectJson,
@@ -261,14 +339,21 @@ trait APIMethods310 {
       case "management" :: "metrics" :: "top-consumers" :: Nil JsonGet req => {
         cc =>
           for {
+            
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             
-            urlQueryParams <- Future{getHttpRequestUrlParams(cc.url)} map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidDateFormat, 400, Some(cc.toLight)))
-              } map { unboxFull(_) }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
+              hasEntitlement("", u.userId, ApiRole.canReadMetrics)
+            }
             
-            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(urlQueryParams) map {
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(obpQueryParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetMetricsTopConsumersError, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
             

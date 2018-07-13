@@ -93,12 +93,12 @@ trait APIMethods_UKOpenBanking_200 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             bankAccount <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
-            params <- Future { getHttpParams(callContext.get.requestHeaders)} map {
+            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
           
@@ -187,7 +187,7 @@ trait APIMethods_UKOpenBanking_200 {
             u <- unboxFullAndWrapIntoFuture{ user }
         
             account <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
         
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {

@@ -30,7 +30,7 @@ Date          Commit        Action
 02/05/2017    3084827       added 1 new caching props to sample.props.template connector.cache.ttl.seconds.APIMethods121.getTransactions. If it's omitted default value is 0 i.e. no caching. This cacahe is from API level.
 10/05/2017    7f95a5c       added allow_public_views=false, we will not create the public views and will not access them (if public views are exsiting)when it is false.
 17/07/2017    1530231       added account_id.length=64, this will set all relevant accountid length to 64, when create new sandbox.  
-
+17/02/2016    e3bead1       Added Props defaultBank.bank_id. Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
 ```
 
 

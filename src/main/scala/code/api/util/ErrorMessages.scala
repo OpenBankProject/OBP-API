@@ -2,9 +2,6 @@ package code.api.util
 
 object ErrorMessages {
   import code.api.util.APIUtil._
-
-  val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
-
   // Notes to developers. Please:
   // 1) Follow (the existing) grouping of messages
   // 2) Stick to existing terminology e.g. use "invalid" or "incorrect" rather than "wrong"
@@ -50,12 +47,15 @@ object ErrorMessages {
   val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
   val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
   val AllowedValuesAre = "OBP-10015: Allowed values are: "
+  val InvalidFilterParamtersFormat = "OBP-10016: Incorrect Filter Parapmters in URL. "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
   val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
-  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!" // OBP-20026
+  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
+  val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!" 
+  val FilterDurationFormatError = s"OBP-10029: wrong value for obp_limit parameter `duration` parameter. Please send a positive integer (=>0)!" 
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
 
@@ -189,6 +189,8 @@ object ErrorMessages {
   val GetTopApisError = "OBP-30042: Could not get the top apis from database.  "
   val GetMetricsTopConsumersError = "OBP-30042: Could not get the top consumers from database.  "
   val GetAggregateMetricsError = "OBP-30043: Could not get the aggregate metrics from database.  "
+  
+  val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
 
 
   // Meetings
