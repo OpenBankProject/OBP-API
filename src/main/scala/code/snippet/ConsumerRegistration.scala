@@ -28,7 +28,7 @@ Berlin 13359, Germany
   Everett Sochowski : everett AT tesobe DOT com
   Ayoub Benali: ayoub AT tesobe DOT com
 
- */
+  */
 package code.snippet
 
 import code.api.util.{APIUtil, ErrorMessages}
@@ -63,7 +63,7 @@ class ConsumerRegistration extends MdcLoggable {
     case _  =>  APIUtil.getPropsValue("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
   }
 
-  
+
   def registerForm = {
 
     val appTypes = List((AppType.Web.toString, AppType.Web.toString), (AppType.Mobile.toString, AppType.Mobile.toString))
@@ -74,19 +74,19 @@ class ConsumerRegistration extends MdcLoggable {
 
     def registerWithoutWarnings =
       register &
-      "#register-consumer-errors" #> ""
+        "#register-consumer-errors" #> ""
 
     def register = {
       "form" #> {
-          "#appType" #> SHtml.select(appTypes, Empty, appType(_)) &
-          "#appName" #> SHtml.text(nameVar.is, nameVar(_)) & 
+        "#appType" #> SHtml.select(appTypes, Empty, appType(_)) &
+          "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
           "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
           "type=submit" #> SHtml.submit("Register consumer", () => submitButtonDefense)
       } &
-      "#register-consumer-success" #> ""
+        "#register-consumer-success" #> ""
     }
 
     def showResults(consumer : Consumer) = {
@@ -94,21 +94,21 @@ class ConsumerRegistration extends MdcLoggable {
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
       //thanks for registering, here's your key, etc.
       "#app-consumer_id *" #> consumer.id.get &
-      "#app-name *" #> consumer.name.get &
-      "#app-redirect-url *" #> consumer.redirectURL &
-      "#app-user-authentication-url *" #> consumer.userAuthenticationURL &
-      "#app-type *" #> consumer.appType.get.toString &
-      "#app-description *" #> consumer.description.get &
-      "#app-developer *" #> consumer.developerEmail.get &
-      "#auth-key *" #> consumer.key.get &
-      "#secret-key *" #> consumer.secret.get &
-      "#oauth-endpoint a *" #> urlOAuthEndpoint &
-      "#oauth-endpoint a [href]" #> urlOAuthEndpoint &
-      "#directlogin-endpoint a *" #> urlDirectLoginEndpoint &
-      "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
-      "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
-      "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
-      "#register-consumer-input" #> ""
+        "#app-name *" #> consumer.name.get &
+        "#app-redirect-url *" #> consumer.redirectURL &
+        "#app-user-authentication-url *" #> consumer.userAuthenticationURL &
+        "#app-type *" #> consumer.appType.get.toString &
+        "#app-description *" #> consumer.description.get &
+        "#app-developer *" #> consumer.developerEmail.get &
+        "#auth-key *" #> consumer.key.get &
+        "#secret-key *" #> consumer.secret.get &
+        "#oauth-endpoint a *" #> urlOAuthEndpoint &
+        "#oauth-endpoint a [href]" #> urlOAuthEndpoint &
+        "#directlogin-endpoint a *" #> urlDirectLoginEndpoint &
+        "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
+        "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
+        "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
+        "#register-consumer-input" #> ""
     }
 
     def showRegistrationResults(result : Consumer) = {
@@ -122,12 +122,12 @@ class ConsumerRegistration extends MdcLoggable {
     def showErrors(errors : List[FieldError]) = {
       val errorsString = errors.map(_.msg.toString)
       register &
-      "#register-consumer-errors *" #> {
-        ".error *" #>
-          errorsString.map({ e=>
-            ".errorContent *" #> e
-        })
-      }
+        "#register-consumer-errors *" #> {
+          ".error *" #>
+            errorsString.map({ e=>
+              ".errorContent *" #> e
+            })
+        }
     }
 
     def showUnknownErrors(errors : List[String]) = {
@@ -207,6 +207,8 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
+      val urlDirectLoginGlossary = APIUtil.getPropsValue("webui_faq_direct_login_url", "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login")
+      val urlOauthGlossary = APIUtil.getPropsValue("webui_oauth_1_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server")
       val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
       val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
@@ -217,10 +219,10 @@ class ConsumerRegistration extends MdcLoggable {
         s"Consumer Key: ${consumerKeyOrMessage} \n" +
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
-        s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
+        s"OAuth Documentation: ${urlOauthGlossary} \n" +
         s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
-        s"Direct Login Documentation: https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login \n" +
-        s"$registrationMoreInfoText: $registrationMoreInfoUrl" 
+        s"Direct Login Documentation: ${urlDirectLoginGlossary} \n" +
+        s"$registrationMoreInfoText: $registrationMoreInfoUrl"
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
 
@@ -255,10 +257,10 @@ class ConsumerRegistration extends MdcLoggable {
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
       val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
-      		s"Email: ${registered.developerEmail.get} \n" +
-      		s"App name: ${registered.name.get} \n" +
-      		s"App type: ${registered.appType.get.toString} \n" +
-      		s"App description: ${registered.description.get}"
+        s"Email: ${registered.developerEmail.get} \n" +
+        s"App name: ${registered.name.get} \n" +
+        s"App type: ${registered.appType.get.toString} \n" +
+        s"App description: ${registered.description.get}"
 
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
       val to = toAddressesString.split(",").toList
