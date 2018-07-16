@@ -331,4 +331,38 @@ object ErrorMessages {
     strings.head
   }
 
+
+  def main (args: Array[String]): Unit = {
+    import scala.meta._
+    val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
+
+    val listOfMessaeNumbers = source.collect {
+      case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
+        obj.collect {
+          case v: Defn.Val if v.rhs.syntax.startsWith(""""OBP-""") =>
+            val messageNumber = v.rhs.syntax.split(":")
+            messageNumber(0)
+        }
+    }
+    val list = listOfMessaeNumbers.flatten.filter(_.startsWith(""""OBP-"""))
+    val duplicatedMessageNumbers = list.groupBy(x=>x).mapValues(x=>x.length).toList.filter(_._2 > 1)
+    duplicatedMessageNumbers.size match {
+      case number if number > 0 =>
+        val msg=
+          """
+
+                ____              ___            __           __                                                                      __
+               / __ \__  ______  / (_)________ _/ /____  ____/ /  ____ ___  ___  ______________ _____ ____     ____  __  ______ ___  / /_  ___  __________
+              / / / / / / / __ \/ / / ___/ __ `/ __/ _ \/ __  /  / __ `__ \/ _ \/ ___/ ___/ __ `/ __ `/ _ \   / __ \/ / / / __ `__ \/ __ \/ _ \/ ___/ ___/
+             / /_/ / /_/ / /_/ / / / /__/ /_/ / /_/  __/ /_/ /  / / / / / /  __(__  |__  ) /_/ / /_/ /  __/  / / / / /_/ / / / / / / /_/ /  __/ /  (__  )
+            /_____/\__,_/ .___/_/_/\___/\__,_/\__/\___/\__,_/  /_/ /_/ /_/\___/____/____/\__,_/\__, /\___/  /_/ /_/\__,_/_/ /_/ /_/_.___/\___/_/  /____/
+                       /_/                                                                    /____/
+
+            """
+        println(msg)
+        println(duplicatedMessageNumbers)
+      case _ =>
+    }
+  }
+
 }
