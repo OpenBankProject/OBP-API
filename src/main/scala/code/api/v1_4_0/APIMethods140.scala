@@ -181,9 +181,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         |
         |
         |
-        |Pagination:|
-          |By default, 100 records are returned.
-          |
+        |Pagination:
+        |By default, 50 records are returned.
+        |
         |You can use the url query parameters *limit* and *offset* for pagination
         |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
@@ -208,18 +208,9 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               cc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 100
-              }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-          
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No branches available. License may not be set.", 204)
+            httpParams <- createHttpParamsByUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParams(httpParams)
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId, obpQueryParams: _*)) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
@@ -246,10 +237,10 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
          |* License the data under this endpoint is released under
          |
          |
-          |Pagination:|
-          |By default, 100 records are returned.
-          |
-          |You can use the url query parameters *limit* and *offset* for pagination
+         |Pagination:
+         |By default, 50 records are returned.
+         |
+         |You can use the url query parameters *limit* and *offset* for pagination
          |
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
@@ -275,18 +266,10 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             else
               cc.user ?~! UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 100
-              }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-          
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, OBPLimit(limit), OBPOffset(offset))) ~> APIFailure("No ATMs available. License may not be set.", 204)
+            
+            httpParams <- createHttpParamsByUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParams(httpParams)
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, obpQueryParams:_*)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createAtmsJson(atms)

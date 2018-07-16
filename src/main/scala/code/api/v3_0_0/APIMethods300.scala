@@ -1218,7 +1218,7 @@ trait APIMethods300 {
          |
          |Pagination:
          |
-         |By default, 100 records are returned.
+         |By default, 50 records are returned.
          |
          |You can use the url query parameters *limit* and *offset* for pagination
          |
@@ -1434,33 +1434,20 @@ trait APIMethods300 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
         cc =>
-          val limit = S.param("limit")
-          val offset = S.param("offset")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
-              limit match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
-              limit match {
-                case Full(i) if i.toInt > 10000 => false
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
-              offset match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            users <- Users.users.vend.getAllUsersF(List(OBPLimit(limit.getOrElse("1000").toInt), OBPOffset(offset.getOrElse("0").toInt)))
+            
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            users <- Users.users.vend.getAllUsersF(obpQueryParams)
           } yield {
             (JSONFactory300.createUserJSONs (users), callContext)
           }

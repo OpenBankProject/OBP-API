@@ -23,6 +23,9 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedConnectorMetric](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedConnectorMetric.date, date) }.headOption
     val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedConnectorMetric.date, date) }.headOption
+    val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MappedConnectorMetric.correlationId, value) }.headOption
+    val functionName = queryParams.collect { case OBPFunctionName(value) => By(MappedConnectorMetric.functionName, value) }.headOption
+    val connectorName = queryParams.collect { case OBPConnectorName(value) => By(MappedConnectorMetric.connectorName, value) }.headOption
     val ordering = queryParams.collect {
       //we don't care about the intended sort field and only sort on finish date for now
       case OBPOrdering(_, direction) =>
@@ -31,7 +34,8 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
           case OBPDescending => OrderBy(MappedConnectorMetric.date, Descending)
         }
     }
-    val optionalParams : Seq[QueryParam[MappedConnectorMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
+    val optionalParams : Seq[QueryParam[MappedConnectorMetric]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering, 
+                                                                      correlationId.toSeq, functionName.toSeq, connectorName.toSeq).flatten
 
     MappedConnectorMetric.findAll(optionalParams: _*)
   }

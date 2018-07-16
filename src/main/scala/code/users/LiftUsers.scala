@@ -6,13 +6,14 @@ import code.entitlement.Entitlement
 import net.liftweb.common.{Box, Full}
 import code.model.User
 import code.model.dataAccess.ResourceUser
+import code.util.Helper.MdcLoggable
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object LiftUsers extends Users {
+object LiftUsers extends Users with MdcLoggable{
 
   //UserId here is the resourceuser.id field
   def getUserByResourceUserId(id : Long) : Box[User] = {
@@ -109,8 +110,9 @@ object LiftUsers extends Users {
   
     val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq).flatten
     
+    logger.debug(s"getAllUsersF parameters $optionalParams")
     val users = ResourceUser.findAll(optionalParams: _*)
-    
+    logger.debug(s"getAllUsersF response $users")
     Future {
       for {
         user <- users
@@ -126,7 +128,9 @@ object LiftUsers extends Users {
   
     val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq).flatten
   
+    logger.debug(s"getAllUsersFF parameters $optionalParams")
     val users = ResourceUser.findAll(optionalParams: _*)
+    logger.debug(s"getAllUsersFF response $users")
     for {
       user <- users
     } yield {

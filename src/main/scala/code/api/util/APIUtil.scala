@@ -716,6 +716,8 @@ object APIUtil extends MdcLoggable {
          case "exclude_app_names" => Full(OBPExcludeAppNames(values)) //This will return a string list. 
          case "exclude_url_pattern" => Full(OBPExcludeUrlPattern(values.head))
          case "exclude_implemented_by_partial_functions" => Full(OBPExcludeImplementedByPartialFunctions(values)) //This will return a string list. 
+         case "function_name" => Full(OBPFunctionName(values.head)) 
+         case "connector_name" => Full(OBPConnectorName(values.head))
          case _ => Full(OBPEmpty())
        }
      } yield
@@ -748,6 +750,8 @@ object APIUtil extends MdcLoggable {
       excludeAppNames <- getHttpParamValuesByName(httpParams, "exclude_app_names")
       excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_pattern")
       excludeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "exclude_implemented_by_partial_functions")
+      connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
+      functionName <- getHttpParamValuesByName(httpParams, "function_name")
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -766,7 +770,8 @@ object APIUtil extends MdcLoggable {
       //This guarantee the order 
       List(limit, offset, ordering, fromDate, toDate, 
            anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
-           verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions
+           verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
+           connectorName,functionName
        ).filter(_ != OBPEmpty())
     }
   }
@@ -802,12 +807,16 @@ object APIUtil extends MdcLoggable {
     val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_pattern")
     val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions")
     
+    val functionName =  getHttpRequestUrlParam(httpRequestUrl, "function_name")
+    val connectorName =  getHttpRequestUrlParam(httpRequestUrl, "connector_name")
+    
     Full(List(
       HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset), 
       HTTPParam("anon", anon), HTTPParam("consumer_id", consumerId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName), 
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
-      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions)
+      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
+      HTTPParam("function_name", functionName), HTTPParam("connector_name", connectorName)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
   
