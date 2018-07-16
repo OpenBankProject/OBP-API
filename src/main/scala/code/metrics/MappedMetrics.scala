@@ -239,10 +239,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     MappedMetric.bulkDelete_!!()
   }
   
-  //This is tricky for now, we call it only in Actor. 
-  //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
-  def getTopApisBox(queryParams: List[OBPQueryParam]): Box[List[TopApi]] = {
-    
+  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{
     val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
     val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
     val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
@@ -333,12 +330,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   }
   
-  override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{getTopApisBox(queryParams)}
-  
-  //This is tricky for now, we call it only in Actor. 
-  //@RemotedataMetricsActor.scala see how this is used, return a box to the sender!
-  def getTopConsumersBox(queryParams: List[OBPQueryParam]): Box[List[TopConsumer]] = {
-    
+  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{
     val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
     val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
     val consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption
@@ -363,7 +355,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
     
     for{
-       dbQuery <- Full("SELECT count(*) as count, mappedmetric.appname as appname, consumer.id as consumerprimaryid, consumer.developeremail as email " + 
+       dbQuery <- Full("SELECT count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, consumer.developeremail as email " + 
                         "FROM mappedmetric, consumer " +
                         "WHERE mappedmetric.appname = consumer.name " +
                         "AND date_c >= ? "+ 
@@ -420,7 +412,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               }
          })?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}
        
-       topApis <- tryo(resultSet._2.map(
+       topConsumers <- tryo(resultSet._2.map(
          a =>
            TopConsumer(
              if (a(0) != null) a(0).toInt else 0,
@@ -430,13 +422,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
              ))) ?~! {logger.error(s"getTopConsumersBox.create TopConsumer class error. Here is the result from database $resultSet ");s"$UnknownError getTopConsumersBox.create TopApi class error. "}
       
     } yield {
-      topApis
-    }
-  }
-  
-  override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{getTopConsumersBox(queryParams: List[OBPQueryParam])}
-  
-
+      topConsumers
+    }}
+    
 }
 
 class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
