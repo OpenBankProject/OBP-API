@@ -1950,7 +1950,7 @@ Returns a string showed to the developer
       case true => // Show all error in a chain
         obj.messageChain
       case false => // Do not display internal errors
-        val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.contains("OBP-"))
+        val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
           case _ => obpFailures.map(_.msg).mkString(" <- ")
