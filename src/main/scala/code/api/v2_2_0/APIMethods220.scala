@@ -803,7 +803,7 @@ trait APIMethods220 {
       "GET",
       "/management/connector/metrics",
       "Get Connector Metrics",
-      """Get the all metrics
+      s"""Get the all metrics
         |
         |require CanGetConnectorMetrics role
         |
@@ -811,17 +811,17 @@ trait APIMethods220 {
         |
         |Should be able to filter on the following metrics fields
         |
-        |eg: /management/connector/metrics?from_date=2017-03-01&to_date=2017-03-04&limit=50&offset=2
+        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=50&offset=2
         |
-        |1 from_date (defaults to one week before current date): eg:from_date=2017-03-01
+        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithDayExampleString
         |
-        |2 to_date (defaults to current date) eg:to_date=2017-03-05
+        |2 to_date (defaults to current date) eg:to_date=$DateWithDayExampleString
         |
         |3 limit (for pagination: defaults to 1000)  eg:limit=2000
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
-        |eg: /management/connector/metrics?from_date=2016-03-05&to_date=2017-03-08&limit=100&offset=300
+        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=100&offset=300
         |
         |Other filters:
         |
@@ -897,7 +897,7 @@ trait APIMethods220 {
             //filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
 
             //Filters Part 2.
-            //eg: /management/metrics?from_date=100&to_date=1&limit=200&offset=0
+            //eg: /management/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=200&offset=0
             //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
             // consumer_id (if null ignore)
             // user_id (if null ignore)
