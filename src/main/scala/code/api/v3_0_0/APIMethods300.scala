@@ -634,10 +634,10 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
-        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
+        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
         |
-        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       coreTransactionsJsonV300,
       List(
@@ -699,10 +699,10 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
-        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
+        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
         |
-        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       transactionsJsonV300,
       List(
@@ -1218,7 +1218,7 @@ trait APIMethods300 {
          |
          |Pagination:
          |
-         |By default, 100 records are returned.
+         |By default, 50 records are returned.
          |
          |You can use the url query parameters *limit* and *offset* for pagination
          |
@@ -1434,33 +1434,20 @@ trait APIMethods300 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
         cc =>
-          val limit = S.param("limit")
-          val offset = S.param("offset")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
-              limit match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
-              limit match {
-                case Full(i) if i.toInt > 10000 => false
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
-              offset match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            users <- Users.users.vend.getAllUsersF(List(OBPLimit(limit.getOrElse("1000").toInt), OBPOffset(offset.getOrElse("0").toInt)))
+            
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            users <- Users.users.vend.getAllUsersF(obpQueryParams)
           } yield {
             (JSONFactory300.createUserJSONs (users), callContext)
           }
@@ -2075,15 +2062,15 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
+        |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
+        |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
+        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
         |
         |3 consumer_id  (if null ignore)
         |

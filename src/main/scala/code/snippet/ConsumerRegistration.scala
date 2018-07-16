@@ -207,6 +207,8 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
+      val urlDirectLoginGlossary = APIUtil.getPropsValue("webui_faq_direct_login_url", "unknown host")
+      val urlOauthGlossary = APIUtil.getPropsValue("webui_oauth_1_url", "unknown host")
       val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
       val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
@@ -217,9 +219,9 @@ class ConsumerRegistration extends MdcLoggable {
         s"Consumer Key: ${consumerKeyOrMessage} \n" +
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
-        s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
+        s"OAuth Documentation: ${urlOauthGlossary} \n" +
         s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
-        s"Direct Login Documentation: https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login \n" +
+        s"Direct Login Documentation: ${urlDirectLoginGlossary} \n" +
         s"$registrationMoreInfoText: $registrationMoreInfoUrl" 
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))

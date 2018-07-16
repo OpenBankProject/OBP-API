@@ -105,7 +105,7 @@ object APIUtil extends MdcLoggable {
   
   
   // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
-  // (Else caching is invlidated by constantly changing date)
+  // (Else caching is invalidated by constantly changing date)
   
   val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
   val DateWithSecondsExampleObject = DateWithDayFormat.parse(DateWithSecondsExampleString)
@@ -716,6 +716,8 @@ object APIUtil extends MdcLoggable {
          case "exclude_app_names" => Full(OBPExcludeAppNames(values)) //This will return a string list. 
          case "exclude_url_pattern" => Full(OBPExcludeUrlPattern(values.head))
          case "exclude_implemented_by_partial_functions" => Full(OBPExcludeImplementedByPartialFunctions(values)) //This will return a string list. 
+         case "function_name" => Full(OBPFunctionName(values.head)) 
+         case "connector_name" => Full(OBPConnectorName(values.head))
          case _ => Full(OBPEmpty())
        }
      } yield
@@ -748,6 +750,8 @@ object APIUtil extends MdcLoggable {
       excludeAppNames <- getHttpParamValuesByName(httpParams, "exclude_app_names")
       excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_pattern")
       excludeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "exclude_implemented_by_partial_functions")
+      connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
+      functionName <- getHttpParamValuesByName(httpParams, "function_name")
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -766,7 +770,8 @@ object APIUtil extends MdcLoggable {
       //This guarantee the order 
       List(limit, offset, ordering, fromDate, toDate, 
            anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
-           verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions
+           verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
+           connectorName,functionName
        ).filter(_ != OBPEmpty())
     }
   }
@@ -779,8 +784,8 @@ object APIUtil extends MdcLoggable {
     * Here we use the HTTPParam case class from liftweb.
     * We try to keep it the same as `S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers`, so we unite the URLs and headers. 
     * 
-    * @param httpRequestUrl  = eg: /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03
-    * @return List(HTTPParam("from_date","2010-05-10T01:20:03.000Z"),HTTPParam("to_date","2017-05-22T01:02:03.000Z"))
+    * @param httpRequestUrl  = eg: /obp/v3.1.0/management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+    * @return List(HTTPParam("from_date","$DateWithMsExampleString"),HTTPParam("to_date","$DateWithMsExampleString"))
     */
   def createHttpParamsByUrl(httpRequestUrl: String): Box[List[HTTPParam]] = {
     val sortDirection = getHttpRequestUrlParam(httpRequestUrl,"sort_direction")
@@ -802,12 +807,16 @@ object APIUtil extends MdcLoggable {
     val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_pattern")
     val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions")
     
+    val functionName =  getHttpRequestUrlParam(httpRequestUrl, "function_name")
+    val connectorName =  getHttpRequestUrlParam(httpRequestUrl, "connector_name")
+    
     Full(List(
       HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset), 
       HTTPParam("anon", anon), HTTPParam("consumer_id", consumerId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName), 
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
-      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions)
+      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
+      HTTPParam("function_name", functionName), HTTPParam("connector_name", connectorName)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
   
@@ -817,15 +826,15 @@ object APIUtil extends MdcLoggable {
   
   /**
     * 
-    * @param httpRequestUrl eg:  /obp/v3.1.0/management/metrics/top-consumers?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z
+    * @param httpRequestUrl eg:  /obp/v3.1.0/management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
     * @param name eg: from_date
-    * @return the 2010-05-10T01:20:03.000Z for the from_date.
+    * @return the $DateWithMsExampleString for the from_date.
     *         There is no error handling here, just extract whatever it got from the Url string. If not value for that name, just return ""
     */
   def getHttpRequestUrlParam(httpRequestUrl: String, name: String): String = {
-    val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03)
-    val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, 2010-05-10T01:20:03, to_date, 2017-05-22T01:02:03)
-    if (queryStrings.contains(name)) queryStrings(queryStrings.indexOf(name)+1) else ""//Full(2010-05-10T01:20:03)
+    val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString)
+    val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, $DateWithMsExampleString, to_date, $DateWithMsExampleString)
+    if (queryStrings.contains(name)) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
   }
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
@@ -1941,7 +1950,7 @@ Returns a string showed to the developer
       case true => // Show all error in a chain
         obj.messageChain
       case false => // Do not display internal errors
-        val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.contains("OBP-"))
+        val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
           case _ => obpFailures.map(_.msg).mkString(" <- ")

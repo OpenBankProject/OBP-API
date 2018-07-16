@@ -803,7 +803,7 @@ trait APIMethods220 {
       "GET",
       "/management/connector/metrics",
       "Get Connector Metrics",
-      """Get the all metrics
+      s"""Get the all metrics
         |
         |require CanGetConnectorMetrics role
         |
@@ -811,17 +811,17 @@ trait APIMethods220 {
         |
         |Should be able to filter on the following metrics fields
         |
-        |eg: /management/connector/metrics?from_date=2017-03-01&to_date=2017-03-04&limit=50&offset=2
+        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=50&offset=2
         |
-        |1 from_date (defaults to one week before current date): eg:from_date=2017-03-01
+        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithDayExampleString
         |
-        |2 to_date (defaults to current date) eg:to_date=2017-03-05
+        |2 to_date (defaults to current date) eg:to_date=$DateWithDayExampleString
         |
         |3 limit (for pagination: defaults to 1000)  eg:limit=2000
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
-        |eg: /management/connector/metrics?from_date=2016-03-05&to_date=2017-03-08&limit=100&offset=300
+        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=100&offset=300
         |
         |Other filters:
         |
@@ -848,77 +848,11 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
-
-            //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
-            //Note: Filters Part 1:
-            //?from_date=100&to_date=1&limit=200&offset=0
-
-            inputDateFormat <- Full(APIUtil.DateWithDayFormat)
-            // set the long,long ago as the default date.
-            nowTime <- Full(System.currentTimeMillis())
-            defaultFromDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
-            defaulToDate <- Full(new Date(nowTime).toInstant.toString)
-
-            //(defaults to one week before current date
-            fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defaultFromDate))) ?~!
-              s"${InvalidDateFormat } from_date:${S.param("from_date").get }. Support format is $DateWithDay"
-            // defaults to current date
-            toDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaulToDate))) ?~!
-              s"${InvalidDateFormat } to_date:${S.param("to_date").get }. Support format is $DateWithDay"
-            // default 1000, return 1000 items
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 100
-              }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-
-            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(fromDate), OBPToDate(toDate))))
-
-            //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
-            // add because of toDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
-            //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(toDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
-
-            ///filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(fromDate)) && (rd.getDate().before(startDatePlusOneDay))))
-
-            /** pages:
-              * eg: total=79
-              * offset=0, limit =50
-              *  filterByDate.slice(0,50)
-              * offset=1, limit =50
-              *  filterByDate.slice(50*1,50+50*1)--> filterByDate.slice(50,100)
-              * offset=2, limit =50
-              *  filterByDate.slice(50*2,50+50*2)-->filterByDate.slice(100,150)
-              */
-            //filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
-
-            //Filters Part 2.
-            //eg: /management/metrics?from_date=100&to_date=1&limit=200&offset=0
-            //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
-            // consumer_id (if null ignore)
-            // user_id (if null ignore)
-            // anon true => return where user_id is null. false => return where where user_id is not null(if null ignore)
-            // url (if null ignore)
-            // app_name (if null ignore)
-            // implemented_by_partial_function (if null ignore)
-            // implemented_in_version (if null ignore)
-            // verb (if null ignore)
-            connectorName <- Full(S.param("connector_name")) //(if null ignore)
-            functionName <- Full(S.param("function_name")) //(if null ignore)
-            correlationId <- Full(S.param("correlation_id")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
-
-
-            filterByFields: List[ConnectorMetric] = metrics
-              .filter(i => (if (!connectorName.isEmpty) i.getConnectorName().equals(connectorName.get) else true))
-              .filter(i => (if (!functionName.isEmpty) i.getFunctionName().equals(functionName.get) else true))
-              //TODO url can not contain '&', if url is /management/metrics?from_date=100&to_date=1&limit=200&offset=0, it can not work.
-              .filter(i => (if (!correlationId.isEmpty) i.getCorrelationId().equals(correlationId.get) else true))
+            httpParams <- createHttpParamsByUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParams(httpParams)
+            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))
           } yield {
-            val json = JSONFactory220.createConnectorMetricsJson(filterByFields)
+            val json = JSONFactory220.createConnectorMetricsJson(metrics)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
           }
         }
