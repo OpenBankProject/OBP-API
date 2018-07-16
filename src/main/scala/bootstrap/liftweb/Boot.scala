@@ -54,7 +54,7 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
-import code.kafka.KafkaHelperActors
+import code.kafka.{KafkaConsumer, KafkaHelperActors}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -73,7 +73,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
-import code.scope.MappedScope
+import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.transaction.MappedTransaction
@@ -306,6 +306,8 @@ class Boot extends MdcLoggable {
     if (connector.startsWith("kafka")) {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
+      // Start North Side Consumer if it's not already started
+      KafkaConsumer.primaryConsumer.start()
     }
 
     if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
@@ -534,7 +536,8 @@ object ToSchemify {
     MappedConnectorMetric,
     MappedExpectedChallengeAnswer,
     MappedEntitlementRequest,
-    MappedScope
+    MappedScope,
+    MappedUserScope
   )
 
   // The following tables are accessed directly via Mapper / JDBC

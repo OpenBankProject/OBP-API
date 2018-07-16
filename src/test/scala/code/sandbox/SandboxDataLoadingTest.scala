@@ -327,7 +327,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundTransaction.amount.toString should equal(transaction.details.value)
 
     def toDate(dateString : String) : Date = {
-      DateParser.parse(dateString).openOrThrowException(attemptedToOpenAnEmptyBox)
+      parseObpStandardDate(dateString).openOrThrowException(attemptedToOpenAnEmptyBox)
     }
 
     foundTransaction.startDate.getTime should equal(toDate(transaction.details.posted).getTime)
@@ -509,11 +509,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   val standardCustomer1 = SandboxCustomerImport("James Brown", "698761728934")
 
 
-  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
+  val format = new java.text.SimpleDateFormat(DateWithDay3)
   val standardDate = format.parse("30/03/2015")
 
 
-  val dataImportDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+  val dataImportDateFormat = APIUtil.DateWithMsFormat
 
   val standardDateString = dataImportDateFormat.format(standardDate)
 

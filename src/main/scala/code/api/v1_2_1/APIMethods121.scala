@@ -2091,7 +2091,7 @@ trait APIMethods121 {
          |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
          |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
          |
-         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       transactionsJSON,
       List(BankAccountNotFound, UnknownError),
@@ -2127,7 +2127,7 @@ trait APIMethods121 {
     lazy val getTransactionsForBankAccount : OBPEndpoint =  {
       //get transactions
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
-        val paramsBox: Box[List[OBPQueryParam]] = getHttpParams(req.request.headers)
+        val paramsBox: Box[List[OBPQueryParam]] = createQueriesByHttpParams(req.request.headers)
         cc => getTransactionsForBankAccountCached(
           paramsBox:  Box[List[OBPQueryParam]],
           cc.user: Box[User],

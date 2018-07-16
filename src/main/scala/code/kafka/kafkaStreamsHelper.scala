@@ -71,8 +71,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     }
     // This actor is used to listen to a message which will be sent by NorthSideConsumer
     val actorListener = context.actorOf(Props[RequestResponseActor], key)
-    // Start North Side Consumer if it's not already started
-    KafkaConsumer.consumer001.start(context)
 
     /**
       * This function is used o send Kafka message in Async way to a Kafka broker
@@ -135,12 +133,12 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     //configuration optimization is postponed
     //self ? conn
   }
-  
+
   /**
     * Check the Future, if there are Exceptions, recover the Exceptions to specific JValue 
     * @param sender the sender who send the message to the Actor
     * @param future the future need to be checked 
-    *               
+    *
     * @return If there is no exception, pipeTo sender
     *         If there is exception, recover to JValue to sender 
     */
@@ -213,7 +211,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 case class TopicPair(request: String, response: String)
 
 object Topics extends KafkaConfig {
-  
+
   /**
     * Two topics:
     * Request : North is producer, South is the consumer. North --> South
@@ -221,7 +219,7 @@ object Topics extends KafkaConfig {
     */
   private val requestTopic = APIUtil.getPropsValue("kafka.request_topic").openOr("Request")
   private val responseTopic = APIUtil.getPropsValue("kafka.response_topic").openOr("Response")
-  
+
   /**
     * set in props, we have two topics: Request and Response
     */
@@ -230,7 +228,7 @@ object Topics extends KafkaConfig {
   def topicPairHardCode = TopicPair("obp.Request.version", "obp.Response.version")
 
   def createTopicByClassName(className: String): TopicPair = {
-  
+
     /**
       *  eg: 
       *  from.obp.api.1.to.adapter.mf.caseclass.GetBank
@@ -241,10 +239,10 @@ object Topics extends KafkaConfig {
       s"to.${clientId}.caseclass.${className.replace("$", "")}"
     )
   }
-  
+
   // @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala 
   // This is for Kafka topics for both North and South sides.
   // In OBP-API, these topics will be created automatically. 
   trait TopicTrait
-  
+
 }

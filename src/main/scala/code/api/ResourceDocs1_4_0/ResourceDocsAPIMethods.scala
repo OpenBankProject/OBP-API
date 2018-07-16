@@ -54,10 +54,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val implementedInApiVersion : ApiVersion = ApiVersion.v1_4_0
 
-    val exampleDateString : String ="22/08/2013"
-    val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-    val exampleDate = simpleDateFormat.parse(exampleDateString)
-
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 

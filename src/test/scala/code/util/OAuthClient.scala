@@ -42,7 +42,7 @@ import oauth.signpost.{OAuthConsumer, OAuthProvider}
 import org.apache.http.client.utils.URLEncodedUtils
 import org.openqa.selenium._
 import org.openqa.selenium.htmlunit.HtmlUnitDriver
-
+import code.api.oauth1a.OauthParams._
 import scala.collection.JavaConversions._
 
 sealed trait Provider {
@@ -151,7 +151,7 @@ object OAuthClient extends MdcLoggable {
         val decoded = URLDecoder.decode(p.getValue())
         val params = URLEncodedUtils.parse(new URI(decoded), "UTF-8")
         params.foreach(p => {
-          if (p.getName() == "oauth_verifier") {
+          if (p.getName() == VerifierName) {
             verifier = Full(p.getValue())
           }
         })

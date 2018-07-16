@@ -4,6 +4,7 @@ import java.lang
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.InboundMessageBase
 import code.api.v3_1_0.CheckbookOrdersJson
 import code.atms.Atms.{AtmId, AtmT}
@@ -133,8 +134,9 @@ case class InternalInboundCoreAccount(
   backendMessages: List[InboundStatusMessage],
   id : String,
   label : String,
-  bank_id : String,
-  account_routing: AccountRouting
+  bankId : String,
+  accountType: String, 
+  accountRoutings: List[AccountRouting]
 )
 case class Status(
                    errorCode: String,
@@ -177,7 +179,7 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def iban: Option[String] = Some("iban")
   def number: String = r.accountNumber
   def bankId: BankId = BankId(r.bankId)
-  def lastUpdate: Date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(today.getTime.toString)
+  def lastUpdate: Date = APIUtil.DateWithMsFormat.parse(today.getTime.toString)
   def accountHolder: String = r.owners.head
 
   // Fields modifiable from OBP are stored in mapper
