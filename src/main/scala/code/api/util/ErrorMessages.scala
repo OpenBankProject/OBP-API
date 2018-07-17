@@ -332,7 +332,7 @@ object ErrorMessages {
   }
 
 
-  private def getDuplicatedMessageNumbers = {
+  def getDuplicatedMessageNumbers = {
     import scala.meta._
     val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
