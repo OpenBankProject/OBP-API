@@ -169,27 +169,30 @@ class WebUI extends MdcLoggable{
     ".faq-email a [href]" #> emailMailto
   }
 
-  // DirectLogin link on FAQ
-  def faqDirectLogin: CssSel = {
-  val faqdirectloginlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_faq_direct_login_url", "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login/"))
-          ".faq-direct-login-link a [href]" #> faqdirectloginlink
+  // API Explorer URL from Props
+  val apiExplorerUrl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_explorer_url", ""))
+
+  // DirectLogin documentation url
+  def directLoginDocumentationUrl: CssSel = {
+    val directlogindocumentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login"))
+    ".direct-login-documentation-url a [href]" #> directlogindocumentationurl
   }
 
-  // OAuth1.0a link on FAQ
-  def faqOAuth1: CssSel = {
-    val faqoauth1link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_1_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server/"))
-    ".faq-oauth-1-link a [href]" #> faqoauth1link
+  // OAuth1.0a documentation url
+  def oauth1DocumentationUrl: CssSel = {
+    val oauth1documentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a"))
+    ".oauth-1-documentation-url a [href]" #> oauth1documentationurl
   }
 
   // OAuth2.0 link on FAQ
-  def faqOAuth2: CssSel = {
-    val faqoauth2link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_2_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth2-Login/"))
-    ".faq-oauth-2-link a [href]" #> faqoauth2link
+  def oauth2DocumentationUrl: CssSel = {
+    val oauth2documentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_2_documentation_url", apiExplorerUrl + "/glossary#OAuth-2"))
+    ".oauth-2-documentation-url a [href]" #> oauth2documentationurl
   }
 
   // Link to Glossary on API Explorer
   def glossaryLink: CssSel = {
-    val glossarylink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_glossary_url", "https://github.com/OpenBankProject/OBP-API/wiki/Glossary"))
+    val glossarylink = apiExplorerUrl + "/glossary"
     ".glossary-link a [href]" #> glossarylink
   }
 
