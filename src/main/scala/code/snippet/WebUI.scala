@@ -171,19 +171,19 @@ class WebUI extends MdcLoggable{
 
   // DirectLogin link on FAQ
   def faqDirectLogin: CssSel = {
-  val faqdirectloginlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_faq_direct_login_url", "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login/"))
+  val faqdirectloginlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_faq_direct_login_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login/"))
           ".faq-direct-login-link a [href]" #> faqdirectloginlink
   }
 
   // OAuth1.0a link on FAQ
   def faqOAuth1: CssSel = {
-    val faqoauth1link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_1_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server/"))
+    val faqoauth1link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_1_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server/"))
     ".faq-oauth-1-link a [href]" #> faqoauth1link
   }
 
   // OAuth2.0 link on FAQ
   def faqOAuth2: CssSel = {
-    val faqoauth2link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_2_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth2-Login/"))
+    val faqoauth2link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_2_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth2-Login/"))
     ".faq-oauth-2-link a [href]" #> faqoauth2link
   }
 
