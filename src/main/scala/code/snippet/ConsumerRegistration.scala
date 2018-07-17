@@ -208,8 +208,8 @@ class ConsumerRegistration extends MdcLoggable {
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
       val apiExplorerUrl = APIUtil.getPropsValue("webui_api_explorer_url", "unknown host")
-      val directLoginGlossaryUrl = APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
-      val oauthGlossaryUrl = APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
+      val directLoginDocumentationUrl = APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
+      val oauthDocumentationUrl = APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
       val oauthEndpointUrl = thisApiInstance + "/oauth/initiate"
       val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
@@ -220,9 +220,9 @@ class ConsumerRegistration extends MdcLoggable {
         s"Consumer Key: ${consumerKeyOrMessage} \n" +
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${oauthEndpointUrl} \n" +
-        s"OAuth Documentation: ${oauthGlossaryUrl} \n" +
+        s"OAuth Documentation: ${directLoginDocumentationUrl} \n" +
         s"Direct Login Endpoint: ${directLoginEndpointUrl} \n" +
-        s"Direct Login Documentation: ${directLoginGlossaryUrl} \n" +
+        s"Direct Login Documentation: ${oauthDocumentationUrl} \n" +
         s"$registrationMoreInfoText: $registrationMoreInfoUrl"
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
