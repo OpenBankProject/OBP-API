@@ -332,11 +332,11 @@ object ErrorMessages {
   }
 
 
-  def main (args: Array[String]): Unit = {
+  private def getDuplicatedMessageNumbers = {
     import scala.meta._
     val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
-    val listOfMessaeNumbers = source.collect {
+    val listOfMessaegeNumbers = source.collect {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
         obj.collect {
           case v: Defn.Val if v.rhs.syntax.startsWith(""""OBP-""") =>
@@ -344,8 +344,15 @@ object ErrorMessages {
             messageNumber(0)
         }
     }
-    val list = listOfMessaeNumbers.flatten.filter(_.startsWith(""""OBP-"""))
-    val duplicatedMessageNumbers = list.groupBy(x=>x).mapValues(x=>x.length).toList.filter(_._2 > 1)
+    val list = listOfMessaegeNumbers.flatten
+    val duplicatedMessageNumbers = list
+      .groupBy(x => x).mapValues(x => x.length) // Compute the number of occurrences of each message number
+      .toList.filter(_._2 > 1) // Make a list with numbers which have more than 1 occurrences
+    duplicatedMessageNumbers
+  }
+
+  def main (args: Array[String]): Unit = {
+    val duplicatedMessageNumbers: List[(String, Int)] = getDuplicatedMessageNumbers
     duplicatedMessageNumbers.size match {
       case number if number > 0 =>
         val msg=
