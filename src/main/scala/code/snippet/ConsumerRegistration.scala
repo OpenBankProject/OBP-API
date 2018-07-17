@@ -207,8 +207,9 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
-      val urlDirectLoginGlossary = APIUtil.getPropsValue("webui_faq_direct_login_documentation_url", "unknown host")
-      val urlOauthGlossary = APIUtil.getPropsValue("webui_oauth_1_documentation_url", "unknown host")
+      val urlAPIExplorer = APIUtil.getPropsValue("webui_api_explorer_url", "unknown host")
+      val urlDirectLoginGlossary = urlAPIExplorer + "/glossary#Direct-Login"
+      val urlOauthGlossary = urlAPIExplorer + "/glossary#OAuth-1.0a"
       val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
       val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
@@ -222,7 +223,7 @@ class ConsumerRegistration extends MdcLoggable {
         s"OAuth Documentation: ${urlOauthGlossary} \n" +
         s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
         s"Direct Login Documentation: ${urlDirectLoginGlossary} \n" +
-        s"$registrationMoreInfoText: $registrationMoreInfoUrl" 
+        s"$registrationMoreInfoText: $registrationMoreInfoUrl"
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
 
