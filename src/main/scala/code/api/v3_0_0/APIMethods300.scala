@@ -611,7 +611,7 @@ trait APIMethods300 {
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
-                (createTransactionsJson(transactions), callContext)
+                (createTransactionsJson(transactions, ViewId(view.metadataView)), callContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -738,7 +738,7 @@ trait APIMethods300 {
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
-                (createTransactionsJson(transactions), callContext)
+                (createTransactionsJson(transactions, ViewId(view.metadataView)), callContext)
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }

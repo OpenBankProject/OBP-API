@@ -475,27 +475,17 @@ object JSONFactory300{
   }
 
   //stated -- Transaction relevant methods /////
-  def createTransactionsJson(transactions: List[ModeratedTransaction]) : TransactionsJsonV300 = {
-    TransactionsJsonV300(transactions.map(createTransactionJSON))
+  def createTransactionsJson(transactions: List[ModeratedTransaction], viewId: ViewId) : TransactionsJsonV300 = {
+    TransactionsJsonV300(transactions.map(createTransactionJSON(_, viewId)))
   }
 
-  def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJsonV300 = {
+  def createTransactionJSON(transaction : ModeratedTransaction, viewId: ViewId) : TransactionJsonV300 = {
     TransactionJsonV300(
       id = transaction.id.value,
       this_account = transaction.bankAccount.map(createThisAccountJSON).getOrElse(null),
       other_account = transaction.otherBankAccount.map(createOtherBankAccount).getOrElse(null),
       details = createTransactionDetailsJSON(transaction),
-      metadata = transaction.metadata.map(createTransactionMetadataJSON).getOrElse(null)
-    )
-  }
-
-  def createTransactionMetadataJSON(metadata : ModeratedTransactionMetadata) : TransactionMetadataJSON = {
-    TransactionMetadataJSON(
-      narrative = stringOptionOrNull(metadata.ownerComment),
-      comments = metadata.comments.map(_.map(createTransactionCommentJSON)).getOrElse(null),
-      tags = metadata.tags.map(_.map(createTransactionTagJSON)).getOrElse(null),
-      images = metadata.images.map(_.map(createTransactionImageJSON)).getOrElse(null),
-      where = metadata.whereTag.map(createLocationJSON).getOrElse(null)
+      metadata = transaction.metadata.map(JSONFactory.createTransactionMetadataJSON(_, viewId)).getOrElse(null)
     )
   }
 

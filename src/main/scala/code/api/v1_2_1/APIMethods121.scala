@@ -71,13 +71,13 @@ trait APIMethods121 {
       Failure("Coordinates not possible")
   }
 
-  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedTransactionMetadata] ={
+  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedTransactionMetadataAndMetadataview] ={
     for {
       account <- BankAccount(bankId, accountId, callContext) ?~! BankAccountNotFound
       view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user, callContext)
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
-    } yield metadata
+    } yield ModeratedTransactionMetadataAndMetadataview(metadata, ViewId(view.metadataView))
   }
 
   private def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus : String) = {
@@ -2117,7 +2117,7 @@ trait APIMethods121 {
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
             transactions <- bankAccount.getModeratedTransactions(user, view, None, params: _* )
           } yield {
-            val json = JSONFactory.createTransactionsJSON(transactions)
+            val json = JSONFactory.createTransactionsJSON(transactions, ViewId(view.metadataView))
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -2167,7 +2167,7 @@ trait APIMethods121 {
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             moderatedTransaction <- account.moderatedTransaction(transactionId, view, cc.user, Some(cc))
           } yield {
-            val json = JSONFactory.createTransactionJSON(moderatedTransaction)
+            val json = JSONFactory.createTransactionJSON(moderatedTransaction, ViewId(view.metadataView))
             successJsonResponse(Extraction.decompose(json))
           }
       }
@@ -2199,7 +2199,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            narrative <- Box(metadata.ownerComment) ?~ { "view " + viewId + " does not authorize narrative access" }
+            narrative <- Box(metadata.moderatedTransactionMetadata.ownerComment) ?~ { "view " + viewId + " does not authorize narrative access" }
           } yield {
             val narrativeJson = JSONFactory.createTransactionNarrativeJSON(narrative)
             successJsonResponse(Extraction.decompose(narrativeJson))
@@ -2242,7 +2242,7 @@ trait APIMethods121 {
             u <- cc.user
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow adding a narrative"}
+            addNarrative <- Box(metadata.moderatedTransactionMetadata.addOwnerComment) ?~ {"view " + viewId + " does not allow adding a narrative"}
           } yield {
             addNarrative(narrativeJson.narrative)
             val successJson = SuccessMessage("narrative added")
@@ -2279,7 +2279,7 @@ trait APIMethods121 {
             u <- cc.user
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow updating a narrative"}
+            addNarrative <- Box(metadata.moderatedTransactionMetadata.addOwnerComment) ?~ {"view " + viewId + " does not allow updating a narrative"}
           } yield {
             addNarrative(narrativeJson.narrative)
             val successJson = SuccessMessage("narrative updated")
@@ -2315,7 +2315,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow deleting the narrative"}
+            addNarrative <- Box(metadata.moderatedTransactionMetadata.addOwnerComment) ?~ {"view " + viewId + " does not allow deleting the narrative"}
           } yield {
             addNarrative("")
             noContentJsonResponse
@@ -2350,7 +2350,8 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            comments <- Box(metadata.comments) ?~ { "view " + viewId + " does not authorize comments access" }
+            commentsFunc <- Box(metadata.moderatedTransactionMetadata.comments) ?~ { "view " + viewId + " does not authorize comments access" }
+            comments <- Full(commentsFunc(metadata.metadataViewId))
           } yield {
             val json = JSONFactory.createTransactionCommentsJSON(comments)
             successJsonResponse(Extraction.decompose(json))
@@ -2390,8 +2391,8 @@ trait APIMethods121 {
             u <- cc.user
             commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
-            postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
+            addCommentFunc <- Box(metadata.moderatedTransactionMetadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
+            postedComment <- addCommentFunc(u.resourceUserId, metadata.metadataViewId, commentJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
           }
@@ -2431,7 +2432,7 @@ trait APIMethods121 {
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            delete <- metadata.deleteComment(commentId, cc.user, account)
+            delete <- metadata.moderatedTransactionMetadata.deleteComment(metadata.metadataViewId, commentId, cc.user, account)
           } yield {
             noContentJsonResponse
           }
@@ -2464,7 +2465,8 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            tags <- Box(metadata.tags) ?~ { "view " + viewId + " does not authorize tag access" }
+            tagsFunc <- Box(metadata.moderatedTransactionMetadata.tags) ?~ { "view " + viewId + " does not authorize tag access" }
+            tags <- Full(tagsFunc(metadata.metadataViewId))
           } yield {
             val json = JSONFactory.createTransactionTagsJSON(tags)
             successJsonResponse(Extraction.decompose(json))
@@ -2504,8 +2506,8 @@ trait APIMethods121 {
             u <- cc.user
             tagJson <- tryo{json.extract[PostTransactionTagJSON]} // TODO Error handling
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
-            postedTag <- addTagFunc(u.resourceUserId, viewId, tagJson.value, now)
+            addTagFunc <- Box(metadata.moderatedTransactionMetadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
+            postedTag <- addTagFunc(u.resourceUserId, metadata.metadataViewId, tagJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
           }
@@ -2538,7 +2540,7 @@ Authentication via OAuth is required. The user must either have owner privileges
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
             bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
-            deleted <- metadata.deleteTag(tagId, cc.user, bankAccount)
+            deleted <- metadata.moderatedTransactionMetadata.deleteTag(metadata.metadataViewId, tagId, cc.user, bankAccount)
           } yield {
             noContentJsonResponse
           }
@@ -2571,7 +2573,8 @@ Authentication via OAuth is required. The user must either have owner privileges
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            images <- Box(metadata.images) ?~ { "view " + viewId + " does not authorize images access" }
+            imagesFunc <- Box(metadata.moderatedTransactionMetadata.images) ?~ { "view " + viewId + " does not authorize images access" }
+            images <- Full(imagesFunc(metadata.metadataViewId))
           } yield {
             val json = JSONFactory.createTransactionImagesJSON(images)
             successJsonResponse(Extraction.decompose(json))
@@ -2612,9 +2615,9 @@ Authentication via OAuth is required. The user must either have owner privileges
             u <- cc.user
             imageJson <- tryo{json.extract[PostTransactionImageJSON]} ?~! InvalidJsonFormat
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
+            addImageFunc <- Box(metadata.moderatedTransactionMetadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
             url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-            postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url.toString)
+            postedImage <- addImageFunc(u.resourceUserId, metadata.metadataViewId, imageJson.label, now, url.toString)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
           }
@@ -2652,7 +2655,7 @@ Authentication via OAuth is required. The user must either have owner privileges
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
             bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
-            deleted <- Box(metadata.deleteImage(imageId, cc.user, bankAccount))
+            deleted <- Box(metadata.moderatedTransactionMetadata.deleteImage(metadata.metadataViewId, imageId, cc.user, bankAccount))
           } yield {
             noContentJsonResponse
           }
@@ -2685,7 +2688,8 @@ Authentication via OAuth is required. The user must either have owner privileges
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            where <- Box(metadata.whereTag) ?~ { "view " + viewId + " does not authorize where tag access" }
+            whereFunc <- Box(metadata.moderatedTransactionMetadata.whereTag) ?~ { "view " + viewId + " does not authorize where tag access" }
+            where <- Full(whereFunc(metadata.metadataViewId))
           } yield {
             val json = JSONFactory.createLocationJSON(where)
             val whereJson = TransactionWhereJSON(json)
@@ -2728,10 +2732,10 @@ Authentication via OAuth is required. The user must either have owner privileges
             u <- cc.user
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
+            addWhereTag <- Box(metadata.moderatedTransactionMetadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            if(addWhereTag(u.resourceUserId, metadata.metadataViewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -2773,10 +2777,10 @@ Authentication via OAuth is required. The user must either have owner privileges
             u <- cc.user
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
+            addWhereTag <- Box(metadata.moderatedTransactionMetadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            if(addWhereTag(u.resourceUserId, metadata.metadataViewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -2820,7 +2824,7 @@ Authentication via OAuth is required. The user must either have owner privileges
             bankAccount <- BankAccount(bankId, accountId)?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            deleted <- metadata.deleteWhereTag(viewId, cc.user, bankAccount)
+            deleted <- metadata.moderatedTransactionMetadata.deleteWhereTag(metadata.metadataViewId, cc.user, bankAccount)
           } yield {
             if(deleted)
               noContentJsonResponse

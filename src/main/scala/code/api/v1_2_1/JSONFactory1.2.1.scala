@@ -471,17 +471,17 @@ object JSONFactory{
     )
   }
 
-  def createTransactionsJSON(transactions: List[ModeratedTransaction]) : TransactionsJSON = {
-    new TransactionsJSON(transactions.map(createTransactionJSON))
+  def createTransactionsJSON(transactions: List[ModeratedTransaction], viewId: ViewId) : TransactionsJSON = {
+    TransactionsJSON(transactions.map(createTransactionJSON(_, viewId)))
   }
 
-  def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJSON = {
+  def createTransactionJSON(transaction : ModeratedTransaction, viewId: ViewId) : TransactionJSON = {
     new TransactionJSON(
         id = transaction.id.value,
         this_account = transaction.bankAccount.map(createThisAccountJSON).getOrElse(null),
         other_account = transaction.otherBankAccount.map(createOtherBankAccount).getOrElse(null),
         details = createTransactionDetailsJSON(transaction),
-        metadata = transaction.metadata.map(createTransactionMetadataJSON).getOrElse(null)
+        metadata = transaction.metadata.map(createTransactionMetadataJSON(_, viewId)).getOrElse(null)
       )
   }
 
@@ -551,13 +551,18 @@ object JSONFactory{
       )
   }
 
-  def createTransactionMetadataJSON(metadata : ModeratedTransactionMetadata) : TransactionMetadataJSON = {
-    new TransactionMetadataJSON(
+  def createTransactionMetadataJSON(metadata : ModeratedTransactionMetadata, viewId: ViewId) : TransactionMetadataJSON = {
+    val comments = metadata.comments.map(_(viewId)).map(_.map(createTransactionCommentJSON)).getOrElse(null)
+    val tags = metadata.tags.map(_(viewId)).map(_.map(createTransactionTagJSON)).getOrElse(null)
+    val images = metadata.images.map(_(viewId)).map(_.map(createTransactionImageJSON)).getOrElse(null)
+    val where = metadata.whereTag.map(_(viewId)).map(createLocationJSON).getOrElse(null)
+    
+    TransactionMetadataJSON(
       narrative = stringOptionOrNull(metadata.ownerComment),
-      comments = metadata.comments.map(_.map(createTransactionCommentJSON)).getOrElse(null),
-      tags = metadata.tags.map(_.map(createTransactionTagJSON)).getOrElse(null),
-      images = metadata.images.map(_.map(createTransactionImageJSON)).getOrElse(null),
-      where = metadata.whereTag.map(createLocationJSON).getOrElse(null)
+      comments = comments,
+      tags = tags,
+      images = images,
+      where = where
     )
   }
 
