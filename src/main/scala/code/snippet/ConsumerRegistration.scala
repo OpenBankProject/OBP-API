@@ -207,11 +207,11 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
-      val urlAPIExplorer = APIUtil.getPropsValue("webui_api_explorer_url", "unknown host")
-      val urlDirectLoginGlossary = urlAPIExplorer + "/glossary#Direct-Login"
-      val urlOauthGlossary = urlAPIExplorer + "/glossary#OAuth-1.0a"
-      val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
-      val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
+      val apiExplorerUrl = APIUtil.getPropsValue("webui_api_explorer_url", "unknown host")
+      val directLoginGlossaryUrl = APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
+      val oauthGlossaryUrl = APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
+      val oauthEndpointUrl = thisApiInstance + "/oauth/initiate"
+      val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +
         s"App name: ${registered.name.get} \n" +
@@ -219,10 +219,10 @@ class ConsumerRegistration extends MdcLoggable {
         s"App description: ${registered.description.get} \n" +
         s"Consumer Key: ${consumerKeyOrMessage} \n" +
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
-        s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
-        s"OAuth Documentation: ${urlOauthGlossary} \n" +
-        s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
-        s"Direct Login Documentation: ${urlDirectLoginGlossary} \n" +
+        s"OAuth Endpoint: ${oauthEndpointUrl} \n" +
+        s"OAuth Documentation: ${oauthGlossaryUrl} \n" +
+        s"Direct Login Endpoint: ${directLoginEndpointUrl} \n" +
+        s"Direct Login Documentation: ${directLoginGlossaryUrl} \n" +
         s"$registrationMoreInfoText: $registrationMoreInfoUrl"
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))

@@ -172,22 +172,22 @@ class WebUI extends MdcLoggable{
   // API Explorer URL from Props
   val apiExplorerUrl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_explorer_url", ""))
 
-  // DirectLogin link on FAQ
-  def faqDirectLogin: CssSel = {
-  val faqdirectloginlink = apiExplorerUrl + "/glossary#Direct-Login"
-          ".faq-direct-login-link a [href]" #> faqdirectloginlink
+  // DirectLogin documentation url
+  def directLoginDocumentationUrl: CssSel = {
+    val directlogindocumentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login"))
+    ".direct-login-documentation-url a [href]" #> directlogindocumentationurl
   }
 
-  // OAuth1.0a link on FAQ
-  def faqOAuth1: CssSel = {
-    val faqoauth1link = apiExplorerUrl + "/glossary#OAuth-1.0a"
-    ".faq-oauth-1-link a [href]" #> faqoauth1link
+  // OAuth1.0a documentation url
+  def oauth1DocumentationUrl: CssSel = {
+    val oauth1documentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a"))
+    ".oauth-1-documentation-url a [href]" #> oauth1documentationurl
   }
 
   // OAuth2.0 link on FAQ
-  def faqOAuth2: CssSel = {
-    val faqoauth2link = apiExplorerUrl + "/glossary#OAuth-2"
-    ".faq-oauth-2-link a [href]" #> faqoauth2link
+  def oauth2DocumentationUrl: CssSel = {
+    val oauth2documentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_2_documentation_url", apiExplorerUrl + "/glossary#OAuth-2"))
+    ".oauth-2-documentation-url a [href]" #> oauth2documentationurl
   }
 
   // Link to Glossary on API Explorer
