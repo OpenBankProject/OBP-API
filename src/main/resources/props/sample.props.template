@@ -287,18 +287,6 @@ webui_faq_email = contact@openbankproject.com
 # Link to support platform
 webui_support_platform_url = https://slack.openbankproject.com/
 
-# Link to Direct Login glossary on api explorer
-webui_faq_direct_login_documentation_url =
-
-# Link to OAuth 1.0a glossary on api explorer
-webui_oauth_1_documentation_url =
-
-# Link to OAuth 2.0 glossary on api explorer
-webui_oauth_2_documentation_url =
-
-# Link to the Glossary on API Explorer
-webui_glossary_url =
-
 # URL of OAuth2.0 server
 oauth2_server_url =
 
