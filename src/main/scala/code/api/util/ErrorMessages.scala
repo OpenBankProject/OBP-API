@@ -99,7 +99,7 @@ object ErrorMessages {
   val ConsumerHasMissingRoles = "OBP-20023: Consumer is missing one or more roles: "
   val ConsumerNotFoundById = "OBP-20024: Consumer not found. Please specify a valid value for CONSUMER_ID."
   val ScopeNotFound = "OBP-20025: Scope not found. Please specify a valid value for SCOPE_ID."
-  val ConsumerDoesNotHaveScope = "OBP-30213: CONSUMER_ID does not have the SCOPE_ID "
+  val ConsumerDoesNotHaveScope = "OBP-20026: CONSUMER_ID does not have the SCOPE_ID "
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
   val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "
@@ -133,7 +133,7 @@ object ErrorMessages {
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
-  val CustomerNotFoundByCustomerId = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_ID."
+  val CustomerNotFoundByCustomerId = "OBP-30045: Customer not found. Please specify a valid value for CUSTOMER_ID."
 
   val AccountNotFound = "OBP-30003: Account not found. Please specify a valid value for ACCOUNT_ID."
   val CounterpartyNotFound = "OBP-30004: Counterparty not found. The BANK_ID / ACCOUNT_ID specified does not exist on this server."
@@ -187,8 +187,8 @@ object ErrorMessages {
   
   val CheckbookOrderNotFound = "OBP-30041: CheckbookOrder not found for Account. "
   val GetTopApisError = "OBP-30042: Could not get the top apis from database.  "
-  val GetMetricsTopConsumersError = "OBP-30042: Could not get the top consumers from database.  "
   val GetAggregateMetricsError = "OBP-30043: Could not get the aggregate metrics from database.  "
+  val GetMetricsTopConsumersError = "OBP-30044: Could not get the top consumers from database.  "
 
 
   // Meetings
@@ -226,9 +226,9 @@ object ErrorMessages {
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
   val UserDoesNotHaveEntitlement = "OBP-30213: USER_ID does not have the ENTITLEMENT_ID."
   val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
-  val EntitlementRequestCannotBeAdded = "OBP-30214: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
+  val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
