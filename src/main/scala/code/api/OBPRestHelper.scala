@@ -32,6 +32,8 @@ Berlin 13359, Germany
 
 package code.api
 
+import java.net.URLDecoder
+
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
@@ -180,7 +182,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val authorization = S.request.map(_.header("Authorization")).flatten
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-    val url = S.uriAndQueryString.getOrElse("")
+    val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val cc = CallContext(
       resourceDocument = rd,
