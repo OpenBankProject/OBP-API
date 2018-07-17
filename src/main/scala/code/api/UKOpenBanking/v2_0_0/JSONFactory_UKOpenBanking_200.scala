@@ -3,7 +3,7 @@ package code.api.UKOpenBanking.v2_0_0
 import java.util.Date
 
 import code.api.Constant
-import code.api.util.APIUtil.exampleDate
+import code.api.util.APIUtil.DateWithDayExampleObject
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.model.{BankAccount, ModeratedBankAccount, ModeratedTransaction}
 import code.transactionrequests.TransactionRequests.TransactionRequest
@@ -164,8 +164,8 @@ object JSONFactory_UKOpenBanking_200 {
       Links = Links(Constant.HostName + s"/open-banking/v2.0/accounts/${accountId}/transactions/"),
       Meta = MetaInnerJson(
         TotalPages = 1,
-        FirstAvailableDateTime = exampleDate,
-        LastAvailableDateTime = exampleDate
+        FirstAvailableDateTime = DateWithDayExampleObject,
+        LastAvailableDateTime = DateWithDayExampleObject
       )
     )
   }

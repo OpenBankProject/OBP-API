@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.model
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.bankconnectors.vJune2017.AccountRule
 import code.model.Moderation.Moderated
 import code.util.Helper
@@ -66,7 +67,7 @@ class ModeratedTransaction(
   def dateOption2JString(date: Option[Date]) : JString = {
     import java.text.SimpleDateFormat
 
-    val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    val dateFormat = APIUtil.DateWithMsFormat
     JString(date.map(d => dateFormat.format(d)) getOrElse "")
   }
 

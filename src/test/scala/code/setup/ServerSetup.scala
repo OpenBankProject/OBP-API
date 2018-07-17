@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.APIUtil
+import code.api.util.APIUtil._
 import code.model.{AccountId, BankId}
 import code.util.Helper.MdcLoggable
 import dispatch._
@@ -66,9 +67,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     case _ => baseRequest
   }
   
-  val exampleDateString: String = "22/08/2013"
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
+  val exampleDate = DateWithSecondsExampleObject
   
   // @code.setup.TestConnectorSetup.createBanks we can know, the bankIds in test database.
   val testBankId1 = BankId("testBank1")

@@ -20,7 +20,7 @@ case class ObpError(error :String)
 
 object ObpAPI extends MdcLoggable {
   implicit val formats = DefaultFormats
-  val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  val dateFormat = APIUtil.DateWithMsRollbackFormat
   
   val defaultProvider = APIUtil.getPropsValue("defaultAuthProvider").getOrElse("")
   

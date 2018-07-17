@@ -45,6 +45,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.scope.Scope
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 
@@ -607,7 +608,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -633,10 +634,10 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: Thu Jan 01 01:00:00 CET 1970 (format below)
-        |* to_date=DATE => default value: 3049-01-01
+        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
         |
-        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       coreTransactionsJsonV300,
       List(
@@ -669,7 +670,7 @@ trait APIMethods300 {
             } yield {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), callContext)
@@ -698,10 +699,10 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: date of the oldest transaction registered (format below)
-        |* to_date=DATE => default value: 3049-01-01
+        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
         |
-        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       transactionsJsonV300,
       List(
@@ -734,7 +735,7 @@ trait APIMethods300 {
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- getHttpParams(callContext.get.requestHeaders)
+                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), callContext)
@@ -1217,7 +1218,7 @@ trait APIMethods300 {
          |
          |Pagination:
          |
-         |By default, 100 records are returned.
+         |By default, 50 records are returned.
          |
          |You can use the url query parameters *limit* and *offset* for pagination
          |
@@ -1433,33 +1434,20 @@ trait APIMethods300 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
         cc =>
-          val limit = S.param("limit")
-          val offset = S.param("offset")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
-              limit match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
-              limit match {
-                case Full(i) if i.toInt > 10000 => false
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
-              offset match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            users <- Users.users.vend.getAllUsersF(List(OBPLimit(limit.getOrElse("1000").toInt), OBPOffset(offset.getOrElse("0").toInt)))
+            
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            users <- Users.users.vend.getAllUsersF(obpQueryParams)
           } yield {
             (JSONFactory300.createUserJSONs (users), callContext)
           }
@@ -2074,15 +2062,15 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?from_date=2010-05-10T01:20:03&to_date=2017-05-22T01:02:03&consumer_id=5
+        |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03
+        |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03
+        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
         |
         |3 consumer_id  (if null ignore)
         |
@@ -2100,7 +2088,7 @@ trait APIMethods300 {
         |
         |10 verb (if null ignore)
         |
-        |11 correlationId (if null ignore)
+        |11 correlation_id (if null ignore)
         |
         |12 duration (if null ignore) non digit chars will be silently omitted
         |
@@ -2128,69 +2116,26 @@ trait APIMethods300 {
         case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
           cc => {
             for {
-              u <- cc.user ?~! UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics), UserHasMissingRoles + CanReadAggregateMetrics )
-
-              // Filter by date // eg: /management/aggregate-metrics?from_date=2010-05-22&to_date=2017-05-22
-
-              inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"))
-
-              // Date format of now.getTime
-              nowDateFormat <- Full(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy"))
-
-              defaultStartDate <- Full("0000-00-00T00:00:00")
-
-              // Get tomorrow's date
-
-              tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toString)
-
-              // Parse tomorrow's date
-
-              tomorrowUnformatted <- Full(nowDateFormat.parse(tomorrowDate))
-
-              //Format tomorrow's date with the inputDateFormat
-              defaultEndDate <- Full(inputDateFormat.format(tomorrowUnformatted))
-
-              //(defaults to one week before current date
-              fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defaultStartDate))) ?~!
-                s"${InvalidDateFormat } from_date:${S.param("from_date").openOrThrowException(attemptedToOpenAnEmptyBox)}. Supported format is yyyy-MM-dd'T'HH:mm:ss"
+              (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+              u <- unboxFullAndWrapIntoFuture{ user }
               
-              // defaults to current date
-              endDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaultEndDate))) ?~!
-                s"${InvalidDateFormat } to_date:${S.param("to_date").openOrThrowException(attemptedToOpenAnEmptyBox) }. Supported format is yyyy-MM-dd'T'HH:mm:ss"
-  
-              //Filters Part 2. -- the optional varibles:
-              //eg: /management/metrics?from_date=2010-05-22&to_date=2017-05-22&&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
-              anon <- tryo(
-                S.param("anon") match {
-                  case Full(x) if x.toLowerCase == "true"  => x
-                  case Full(x) if x.toLowerCase == "false" => x
-                  case _                                   => ""
-                }
-              )
-              consumerId <- tryo(S.param("consumer_id").openOr("true"))
-              userId <- tryo(S.param("user_id").openOr("true"))
-              url <- tryo(S.param("url").openOr("true"))
-              appName <- tryo(S.param("app_name").openOr("true"))
-              implementedByPartialFunction <- tryo(S.param("implemented_by_partial_function").openOr("true"))
-              implementedInVersion <- tryo(S.param("implemented_in_version").openOr("true"))
-              verb <- tryo(S.param("verb").openOr("true"))
-              correlationId <- tryo(S.param("correlationId").openOr("true"))
-              duration <- tryo(S.param("duration").openOr("true"))
-              excludeAppNames <- tryo(S.param("exclude_app_names").openOr("true"))
-              excludeUrlPattern <- tryo(S.param("exclude_url_pattern").openOr("true"))
-              excludeImplementedByPartialfunctions <- tryo(S.param("exclude_implemented_by_partial_functions").openOr("true"))
+              _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadAggregateMetrics) {
+                hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
+              }
               
-              obpUrlQueryParams = OBPUrlQueryParams(fromDate, endDate, consumerId, userId, url, appName,
-                                                    implementedByPartialFunction, implementedInVersion, verb,
-                                                    anon, correlationId, duration, excludeAppNames,
-                                                    excludeUrlPattern,excludeImplementedByPartialfunctions)
+              httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
-              aggregateMetrics <- tryo(APIMetrics.apiMetrics.vend.getAllAggregateMetrics(obpUrlQueryParams)) ?~! GetAggregateMetricsError
-
+              obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+              
+              
+              aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(GetAggregateMetricsError, 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
+              
             } yield {
-              val json = createAggregateMetricJson(aggregateMetrics)
-              successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
+              (createAggregateMetricJson(aggregateMetrics), Some(cc))
             }
           }
 

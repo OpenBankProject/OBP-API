@@ -2,9 +2,6 @@ package code.api.util
 
 object ErrorMessages {
   import code.api.util.APIUtil._
-
-  val dateformat = new java.text.SimpleDateFormat("yyyy-MM-dd")
-
   // Notes to developers. Please:
   // 1) Follow (the existing) grouping of messages
   // 2) Stick to existing terminology e.g. use "invalid" or "incorrect" rather than "wrong"
@@ -50,12 +47,15 @@ object ErrorMessages {
   val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
   val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
   val AllowedValuesAre = "OBP-10015: Allowed values are: "
+  val InvalidFilterParamtersFormat = "OBP-10016: Incorrect Filter Parapmters in URL. "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
   val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
-  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${defaultFilterFormat.toPattern} or that one ${fallBackFilterFormat.toPattern}!" // OBP-20026
+  val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
+  val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!"
+  val FilterDurationFormatError = s"OBP-10029: wrong value for obp_limit parameter `duration` parameter. Please send a positive integer (=>0)!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
 
@@ -133,7 +133,7 @@ object ErrorMessages {
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
-  val CustomerNotFoundByCustomerId = "OBP-30045: Customer not found. Please specify a valid value for CUSTOMER_ID."
+  val CustomerNotFoundByCustomerId = "OBP-30046: Customer not found. Please specify a valid value for CUSTOMER_ID."
 
   val AccountNotFound = "OBP-30003: Account not found. Please specify a valid value for ACCOUNT_ID."
   val CounterpartyNotFound = "OBP-30004: Counterparty not found. The BANK_ID / ACCOUNT_ID specified does not exist on this server."
@@ -187,8 +187,10 @@ object ErrorMessages {
   
   val CheckbookOrderNotFound = "OBP-30041: CheckbookOrder not found for Account. "
   val GetTopApisError = "OBP-30042: Could not get the top apis from database.  "
+  val GetMetricsTopConsumersError = "OBP-30045: Could not get the top consumers from database.  "
   val GetAggregateMetricsError = "OBP-30043: Could not get the aggregate metrics from database.  "
-  val GetMetricsTopConsumersError = "OBP-30044: Could not get the top consumers from database.  "
+
+  val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
 
 
   // Meetings
@@ -226,9 +228,9 @@ object ErrorMessages {
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
   val UserDoesNotHaveEntitlement = "OBP-30213: USER_ID does not have the ENTITLEMENT_ID."
   val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
+  val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
-  val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."

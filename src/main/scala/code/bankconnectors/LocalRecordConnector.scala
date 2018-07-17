@@ -284,7 +284,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       transTime <- Full(now) 
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
       envJsonDateFormat = {
-        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        val simpleDateFormat = APIUtil.DateWithMsFormat
         simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
         simpleDateFormat
       }

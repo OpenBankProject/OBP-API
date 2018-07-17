@@ -5,9 +5,10 @@ import java.util.Date
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.bankconnectors.OBPQueryParam
-import code.metrics.{MappedMetrics, OBPUrlDateQueryParam, OBPUrlQueryParams, RemotedataMetricsCaseClasses}
+import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
-
+import akka.pattern.pipe
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -39,15 +40,15 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       logger.debug("getAllMetrics()")
       sender ! extractResult(mapper.getAllMetrics(queryParams))
 
-    case cc.getAllAggregateMetrics(queryParams: OBPUrlQueryParams) =>
-      logger.debug(s"RemotedataMetricsActor.getAllAggregateMetrics($queryParams)")
-      sender ! extractResult(mapper.getAllAggregateMetrics(queryParams))
+    case cc.getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]) =>
+      logger.debug(s"RemotedataMetricsActor.getAllAggregateMetricsFuture($queryParams)")
+      sender ! (mapper.getAllAggregateMetricsBox(queryParams))
       
-    case cc.getTopApisFuture(queryParams: OBPUrlDateQueryParam) =>
+    case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopApisFuture($queryParams)")
-      sender ! (mapper.getTopApisBox(queryParams))
+      (mapper.getTopApisFuture(queryParams)) pipeTo sender
       
-    case cc.getTopConsumersFuture(queryParams: OBPUrlDateQueryParam) =>
+    case cc.getTopConsumersFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopConsumersFuture($queryParams)")
       sender ! (mapper.getTopConsumersBox(queryParams))
       

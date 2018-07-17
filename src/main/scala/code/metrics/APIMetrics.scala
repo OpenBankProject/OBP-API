@@ -70,11 +70,11 @@ trait APIMetrics {
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
   
-  def getAllAggregateMetrics(queryParams: OBPUrlQueryParams): List[AggregateMetrics]
+  def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]]
   
-  def getTopApisFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopApi]]]
+  def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]]
   
-  def getTopConsumersFuture(queryParams: OBPUrlDateQueryParam): Future[Box[List[TopConsumer]]]
+  def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]
 
   def bulkDeleteMetrics(): Boolean
 
@@ -86,9 +86,9 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
-  case class getAllAggregateMetrics(queryParams: OBPUrlQueryParams)
-  case class getTopApisFuture(queryParams: OBPUrlDateQueryParam)
-  case class getTopConsumersFuture(queryParams: OBPUrlDateQueryParam)
+  case class getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam])
+  case class getTopApisFuture(queryParams: List[OBPQueryParam])
+  case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()
 }
 
@@ -129,11 +129,6 @@ case class OBPUrlQueryParams(
   excludeImplementedByPartialfunctions: String
 )
 
-case class OBPUrlDateQueryParam(
-  startDate: Option[Date],
-  endDate: Option[Date]
-)
-
 case class AggregateMetrics(
   totalCount: Int,
   avgResponseTime: Double,
@@ -151,5 +146,6 @@ case class TopApi(
 case class TopConsumer(
   count: Int,
   consumerId: String,
-  appName: String
+  appName: String,
+  developerEmail: String
 )

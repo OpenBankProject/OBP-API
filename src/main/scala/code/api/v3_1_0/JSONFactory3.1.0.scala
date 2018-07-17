@@ -103,7 +103,8 @@ case class TopApiJson(
 case class TopConsumerJson(
   count: Int,
   consumer_id: String,
-  app_name: String
+  app_name: String,
+  developer_email: String
 )
 
 object JSONFactory310{
@@ -127,6 +128,6 @@ object JSONFactory310{
   }
   
   def createTopConsumersJson(topConsumers: List[TopConsumer]): List[TopConsumerJson] ={
-    topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName))
+    topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail))
   }
 }
