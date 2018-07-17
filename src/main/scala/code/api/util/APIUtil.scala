@@ -33,6 +33,7 @@
 package code.api.util
 
 import java.io.InputStream
+import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
@@ -1855,7 +1856,7 @@ Returns a string showed to the developer
     val spelling = getSpellingParam()
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-    val url = S.uriAndQueryString.getOrElse("")
+    val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val res =

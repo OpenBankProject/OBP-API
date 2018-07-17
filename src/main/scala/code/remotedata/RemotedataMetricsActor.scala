@@ -50,7 +50,7 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       
     case cc.getTopConsumersFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopConsumersFuture($queryParams)")
-      sender ! (mapper.getTopConsumersBox(queryParams))
+      (mapper.getTopConsumersFuture(queryParams)) pipeTo sender
       
     case cc.bulkDeleteMetrics() =>
       logger.debug("bulkDeleteMetrics()")

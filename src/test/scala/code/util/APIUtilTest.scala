@@ -80,6 +80,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
       noneFieldValue should be ("")
     }
     
+    scenario(s"test some space in the URL, eg: /obp/v3.0.0/management/aggregate-metrics?app_name=API Manager Local Dev ") 
+    {
+      val httpRequestUrl= s"httpRequestUrl = /obp/v3.0.0/management/aggregate-metrics?app_name=API Manager Local Dev "
+      val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"app_name")
+      startdateValue should be (s"API Manager Local Dev ")
+    }
+    
+    
     scenario(s"test the error case, eg: not proper parameter name") 
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
