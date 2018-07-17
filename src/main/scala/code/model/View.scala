@@ -199,6 +199,7 @@ trait View {
   //For now, we need have some system views and user created views.
   // System Views: eg: owner, accountant ... They are the fixed views, account owner can not modify it. 
   // User Created Views: Start with _, eg _son, _wife ... The owner can update the fields for these views. 
+  def metadataView : String
   def isSystem : Boolean
   def isFirehose : Boolean
   def isPublic : Boolean
@@ -326,10 +327,14 @@ trait View {
       val transactionMetadata =
         if(canSeeTransactionMetadata)
         {
+          //1 `ownerCommen` mapped to `MappedNarrative` model, no viewid .
           val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment()) else None
+          val addOwnerCommentFunc:Option[String=> Boolean] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
+          
+          //2 `comments` mapped to `MappedComment` model, 
           val comments =
             if (canSeeComments)
-              Some(transaction.metadata.comments(viewId))
+              Some(transaction.metadata.comments)
             else None
           val addCommentFunc= if(canAddComment) Some(transaction.metadata.addComment) else None
           val deleteCommentFunc =
@@ -337,10 +342,11 @@ trait View {
               Some(transaction.metadata.deleteComment)
             else
               None
-          val addOwnerCommentFunc:Option[String=> Boolean] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
+
+          //3 `tags` mapped to `MappedTag` model
           val tags =
             if(canSeeTags)
-              Some(transaction.metadata.tags(viewId))
+              Some(transaction.metadata.tags)
             else None
           val addTagFunc =
             if(canAddTag)
@@ -352,8 +358,10 @@ trait View {
               Some(transaction.metadata.deleteTag)
             else
               None
+          
+          //4 `images` mapped to `MappedTransactionImage` model
           val images =
-            if(canSeeImages) Some(transaction.metadata.images(viewId))
+            if(canSeeImages) Some(transaction.metadata.images)
             else None
 
           val addImageFunc =
@@ -364,9 +372,10 @@ trait View {
             if(canDeleteImage) Some(transaction.metadata.deleteImage)
             else None
 
+          //5 `whereTag` mapped to `MappedWhereTag` model
           val whereTag =
             if(canSeeWhereTag)
-              Some(transaction.metadata.whereTags(viewId))
+              Some(transaction.metadata.whereTags)
             else
               None
 
@@ -382,7 +391,7 @@ trait View {
             else
               Empty
 
-
+          // TransactionMetadata --> ModeratedTransactionMetadata, all the fileds are Optional.  
           new Some(
             new ModeratedTransactionMetadata(
               ownerComment = ownerComment,
