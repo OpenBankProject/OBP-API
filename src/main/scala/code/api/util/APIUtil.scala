@@ -1924,6 +1924,23 @@ Returns a string showed to the developer
     }
 
   }
+
+  /**
+    * This Function is used to terminate a Future used in for-comprehension with specific message and code in case that value of Box is not Full.
+    * For example:
+    *  - Future(Full("Some value")    -> Does NOT terminate
+    *  - Future(Empty)                -> Terminates
+    *  - Future(Failure/ParamFailure) -> Terminates
+    * @param box Boxed Payload
+    * @param cc Call Context
+    * @param emptyBoxErrorMsg Error message in case of Empty Box
+    * @param emptyBoxErrorCode Error code in case of Empty Box
+    * @return
+    */
+  def getFullBoxOrFail[T](box: Box[T], cc: CallContext, emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): Box[T] = {
+    fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, Some(cc.toLight)))
+  }
+
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
