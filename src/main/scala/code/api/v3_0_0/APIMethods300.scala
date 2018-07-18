@@ -549,7 +549,7 @@ trait APIMethods300 {
               //3 use view and user to moderate the bankaccount object.
               bankIdAccountId <- availableBankIdAccountIdList
               bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-              view <- Views.views.vend.view(viewId, bankIdAccountId) ?~! s"$ViewNotFound Current View_Id($viewId), Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+              view <- Views.views.vend.view(viewId, bankIdAccountId)
               moderatedAccount <- bankAccount.moderatedBankAccount(view, user) //Error handling is in lower method
             } yield {
               moderatedAccount
@@ -1444,7 +1444,7 @@ trait APIMethods300 {
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
             
             users <- Users.users.vend.getAllUsersF(obpQueryParams)
@@ -2126,7 +2126,7 @@ trait APIMethods300 {
               httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
               
               

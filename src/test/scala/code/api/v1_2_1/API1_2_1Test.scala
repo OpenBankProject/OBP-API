@@ -1572,8 +1572,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       When("we try to update that view")
       val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
-      Then("We should get a 400")
-      reply.code should equal(400)
+      Then("We should get a 404")
+      reply.code should equal(404)
     }
 
     scenario("We will not update a view on a bank account due to missing token", API1_2, PutView) {
@@ -6032,8 +6032,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply =  postWhereForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomLoc, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }

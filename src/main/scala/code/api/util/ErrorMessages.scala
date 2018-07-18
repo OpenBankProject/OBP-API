@@ -47,7 +47,8 @@ object ErrorMessages {
   val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
   val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
   val AllowedValuesAre = "OBP-10015: Allowed values are: "
-  val InvalidFilterParamtersFormat = "OBP-10016: Incorrect Filter Parapmters in URL. "
+  val InvalidFilterParameterFormat = "OBP-10016: Incorrect filter Parameters in URL. "
+  val InvalidUrl = "OBP-10017: Incorrect URL Format. "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
