@@ -393,11 +393,13 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
+  //Note: this method is only for scala-test,
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
     Full(ViewImpl.create.
       isSystem_(false).
       isFirehose_(false).
       name_(randomString(5)).
+      metadataView_("owner").
       description_(randomString(3)).
       permalink_(randomString(3)).
       isPublic_(false).

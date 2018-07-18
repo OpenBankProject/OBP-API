@@ -410,7 +410,7 @@ trait APIMethods210 {
             _ <- tryo(assert(isValidID(bankId.value))) ?~! InvalidBankIdFormat
             _ <- Bank(bankId) ?~! {BankNotFound}
             fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
-            _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! {ViewNotFound}
+            _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
             isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
               hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
             _ <- tryo(assert(APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
@@ -579,7 +579,7 @@ trait APIMethods210 {
               fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! {BankAccountNotFound}
 
               // Check User has access to the View
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
               isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
               // Check transReqId is valid
@@ -674,7 +674,7 @@ trait APIMethods210 {
               u <- cc.user ?~ UserNotLoggedIn
               _ <- Bank(bankId) ?~! {BankNotFound}
               fromAccount <- BankAccount(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))?~! ViewNotFound
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, Some(cc))

@@ -43,6 +43,9 @@ trait Views {
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
 
+  //always return a view id String, not error here. 
+  def getMetadataViewId(viewId : ViewId, bankAccountId: BankIdAccountId) = Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId)).map(_.metadataView).openOr(viewId.value)
+  
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]

@@ -265,7 +265,7 @@ trait APIMethods310 {
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
             
             toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(obpQueryParams) map {
@@ -350,7 +350,7 @@ trait APIMethods310 {
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
             } map { unboxFull(_) }
             
             topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(obpQueryParams) map {

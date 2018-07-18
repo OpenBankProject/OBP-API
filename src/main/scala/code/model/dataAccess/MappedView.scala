@@ -70,7 +70,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   //view.permalink (UUID) is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
   //we only constraint it when we create it : code.views.MapperViews.createView 
   object permalink_ extends UUIDString(this)
+  object metadataView_ extends UUIDString(this)
 
+  //if metadataView_ = null or empty, we need use the current view's viewId.
+  def metadataView = if (metadataView_.get ==null || metadataView_.get == "") permalink_.get else metadataView_.get 
   def users : List[User] =  users_.toList
 
   //Important! If you add a field, be sure to handle it here in this function
