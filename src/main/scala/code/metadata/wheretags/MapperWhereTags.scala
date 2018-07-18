@@ -6,6 +6,7 @@ import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{AccountIdString, UUIDString}
+import code.views.Views
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -23,14 +24,15 @@ object MapperWhereTags extends WhereTags {
   override def addWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                           (userId: UserId, viewId: ViewId, datePosted: Date, longitude: Double, latitude: Double): Boolean = {
 
-    val found = findMappedWhereTag(bankId, accountId, transactionId, viewId)
+    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val found = findMappedWhereTag(bankId, accountId, transactionId, ViewId(metadateViewId))
 
     val toUpdate = found.getOrElse {
       MappedWhereTag.create
         .bank(bankId.value)
         .account(accountId.value)
         .transaction(transactionId.value)
-        .view(viewId.value)
+        .view(metadateViewId)
     }
 
     toUpdate
@@ -44,13 +46,15 @@ object MapperWhereTags extends WhereTags {
   }
 
   override def deleteWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Boolean = {
-    val found = findMappedWhereTag(bankId, accountId, transactionId, viewId)
+    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val found = findMappedWhereTag(bankId, accountId, transactionId, ViewId(metadateViewId))
 
     found.map(_.delete_!).getOrElse(false)
   }
 
   override def getWhereTagForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Box[GeoTag] = {
-    findMappedWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId, viewId: ViewId)
+    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    findMappedWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId, ViewId(metadateViewId))
   }
 
   override def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {

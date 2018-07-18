@@ -219,7 +219,7 @@ trait APIMethods220 {
             updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
@@ -291,7 +291,7 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId, Some(cc))
@@ -330,7 +330,7 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
@@ -1039,7 +1039,7 @@ trait APIMethods220 {
             _ <- Bank(bankId) ?~! s"$BankNotFound Current BANK_ID = $bankId"
             account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! s"$ViewNotFound Current VIEW_ID = $viewId"
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             _ <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             _ <- tryo(assert(Counterparties.counterparties.vend.
@@ -1123,7 +1123,7 @@ trait APIMethods220 {
           for {
             bank <- Bank(bankId) ?~ BankNotFound
             account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             availableViews <- Full(account.permittedViews(user))
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
             moderatedAccount <- account.moderatedBankAccount(view, user)

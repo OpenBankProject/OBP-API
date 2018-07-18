@@ -6,17 +6,19 @@ import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{AccountIdString, MappedUUID, UUIDString}
+import code.views.Views
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 object MappedComments extends Comments {
   override def getComments(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[Comment] = {
+    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
     MappedComment.findAll(
       By(MappedComment.bank, bankId.value),
       By(MappedComment.account, accountId.value),
       By(MappedComment.transaction, transactionId.value),
-      By(MappedComment.view, viewId.value))
+      By(MappedComment.view, metadateViewId))
   }
 
   override def deleteComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(commentId: String): Box[Boolean] = {
@@ -34,13 +36,14 @@ object MappedComments extends Comments {
   }
 
   override def addComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(userId: UserId, viewId: ViewId, text: String, datePosted: Date): Box[Comment] = {
+    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
     tryo {
       MappedComment.create
         .bank(bankId.value)
         .account(accountId.value)
         .transaction(transactionId.value)
         .poster(userId.value)
-        .view(viewId.value)
+        .view(metadateViewId)
         .text_(text)
         .date(datePosted).saveMe
     }
