@@ -13,13 +13,13 @@ import net.liftweb.mapper._
 
 object MappedTags extends Tags {
   override def getTags(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[TransactionTag] = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     MappedTag.findAll(MappedTag.findQuery(bankId, accountId, transactionId, ViewId(metadateViewId)): _*)
   }
 
   override def addTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                      (userId: UserId, viewId: ViewId, tagText: String, datePosted: Date): Box[TransactionTag] = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo{
       MappedTag.create
         .bank(bankId.value)

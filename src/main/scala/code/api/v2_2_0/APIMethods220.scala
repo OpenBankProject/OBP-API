@@ -278,7 +278,7 @@ trait APIMethods220 {
         UserNotLoggedIn,
         BankAccountNotFound,
         ViewNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         UserNoPermissionAccessView,
         UnknownError
       ),
@@ -292,7 +292,7 @@ trait APIMethods220 {
             u <- cc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
+            _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId, Some(cc))
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
@@ -331,7 +331,7 @@ trait APIMethods220 {
             u <- cc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
+            _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
             counterparty <- Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId.value, Some(cc))

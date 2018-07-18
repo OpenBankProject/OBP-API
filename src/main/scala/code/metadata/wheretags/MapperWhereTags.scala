@@ -24,7 +24,7 @@ object MapperWhereTags extends WhereTags {
   override def addWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                           (userId: UserId, viewId: ViewId, datePosted: Date, longitude: Double, latitude: Double): Boolean = {
 
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     val found = findMappedWhereTag(bankId, accountId, transactionId, ViewId(metadateViewId))
 
     val toUpdate = found.getOrElse {
@@ -46,14 +46,14 @@ object MapperWhereTags extends WhereTags {
   }
 
   override def deleteWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Boolean = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     val found = findMappedWhereTag(bankId, accountId, transactionId, ViewId(metadateViewId))
 
     found.map(_.delete_!).getOrElse(false)
   }
 
   override def getWhereTagForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Box[GeoTag] = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     findMappedWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId, ViewId(metadateViewId))
   }
 
