@@ -2418,6 +2418,3 @@ trait APIMethods300 {
 
   }
 }
-
-object APIMethods300 {
-}

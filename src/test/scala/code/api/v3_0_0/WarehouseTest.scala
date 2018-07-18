@@ -3,16 +3,11 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
-import code.api.util.ApiRole.{CanGetAnyUser, CanSearchWarehouse}
+import code.api.util.ApiRole.CanSearchWarehouse
 import code.api.util.ErrorMessages.UserHasMissingRoles
-import code.entitlement.Entitlement
-import code.model.CreateViewJson
 import code.setup.{APIResponse, DefaultUsers}
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
-import net.liftweb.util.Helpers.randomString
-import code.api.v3_0_0.APIMethods300._
 
 
 class WarehouseTest extends V300ServerSetup with DefaultUsers {

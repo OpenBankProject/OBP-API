@@ -2291,6 +2291,3 @@ trait APIMethods200 {
     }
   }
 }
-
-object APIMethods200 {
-}
