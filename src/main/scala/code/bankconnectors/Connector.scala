@@ -292,7 +292,9 @@ trait Connector extends MdcLoggable{
     val counterparties = for {
       transaction <- transactions
       counterpartyName <- List(transaction.otherAccount.counterpartyName)
-      counterpartyIdFromTransaction <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName))
+      otherAccountRoutingScheme <- List(transaction.otherAccount.otherAccountRoutingScheme)
+      otherAccountRoutingAddress <- List(transaction.otherAccount.otherAccountRoutingAddress.get)
+      counterpartyIdFromTransaction <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName,otherAccountRoutingScheme, otherAccountRoutingAddress))
       if counterpartyIdFromTransaction == counterpartyId
     } yield {
       transaction.otherAccount

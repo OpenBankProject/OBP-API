@@ -2063,12 +2063,17 @@ Returns a string showed to the developer
   /**
     * Create the implicit CounterpartyId, we can only get limit data from Adapter. (Used in `getTransactions` endpoint, we create the counterparty implicitly.)
     * Note: The caller should take care of the `counterpartyName`,it depends how you get the data from transaction. and can generate the `counterpartyName`
+    * 2018-07-18: We need more fields to identify the implicitCounterpartyId, only counterpartyName is not enough.
+    *             If some connectors only return limit data, the caller, need decide what kind of data to map here.
+    *
     */
   def createImplicitCounterpartyId(
     thisBankId: String,
     thisAccountId : String,
-    counterpartyName: String
-  )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
+    counterpartyName: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 
