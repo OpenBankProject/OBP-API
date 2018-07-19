@@ -1529,7 +1529,9 @@ trait APIMethods300 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
+              getFullBoxOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createUserJSON (user, entitlements), callContext)
           }
