@@ -62,6 +62,7 @@ Defines how the View should be named, i.e. if it is public, the Alias behaviour,
  */
 trait ViewSpecification {
   def description: String
+  def metadata_view: String
   def is_public: Boolean
   def which_alias_to_use: String
   def hide_metadata_if_alias_used: Boolean
@@ -74,6 +75,7 @@ The JSON that should be supplied to create a view. Conforms to ViewSpecification
 case class CreateViewJson(
   name: String,
   description: String,
+  metadata_view: String,
   is_public: Boolean,
   which_alias_to_use: String,
   hide_metadata_if_alias_used: Boolean,
@@ -85,6 +87,7 @@ The JSON that should be supplied to update a view. Conforms to ViewSpecification
  */
 case class UpdateViewJSON(
   description: String,
+  metadata_view: String,
   is_public: Boolean,
   which_alias_to_use: String,
   hide_metadata_if_alias_used: Boolean,

@@ -14,7 +14,7 @@ import net.liftweb.util.Helpers.tryo
 
 object MapperTransactionImages extends TransactionImages {
   override def getImagesForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[TransactionImage] = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     MappedTransactionImage.findAll(
       By(MappedTransactionImage.bank, bankId.value),
       By(MappedTransactionImage.account, accountId.value),
@@ -30,7 +30,7 @@ object MapperTransactionImages extends TransactionImages {
 
   override def addTransactionImage(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                                   (userId: UserId, viewId: ViewId, description: String, datePosted: Date, imageURL: String): Box[TransactionImage] = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo {
       MappedTransactionImage.create
         .bank(bankId.value)
