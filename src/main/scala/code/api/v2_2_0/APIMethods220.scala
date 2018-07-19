@@ -9,6 +9,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.{APIUtil, ApiRole, ApiVersion, ErrorMessages}
+import code.api.v1_2_1.{CreateViewJsonV121, UpdateViewJsonV121}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
@@ -156,7 +157,7 @@ trait APIMethods220 {
         |
         | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
         | """,
-      createViewJson,
+      createViewJsonV121,
       viewJSONV220,
       List(
         UserNotLoggedIn,
@@ -172,12 +173,21 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
+            createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
+            _<- booleanToBox(createViewJsonV121.name.startsWith("_"), InvalidCustomViewFormat)
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- account createView (u, json)
+            createViewJson = CreateViewJson(
+              createViewJsonV121.name,
+              createViewJsonV121.description,
+              metadata_view = "", //this only used from V300
+              createViewJsonV121.is_public,
+              createViewJsonV121.which_alias_to_use,
+              createViewJsonV121.hide_metadata_if_alias_used,
+              createViewJsonV121.allowed_actions
+            )
+            view <- account createView (u, createViewJson)
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -199,7 +209,7 @@ trait APIMethods220 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      updateViewJSON,
+      updateViewJsonV121,
       viewJSONV220,
       List(
         InvalidJsonFormat,
@@ -216,14 +226,22 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
+            updateJsonV121 <- tryo{json.extract[UpdateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
-            updatedView <- account.updateView(u, viewId, updateJson)
+            updateViewJson = UpdateViewJSON(
+              updateJsonV121.description,
+              metadata_view = view.metadataView, //this only used from V300, here just copy from currentView . 
+              updateJsonV121.is_public,
+              updateJsonV121.which_alias_to_use,
+              updateJsonV121.hide_metadata_if_alias_used,
+              updateJsonV121.allowed_actions
+            )
+            updatedView <- account.updateView(u, viewId, updateViewJson)
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)
