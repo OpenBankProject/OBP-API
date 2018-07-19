@@ -2009,7 +2009,7 @@ Returns a string showed to the developer
 
   def unboxFullAndWrapIntoFuture[T](box: Box[T])(implicit m: Manifest[T]) : Future[T] = {
     Future {
-      unboxFull(box)
+      unboxFull(fullBoxOrException(box))
     }
   }
 
