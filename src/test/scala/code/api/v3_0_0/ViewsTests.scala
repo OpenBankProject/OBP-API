@@ -224,6 +224,7 @@ class ViewsTests extends V300ServerSetup {
       //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
       UpdateViewJSON(
         description = updatedViewDescription,
+        metadata_view = originalView.metadata_view,
         is_public = !originalView.is_public,
         which_alias_to_use = updatedAliasToUse,
         hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias_used,
@@ -234,6 +235,7 @@ class ViewsTests extends V300ServerSetup {
     def someViewUpdateJson() = {
       UpdateViewJSON(
         description = updatedViewDescription,
+        metadata_view = "owner",
         is_public = true,
         which_alias_to_use = updatedAliasToUse,
         hide_metadata_if_alias_used = true,
@@ -327,6 +329,7 @@ class ViewsTests extends V300ServerSetup {
   
       val updateViewJSON = UpdateViewJSON(
         description = "good",
+        metadata_view = "owner",
         is_public =false,
         which_alias_to_use ="",
         hide_metadata_if_alias_used= false,

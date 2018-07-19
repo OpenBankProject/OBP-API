@@ -173,20 +173,20 @@ trait APIMethods300 {
             for {
               (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
               u <- unboxFullAndWrapIntoFuture{ user }
-              postedData <- Future { tryo{json.extract[CreateViewJson]} } map {
+              createViewJson <- Future { tryo{json.extract[CreateViewJson]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson "
                 x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
-                postedData.name.startsWith("_")
+                createViewJson.name.startsWith("_")
               }
               account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
             } yield {
               for {
-                view <- account createView (u, postedData)
+                view <- account createView (u, createViewJson)
               } yield {
                 (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
               }

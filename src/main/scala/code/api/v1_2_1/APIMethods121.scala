@@ -559,7 +559,7 @@ trait APIMethods121 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      createViewJson,
+      createViewJsonV121,
       viewJSONV121,
       List(
         UserNotLoggedIn,
@@ -578,11 +578,20 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            json <- tryo{json.extract[CreateViewJson]} ?~ InvalidJsonFormat
+            createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~ InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
+            _<- booleanToBox(createViewJsonV121.name.startsWith("_"), InvalidCustomViewFormat)
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- account createView (u, json)
+            createViewJson = CreateViewJson(
+              createViewJsonV121.name,
+              createViewJsonV121.description,
+              metadata_view = "", //this only used from V300
+              createViewJsonV121.is_public,
+              createViewJsonV121.which_alias_to_use,
+              createViewJsonV121.hide_metadata_if_alias_used,
+              createViewJsonV121.allowed_actions
+            )
+            view <- account createView (u, createViewJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -603,7 +612,7 @@ trait APIMethods121 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      updateViewJSON,
+      updateViewJsonV121,
       viewJSONV121,
       List(
         InvalidJsonFormat,
@@ -622,14 +631,22 @@ trait APIMethods121 {
       ) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            updateJson <- tryo{ json.extract[UpdateViewJSON] } ?~ InvalidJsonFormat
+            updateJsonV121 <- tryo{ json.extract[UpdateViewJsonV121] } ?~ InvalidJsonFormat
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             u <- cc.user ?~  UserNotLoggedIn
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
-            updatedView <- account.updateView(u, viewId, updateJson)
+            updateViewJson = UpdateViewJSON(
+              updateJsonV121.description,
+              metadata_view = view.metadataView, //this only used from V300, here just copy from currentView . 
+              updateJsonV121.is_public,
+              updateJsonV121.which_alias_to_use,
+              updateJsonV121.hide_metadata_if_alias_used,
+              updateJsonV121.allowed_actions
+            )
+            updatedView <- account.updateView(u, viewId, updateViewJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)
