@@ -1653,6 +1653,3 @@ trait APIMethods210 {
     }
   }
 }
-
-object APIMethods210 {
-}

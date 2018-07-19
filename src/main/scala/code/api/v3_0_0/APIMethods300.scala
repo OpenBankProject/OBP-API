@@ -32,7 +32,7 @@ import code.util.Helper
 import code.util.Helper.{DateFormatWithCurrentTimeZone, booleanToBox}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
@@ -1496,8 +1496,8 @@ trait APIMethods300 {
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
             customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             // Create the JSON to return. We also return the callContext
             (JSONFactory300.createCustomersJson(customers), callContext)
@@ -1529,7 +1529,9 @@ trait APIMethods300 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
+              getFullBoxOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createUserJSON (user, entitlements), callContext)
           }
@@ -1571,8 +1573,8 @@ trait APIMethods300 {
             }
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
           }
@@ -1792,8 +1794,8 @@ trait APIMethods300 {
               hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
           }
@@ -1838,8 +1840,8 @@ trait APIMethods300 {
               hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
           }
@@ -1879,8 +1881,8 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(u.userId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
           }
@@ -1924,8 +1926,8 @@ trait APIMethods300 {
               hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (Full(deleteEntitlementRequest), callContext)
           }
@@ -1964,8 +1966,8 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
             getEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory200.createEntitlementJSONs(getEntitlements), callContext)
           }
@@ -2037,13 +2039,11 @@ trait APIMethods300 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            bank <- Future { Bank(bankId) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, Some(cc.toLight)))
-            }
+            bank <- Future { Bank(bankId) } map { getFullBoxOrFail(_, cc, BankNotFound,400) }
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
             accounts <- Connector.connector.vend.getCoreBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
           }
@@ -2334,7 +2334,7 @@ trait APIMethods300 {
       case "banks" :: Nil JsonGet req => {
         cc =>
           for {
-            banksBox <- Connector.connector.vend.getBanksFuture()
+            banksBox: Box[List[Bank]] <- Connector.connector.vend.getBanksFuture()
             banks <- unboxFullAndWrapIntoFuture{ banksBox }
           } yield 
             (JSONFactory300.createBanksJson(banks), Some(cc))
@@ -2417,7 +2417,4 @@ trait APIMethods300 {
 
 
   }
-}
-
-object APIMethods300 {
 }

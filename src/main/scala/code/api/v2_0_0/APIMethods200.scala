@@ -2071,8 +2071,8 @@ trait APIMethods200 {
               isSuperAdmin(u.userId)
             }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory200.createEntitlementJSONs(entitlements), callContext)
           }
@@ -2290,7 +2290,4 @@ trait APIMethods200 {
       }
     }
   }
-}
-
-object APIMethods200 {
 }

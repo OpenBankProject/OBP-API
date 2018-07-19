@@ -23,6 +23,3 @@ trait CustomAPIMethods300 {
   }
   
 }
-
-object CustomAPIMethods300 {
-}
