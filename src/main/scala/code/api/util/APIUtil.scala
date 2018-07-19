@@ -1941,6 +1941,12 @@ Returns a string showed to the developer
     fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, Some(cc.toLight)))
   }
 
+  def unboxFullOrFail[T](box: Box[T], cc: CallContext, emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): T = {
+    unboxFull {
+      fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, Some(cc.toLight)))
+    }
+  }
+
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
