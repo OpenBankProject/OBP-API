@@ -77,7 +77,7 @@ trait APIMethods121 {
       account <- BankAccount(bankId, accountId, callContext) ?~! BankAccountNotFound
       view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user, callContext)
-      metadata <- Box(moderatedTransaction.metadata) ?~ { s"$ViewNoPermission can_see_transaction_metadata. Current ViewId($viewId)" }
+      metadata <- Box(moderatedTransaction.metadata) ?~ { s"$NoViewPermission can_see_transaction_metadata. Current ViewId($viewId)" }
     } yield metadata
   }
 
@@ -992,7 +992,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
           } yield {
             val metadataJson = JSONFactory.createOtherAccountMetaDataJSON(metadata)
             successJsonResponse(Extraction.decompose(metadataJson))
@@ -1029,7 +1029,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             alias <- Box(metadata.publicAlias) ?~ {"the view " + viewId + "does not allow public alias access"}
           } yield {
             val aliasJson = JSONFactory.createAliasJSON(alias)
@@ -1076,7 +1076,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
@@ -1120,7 +1120,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
@@ -1162,7 +1162,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
             added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
             if(added)
@@ -1201,7 +1201,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             alias <- Box(metadata.privateAlias) ?~ {"the view " + viewId + "does not allow private alias access"}
           } yield {
             val aliasJson = JSONFactory.createAliasJSON(alias)
@@ -1242,7 +1242,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
@@ -1286,7 +1286,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
             aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be updated"}
@@ -1329,7 +1329,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
             added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
             if(added)
@@ -1353,7 +1353,7 @@ trait APIMethods121 {
         UserNotLoggedIn,
         BankAccountNotFound,
         InvalidJsonFormat,
-        ViewNoPermission,
+        NoViewPermission,
         "the view " + viewId + "does not allow adding more info",
         "More Info cannot be added",
         UnknownError
@@ -1369,7 +1369,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be added"}
@@ -1410,7 +1410,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
             moreInfoJson <- tryo{(json.extract[MoreInfoJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, moreInfoJson.more_info) ?~ {"More Info cannot be updated"}
@@ -1450,7 +1450,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
             deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
             if(deleted)
@@ -1490,7 +1490,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be added"}
@@ -1516,7 +1516,7 @@ trait APIMethods121 {
         UserNotLoggedIn,
         BankAccountNotFound,
         InvalidJsonFormat,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         "URL cannot be updated",
         UnknownError),
@@ -1531,7 +1531,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
             urlJson <- tryo{(json.extract[UrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, urlJson.URL) ?~ {"URL cannot be updated"}
@@ -1571,7 +1571,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
             added <- Counterparties.counterparties.vend.addURL(other_account_id, "") ?~ {"URL cannot be deleted"}
             if(added)
@@ -1610,7 +1610,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be added"}
@@ -1650,7 +1650,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
             imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be updated"}
@@ -1684,7 +1684,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
             deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
             if(deleted)
@@ -1722,7 +1722,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
             added <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be added"}
@@ -1763,7 +1763,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
             openCorpUrl <- tryo{(json.extract[OpenCorporateUrlJSON])} ?~ {InvalidJsonFormat}
             updated <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, openCorpUrl.open_corporates_URL) ?~ {"URL cannot be updated"}
@@ -1803,7 +1803,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
             deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
             if(deleted)
@@ -1843,7 +1843,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
@@ -1887,7 +1887,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
@@ -1929,7 +1929,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
           } yield {
             if(deleted)
@@ -1973,7 +1973,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
@@ -2018,7 +2018,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
@@ -2045,7 +2045,7 @@ trait APIMethods121 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         "Physical Location cannot be deleted",
         "Delete not completed",
         UnknownError),
@@ -2061,7 +2061,7 @@ trait APIMethods121 {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$ViewNoPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
           } yield {
             if(deleted)
@@ -2188,7 +2188,7 @@ trait APIMethods121 {
       transactionNarrativeJSON,
       List(
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2200,7 +2200,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            narrative <- Box(metadata.ownerComment) ?~ { s"$ViewNoPermission can_see_owner_comment. Current ViewId($viewId)" }
+            narrative <- Box(metadata.ownerComment) ?~ { s"$NoViewPermission can_see_owner_comment. Current ViewId($viewId)" }
           } yield {
             val narrativeJson = JSONFactory.createTransactionNarrativeJSON(narrative)
             successJsonResponse(Extraction.decompose(narrativeJson))
@@ -2228,7 +2228,7 @@ trait APIMethods121 {
       List(
         InvalidJsonFormat,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2242,7 +2242,7 @@ trait APIMethods121 {
             u <- cc.user
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$ViewNoPermission can_add_owner_comment. Current ViewId($viewId)" }
+            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)" }
           } yield {
             addNarrative(narrativeJson.narrative)
             val successJson = SuccessMessage("narrative added")
@@ -2264,10 +2264,10 @@ trait APIMethods121 {
       transactionNarrativeJSON,
       successMessage,
       List(InvalidJsonFormat,
-        BankAccountNotFound,
-        ViewNoPermission,
-        ViewNotFound,
-        UnknownError),
+           BankAccountNotFound,
+           NoViewPermission,
+           ViewNotFound,
+           UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
@@ -2279,7 +2279,7 @@ trait APIMethods121 {
             u <- cc.user
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$ViewNoPermission can_add_owner_comment. Current ViewId($viewId)" }
+            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)" }
           } yield {
             addNarrative(narrativeJson.narrative)
             val successJson = SuccessMessage("narrative updated")
@@ -2303,7 +2303,7 @@ trait APIMethods121 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
@@ -2314,7 +2314,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$ViewNoPermission can_delete_owner_comment. Current ViewId($viewId)" }
+            addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_delete_owner_comment. Current ViewId($viewId)" }
           } yield {
             addNarrative("")
             noContentJsonResponse
@@ -2337,7 +2337,7 @@ trait APIMethods121 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2349,7 +2349,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            comments <- Box(metadata.comments) ?~! { s"$ViewNoPermission can_see_comments. Current ViewId($viewId)" }
+            comments <- Box(metadata.comments) ?~! { s"$NoViewPermission can_see_comments. Current ViewId($viewId)" }
           } yield {
             val json = JSONFactory.createTransactionCommentsJSON(comments)
             successJsonResponse(Extraction.decompose(json))
@@ -2375,7 +2375,7 @@ trait APIMethods121 {
         UserNotLoggedIn,
         InvalidJsonFormat,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2389,7 +2389,7 @@ trait APIMethods121 {
             u <- cc.user
             commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addCommentFunc <- Box(metadata.addComment) ?~ { s"$ViewNoPermission can_add_comment. Current ViewId($viewId)" }
+            addCommentFunc <- Box(metadata.addComment) ?~ { s"$NoViewPermission can_add_comment. Current ViewId($viewId)" }
             postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
@@ -2413,7 +2413,7 @@ trait APIMethods121 {
       emptyObjectJson,
       List(
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UserNotLoggedIn,
         UnknownError),
@@ -2447,7 +2447,7 @@ trait APIMethods121 {
       transactionTagJSON,
       List(
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UnknownError
       ),
@@ -2460,7 +2460,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            tags <- Box(metadata.tags) ?~ { s"$ViewNoPermission can_see_tags. Current ViewId($viewId)" }
+            tags <- Box(metadata.tags) ?~ { s"$NoViewPermission can_see_tags. Current ViewId($viewId)" }
           } yield {
             val json = JSONFactory.createTransactionTagsJSON(tags)
             successJsonResponse(Extraction.decompose(json))
@@ -2486,7 +2486,7 @@ trait APIMethods121 {
         UserNotLoggedIn,
         BankAccountNotFound,
         InvalidJsonFormat,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2501,7 +2501,7 @@ trait APIMethods121 {
             u <- cc.user
             tagJson <- tryo{json.extract[PostTransactionTagJSON]} ?~ { s"$InvalidJsonFormat Check your Post Json Body." }
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addTagFunc <- Box(metadata.addTag) ?~ { s"$ViewNoPermission can_add_tag. Current ViewId($viewId)" }
+            addTagFunc <- Box(metadata.addTag) ?~ { s"$NoViewPermission can_add_tag. Current ViewId($viewId)" }
             postedTag <- addTagFunc(u.resourceUserId, viewId, tagJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
@@ -2524,7 +2524,7 @@ trait APIMethods121 {
         |""".stripMargin,
       emptyObjectJson,
       emptyObjectJson,
-      List(ViewNoPermission, 
+      List(NoViewPermission,
            ViewNotFound,
            UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2559,7 +2559,7 @@ trait APIMethods121 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2571,7 +2571,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            images <- Box(metadata.images) ?~ { s"$ViewNoPermission can_see_images. Current ViewId($viewId)" }
+            images <- Box(metadata.images) ?~ { s"$NoViewPermission can_see_images. Current ViewId($viewId)" }
           } yield {
             val json = JSONFactory.createTransactionImagesJSON(images)
             successJsonResponse(Extraction.decompose(json))
@@ -2596,7 +2596,7 @@ trait APIMethods121 {
       List(
         InvalidJsonFormat,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         ViewNotFound,
         InvalidUrl,
         UnknownError),
@@ -2612,7 +2612,7 @@ trait APIMethods121 {
             u <- cc.user
             imageJson <- tryo{json.extract[PostTransactionImageJSON]} ?~! InvalidJsonFormat
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
-            addImageFunc <- Box(metadata.addImage) ?~ { s"$ViewNoPermission can_add_image. Current ViewId($viewId)" }
+            addImageFunc <- Box(metadata.addImage) ?~ { s"$NoViewPermission can_add_image. Current ViewId($viewId)" }
             url <- tryo{new URL(imageJson.URL)} ?~! s"$InvalidUrl Could not parse url string as a valid URL"
             postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url.toString)
           } yield {
@@ -2635,7 +2635,7 @@ trait APIMethods121 {
       emptyObjectJson,
       List(
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         UserNotLoggedIn,
         "You must be able to see images in order to delete them",
         "Image not found for this transaction",
@@ -2673,9 +2673,9 @@ trait APIMethods121 {
       emptyObjectJson,
       transactionWhereJSON,
       List(BankAccountNotFound,
-        ViewNoPermission,
-        ViewNotFound,
-        UnknownError),
+           NoViewPermission,
+           ViewNotFound,
+           UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionMetaData, apiTagTransaction))
 
@@ -2685,7 +2685,7 @@ trait APIMethods121 {
         cc =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            where <- Box(metadata.whereTag) ?~ { s"$ViewNoPermission can_see_where_tag. Current ViewId($viewId)" }
+            where <- Box(metadata.whereTag) ?~ { s"$NoViewPermission can_see_where_tag. Current ViewId($viewId)" }
           } yield {
             val json = JSONFactory.createLocationJSON(where)
             val whereJson = TransactionWhereJSON(json)
@@ -2713,7 +2713,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         InvalidJsonFormat,
         ViewNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         "Coordinates not possible",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2727,7 +2727,7 @@ trait APIMethods121 {
             u <- cc.user
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$ViewNoPermission can_add_where_tag. Current ViewId($viewId)" }
+            addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
             if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
@@ -2757,7 +2757,7 @@ trait APIMethods121 {
         BankAccountNotFound,
         InvalidJsonFormat,
         ViewNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         "Coordinates not possible",
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -2771,7 +2771,7 @@ trait APIMethods121 {
             u <- cc.user
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
-            addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$ViewNoPermission can_add_where_tag. Current ViewId($viewId)" }
+            addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
             if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
@@ -2799,7 +2799,7 @@ trait APIMethods121 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         UserNotLoggedIn,
         ViewNotFound,
         "there is no tag to delete",

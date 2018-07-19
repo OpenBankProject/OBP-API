@@ -13,7 +13,7 @@ import net.liftweb.util.Helpers.tryo
 
 object MappedComments extends Comments {
   override def getComments(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[Comment] = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     MappedComment.findAll(
       By(MappedComment.bank, bankId.value),
       By(MappedComment.account, accountId.value),
@@ -36,7 +36,7 @@ object MappedComments extends Comments {
   }
 
   override def addComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(userId: UserId, viewId: ViewId, text: String, datePosted: Date): Box[Comment] = {
-    val metadateViewId = Views.views.vend.getMetadataViewId(viewId, BankIdAccountId(bankId, accountId))
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo {
       MappedComment.create
         .bank(bankId.value)

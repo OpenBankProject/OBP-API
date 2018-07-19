@@ -158,7 +158,7 @@ object ErrorMessages {
 
   val CreateBankError = "OBP-30020: Could not create the Bank"
   val UpdateBankError = "OBP-30021: Could not update the Bank"
-  val ViewNoPermission = "OBP-30022: The current view does not have the permission: "
+  val NoViewPermission = "OBP-30022: The current view does not have the permission: "
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create Consumer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
