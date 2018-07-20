@@ -181,6 +181,8 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 createViewJson.name.startsWith("_")
               }
+              _ <- Views.views.vend.viewFuture(ViewId(createViewJson.metadata_view), BankIdAccountId(bankId, accountId)) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${createViewJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, Some(cc.toLight)))}
               account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
@@ -277,6 +279,10 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 viewId.value.startsWith("_")
               }
+              _ <- Views.views.vend.viewFuture(ViewId(updateJson.metadata_view), BankIdAccountId(bankId, accountId)) map {
+                x => fullBoxOrException(
+                  x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${updateJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankId, accountId)) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
               } map { unboxFull(_) }

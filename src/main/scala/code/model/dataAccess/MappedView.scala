@@ -93,6 +93,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     hideOtherAccountMetadataIfAlias_(viewData.hide_metadata_if_alias_used)
     description_(viewData.description)
     isPublic_(viewData.is_public)
+    metadataView_(viewData.metadata_view)
 
     val actions = viewData.allowed_actions
 
