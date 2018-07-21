@@ -253,9 +253,9 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts",
       "Get Accounts at Bank.",
-      s"""Get accounts at one bank that the user has access to.
+      s"""
         |Returns the list of accounts at BANK_ID that the user has access to.
-        |For each account the API returns the account ID and the available views.
+        |For each account the API returns the account ID and the views available to the user..
         |Each account must have at least one private View.
         |
         |${authenticationRequiredMessage(true)}

@@ -465,10 +465,9 @@ trait APIMethods300 {
       "corePrivateAccountsAllBanks",
       "GET",
       "/my/accounts",
-      "Get Accounts at all Banks (My)",
-      s"""Get private accounts at all banks.
-         |Returns the list of accounts containing private views for the user at all banks.
-         |For each account the API returns the ID and the available views.
+      "Get Accounts at all Banks (private)",
+      s"""Returns the list of accounts containing private views for the user.
+         |Each account lists the views available to the user.
          |
         |${authenticationRequiredMessage(true)}
          |""",
@@ -1558,10 +1557,9 @@ trait APIMethods300 {
       "/banks/BANK_ID/accounts/private",
       "Get Accounts at Bank (Minimal).",
       s"""Returns the minimal list of private accounts at BANK_ID that the user has access to.
-         |For each account the API returns the ID and the available views.
+         |For each account, the API returns the ID, routing addresses and the views available to the current user.
          |
          |If you want to see more information on the Views, use the Account Detail call.
-         |If you want less information about the account, use the /my accounts call
          |
          |
          |${authenticationRequiredMessage(true)}""",
