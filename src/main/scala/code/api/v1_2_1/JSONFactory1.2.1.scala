@@ -149,6 +149,24 @@ case class ViewJSONV121(
   val can_see_url: Boolean,
   val can_see_where_tag : Boolean
 )
+
+case class CreateViewJsonV121(
+  name: String,
+  description: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions : List[String]
+)
+
+case class UpdateViewJsonV121(
+  description: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions: List[String]
+)
+
 case class AccountsJSON(
   accounts : List[AccountJSON]
 )

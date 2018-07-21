@@ -9,6 +9,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.{APIUtil, ApiRole, ApiVersion, ErrorMessages}
+import code.api.v1_2_1.{CreateViewJsonV121, UpdateViewJsonV121}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
@@ -156,7 +157,7 @@ trait APIMethods220 {
         |
         | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
         | """,
-      createViewJson,
+      createViewJsonV121,
       viewJSONV220,
       List(
         UserNotLoggedIn,
@@ -172,12 +173,21 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            json <- tryo{json.extract[CreateViewJson]} ?~!InvalidJsonFormat
+            createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(json.name.startsWith("_"), InvalidCustomViewFormat)
+            _<- booleanToBox(createViewJsonV121.name.startsWith("_"), InvalidCustomViewFormat)
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            view <- account createView (u, json)
+            createViewJson = CreateViewJson(
+              createViewJsonV121.name,
+              createViewJsonV121.description,
+              metadata_view = "", //this only used from V300
+              createViewJsonV121.is_public,
+              createViewJsonV121.which_alias_to_use,
+              createViewJsonV121.hide_metadata_if_alias_used,
+              createViewJsonV121.allowed_actions
+            )
+            view <- account createView (u, createViewJson)
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -199,7 +209,7 @@ trait APIMethods220 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      updateViewJSON,
+      updateViewJsonV121,
       viewJSONV220,
       List(
         InvalidJsonFormat,
@@ -216,14 +226,22 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~!InvalidJsonFormat
+            updateJsonV121 <- tryo{json.extract[UpdateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))?~! ViewNotFound
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
-            updatedView <- account.updateView(u, viewId, updateJson)
+            updateViewJson = UpdateViewJSON(
+              updateJsonV121.description,
+              metadata_view = view.metadataView, //this only used from V300, here just copy from currentView . 
+              updateJsonV121.is_public,
+              updateJsonV121.which_alias_to_use,
+              updateJsonV121.hide_metadata_if_alias_used,
+              updateJsonV121.allowed_actions
+            )
+            updatedView <- account.updateView(u, viewId, updateViewJson)
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)
@@ -278,7 +296,7 @@ trait APIMethods220 {
         UserNotLoggedIn,
         BankAccountNotFound,
         ViewNotFound,
-        ViewNoPermission,
+        NoViewPermission,
         UserNoPermissionAccessView,
         UnknownError
       ),
@@ -291,8 +309,8 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
-            _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
+            _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId, Some(cc))
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
@@ -330,8 +348,8 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~! UserNotLoggedIn
             account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! ViewNotFound
-            _ <- booleanToBox(view.canAddCounterparty == true, s"${ViewNoPermission}canAddCounterparty")
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
+            _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
             counterparty <- Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId.value, Some(cc))
@@ -803,7 +821,7 @@ trait APIMethods220 {
       "GET",
       "/management/connector/metrics",
       "Get Connector Metrics",
-      """Get the all metrics
+      s"""Get the all metrics
         |
         |require CanGetConnectorMetrics role
         |
@@ -811,17 +829,17 @@ trait APIMethods220 {
         |
         |Should be able to filter on the following metrics fields
         |
-        |eg: /management/connector/metrics?from_date=2017-03-01&to_date=2017-03-04&limit=50&offset=2
+        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=50&offset=2
         |
-        |1 from_date (defaults to one week before current date): eg:from_date=2017-03-01
+        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithDayExampleString
         |
-        |2 to_date (defaults to current date) eg:to_date=2017-03-05
+        |2 to_date (defaults to current date) eg:to_date=$DateWithDayExampleString
         |
         |3 limit (for pagination: defaults to 1000)  eg:limit=2000
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
-        |eg: /management/connector/metrics?from_date=2016-03-05&to_date=2017-03-08&limit=100&offset=300
+        |eg: /management/connector/metrics?from_date=$DateWithDayExampleString&to_date=$DateWithDayExampleString&limit=100&offset=300
         |
         |Other filters:
         |
@@ -848,77 +866,11 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
-
-            //TODO , these paging can use the def getPaginationParams(req: Req) in APIUtil scala
-            //Note: Filters Part 1:
-            //?from_date=100&to_date=1&limit=200&offset=0
-
-            inputDateFormat <- Full(APIUtil.DateWithDayFormat)
-            // set the long,long ago as the default date.
-            nowTime <- Full(System.currentTimeMillis())
-            defaultFromDate <- Full(new Date(nowTime - (1000 * 60)).toInstant.toString)  // 1 minute ago
-            defaulToDate <- Full(new Date(nowTime).toInstant.toString)
-
-            //(defaults to one week before current date
-            fromDate <- tryo(inputDateFormat.parse(S.param("from_date").getOrElse(defaultFromDate))) ?~!
-              s"${InvalidDateFormat } from_date:${S.param("from_date").get }. Support format is $DateWithDay"
-            // defaults to current date
-            toDate <- tryo(inputDateFormat.parse(S.param("to_date").getOrElse(defaulToDate))) ?~!
-              s"${InvalidDateFormat } to_date:${S.param("to_date").get }. Support format is $DateWithDay"
-            // default 1000, return 1000 items
-            limit <- tryo(
-              S.param("limit") match {
-                case Full(l) if (l.toInt > 1000) => 1000
-                case Full(l)                      => l.toInt
-                case _                            => 100
-              }
-            ) ?~!  s"${InvalidNumber } limit:${S.param("limit").get }"
-            // default0, start from page 0
-            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
-              s"${InvalidNumber } offset:${S.param("offset").get }"
-
-            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(List(OBPLimit(limit), OBPOffset(offset), OBPFromDate(fromDate), OBPToDate(toDate))))
-
-            //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
-            // add because of toDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
-            //startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(toDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
-
-            ///filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(fromDate)) && (rd.getDate().before(startDatePlusOneDay))))
-
-            /** pages:
-              * eg: total=79
-              * offset=0, limit =50
-              *  filterByDate.slice(0,50)
-              * offset=1, limit =50
-              *  filterByDate.slice(50*1,50+50*1)--> filterByDate.slice(50,100)
-              * offset=2, limit =50
-              *  filterByDate.slice(50*2,50+50*2)-->filterByDate.slice(100,150)
-              */
-            //filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
-
-            //Filters Part 2.
-            //eg: /management/metrics?from_date=100&to_date=1&limit=200&offset=0
-            //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
-            // consumer_id (if null ignore)
-            // user_id (if null ignore)
-            // anon true => return where user_id is null. false => return where where user_id is not null(if null ignore)
-            // url (if null ignore)
-            // app_name (if null ignore)
-            // implemented_by_partial_function (if null ignore)
-            // implemented_in_version (if null ignore)
-            // verb (if null ignore)
-            connectorName <- Full(S.param("connector_name")) //(if null ignore)
-            functionName <- Full(S.param("function_name")) //(if null ignore)
-            correlationId <- Full(S.param("correlation_id")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
-
-
-            filterByFields: List[ConnectorMetric] = metrics
-              .filter(i => (if (!connectorName.isEmpty) i.getConnectorName().equals(connectorName.get) else true))
-              .filter(i => (if (!functionName.isEmpty) i.getFunctionName().equals(functionName.get) else true))
-              //TODO url can not contain '&', if url is /management/metrics?from_date=100&to_date=1&limit=200&offset=0, it can not work.
-              .filter(i => (if (!correlationId.isEmpty) i.getCorrelationId().equals(correlationId.get) else true))
+            httpParams <- createHttpParamsByUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParams(httpParams)
+            metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))
           } yield {
-            val json = JSONFactory220.createConnectorMetricsJson(filterByFields)
+            val json = JSONFactory220.createConnectorMetricsJson(metrics)
             successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
           }
         }
@@ -1105,7 +1057,7 @@ trait APIMethods220 {
             _ <- Bank(bankId) ?~! s"$BankNotFound Current BANK_ID = $bankId"
             account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))?~! s"$ViewNotFound Current VIEW_ID = $viewId"
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             _ <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             _ <- tryo(assert(Counterparties.counterparties.vend.
@@ -1189,7 +1141,7 @@ trait APIMethods220 {
           for {
             bank <- Bank(bankId) ?~ BankNotFound
             account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             availableViews <- Full(account.permittedViews(user))
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~! UserNoPermissionAccessView
             moderatedAccount <- account.moderatedBankAccount(view, user)
@@ -1231,7 +1183,4 @@ trait APIMethods220 {
  */
 
   }
-}
-
-object APIMethods220 {
 }

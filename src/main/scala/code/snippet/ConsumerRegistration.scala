@@ -207,8 +207,11 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
-      val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
-      val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
+      val apiExplorerUrl = APIUtil.getPropsValue("webui_api_explorer_url", "unknown host")
+      val directLoginDocumentationUrl = APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
+      val oauthDocumentationUrl = APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
+      val oauthEndpointUrl = thisApiInstance + "/oauth/initiate"
+      val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +
         s"App name: ${registered.name.get} \n" +
@@ -216,11 +219,11 @@ class ConsumerRegistration extends MdcLoggable {
         s"App description: ${registered.description.get} \n" +
         s"Consumer Key: ${consumerKeyOrMessage} \n" +
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
-        s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
-        s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
-        s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
-        s"Direct Login Documentation: https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login \n" +
-        s"$registrationMoreInfoText: $registrationMoreInfoUrl" 
+        s"OAuth Endpoint: ${oauthEndpointUrl} \n" +
+        s"OAuth Documentation: ${directLoginDocumentationUrl} \n" +
+        s"Direct Login Endpoint: ${directLoginEndpointUrl} \n" +
+        s"Direct Login Documentation: ${oauthDocumentationUrl} \n" +
+        s"$registrationMoreInfoText: $registrationMoreInfoUrl"
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
 

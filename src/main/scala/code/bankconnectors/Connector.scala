@@ -115,6 +115,8 @@ case class OBPCorrelationId(value: String) extends OBPQueryParam
 case class OBPDuration(value: Long) extends OBPQueryParam
 case class OBPExcludeUrlPattern(value: String) extends OBPQueryParam
 case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam
+case class OBPFunctionName(value: String) extends OBPQueryParam
+case class OBPConnectorName(value: String) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
@@ -290,7 +292,9 @@ trait Connector extends MdcLoggable{
     val counterparties = for {
       transaction <- transactions
       counterpartyName <- List(transaction.otherAccount.counterpartyName)
-      counterpartyIdFromTransaction <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName))
+      otherAccountRoutingScheme <- List(transaction.otherAccount.otherAccountRoutingScheme)
+      otherAccountRoutingAddress <- List(transaction.otherAccount.otherAccountRoutingAddress.get)
+      counterpartyIdFromTransaction <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName,otherAccountRoutingScheme, otherAccountRoutingAddress))
       if counterpartyIdFromTransaction == counterpartyId
     } yield {
       transaction.otherAccount

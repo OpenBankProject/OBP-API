@@ -80,6 +80,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
       noneFieldValue should be ("")
     }
     
+    scenario(s"test some space in the URL, eg: /obp/v3.0.0/management/aggregate-metrics?app_name=API Manager Local Dev ") 
+    {
+      val httpRequestUrl= s"httpRequestUrl = /obp/v3.0.0/management/aggregate-metrics?app_name=API Manager Local Dev "
+      val startdateValue = getHttpRequestUrlParam(httpRequestUrl,"app_name")
+      startdateValue should be (s"API Manager Local Dev ")
+    }
+    
+    
     scenario(s"test the error case, eg: not proper parameter name") 
     {
       val httpRequestUrl= s"httpRequestUrl = /obp/v3.1.0/management/metrics/top-consumers?from_date=$startDateString&to_date=$endDateString"
@@ -92,21 +100,21 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   {
     scenario("test the one value case in HTTPParam , eg: (one name : one value)") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("from_date","2001-07-01T00:00:00.000Z"))
+      val httpParams: List[HTTPParam] = List(HTTPParam("from_date",s"$DateWithMsExampleString"))
       val returnValue = getHttpValues(httpParams, "from_date")
-      returnValue should be (List("2001-07-01T00:00:00.000Z"))
+      returnValue should be (List(s"$DateWithMsExampleString"))
     }
     
     scenario(s"test the many values case in HTTPParam, eg (one name : value1,value2,value3)") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List("2001-07-01T00:00:00.000Z","2002-07-01T00:00:00.000Z")))
+      val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(s"$DateWithMsExampleString",s"$DateWithMsExampleString")))
       val returnValue = getHttpValues(httpParams, "from_date")
-      returnValue should be (List("2001-07-01T00:00:00.000Z","2002-07-01T00:00:00.000Z"))
+      returnValue should be (List(s"$DateWithMsExampleString",s"$DateWithMsExampleString"))
     }
     
     scenario(s"test error cases, get wrong name ") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List("2001-07-01T00:00:00.000Z","2002-07-01T00:00:00.000Z")))
+      val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(s"$DateWithMsExampleString",s"$DateWithMsExampleString")))
       val returnValue = getHttpValues(httpParams, "wrongName")
       returnValue should be (Empty)
     }
@@ -174,7 +182,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   {
     scenario(s"test the correct case") 
     {
-      val correctDateFormatString = "2001-07-01T00:00:00.000Z"
+      val correctDateFormatString = s"$DateWithMsExampleString"
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(correctDateFormatString)))
       val returnValue = getFromDate(httpParams)
       returnValue should be (Full(OBPFromDate(DateWithMsFormat.parse(correctDateFormatString))))
@@ -189,7 +197,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("2001-07-01T00:00:00.000Z")))
+      val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
       val returnValue = getFromDate(httpParams)
       returnValue should be (OBPFromDate(DefaultFromDate))
     }
@@ -206,7 +214,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   {
     scenario(s"test the correct case") 
     {
-      val correctDateFormatString = "2001-07-01T00:00:00.000Z"
+      val correctDateFormatString = s"$DateWithMsExampleString"
       val httpParams: List[HTTPParam] = List(HTTPParam("to_date", List(correctDateFormatString)))
       val returnValue = getToDate(httpParams)
       returnValue should be (Full(OBPToDate(DateWithMsFormat.parse(correctDateFormatString))))
@@ -221,7 +229,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("2001-07-01T00:00:00.000Z")))
+      val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
       val returnValue = getToDate(httpParams)
       returnValue should be (OBPToDate(DefaultToDate))
     }
@@ -468,8 +476,8 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     
     scenario(s"test the correct case1: all the params are in the `URL` ") 
     {
-      val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List("2010-05-10T01:20:03.000Z")), 
-                                   HTTPParam("to_date",List("2017-05-22T01:02:03.000Z")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
+      val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List(s"$DateWithMsExampleString")), 
+                                   HTTPParam("to_date",List(s"$DateWithMsExampleString")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
                                    HTTPParam("anon",List("false")), HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), 
                                    HTTPParam("url",List("/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions")), 
                                    HTTPParam("app_name",List("MapperPostman")), HTTPParam("implemented_by_partial_function",List("getTransactionsForBankAccount")), 
@@ -479,7 +487,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
                                    HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics,getConnectorMetrics,getAggregateMetrics")))) 
       
       val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics?" +
-        "offset=3&limit=10&sort_direction=ASC&from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
+        s"offset=3&limit=10&sort_direction=ASC&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
         "implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&" +
         "url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&" +
         "verb=GET&anon=false&app_name=MapperPostman&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null,SOFIT&" +
@@ -499,13 +507,13 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     
     scenario(s"test the correct case3: some params are in the `URL` ") 
     {
-      val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List("2010-05-10T01:20:03.000Z")), 
-                                   HTTPParam("to_date",List("2017-05-22T01:02:03.000Z")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
+      val ExpectResult = Full(List(HTTPParam("sort_direction",List("ASC")), HTTPParam("from_date",List(s"$DateWithMsExampleString")), 
+                                   HTTPParam("to_date",List(s"$DateWithMsExampleString")), HTTPParam("limit",List("10")), HTTPParam("offset",List("3")), 
                                    HTTPParam("consumer_id",List("5")), HTTPParam("user_id",List("66214b8e-259e-44ad-8868-3eb47be70646")), 
                                    HTTPParam("implemented_by_partial_function",List("getTransactionsForBankAccount")), 
                                    HTTPParam("implemented_in_version",List("v3.0.0"))))
       val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics?" +
-        "offset=3&limit=10&sort_direction=ASC&from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
+        s"offset=3&limit=10&sort_direction=ASC&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
         "implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0"
       val returnValue = createHttpParamsByUrl(httpRequestUrl)
       returnValue should be (ExpectResult)

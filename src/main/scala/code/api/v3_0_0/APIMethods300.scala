@@ -32,7 +32,7 @@ import code.util.Helper
 import code.util.Helper.{DateFormatWithCurrentTimeZone, booleanToBox}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
@@ -173,20 +173,22 @@ trait APIMethods300 {
             for {
               (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
               u <- unboxFullAndWrapIntoFuture{ user }
-              postedData <- Future { tryo{json.extract[CreateViewJson]} } map {
+              createViewJson <- Future { tryo{json.extract[CreateViewJson]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson "
                 x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
-                postedData.name.startsWith("_")
+                createViewJson.name.startsWith("_")
               }
+              _ <- Views.views.vend.viewFuture(ViewId(createViewJson.metadata_view), BankIdAccountId(bankId, accountId)) map {
+                x => fullBoxOrException(x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${createViewJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, Some(cc.toLight)))}
               account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
             } yield {
               for {
-                view <- account createView (u, postedData)
+                view <- account createView (u, createViewJson)
               } yield {
                 (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
               }
@@ -277,6 +279,10 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 viewId.value.startsWith("_")
               }
+              _ <- Views.views.vend.viewFuture(ViewId(updateJson.metadata_view), BankIdAccountId(bankId, accountId)) map {
+                x => fullBoxOrException(
+                  x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${updateJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, Some(cc.toLight)))
+              } map { unboxFull(_) }
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankId, accountId)) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
@@ -548,7 +554,7 @@ trait APIMethods300 {
               //3 use view and user to moderate the bankaccount object.
               bankIdAccountId <- availableBankIdAccountIdList
               bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
-              view <- Views.views.vend.view(viewId, bankIdAccountId) ?~! s"$ViewNotFound Current View_Id($viewId), Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
+              view <- Views.views.vend.view(viewId, bankIdAccountId)
               moderatedAccount <- bankAccount.moderatedBankAccount(view, user) //Error handling is in lower method
             } yield {
               moderatedAccount
@@ -633,10 +639,10 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
-        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
+        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
         |
-        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       coreTransactionsJsonV300,
       List(
@@ -698,10 +704,10 @@ trait APIMethods300 {
         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
         |* limit=NUMBER ==> default value: 50
         |* offset=NUMBER ==> default value: 0
-        |* from_date=DATE => default value: 0000-00-00T00:00:00.000Z
-        |* to_date=DATE => default value: 3049-01-01T00:00:00.000Z
+        |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+        |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
         |
-        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       transactionsJsonV300,
       List(
@@ -1217,7 +1223,7 @@ trait APIMethods300 {
          |
          |Pagination:
          |
-         |By default, 100 records are returned.
+         |By default, 50 records are returned.
          |
          |You can use the url query parameters *limit* and *offset* for pagination
          |
@@ -1433,33 +1439,20 @@ trait APIMethods300 {
     lazy val getUsers: OBPEndpoint = {
       case "users" :: Nil JsonGet _ => {
         cc =>
-          val limit = S.param("limit")
-          val offset = S.param("offset")
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
-              limit match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
-              limit match {
-                case Full(i) if i.toInt > 10000 => false
-                case _ => true
-              }
-            }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
-              offset match {
-                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
-                case _ => true
-              }
-            }
-            users <- Users.users.vend.getAllUsersF(List(OBPLimit(limit.getOrElse("1000").toInt), OBPOffset(offset.getOrElse("0").toInt)))
+            
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
+            } map { unboxFull(_) }
+            
+            users <- Users.users.vend.getAllUsersF(obpQueryParams)
           } yield {
             (JSONFactory300.createUserJSONs (users), callContext)
           }
@@ -1508,8 +1501,8 @@ trait APIMethods300 {
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
             customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             // Create the JSON to return. We also return the callContext
             (JSONFactory300.createCustomersJson(customers), callContext)
@@ -1541,7 +1534,9 @@ trait APIMethods300 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId)
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
+              getFullBoxOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createUserJSON (user, entitlements), callContext)
           }
@@ -1582,8 +1577,8 @@ trait APIMethods300 {
             }
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
           }
@@ -1803,8 +1798,8 @@ trait APIMethods300 {
               hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
           }
@@ -1849,8 +1844,8 @@ trait APIMethods300 {
               hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
           }
@@ -1890,8 +1885,8 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(u.userId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext)
           }
@@ -1935,8 +1930,8 @@ trait APIMethods300 {
               hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
             }
             deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (Full(deleteEntitlementRequest), callContext)
           }
@@ -1975,8 +1970,8 @@ trait APIMethods300 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture(user)
             getEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory200.createEntitlementJSONs(getEntitlements), callContext)
           }
@@ -2048,13 +2043,11 @@ trait APIMethods300 {
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            bank <- Future { Bank(bankId) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, Some(cc.toLight)))
-            }
+            bank <- Future { Bank(bankId) } map { getFullBoxOrFail(_, cc, BankNotFound,400) }
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
             accounts <- Connector.connector.vend.getCoreBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext)
           }
@@ -2073,15 +2066,15 @@ trait APIMethods300 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/aggregate-metrics?from_date=2010-05-10T01:20:03.000Z&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
+        |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 from_date (defaults to the day before the current date): eg:from_date=2010-05-10T01:20:03.000Z
+        |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to the current date) eg:to_date=2018-05-10T01:20:03.000Z
+        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
         |
         |3 consumer_id  (if null ignore)
         |
@@ -2137,7 +2130,7 @@ trait APIMethods300 {
               httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParamtersFormat, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
               } map { unboxFull(_) }
               
               
@@ -2345,7 +2338,7 @@ trait APIMethods300 {
       case "banks" :: Nil JsonGet req => {
         cc =>
           for {
-            banksBox <- Connector.connector.vend.getBanksFuture()
+            banksBox: Box[List[Bank]] <- Connector.connector.vend.getBanksFuture()
             banks <- unboxFullAndWrapIntoFuture{ banksBox }
           } yield 
             (JSONFactory300.createBanksJson(banks), Some(cc))
@@ -2428,7 +2421,4 @@ trait APIMethods300 {
 
 
   }
-}
-
-object APIMethods300 {
 }

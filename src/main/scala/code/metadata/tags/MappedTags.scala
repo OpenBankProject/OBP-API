@@ -6,23 +6,26 @@ import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util._
+import code.views.Views
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.mapper._
 
 object MappedTags extends Tags {
   override def getTags(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[TransactionTag] = {
-    MappedTag.findAll(MappedTag.findQuery(bankId, accountId, transactionId, viewId): _*)
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
+    MappedTag.findAll(MappedTag.findQuery(bankId, accountId, transactionId, ViewId(metadateViewId)): _*)
   }
 
   override def addTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                      (userId: UserId, viewId: ViewId, tagText: String, datePosted: Date): Box[TransactionTag] = {
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo{
       MappedTag.create
         .bank(bankId.value)
         .account(accountId.value)
         .transaction(transactionId.value)
-        .view(viewId.value)
+        .view(metadateViewId)
         .user(userId.value)
         .tag(tagText)
         .date(datePosted).saveMe

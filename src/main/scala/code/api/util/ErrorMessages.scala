@@ -47,15 +47,16 @@ object ErrorMessages {
   val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
   val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
   val AllowedValuesAre = "OBP-10015: Allowed values are: "
-  val InvalidFilterParamtersFormat = "OBP-10016: Incorrect Filter Parapmters in URL. "
+  val InvalidFilterParameterFormat = "OBP-10016: Incorrect filter Parameters in URL. "
+  val InvalidUrl = "OBP-10017: Incorrect URL Format. "
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
   val FilterLimitError = "OBP-10025: wrong value for obp_limit parameter. Please send a positive integer (=>1)!" // was OBP-20025
   val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
-  val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!" 
-  val FilterDurationFormatError = s"OBP-10029: wrong value for obp_limit parameter `duration` parameter. Please send a positive integer (=>0)!" 
+  val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!"
+  val FilterDurationFormatError = s"OBP-10029: wrong value for `duration` parameter. Please send a positive integer (=>0)!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
 
@@ -99,7 +100,7 @@ object ErrorMessages {
   val ConsumerHasMissingRoles = "OBP-20023: Consumer is missing one or more roles: "
   val ConsumerNotFoundById = "OBP-20024: Consumer not found. Please specify a valid value for CONSUMER_ID."
   val ScopeNotFound = "OBP-20025: Scope not found. Please specify a valid value for SCOPE_ID."
-  val ConsumerDoesNotHaveScope = "OBP-30213: CONSUMER_ID does not have the SCOPE_ID "
+  val ConsumerDoesNotHaveScope = "OBP-20026: CONSUMER_ID does not have the SCOPE_ID "
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
   val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "
@@ -133,7 +134,7 @@ object ErrorMessages {
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
-  val CustomerNotFoundByCustomerId = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_ID."
+  val CustomerNotFoundByCustomerId = "OBP-30046: Customer not found. Please specify a valid value for CUSTOMER_ID."
 
   val AccountNotFound = "OBP-30003: Account not found. Please specify a valid value for ACCOUNT_ID."
   val CounterpartyNotFound = "OBP-30004: Counterparty not found. The BANK_ID / ACCOUNT_ID specified does not exist on this server."
@@ -157,7 +158,7 @@ object ErrorMessages {
 
   val CreateBankError = "OBP-30020: Could not create the Bank"
   val UpdateBankError = "OBP-30021: Could not update the Bank"
-  val ViewNoPermission = "OBP-30022: The current view does not have the permission: "
+  val NoViewPermission = "OBP-30022: The current view does not have the permission: "
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create Consumer "
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
@@ -187,9 +188,9 @@ object ErrorMessages {
   
   val CheckbookOrderNotFound = "OBP-30041: CheckbookOrder not found for Account. "
   val GetTopApisError = "OBP-30042: Could not get the top apis from database.  "
-  val GetMetricsTopConsumersError = "OBP-30042: Could not get the top consumers from database.  "
+  val GetMetricsTopConsumersError = "OBP-30045: Could not get the top consumers from database.  "
   val GetAggregateMetricsError = "OBP-30043: Could not get the aggregate metrics from database.  "
-  
+
   val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
 
 
@@ -228,7 +229,7 @@ object ErrorMessages {
   val EntitlementNotFound = "OBP-30212: EntitlementId not found"
   val UserDoesNotHaveEntitlement = "OBP-30213: USER_ID does not have the ENTITLEMENT_ID."
   val EntitlementRequestAlreadyExists = "OBP-30214: Entitlement Request already exists for the user."
-  val EntitlementRequestCannotBeAdded = "OBP-30214: Entitlement Request cannot be added."
+  val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
 
@@ -331,6 +332,47 @@ object ErrorMessages {
   def getFildNameByValue(value: String) = {
     val strings = for (e <- allFields if (e._2 == (value))) yield e._1
     strings.head
+  }
+
+
+  def getDuplicatedMessageNumbers = {
+    import scala.meta._
+    val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
+
+    val listOfMessaegeNumbers = source.collect {
+      case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
+        obj.collect {
+          case v: Defn.Val if v.rhs.syntax.startsWith(""""OBP-""") =>
+            val messageNumber = v.rhs.syntax.split(":")
+            messageNumber(0)
+        }
+    }
+    val list = listOfMessaegeNumbers.flatten
+    val duplicatedMessageNumbers = list
+      .groupBy(x => x).mapValues(x => x.length) // Compute the number of occurrences of each message number
+      .toList.filter(_._2 > 1) // Make a list with numbers which have more than 1 occurrences
+    duplicatedMessageNumbers
+  }
+
+  def main (args: Array[String]): Unit = {
+    val duplicatedMessageNumbers: List[(String, Int)] = getDuplicatedMessageNumbers
+    duplicatedMessageNumbers.size match {
+      case number if number > 0 =>
+        val msg=
+          """
+
+                ____              ___            __           __                                                                      __
+               / __ \__  ______  / (_)________ _/ /____  ____/ /  ____ ___  ___  ______________ _____ ____     ____  __  ______ ___  / /_  ___  __________
+              / / / / / / / __ \/ / / ___/ __ `/ __/ _ \/ __  /  / __ `__ \/ _ \/ ___/ ___/ __ `/ __ `/ _ \   / __ \/ / / / __ `__ \/ __ \/ _ \/ ___/ ___/
+             / /_/ / /_/ / /_/ / / / /__/ /_/ / /_/  __/ /_/ /  / / / / / /  __(__  |__  ) /_/ / /_/ /  __/  / / / / /_/ / / / / / / /_/ /  __/ /  (__  )
+            /_____/\__,_/ .___/_/_/\___/\__,_/\__/\___/\__,_/  /_/ /_/ /_/\___/____/____/\__,_/\__, /\___/  /_/ /_/\__,_/_/ /_/ /_/_.___/\___/_/  /____/
+                       /_/                                                                    /____/
+
+            """
+        println(msg)
+        println(duplicatedMessageNumbers)
+      case _ =>
+    }
   }
 
 }

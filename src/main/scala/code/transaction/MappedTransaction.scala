@@ -105,6 +105,10 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val transactionAmount = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
+      val counterpartyName = counterpartyAccountHolder.get
+      val otherAccountRoutingScheme = CPOtherAccountRoutingScheme.get
+      val otherAccountRoutingAddress = CPOtherAccountRoutingAddress.get
+      
       //TODO This method should be as general as possible, need move to general object, not here.
       //This method is expensive, it has the side affact, will getOrCreateMetadata 
       def createCounterparty(counterpartyId : String) = {
@@ -118,15 +122,15 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
           otherAccountProvider = counterpartyAccountHolder.get,
           otherBankRoutingAddress = Some(CPOtherBankRoutingAddress.get), 
           otherBankRoutingScheme = CPOtherBankRoutingScheme.get,
-          otherAccountRoutingScheme = CPOtherAccountRoutingScheme.get,
-          otherAccountRoutingAddress = Some(CPOtherAccountRoutingAddress.get),
+          otherAccountRoutingScheme = otherAccountRoutingScheme,
+          otherAccountRoutingAddress = Some(otherAccountRoutingAddress),
           isBeneficiary = true
         )
       }
 
       //It is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
-      val counterpartyName = counterpartyAccountHolder.get
-      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName)
+      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName, 
+                                                                otherAccountRoutingScheme, otherAccountRoutingAddress)
       val otherAccount = createCounterparty(counterpartyId)
 
       Some(new Transaction(
@@ -161,27 +165,30 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val transactionAmount = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
       
+      val counterpartyName = counterpartyAccountHolder.get
+      val otherAccountRoutingScheme = CPOtherAccountRoutingScheme.get
+      val otherAccountRoutingAddress = CPOtherAccountRoutingAddress.get
+      
       //TODO This method should be as general as possible, need move to general object, not here.
       //This method is expensive, it has the side affact, will getOrCreateMetadata 
       def createCounterpartyCore(counterpartyId : String) = {
         new CounterpartyCore(
           counterpartyId = counterpartyId,
           kind = counterpartyAccountKind.get,
-          counterpartyName = counterpartyAccountHolder.get,
+          counterpartyName = counterpartyName,
           thisBankId = theBankId,
           thisAccountId = theAccountId,
           otherAccountProvider = counterpartyAccountHolder.get,
           otherBankRoutingAddress = Some(CPOtherBankRoutingAddress.get),
           otherBankRoutingScheme = CPOtherBankRoutingScheme.get,
-          otherAccountRoutingScheme = CPOtherAccountRoutingScheme.get,
-          otherAccountRoutingAddress = Some(CPOtherAccountRoutingAddress.get),
+          otherAccountRoutingScheme = otherAccountRoutingScheme,
+          otherAccountRoutingAddress = Some(otherAccountRoutingAddress),
           isBeneficiary = true
         )
       }
       
       //It is clear, we create the counterpartyId first, and assign it to metadata.counterpartyId and counterparty.counterpartyId manually
-      val counterpartyName = counterpartyAccountHolder.get
-      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName)
+      val counterpartyId = APIUtil.createImplicitCounterpartyId(theBankId.value, theAccountId.value, counterpartyName, otherAccountRoutingScheme, otherAccountRoutingAddress)
       val otherAccount = createCounterpartyCore(counterpartyId)
       
       Some(TransactionCore(

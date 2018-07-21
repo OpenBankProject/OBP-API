@@ -37,7 +37,8 @@ import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
-import code.model.{CreateViewJson, UpdateViewJSON}
+import code.api.v1_2_1.UpdateViewJsonV121
+import code.model.CreateViewJson
 import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
 import net.liftweb.util.Helpers._
 import org.scalatest._
@@ -120,7 +121,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
     makePostRequest(request, write(view))
   }
 
-  def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v2_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
     makePutRequest(request, write(view))
   }
@@ -297,7 +298,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
 
     def viewUpdateJson(originalView : ViewJSONV220) = {
       //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
-      new UpdateViewJSON(
+      UpdateViewJsonV121(
         description = updatedViewDescription,
         is_public = !originalView.is_public,
         which_alias_to_use = updatedAliasToUse,
@@ -307,7 +308,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
     }
 
     def someViewUpdateJson() = {
-      new UpdateViewJSON(
+      UpdateViewJsonV121(
         description = updatedViewDescription,
         is_public = true,
         which_alias_to_use = updatedAliasToUse,
@@ -403,7 +404,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
     
-      val updateViewJSON = UpdateViewJSON(
+      val updateViewJSON = UpdateViewJsonV121(
         description = "good",
         is_public =false,
         which_alias_to_use ="",
