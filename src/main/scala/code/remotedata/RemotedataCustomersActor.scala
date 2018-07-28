@@ -10,6 +10,8 @@ import code.model._
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
+import akka.pattern.pipe
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -20,7 +22,7 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
 
     case cc.getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam]) =>
       logger.debug("getCustomersFuture(" + bankId + ", " + queryParams + ")")
-      sender ! extractResult(mapper.getCustomersFuture(bankId, queryParams))
+      (mapper.getCustomersFuture(bankId, queryParams)) pipeTo sender
 
     case cc.getCustomerByUserId(bankId: BankId, userId: String) =>
       logger.debug("getCustomerByUserId(" + bankId + ", " + userId + ")")
