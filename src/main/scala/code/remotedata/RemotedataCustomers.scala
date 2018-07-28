@@ -4,15 +4,20 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.bankconnectors.OBPQueryParam
 import code.customer.{AmountOfMoneyTrait, CreditRatingTrait, Customer, CustomerFaceImageTrait, CustomerProvider, RemotedataCustomerProviderCaseClasses}
 import code.model._
 import net.liftweb.common.Box
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object RemotedataCustomers extends ObpActorInit with CustomerProvider {
 
   val cc = RemotedataCustomerProviderCaseClasses
+
+  def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
+    (actor ? cc.getCustomersFuture(bankId, queryParams)).mapTo[Box[List[Customer]]]
 
   def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer] =
     extractFutureToBox(actor ? cc.getCustomerByUserId(bankId, userId))

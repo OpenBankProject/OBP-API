@@ -3,9 +3,10 @@ package code.api.v3_1_0
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.CanReadMetrics
+import code.api.util.ApiRole.{CanReadMetrics, CanUseFirehoseAtAnyBank, canUseFirehoseAtAnyBank}
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
 import code.metrics.APIMetrics
 import code.model._
@@ -359,6 +360,74 @@ trait APIMethods310 {
             
           } yield
            (JSONFactory310.createTopConsumersJson(topConsumers), Some(cc))
+      }
+    }
+
+
+
+
+
+
+
+
+
+
+    resourceDocs += ResourceDoc(
+      getFirehoseCustomers,
+      implementedInApiVersion,
+      "getFirehoseCustomers",
+      "GET",
+      "/banks/BANK_ID/firehose/customers",
+      "Get Firehose Customers",
+      s"""
+         |Get Customers that has a firehose View.
+         |
+         |Allows bulk access to customers.
+         |User must have the CanUseFirehoseAtAnyBank Role
+         |
+         |For VIEW_ID try 'firehose'
+         |
+         |Possible custom URL parameters for pagination:
+         |
+         |* sort_direction=ASC/DESC
+         |* limit=NUMBER ==> default value: 50
+         |* offset=NUMBER ==> default value: 0
+         |* from_date=DATE => default value: date of the oldest customer created (format below)
+         |* to_date=DATE => default value: date of the newest customer created (format below)
+         |
+         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      transactionsJsonV300,
+      List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData),
+      Some(List(canUseFirehoseAtAnyBank)))
+
+    lazy val getFirehoseCustomers : OBPEndpoint = {
+      //get private accounts for all banks
+      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Future { Bank(bankId) } map { unboxFullOrFail(_, cc, BankNotFound,400) }
+            _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
+              canUseFirehose(u)
+            }
+            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              unboxFullOrFail(_, cc, InvalidFilterParameterFormat, 400)
+            }
+            customers <- Connector.connector.vend.getCustomersFuture(bankId, callContext, obpQueryParams) map {
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            (JSONFactory300.createCustomersJson(customers), callContext)
+          }
       }
     }
     

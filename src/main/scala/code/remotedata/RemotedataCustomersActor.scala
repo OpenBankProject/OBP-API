@@ -4,9 +4,12 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
+import code.bankconnectors.OBPQueryParam
 import code.customer.{AmountOfMoneyTrait, _}
 import code.model._
 import code.util.Helper.MdcLoggable
+
+import scala.collection.immutable.List
 
 class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -14,6 +17,10 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
   val cc = RemotedataCustomerProviderCaseClasses
 
   def receive = {
+
+    case cc.getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam]) =>
+      logger.debug("getCustomersFuture(" + bankId + ", " + queryParams + ")")
+      sender ! extractResult(mapper.getCustomersFuture(bankId, queryParams))
 
     case cc.getCustomerByUserId(bankId: BankId, userId: String) =>
       logger.debug("getCustomerByUserId(" + bankId + ", " + userId + ")")
