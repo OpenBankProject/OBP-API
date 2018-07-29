@@ -520,7 +520,7 @@ trait APIMethods300 {
          |
          |To be shown on the list, each Account must have a firehose View linked to it.
          |
-         |For VIEW_ID try 'firehose'
+         |For VIEW_ID try 'owner'
          |
          |
          |${authenticationRequiredMessage(true)}
@@ -581,7 +581,7 @@ trait APIMethods300 {
          |
          |To find ACCOUNT_IDs, use the getFirehoseAccountsAtOneBank call.
          |
-         |For VIEW_ID try 'firehose'
+         |For VIEW_ID try 'owner'
          |
          |${authenticationRequiredMessage(true)}
          |
