@@ -3,6 +3,7 @@ package code.customer
 import java.lang
 import java.util.Date
 
+import code.bankconnectors._
 import code.model.{BankId, User}
 import code.usercustomerlinks.{MappedUserCustomerLink, MappedUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
@@ -10,11 +11,29 @@ import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, _}
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
 object MappedCustomerProvider extends CustomerProvider {
+
+  override def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedCustomer](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedCustomer](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedCustomer.mLastOkDate, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedCustomer.mLastOkDate, date) }.headOption
+    val ordering = queryParams.collect {
+      case OBPOrdering(_, direction) =>
+        direction match {
+          case OBPAscending => OrderBy(MappedCustomer.mLastOkDate, Ascending)
+          case OBPDescending => OrderBy(MappedCustomer.mLastOkDate, Descending)
+        }
+    }
+    val optionalParams : Seq[QueryParam[MappedCustomer]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
+    val mapperParams = Seq(By(MappedCustomer.mBank, bankId.value)) ++ optionalParams
+    Full(MappedCustomer.findAll(mapperParams:_*))
+  }
 
 
   override def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean = {
