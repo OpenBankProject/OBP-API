@@ -3,11 +3,13 @@ package code.bankconnectors
 import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -340,7 +342,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             account.accountId.value, 
             stringOrNull(account.label),
             account.bankId.value, 
-            AccountRouting(account.accountRoutingScheme,account.accountRoutingAddress)))
+            account.accountType,
+            account.accountRoutings))
     )
   }
 
@@ -361,7 +364,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                  account.accountId.value,
                  account.bankId.value,
                  stringOrNull(account.number),
-                 AccountRouting(account.accountRoutingScheme,account.accountRoutingAddress)))
+                 account.accountRoutings))
     )
   }
   
@@ -1659,5 +1662,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersByUserIdFuture(userId)
+
+  override def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
+    Customer.customerProvider.vend.getCustomersFuture(bankId, queryParams)
+  
+  override def getCheckbookOrdersFuture(
+    bankId: String, 
+    accountId: String, 
+    callContext: Option[CallContext]
+  ): Future[Box[CheckbookOrdersJson]] = Future
+  {
+    Full(SwaggerDefinitionsJSON.checkbookOrdersJson)
+  }
+  
+  
+  override  def getStatusOfCreditCardOrderFuture(
+    bankId: String, 
+    accountId: String, 
+    callContext: Option[CallContext]
+  ): Future[Box[List[CardObjectJson]]] = Future
+  {
+    Full(List(SwaggerDefinitionsJSON.cardObjectJson))
+  }
   
 }

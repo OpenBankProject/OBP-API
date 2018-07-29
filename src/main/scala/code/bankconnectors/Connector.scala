@@ -106,12 +106,17 @@ case class OBPConsumerId(value: String) extends OBPQueryParam
 case class OBPUserId(value: String) extends OBPQueryParam
 case class OBPUrl(value: String) extends OBPQueryParam
 case class OBPAppName(value: String) extends OBPQueryParam
+case class OBPExcludeAppNames(values: List[String]) extends OBPQueryParam
 case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
 case class OBPImplementedInVersion(value: String) extends OBPQueryParam
 case class OBPVerb(value: String) extends OBPQueryParam
-case class OBPAnon(value: String) extends OBPQueryParam
+case class OBPAnon(value: Boolean) extends OBPQueryParam
 case class OBPCorrelationId(value: String) extends OBPQueryParam
 case class OBPDuration(value: Long) extends OBPQueryParam
+case class OBPExcludeUrlPattern(value: String) extends OBPQueryParam
+case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam
+case class OBPFunctionName(value: String) extends OBPQueryParam
+case class OBPConnectorName(value: String) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
@@ -287,7 +292,9 @@ trait Connector extends MdcLoggable{
     val counterparties = for {
       transaction <- transactions
       counterpartyName <- List(transaction.otherAccount.counterpartyName)
-      counterpartyIdFromTransaction <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName))
+      otherAccountRoutingScheme <- List(transaction.otherAccount.otherAccountRoutingScheme)
+      otherAccountRoutingAddress <- List(transaction.otherAccount.otherAccountRoutingAddress.get)
+      counterpartyIdFromTransaction <- List(APIUtil.createImplicitCounterpartyId(bankId.value,accountId.value,counterpartyName,otherAccountRoutingScheme, otherAccountRoutingAddress))
       if counterpartyIdFromTransaction == counterpartyId
     } yield {
       transaction.otherAccount
@@ -1319,8 +1326,10 @@ trait Connector extends MdcLoggable{
     callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
   
   
-  def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"createCounterparty in Connector!")}
-  
+  def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
+
+  def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersFuture in Connector!")}
+
   
   def getCheckbookOrdersFuture(
     bankId: String, 

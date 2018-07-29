@@ -1092,11 +1092,11 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   def createNewTransaction(r: KafkaInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.postedDate != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.postedDate)
+      datePosted = APIUtil.DateWithMsFormat.parse(r.postedDate)
 
     var dateCompleted: Date = null
     if (r.completedDate != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.completedDate)
+      dateCompleted = APIUtil.DateWithMsFormat.parse(r.completedDate)
 
     for {
         counterpartyId <- tryo{r.counterpartyId}
@@ -1165,7 +1165,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def iban : Option[String]       = Some(r.iban)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bankId)
-    def lastUpdate : Date           = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
+    def lastUpdate : Date           = APIUtil.DateWithMsFormat.parse(today.getTime.toString)
     def accountHolder : String      = r.owners.head
     def accountRoutingScheme: String = r.accountRoutingScheme
     def accountRoutingAddress: String = r.accountRoutingAddress
@@ -1189,7 +1189,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def conversionValue : Double= kafkaInboundFxRate.conversion_value
     def inverseConversionValue : Double= kafkaInboundFxRate.inverse_conversion_value
     //TODO need to add error handling here for String --> Date transfer
-    def effectiveDate : Date= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(kafkaInboundFxRate.effective_date)
+    def effectiveDate : Date= APIUtil.DateWithMsFormat.parse(kafkaInboundFxRate.effective_date)
   }
 
   case class KafkaCounterparty(counterparty: KafkaInboundCounterparty) extends CounterpartyTrait {

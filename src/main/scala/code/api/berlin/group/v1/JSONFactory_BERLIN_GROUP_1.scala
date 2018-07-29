@@ -68,7 +68,7 @@ object JSONFactory_BERLIN_GROUP_1 {
     CoreAccountsJsonV1(coreAccounts.map(
       x => CoreAccountJsonV1(
         id = x.id,
-        iban = if (x.account_routing.scheme == "IBAN") x.account_routing.address else "",
+        iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else "",
         currency = "",
         accountType = "",
         cashAccountType = "",
@@ -93,7 +93,7 @@ object JSONFactory_BERLIN_GROUP_1 {
     AccountBalances(
       AccountBalance(
         closingBooked = ClosingBookedBody(amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance ), 
-                                          date = new SimpleDateFormat("yyyy-MM-dd").format(latestCompletedEndDate)),
+                                          date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)),
         expected = ExpectedBody (amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = sumOfAll), lastActionDateTime = latestUncompletedEndDate)
       ) :: Nil
     )

@@ -133,7 +133,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       //to compare the import api date string values to the dates returned from the api
       //we need to parse them
       val importJsonDateFormat = {
-        val f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        val f = APIUtil.DateWithMsFormat
         //setting the time zone is important!
         f.setTimeZone(TimeZone.getTimeZone("UTC"))
         f

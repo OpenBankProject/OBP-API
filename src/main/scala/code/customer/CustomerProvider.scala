@@ -4,11 +4,13 @@ import java.lang
 import java.util.Date
 
 import code.api.util.APIUtil
+import code.bankconnectors.OBPQueryParam
 import code.model.{BankId, User}
 import code.remotedata.RemotedataCustomers
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object Customer extends SimpleInjector {
@@ -24,6 +26,8 @@ object Customer extends SimpleInjector {
 }
 
 trait CustomerProvider {
+  def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]]
+
   def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer]
 
   def getCustomersByUserId(userId: String): List[Customer]
@@ -65,6 +69,7 @@ trait CustomerProvider {
 }
 
 class RemotedataCustomerProviderCaseClasses {
+  case class getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam])
   case class getCustomerByUserId(bankId: BankId, userId: String)
   case class getCustomersByUserId(userId: String)
   case class getCustomersByUserIdFuture(userId: String)

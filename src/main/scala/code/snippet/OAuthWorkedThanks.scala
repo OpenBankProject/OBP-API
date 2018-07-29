@@ -46,14 +46,17 @@ class OAuthWorkedThanks extends MdcLoggable {
 
   def thanks = {
     val redirectUrl = S.param("redirectUrl").map(urlDecode(_))
-    
+    logger.debug(s"OAuthWorkedThanks.thanks.redirectUrl $redirectUrl")
     //extract the clean(omit the parameters) redirect url from request url
     val requestedRedirectURL = Helper.extractCleanRedirectURL(redirectUrl.openOr("invalidRequestedRedirectURL")) openOr("invalidRequestedRedirectURL")
+    logger.debug(s"OAuthWorkedThanks.thanks.requestedRedirectURL $requestedRedirectURL")
     
     val requestedOauthToken = Helper.extractOauthToken(redirectUrl.openOr("No Oauth Token here")) openOr("No Oauth Token here")
+    logger.debug(s"OAuthWorkedThanks.thanks.requestedOauthToken $requestedOauthToken")
     
     // 1st, find token --> 2rd, find consumer -->3rd ,find the RedictUrl.
     val validRedirectURL= Tokens.tokens.vend.getTokenByKey(requestedOauthToken).map(_.consumer.map(_.redirectURL.get)).flatten.getOrElse("invalidRedirectURL")
+    logger.debug(s"OAuthWorkedThanks.thanks.validRedirectURL $validRedirectURL")
     
     redirectUrl match {
       case Full(url) =>

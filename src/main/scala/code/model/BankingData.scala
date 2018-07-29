@@ -817,15 +817,16 @@ case class AccountRouting(
 case class CoreAccount(
   id: String,
   label: String,
-  bank_id: String,
-  account_routing: AccountRouting
+  bankId: String,
+  accountType: String,
+  accountRoutings: List[AccountRouting]
 )
 
 case class AccountHeld(
   id: String,
-  bank_id: String,
+  bankId: String,
   number: String,
-  account_routing: AccountRouting
+  accountRoutings: List[AccountRouting]
 )
 
 case class CounterpartyBespoke(

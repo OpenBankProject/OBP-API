@@ -33,15 +33,18 @@
 package code.api.util
 
 import java.io.InputStream
+import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.{Date, Locale, UUID}
 
+import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.oauth1a.Arithmetics
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
@@ -51,7 +54,7 @@ import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metrics.{APIMetrics, ConnectorMetricsProvider}
+import code.metrics._
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
@@ -79,16 +82,47 @@ import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable {
 
+  val DateWithDay = "yyyy-MM-dd"
+  val DateWithDay2 = "yyyyMMdd"
+  val DateWithDay3 = "dd/MM/yyyy"
+  val DateWithMinutes = "yyyy-MM-dd'T'HH:mm'Z'"
+  val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+  val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+  
+  val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
+  val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
+  val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
+  val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
+  
+  
+  val DateWithDayExampleString: String = "2017-09-19"
+  val DateWithSecondsExampleString: String = "2017-09-19T02:31:05Z"
+  val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
+  val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
+  
+  val DateWithMsForFilteringFromDateString: String = "0000-00-00T00:00:00.000Z"
+  val DateWithMsForFilteringEenDateString: String = "3049-01-01T00:00:00.000Z"
+  
+  
+  // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
+  // (Else caching is invalidated by constantly changing date)
+  
+  val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
+  val DateWithSecondsExampleObject = DateWithDayFormat.parse(DateWithSecondsExampleString)
+  val DateWithMsExampleObject = DateWithDayFormat.parse(DateWithMsExampleString)
+  val DateWithMsRollbackExampleObject = DateWithDayFormat.parse(DateWithMsRollbackExampleString)
+  
+  val DefaultFromDate = DateWithMsFormat.parse(DateWithMsForFilteringFromDateString)
+  val DefaultToDate = DateWithMsFormat.parse(DateWithMsForFilteringEenDateString)
+  
+  
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
   val defaultJValue = Extraction.decompose(EmptyClassJson())
-  val exampleDateString: String = "22/08/2013"
-  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-  val exampleDate = simpleDateFormat.parse(exampleDateString)
   val emptyObjectJson = EmptyClassJson()
-  val defaultFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-  val fallBackFilterFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
 
@@ -519,45 +553,44 @@ object APIUtil extends MdcLoggable {
     }
 
   //started -- Filtering and Paging revelent methods////////////////////////////
-  object DateParser {
-    /**
-      * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2012-07-01T00:00:00.000Z) ==> time zone is UTC
-      * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2012-07-01T00:00:00.000+0000) ==> time zone has to be specified
-      */
-    def parse(date: String): Box[Date] = {
-      val parsedDate = tryo{
-        defaultFilterFormat.parse(date)
-      }
-
-      lazy val fallBackParsedDate = tryo{
-        fallBackFilterFormat.parse(date)
-      }
-
-      if(parsedDate.isDefined){
-        Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
-      }
-      else if(fallBackParsedDate.isDefined){
-        Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
-      }
-      else{
-        Failure(FilterDateFormatError)
-      }
+  def parseObpStandardDate(date: String): Box[Date] =
+  {
+    val parsedDate = tryo{DateWithMsFormat.parse(date)}
+  
+    //This is for V1.0 V1.1 and V1.2.0 and V1.2.1 
+    lazy val fallBackParsedDate = tryo{DateWithMsRollbackFormat.parse(date)}
+  
+    if (parsedDate.isDefined)
+    {
+      Full(parsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
+    }
+    else if (fallBackParsedDate.isDefined)
+    {
+      Full(fallBackParsedDate.openOrThrowException(attemptedToOpenAnEmptyBox))
+    }
+    else
+    {
+      Failure(FilterDateFormatError)
     }
   }
-
-  private def getHeader(requestHeaders: List[HTTPParam], name: String ) ={
-    val headers: List[(String, String)] =
-      for (h <- requestHeaders;
-           p <- h.values
-      ) yield (h.name, p)
-
-    headers.filter(_._1.equalsIgnoreCase(name)).map(_._2) match {
-      case x :: _ => Full(x)
-      case _ => Empty
-    }
+  
+  
+  
+  
+  /**
+    * Extract the `values` from HTTPParam by the `name`.
+    * In HTTPParam, the values is a List[String], It supports many values for one name
+    * So this method returns a Box[List[String]. If there is no values, we return Empty instead of Full(List())
+    */
+  def getHttpValues(httpParams: List[HTTPParam], name: String): Box[List[String]] ={
+   for{
+      httpParams <- Full(httpParams)
+      valueList <- Full(httpParams.filter(_.name.equalsIgnoreCase(name)).map(_.values).flatten)
+      values <- Full(valueList) if(valueList.length > 0)//return Empty instead of Full(List())
+    } yield values
   }
 
-   def getSortDirection(headers: List[HTTPParam]): Box[OBPOrder] = {
+   def getSortDirection(httpParams: List[HTTPParam]): Box[OBPOrder] = {
 
      def validate(v: String) = {
        if (v.toLowerCase == "desc" || v.toLowerCase == "asc") {
@@ -568,48 +601,45 @@ object APIUtil extends MdcLoggable {
        }
      }
 
-     (getHeader(headers, "sort_direction"), getHeader(headers, "obp_sort_direction")) match {
+     (getHttpValues(httpParams, "sort_direction"), getHttpValues(httpParams, "obp_sort_direction")) match {
       case (Full(left), _) =>
-        validate(left)
+        validate(left.head)
       case (_, Full(r)) =>
-        validate(r)
+        validate(r.head)
       case _ => Full(OBPOrder(None))
     }
 
   }
 
-   def getFromDate(headers: List[HTTPParam]): Box[OBPFromDate] = {
-    val date: Box[Date] = (getHeader(headers, "from_date"), getHeader(headers, "obp_from_date")) match {
+   def getFromDate(httpParams: List[HTTPParam]): Box[OBPFromDate] = {
+    val date: Box[Date] = (getHttpValues(httpParams, "from_date"), getHttpValues(httpParams, "obp_from_date")) match {
       case (Full(left),_) =>
-        DateParser.parse(left)
+        parseObpStandardDate(left.head)
       case (_, Full(right)) =>
-        DateParser.parse(right)
+        parseObpStandardDate(right.head)
       case _ =>
-        Full(new Date(0))
+        Full(DefaultFromDate)
     }
 
     date.map(OBPFromDate(_))
   }
 
-   def getToDate(headers: List[HTTPParam]): Box[OBPToDate] = {
-    val date: Box[Date] = (getHeader(headers, "to_date"), getHeader(headers, "obp_to_date")) match {
+   def getToDate(httpParams: List[HTTPParam]): Box[OBPToDate] = {
+    val date: Box[Date] = (getHttpValues(httpParams, "to_date"), getHttpValues(httpParams, "obp_to_date")) match {
       case (Full(left),_) =>
-        DateParser.parse(left)
+        parseObpStandardDate(left.head)
       case (_, Full(right)) =>
-        DateParser.parse(right)
+        parseObpStandardDate(right.head)
       case _ => {
-        // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
-        // (Else caching is invlidated by constantly changing date)
-        val toDate = dateformat.parse("3049-01-01")
-        Full (toDate)
+        Full(APIUtil.DefaultToDate)
       }
     }
 
     date.map(OBPToDate(_))
   }
 
-   def getOffset(headers: List[HTTPParam]): Box[OBPOffset] = {
-     (getPaginationParam(headers, "offset", None, 0, FilterOffersetError), getPaginationParam(headers, "obp_offset", Some(0), 0, FilterOffersetError)) match {
+   def getOffset(httpParams: List[HTTPParam]): Box[OBPOffset] = {
+     (getPaginationParam(httpParams, "offset", None, 0, FilterOffersetError), getPaginationParam(httpParams, "obp_offset", Some(0), 0, FilterOffersetError)) match {
        case (Full(left), _) =>
          Full(OBPOffset(left))
        case (Failure(m, e, c), _) =>
@@ -622,8 +652,8 @@ object APIUtil extends MdcLoggable {
      }
   }
 
-   def getLimit(headers: List[HTTPParam]): Box[OBPLimit] = {
-     (getPaginationParam(headers, "limit", None, 1, FilterLimitError), getPaginationParam(headers, "obp_limit", Some(50), 1, FilterLimitError)) match {
+   def getLimit(httpParams: List[HTTPParam]): Box[OBPLimit] = {
+     (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(50), 1, FilterLimitError)) match {
        case (Full(left), _) =>
          Full(OBPLimit(left))
        case (Failure(m, e, c), _) =>
@@ -636,11 +666,11 @@ object APIUtil extends MdcLoggable {
      }
   }
 
-   def getPaginationParam(headers: List[HTTPParam], paramName: String, defaultValue: Option[Int], minimumValue: Int, errorMsg: String): Box[Int]= {
-     getHeader(headers, paramName) match {
+   private def getPaginationParam(httpParams: List[HTTPParam], paramName: String, defaultValue: Option[Int], minimumValue: Int, errorMsg: String): Box[Int]= {
+     getHttpValues(httpParams, paramName) match {
       case Full(v) => {
         tryo{
-          v.toInt
+          v.head.toInt
         } match {
           case Full(value) => {
             if(value >= minimumValue){
@@ -661,13 +691,68 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def getHttpParams(headers: List[HTTPParam]): Box[List[OBPQueryParam]] = {
+  def getHttpParamValuesByName(httpParams: List[HTTPParam], name: String): Box[OBPQueryParam] = {
+     val obpQueryParam = for {
+       values <- getHttpValues(httpParams, name)
+       obpQueryParam <- name match {
+         case "anon" => 
+           for{
+            value <- tryo(values.head.toBoolean)?~! FilterAnonFormatError
+            anon = OBPAnon(value)
+           }yield anon
+           
+         case "consumer_id" => Full(OBPConsumerId(values.head))
+         case "user_id" => Full(OBPUserId(values.head))
+         case "url" => Full(OBPUrl(values.head))
+         case "app_name" => Full(OBPAppName(values.head))
+         case "implemented_by_partial_function" => Full(OBPImplementedByPartialFunction(values.head))
+         case "implemented_in_version" => Full(OBPImplementedInVersion(values.head))
+         case "verb" => Full(OBPVerb(values.head))
+         case "correlation_id" => Full(OBPCorrelationId(values.head))
+         case "duration" => 
+           for{
+            value <- tryo(values.head.toLong )?~! FilterDurationFormatError
+            anon = OBPDuration(value)
+           }yield anon
+         case "exclude_app_names" => Full(OBPExcludeAppNames(values)) //This will return a string list. 
+         case "exclude_url_pattern" => Full(OBPExcludeUrlPattern(values.head))
+         case "exclude_implemented_by_partial_functions" => Full(OBPExcludeImplementedByPartialFunctions(values)) //This will return a string list. 
+         case "function_name" => Full(OBPFunctionName(values.head)) 
+         case "connector_name" => Full(OBPConnectorName(values.head))
+         case _ => Full(OBPEmpty())
+       }
+     } yield
+       obpQueryParam
+     
+     obpQueryParam match {
+       case Empty => Full(OBPEmpty()) //Only Map Empty to Full(OBPEmpty())
+       case others => others
+     }
+  }
+  
+   def createQueriesByHttpParams(httpParams: List[HTTPParam]): Box[List[OBPQueryParam]] = {
     for{
-      sortDirection <- getSortDirection(headers)
-      fromDate <- getFromDate(headers)
-      toDate <- getToDate(headers)
-      limit <- getLimit(headers)
-      offset <- getOffset(headers)
+      sortDirection <- getSortDirection(httpParams)
+      fromDate <- getFromDate(httpParams)
+      toDate <- getToDate(httpParams)
+      limit <- getLimit(httpParams)
+      offset <- getOffset(httpParams)
+      //all optional fields
+      anon <- getHttpParamValuesByName(httpParams,"anon")
+      consumerId <- getHttpParamValuesByName(httpParams,"consumer_id")
+      userId <- getHttpParamValuesByName(httpParams, "user_id")
+      url <- getHttpParamValuesByName(httpParams, "url")
+      appName <- getHttpParamValuesByName(httpParams, "app_name")
+      implementedByPartialFunction <- getHttpParamValuesByName(httpParams, "implemented_by_partial_function")
+      implementedInVersion <- getHttpParamValuesByName(httpParams, "implemented_in_version")
+      verb <- getHttpParamValuesByName(httpParams, "verb")
+      correlationId <- getHttpParamValuesByName(httpParams, "correlation_id")
+      duration <- getHttpParamValuesByName(httpParams, "duration")
+      excludeAppNames <- getHttpParamValuesByName(httpParams, "exclude_app_names")
+      excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_pattern")
+      excludeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "exclude_implemented_by_partial_functions")
+      connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
+      functionName <- getHttpParamValuesByName(httpParams, "function_name")
     }yield{
       /**
         * sortBy is currently disabled as it would open up a security hole:
@@ -683,8 +768,74 @@ object APIUtil extends MdcLoggable {
       //val sortBy = json.header("obp_sort_by")
       val sortBy = None
       val ordering = OBPOrdering(sortBy, sortDirection)
-      limit :: offset :: ordering :: fromDate :: toDate :: Nil
+      //This guarantee the order 
+      List(limit, offset, ordering, fromDate, toDate, 
+           anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
+           verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
+           connectorName,functionName
+       ).filter(_ != OBPEmpty())
     }
+  }
+  
+  def createQueriesByHttpParamsFuture(httpParams: List[HTTPParam]) = Future {
+    createQueriesByHttpParams(httpParams: List[HTTPParam])
+  }
+  
+  /**
+    * Here we use the HTTPParam case class from liftweb.
+    * We try to keep it the same as `S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers`, so we unite the URLs and headers. 
+    * 
+    * @param httpRequestUrl  = eg: /obp/v3.1.0/management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+    * @return List(HTTPParam("from_date","$DateWithMsExampleString"),HTTPParam("to_date","$DateWithMsExampleString"))
+    */
+  def createHttpParamsByUrl(httpRequestUrl: String): Box[List[HTTPParam]] = {
+    val sortDirection = getHttpRequestUrlParam(httpRequestUrl,"sort_direction")
+    val fromDate =  getHttpRequestUrlParam(httpRequestUrl,"from_date")
+    val toDate =  getHttpRequestUrlParam(httpRequestUrl,"to_date")
+    val limit =  getHttpRequestUrlParam(httpRequestUrl,"limit")
+    val offset =  getHttpRequestUrlParam(httpRequestUrl,"offset")
+    val anon =  getHttpRequestUrlParam(httpRequestUrl,"anon")
+    val consumerId =  getHttpRequestUrlParam(httpRequestUrl,"consumer_id")
+    val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
+    val url =  getHttpRequestUrlParam(httpRequestUrl, "url")
+    val appName =  getHttpRequestUrlParam(httpRequestUrl, "app_name")
+    val implementedByPartialFunction =  getHttpRequestUrlParam(httpRequestUrl, "implemented_by_partial_function")
+    val implementedInVersion =  getHttpRequestUrlParam(httpRequestUrl, "implemented_in_version")
+    val verb =  getHttpRequestUrlParam(httpRequestUrl, "verb")
+    val correlationId =  getHttpRequestUrlParam(httpRequestUrl, "correlation_id")
+    val duration =  getHttpRequestUrlParam(httpRequestUrl, "duration")
+    val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names")
+    val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_pattern")
+    val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions")
+    
+    val functionName =  getHttpRequestUrlParam(httpRequestUrl, "function_name")
+    val connectorName =  getHttpRequestUrlParam(httpRequestUrl, "connector_name")
+    
+    Full(List(
+      HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset), 
+      HTTPParam("anon", anon), HTTPParam("consumer_id", consumerId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName), 
+      HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
+      HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
+      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
+      HTTPParam("function_name", functionName), HTTPParam("connector_name", connectorName)
+    ).filter(_.values.head != ""))//Here filter the filed when value = "". 
+  }
+  
+  def createHttpParamsByUrlFuture(httpRequestUrl: String) = Future {
+    createHttpParamsByUrl(httpRequestUrl: String)
+  }
+  
+  /**
+    * 
+    * @param httpRequestUrl eg:  /obp/v3.1.0/management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+    * @param name eg: from_date
+    * @return the $DateWithMsExampleString for the from_date.
+    *         There is no error handling here, just extract whatever it got from the Url string. If not value for that name, just return ""
+    */
+  def getHttpRequestUrlParam(httpRequestUrl: String, name: String): String = {
+    val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString)
+    val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, $DateWithMsExampleString, to_date, $DateWithMsExampleString)
+    if (queryStrings.contains(name)) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
   }
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
@@ -712,47 +863,36 @@ object APIUtil extends MdcLoggable {
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
     object Token {
-      def apply[T <: Any](m: Map[String, T]): Option[Token] = List("oauth_token", "oauth_token_secret").flatMap(m.get) match {
+      def apply[T <: Any](m: Map[String, T]): Option[Token] = List(TokenName, TokenSecretName).flatMap(m.get) match {
         case value :: secret :: Nil => Some(Token(value.toString, secret.toString))
         case _ => None
       }
     }
 
     /** @return oauth parameter map including signature */
-    def sign(method: String, url: String, user_params: Map[String, Any], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
+    def sign(method: String, url: String, user_params: Map[String, String], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]): IMap[String, String] = {
       val oauth_params = IMap(
         "oauth_consumer_key" -> consumer.key,
-        "oauth_signature_method" -> "HMAC-SHA1",
-        "oauth_timestamp" -> (System.currentTimeMillis / 1000).toString,
-        "oauth_nonce" -> System.nanoTime.toString,
-        "oauth_version" -> "1.0"
-      ) ++ token.map { "oauth_token" -> _.value } ++
-        verifier.map { "oauth_verifier" -> _ } ++
-        callback.map { "oauth_callback" -> _ }
+        SignatureMethodName -> "HMAC-SHA1",
+        TimestampName -> (System.currentTimeMillis / 1000).toString,
+        NonceName -> System.nanoTime.toString,
+        VersionName -> "1.0"
+      ) ++ token.map { TokenName -> _.value } ++
+        verifier.map { VerifierName -> _ } ++
+        callback.map { CallbackName -> _ }
 
-      val encoded_ordered_params = (
-        new TreeMap[String, String] ++ (user_params ++ oauth_params map %%)
-      ) map { case (k, v) => k + "=" + v } mkString "&"
-
-      val message =
-        %%(method.toUpperCase :: url :: encoded_ordered_params :: Nil)
-
-      val SHA1 = "HmacSHA1"
-      val key_str = %%(consumer.secret :: (token map { _.secret } getOrElse "") :: Nil)
-      val key = new crypto.spec.SecretKeySpec(bytes(key_str), SHA1)
-      val sig = {
-        val mac = crypto.Mac.getInstance(SHA1)
-        mac.init(key)
-        base64Encode(mac.doFinal(bytes(message)))
-      }
-      oauth_params + ("oauth_signature" -> sig)
+      val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
+      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha1Algorithm)
+      logger.debug("signatureBase: " + signatureBase)
+      logger.debug("computedSignature: " + computedSignature)
+      oauth_params + (SignatureName -> computedSignature)
     }
 
     /** Out-of-band callback code */
     val oob = "oob"
 
     /** Map with oauth_callback set to the given url */
-    def callback(url: String) = IMap("oauth_callback" -> url)
+    def callback(url: String) = IMap(CallbackName -> url)
 
     //normalize to OAuth percent encoding
     private def %% (str: String): String = {
@@ -933,29 +1073,6 @@ object APIUtil extends MdcLoggable {
   def getGlossaryItems : List[GlossaryItem] = {
     Glossary.glossaryItems.toList.sortBy(_.title)
   }
-
-/*  def getAggregateMetricJSON(count: Long, avg_duration: (List[String],List[List[String]]), min_duration: (List[String],List[List[String]]), max_duration: (List[String],List[List[String]])) = {
-    val aggregateMetricJVALUE: JValue = {
-      val aggregateMetricJSON = new AggregateMetricJSON(
-        count,
-        avg_duration._2.headOr(Nil).headOr("null"),
-        min_duration._2.headOr(Nil).headOr("null"),
-        max_duration._2.headOr(Nil).headOr("null"))
-      Extraction.decompose(aggregateMetricJSON)
-    }
-
-    aggregateMetricJVALUE
-  }*/
-
-//  def getAggregateMetricJSON(count:Long, avg_duration: String, min_duration: String, max_duration: String) = {
-  def getAggregateMetricJSON(aggregatemetrics: List[Double]) = {
-    val aggregateMetricJVALUE: JValue = {
-      val aggregateMetricJSON = new AggregateMetricJSON(aggregatemetrics(0).toInt, aggregatemetrics(1), aggregatemetrics(2), aggregatemetrics(3))
-      Extraction.decompose(aggregateMetricJSON)
-    }
-    aggregateMetricJVALUE
-  }
-
 
   /**
     *
@@ -1476,7 +1593,7 @@ Returns a string showed to the developer
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
     import java.util.Locale
-    val format = new SimpleDateFormat(dateFormat, Locale.ENGLISH)
+    val format = new SimpleDateFormat(dateFormat)
     format.setLenient(false)
     format.parse(value)
   }
@@ -1739,7 +1856,7 @@ Returns a string showed to the developer
     val spelling = getSpellingParam()
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-    val url = S.uriAndQueryString.getOrElse("")
+    val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val res =
@@ -1807,6 +1924,29 @@ Returns a string showed to the developer
     }
 
   }
+
+  /**
+    * This Function is used to terminate a Future used in for-comprehension with specific message and code in case that value of Box is not Full.
+    * For example:
+    *  - Future(Full("Some value")    -> Does NOT terminate
+    *  - Future(Empty)                -> Terminates
+    *  - Future(Failure/ParamFailure) -> Terminates
+    * @param box Boxed Payload
+    * @param cc Call Context
+    * @param emptyBoxErrorMsg Error message in case of Empty Box
+    * @param emptyBoxErrorCode Error code in case of Empty Box
+    * @return
+    */
+  def getFullBoxOrFail[T](box: Box[T], cc: CallContext, emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): Box[T] = {
+    fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, Some(cc.toLight)))
+  }
+
+  def unboxFullOrFail[T](box: Box[T], cc: CallContext, emptyBoxErrorMsg: String = "", emptyBoxErrorCode: Int = 400)(implicit m: Manifest[T]): T = {
+    unboxFull {
+      fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, Some(cc.toLight)))
+    }
+  }
+
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
@@ -1834,7 +1974,7 @@ Returns a string showed to the developer
       case true => // Show all error in a chain
         obj.messageChain
       case false => // Do not display internal errors
-        val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.contains("OBP-"))
+        val obpFailures = obj.failureChain.filter(x => messageIsNotNull(x, obj) && x.msg.startsWith("OBP-"))
         obpFailures match {
           case Nil => ErrorMessages.AnUnspecifiedOrInternalErrorOccurred
           case _ => obpFailures.map(_.msg).mkString(" <- ")
@@ -1875,7 +2015,7 @@ Returns a string showed to the developer
 
   def unboxFullAndWrapIntoFuture[T](box: Box[T])(implicit m: Manifest[T]) : Future[T] = {
     Future {
-      unboxFull(box)
+      unboxFull(fullBoxOrException(box))
     }
   }
 
@@ -1923,12 +2063,17 @@ Returns a string showed to the developer
   /**
     * Create the implicit CounterpartyId, we can only get limit data from Adapter. (Used in `getTransactions` endpoint, we create the counterparty implicitly.)
     * Note: The caller should take care of the `counterpartyName`,it depends how you get the data from transaction. and can generate the `counterpartyName`
+    * 2018-07-18: We need more fields to identify the implicitCounterpartyId, only counterpartyName is not enough.
+    *             If some connectors only return limit data, the caller, need decide what kind of data to map here.
+    *
     */
   def createImplicitCounterpartyId(
     thisBankId: String,
     thisAccountId : String,
-    counterpartyName: String
-  )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName")
+    counterpartyName: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
 
   val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 

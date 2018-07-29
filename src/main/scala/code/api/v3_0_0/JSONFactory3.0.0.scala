@@ -30,6 +30,7 @@ import java.lang
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.JSONFactory.{createViewJSON, _}
@@ -45,9 +46,13 @@ import code.branches.Branches._
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
+import code.metrics.AggregateMetrics
 import code.model.dataAccess.ResourceUser
 import code.scope.Scope
+import code.views.Views
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.JValue
 import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.List
@@ -77,6 +82,7 @@ case class ViewJsonV300(
   val id: String,
   val short_name: String,
   val description: String,
+  val metadata_view: String,
   val is_public: Boolean,
   val alias: String,
   val hide_metadata_if_alias_used: Boolean,
@@ -165,7 +171,7 @@ case class BasicViewJson(
 case class ThisAccountJsonV300(
   id: String,
   bank_routing: BankRoutingJsonV121,
-  account_routing: AccountRoutingJsonV121,
+  account_routings: List[AccountRoutingJsonV121],
   holders: List[AccountHolderJSON]
 )
 
@@ -173,7 +179,7 @@ case class OtherAccountJsonV300(
   id: String,
   holder: AccountHolderJSON,
   bank_routing: BankRoutingJsonV121,
-  account_routing: AccountRoutingJsonV121,
+  account_routings: List[AccountRoutingJsonV121],
   metadata: OtherAccountMetadataJSON
 )
 
@@ -197,7 +203,7 @@ case class CoreCounterpartyJsonV300(
   id: String,
   holder: AccountHolderJSON,
   bank_routing: BankRoutingJsonV121,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 
 case class CoreTransactionJsonV300(
@@ -227,16 +233,40 @@ case class ModeratedAccountJsonV300(
   `type`: String,
   balance: AmountOfMoneyJsonV121,
   views_available: List[ViewJsonV300],
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
 case class CoreAccountJsonV300(
   id : String,
   label : String,
   bank_id : String,
-  account_routing: AccountRoutingJsonV121
+  account_routings: List[AccountRoutingJsonV121]
 )
-case class CoreAccountsJsonV300(accounts: List[CoreAccount])
-case class CoreAccountsHeldJsonV300(accounts: List[AccountHeld])
+
+
+case class ViewBasic(
+  id: String,
+  short_name: String,
+  description: String,
+  is_public: Boolean
+)
+
+case class CoreAccountJson(
+  id: String,
+  label: String,
+  bank_id: String,
+  account_type: String,
+  account_routings: List[AccountRoutingJsonV121],
+  views: List[ViewBasic]
+)
+
+case class AccountHeldJson(
+  id: String,
+  bank_id: String,
+  number: String,
+  account_routings: List[AccountRoutingJsonV121]
+)
+case class CoreAccountsJsonV300(accounts: List[CoreAccountJson])
+case class CoreAccountsHeldJsonV300(accounts: List[AccountHeldJson])
 
 case class AccountIdJson(
   id: String
@@ -485,7 +515,7 @@ object JSONFactory300{
     ThisAccountJsonV300(
       id = bankAccount.accountId.value,
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress))),
       holders = bankAccount.owners.map(x => x.toList.map(holder => AccountHolderJSON(name = holder.name, is_alias = false))).getOrElse(null)
     )
   }
@@ -508,7 +538,7 @@ object JSONFactory300{
       id = bankAccount.id,
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)),
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress))),
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
     )
   }
@@ -548,7 +578,7 @@ object JSONFactory300{
       id = bankAccount.id,
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme),stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routing = AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress))
+      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme),stringOptionOrNull(bankAccount.accountRoutingAddress)))
     )
   }
 
@@ -571,6 +601,7 @@ object JSONFactory300{
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       description = stringOrNull(view.description),
+      metadata_view= view.metadataView,
       is_public = view.isPublic,
       alias = alias,
       hide_metadata_if_alias_used = view.hideOtherAccountMetadataIfAlias,
@@ -669,14 +700,35 @@ object JSONFactory300{
       account.accountId.value,
       stringOrNull(account.label),
       account.bankId.value,
-      AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress)
+      List(AccountRoutingJsonV121(account.accountRoutingScheme,account.accountRoutingAddress))
     )
 
   def createCoreAccountsByCoreAccountsJSON(coreAccounts : List[CoreAccount]): CoreAccountsJsonV300 =
-    CoreAccountsJsonV300(coreAccounts)
+    CoreAccountsJsonV300(coreAccounts.map(coreAccount => CoreAccountJson(
+      coreAccount.id,
+      coreAccount.label,
+      coreAccount.bankId,
+      coreAccount.accountType,
+      coreAccount.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address)),
+      views = Views.views.vend
+        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id)))
+        .map(mappedView => 
+          ViewBasic(
+            mappedView.viewId.value,
+            mappedView.name,
+            mappedView.description,
+            mappedView.isPublic
+          ))
+    )))
   
   def createCoreAccountsByCoreAccountsJSON(accountsHeld : List[AccountHeld]): CoreAccountsHeldJsonV300 =
-    CoreAccountsHeldJsonV300(accountsHeld)
+    CoreAccountsHeldJsonV300(accountsHeld.map(
+      account => AccountHeldJson(
+        account.id,
+        account.bankId, 
+        account.number, 
+        account.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address))
+        )))
   
   def createAccountsIdsByBankIdAccountIds(bankaccountIds :  List[BankIdAccountId]): AccountsIdsJsonV300 =
     AccountsIdsJsonV300(bankaccountIds.map(x => AccountIdJson(x.accountId.value)))
@@ -1035,10 +1087,10 @@ object JSONFactory300{
       email = cInfo.email,
       face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
         date = cInfo.faceImage.date),
-      date_of_birth = (if (cInfo.dateOfBirth==null) "" else (new SimpleDateFormat("yyyy-MM-dd")).format(cInfo.dateOfBirth)),
+      date_of_birth = (if (cInfo.dateOfBirth==null) "" else (APIUtil.DateWithDayFormat).format(cInfo.dateOfBirth)),
       relationship_status = cInfo.relationshipStatus,
       dependants = cInfo.dependents,
-      dob_of_dependants = cInfo.dobOfDependents.map(x => if (x==null) "" else (new SimpleDateFormat("yyyy-MM-dd")).format(x)),
+      dob_of_dependants = cInfo.dobOfDependents.map(x => if (x==null) "" else (APIUtil.DateWithDayFormat).format(x)),
       credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
       credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
       highest_education_attained = cInfo.highestEducationAttained,
@@ -1084,5 +1136,17 @@ object JSONFactory300{
 
   def createBanksJson(l: List[Bank]): BanksJson = {
     BanksJson(l.map(JSONFactory.createBankJSON))
+  }
+  
+  
+  def createAggregateMetricJson(aggregateMetrics: List[AggregateMetrics]) = {
+      aggregateMetrics.map(
+        aggregateMetric => AggregateMetricJSON(
+          aggregateMetric.totalCount, 
+          aggregateMetric.avgResponseTime, 
+          aggregateMetric.minResponseTime,
+          aggregateMetric.maxResponseTime
+        )
+      )
   }
 }

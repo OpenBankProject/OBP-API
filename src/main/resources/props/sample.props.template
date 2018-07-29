@@ -26,6 +26,9 @@ connector=mapped
 #connector.cache.ttl.seconds.getCounterpartiesFromTransaction=10
 #connector.cache.ttl.seconds.APIMethods121.getTransactions=10
 
+## enable logging all the database queries in log file
+#logging.database.queries.enable=true
+
 ## OBP-JVM transport type. currently supported: kafka, mock
 #obpjvm.transport=kafka
 
@@ -37,8 +40,8 @@ connector=mapped
 ## If using kafka, set the brokers
 #kafka.bootstrap_hosts=localhost:9092
 # WARNING: if this number does not match the partitions in Kafka config, you will SUFFER !
-#kafka.partitions=10
-#kafka.client.id=obp-api-1
+#kafka.partitions=3
+#kafka.client.id=obp.api.1
 
 ## Enable user authentication via kafka
 #kafka.user.authentication=true
@@ -61,8 +64,9 @@ jwt.use.ssl=false
 
 
 ## Enable writing API metrics (which APIs are called) to RDBMS
-## This setting is also used by connector metrics (write_connector_metrics does not exist yet)
 write_metrics=true
+## Enable writing connector metrics (which methods are called)to RDBMS 
+write_connector_metrics=true
 
 ## ElasticSearch
 #allow_elasticsearch=true
@@ -284,16 +288,13 @@ webui_faq_email = contact@openbankproject.com
 webui_support_platform_url = https://slack.openbankproject.com/
 
 # Link to Direct Login glossary on api explorer
-webui_faq_direct_login_url =
+webui_direct_login_documentation_url =
 
 # Link to OAuth 1.0a glossary on api explorer
-webui_oauth_1_url =
+webui_oauth_1_documentation_url =
 
 # Link to OAuth 2.0 glossary on api explorer
-webui_oauth_2_url =
-
-# Link to the Glossary on API Explorer
-webui_glossary_url =
+webui_oauth_2_documentation_url =
 
 # URL of OAuth2.0 server
 oauth2_server_url =

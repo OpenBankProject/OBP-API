@@ -223,6 +223,7 @@ object Helper{
     * trait DefaultFormats
     * extends Formats
     */
+    //TODO need clean this format, we have set the TimeZone in boot.scala
   val DateFormatWithCurrentTimeZone = new Formats {
   
     import java.text.{ParseException, SimpleDateFormat}
@@ -243,7 +244,7 @@ object Helper{
       }
     }
   
-    protected def dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    protected def dateFormatter = APIUtil.DateWithMsFormat
   }
 
   def getHostname(): String = {

@@ -120,10 +120,6 @@ trait APIMethods200 {
     val emptyObjectJson = EmptyClassJson()
     val apiVersion: ApiVersion = ApiVersion.v2_0_0 // was String "2_0_0"
 
-    val exampleDateString: String = "22/08/2013"
-    val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-    val exampleDate = simpleDateFormat.parse(exampleDateString)
-
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
 
@@ -257,9 +253,9 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts",
       "Get Accounts at Bank.",
-      s"""Get accounts at one bank that the user has access to.
+      s"""
         |Returns the list of accounts at BANK_ID that the user has access to.
-        |For each account the API returns the account ID and the available views.
+        |For each account the API returns the account ID and the views available to the user..
         |Each account must have at least one private View.
         |
         |${authenticationRequiredMessage(true)}
@@ -352,7 +348,7 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(BankId(defaultBankId))
+            bank <- Bank(BankId(defaultBankId)) ?~! ErrorMessages.DefaultBankIdNotSet
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
@@ -613,7 +609,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID",
       "Add KYC Document.",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
-      PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate),
+      postKycDocumentJSON,
       kycDocumentJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -660,14 +656,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID",
       "Add KYC Media.",
       "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
-      PostKycMediaJSON(
-        "1239879", 
-        "image", 
-        "http://www.example.com/id-docs/123/image.png",
-        exampleDate, 
-        "wuwjfuha234678", 
-        "98FRd987auhf87jab"
-      ),
+      postKycMediaJSON,
       kycMediaJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -903,7 +892,7 @@ trait APIMethods200 {
         |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
         |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
         |
-        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+        |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.""",
       emptyObjectJson,
       coreTransactionsJSON,
       List(BankAccountNotFound, UnknownError),
@@ -918,7 +907,7 @@ trait APIMethods200 {
         cc =>
 
           for {
-            params <- getHttpParams(req.request.headers)
+            params <- createQueriesByHttpParams(req.request.headers)
             bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
@@ -972,7 +961,7 @@ trait APIMethods200 {
             bank <- Bank(bankId) ?~ BankNotFound // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId)) ?~! {ErrorMessages.ViewNotFound}
+            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
           } yield {
@@ -1285,7 +1274,7 @@ trait APIMethods200 {
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
 
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
@@ -1350,7 +1339,7 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
               // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
@@ -1435,7 +1424,7 @@ trait APIMethods200 {
               u <- cc.user ?~! UserNotLoggedIn
               _ <- Bank(bankId) ?~! BankNotFound
               fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) ?~! ViewNotFound
+              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
@@ -1765,7 +1754,7 @@ trait APIMethods200 {
               None,
               None) ?~! CreateConsumerError
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! ErrorMessages.CustomerAlreadyExistsForUser
-            _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! CreateUserCustomerLinksError
+            _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, new Date(), true) ?~! CreateUserCustomerLinksError
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(customer)
             val successJson = Extraction.decompose(json)
@@ -2082,8 +2071,8 @@ trait APIMethods200 {
               isSuperAdmin(u.userId)
             }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, Some(cc.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+            }
           } yield {
             (JSONFactory200.createEntitlementJSONs(entitlements), callContext)
           }
@@ -2301,7 +2290,4 @@ trait APIMethods200 {
       }
     }
   }
-}
-
-object APIMethods200 {
 }

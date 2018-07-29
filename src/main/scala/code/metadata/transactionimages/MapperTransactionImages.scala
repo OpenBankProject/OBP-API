@@ -6,18 +6,20 @@ import java.util.Date
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.Users
-import code.util.{UUIDString, AccountIdString, MappedUUID}
+import code.util.{AccountIdString, MappedUUID, UUIDString}
+import code.views.Views
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 object MapperTransactionImages extends TransactionImages {
   override def getImagesForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[TransactionImage] = {
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     MappedTransactionImage.findAll(
       By(MappedTransactionImage.bank, bankId.value),
       By(MappedTransactionImage.account, accountId.value),
       By(MappedTransactionImage.transaction, transactionId.value),
-      By(MappedTransactionImage.view, viewId.value)
+      By(MappedTransactionImage.view, metadateViewId)
     )
   }
 
@@ -28,12 +30,13 @@ object MapperTransactionImages extends TransactionImages {
 
   override def addTransactionImage(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
                                   (userId: UserId, viewId: ViewId, description: String, datePosted: Date, imageURL: String): Box[TransactionImage] = {
+    val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo {
       MappedTransactionImage.create
         .bank(bankId.value)
         .account(accountId.value)
         .transaction(transactionId.value)
-        .view(viewId.value)
+        .view(metadateViewId)
         .user(userId.value)
         .imageDescription(description)
         .url(imageURL.toString)

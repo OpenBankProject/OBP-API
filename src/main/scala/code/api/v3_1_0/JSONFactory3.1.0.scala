@@ -29,6 +29,7 @@ package code.api.v3_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.BranchRoutingJsonV141
+import code.metrics.{TopApi, TopConsumer}
 
 import scala.collection.immutable.List
 
@@ -68,7 +69,7 @@ case class CreditCardOrderStatusResponseJson(
 )
 
 
-case class CreditLineOrderRequestJson(
+case class CreditLimitOrderRequestJson(
   requested_current_rate_amount1: String,
   requested_current_rate_amount2: String,
   requested_current_valid_end_date: String,
@@ -78,11 +79,32 @@ case class CreditLineOrderRequestJson(
   temporary_credit_documentation: String
 )
 
-case class CreditLineOrderResponseJson(
+case class CreditLimitOrderResponseJson(
   execution_time: String,
   execution_date: String,
   token: String,
   short_reference: String
+)
+
+case class CreditLimitOrderJson(
+  rank_amount_1: String,
+  nominal_interest_1: String,
+  rank_amount_2: String,
+  nominal_interest_2: String
+)
+
+
+case class TopApiJson(
+  count: Int,
+  Implemented_by_partial_function: String,
+  implemented_in_version: String
+)
+
+case class TopConsumerJson(
+  count: Int,
+  consumer_id: String,
+  app_name: String,
+  developer_email: String
 )
 
 object JSONFactory310{
@@ -92,6 +114,20 @@ object JSONFactory310{
   def createStatisOfCreditCardJson(cards: List[CardObjectJson]): CreditCardOrderStatusResponseJson =
     CreditCardOrderStatusResponseJson(cards)
   
-  def createCreditLineOrderResponseJson(): CreditLineOrderResponseJson =
-    SwaggerDefinitionsJSON.creditLineOrderResponseJson
+  def createCreditLimitOrderResponseJson(): CreditLimitOrderResponseJson =
+    SwaggerDefinitionsJSON.creditLimitOrderResponseJson
+  
+  def getCreditLimitOrderResponseJson(): CreditLimitOrderJson =
+    SwaggerDefinitionsJSON.creditLimitOrderJson
+  
+  def getCreditLimitOrderByRequestIdResponseJson(): CreditLimitOrderJson =
+    SwaggerDefinitionsJSON.creditLimitOrderJson
+  
+  def createTopApisJson(topApis: List[TopApi]): List[TopApiJson] ={
+    topApis.map(topApi => TopApiJson(topApi.count, topApi.ImplementedByPartialFunction, topApi.implementedInVersion))
+  }
+  
+  def createTopConsumersJson(topConsumers: List[TopConsumer]): List[TopConsumerJson] ={
+    topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail))
+  }
 }

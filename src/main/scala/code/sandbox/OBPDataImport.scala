@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.util.APIUtil.DateWithDay3
 import code.api.util.{APIUtil, ErrorMessages}
 import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
@@ -44,7 +45,7 @@ trait Saveable[T] {
  * gets saved. That's the reason for the use of the Saveable trait.
  */
 trait OBPDataImport extends MdcLoggable {
-  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  val datePattern = APIUtil.DateWithMs
   val dateFormat = new SimpleDateFormat(datePattern)
 
   type BankType <: Bank
@@ -822,11 +823,11 @@ object SandboxData{
   val standardCustomer1 = SandboxCustomerImport("James Brown", "698761728934")
 
 
-  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
+  val format = new java.text.SimpleDateFormat(DateWithDay3)
   val standardDate = format.parse("30/03/2015")
 
 
-  val dataImportDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+  val dataImportDateFormat = APIUtil.DateWithMsFormat
 
   val standardDateString = dataImportDateFormat.format(standardDate)
 

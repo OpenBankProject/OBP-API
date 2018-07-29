@@ -54,10 +54,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val implementedInApiVersion : ApiVersion = ApiVersion.v1_4_0
 
-    val exampleDateString : String ="22/08/2013"
-    val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
-    val exampleDate = simpleDateFormat.parse(exampleDateString)
-
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
@@ -165,10 +161,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         x <- activePlusLocalResourceDocs
         // This is the "implemented in" url
         url = x.implementedInApiVersion match {
-          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
-          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
+          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           // We add the /obp/vX prefix here
-          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}/${x.requestUrl}"
+          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
         }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),

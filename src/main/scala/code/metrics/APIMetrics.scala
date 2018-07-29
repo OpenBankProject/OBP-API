@@ -5,7 +5,10 @@ import java.util.{Calendar, Date}
 import code.api.util.APIUtil
 import code.bankconnectors.OBPQueryParam
 import code.remotedata.RemotedataMetrics
+import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
+
+import scala.concurrent.Future
 
 object APIMetrics extends SimpleInjector {
 
@@ -66,6 +69,12 @@ trait APIMetrics {
 //  def getAllGroupedByUserId() : Map[String, List[APIMetric]]
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
+  
+  def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]]
+  
+  def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]]
+  
+  def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]]
 
   def bulkDeleteMetrics(): Boolean
 
@@ -77,6 +86,9 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
+  case class getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam])
+  case class getTopApisFuture(queryParams: List[OBPQueryParam])
+  case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()
 }
 
@@ -98,3 +110,42 @@ trait APIMetric {
   def getCorrelationId(): String
 
 }
+
+case class OBPUrlQueryParams(
+  startDate: Date,
+  endDate: Date,
+  consumerId: String,
+  userId: String,
+  url: String,
+  appName: String,
+  implementedByPartialFunction: String,
+  implementedInVersion: String,
+  verb: String,
+  anon: String,
+  correlationId: String,
+  duration: String,
+  excludeAppNames: String,
+  excludeUrlPattern: String,
+  excludeImplementedByPartialfunctions: String
+)
+
+case class AggregateMetrics(
+  totalCount: Int,
+  avgResponseTime: Double,
+  minResponseTime: Double,
+  maxResponseTime: Double
+)
+
+case class TopApi(
+  count: Int,
+  ImplementedByPartialFunction: String,
+  implementedInVersion: String
+)
+
+
+case class TopConsumer(
+  count: Int,
+  consumerId: String,
+  appName: String,
+  developerEmail: String
+)

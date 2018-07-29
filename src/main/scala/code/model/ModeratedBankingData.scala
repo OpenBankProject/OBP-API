@@ -33,13 +33,15 @@ Berlin 13359, Germany
 package code.model
 import java.util.Date
 
+import code.api.util.APIUtil
+import code.api.util.ErrorMessages.NoViewPermission
 import code.bankconnectors.vJune2017.AccountRule
 import code.model.Moderation.Moderated
 import code.util.Helper
 import net.liftweb.common.{Box, Failure}
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.JsonDSL._
-
+import code.api.util.ErrorMessages._
 import scala.collection.immutable.List
 
 object Moderation {
@@ -66,7 +68,7 @@ class ModeratedTransaction(
   def dateOption2JString(date: Option[Date]) : JString = {
     import java.text.SimpleDateFormat
 
-    val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    val dateFormat = APIUtil.DateWithMsFormat
     JString(date.map(d => dateFormat.format(d)) getOrElse "")
   }
 
@@ -125,8 +127,8 @@ class ModeratedTransactionMetadata(
   */
   def deleteTag(tagId : String, user: Option[User], bankAccount : BankAccount) : Box[Unit] = {
     for {
-      u <- Box(user) ?~ { "User must be logged in"}
-      tagList <- Box(tags) ?~ { "You must be able to see tags in order to delete them"}
+      u <- Box(user) ?~ { UserNotLoggedIn}
+      tagList <- Box(tags) ?~ { s"$NoViewPermission can_delete_tag. " }
       tag <- Box(tagList.find(tag => tag.id_ == tagId)) ?~ {"Tag with id " + tagId + "not found for this transaction"}
       deleteFunc <- if(tag.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId)))
     	               Box(deleteTag) ?~ "Deleting tags not permitted for this view"
@@ -142,8 +144,8 @@ class ModeratedTransactionMetadata(
   */
   def deleteImage(imageId : String, user: Option[User], bankAccount : BankAccount) : Box[Unit] = {
     for {
-      u <- Box(user) ?~ { "User must be logged in"}
-      imageList <- Box(images) ?~ { "You must be able to see images in order to delete them"}
+      u <- Box(user) ?~ { UserNotLoggedIn}
+      imageList <- Box(images) ?~ { s"$NoViewPermission can_delete_image." }
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
       deleteFunc <- if(image.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId)))
     	                Box(deleteImage) ?~ "Deleting images not permitted for this view"
@@ -156,8 +158,8 @@ class ModeratedTransactionMetadata(
 
   def deleteComment(commentId: String, user: Option[User],bankAccount: BankAccount) : Box[Unit] = {
     for {
-      u <- Box(user) ?~ { "User must be logged in"}
-      commentList <- Box(comments) ?~ {"You must be able to see comments in order to delete them"}
+      u <- Box(user) ?~ { UserNotLoggedIn}
+      commentList <- Box(comments) ?~ { s"$NoViewPermission can_delete_comment." }
       comment <- Box(commentList.find(comment => comment.id_ == commentId)) ?~ {"Comment with id "+commentId+" not found for this transaction"}
       deleteFunc <- if(comment.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId)))
                     Box(deleteComment) ?~ "Deleting comments not permitted for this view"
@@ -170,8 +172,8 @@ class ModeratedTransactionMetadata(
 
   def deleteWhereTag(viewId: ViewId, user: Option[User],bankAccount: BankAccount) : Box[Boolean] = {
     for {
-      u <- Box(user) ?~ { "User must be logged in"}
-      whereTagOption <- Box(whereTag) ?~ {"You must be able to see the where tag in order to delete it"}
+      u <- Box(user) ?~ { UserNotLoggedIn}
+      whereTagOption <- Box(whereTag) ?~ { s"$NoViewPermission can_delete_where_tag. Current ViewId($viewId)" }
       whereTag <- Box(whereTagOption) ?~ {"there is no tag to delete"}
       deleteFunc <- if(whereTag.postedBy == user || u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId,bankAccount.accountId)))
                       Box(deleteWhereTag) ?~ "Deleting tag is not permitted for this view"

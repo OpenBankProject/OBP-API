@@ -2,7 +2,7 @@ package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.ErrorMessage
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.util.ErrorMessages.{FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles}
 import code.api.util.ApiRole.CanUseFirehoseAtAnyBank
 import net.liftweb.json.JsonAST.compactRender
@@ -61,8 +61,8 @@ class TransactionsTest extends V300ServerSetup {
     import java.text.SimpleDateFormat
     import java.util.{Calendar, Date}
 
-    val defaultFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-    val rollbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    val defaultFormat = APIUtil.DateWithMsFormat
+    val rollbackFormat = APIUtil.DateWithMsRollbackFormat
 
     scenario("we don't get transactions due to wrong value for sort_direction parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")

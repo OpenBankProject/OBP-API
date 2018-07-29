@@ -69,8 +69,8 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
       sender ! extractResult(mapper.getAllUsers())
 
     case cc.getAllUsersF(queryParams: List[OBPQueryParam]) =>
-      logger.debug("getAllUsersF(queryParams: List[OBPQueryParam])")
-      sender ! (mapper.getAllUsersFF(queryParams: List[OBPQueryParam]))
+      logger.debug(s"getAllUsersF(queryParams: ($queryParams))")
+      sender ! (mapper.getAllUsersFF(queryParams))
 
     case cc.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.debug("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")

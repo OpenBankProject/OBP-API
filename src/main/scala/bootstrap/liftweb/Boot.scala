@@ -54,7 +54,7 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
-import code.kafka.KafkaHelperActors
+import code.kafka.{KafkaConsumer, KafkaHelperActors}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -73,7 +73,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
-import code.scope.MappedScope
+import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.transaction.MappedTransaction
@@ -84,6 +84,7 @@ import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequ
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
+import net.liftweb.db.DBLogEntry
 import net.liftweb.http._
 import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
@@ -185,6 +186,22 @@ class Boot extends MdcLoggable {
 
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
+    
+    if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
+      DB.addLogFunc
+     {
+       case (log, duration) =>
+       {
+         logger.debug("Total query time : %d ms".format(duration))
+         log.allEntries.foreach
+         {
+           case DBLogEntry(stmt, duration) =>
+             logger.debug("The query :  %s in %d ms".format(stmt, duration))
+         }
+       }
+     }
+    }
+    
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
@@ -289,6 +306,8 @@ class Boot extends MdcLoggable {
     if (connector.startsWith("kafka")) {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
+      // Start North Side Consumer if it's not already started
+      KafkaConsumer.primaryConsumer.start()
     }
 
     if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
@@ -361,6 +380,7 @@ class Boot extends MdcLoggable {
 
     //set base localization to english (instead of computer default)
     Locale.setDefault(Locale.ENGLISH)
+    logger.info("Current Project Locale is :" +Locale.getDefault)
 
     //override locale calculated from client request with default (until we have translations)
     LiftRules.localeCalculator = {
@@ -516,7 +536,8 @@ object ToSchemify {
     MappedConnectorMetric,
     MappedExpectedChallengeAnswer,
     MappedEntitlementRequest,
-    MappedScope
+    MappedScope,
+    MappedUserScope
   )
 
   // The following tables are accessed directly via Mapper / JDBC

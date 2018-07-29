@@ -7,13 +7,17 @@ import code.actorsystem.ObpActorHelper
 import code.bankconnectors.OBPQueryParam
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
-
+import akka.pattern.pipe
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MappedMetrics
   val cc = RemotedataMetricsCaseClasses
 
+  override def postStop() = logger.debug(s"RemotedataMetricsActor is stopping !")
+  override def preStart() = logger.debug(s"RemotedataMetricsActor is starting !")
+  
   def receive = {
 
     case cc.saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String) =>
@@ -36,6 +40,18 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       logger.debug("getAllMetrics()")
       sender ! extractResult(mapper.getAllMetrics(queryParams))
 
+    case cc.getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]) =>
+      logger.debug(s"RemotedataMetricsActor.getAllAggregateMetricsFuture($queryParams)")
+      sender ! (mapper.getAllAggregateMetricsBox(queryParams))
+      
+    case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
+      logger.debug(s"getTopApisFuture($queryParams)")
+      (mapper.getTopApisFuture(queryParams)) pipeTo sender
+      
+    case cc.getTopConsumersFuture(queryParams: List[OBPQueryParam]) =>
+      logger.debug(s"getTopConsumersFuture($queryParams)")
+      (mapper.getTopConsumersFuture(queryParams)) pipeTo sender
+      
     case cc.bulkDeleteMetrics() =>
       logger.debug("bulkDeleteMetrics()")
       sender ! extractResult(mapper.bulkDeleteMetrics())
