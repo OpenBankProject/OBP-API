@@ -2002,7 +2002,7 @@ Returns a string showed to the developer
         val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
         val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
-        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
+        throw new Exception(failuresMsg)
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
