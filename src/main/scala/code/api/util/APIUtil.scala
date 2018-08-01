@@ -179,9 +179,8 @@ object APIUtil extends MdcLoggable {
     callContext match {
       case Some(cc) =>
         if(getPropsAsBoolValue("write_metrics", false)) {
-          val u: User = cc.user.orNull
-          val userId = if (u != null) u.userId else "null"
-          val userName = if (u != null) u.name else "null"
+          val userId = cc.userId.orNull
+          val userName = cc.userName.orNull
 
           val implementedByPartialFunction = cc.partialFunctionName
 
@@ -209,9 +208,9 @@ object APIUtil extends MdcLoggable {
               }
             val c: Consumer = consumer.orNull
             //The consumerId, not key
-            val consumerId = if (u != null) c.id.toString() else "null"
-            val appName = if (u != null) c.name.toString() else "null"
-            val developerEmail = if (u != null) c.developerEmail.toString() else "null"
+            val consumerId = if (c != null) c.id.toString() else "null"
+            val appName = if (c != null) c.name.toString() else "null"
+            val developerEmail = if (c != null) c.developerEmail.toString() else "null"
 
             APIMetrics.apiMetrics.vend.saveMetric(
               userId,
@@ -2002,7 +2001,7 @@ Returns a string showed to the developer
         val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
         val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
-        throw new Exception(failuresMsg)
+        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(msg, _, c) =>
