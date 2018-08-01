@@ -192,25 +192,9 @@ object APIUtil extends MdcLoggable {
 
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
-            val consumer =
-              if (hasAnOAuthHeader(cc.authReqHeaderField)) {
-                getConsumer(cc.oAuthToken) match {
-                  case Full(c) => Full(c)
-                  case _ => Empty
-                }
-              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
-                DirectLogin.getConsumer(cc.directLoginToken) match {
-                  case Full(c) => Full(c)
-                  case _ => Empty
-                }
-              } else {
-                Empty
-              }
-            val c: Consumer = consumer.orNull
-            //The consumerId, not key
-            val consumerId = if (c != null) c.id.toString() else "null"
-            val appName = if (c != null) c.name.toString() else "null"
-            val developerEmail = if (c != null) c.developerEmail.toString() else "null"
+            val consumerId = cc.consumerId.getOrElse(-1)
+            val appName = cc.appName.orNull
+            val developerEmail = cc.developerEmail.orNull
 
             APIMetrics.apiMetrics.vend.saveMetric(
               userId,
@@ -220,7 +204,7 @@ object APIUtil extends MdcLoggable {
               userName,
               appName,
               developerEmail,
-              consumerId,
+              consumerId.toString,
               implementedByPartialFunction,
               cc.implementedInVersion,
               cc.verb,
