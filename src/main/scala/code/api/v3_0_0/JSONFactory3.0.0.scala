@@ -448,6 +448,13 @@ case class ScopeJsons(list: List[ScopeJson])
 case class BanksJson(banks: List[BankJSON])
 case class CreateScopeJson(bank_id: String, role_name: String)
 
+case class AggregateMetricJSON(
+                                  count: Int,
+                                  average_response_time: Double,
+                                  minimum_response_time: Double,
+                                  maximum_response_time: Double
+                                )
+
 object JSONFactory300{
 
   // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
@@ -1116,12 +1123,7 @@ object JSONFactory300{
     EntitlementRequestsJSON(list.map(createEntitlementRequestJSON))
   }
 
-  case class AggregateMetricJSON(
-                                  count: Int,
-                                  average_response_time: Double,
-                                  minimum_response_time: Double,
-                                  maximum_response_time: Double
-                                )
+  
   def createScopeJson(scope: Scope): ScopeJson = {
     ScopeJson(
       scope_id = scope.scopeId,

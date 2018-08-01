@@ -8,7 +8,7 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
+import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
 import code.api.v3_1_0._
