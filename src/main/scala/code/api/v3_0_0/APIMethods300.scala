@@ -2098,7 +2098,7 @@ trait APIMethods300 {
         |
         |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |14 exclude_url_pattern (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_pattern=%management/metrics%
+        |14 exclude_url_patterns (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
         |
         |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
         |
