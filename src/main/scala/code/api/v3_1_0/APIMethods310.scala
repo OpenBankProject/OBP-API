@@ -385,8 +385,6 @@ trait APIMethods310 {
          |Allows bulk access to customers.
          |User must have the CanUseFirehoseAtAnyBank Role
          |
-         |For VIEW_ID try 'firehose'
-         |
          |Possible custom URL parameters for pagination:
          |
          |* sort_direction=ASC/DESC

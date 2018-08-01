@@ -32,7 +32,8 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
       gatewayLoginResponseHeader = this.gatewayLoginResponseHeader,
-      user = this.user.toOption,
+      userId = this.user.map(_.userId).toOption,
+      userName = this.user.map(_.name).toOption,
       spelling = this.spelling,
       startTime = this.startTime,
       endTime = this.endTime,
@@ -51,7 +52,8 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
 
 case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
                             gatewayLoginResponseHeader: Option[String] = None,
-                            user: Option[User] = None,
+                            userId: Option[String] = None,
+                            userName: Option[String] = None,
                             spelling: Option[String] = None,
                             startTime: Option[Date] = Some(Helpers.now),
                             endTime: Option[Date] = None,
