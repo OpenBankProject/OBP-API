@@ -246,7 +246,7 @@ trait APIMethods310 {
         |
       """.stripMargin,
       emptyObjectJson,
-      List(topApiJson),
+      topApisJson,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
       apiTagMetric :: Nil)
@@ -331,7 +331,7 @@ trait APIMethods310 {
         |
       """.stripMargin,
       emptyObjectJson,
-      List(topConsumerJson),
+      topConsumersJson,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
       apiTagMetric :: Nil)

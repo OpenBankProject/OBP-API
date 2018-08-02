@@ -1980,20 +1980,6 @@ trait APIMethods300 {
 
 
 
-   val exampleGlossaryItems = List(GlossaryItem(
-      title = "Title ",
-      description =
-        """
-          |Description.
-          |
-          |Goes here..
-        """))
-
-    def getExampleGlossaryItems : List[GlossaryItem] = {
-      exampleGlossaryItems.toList
-    }
-
-
     resourceDocs += ResourceDoc(
       getApiGlossary,
       implementedInApiVersion,
@@ -2004,7 +1990,7 @@ trait APIMethods300 {
       """Returns the glossary of the API
         |""",
       emptyObjectJson,
-      JSONFactory300.createGlossaryItemsJsonV300(getExampleGlossaryItems),
+      glossaryItemsJsonV300,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagDocumentation :: Nil)
