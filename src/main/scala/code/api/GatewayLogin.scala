@@ -26,33 +26,28 @@ Berlin 13359, Germany
   */
 package code.api
 
-import java.io.UnsupportedEncodingException
-
-import code.api.util.{APIUtil, CertificateUtil, CryptoSystem, ErrorMessages}
+import code.api.JSONFactoryGateway.PayloadOfJwtJSON
+import code.api.util.{APIUtil, CertificateUtil, ErrorMessages}
 import code.bankconnectors.{Connector, InboundAccountCommon}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}
 import code.users.Users
 import code.util.Helper.MdcLoggable
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
-import com.auth0.jwt.algorithms.Algorithm.RSA256
-import com.auth0.jwt.exceptions.{JWTCreationException, JWTVerificationException}
-import com.auth0.jwt.interfaces.DecodedJWT
+import com.nimbusds.jwt.JWTClaimsSet
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
-import net.liftweb.util.{Helpers, Props}
+import net.liftweb.util.Helpers
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
-* This object provides the API calls necessary to
-* authenticate users using JSON Web Tokens (http://jwt.io).
-*/
+  * This object provides the API calls necessary to
+  * authenticate users using JSON Web Tokens (http://jwt.io).
+  */
 
 
 object JSONFactoryGateway {
@@ -84,90 +79,49 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       case None => getFieldFromPayloadJson(payloadAsJsonString, "cbs_token")
     }
 
-    var jwt: String = ""
-    try {
-      val algorithm = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
-        case true =>
-          Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
-        case false =>
-          val secretKey = APIUtil.getPropsValue("gateway.token_secret", "Cannot get the secret")
-          Algorithm.HMAC256(secretKey)
-      }
-      jwt = JWT.create.
-        withClaim("login_user_name", username).
-        withClaim("is_first", false).
-        withClaim("app_id", consumerId).
-        withClaim("app_name", consumerName).
-        withClaim("time_stamp", timestamp).
-        withClaim("cbs_token", cbsToken).
-        withClaim("cbs_id", cbsId).
-        sign(algorithm)
-    } catch {
-      case exception: JWTCreationException =>
-        //Invalid Signing configuration / Couldn't convert Claims.
-        logger.error(exception)
-    }
+    val json = JSONFactoryGateway.PayloadOfJwtJSON(
+      login_user_name = username,
+      is_first = false,
+      app_id = consumerId,
+      app_name = consumerName,
+      time_stamp = timestamp,
+      cbs_token = Some(cbsToken),
+      cbs_id = cbsId
+    )
+    val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
+    val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+
     APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
       case true =>
-        CertificateUtil.encryptJwtWithRsa(jwt)
+        CertificateUtil.encryptJwtWithRsa(jwtClaims)
       case false =>
-        jwt
+        CertificateUtil.jwtWithHmacProtection(jwtClaims)
     }
   }
 
   def parseJwt(parameters: Map[String, String]): Box[String] = {
     val jwt = getToken(parameters)
     validateJwtToken(jwt) match {
-      case Full(jwtDecoded) =>
-        val json = JSONFactoryGateway.PayloadOfJwtJSON(
-          login_user_name = jwtDecoded.getClaim("login_user_name").asString(),
-          is_first = jwtDecoded.getClaim("is_first").asBoolean(),
-          app_id = jwtDecoded.getClaim("app_id").asString(),
-          app_name = jwtDecoded.getClaim("app_name").asString(),
-          time_stamp = jwtDecoded.getClaim("time_stamp").asString(),
-          cbs_token = Some(jwtDecoded.getClaim("cbs_token").asString()),
-          cbs_id = jwtDecoded.getClaim("cbs_id").asString()
-        )
-        Full(compactRender(Extraction.decompose(json)))
-      case Failure(msg, t, c) =>
-        Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid, t, c)
+      case Full(jwtPayload) =>
+        Full(compactRender(Extraction.decompose(jwtPayload)))
       case _  =>
         Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
     }
   }
 
-  def validateJwtToken(token: String): Box[DecodedJWT] = {
-    try {
-      val jwtDecoded = JWT.decode(token)
-      val algorithm = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
-        case true =>
-          Algorithm.RSA256(CertificateUtil.publicKey, CertificateUtil.privateKey)
-        case false =>
-          val secretKey = APIUtil.getPropsValue("gateway.token_secret", "Cannot get the secret")
-          Algorithm.HMAC256(secretKey)
-      }
-      val verifier = JWT.
-        require(algorithm).
-        withClaim("login_user_name", jwtDecoded.getClaim("login_user_name").asString()).
-        withClaim("is_first", jwtDecoded.getClaim("is_first").asBoolean()).
-        withClaim("app_id", jwtDecoded.getClaim("app_id").asString()).
-        withClaim("app_name", jwtDecoded.getClaim("app_name").asString()).
-        withClaim("time_stamp", jwtDecoded.getClaim("time_stamp").asString()).
-        withClaim("cbs_token", jwtDecoded.getClaim("cbs_token").asString()).
-        withClaim("cbs_id", jwtDecoded.getClaim("cbs_id").asString()).
-        build
-      //Reusable verifier instance
-      val jwtVerified: DecodedJWT = verifier.verify(token)
-      Full(jwtVerified)
-    } catch {
-      case exception: UnsupportedEncodingException =>
-        //UTF-8 encoding not supported
-        logger.error("UTF-8 encoding not supported - " + exception)
-        Failure(exception.getMessage, Full(exception), Full(Failure(exception.getMessage)))
-      case exception: JWTVerificationException =>
-        //Invalid signature/claims
-        logger.error("Invalid signature/claims - " + exception)
-        Failure(exception.getMessage, Full(exception), Full(Failure(exception.getMessage)))
+  def validateJwtToken(token: String): Box[PayloadOfJwtJSON] = {
+    APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
+      case true =>
+        val claim = CertificateUtil.decryptJwtWithRsa(token)
+        Box(parse(claim.toString).extractOpt[PayloadOfJwtJSON])
+      case false =>
+        CertificateUtil.verifywtWithHmacProtection(token) match {
+          case true =>
+            val claim = CertificateUtil.parseJwtWithHmacProtection(token)
+            Box(parse(claim.toString).extractOpt[PayloadOfJwtJSON])
+          case _ =>
+            Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
+        }
     }
   }
 
@@ -277,7 +231,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
             // Update user account views, only when is_first == true in the GatewayLogin token's payload .
             if(isFirst.equalsIgnoreCase("true")) {
-                AuthUser.updateUserAccountViews(u)
+              AuthUser.updateUserAccountViews(u)
             }
             Full((u, Some(getCbsTokens(s).head))) // Return user
           case Empty =>
