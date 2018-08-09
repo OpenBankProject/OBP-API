@@ -3,11 +3,13 @@ package code.api.v3_1_0
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{CanReadMetrics, CanUseFirehoseAtAnyBank, canUseFirehoseAtAnyBank}
+import code.api.util.ApiRole.{CanReadMetrics, CanUnlockUser, CanUseFirehoseAtAnyBank, canUseFirehoseAtAnyBank}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
+import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.util.Helper
@@ -430,6 +432,75 @@ trait APIMethods310 {
     }
     
     
+    resourceDocs += ResourceDoc(
+      getBadLoginStatus,
+      implementedInApiVersion,
+      "getBadLoginStatus",
+      "GET",
+      "/users/USERNAME/lock-status",
+      "Get User Lock Status",
+      s"""
+         |Get User Login Status.
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      badLoginStatusJson,
+      List(UserNotLoggedIn, UserNotFoundByUsername, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser),
+      Some(List(canUseFirehoseAtAnyBank)))
+
+    lazy val getBadLoginStatus : OBPEndpoint = {
+      //get private accounts for all banks
+      case "users" :: username::  "lock-status" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, cc, s"$UserNotFoundByUsername($username)",400) }
+          } yield {
+            (createBadLoginStatusJson(badLoginStatus), callContext)
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      unlockUser,
+      implementedInApiVersion,
+      "unlockUser",
+      "PUT",
+      "/users/USERNAME/lock-status",
+      "Unlock the user",
+      s"""
+         |Get Customers that has a firehose View.
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      emptyObjectJson,
+      badLoginStatusJson,
+      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser),
+      Some(List(canUseFirehoseAtAnyBank)))
+
+    lazy val unlockUser : OBPEndpoint = {
+      //get private accounts for all banks
+      case "users" :: username::  "lock-status" :: Nil JsonPut req => {
+        cc =>
+          for {
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanUnlockUser) {
+              hasEntitlement("", u.userId, ApiRole.canUnlockUser)
+            }
+            _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, cc, s"$UserNotFoundByUsername($username)",400) }
+          } yield {
+            (createBadLoginStatusJson(badLoginStatus), callContext)
+          }
+      }
+    }
     
   }
 }

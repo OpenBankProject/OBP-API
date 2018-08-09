@@ -12,7 +12,7 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
-import code.api.v3_1_0._
+import code.api.v3_1_0.{BadLoginStatusJson, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
@@ -2762,6 +2762,11 @@ object SwaggerDefinitionsJSON {
 
   val glossaryItemsJsonV300 = GlossaryItemsJsonV300 (glossary_items = List(glossaryItemJsonV300))
   
+  val badLoginStatusJson = BadLoginStatusJson(
+    username = "tesobe",
+    bad_attempts_since_last_success_or_reset = 0,
+    last_failure_date = DateWithMsExampleObject
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

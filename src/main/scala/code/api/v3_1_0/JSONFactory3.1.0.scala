@@ -26,9 +26,11 @@ Berlin 13359, Germany
  */
 package code.api.v3_1_0
 
+import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.BranchRoutingJsonV141
+import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 
 import scala.collection.immutable.List
@@ -111,6 +113,12 @@ case class TopConsumerJson(
 
 case class TopConsumersJson(top_consumers : List[TopConsumerJson])
 
+case class BadLoginStatusJson(
+  username : String,
+  bad_attempts_since_last_success_or_reset: Int,
+  last_failure_date : Date
+)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson = 
     checkbookOrders
@@ -133,5 +141,9 @@ object JSONFactory310{
   
   def createTopConsumersJson(topConsumers: List[TopConsumer]): TopConsumersJson ={
     TopConsumersJson(topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)))
+  }
+  
+  def createBadLoginStatusJson(badLoginStatus: BadLoginAttempt) : BadLoginStatusJson = {
+    BadLoginStatusJson(badLoginStatus.username,badLoginStatus.badAttemptsSinceLastSuccessOrReset, badLoginStatus.lastFailureDate)
   }
 }
