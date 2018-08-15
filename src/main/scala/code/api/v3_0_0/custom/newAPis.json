@@ -1,14 +1,21 @@
 {
-  "banks": [
-    {
-      "author": "Chinua Achebe",
-      "title": "Things Fall Apart",
-      "pages": 209
-    },
-    {
-      "author": "Hans Christian Andersen",
-      "title": "Fairy tales",
-      "pages": 784
-    }
-  ]
+  "summary":"Get Books",
+  "description":"Return All my books",
+  "request_url": "my/good/books",
+  "example_request_body": {
+    "banks": [
+      {
+        "author": "Chinua Achebe",
+        "title": "Things Fall Apart",
+        "pages": 209,
+        "pages2": 209
+      },
+      {
+        "author": "Hans Christian Andersen",
+        "title": "Fairy tales",
+        "pages": 784,
+        "pages2": 784
+      }
+    ]
+  }
 }
