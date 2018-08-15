@@ -1,0 +1,14 @@
+{
+  "banks": [
+    {
+      "author": "Chinua Achebe",
+      "title": "Things Fall Apart",
+      "pages": 209
+    },
+    {
+      "author": "Hans Christian Andersen",
+      "title": "Fairy tales",
+      "pages": 784
+    }
+  ]
+}
