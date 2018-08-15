@@ -2,19 +2,35 @@ package code.api.v3_0_0.custom
 
 import java.io.File
 import java.nio.file.Files
-import net.liftweb.util.Props
+
 import scala.meta._
+import net.liftweb.json
+import net.liftweb.json.JValue
 
 object CustomCode extends App
 {
+  val jsonString = scala.io.Source.fromFile("src/main/scala/code/api/v3_0_0/custom/newAPis.json").mkString 
+  
+  val jsonObject: JValue = json.parse(jsonString)
+  val newApiSummary: String = (jsonObject \\ "summary").values.head._2.toString
+  val newApiDescription: String = (jsonObject \\ "description").values.head._2.toString 
+  val newApiURl: String = (jsonObject \\ "request_url").values.head._2.toString //eg: my/book
+  val newApiResponseBody: JValue= jsonObject \\ "example_request_body"
+  
+  
   val getJsonBody: Term.ForYield = 
     q"""for (
       u <- cc.user ?~ UserNotLoggedIn; 
       jsonString = scala.io.Source.fromFile("src/main/scala/code/api/v3_0_0/custom/newAPis.json").mkString; 
-      jsonObject: JValue = json.parse(jsonString)
+      jsonObject: JValue = json.parse(jsonString)\\"example_request_body"
     ) yield {
       successJsonResponse(jsonObject)
     }"""
+  
+  
+  val newUrlForResouceDoc = q""" "/books" """.copy(s"/custom/$newApiURl")
+  val newUrlDescriptionForResouceDoc = q""" "" """.copy(s"$newApiDescription")
+  val newUrlSummaryForResouceDoc = q""" "" """.copy(s"$newApiSummary")
   
   
   val fixedResouceCode: Term.ApplyInfix = 
@@ -24,9 +40,9 @@ object CustomCode extends App
         apiVersion, 
         "getBooks", 
         "GET", 
-        "/books", 
-        "Get Books", 
-        "", 
+        $newUrlForResouceDoc, 
+        $newUrlSummaryForResouceDoc, 
+        $newUrlDescriptionForResouceDoc, 
         emptyObjectJson, 
         emptyObjectJson, 
         List(UnknownError), 
@@ -34,9 +50,13 @@ object CustomCode extends App
         apiTagBank :: Nil
       )"""
   
-  val newURLProps = Props.get("new.api.url").getOrElse("books")
-  val newURL: Lit.String = q""" "books" """.copy(newURLProps)
   
+  
+  
+  //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
+  //from "my/book" --> "my  ::  book" 
+  val newApiUrlLiftFormat = newApiURl.split("/").mkString("""""","""  ::  """, """""")
+  val newURL: Lit.String = q""" "books"  """.copy(newApiUrlLiftFormat)
   val addedPartialfunction: Defn.Val = 
     q"""
       lazy val getBooks: OBPEndpoint = {
@@ -83,7 +103,7 @@ object CustomCode extends App
   jfile.getParentFile.mkdirs()
   Files.write(
     jfile.toPath,
-    allSourceCode.syntax.getBytes("UTF-8")
+    allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """").getBytes("UTF-8")
   )
   
 }
