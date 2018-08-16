@@ -14,16 +14,24 @@ object CustomCode extends App
   val jsonObject: JValue = json.parse(jsonString)
   val newApiSummary: String = (jsonObject \\ "summary").values.head._2.toString
   val newApiDescription: String = (jsonObject \\ "description").values.head._2.toString 
+  //TODO, for now this is only in description, could be a single filed later.
+  val needAuthentication:Boolean = newApiDescription.contains("Authentication is Mandatory")
   val newApiURl: String = (jsonObject \\ "request_url").values.head._2.toString //eg: my/book
-  val newApiResponseBody: JValue= jsonObject \\ "example_request_body"
+  val newApiResponseBody: JValue= jsonObject \\ "success_response_body"
   
   
-  val getJsonBody: Term.ForYield = 
-    q"""for (
-      u <- cc.user ?~ UserNotLoggedIn; 
-      jsonString = scala.io.Source.fromFile("src/main/scala/code/api/v3_0_0/custom/newAPis.json").mkString; 
-      jsonObject: JValue = json.parse(jsonString)\\"example_request_body"
-    ) yield {
+  val needAuthenticationStatement: Term.ApplyInfix = needAuthentication match {
+    case true => q"cc.user ?~ UserNotLoggedIn"
+    case false => q"Box(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+  }
+  
+  
+  val getForComprehensionBody: Term.ForYield = 
+    q"""for {
+      u <- $needAuthenticationStatement 
+      jsonString = scala.io.Source.fromFile("src/main/scala/code/api/v3_0_0/custom/newAPis.json").mkString 
+      jsonObject: JValue = json.parse(jsonString)\\"success_response_body"
+    } yield {
       successJsonResponse(jsonObject)
     }"""
   
@@ -62,7 +70,7 @@ object CustomCode extends App
       lazy val getBooks: OBPEndpoint = {
         case ("custom" :: $newURL :: Nil) JsonGet req =>
           cc => {
-            $getJsonBody
+            $getForComprehensionBody
           }
        }"""
   
