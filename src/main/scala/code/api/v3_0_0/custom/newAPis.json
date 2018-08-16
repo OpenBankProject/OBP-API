@@ -1,8 +1,8 @@
 {
   "summary":"Get Books",
-  "description":"Return All my books",
+  "description":"Return All my books ,Authentication is Mandatory",
   "request_url": "my/good/books",
-  "example_request_body": {
+  "success_response_body": {
     "banks": [
       {
         "author": "Chinua Achebe",
