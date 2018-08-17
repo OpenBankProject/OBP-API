@@ -2,7 +2,7 @@ package code.loginattempts
 
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 
@@ -37,6 +37,10 @@ object LoginAttempt extends MdcLoggable {
 
 
     }
+  }
+  
+  def getBadLoginStatus(username: String): Box[BadLoginAttempt] = {
+    MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) 
   }
 
   /**

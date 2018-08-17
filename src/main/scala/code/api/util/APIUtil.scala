@@ -48,7 +48,6 @@ import code.api.oauth1a.Arithmetics
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
-import code.api.v3_0_0.JSONFactory300.AggregateMetricJSON
 import code.api.{DirectLogin, _}
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -698,7 +697,7 @@ object APIUtil extends MdcLoggable {
             anon = OBPDuration(value)
            }yield anon
          case "exclude_app_names" => Full(OBPExcludeAppNames(values)) //This will return a string list. 
-         case "exclude_url_pattern" => Full(OBPExcludeUrlPattern(values.head))
+         case "exclude_url_patterns" => Full(OBPExcludeUrlPatterns(values))//This will return a string list.
          case "exclude_implemented_by_partial_functions" => Full(OBPExcludeImplementedByPartialFunctions(values)) //This will return a string list. 
          case "function_name" => Full(OBPFunctionName(values.head)) 
          case "connector_name" => Full(OBPConnectorName(values.head))
@@ -732,7 +731,7 @@ object APIUtil extends MdcLoggable {
       correlationId <- getHttpParamValuesByName(httpParams, "correlation_id")
       duration <- getHttpParamValuesByName(httpParams, "duration")
       excludeAppNames <- getHttpParamValuesByName(httpParams, "exclude_app_names")
-      excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_pattern")
+      excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_patterns")
       excludeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "exclude_implemented_by_partial_functions")
       connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
@@ -787,9 +786,12 @@ object APIUtil extends MdcLoggable {
     val verb =  getHttpRequestUrlParam(httpRequestUrl, "verb")
     val correlationId =  getHttpRequestUrlParam(httpRequestUrl, "correlation_id")
     val duration =  getHttpRequestUrlParam(httpRequestUrl, "duration")
-    val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names")
-    val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_pattern")
-    val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions")
+    
+    //The following three are not a string, it should be List of String
+    //eg: exclude_app_names=A,B,C --> List(A,B,C)
+    val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names").split(",").toList
+    val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_patterns").split(",").toList
+    val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions").split(",").toList
     
     val functionName =  getHttpRequestUrlParam(httpRequestUrl, "function_name")
     val connectorName =  getHttpRequestUrlParam(httpRequestUrl, "connector_name")
@@ -799,7 +801,7 @@ object APIUtil extends MdcLoggable {
       HTTPParam("anon", anon), HTTPParam("consumer_id", consumerId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName), 
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
-      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
+      HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
       HTTPParam("function_name", functionName), HTTPParam("connector_name", connectorName)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }

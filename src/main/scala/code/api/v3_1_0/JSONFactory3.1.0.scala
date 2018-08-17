@@ -26,9 +26,11 @@ Berlin 13359, Germany
  */
 package code.api.v3_1_0
 
+import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.BranchRoutingJsonV141
+import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 
 import scala.collection.immutable.List
@@ -100,11 +102,21 @@ case class TopApiJson(
   implemented_in_version: String
 )
 
+case class TopApisJson(top_apis : List[TopApiJson])
+
 case class TopConsumerJson(
   count: Int,
   consumer_id: String,
   app_name: String,
   developer_email: String
+)
+
+case class TopConsumersJson(top_consumers : List[TopConsumerJson])
+
+case class BadLoginStatusJson(
+  username : String,
+  bad_attempts_since_last_success_or_reset: Int,
+  last_failure_date : Date
 )
 
 object JSONFactory310{
@@ -123,11 +135,15 @@ object JSONFactory310{
   def getCreditLimitOrderByRequestIdResponseJson(): CreditLimitOrderJson =
     SwaggerDefinitionsJSON.creditLimitOrderJson
   
-  def createTopApisJson(topApis: List[TopApi]): List[TopApiJson] ={
-    topApis.map(topApi => TopApiJson(topApi.count, topApi.ImplementedByPartialFunction, topApi.implementedInVersion))
+  def createTopApisJson(topApis: List[TopApi]): TopApisJson ={
+    TopApisJson(topApis.map(topApi => TopApiJson(topApi.count, topApi.ImplementedByPartialFunction, topApi.implementedInVersion)))
   }
   
-  def createTopConsumersJson(topConsumers: List[TopConsumer]): List[TopConsumerJson] ={
-    topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail))
+  def createTopConsumersJson(topConsumers: List[TopConsumer]): TopConsumersJson ={
+    TopConsumersJson(topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)))
+  }
+  
+  def createBadLoginStatusJson(badLoginStatus: BadLoginAttempt) : BadLoginStatusJson = {
+    BadLoginStatusJson(badLoginStatus.username,badLoginStatus.badAttemptsSinceLastSuccessOrReset, badLoginStatus.lastFailureDate)
   }
 }

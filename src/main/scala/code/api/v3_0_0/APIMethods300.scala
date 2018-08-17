@@ -1980,20 +1980,6 @@ trait APIMethods300 {
 
 
 
-   val exampleGlossaryItems = List(GlossaryItem(
-      title = "Title ",
-      description =
-        """
-          |Description.
-          |
-          |Goes here..
-        """))
-
-    def getExampleGlossaryItems : List[GlossaryItem] = {
-      exampleGlossaryItems.toList
-    }
-
-
     resourceDocs += ResourceDoc(
       getApiGlossary,
       implementedInApiVersion,
@@ -2004,7 +1990,7 @@ trait APIMethods300 {
       """Returns the glossary of the API
         |""",
       emptyObjectJson,
-      JSONFactory300.createGlossaryItemsJsonV300(getExampleGlossaryItems),
+      glossaryItemsJsonV300,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
       apiTagDocumentation :: Nil)
@@ -2098,7 +2084,7 @@ trait APIMethods300 {
         |
         |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |14 exclude_url_pattern (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_pattern=%management/metrics%
+        |14 exclude_url_patterns (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
         |
         |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
         |

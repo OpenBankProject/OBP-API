@@ -112,6 +112,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
       returnValue should be (List(s"$DateWithMsExampleString",s"$DateWithMsExampleString"))
     }
     
+    
+    scenario(s"test the many values case in HTTPParam, eg (exclude_app_names : value1,value2,value3)") 
+    {
+      val httpParams: List[HTTPParam] = List(HTTPParam("exclude_app_names", List("value1","value2", "value3")))
+      val returnValue = getHttpValues(httpParams, "exclude_app_names")
+      returnValue should be (List("value1","value2", "value3"))
+    }
+    
     scenario(s"test error cases, get wrong name ") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("from_date", List(s"$DateWithMsExampleString",s"$DateWithMsExampleString")))
@@ -324,6 +332,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
       returnValue should be (Full(OBPAnon(true)))
     }
     
+    scenario(s"test the correct case, exclude_app_names=API_EXPLOER,SOFIT") 
+    {
+      val correctValue = List("API_EXPLOER","SOFIT")
+      val httpParams: List[HTTPParam] = List(HTTPParam("exclude_app_names", correctValue))
+      val returnValue = getHttpParamValuesByName(httpParams, "exclude_app_names")
+      returnValue should be (Full(OBPExcludeAppNames(correctValue)))
+    }
+    
     scenario(s"test the correct case2, multi values = anon,consumer_id") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"), HTTPParam("consumer_id", "1"))
@@ -393,13 +409,13 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     scenario(s"test the correct case4: contains all the fields") 
     {
       val ExpectResult = 
-        Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending),
-             OBPFromDate(startDateObject),OBPToDate(endDateObject),
-             OBPAnon(true),OBPConsumerId("1"), OBPUserId("2"), OBPUrl("obp/v1.2.1/getBanks"), 
-             OBPAppName("PlaneApp"), OBPImplementedByPartialFunction("getBanks"), 
-             OBPImplementedInVersion("v1.2.1"), OBPVerb("GET"), OBPCorrelationId("123"), OBPDuration(1000), 
-             OBPExcludeAppNames(List("TrainApp", "BusApp")), OBPExcludeUrlPattern("%/obp/v1.2.1%"), 
-             OBPExcludeImplementedByPartialFunctions(List("getBank", "getAccounts"))))
+        Full(List(OBPLimit(50), OBPOffset(0), OBPOrdering(None,OBPDescending),
+                  OBPFromDate(startDateObject), OBPToDate(endDateObject),
+                  OBPAnon(true), OBPConsumerId("1"), OBPUserId("2"), OBPUrl("obp/v1.2.1/getBanks"),
+                  OBPAppName("PlaneApp"), OBPImplementedByPartialFunction("getBanks"),
+                  OBPImplementedInVersion("v1.2.1"), OBPVerb("GET"), OBPCorrelationId("123"), OBPDuration(1000),
+                  OBPExcludeAppNames(List("TrainApp", "BusApp")), OBPExcludeUrlPatterns(List("%/obp/v1.2.1%")),
+                  OBPExcludeImplementedByPartialFunctions(List("getBank", "getAccounts"))))
       val httpParams: List[HTTPParam] = List(
         HTTPParam("anon", "true"), 
         HTTPParam("consumer_id", "1"), 
@@ -412,7 +428,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
         HTTPParam("correlation_id","123"),
         HTTPParam("duration","1000"),
         HTTPParam("exclude_app_names",List("TrainApp","BusApp")),
-        HTTPParam("exclude_url_pattern","%/obp/v1.2.1%"),
+        HTTPParam("exclude_url_patterns","%/obp/v1.2.1%"),
         HTTPParam("exclude_implemented_by_partial_functions",List("getBank","getAccounts"))
       )
       val returnValue = createQueriesByHttpParams(httpParams)
@@ -482,16 +498,27 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
                                    HTTPParam("url",List("/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions")), 
                                    HTTPParam("app_name",List("MapperPostman")), HTTPParam("implemented_by_partial_function",List("getTransactionsForBankAccount")), 
                                    HTTPParam("implemented_in_version",List("v3.0.0")), HTTPParam("verb",List("GET")), HTTPParam("correlation_id",List("123")), 
-                                   HTTPParam("duration",List("100")), HTTPParam("exclude_app_names",List("API-EXPLORER,API-Manager,SOFI,null,SOFIT")), 
-                                   HTTPParam("exclude_url_pattern",List("%25management/metrics%25")), 
-                                   HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics,getConnectorMetrics,getAggregateMetrics")))) 
+                                   HTTPParam("duration",List("100")), 
+                                   HTTPParam("exclude_app_names",List("API-EXPLORER","API-Manager","SOFI","null","SOFIT")), 
+                                   HTTPParam("exclude_url_patterns",List("%25management/metrics%25","%management/aggregate-metrics%")), 
+                                   HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics","getConnectorMetrics","getAggregateMetrics")))) 
       
       val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics?" +
-        s"offset=3&limit=10&sort_direction=ASC&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
-        "implemented_by_partial_function=getTransactionsForBankAccount&implemented_in_version=v3.0.0&" +
+        s"offset=3&" +
+        s"limit=10&" +
+        s"sort_direction=ASC&" +
+        s"from_date=$DateWithMsExampleString&" +
+        s"to_date=$DateWithMsExampleString&" +
+        s"consumer_id=5&user_id=66214b8e-259e-44ad-8868-3eb47be70646&" +
+        "implemented_by_partial_function=getTransactionsForBankAccount&" +
+        "implemented_in_version=v3.0.0&" +
         "url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions&" +
-        "verb=GET&anon=false&app_name=MapperPostman&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null,SOFIT&" +
-        "exclude_url_pattern=%25management/metrics%25&exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics&"+ 
+        "verb=GET&" +
+        "anon=false&" +
+        "app_name=MapperPostman&" +
+        "exclude_app_names=API-EXPLORER,API-Manager,SOFI,null,SOFIT&" +
+        "exclude_url_patterns=%25management/metrics%25,%management/aggregate-metrics%&" +
+        "exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics&"+ 
         "correlation_id=123&duration=100"
       val returnValue = createHttpParamsByUrl(httpRequestUrl)
       returnValue should be (ExpectResult)
