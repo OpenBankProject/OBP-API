@@ -179,9 +179,8 @@ object APIUtil extends MdcLoggable {
     callContext match {
       case Some(cc) =>
         if(getPropsAsBoolValue("write_metrics", false)) {
-          val u: User = cc.user.orNull
-          val userId = if (u != null) u.userId else "null"
-          val userName = if (u != null) u.name else "null"
+          val userId = cc.userId.orNull
+          val userName = cc.userName.orNull
 
           val implementedByPartialFunction = cc.partialFunctionName
 
@@ -193,25 +192,9 @@ object APIUtil extends MdcLoggable {
 
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
-            val consumer =
-              if (hasAnOAuthHeader(cc.authReqHeaderField)) {
-                getConsumer(cc.oAuthToken) match {
-                  case Full(c) => Full(c)
-                  case _ => Empty
-                }
-              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
-                DirectLogin.getConsumer(cc.directLoginToken) match {
-                  case Full(c) => Full(c)
-                  case _ => Empty
-                }
-              } else {
-                Empty
-              }
-            val c: Consumer = consumer.orNull
-            //The consumerId, not key
-            val consumerId = if (u != null) c.id.toString() else "null"
-            val appName = if (u != null) c.name.toString() else "null"
-            val developerEmail = if (u != null) c.developerEmail.toString() else "null"
+            val consumerId = cc.consumerId.getOrElse(-1)
+            val appName = cc.appName.orNull
+            val developerEmail = cc.developerEmail.orNull
 
             APIMetrics.apiMetrics.vend.saveMetric(
               userId,
@@ -221,7 +204,7 @@ object APIUtil extends MdcLoggable {
               userName,
               appName,
               developerEmail,
-              consumerId,
+              consumerId.toString,
               implementedByPartialFunction,
               cc.implementedInVersion,
               cc.verb,
