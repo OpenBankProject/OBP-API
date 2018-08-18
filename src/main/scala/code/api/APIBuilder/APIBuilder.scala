@@ -1,4 +1,36 @@
-package code.api.v3_0_0.custom
+/**
+Open Bank Project - API
+Copyright (C) 2011-2016, TESOBE Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE Ltd
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
+
+ */
+
+package code.api.APIBuilder;
 
 import java.io.File
 import java.nio.file.Files
@@ -7,18 +39,17 @@ import scala.meta._
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.{JValue, JsonAST}
-import scala.collection.immutable.Map.Map2
 
-object CustomCode extends App
+object APIBuilder extends App
 {
-  val jsonString = scala.io.Source.fromFile("src/main/scala/code/api/v3_0_0/custom/newAPis.json").mkString 
+  val jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPis.json").mkString 
   
   val jsonObject: JValue = json.parse(jsonString)
   val newApiSummary: String = (jsonObject \\ "summary").values.head._2.toString
   val newApiDescription: String = (jsonObject \\ "description").values.head._2.toString 
   //TODO, for now this is only in description, could be a single filed later.
   val needAuthentication:Boolean = newApiDescription.contains("Authentication is Mandatory")
-  val newApiURl: String = (jsonObject \\ "request_url").values.head._2.toString //eg: my/book
+  val newApiURl: String = (jsonObject \\ "request_url").values.head._2.toString //eg: /my/book
   val newApiResponseBody: JValue= jsonObject \\ "success_response_body"
   
   
@@ -64,14 +95,14 @@ object CustomCode extends App
   val getForComprehensionBody: Term.ForYield = 
     q"""for {
       u <- $needAuthenticationStatement 
-      jsonString = scala.io.Source.fromFile("src/main/scala/code/api/v3_0_0/custom/newAPis.json").mkString 
+      jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPis.json").mkString 
       jsonObject: JValue = json.parse(jsonString)\\"success_response_body"
     } yield {
       successJsonResponse(jsonObject)
     }"""
   
   
-  val newUrlForResourceDoc = q""" "/books" """.copy(s"/custom/$newApiURl")
+  val newUrlForResourceDoc = q""" "/books" """.copy(s"$newApiURl")
   val newUrlDescriptionForResourceDoc = q""" "" """.copy(s"$newApiDescription")
   val newUrlSummaryForResourceDoc = q""" "" """.copy(s"$newApiSummary")
   
@@ -98,13 +129,13 @@ object CustomCode extends App
   
   
   //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
-  //from "my/book" --> "my  ::  book" 
-  val newApiUrlLiftFormat = newApiURl.split("/").mkString("""""","""  ::  """, """""")
+  //from "/my/book" --> "my  ::  book" 
+  val newApiUrlLiftFormat = newApiURl.replaceFirst("/","").split("/").mkString("""""","""  ::  """, """""")
   val newURL: Lit.String = q""" "books"  """.copy(newApiUrlLiftFormat)
   val addedPartialFunction: Defn.Val = 
     q"""
       lazy val getBooks: OBPEndpoint = {
-        case ("custom" :: $newURL :: Nil) JsonGet req =>
+        case ($newURL :: Nil) JsonGet req =>
           cc => {
             $getForComprehensionBody
           }
@@ -112,13 +143,43 @@ object CustomCode extends App
   
   val addedEndpoitList = 
     q"""
-       def endpointsOfCustom3_0_0 = createTransactionRequestTransferToReferenceAccountCustom :: getBooks::Nil"""
+       def endpointsOfBuilderAPI = getBooks::Nil"""
   
   val apiSource: Source = 
     source""" 
-        
-      package code.api.v3_0_0.custom
-
+      /**         
+      Open Bank Project - API         
+      Copyright (C) 2011-2016, TESOBE Ltd         
+               
+      This program is free software: you can redistribute it and/or modify         
+      it under the terms of the GNU Affero General Public License as published by         
+      the Free Software Foundation, either version 3 of the License, or         
+      (at your option) any later version.         
+               
+      This program is distributed in the hope that it will be useful,         
+      but WITHOUT ANY WARRANTY; without even the implied warranty of         
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         
+      GNU Affero General Public License for more details.         
+               
+      You should have received a copy of the GNU Affero General Public License         
+      along with this program.  If not, see <http://www.gnu.org/licenses/>.         
+               
+      Email: contact@tesobe.com         
+      TESOBE Ltd         
+      Osloerstrasse 16/17         
+      Berlin 13359, Germany         
+           
+        This product includes software developed at         
+        TESOBE (http://www.tesobe.com/)         
+        by         
+        Simon Redfern : simon AT tesobe DOT com         
+        Stefan Bethge : stefan AT tesobe DOT com         
+        Everett Sochowski : everett AT tesobe DOT com         
+        Ayoub Benali: ayoub AT tesobe DOT com         
+               
+       */   
+      package code.api.APIBuilder
+      
       import code.api.util.ApiVersion
       import code.api.util.ErrorMessages._
       import net.liftweb.http.rest.RestHelper
@@ -127,17 +188,18 @@ object CustomCode extends App
       import code.api.util.APIUtil._
       import net.liftweb.json
       import net.liftweb.json.JValue
-      import code.api.v3_0_0.custom.JSONFactoryCustom300._
+      import code.api.APIBuilder.JsonFactory_APIBuilder._
       
-      trait CustomAPIMethods300 { 
+      trait APIMethods_APIBuilder
+      {
         self: RestHelper =>
-          val ImplementationsCustom3_0_0 = new Object() {
-          val apiVersion: ApiVersion = ApiVersion.v3_0_0
+        
+        val ImplementationsBuilderAPI = new Object()
+        {
+          val apiVersion: ApiVersion = ApiVersion.apiBuilder
           val resourceDocs = ArrayBuffer[ResourceDoc]()
           val apiRelations = ArrayBuffer[ApiRelation]()
           val codeContext = CodeContext(resourceDocs, apiRelations)
-          val createTransactionRequestTransferToReferenceAccountCustom = null
-          
           $addedEndpoitList
           $fixedResourceCode
           $addedPartialFunction
@@ -145,22 +207,53 @@ object CustomCode extends App
       }
 """
   
-  val jfile = new File("src/main/scala/code/api/v3_0_0/custom/APIMethodsCustom300.scala")
-  jfile.getParentFile.mkdirs()
+  val builderAPIMethodsFile = new File("src/main/scala/code/api/APIBuilder/APIMethods_APIBuilder.scala")
+  builderAPIMethodsFile.getParentFile.mkdirs()
   Files.write(
-    jfile.toPath,
+    builderAPIMethodsFile.toPath,
     apiSource.syntax.replaceAll("""  ::  """,""""  ::  """").getBytes("UTF-8")
   )
   
   val jsonFactorySource: Source = 
-    source""" 
-      package code.api.v3_0_0.custom
+    source"""
+      /** 
+      Open Bank Project - API       
+      Copyright (C) 2011-2016, TESOBE Ltd       
+             
+      This program is free software: you can redistribute it and/or modify       
+      it under the terms of the GNU Affero General Public License as published by       
+      the Free Software Foundation, either version 3 of the License, or       
+      (at your option) any later version.       
+             
+      This program is distributed in the hope that it will be useful,       
+      but WITHOUT ANY WARRANTY; without even the implied warranty of       
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the       
+      GNU Affero General Public License for more details.       
+             
+      You should have received a copy of the GNU Affero General Public License       
+      along with this program.  If not, see <http://www.gnu.org/licenses/>.       
+             
+      Email: contact@tesobe.com       
+      TESOBE Ltd       
+      Osloerstrasse 16/17       
+      Berlin 13359, Germany       
+         
+        This product includes software developed at       
+        TESOBE (http://www.tesobe.com/)       
+        by       
+        Simon Redfern : simon AT tesobe DOT com       
+        Stefan Bethge : stefan AT tesobe DOT com       
+        Everett Sochowski : everett AT tesobe DOT com       
+        Ayoub Benali: ayoub AT tesobe DOT com       
+             
+       */       
+      package code.api.APIBuilder
       import code.api.util.APIUtil
       
       $SecondLevelCaseClass
       $FirstLevelCaseClass
     
-      object JSONFactoryCustom300{
+      object JsonFactory_APIBuilder{
             
         $instanceRootCaseClass
         
@@ -177,10 +270,10 @@ object CustomCode extends App
       }
 
 """
-  val jfile2 = new File("src/main/scala/code/api/v3_0_0/custom/JSONFactoryCustom3.0.0.scala")
-  jfile2.getParentFile.mkdirs()
+  val builderJsonFactoryFile = new File("src/main/scala/code/api/APIBuilder/JsonFactory_APIBuilder.scala")
+  builderJsonFactoryFile.getParentFile.mkdirs()
   Files.write(
-    jfile2.toPath,
+    builderJsonFactoryFile.toPath,
     jsonFactorySource.syntax.replaceAll("""`""",""""""""").getBytes("UTF-8")
   )
   
