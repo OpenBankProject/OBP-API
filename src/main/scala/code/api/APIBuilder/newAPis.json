@@ -1,7 +1,7 @@
 {
   "summary":"Get Books",
-  "description":"Return All my books ,Authentication is Mandatory",
-  "request_url": "my/good/books",
+  "description":"Return All my books. Authentication is Mandatory. ",
+  "request_url": "/my/good/books",
   "success_response_body": {
     "books": [
       {

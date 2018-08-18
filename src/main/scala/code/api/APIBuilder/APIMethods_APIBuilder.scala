@@ -60,7 +60,7 @@ trait APIMethods_APIBuilder
       apiVersion, 
       "getBooks", 
       "GET",
-      "/custom/my/good/books",
+      "/my/good/books",
       "Get Books",
       "Return All my books ,Authentication is Mandatory",
       emptyObjectJson, 
@@ -71,7 +71,7 @@ trait APIMethods_APIBuilder
     )
     
     lazy val getBooks: OBPEndpoint ={
-      case ("custom" :: "my" :: "good" :: "books" :: Nil) JsonGet req =>
+      case ("my" :: "good" :: "books" :: Nil) JsonGet req =>
         cc =>
         {
           for{
