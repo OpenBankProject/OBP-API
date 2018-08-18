@@ -38,6 +38,7 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.APIBuilder.OBP_APIBuilder
 import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -1012,6 +1013,7 @@ object APIUtil extends MdcLoggable {
   val apiTagDocumentation = ResourceDocTag("API-Documentation")
   val apiTagBerlinGroup = ResourceDocTag("Berlin-Group")
   val apiTagUKOpenBanking = ResourceDocTag("UKOpenBanking")
+  val apiTagApiBuilder = ResourceDocTag("API_Builder")
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
 
   case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
@@ -1637,6 +1639,7 @@ Returns a string showed to the developer
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
+        case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
       }
 
       logger.info(s"${version.toString} was ENABLED")
