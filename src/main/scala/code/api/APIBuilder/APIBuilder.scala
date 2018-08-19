@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2016, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -143,7 +143,7 @@ object APIBuilder extends App
     source""" 
       /**         
       Open Bank Project - API         
-      Copyright (C) 2011-2016, TESOBE Ltd         
+      Copyright (C) 2011-2018, TESOBE Ltd         
                
       This program is free software: you can redistribute it and/or modify         
       it under the terms of the GNU Affero General Public License as published by         
@@ -206,7 +206,7 @@ object APIBuilder extends App
     source"""
       /** 
       Open Bank Project - API       
-      Copyright (C) 2011-2016, TESOBE Ltd       
+      Copyright (C) 2011-2018, TESOBE Ltd       
              
       This program is free software: you can redistribute it and/or modify       
       it under the terms of the GNU Affero General Public License as published by       
