@@ -60,7 +60,7 @@ trait APIMethods_APIBuilder
       emptyObjectJson, 
       rootInterface,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG), 
+      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )
     
