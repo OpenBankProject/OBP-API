@@ -57,7 +57,7 @@ object ApiVersion {
   lazy val sandbox = Sandbox()
   
   case class APIBuilder() extends ApiVersion {
-    override def toString() = "v1_0"
+    override def toString() = "b1"
     //override def toString() = "api_builder_v1" // TODO don't want to confuse with OBP
   }
   lazy val apiBuilder = APIBuilder()
