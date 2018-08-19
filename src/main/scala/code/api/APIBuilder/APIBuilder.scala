@@ -115,7 +115,7 @@ object APIBuilder extends App
         emptyObjectJson, 
         rootInterface, 
         List(UnknownError), 
-        Catalogs(Core, notPSD2, OBWG), 
+        Catalogs(notCore, notPSD2, notOBWG), 
         apiTagBank :: Nil
       )"""
   
