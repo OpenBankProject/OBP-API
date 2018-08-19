@@ -49,7 +49,7 @@ object APIBuilder extends App
   
   val needAuthenticationStatement: Term.ApplyInfix = needAuthentication match {
     case true => q"cc.user ?~ UserNotLoggedIn"
-    case false => q"Box(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+    case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
   }
   
   
@@ -177,6 +177,7 @@ object APIBuilder extends App
       import net.liftweb.json
       import net.liftweb.json.JValue
       import code.api.APIBuilder.JsonFactory_APIBuilder._
+      import net.liftweb.common.Full
       
       trait APIMethods_APIBuilder
       {
