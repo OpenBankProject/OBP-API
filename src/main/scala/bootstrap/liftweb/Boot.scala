@@ -259,6 +259,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v3_1_0)
     enableVersionIfAllowed(ApiVersion.berlinGroupV1)
     enableVersionIfAllowed(ApiVersion.ukOpenBankingV200)
+    enableVersionIfAllowed(ApiVersion.apiBuilder)
 
 
     // TODO Wrap these with enableVersionIfAllowed as well
