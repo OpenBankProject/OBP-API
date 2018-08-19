@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2016, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -259,6 +259,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v3_1_0)
     enableVersionIfAllowed(ApiVersion.berlinGroupV1)
     enableVersionIfAllowed(ApiVersion.ukOpenBankingV200)
+    enableVersionIfAllowed(ApiVersion.apiBuilder)
 
 
     // TODO Wrap these with enableVersionIfAllowed as well
