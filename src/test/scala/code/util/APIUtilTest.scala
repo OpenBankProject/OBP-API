@@ -546,5 +546,12 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
       returnValue should be (ExpectResult)
     }
     
+    scenario(s"test the correct case4: error case None in `=` right side ") 
+    {
+      val ExpectResult = Full(List())
+      val httpRequestUrl = s"/obp/v3.0.0/management/aggregate-metrics?from_date="
+      val returnValue = createHttpParamsByUrl(httpRequestUrl)
+      returnValue should be (ExpectResult)
+    }
   }
 }
