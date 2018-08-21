@@ -123,7 +123,7 @@ object CertificateUtil extends MdcLoggable {
     // Serialize to compact form, produces something like
     // eyJhbGciOiJIUzI1NiJ9.SGVsbG8sIHdvcmxkIQ.onO9Ihudz3WkiauDO2Uhyuz0Y18UASXlSc1eS0NkWyA
     val s: String = signedJWT.serialize()
-    logger.info("jwtWithHmacProtection: " + s)
+    // logger.info("jwtWithHmacProtection: " + s)
     s
   }
 
@@ -140,7 +140,7 @@ object CertificateUtil extends MdcLoggable {
     import com.nimbusds.jwt.SignedJWT
     val signedJWT: SignedJWT = SignedJWT.parse(jwt)
     val claimsSet = signedJWT.getJWTClaimsSet()
-    logger.debug("signedJWT.getJWTClaimsSet(): " + claimsSet)
+    // logger.debug("signedJWT.getJWTClaimsSet(): " + claimsSet)
     claimsSet
   }
 
@@ -153,8 +153,8 @@ object CertificateUtil extends MdcLoggable {
     val encryptedJWT = new EncryptedJWT(header, jwtClaims)
     // Do the actual encryption
     encryptedJWT.encrypt(encrypter)
-    logger.debug("encryptedJwtWithRsa: " + encryptedJWT.serialize())
-    logger.debug("jwtClaims: " + jwtClaims)
+    // logger.debug("encryptedJwtWithRsa: " + encryptedJWT.serialize())
+    // logger.debug("jwtClaims: " + jwtClaims)
     // Serialise to JWT compact form
     encryptedJWT.serialize()
   }
@@ -167,9 +167,9 @@ object CertificateUtil extends MdcLoggable {
     // Create a decrypter with the specified private RSA key
     val decrypter = new RSADecrypter(privateKey)
     jwtParsed.decrypt(decrypter)
-    logger.debug("encryptedJwtWithRsa: " + encryptedJwtWithRsa)
-    logger.debug("getState: " + jwtParsed.getState)
-    logger.debug("getJWTClaimsSet: " + jwtParsed.getJWTClaimsSet)
+    // logger.debug("encryptedJwtWithRsa: " + encryptedJwtWithRsa)
+    // logger.debug("getState: " + jwtParsed.getState)
+    // logger.debug("getJWTClaimsSet: " + jwtParsed.getJWTClaimsSet)
     jwtParsed.getJWTClaimsSet
   }
 
