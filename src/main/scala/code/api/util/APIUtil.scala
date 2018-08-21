@@ -821,7 +821,7 @@ object APIUtil extends MdcLoggable {
   def getHttpRequestUrlParam(httpRequestUrl: String, name: String): String = {
     val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString)
     val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, $DateWithMsExampleString, to_date, $DateWithMsExampleString)
-    if (queryStrings.contains(name)) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
+    if (queryStrings.contains(name)&& queryStrings.length > queryStrings.indexOf(name)+1) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
   }
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
