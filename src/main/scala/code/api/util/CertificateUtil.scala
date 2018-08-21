@@ -102,16 +102,6 @@ object CertificateUtil extends MdcLoggable {
     cipher.doFinal(encrypted)
   }
 
-  def getClaimSet(jwt: String): JWTClaimsSet = {
-    import com.nimbusds.jose.util.Base64URL
-    import com.nimbusds.jwt.PlainJWT
-    // {"alg":"none"}// {"alg":"none"}
-    val header = "eyJhbGciOiJub25lIn0"
-    val parts: Array[Base64URL] = JOSEObject.split(jwt)
-    val plainJwt = new PlainJWT(new Base64URL(header), (parts(1)))
-    plainJwt.getJWTClaimsSet
-  }
-
   def jwtWithHmacProtection(claimsSet: JWTClaimsSet) = {
     // Create HMAC signer
     val  signer: JWSSigner = new MACSigner(sharedSecret)
