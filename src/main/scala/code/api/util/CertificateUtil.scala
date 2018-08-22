@@ -193,26 +193,6 @@ object CertificateUtil extends MdcLoggable {
 
     parseJwtWithHmacProtection(hmacJwt)
 
-    import redis.clients.jedis.Jedis
-    val jedis = new Jedis("localhost")
-    jedis.set("foo", "barbar")
-    val value = jedis.get("foo")
-    val value1: String = jedis.get("foooooo")
-
-
-    def underConsumerLimits(consumerKey: String, limit: Long): Boolean = {
-      val exists = jedis.exists(consumerKey)
-      exists match {
-        case java.lang.Boolean.TRUE =>
-          jedis.get(consumerKey).toLong <= limit
-        case java.lang.Boolean.FALSE =>
-          true
-      }
-    }
-
-
-    org.scalameta.logger.elem(value)
-    org.scalameta.logger.elem(value1)
 
   }
 
