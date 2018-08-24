@@ -55,12 +55,18 @@ object ApiVersion {
   lazy val openIdConnect1 = OpenIdConnect1()
   case class Sandbox() extends ApiVersion
   lazy val sandbox = Sandbox()
+  
+  case class APIBuilder() extends ApiVersion {
+    override def toString() = "b1"
+    //override def toString() = "api_builder_v1" // TODO don't want to confuse with OBP
+  }
+  lazy val apiBuilder = APIBuilder()
 
 
   private val versions =
-    v1_0 ::
-      v1_1 ::
-      v1_2 ::
+//    v1_0 ::
+//      v1_1 ::
+//      v1_2 ::
       v1_2_1 ::
       v1_3_0 ::
       v1_4_0 ::
@@ -77,6 +83,7 @@ object ApiVersion {
       sandbox ::
       berlinGroupV1 ::
       ukOpenBankingV200 ::
+      apiBuilder::
       Nil
 
   def valueOf(value: String): ApiVersion = {

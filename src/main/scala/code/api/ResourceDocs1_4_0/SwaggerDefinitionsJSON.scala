@@ -7,16 +7,19 @@ import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, Acco
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
+import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v3_0_0.JSONFactory300.{AggregateMetricJSON, createBranchJsonV300}
+import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
-import code.api.v3_1_0._
+import code.api.v3_1_0.{BadLoginStatusJson, _}
 import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import code.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
+import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import code.api.APIBuilder.JsonFactory_APIBuilder
 import net.liftweb.json
 
 import scala.collection.immutable.List
@@ -2731,6 +2734,8 @@ object SwaggerDefinitionsJSON {
     implemented_in_version = "v1.2.1"
   )
   
+  val topApisJson = TopApisJson(List(topApiJson))
+  
   val topConsumerJson = TopConsumerJson(
     count = 7076,
     consumer_id = "12312312",
@@ -2738,6 +2743,31 @@ object SwaggerDefinitionsJSON {
     developer_email = "tesobe@tesobe.com"
   )
   
+  val topConsumersJson = TopConsumersJson(List(topConsumerJson))
+  
+  val glossaryItem = GlossaryItem(
+    title = "Title ",
+    description =
+      """Description.
+        |
+        |Goes here..
+      """
+  )
+  
+  val glossaryDescriptionJsonV300 =  GlossaryDescriptionJsonV300 (markdown= "String", html = "String")
+
+  val glossaryItemJsonV300 = GlossaryItemJsonV300(
+    title = "String",
+    description = glossaryDescriptionJsonV300
+  )
+
+  val glossaryItemsJsonV300 = GlossaryItemsJsonV300 (glossary_items = List(glossaryItemJsonV300))
+  
+  val badLoginStatusJson = BadLoginStatusJson(
+    username = "tesobe",
+    bad_attempts_since_last_success_or_reset = 0,
+    last_failure_date = DateWithMsExampleObject
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
@@ -2755,7 +2785,7 @@ object SwaggerDefinitionsJSON {
         v.get(this)
       }
 
-    allFieldsThisFile ++ JSONFactoryCustom300.allFields
+    allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields ++ JsonFactory_APIBuilder.allFields
   }
 
 }

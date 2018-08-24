@@ -130,6 +130,20 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   
   
+  private def extendNotLikeQuery(length: Int) = {
+    if (length == 1)
+      "? ))"
+    else
+    {
+      val a = for (i <- 1 to (length - 2)) yield
+        {
+          " and url NOT LIKE (?)"
+        }
+      "? )" + a.mkString("").concat(" and url NOT LIKE (?))")
+    }
+  }
+  
+  
     /**
       * Example of a Tuple response
       * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
@@ -158,12 +172,14 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val anon = queryParams.collect { case OBPAnon(value) => value }.headOption 
     val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
     val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-    val excludeUrlPattern = queryParams.collect { case OBPExcludeUrlPattern(value) => value }.headOption
+    val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
     val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
         
+    val excludeUrlPatternsSet= excludeUrlPatterns.getOrElse(List("")).toSet
     val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
     val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
     
+    val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
     val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
     val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
 
@@ -181,7 +197,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       "AND (? or verb = ? ) "+ 
       "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
       "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
-      "AND (? or url NOT LIKE ?) "+
+      s"AND (? or (url NOT LIKE ($excludeUrlPatternsQueries) " +
       s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
       s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "
     
@@ -211,12 +227,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               stmt.setString(16, verb.getOrElse(""))
               stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.) 
               stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
-              stmt.setBoolean(19, if (excludeUrlPattern.isEmpty) true else false)
-              stmt.setString(20, excludeUrlPattern.getOrElse(""))
-              stmt.setBoolean(21, if (excludeAppNames.isEmpty) true else false)
-              extendPrepareStement(22, stmt, excludeAppNamesNumberSet)
-              stmt.setBoolean(22+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-              extendPrepareStement(22+excludeAppNamesNumberSet.size+1,stmt, excludeImplementedByPartialFunctionsNumberSet)
+              stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
+              extendPrepareStement(20, stmt, excludeUrlPatternsSet)
+              stmt.setBoolean(20+excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
+              extendPrepareStement(21+excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
+              stmt.setBoolean(21+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
+              extendPrepareStement(22+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size,stmt, excludeImplementedByPartialFunctionsNumberSet)
               DB.resultSetTo(stmt.executeQuery())
           }
     }
@@ -253,12 +269,14 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val anon = queryParams.collect { case OBPAnon(value) => value }.headOption 
     val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
     val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-    val excludeUrlPattern = queryParams.collect { case OBPExcludeUrlPattern(value) => value }.headOption
+    val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
     val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
         
+    val excludeUrlPatternsSet= excludeUrlPatterns.getOrElse(List("")).toSet
     val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
     val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
     
+    val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
     val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
     val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
     
@@ -277,7 +295,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                        "AND (? or verb = ? ) "+ 
                        "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
                        "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
-                       "AND (? or url NOT LIKE ?) "+
+                       s"AND (? or(url NOT LIKE ($excludeUrlPatternsQueries) "+
                        s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
                        s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "+
                        "GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion " +
@@ -307,12 +325,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                   stmt.setString(16, verb.getOrElse(""))
                   stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.) 
                   stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
-                  stmt.setBoolean(19, if (excludeUrlPattern.isEmpty) true else false)
-                  stmt.setString(20, excludeUrlPattern.getOrElse(""))
-                  stmt.setBoolean(21, if (excludeAppNames.isEmpty) true else false)
-                  extendPrepareStement(22, stmt, excludeAppNamesNumberSet)
-                  stmt.setBoolean(22+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-                  extendPrepareStement(22+excludeAppNamesNumberSet.size+1,stmt, excludeImplementedByPartialFunctionsNumberSet)
+                  stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
+                  extendPrepareStement(20, stmt, excludeUrlPatternsSet)
+                  stmt.setBoolean(20+excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
+                  extendPrepareStement(21+excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
+                  stmt.setBoolean(21+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
+                  extendPrepareStement(22+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size,stmt, excludeImplementedByPartialFunctionsNumberSet)
                   DB.resultSetTo(stmt.executeQuery())
                   
               }
@@ -344,13 +362,15 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val anon = queryParams.collect { case OBPAnon(value) => value }.headOption 
     val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
     val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
-    val excludeUrlPattern = queryParams.collect { case OBPExcludeUrlPattern(value) => value }.headOption
+    val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
     val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption
         
+    val excludeUrlPatternsSet= excludeUrlPatterns.getOrElse(List("")).toSet
     val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
     val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
     
+    val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
     val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
     val extedndedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
     
@@ -369,7 +389,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                         "AND (? or verb = ? ) "+ 
                         "AND (? or userid = 'null' ) " +  // mapping `S.param("anon")` anon == null, (if null ignore) , anon == true (return where user_id is null.) 
                         "AND (? or userid != 'null' ) " +  // anon == false (return where user_id is not null.)
-                        "AND (? or url NOT LIKE ?) "+
+                        s"AND (? or (url NOT LIKE ($excludeUrlPatternsQueries) "+
                         s"AND (? or appname not in ($extendedExclueAppNameQueries)) " +
                         s"AND (? or implementedbypartialfunction not in ($extedndedExcludeImplementedByPartialFunctionsQueries)) "+
                          "GROUP BY appname, email, consumerprimaryid " +
@@ -400,14 +420,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                   stmt.setString(16, verb.getOrElse(""))
                   stmt.setBoolean(17, if (anon.isDefined && anon.equals(Some(true))) false else true) // anon == true (return where user_id is null.) 
                   stmt.setBoolean(18, if (anon.isDefined && anon.equals(Some(false))) false  else true) // anon == false (return where user_id is not null.)
-                  stmt.setBoolean(19, if (excludeUrlPattern.isEmpty) true else false)
-                  stmt.setString(20, excludeUrlPattern.getOrElse(""))
-                  stmt.setBoolean(21, if (excludeAppNames.isEmpty) true else false)
-                  extendPrepareStement(22, stmt, excludeAppNamesNumberSet)
-                  stmt.setBoolean(22+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
-                  extendPrepareStement(22+excludeAppNamesNumberSet.size+1,stmt, excludeImplementedByPartialFunctionsNumberSet)
-                  (22+excludeAppNamesNumberSet.size+1+excludeImplementedByPartialFunctionsNumberSet.size, stmt, excludeAppNamesNumberSet)
-                  stmt.setInt(22+excludeAppNamesNumberSet.size+1+excludeImplementedByPartialFunctionsNumberSet.size, limit.get)
+                  stmt.setBoolean(19, if (excludeUrlPatterns.isEmpty) true else false)
+                  extendPrepareStement(20, stmt, excludeUrlPatternsSet)
+                  stmt.setBoolean(20+excludeUrlPatternsSet.size, if (excludeAppNames.isEmpty) true else false)
+                  extendPrepareStement(21+excludeUrlPatternsSet.size, stmt, excludeAppNamesNumberSet)
+                  stmt.setBoolean(21+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size, if (excludeImplementedByPartialFunctions.isEmpty) true else false)
+                  extendPrepareStement(22+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size,stmt, excludeImplementedByPartialFunctionsNumberSet)
+                  stmt.setInt(22+excludeUrlPatternsSet.size+excludeAppNamesNumberSet.size+excludeImplementedByPartialFunctionsNumberSet.size, limit.get)
                   DB.resultSetTo(stmt.executeQuery())
               }
          })?~! {logger.error(s"getTopConsumersBox.DB.runQuery(dbQuery) read database error. please this in database:  $dbQuery "); s"$UnknownError getTopConsumersBox.DB.runQuery(dbQuery) read database issue. "}

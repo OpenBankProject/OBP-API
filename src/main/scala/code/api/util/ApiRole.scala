@@ -163,6 +163,9 @@ object ApiRole {
   case class CanDeleteScopeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteScopeAtOneBank = CanDeleteScopeAtOneBank()
   
+  case class CanUnlockUser (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUnlockUser = CanUnlockUser()
+  
   private val roles =
     canSearchAllTransactions ::
     canSearchAllAccounts ::
@@ -216,6 +219,7 @@ object ApiRole {
     canCreateScopeAtAnyBank ::
     canDeleteScopeAtAnyBank ::
     canDeleteScopeAtOneBank ::
+    canUnlockUser ::
     Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

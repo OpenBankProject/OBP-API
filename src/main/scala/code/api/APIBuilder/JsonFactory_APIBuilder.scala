@@ -22,16 +22,32 @@ Berlin 13359, Germany
 
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
-
  */
 
-package code.api
+package code.api.APIBuilder
 
-case class ErrorMessage(
-  error : String
+import code.api.util.APIUtil
+
+case class Books(
+  author: String = """Chinua Achebe""",
+  pages: Int = 209,
+  points: Double = 1.3
 )
+
+case class RootInterface(books: List[Books] = List(Books()))
+
+object JsonFactory_APIBuilder
+{
+  
+  val books = Books()
+  val rootInterface = RootInterface(List(books))
+  
+  val allFields = for (
+    v <- this.getClass.getDeclaredFields; 
+    if APIUtil.notExstingBaseClass(v.getName())
+  ) yield
+    {
+      v.setAccessible(true)
+      v.get(this)
+    }
+}

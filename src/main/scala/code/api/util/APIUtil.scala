@@ -1,6 +1,6 @@
 /**
   * Open Bank Project - API
-  * Copyright (C) 2011-2016, TESOBE Ltd
+  * Copyright (C) 2011-2018, TESOBE Ltd
   **
   *This program is free software: you can redistribute it and/or modify
   *it under the terms of the GNU Affero General Public License as published by
@@ -38,6 +38,7 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.APIBuilder.OBP_APIBuilder
 import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -48,7 +49,6 @@ import code.api.oauth1a.Arithmetics
 import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
-import code.api.v3_0_0.JSONFactory300.AggregateMetricJSON
 import code.api.{DirectLogin, _}
 import code.bankconnectors._
 import code.consumer.Consumers
@@ -179,9 +179,8 @@ object APIUtil extends MdcLoggable {
     callContext match {
       case Some(cc) =>
         if(getPropsAsBoolValue("write_metrics", false)) {
-          val u: User = cc.user.orNull
-          val userId = if (u != null) u.userId else "null"
-          val userName = if (u != null) u.name else "null"
+          val userId = cc.userId.orNull
+          val userName = cc.userName.orNull
 
           val implementedByPartialFunction = cc.partialFunctionName
 
@@ -193,25 +192,9 @@ object APIUtil extends MdcLoggable {
 
           //execute saveMetric in future, as we do not need to know result of the operation
           Future {
-            val consumer =
-              if (hasAnOAuthHeader(cc.authReqHeaderField)) {
-                getConsumer(cc.oAuthToken) match {
-                  case Full(c) => Full(c)
-                  case _ => Empty
-                }
-              } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
-                DirectLogin.getConsumer(cc.directLoginToken) match {
-                  case Full(c) => Full(c)
-                  case _ => Empty
-                }
-              } else {
-                Empty
-              }
-            val c: Consumer = consumer.orNull
-            //The consumerId, not key
-            val consumerId = if (u != null) c.id.toString() else "null"
-            val appName = if (u != null) c.name.toString() else "null"
-            val developerEmail = if (u != null) c.developerEmail.toString() else "null"
+            val consumerId = cc.consumerId.getOrElse(-1)
+            val appName = cc.appName.orNull
+            val developerEmail = cc.developerEmail.orNull
 
             APIMetrics.apiMetrics.vend.saveMetric(
               userId,
@@ -221,7 +204,7 @@ object APIUtil extends MdcLoggable {
               userName,
               appName,
               developerEmail,
-              consumerId,
+              consumerId.toString,
               implementedByPartialFunction,
               cc.implementedInVersion,
               cc.verb,
@@ -715,7 +698,7 @@ object APIUtil extends MdcLoggable {
             anon = OBPDuration(value)
            }yield anon
          case "exclude_app_names" => Full(OBPExcludeAppNames(values)) //This will return a string list. 
-         case "exclude_url_pattern" => Full(OBPExcludeUrlPattern(values.head))
+         case "exclude_url_patterns" => Full(OBPExcludeUrlPatterns(values))//This will return a string list.
          case "exclude_implemented_by_partial_functions" => Full(OBPExcludeImplementedByPartialFunctions(values)) //This will return a string list. 
          case "function_name" => Full(OBPFunctionName(values.head)) 
          case "connector_name" => Full(OBPConnectorName(values.head))
@@ -749,7 +732,7 @@ object APIUtil extends MdcLoggable {
       correlationId <- getHttpParamValuesByName(httpParams, "correlation_id")
       duration <- getHttpParamValuesByName(httpParams, "duration")
       excludeAppNames <- getHttpParamValuesByName(httpParams, "exclude_app_names")
-      excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_pattern")
+      excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_patterns")
       excludeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "exclude_implemented_by_partial_functions")
       connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
@@ -804,9 +787,12 @@ object APIUtil extends MdcLoggable {
     val verb =  getHttpRequestUrlParam(httpRequestUrl, "verb")
     val correlationId =  getHttpRequestUrlParam(httpRequestUrl, "correlation_id")
     val duration =  getHttpRequestUrlParam(httpRequestUrl, "duration")
-    val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names")
-    val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_pattern")
-    val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions")
+    
+    //The following three are not a string, it should be List of String
+    //eg: exclude_app_names=A,B,C --> List(A,B,C)
+    val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names").split(",").toList
+    val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_patterns").split(",").toList
+    val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions").split(",").toList
     
     val functionName =  getHttpRequestUrlParam(httpRequestUrl, "function_name")
     val connectorName =  getHttpRequestUrlParam(httpRequestUrl, "connector_name")
@@ -816,7 +802,7 @@ object APIUtil extends MdcLoggable {
       HTTPParam("anon", anon), HTTPParam("consumer_id", consumerId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName), 
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
-      HTTPParam("exclude_url_pattern", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
+      HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
       HTTPParam("function_name", functionName), HTTPParam("connector_name", connectorName)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
@@ -835,7 +821,7 @@ object APIUtil extends MdcLoggable {
   def getHttpRequestUrlParam(httpRequestUrl: String, name: String): String = {
     val urlAndQueryString =  if (httpRequestUrl.contains("?")) httpRequestUrl.split("\\?",2)(1) else "" // Full(from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString)
     val queryStrings  = urlAndQueryString.split("&").map(_.split("=")).flatten  //Full(from_date, $DateWithMsExampleString, to_date, $DateWithMsExampleString)
-    if (queryStrings.contains(name)) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
+    if (queryStrings.contains(name)&& queryStrings.length > queryStrings.indexOf(name)+1) queryStrings(queryStrings.indexOf(name)+1) else ""//Full($DateWithMsExampleString)
   }
   //ended -- Filtering and Paging revelent methods  ////////////////////////////
 
@@ -1027,6 +1013,7 @@ object APIUtil extends MdcLoggable {
   val apiTagDocumentation = ResourceDocTag("API-Documentation")
   val apiTagBerlinGroup = ResourceDocTag("Berlin-Group")
   val apiTagUKOpenBanking = ResourceDocTag("UKOpenBanking")
+  val apiTagApiBuilder = ResourceDocTag("API_Builder")
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
 
   case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
@@ -1652,6 +1639,7 @@ Returns a string showed to the developer
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
+        case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
       }
 
       logger.info(s"${version.toString} was ENABLED")

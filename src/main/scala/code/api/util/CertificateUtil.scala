@@ -3,23 +3,25 @@ package code.api.util
 import java.io.FileInputStream
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 import java.security.{PublicKey, _}
-import javax.crypto.Cipher
-import com.nimbusds.jose.jwk.RSAKey
 
 import code.api.util.CryptoSystem.CryptoSystem
-import com.nimbusds.jose.crypto.RSAEncrypter
-import com.nimbusds.jose.{EncryptionMethod, JOSEObject, JWEAlgorithm, JWEHeader}
-import com.nimbusds.jwt.EncryptedJWT
 import code.util.Helper.MdcLoggable
-import net.liftweb.util.{Helpers, Props}
+import com.nimbusds.jose._
+import com.nimbusds.jose.crypto.{MACSigner, RSAEncrypter}
+import com.nimbusds.jwt.{EncryptedJWT, JWTClaimsSet}
+import javax.crypto.Cipher
 
 
 object CryptoSystem extends Enumeration {
   type CryptoSystem = Value
   val RSA = Value
+  val AES = Value
 }
 
 object CertificateUtil extends MdcLoggable {
+
+  // your-at-least-256-bit-secret
+  val sharedSecret = APIUtil.getPropsValue("gateway.token_secret", "Cannot get your at least 256 bit secret")
 
   lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match  {
     case true =>
@@ -100,7 +102,7 @@ object CertificateUtil extends MdcLoggable {
     cipher.doFinal(encrypted)
   }
 
-  def getClaimSet(jwt: String) = {
+  def getClaimSet(jwt: String): JWTClaimsSet = {
     import com.nimbusds.jose.util.Base64URL
     import com.nimbusds.jwt.PlainJWT
     // {"alg":"none"}// {"alg":"none"}
@@ -109,55 +111,97 @@ object CertificateUtil extends MdcLoggable {
     val plainJwt = new PlainJWT(new Base64URL(header), (parts(1)))
     plainJwt.getJWTClaimsSet
   }
-  def encryptJwtWithRsa(jwt: String) = {
+
+  def jwtWithHmacProtection(claimsSet: JWTClaimsSet) = {
+    // Create HMAC signer
+    val  signer: JWSSigner = new MACSigner(sharedSecret)
+    import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
+    import com.nimbusds.jwt.SignedJWT
+    val signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet)
+    // Apply the HMAC protection
+    signedJWT.sign(signer)
+    // Serialize to compact form, produces something like
+    // eyJhbGciOiJIUzI1NiJ9.SGVsbG8sIHdvcmxkIQ.onO9Ihudz3WkiauDO2Uhyuz0Y18UASXlSc1eS0NkWyA
+    val s: String = signedJWT.serialize()
+    logger.info("jwtWithHmacProtection: " + s)
+    s
+  }
+
+  def verifywtWithHmacProtection(jwt: String) = {
+    import com.nimbusds.jose.crypto.MACVerifier
+    import com.nimbusds.jwt.SignedJWT
+    val signedJWT: SignedJWT = SignedJWT.parse(jwt)
+    // your-at-least-256-bit-secret
+    val verifier = new MACVerifier(sharedSecret)
+    signedJWT.verify(verifier)
+  }
+
+  def parseJwtWithHmacProtection(jwt: String) = {
+    import com.nimbusds.jwt.SignedJWT
+    val signedJWT: SignedJWT = SignedJWT.parse(jwt)
+    val claimsSet = signedJWT.getJWTClaimsSet()
+    logger.debug("signedJWT.getJWTClaimsSet(): " + claimsSet)
+    claimsSet
+  }
+
+  def encryptJwtWithRsa(jwtClaims: JWTClaimsSet) = {
     // Request JWT encrypted with RSA-OAEP-256 and 128-bit AES/GCM
     val header = new JWEHeader(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A128GCM)
     // Create an encrypter with the specified public RSA key
     val encrypter = new RSAEncrypter(publicKey)
     // Create the encrypted JWT object
-    val encryptedJWT = new EncryptedJWT(header, CertificateUtil.getClaimSet(jwt))
+    val encryptedJWT = new EncryptedJWT(header, jwtClaims)
     // Do the actual encryption
     encryptedJWT.encrypt(encrypter)
-    logger.debug("encryptedJWT.serialize(): " + encryptedJWT.serialize())
-    // Return JWT
+    logger.debug("encryptedJwtWithRsa: " + encryptedJWT.serialize())
+    logger.debug("jwtClaims: " + jwtClaims)
+    // Serialise to JWT compact form
     encryptedJWT.serialize()
   }
-  def decryptJwtWithRsa(jwt: String) = {
+
+  def decryptJwtWithRsa(encryptedJwtWithRsa: String) = {
     import com.nimbusds.jose.crypto.RSADecrypter
     import com.nimbusds.jwt.EncryptedJWT
     // Parse back
-    val jwtParsed = EncryptedJWT.parse(jwt)
-    System.out.println("decryptJwtWithRsa: " + jwtParsed.serialize())
+    val jwtParsed = EncryptedJWT.parse(encryptedJwtWithRsa)
     // Create a decrypter with the specified private RSA key
     val decrypter = new RSADecrypter(privateKey)
     jwtParsed.decrypt(decrypter)
-    logger.debug("jwt: " + jwt)
+    logger.debug("encryptedJwtWithRsa: " + encryptedJwtWithRsa)
     logger.debug("getState: " + jwtParsed.getState)
     logger.debug("getJWTClaimsSet: " + jwtParsed.getJWTClaimsSet)
-    logger.debug("getCipherText: " + jwtParsed.getCipherText)
-    logger.debug("getAuthTag: " + jwtParsed.getAuthTag)
-    jwtParsed.serialize()
+    jwtParsed.getJWTClaimsSet
   }
 
+  def main(args: Array[String]): Unit = {
     System.out.println("Public key:" + publicKey.getEncoded)
     System.out.println("Private key:" + privateKey.getEncoded)
 
-    // 1.1 Encrypt the token with public key
-    val encryptedWithPublicReceived = encrypt(publicKey, "This is a secret message we should receive", CryptoSystem.RSA)
-    System.out.println("Encrypted token with public key:")
-    val encryptedString = Helpers.base64Encode(encryptedWithPublicReceived)
-    System.out.println(encryptedString) // <<encrypted message>>
+    val jwwtPayloadAsJson =
+      """{
+           "login_user_name":"simonr",
+           "is_first":false,
+           "app_id":"593450734587345",
+           "app_name":"myapp4",
+           "time_stamp":"19-06-2017:22:27:11:100",
+           "cbs_token":"",
+           "cbs_id":""
+         }"""
 
-    // 1.2 Decrypt the token with private key
-    val decryptedToken = decrypt(privateKey, Helpers.base64Decode(encryptedString), CryptoSystem.RSA)
-    System.out.println("Decrypted token with private key:") // This is a secret message
-    System.out.println(new String(decryptedToken)) // This is a secret message
+    val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwwtPayloadAsJson)
 
-    // Convert to JWK format
-    val jwk: RSAKey = new RSAKey.Builder(publicKey.asInstanceOf[RSAPublicKey]).privateKey(privateKey.asInstanceOf[RSAPrivateKey]).keyID("rsa1").build // Give the key some ID (optional)
+    // 1.1 Encryption - JWT with RSA encryption
+    val encryptTokenWithRsa = encryptJwtWithRsa(jwtClaims)
 
-    // Output
-    println(jwk.toJSONObject.toJSONString)
+    // 1.2  Decryption - JWT with RSA encryption
+    val decryptToken = decryptJwtWithRsa(encryptTokenWithRsa)
 
+    // 2.1 JWT with HMAC protection
+    val hmacJwt = jwtWithHmacProtection(jwtClaims)
+
+    parseJwtWithHmacProtection(hmacJwt)
+
+
+  }
 
 }

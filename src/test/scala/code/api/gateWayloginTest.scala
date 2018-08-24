@@ -73,7 +73,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
     }
     */
   val invalidSecretJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6ZmFsc2UsImFwcF9pZCI6IjU5MzQ1MDczNDU4NzM0NSIsImFwcF9uYW1lIjoibXlhcHA0IiwidGltZV9zdGFtcCI6IjE5LTA2LTIwMTc6MjI6Mjc6MTE6MTAwIiwiY2JzX3Rva2VuIjoiIiwiY2JzX2lkIjoiIn0.hUfxAU3FRSLObgRk2CGbJaYfWnLOkVoqGVOo6AUhmZ4"
-  /* Payload data. verified by secret "Cannot get the secret"
+  /* Payload data. verified by secret "Cannot get your at least 256 bit secret"
   {
     "login_user_name":"simonr",
     "is_first":false,
@@ -84,7 +84,7 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
     "cbs_id":""
   }
   */
-  val jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbl91c2VyX25hbWUiOiJzaW1vbnIiLCJpc19maXJzdCI6ZmFsc2UsImFwcF9pZCI6IjU5MzQ1MDczNDU4NzM0NSIsImFwcF9uYW1lIjoibXlhcHA0IiwidGltZV9zdGFtcCI6IjE5LTA2LTIwMTc6MjI6Mjc6MTE6MTAwIiwiY2JzX3Rva2VuIjoiIiwiY2JzX2lkIjoiIn0.yTg9LfSdzPXamC9EApd1zcXWU0cVPbWBjcn9y4FLq9U"
+  val jwt = "eyJhbGciOiJIUzI1NiJ9.eyJhcHBfbmFtZSI6Im15YXBwNCIsInRpbWVfc3RhbXAiOiIxOS0wNi0yMDE3OjIyOjI3OjExOjEwMCIsImxvZ2luX3VzZXJfbmFtZSI6InNpbW9uciIsImNic190b2tlbiI6IiIsImlzX2ZpcnN0IjpmYWxzZSwiY2JzX2lkIjoiIiwiYXBwX2lkIjoiNTkzNDUwNzM0NTg3MzQ1In0.QIgKf9DuBNy-JeMuzXXUKsHqO46Eh8QAACX08Ny6FWY"
   val jwtRSA256 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhcHBfbmFtZSI6Im15YXBwNCIsInRpbWVfc3RhbXAiOiIxOS0wNi0yMDE3OjIyOjI3OjExOjEwMCIsImxvZ2luX3VzZXJfbmFtZSI6InNpbW9uciIsImNic190b2tlbiI6IiIsImlzX2ZpcnN0IjpmYWxzZSwiY2JzX2lkIjoiIiwiYXBwX2lkIjoiNTkzNDUwNzM0NTg3MzQ1In0.bpDHeyGMQgxnTnmGVPu_mUngc_wekEKwNkXD9K4UfYflmU01JVqKZchwNQSdwZQ5FnvLeHf112iN2X2yaVmjkNzrjkxi-EVNNdMimMZLyLDy-RxkRZkXnlItJVhdnR-_htXryy2XzV3EhnxY8qtO-fqd3IQPTKNx4-knrPu_F4-5nQAW0hlwJRb5HAGYTDMqePXTuo16_hYdtEheU6GJONDdezpXu6BzYDCA3pmiy1cHRABClqdS76m3PdChHnEEqVKIoczfLjj6Prnwjeww4cb_b29Hh-Yfe4DEwwI9cyZ_SyxOinB5-wZhPneqW1dLn6V7dGKsoh9ELmYl3qWIPQ"
 
   val invalidJwt = ("Authorization", ("GatewayLogin token=%s").format(invalidSecretJwt))

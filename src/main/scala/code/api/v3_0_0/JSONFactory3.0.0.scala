@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2016, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -447,6 +447,13 @@ case class ScopeJson(scope_id: String, role_name: String, bank_id: String)
 case class ScopeJsons(list: List[ScopeJson])
 case class BanksJson(banks: List[BankJSON])
 case class CreateScopeJson(bank_id: String, role_name: String)
+
+case class AggregateMetricJSON(
+                                  count: Int,
+                                  average_response_time: Double,
+                                  minimum_response_time: Double,
+                                  maximum_response_time: Double
+                                )
 
 object JSONFactory300{
 
@@ -1116,12 +1123,7 @@ object JSONFactory300{
     EntitlementRequestsJSON(list.map(createEntitlementRequestJSON))
   }
 
-  case class AggregateMetricJSON(
-                                  count: Int,
-                                  average_response_time: Double,
-                                  minimum_response_time: Double,
-                                  maximum_response_time: Double
-                                )
+  
   def createScopeJson(scope: Scope): ScopeJson = {
     ScopeJson(
       scope_id = scope.scopeId,

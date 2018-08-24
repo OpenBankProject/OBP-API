@@ -1,6 +1,6 @@
 /**
   * Open Bank Project - API
-  * Copyright (C) 2011-2016, TESOBE Ltd
+  * Copyright (C) 2011-2018, TESOBE Ltd
   **
   *This program is free software: you can redistribute it and/or modify
   *it under the terms of the GNU Affero General Public License as published by
@@ -288,6 +288,8 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getTopAPIs ::
                           Implementations3_1_0.getMetricsTopConsumers ::
                           Implementations3_1_0.getFirehoseCustomers ::
+                          Implementations3_1_0.getBadLoginStatus ::
+                          Implementations3_1_0.unlockUser ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

@@ -22,14 +22,9 @@
   **
   *This product includes software developed at
   *TESOBE (http://www.tesobe.com/)
-  * by
-  *Simon Redfern : simon AT tesobe DOT com
-  *Stefan Bethge : stefan AT tesobe DOT com
-  *Everett Sochowski : everett AT tesobe DOT com
-  *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.berlin.group.v1
+package code.api.APIBuilder
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
@@ -45,30 +40,26 @@ This file defines which endpoints from all the versions are available in v1
  */
 
 
-object OBP_BERLIN_GROUP_1 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1 with MdcLoggable {
+object OBP_APIBuilder extends OBPRestHelper with APIMethods_APIBuilder with MdcLoggable {
 
-  val version = ApiVersion.berlinGroupV1
+  val version = ApiVersion.apiBuilder
   val versionStatus = "DRAFT"
 
-  val endpointsOf1 =  
-    Implementations1.getAccountList ::
-    Implementations1.getAccountBalances ::
-    Implementations1.getTransactionList ::
-    Nil
+  val endpoints = ImplementationsBuilderAPI.endpointsOfBuilderAPI
   
-  val allResourceDocs = Implementations1.resourceDocs
+  val allResourceDocs = ImplementationsBuilderAPI.resourceDocs
   
   def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf1, Implementations1.resourceDocs)
+  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, ImplementationsBuilderAPI.resourceDocs)
 
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("berlin-group" / version.toString).oPrefix{route}, findResourceDoc(route))
+    oauthServe(("api-builder" / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
