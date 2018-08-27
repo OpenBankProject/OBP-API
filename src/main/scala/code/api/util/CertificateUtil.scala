@@ -65,43 +65,6 @@ object CertificateUtil extends MdcLoggable {
     keyPairGenerator.genKeyPair
   }
 
-  @throws[Exception]
-  def sign(privateKey: PrivateKey, message: String, cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.ENCRYPT_MODE, privateKey)
-    cipher.doFinal(message.getBytes)
-  }
-  @throws[Exception]
-  def encrypt(publicKey: PublicKey, message: String, cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-    cipher.doFinal(message.getBytes)
-  }
-  @throws[Exception]
-  def encrypt(privateKey: PrivateKey, message: String, cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.ENCRYPT_MODE, privateKey)
-    cipher.doFinal(message.getBytes)
-  }
-  @throws[Exception]
-  def decrypt(privateKey: PrivateKey, encrypted: Array[Byte], cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.DECRYPT_MODE, privateKey)
-    cipher.doFinal(encrypted)
-  }
-  @throws[Exception]
-  def decrypt(publicKey: PublicKey, encrypted: Array[Byte], cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.DECRYPT_MODE, publicKey)
-    cipher.doFinal(encrypted)
-  }
-  @throws[Exception]
-  def validate(privateKey: PrivateKey, encrypted: Array[Byte], cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.DECRYPT_MODE, privateKey)
-    cipher.doFinal(encrypted)
-  }
-
   def jwtWithHmacProtection(claimsSet: JWTClaimsSet) = {
     // Create HMAC signer
     val  signer: JWSSigner = new MACSigner(sharedSecret)

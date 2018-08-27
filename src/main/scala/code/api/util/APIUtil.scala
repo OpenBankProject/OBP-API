@@ -46,7 +46,6 @@ import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.oauth1a.Arithmetics
-import code.api.util.CertificateUtil.{decrypt, privateKey}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
@@ -2079,8 +2078,7 @@ Returns a string showed to the developer
   def getPropsValue(nameOfProperty: String): Box[String] = {
     (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted")) match {
       case (Full(base64PropsValue), Full(isEncrypted))  if isEncrypted == "true" =>
-        val decryptedValueAsArray = decrypt(privateKey, Helpers.base64Decode(base64PropsValue), CryptoSystem.RSA)
-        val decryptedValueAsString = new String(decryptedValueAsArray)
+        val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
         Full(decryptedValueAsString)
       case (Full(property), Full(isEncrypted))  if isEncrypted == "false" =>
         Full(property)
