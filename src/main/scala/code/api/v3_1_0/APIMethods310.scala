@@ -54,20 +54,20 @@ trait APIMethods310 {
             u <- unboxFullAndWrapIntoFuture{ user }
 
             bankBox <- Connector.connector.vend.getBankFuture(bankId) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
 
             account <- Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
 
             view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             
             //TODO need error handling here
             checkbookOrders <- Connector.connector.vend.getCheckbookOrdersFuture(bankId.value,accountId.value, Some(cc)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetCheckbookOrdersFuture, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetCheckbookOrdersFuture, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
           } yield
            (JSONFactory310.createCheckbookOrdersJson(checkbookOrders), Some(cc))
@@ -98,20 +98,20 @@ trait APIMethods310 {
             u <- unboxFullAndWrapIntoFuture{ user }
 
             bankBox <- Connector.connector.vend.getBankFuture(bankId) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
 
             account <- Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
 
             view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             
             //TODO need error handling here
             checkbookOrders <- Connector.connector.vend.getStatusOfCreditCardOrderFuture(bankId.value,accountId.value, Some(cc)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             
           } yield
@@ -268,11 +268,11 @@ trait APIMethods310 {
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             
             toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(obpQueryParams) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
           } yield
            (JSONFactory310.createTopApisJson(toApis), Some(cc))
@@ -353,11 +353,11 @@ trait APIMethods310 {
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             
             topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(obpQueryParams) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(GetMetricsTopConsumersError, 400, Some(cc.toLight)))
+                x => fullBoxOrException(x ~> APIFailureNewStyle(GetMetricsTopConsumersError, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             
           } yield
@@ -414,16 +414,16 @@ trait APIMethods310 {
           for {
             (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            _ <- Future { Bank(bankId) } map { unboxFullOrFail(_, cc, BankNotFound,400) }
+            _ <- Future { Bank(bankId) } map { unboxFullOrFail(_, callContext, BankNotFound,400) }
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
               canUseFirehose(u)
             }
             httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              unboxFullOrFail(_, cc, InvalidFilterParameterFormat, 400)
+              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
             }
             customers <- Connector.connector.vend.getCustomersFuture(bankId, callContext, obpQueryParams) map {
-              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
             (JSONFactory300.createCustomersJson(customers), callContext)
@@ -458,7 +458,7 @@ trait APIMethods310 {
           for {
             (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, cc, s"$UserNotFoundByUsername($username)",400) }
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), callContext)
           }
@@ -495,7 +495,7 @@ trait APIMethods310 {
               hasEntitlement("", u.userId, ApiRole.canUnlockUser)
             }
             _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, cc, s"$UserNotFoundByUsername($username)",400) }
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), callContext)
           }

@@ -93,21 +93,21 @@ trait APIMethods_UKOpenBanking_200 {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             u <- unboxFullAndWrapIntoFuture{ user }
             bankAccount <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
             transactionRequests <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
             transactions <- Future { bankAccount.getModeratedTransactions(user, view, callContext, params: _*)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
           } yield {
@@ -187,17 +187,17 @@ trait APIMethods_UKOpenBanking_200 {
             u <- unboxFullAndWrapIntoFuture{ user }
         
             account <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
         
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
         
             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
         
             moderatedAccount <- Future {account.moderatedBankAccount(view, user)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
         
           } yield {
