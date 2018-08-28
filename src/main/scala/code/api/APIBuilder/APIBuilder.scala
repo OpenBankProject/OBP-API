@@ -37,7 +37,7 @@ import net.liftweb.json.{JValue, JsonAST}
 object APIBuilder
 {
   def main(args: Array[String]): Unit = {
-    val jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPis.json").mkString 
+    val jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPi-GET.json").mkString 
     
     val jsonObject: JValue = json.parse(jsonString)
     val newApiSummary: String = (jsonObject \\ "summary").values.head._2.toString
@@ -90,7 +90,7 @@ object APIBuilder
     val getForComprehensionBody: Term.ForYield = 
       q"""for {
         u <- $needAuthenticationStatement 
-        jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPis.json").mkString 
+        jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPi-GET.json").mkString 
         jsonObject: JValue = json.parse(jsonString)\\"success_response_body"
       } yield {
         successJsonResponse(jsonObject)
