@@ -245,7 +245,7 @@ object APIBuilder
     
     val getBookPartialFunction: Defn.Val = q"""
       lazy val getBook: OBPEndpoint ={
-        case ($getApiUrlLiftweb :: bookId :: Nil) JsonGet _ => {
+        case ($getSingleApiUrlLiftweb :: bookId :: Nil) JsonGet _ => {
           cc =>
           {
             for{
