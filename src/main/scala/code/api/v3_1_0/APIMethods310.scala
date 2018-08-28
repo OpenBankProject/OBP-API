@@ -3,18 +3,20 @@ package code.api.v3_1_0
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{CanReadMetrics, CanUnlockUser, CanUseFirehoseAtAnyBank, canUseFirehoseAtAnyBank}
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
+import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.util.Helper
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -498,6 +500,61 @@ trait APIMethods310 {
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), callContext)
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      callsLimit,
+      implementedInApiVersion,
+      "callsLimit",
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/calls_limit",
+      "Set Calls' Limit for a Consumer",
+      s"""
+         |Set calls' limit per Consumer.
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      callLimitJson,
+      callLimitJson,
+      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser),
+      Some(List(canSetCallLimit)))
+
+    lazy val callsLimit : OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimit) {
+              hasEntitlement("", u.userId, canSetCallLimit)
+            }
+            postJson <- Future { tryo{json.extract[CallLimitJson]} } map {
+              val msg = s"$InvalidJsonFormat The Json body should be the $CallLimitJson "
+              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+            consumerIdToLong <- Future { tryo{consumerId.toLong} } map {
+              val msg = s"$InvalidConsumerId"
+              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+            consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
+              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
+            }
+            updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
+              consumer.id.get,
+              Some(postJson.per_minute_call_limit),
+              Some(postJson.per_hour_call_limit),
+              Some(postJson.per_day_call_limit),
+              Some(postJson.per_week_call_limit),
+              Some(postJson.per_month_call_limit)) map {
+              unboxFullOrFail(_, callContext, UpdateConsumerError, 400)
+            }
+          } yield {
+            (createCallLimitJson(updatedConsumer), callContext)
           }
       }
     }

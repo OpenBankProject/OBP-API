@@ -73,6 +73,13 @@ object TokenType {
 
 
 object MappedConsumersProvider extends ConsumersProvider {
+
+  override def getConsumerByPrimaryIdFuture(id: Long): Future[Box[Consumer]] = {
+    Future(
+      Consumer.find(By(Consumer.id, id))
+    )
+  }
+
   override def getConsumerByPrimaryId(id: Long): Box[Consumer] = {
     Consumer.find(By(Consumer.id, id))
   }
@@ -191,6 +198,52 @@ object MappedConsumersProvider extends ConsumersProvider {
         }
         createdByUserId match {
           case Some(v) => c.createdByUserId(v)
+          case None =>
+        }
+        c.saveMe()
+      }
+      case _ => consumer
+    }
+  }
+
+  override def updateConsumerCallLimits(id: Long,
+                                     perMinute: Option[String],
+                                     perHour: Option[String],
+                                     perDay: Option[String],
+                                     perWeek: Option[String],
+                                     perMonth: Option[String]): Future[Box[Consumer]] = {
+    Future{
+      updateConsumerCallLimitsRemote(id, perMinute, perHour, perDay, perWeek, perMonth)
+    }
+  }
+
+  def updateConsumerCallLimitsRemote(id: Long,
+                                        perMinute: Option[String],
+                                        perHour: Option[String],
+                                        perDay: Option[String],
+                                        perWeek: Option[String],
+                                        perMonth: Option[String]): Box[Consumer] = {
+    val consumer = Consumer.find(By(Consumer.id, id))
+    consumer match {
+      case Full(c) => tryo {
+        perMinute match {
+          case Some(v) => c.perMinuteCallLimit(v.toLong)
+          case None =>
+        }
+        perHour match {
+          case Some(v) => c.perHourCallLimit(v.toLong)
+          case None =>
+        }
+        perDay match {
+          case Some(v) => c.perDayCallLimit(v.toLong)
+          case None =>
+        }
+        perWeek match {
+          case Some(v) => c.perWeekCallLimit(v.toLong)
+          case None =>
+        }
+        perMonth match {
+          case Some(v) => c.perMonthCallLimit(v.toLong)
           case None =>
         }
         c.saveMe()
@@ -342,6 +395,22 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def validations = validUri(this) _ :: super.validations
   }
   object createdByUserId extends MappedString(this, 36)
+
+  object perMinuteCallLimit extends MappedLong(this) {
+    override def defaultValue = -1
+  }
+  object perHourCallLimit extends MappedLong(this) {
+    override def defaultValue = -1
+  }
+  object perDayCallLimit extends MappedLong(this) {
+    override def defaultValue = -1
+  }
+  object perWeekCallLimit extends MappedLong(this) {
+    override def defaultValue = -1
+  }
+  object perMonthCallLimit extends MappedLong(this) {
+    override def defaultValue = -1
+  }
 
 }
 

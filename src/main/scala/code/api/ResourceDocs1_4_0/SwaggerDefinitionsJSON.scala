@@ -2768,6 +2768,15 @@ object SwaggerDefinitionsJSON {
     bad_attempts_since_last_success_or_reset = 0,
     last_failure_date = DateWithMsExampleObject
   )
+
+  val callLimitJson = CallLimitJson(
+    per_minute_call_limit = "-1",
+    per_hour_call_limit = "-1",
+    per_day_call_limit ="-1",
+    per_week_call_limit = "-1",
+    per_month_call_limit = "-1"
+  )
+
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

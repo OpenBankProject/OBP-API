@@ -22,6 +22,9 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
 
   val cc = RemotedataConsumersCaseClasses
 
+  def getConsumerByPrimaryIdFuture(id: Long): Future[Box[Consumer]] =
+    (actor ? cc.getConsumerByPrimaryIdFuture(id)).mapTo[Box[Consumer]]
+
   def getConsumerByPrimaryId(id: Long): Box[Consumer] =
     extractFutureToBox(actor ? cc.getConsumerByPrimaryId(id))
 
@@ -37,6 +40,9 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
 
   def updateConsumer(id: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] =
     extractFutureToBox(actor ? cc.updateConsumer(id, key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
+
+  def updateConsumerCallLimits(id: Long, perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]): Future[Box[Consumer]] =
+    (actor ? cc.updateConsumerCallLimits(id, perMinute, perHour, perDay, perWeek, perMonth)).mapTo[Box[Consumer]]
 
   def getOrCreateConsumer(consumerId: Option[String], key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer] =
     extractFutureToBox(actor ? cc.getOrCreateConsumer(consumerId, key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
