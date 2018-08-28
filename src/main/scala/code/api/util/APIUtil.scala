@@ -2076,15 +2076,19 @@ Returns a string showed to the developer
     * @return Decrypted value of a property
     */
   def getPropsValue(nameOfProperty: String): Box[String] = {
-    (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted")) match {
-      case (Full(base64PropsValue), Full(isEncrypted))  if isEncrypted == "true" =>
+    (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted"), Props.get(nameOfProperty + ".is_obfuscated") ) match {
+      case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
         val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
         Full(decryptedValueAsString)
-      case (Full(property), Full(isEncrypted))  if isEncrypted == "false" =>
+      case (Full(property), Full(isEncrypted), Empty)  if isEncrypted == "false" =>
         Full(property)
-      case (Full(property), Empty) =>
+      case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "true" =>
+        Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
+      case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "false" =>
         Full(property)
-      case (Empty, Empty) =>
+      case (Full(property), Empty,Empty) =>
+        Full(property)
+      case (Empty, Empty, Empty) =>
         Empty
       case _ =>
         logger.error(cannotDecryptValueOfProperty + nameOfProperty)
