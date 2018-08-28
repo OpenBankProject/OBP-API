@@ -62,6 +62,8 @@ object APIBuilder
     //TODO, for now this is only in description, could be a single filed later.
     val getApiAuthentication:Boolean = getApiDescriptionFromJsonFile.contains("Authentication is Mandatory")
     val getSingleApiAuthentication:Boolean = getSingleApiDescription.contains("Authentication is Mandatory")
+    val createSingleApiAuthentication:Boolean = createSingleApiDescription.contains("Authentication is Mandatory")
+    val deleteSingleApiAuthentication:Boolean = deleteSingleApiDescription.contains("Authentication is Mandatory")
     
     val getApiUrl: String = (getMultipleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
     val getSingleApiUrl: String = (getSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
@@ -80,6 +82,17 @@ object APIBuilder
       case true => q"cc.user ?~ UserNotLoggedIn"
       case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
     }
+    
+    val createSingleApiAuthenticationStatement: Term.ApplyInfix = createSingleApiAuthentication match {
+      case true => q"cc.user ?~ UserNotLoggedIn"
+      case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+    }
+    
+    val deleteSingleApiAuthenticationStatement: Term.ApplyInfix = deleteSingleApiAuthentication match {
+      case true => q"cc.user ?~ UserNotLoggedIn"
+      case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+    }
+    
     
     val getApiUrlVal = q""" "/books" """.copy(s"$getApiUrl")
     val getSingleApiUrlVal = q""" "/books" """.copy(s"$getSingleApiUrl")
@@ -189,8 +202,12 @@ object APIBuilder
     //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
     //from "/my/book" --> "my  ::  book" 
     val getApiUrlLiftFormat = getApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
+    val createApiUrlLiftFormat = createSingleApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
+    val deleteApiUrlLiftFormat = deleteSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
     val getSingleApiUrlLiftFormat = getSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
     val getApiUrlLiftweb: Lit.String = q""" "books"  """.copy(getApiUrlLiftFormat)
+    val createApiUrlLiftweb: Lit.String = q""" "books"  """.copy(createApiUrlLiftFormat)
+    val deleteApiUrlLiftweb: Lit.String = q""" "books"  """.copy(deleteApiUrlLiftFormat)
     val getSingleApiUrlLiftweb: Lit.String = q""" "books"  """.copy(getSingleApiUrlLiftFormat)
     
     
@@ -203,7 +220,7 @@ object APIBuilder
               jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/apisResource.json").mkString 
               jsonJValueFromFile = json.parse(jsonStringFromFile)
               resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
-              getMethodJValue = resourceDocsJObject.filter(_.\("request_verb") == JString("GET")).head
+              getMethodJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET")&& !jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head
               jsonObject = getMethodJValue \\ "success_response_body"
             } yield {
               successJsonResponse(jsonObject)
@@ -245,12 +262,12 @@ object APIBuilder
     
     val createBookPartialFunction: Defn.Val = q"""
       lazy val createBook: OBPEndpoint ={
-        case "books" :: Nil JsonPost json -> _ => {
+        case ($createApiUrlLiftweb:: Nil) JsonPost json -> _ => {
           cc =>
           {
             for{
               jsonBody <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
-              u <- cc.user ?~ UserNotLoggedIn
+              u <- $createSingleApiAuthenticationStatement
               book <-  APIBUilder_Connector.createBook(jsonBody.author,jsonBody.pages, jsonBody.points)
               bookJson = JsonFactory_APIBuilder.createBook(book)
               jsonObject:JValue = decompose(bookJson)
@@ -264,11 +281,11 @@ object APIBuilder
     
     val deleteBookPartialFunction: Defn.Val = q"""
       lazy val deleteBook: OBPEndpoint ={
-        case "books" :: bookId :: Nil JsonDelete _ => {
+        case ($deleteApiUrlLiftweb :: bookId :: Nil) JsonDelete _ => {
           cc =>
           {
             for{
-              u <- cc.user ?~ UserNotLoggedIn
+              u <- $deleteSingleApiAuthenticationStatement
               deleted <- APIBUilder_Connector.deleteBook(bookId)
             }yield{
               if(deleted)
