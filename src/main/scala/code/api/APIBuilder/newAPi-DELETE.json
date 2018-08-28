@@ -1,7 +1,0 @@
-{
-  "summary": "DELETE Book By Id",
-  "description": "Delete a book. Authentication is Mandatory. ",
-  "request_url": "/books/BOOK_ID",
-  "example_request_body": {},
-  "success_response_body": true
-}

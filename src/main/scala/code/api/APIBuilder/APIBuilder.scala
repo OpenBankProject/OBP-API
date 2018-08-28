@@ -31,30 +31,71 @@ import java.nio.file.Files
 
 import scala.meta._
 import net.liftweb.json
-import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.{JValue, JsonAST}
 
 object APIBuilder
 {
   def main(args: Array[String]): Unit = {
-    val jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPi-GET.json").mkString 
+    val jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/apisResource.json").mkString 
+    val jsonJValueFromFile = json.parse(jsonStringFromFile)
+    val resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
     
-    val jsonObject: JValue = json.parse(jsonString)
-    val newApiSummary: String = (jsonObject \\ "summary").values.head._2.toString
-    val newApiDescription: String = (jsonObject \\ "description").values.head._2.toString 
+    val getMultipleApiJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET")&& !jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head
+    val getSingleApiJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET")&& jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head
+    val createSingleApiJValue = resourceDocsJObject.filter(_.\("request_verb") == JString("POST")).head
+    val deleteSingleApiJValue = resourceDocsJObject.filter(_.\("request_verb") == JString("DELETE")).head
+    
+    
+    val getApiSummary: String = (getMultipleApiJValue \ "summary").asInstanceOf[JString].values
+    val getSingleApiSummary: String = (getSingleApiJValue \ "summary").asInstanceOf[JString].values
+    val createSingleApiSummary: String = (createSingleApiJValue \ "summary").asInstanceOf[JString].values
+    val deleteSingleApiSummary: String = (deleteSingleApiJValue \ "summary").asInstanceOf[JString].values
+    val getApiSummaryFromJsonFile: String = getApiSummary +"(from Json File)"
+    
+    val getApiDescription: String = (getMultipleApiJValue \ "description").asInstanceOf[JString].values 
+    val getSingleApiDescription: String = (getSingleApiJValue \ "description").asInstanceOf[JString].values 
+    val createSingleApiDescription: String = (createSingleApiJValue \ "description").asInstanceOf[JString].values 
+    val deleteSingleApiDescription: String = (deleteSingleApiJValue \ "description").asInstanceOf[JString].values 
+    val getApiDescriptionFromJsonFile: String = getApiDescription + "(From Json File)"
+    
     //TODO, for now this is only in description, could be a single filed later.
-    val needAuthentication:Boolean = newApiDescription.contains("Authentication is Mandatory")
-    val newApiURl: String = (jsonObject \\ "request_url").values.head._2.toString //eg: /my/book
-    val newApiResponseBody: JValue= jsonObject \\ "success_response_body"
+    val getApiAuthentication:Boolean = getApiDescriptionFromJsonFile.contains("Authentication is Mandatory")
+    val getSingleApiAuthentication:Boolean = getSingleApiDescription.contains("Authentication is Mandatory")
     
+    val getApiUrl: String = (getMultipleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
+    val getSingleApiUrl: String = (getSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
+    val createSingleApiUrl: String = (createSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
+    val deleteSingleApiUrl: String = (deleteSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
+    val getApiUrlFromJsonFile: String = "/file"+getApiUrl //eg: /my/book
     
-    val needAuthenticationStatement: Term.ApplyInfix = needAuthentication match {
+    val getApiResponseBody: JValue= getMultipleApiJValue \\ "success_response_body"
+    
+    val getApiAuthenticationStatement: Term.ApplyInfix = getApiAuthentication match {
       case true => q"cc.user ?~ UserNotLoggedIn"
       case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
     }
-    val newUrlForResourceDoc = q""" "/books" """.copy(s"$newApiURl")
-    val newUrlDescriptionForResourceDoc = q""" "" """.copy(s"$newApiDescription")
-    val newUrlSummaryForResourceDoc = q""" "" """.copy(s"$newApiSummary")
+    
+    val getSingleApiAuthenticationStatement: Term.ApplyInfix = getSingleApiAuthentication match {
+      case true => q"cc.user ?~ UserNotLoggedIn"
+      case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+    }
+    
+    val getApiUrlVal = q""" "/books" """.copy(s"$getApiUrl")
+    val getSingleApiUrlVal = q""" "/books" """.copy(s"$getSingleApiUrl")
+    val createSingleApiUrlVal = q""" "/books" """.copy(s"$createSingleApiUrl")
+    val deleteSingleApiUrlVal = q""" "/books" """.copy(s"$deleteSingleApiUrl")
+    val getApiUrlFromJsonFileVal = q""" "/books" """.copy(s"$getApiUrlFromJsonFile")
+    val getApiSummaryVal = q""" "" """.copy(s"$getApiSummary")
+    val getSingleApiSummaryVal = q""" "" """.copy(s"$getSingleApiSummary")
+    val createSingleApiSummaryVal = q""" "" """.copy(s"$createSingleApiSummary")
+    val deleteSingleApiSummaryVal = q""" "" """.copy(s"$deleteSingleApiSummary")
+    val getApiSummaryFromJsonFileVal = q""" "" """.copy(s"$getApiSummaryFromJsonFile")
+    val getApiDescriptionVal = q""" "" """.copy(s"$getApiDescription")
+    val getSingleApiDescriptionVal = q""" "" """.copy(s"$getSingleApiDescription")
+    val createSingleApiDescriptionVal = q""" "" """.copy(s"$createSingleApiDescription")
+    val deleteSingleApiDescriptionVal = q""" "" """.copy(s"$deleteSingleApiDescription")
+    val getApiDescriptionFromJsonFileVal = q""" "" """.copy(s"$getApiDescriptionFromJsonFile")
     
     val getBookFromJsonFileResourceCode: Term.ApplyInfix = 
       q"""
@@ -63,9 +104,9 @@ object APIBuilder
           apiVersion, 
           "getBooksFromJsonFile", 
           "GET", 
-          $newUrlForResourceDoc, 
-          $newUrlSummaryForResourceDoc, 
-          $newUrlDescriptionForResourceDoc, 
+          $getApiUrlFromJsonFileVal, 
+          $getApiSummaryFromJsonFileVal, 
+          $getApiDescriptionFromJsonFileVal, 
           emptyObjectJson, 
           rootInterface, 
           List(UnknownError), 
@@ -80,9 +121,9 @@ object APIBuilder
           apiVersion,
           "getBooks",
           "GET",
-          "/books",
-          "Get All Books.",
-          "Return All my books, Authentication is Mandatory",
+          $getApiUrlVal,        
+          $getApiSummaryVal,       
+          $getApiDescriptionVal,
           emptyObjectJson,
           rootInterface,
           List(UnknownError),
@@ -90,6 +131,7 @@ object APIBuilder
           apiTagApiBuilder :: Nil
         )  
         """
+    
     val getBookResourceCode: Term.ApplyInfix = 
     q"""
       resourceDocs += ResourceDoc(
@@ -97,16 +139,17 @@ object APIBuilder
         apiVersion, 
         "getBook", 
         "GET",
-        "/books/BOOK_ID",
-        "Get Book ",
-        "Get a book by Id, Authentication is Mandatory",
-        createBookJson, 
-        rootInterface,
+        $getSingleApiUrlVal,
+        $getSingleApiSummaryVal,
+        $getSingleApiDescriptionVal,
+        emptyObjectJson, 
+        createBookJson,
         List(UnknownError),
         Catalogs(notCore, notPSD2, notOBWG), 
         apiTagApiBuilder :: Nil
       )
     """
+    
     val createBookResourceCode: Term.ApplyInfix = 
     q"""
        resourceDocs += ResourceDoc(
@@ -114,46 +157,54 @@ object APIBuilder
          apiVersion, 
          "createBook", 
          "POST",
-         "/books",
-         "Create Book ",
-         "Create one book, Authentication is Mandatory",
+         $createSingleApiUrlVal,
+         $createSingleApiSummaryVal,
+         $createSingleApiDescriptionVal,
          createBookJson, 
-         rootInterface,
+         createBookJson,
          List(UnknownError),
          Catalogs(notCore, notPSD2, notOBWG), 
          apiTagApiBuilder :: Nil
        )
     """
+    
     val deleteBookResourceCode: Term.ApplyInfix = 
     q"""
-       resourceDocs += ResourceDoc(
-             deleteBook, 
-             apiVersion, 
-             "deleteBook", 
-             "DELETE",
-             "/books/BOOK_ID",
-             "Delete Book ",
-             "Delete a book, Authentication is Mandatory",
-             createBookJson, 
-             rootInterface,
-             List(UnknownError),
-             Catalogs(notCore, notPSD2, notOBWG), 
-             apiTagApiBuilder :: Nil
-       )
+     resourceDocs += ResourceDoc(
+       deleteBook, 
+       apiVersion, 
+       "deleteBook", 
+       "DELETE",
+       $deleteSingleApiUrlVal,
+       $createSingleApiSummaryVal,
+       $deleteSingleApiDescriptionVal,
+       emptyObjectJson, 
+       emptyObjectJson,
+       List(UnknownError),
+       Catalogs(notCore, notPSD2, notOBWG), 
+       apiTagApiBuilder :: Nil
+     )
     """
     
     //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
     //from "/my/book" --> "my  ::  book" 
-    val newApiUrlLiftFormat = newApiURl.replaceFirst("/","").split("/").mkString("""""","""  ::  """, """""")
-    val newURL: Lit.String = q""" "books"  """.copy(newApiUrlLiftFormat)
+    val getApiUrlLiftFormat = getApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
+    val getSingleApiUrlLiftFormat = getSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
+    val getApiUrlLiftweb: Lit.String = q""" "books"  """.copy(getApiUrlLiftFormat)
+    val getSingleApiUrlLiftweb: Lit.String = q""" "books"  """.copy(getSingleApiUrlLiftFormat)
+    
+    
     val getBookFromJsonPartialFunction: Defn.Val = q"""
       lazy val getBooksFromJsonFile: OBPEndpoint = {
-        case ($newURL :: Nil) JsonGet req =>
+        case ("file" :: $getApiUrlLiftweb :: Nil) JsonGet req =>
           cc => {
             for {
-              u <- $needAuthenticationStatement 
-              jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPi-GET.json").mkString 
-              jsonObject: JValue = json.parse(jsonString)\\"success_response_body"
+              u <- $getApiAuthenticationStatement
+              jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/apisResource.json").mkString 
+              jsonJValueFromFile = json.parse(jsonStringFromFile)
+              resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
+              getMethodJValue = resourceDocsJObject.filter(_.\("request_verb") == JString("GET")).head
+              jsonObject = getMethodJValue \\ "success_response_body"
             } yield {
               successJsonResponse(jsonObject)
             }
@@ -161,11 +212,11 @@ object APIBuilder
       }"""
     val getBooksPartialFunction: Defn.Val = q"""
       lazy val getBooks: OBPEndpoint ={
-        case ("books" :: Nil) JsonGet req =>
+        case ($getApiUrlLiftweb:: Nil) JsonGet req =>
           cc =>
           {
             for{
-              u <- cc.user ?~ UserNotLoggedIn
+              u <- $getApiAuthenticationStatement 
               books <-  APIBUilder_Connector.getBooks
               booksJson = JsonFactory_APIBuilder.createBooks(books)
               jsonObject:JValue = decompose(booksJson)
@@ -177,11 +228,11 @@ object APIBuilder
     
     val getBookPartialFunction: Defn.Val = q"""
       lazy val getBook: OBPEndpoint ={
-        case "books" :: bookId :: Nil JsonGet _ => {
+        case ($getApiUrlLiftweb :: bookId :: Nil) JsonGet _ => {
           cc =>
           {
             for{
-              u <- cc.user ?~ UserNotLoggedIn
+              u <- $getSingleApiAuthenticationStatement
               book <- APIBUilder_Connector.getBookById(bookId) ?~! BookNotFound
               bookJson = JsonFactory_APIBuilder.createBook(book)
               jsonObject:JValue = decompose(bookJson)
@@ -368,20 +419,20 @@ trait Book {
     * ##################################################################################################
     * */
     
-    val jsonFieldname = newApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.name.toLowerCase.capitalize
+    val jsonFieldname = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.name.toLowerCase.capitalize
     
     val jsonFieldValue =s"List[$jsonFieldname]" // List[Books]
     val jsonFieldDefaultValue = s"List($jsonFieldname())" //List(Books())
     
     
-    val secondLevelFiledNames: List[String] = newApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.value.asInstanceOf[JsonAST.JArray].children.head.asInstanceOf[JsonAST.JObject].obj.map(_.name)
-    val secondLevelFiledTypes: List[String] = secondLevelFiledNames.map(key => newApiResponseBody.findField{
+    val secondLevelFiledNames: List[String] = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.value.asInstanceOf[JsonAST.JArray].children.head.asInstanceOf[JsonAST.JObject].obj.map(_.name)
+    val secondLevelFiledTypes: List[String] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
            case JField(n, v) => n == key
          }).map(_.get.value.getClass.getSimpleName.replaceFirst("J","")).toList
     
     
     
-    val secondLevelFiledTypes2: List[Any] = secondLevelFiledNames.map(key => newApiResponseBody.findField{
+    val secondLevelFiledTypes2: List[Any] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
            case JField(n, v) => n == key
          }).map(_.get.value.values).toList
     
