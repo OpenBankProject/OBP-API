@@ -73,25 +73,162 @@ object APIBuilder
           apiTagApiBuilder :: Nil
         )"""
     
+    val getBooksResourceCode: Term.ApplyInfix = 
+      q"""
+        resourceDocs += ResourceDoc(
+          getBooks,
+          apiVersion,
+          "getBooks",
+          "GET",
+          "/books",
+          "Get All Books.",
+          "Return All my books, Authentication is Mandatory",
+          emptyObjectJson,
+          rootInterface,
+          List(UnknownError),
+          Catalogs(notCore, notPSD2, notOBWG),
+          apiTagApiBuilder :: Nil
+        )  
+        """
+    val getBookResourceCode: Term.ApplyInfix = 
+    q"""
+      resourceDocs += ResourceDoc(
+        getBook, 
+        apiVersion, 
+        "getBook", 
+        "GET",
+        "/books/BOOK_ID",
+        "Get Book ",
+        "Get a book by Id, Authentication is Mandatory",
+        createBookJson, 
+        rootInterface,
+        List(UnknownError),
+        Catalogs(notCore, notPSD2, notOBWG), 
+        apiTagApiBuilder :: Nil
+      )
+    """
+    val createBookResourceCode: Term.ApplyInfix = 
+    q"""
+       resourceDocs += ResourceDoc(
+         createBook, 
+         apiVersion, 
+         "createBook", 
+         "POST",
+         "/books",
+         "Create Book ",
+         "Create one book, Authentication is Mandatory",
+         createBookJson, 
+         rootInterface,
+         List(UnknownError),
+         Catalogs(notCore, notPSD2, notOBWG), 
+         apiTagApiBuilder :: Nil
+       )
+    """
+    val deleteBookResourceCode: Term.ApplyInfix = 
+    q"""
+       resourceDocs += ResourceDoc(
+             deleteBook, 
+             apiVersion, 
+             "deleteBook", 
+             "DELETE",
+             "/books/BOOK_ID",
+             "Delete Book ",
+             "Delete a book, Authentication is Mandatory",
+             createBookJson, 
+             rootInterface,
+             List(UnknownError),
+             Catalogs(notCore, notPSD2, notOBWG), 
+             apiTagApiBuilder :: Nil
+       )
+    """
     
     //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
     //from "/my/book" --> "my  ::  book" 
     val newApiUrlLiftFormat = newApiURl.replaceFirst("/","").split("/").mkString("""""","""  ::  """, """""")
     val newURL: Lit.String = q""" "books"  """.copy(newApiUrlLiftFormat)
-    val getBookFromJsonPartialFunction: Defn.Val = 
-      q"""
-        lazy val getBooksFromJsonFile: OBPEndpoint = {
-          case ($newURL :: Nil) JsonGet req =>
-            cc => {
-              for {
-                u <- $needAuthenticationStatement 
-                jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPi-GET.json").mkString 
-                jsonObject: JValue = json.parse(jsonString)\\"success_response_body"
-              } yield {
-                successJsonResponse(jsonObject)
-              }
+    val getBookFromJsonPartialFunction: Defn.Val = q"""
+      lazy val getBooksFromJsonFile: OBPEndpoint = {
+        case ($newURL :: Nil) JsonGet req =>
+          cc => {
+            for {
+              u <- $needAuthenticationStatement 
+              jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPi-GET.json").mkString 
+              jsonObject: JValue = json.parse(jsonString)\\"success_response_body"
+            } yield {
+              successJsonResponse(jsonObject)
             }
-         }"""
+          }
+      }"""
+    val getBooksPartialFunction: Defn.Val = q"""
+      lazy val getBooks: OBPEndpoint ={
+        case ("books" :: Nil) JsonGet req =>
+          cc =>
+          {
+            for{
+              u <- cc.user ?~ UserNotLoggedIn
+              books <-  APIBUilder_Connector.getBooks
+              booksJson = JsonFactory_APIBuilder.createBooks(books)
+              jsonObject:JValue = decompose(booksJson)
+            }yield{
+                successJsonResponse(jsonObject)
+            }
+          }
+      }"""
+    
+    val getBookPartialFunction: Defn.Val = q"""
+      lazy val getBook: OBPEndpoint ={
+        case "books" :: bookId :: Nil JsonGet _ => {
+          cc =>
+          {
+            for{
+              u <- cc.user ?~ UserNotLoggedIn
+              book <- APIBUilder_Connector.getBookById(bookId) ?~! BookNotFound
+              bookJson = JsonFactory_APIBuilder.createBook(book)
+              jsonObject:JValue = decompose(bookJson)
+            }yield{
+              successJsonResponse(jsonObject)
+            }
+          }
+        }
+      }"""
+    
+    val createBookPartialFunction: Defn.Val = q"""
+      lazy val createBook: OBPEndpoint ={
+        case "books" :: Nil JsonPost json -> _ => {
+          cc =>
+          {
+            for{
+              jsonBody <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
+              u <- cc.user ?~ UserNotLoggedIn
+              book <-  APIBUilder_Connector.createBook(jsonBody.author,jsonBody.pages, jsonBody.points)
+              bookJson = JsonFactory_APIBuilder.createBook(book)
+              jsonObject:JValue = decompose(bookJson)
+            }yield{
+              successJsonResponse(jsonObject)
+            }
+          }
+        }
+      }
+      """
+    
+    val deleteBookPartialFunction: Defn.Val = q"""
+      lazy val deleteBook: OBPEndpoint ={
+        case "books" :: bookId :: Nil JsonDelete _ => {
+          cc =>
+          {
+            for{
+              u <- cc.user ?~ UserNotLoggedIn
+              deleted <- APIBUilder_Connector.deleteBook(bookId)
+            }yield{
+              if(deleted)
+                noContentJsonResponse
+              else
+                errorJsonResponse("Delete not completed")
+            }
+          }
+        }
+      }
+      """
     
     val apiSource: Source = source""" 
 /**         
@@ -154,126 +291,17 @@ trait APIMethods_APIBuilder
     $getBookFromJsonFileResourceCode
     $getBookFromJsonPartialFunction
  
-    resourceDocs += ResourceDoc(
-      getBooks,
-      apiVersion,
-      "getBooks",
-      "GET",
-      "/books",
-      "Get All Books.",
-      "Return All my books, Authentication is Mandatory",
-      emptyObjectJson,
-      rootInterface,
-      List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      apiTagApiBuilder :: Nil
-    )
-    lazy val getBooks: OBPEndpoint ={
-      case ("books" :: Nil) JsonGet req =>
-        cc =>
-        {
-          for{
-            u <- cc.user ?~ UserNotLoggedIn
-            books <-  APIBUilder_Connector.getBooks
-            booksJson = JsonFactory_APIBuilder.createBooks(books)
-            jsonObject:JValue = decompose(booksJson)
-          }yield{
-              successJsonResponse(jsonObject)
-          }
-        }
-    }
+    $getBooksResourceCode
+    $getBooksPartialFunction
     
-    resourceDocs += ResourceDoc(
-      getBook, 
-      apiVersion, 
-      "getBook", 
-      "GET",
-      "/books/BOOK_ID",
-      "Get Book ",
-      "Get a book by Id, Authentication is Mandatory",
-      createBookJson, 
-      rootInterface,
-      List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
-      apiTagApiBuilder :: Nil
-    )
-    lazy val getBook: OBPEndpoint ={
-      case "books" :: bookId :: Nil JsonGet _ => {
-        cc =>
-        {
-          for{
-            u <- cc.user ?~ UserNotLoggedIn
-            book <- APIBUilder_Connector.getBookById(bookId) ?~! BookNotFound
-            bookJson = JsonFactory_APIBuilder.createBook(book)
-            jsonObject:JValue = decompose(bookJson)
-          }yield{
-            successJsonResponse(jsonObject)
-          }
-        }
-      }
-    }
+    $getBookResourceCode                           
+    $getBookPartialFunction
     
-    resourceDocs += ResourceDoc(
-      createBook, 
-      apiVersion, 
-      "createBook", 
-      "POST",
-      "/books",
-      "Create Book ",
-      "Create one book, Authentication is Mandatory",
-      createBookJson, 
-      rootInterface,
-      List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
-      apiTagApiBuilder :: Nil
-    )
-    lazy val createBook: OBPEndpoint ={
-      case "books" :: Nil JsonPost json -> _ => {
-        cc =>
-        {
-          for{
-            jsonBody <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
-            u <- cc.user ?~ UserNotLoggedIn
-            book <-  APIBUilder_Connector.createBook(jsonBody.author,jsonBody.pages, jsonBody.points)
-            bookJson = JsonFactory_APIBuilder.createBook(book)
-            jsonObject:JValue = decompose(bookJson)
-          }yield{
-            successJsonResponse(jsonObject)
-          }
-        }
-      }
-    }
+    $createBookResourceCode                           
+    $createBookPartialFunction
     
-    resourceDocs += ResourceDoc(
-      deleteBook, 
-      apiVersion, 
-      "deleteBook", 
-      "DELETE",
-      "/books/BOOK_ID",
-      "Delete Book ",
-      "Delete a book, Authentication is Mandatory",
-      createBookJson, 
-      rootInterface,
-      List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
-      apiTagApiBuilder :: Nil
-    )
-    lazy val deleteBook: OBPEndpoint ={
-      case "books" :: bookId :: Nil JsonDelete _ => {
-        cc =>
-        {
-          for{
-            u <- cc.user ?~ UserNotLoggedIn
-            deleted <- APIBUilder_Connector.deleteBook(bookId)
-          }yield{
-            if(deleted)
-              noContentJsonResponse
-            else
-              errorJsonResponse("Delete not completed")
-          }
-        }
-      }
-    }
+    $deleteBookResourceCode                           
+    $deleteBookPartialFunction
   }
 }
 
