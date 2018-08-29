@@ -34,39 +34,64 @@ object LimitCallPeriod extends Enumeration {
 
 object LimitCallsUtil extends MdcLoggable {
 
-  val url = APIUtil.getPropsValue("guava.cache.url", "127.0.0.1")
-  val port = APIUtil.getPropsAsIntValue("guava.cache.port", 6379)
-  val jedis = new Jedis(url, port)
+  val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
+  val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
+  val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
+  lazy val jedis = new Jedis(url, port)
 
   private def createUniqueKey(consumerKey: String, period: LimitCallPeriod) = consumerKey + LimitCallPeriod.toString(period)
 
   def underConsumerLimits(consumerKey: String, period: LimitCallPeriod, limit: Long): Boolean = {
-    limit match {
-      case l if l > 0 =>
-        val key = createUniqueKey(consumerKey, period)
-        val exists = jedis.exists(key)
-        exists match {
-          case java.lang.Boolean.TRUE =>
-            jedis.get(key).toLong <= limit
-          case java.lang.Boolean.FALSE =>
-            true
-        }
-      case _ =>
-        true
+    if (useConsumerLimits) {
+      if (jedis.isConnected() == false) jedis.connect()
+      (limit, jedis.isConnected()) match {
+        case (_, false)  => // Redis is NOT available
+          logger.warn("Redis is NOT available")
+          true
+        case (l, true) if l > 0 => // Redis is available and limit is set
+          val key = createUniqueKey(consumerKey, period)
+          val exists = jedis.exists(key)
+          exists match {
+            case java.lang.Boolean.TRUE =>
+              val underLimit = jedis.get(key).toLong + 1 <= limit // +1 means we count the current call as well. We increment later i.e after successful call.
+              underLimit
+            case java.lang.Boolean.FALSE =>
+              true
+          }
+        case _ =>
+          true
+      }
+    } else {
+      true
     }
   }
 
-  def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod): Long = {
-    val key = createUniqueKey(consumerKey, period)
-    val ttl = jedis.ttl(key).toInt
-    ttl match {
-      case -2 => // if the Key does not exists, -2 is returned
-        jedis.setex(key, LimitCallPeriod.toSeconds(period).toInt, "1")
-        ttl
-      case _ =>
-        jedis.incr(key)
-        ttl
+  def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): Long = {
+    if (useConsumerLimits) {
+      if (jedis.isConnected() == false) jedis.connect()
+      (jedis.isConnected(), limit) match {
+        case (false, _)  => // Redis is NOT available
+          logger.warn("Redis is NOT available")
+          -1
+        case (true, -1)  => // Limit is not set for the period
+          -1
+        case _ => // Redis is available and limit is set
+          val key = createUniqueKey(consumerKey, period)
+          val ttl =  jedis.ttl(key).toInt
+          ttl match {
+            case -2 => // if the Key does not exists, -2 is returned
+              jedis.setex(key, LimitCallPeriod.toSeconds(period).toInt, "1")
+              ttl
+            case _ => // otherwise increment the counter
+              jedis.incr(key)
+              ttl
+          }
+      }
+    } else {
+      -1
     }
+
   }
+
 
 }

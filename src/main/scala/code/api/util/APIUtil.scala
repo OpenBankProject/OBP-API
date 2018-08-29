@@ -47,8 +47,9 @@ import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.oauth1a.Arithmetics
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.LimitCallPeriod.LimitCallPeriod
 import code.api.v1_2.ErrorMessage
-import code.api.{DirectLogin, _}
+import code.api.{DirectLogin, util, _}
 import code.bankconnectors._
 import code.consumer.Consumers
 import code.customer.Customer
@@ -1934,12 +1935,54 @@ Returns a string showed to the developer
     }
   }
 
+  private def underCallLimits(x: (Box[User], Option[CallContext])) = {
+    import util.LimitCallPeriod._
+    import util.LimitCallsUtil._
+    def composeMsg(period: LimitCallPeriod, limit: Long) = ToManyRequests + s"We only allow $limit requests ${LimitCallPeriod.toString(period)} to this Web site per logged in user."
+    x._2 match {
+      case Some(cc) =>
+        cc.consumer match {
+          case Full(c) =>
+            val checkLimits = List(
+              underConsumerLimits(c.key.get, MINUTELY, c.perMinuteCallLimit.get),
+              underConsumerLimits(c.key.get, HOURLY, c.perHourCallLimit.get),
+              underConsumerLimits(c.key.get, DAILY, c.perDayCallLimit.get),
+              underConsumerLimits(c.key.get, WEEKLY, c.perWeekCallLimit.get),
+              underConsumerLimits(c.key.get, MONTHLY, c.perMonthCallLimit.get)
+            )
+            checkLimits match {
+              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(MINUTELY, c.perMinuteCallLimit.get), 429, Some(cc.toLight))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(HOURLY, c.perMinuteCallLimit.get), 429, Some(cc.toLight))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(DAILY, c.perMinuteCallLimit.get), 429, Some(cc.toLight))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(WEEKLY, c.perWeekCallLimit.get), 429, Some(cc.toLight))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(MONTHLY, c.perMonthCallLimit.get), 429, Some(cc.toLight))), x._2)
+              case _                                                =>
+                incrementConsumerCounters(c.key.get, MINUTELY, c.perMinuteCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                incrementConsumerCounters(c.key.get, HOURLY, c.perHourCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                incrementConsumerCounters(c.key.get, DAILY, c.perDayCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                incrementConsumerCounters(c.key.get, WEEKLY, c.perWeekCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                incrementConsumerCounters(c.key.get, MONTHLY, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                x
+            }
+          case _ => x
+        }
+      case _ => x
+    }
+  }
+
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def extractCallContext(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc) map {
+      x => underCallLimits(x)
+    } map {
       x => (fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))), x._2)
     }
   }
