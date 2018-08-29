@@ -234,7 +234,7 @@ object APIBuilder
           {
             for{
               u <- $getApiAuthenticationStatement 
-              books <-  APIBUilder_Connector.getBooks
+              books <-  APIBuilder_Connector.getBooks
               booksJson = JsonFactory_APIBuilder.createBooks(books)
               jsonObject:JValue = decompose(booksJson)
             }yield{
@@ -250,7 +250,7 @@ object APIBuilder
           {
             for{
               u <- $getSingleApiAuthenticationStatement
-              book <- APIBUilder_Connector.getBookById(bookId) ?~! BookNotFound
+              book <- APIBuilder_Connector.getBookById(bookId) ?~! BookNotFound
               bookJson = JsonFactory_APIBuilder.createBook(book)
               jsonObject:JValue = decompose(bookJson)
             }yield{
@@ -268,7 +268,7 @@ object APIBuilder
             for{
               jsonBody <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
               u <- $createSingleApiAuthenticationStatement
-              book <-  APIBUilder_Connector.createBook(jsonBody.author,jsonBody.pages, jsonBody.points)
+              book <-  APIBuilder_Connector.createBook(jsonBody.author,jsonBody.pages, jsonBody.points)
               bookJson = JsonFactory_APIBuilder.createBook(book)
               jsonObject:JValue = decompose(bookJson)
             }yield{
@@ -286,7 +286,7 @@ object APIBuilder
           {
             for{
               u <- $deleteSingleApiAuthenticationStatement
-              deleted <- APIBUilder_Connector.deleteBook(bookId)
+              deleted <- APIBuilder_Connector.deleteBook(bookId)
             }yield{
               if(deleted)
                 noContentJsonResponse
@@ -373,8 +373,10 @@ trait APIMethods_APIBuilder
   }
 }
 
-object APIBUilder_Connector
+object APIBuilder_Connector
 {
+  val allAPIBuilderModels = List(MappedBook)
+  
   def createBook(
     author: String, 
     pages: Int, 

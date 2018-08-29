@@ -83,7 +83,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
-import code.api.APIBuilder.OBP_APIBuilder
+import code.api.APIBuilder.APIBuilder_Connector
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
 import net.liftweb.http._
@@ -568,5 +568,5 @@ object ToSchemify {
     MappedFXRate,
     MappedCurrency,
     MappedTransactionRequestTypeCharge
-  )++ OBP_APIBuilder.allAPIBuilderModels
+  )++ APIBuilder_Connector.allAPIBuilderModels
 }
