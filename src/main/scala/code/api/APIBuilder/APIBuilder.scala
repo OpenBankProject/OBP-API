@@ -342,6 +342,46 @@ object APIBuilder
     val traitModel: Defn.Trait = q"""trait Book {}""".copy(templ = traitTempl)
     
     
+    def mappedString(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedString(this,100) """
+    def mappedInt(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedInt(this) """
+    def mappedDouble(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedDouble(this) """
+    def mappedMethod(methodName: Term.Name,objectName: Term.Name, methodReturnType: Type.Name): Defn.Def = q"""override def $methodName: $methodReturnType = $objectName.get"""
+    
+    
+    val mappedClassStatments =
+    {
+      val fieldNames = for
+        {
+        i <- 0 until secondLevelFiledNames.size
+        fieldNameString = secondLevelFiledNames(i)
+        fieldTypeString = secondLevelFiledTypes(i)
+        objectName = Term.Name(s"m${fieldNameString.capitalize}")
+        methodName = Term.Name(fieldNameString)
+        methodReturnType = Type.Name(fieldTypeString)
+        stat = secondLevelFiledTypes(i) match {
+        case "String" => mappedString(objectName)
+        case "Int" => mappedInt(objectName)
+        case "Double" => mappedDouble(objectName)
+        }
+        methodStat = mappedMethod(methodName,objectName, methodReturnType)
+      } yield 
+          (stat,methodStat)
+      fieldNames.flatMap (x => List(x._1, x._2)).toList
+    }
+    
+    val MappedModelClass: Defn.Class = q"""
+    class MappedBook extends Book with LongKeyedMapper[MappedBook] with IdPK {
+      def getSingleton = MappedBook
+      object mBookId extends MappedString(this,100)
+      override def bookId: String = mBookId.get
+    }"""
+    
+    val allTempls= MappedModelClass.templ
+    
+    val newTempls = allTempls.copy(stats = mappedClassStatments++allTempls.stats)
+     
+    val newMappedModelClass = MappedModelClass.copy(templ = newTempls)
+    
     val apiSource: Source = source""" 
 /**         
 Open Bank Project - API         
@@ -445,19 +485,7 @@ object APIBuilder_Connector
 
 import net.liftweb.mapper._
 
-class MappedBook extends Book with LongKeyedMapper[MappedBook] with IdPK {
-  def getSingleton = MappedBook
-
-  object mBookId extends MappedString(this,100)
-  object mAuthor extends MappedString(this,100)
-  object mPages extends MappedInt(this)
-  object mPoints extends MappedDouble(this)
-
-  override def bookId: String = mBookId.get
-  override def author: String = mAuthor.get
-  override def pages: Int = mPages.get
-  override def points: Double = mPoints.get
-}
+$newMappedModelClass
 
 object MappedBook extends MappedBook with LongKeyedMetaMapper[MappedBook] {}
  
