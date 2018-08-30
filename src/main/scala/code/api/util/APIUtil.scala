@@ -47,7 +47,6 @@ import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.oauth1a.Arithmetics
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.LimitCallPeriod.LimitCallPeriod
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
 import code.bankconnectors._
@@ -310,6 +309,27 @@ object APIUtil extends MdcLoggable {
       }
     }
     commit
+  }
+
+  private def getHeadersNewStyle(cc: Option[CallContext]) = {
+    CustomResponseHeaders(
+      getGatewayLoginHeader(cc).list ::: getRateLimitHeadersNewStyle(cc).list
+    )
+  }
+
+  private def getRateLimitHeadersNewStyle(cc: Option[CallContext]) = {
+    (cc, LimitCallsUtil.useConsumerLimits) match {
+      case (Some(x), true) =>
+        CustomResponseHeaders(
+          List(
+            ("X-Rate-Limit-Reset", x.`X-Rate-Limit-Reset`.toString),
+            ("X-Rate-Limit-Remaining", x.`X-Rate-Limit-Remaining`.toString),
+            ("X-Rate-Limit-Limit", x.`X-Rate-Limit-Limit`.toString)
+          )
+        )
+      case _ =>
+        CustomResponseHeaders((Nil))
+    }
   }
 
   /**
@@ -1750,7 +1770,7 @@ Returns a string showed to the developer
   def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
     RestContinuation.async(reply => {
       in.onSuccess(
-        t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getGatewayLoginHeader(t._2))))
+        t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2))))
       )
       in.onFail {
         case Failure(msg, _, _) =>
@@ -1788,7 +1808,7 @@ Returns a string showed to the developer
   def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
     RestContinuation.async(reply => {
       in.onSuccess(
-        t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getGatewayLoginHeader(t._2)))))
+        t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2)))))
       )
       in.onFail {
         case Failure(msg, _, _) =>
@@ -1939,6 +1959,14 @@ Returns a string showed to the developer
     import util.LimitCallPeriod._
     import util.LimitCallsUtil._
     def composeMsg(period: LimitCallPeriod, limit: Long) = ToManyRequests + s"We only allow $limit requests ${LimitCallPeriod.toString(period)} to this Web site per logged in user."
+
+    def setXRateLimits(c: Consumer, z: (Long, Long)) = {
+      val limit = c.perMinuteCallLimit.get
+      x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
+        .map(_.copy(`X-Rate-Limit-Remaining` = z._1))
+        .map(_.copy(`X-Rate-Limit-Reset` = limit - z._2))
+    }
+
     x._2 match {
       case Some(cc) =>
         cc.consumer match {
@@ -1961,17 +1989,26 @@ Returns a string showed to the developer
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(WEEKLY, c.perWeekCallLimit.get), 429, Some(cc.toLight))), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(MONTHLY, c.perMonthCallLimit.get), 429, Some(cc.toLight))), x._2)
-              case _                                                =>
-                incrementConsumerCounters(c.key.get, MINUTELY, c.perMinuteCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
-                incrementConsumerCounters(c.key.get, HOURLY, c.perHourCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
-                incrementConsumerCounters(c.key.get, DAILY, c.perDayCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
-                incrementConsumerCounters(c.key.get, WEEKLY, c.perWeekCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
-                incrementConsumerCounters(c.key.get, MONTHLY, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
-                x
+              case _ =>
+                val incrementCounters = List (
+                  incrementConsumerCounters(c.key.get, MINUTELY, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, HOURLY, c.perHourCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, DAILY, c.perDayCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, WEEKLY, c.perWeekCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, MONTHLY, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                )
+                incrementCounters match {
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2._1 > 0 => (x._1, setXRateLimits(c, x2))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3._1 > 0 => (x._1, setXRateLimits(c, x3))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4._1 > 0 => (x._1, setXRateLimits(c, x4))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5._1 > 0 => (x._1, setXRateLimits(c, x5))
+                  case _                                              => (x._1, x._2)
+                }
             }
-          case _ => x
+          case _ => (x._1, x._2)
         }
-      case _ => x
+      case _ => (x._1, x._2)
     }
   }
 

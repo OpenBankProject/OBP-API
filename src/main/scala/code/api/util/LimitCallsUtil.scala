@@ -66,29 +66,30 @@ object LimitCallsUtil extends MdcLoggable {
     }
   }
 
-  def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): Long = {
+  def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): (Long, Long) = {
     if (useConsumerLimits) {
       if (jedis.isConnected() == false) jedis.connect()
       (jedis.isConnected(), limit) match {
         case (false, _)  => // Redis is NOT available
           logger.warn("Redis is NOT available")
-          -1
+          (-1, -1)
         case (true, -1)  => // Limit is not set for the period
-          -1
+          (-1, -1)
         case _ => // Redis is available and limit is set
           val key = createUniqueKey(consumerKey, period)
           val ttl =  jedis.ttl(key).toInt
           ttl match {
             case -2 => // if the Key does not exists, -2 is returned
-              jedis.setex(key, LimitCallPeriod.toSeconds(period).toInt, "1")
-              ttl
+              val seconds =  LimitCallPeriod.toSeconds(period).toInt
+              jedis.setex(key, seconds, "1")
+              (seconds, 1)
             case _ => // otherwise increment the counter
-              jedis.incr(key)
-              ttl
+              val cnt = jedis.incr(key)
+              (ttl, cnt)
           }
       }
     } else {
-      -1
+      (-1, -1)
     }
 
   }
