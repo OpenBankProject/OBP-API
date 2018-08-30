@@ -304,18 +304,17 @@ object APIBuilder
     val jsonFieldValue =s"List[$jsonFieldname]" // List[Books]
     val jsonFieldDefaultValue = s"List($jsonFieldname())" //List(Books())
     
-    
+//    List(author, pages, points)
     val secondLevelFiledNames: List[String] = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.value.asInstanceOf[JsonAST.JArray].children.head.asInstanceOf[JsonAST.JObject].obj.map(_.name)
+//    List(String, Int, Double)
     val secondLevelFiledTypes: List[String] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
            case JField(n, v) => n == key
          }).map(_.get.value.getClass.getSimpleName.replaceFirst("J","")).toList
-    
-    
-    
+//    List(Chinua Achebe, 209, 1.3)
     val secondLevelFiledDefalutValue: List[Any] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
            case JField(n, v) => n == key
          }).map(_.get.value.values).toList
-    
+//    List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
     val SecondLevelCaseFieldNames: List[Term.Param] = { 
       val fieldNames = for{
       a <- 0 until secondLevelFiledNames.size
@@ -323,7 +322,7 @@ object APIBuilder
       fieldNames.toList
     }
     
-    
+//    List(def author: String, def tutor: String, def pages: Int, def points: Double, def bookId: String)
     val traitMethods: List[Decl.Def] =
     {
       val fieldNames = for
@@ -338,7 +337,22 @@ object APIBuilder
     }
 
     val self: Self = Self.apply(Name("_"), None)
+    
+//    {
+//      `_` => def author: String
+//        def pages: Int
+//        def points: Double
+//        def bookId: String
+//    }
     val traitTempl = Template.apply(Nil,Nil, self, traitMethods)
+    
+//    trait Book { `_` =>
+//      def author: String
+//      def tutor: String
+//      def pages: Int
+//      def points: Double
+//      def bookId: String
+//    }
     val traitModel: Defn.Trait = q"""trait Book {}""".copy(templ = traitTempl)
     
     
@@ -348,6 +362,15 @@ object APIBuilder
     def mappedMethod(methodName: Term.Name,objectName: Term.Name, methodReturnType: Type.Name): Defn.Def = q"""override def $methodName: $methodReturnType = $objectName.get"""
     
     
+    
+//    List(
+//      object mAuthor extends MappedString(this, 100), 
+//      override def author: String = mAuthor.get, 
+//      object mPages extends MappedInt(this), 
+//      override def pages: Int = mPages.get, 
+//      object mPoints extends MappedDouble(this), 
+//      override def points: Double = mPoints.get
+//    )
     val mappedClassStatments =
     {
       val fieldNames = for
@@ -376,10 +399,36 @@ object APIBuilder
       override def bookId: String = mBookId.get
     }"""
     
+//    Book with LongKeyedMapper[MappedBook] with IdPK {
+//      def getSingleton = MappedBook
+//      object mBookId extends MappedString(this, 100)
+//      override def bookId: String = mBookId.get
+//    }
     val allTempls= MappedModelClass.templ
     
+//    Book with LongKeyedMapper[MappedBook] with IdPK {
+//      override def author: String = mAuthor.get
+//      object mPages extends MappedInt(this)
+//      override def pages: Int = mPages.get
+//      object mPoints extends MappedDouble(this)
+//      override def points: Double = mPoints.get
+//      def getSingleton = MappedBook
+//      object mBookId extends MappedString(this, 100)
+//      override def bookId: String = mBookId.get
+//    }
     val newTempls = allTempls.copy(stats = mappedClassStatments++allTempls.stats)
      
+//    class MappedBook extends Book with LongKeyedMapper[MappedBook] with IdPK {
+//      object mAuthor extends MappedString(this, 100)
+//      override def author: String = mAuthor.get
+//      object mPages extends MappedInt(this)
+//      override def pages: Int = mPages.get
+//      object mPoints extends MappedDouble(this)
+//      override def points: Double = mPoints.get
+//      def getSingleton = MappedBook
+//      object mBookId extends MappedString(this, 100)
+//      override def bookId: String = mBookId.get
+//    }
     val newMappedModelClass = MappedModelClass.copy(templ = newTempls)
     
     val apiSource: Source = source""" 
@@ -511,10 +560,37 @@ $traitModel
     val FirstLevelCaseClassFiledName = List(Term.Param(Nil, Term.Name(jsonFieldname.toLowerCase), Some(Type.Name(jsonFieldValue)), Some(Term.Name(jsonFieldDefaultValue))))
     val SecondLevelCaseClassName = Type.Name(jsonFieldname)
     
+//    case class Books(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
     val SecondLevelCaseClass: Defn.Class = q"""case class $SecondLevelCaseClassName(..$SecondLevelCaseFieldNames) """
     val FirstLevelCaseClass: Defn.Class = q"""case class $RootFiledName(..$FirstLevelCaseClassFiledName) """ //case class Test(banks: List[Banks])
     
+    val bookIdField: Term.Param = Term.Param(Nil, Term.Name("bookId"), Some(Type.Name("String")), Some(Term.Name(s"1234 5678")))
+    val SecondLevelCaseJsonFieldNames = List(bookIdField)++ SecondLevelCaseFieldNames
+    
+    //case class BookJson(bookId: String = """1234 5678""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
+    val SecondLevelJsonCaseClass: Defn.Class = q"""case class BookJson(..$SecondLevelCaseJsonFieldNames) """
     val instanceRootCaseClass: Defn.Val = q"val rootInterface = RootInterface()"
+    
+//  List(book.bookId, book.author, book.tutor, book.pages, book.points)
+    val bookJsonFieldNames: List[Term.Name] = {
+      val fieldNames = for{
+        i <- 0 until secondLevelFiledNames.size
+      } 
+        yield 
+          Term.Name("book." + secondLevelFiledNames(i))
+      List(Term.Name("book.bookId")) ++ (fieldNames.toList)
+    }
+    
+//  BookJson(book.bookId, book.author, book.tutor, book.pages, book.points)
+    val bookJsonParameter: Term.Apply = q"""BookJson()""".copy(fun = Term.Name("BookJson"), args = bookJsonFieldNames)
+    
+    //def createBook(book: Book) = BookJson(book.bookId, book.author, book.tutor, book.pages, book.points)
+    val createBank: Defn.Def =q"""def createBook(book: Book) = $bookJsonParameter"""
+    
+//    def createBooks(books: List[Book]) = books.map(book => BookJson(book.bookId, book.author, book.tutor, book.pages, book.points))
+    val createBanks: Defn.Def = q"""def createBooks(books: List[Book])= books.map(book => $bookJsonParameter)"""
+    
+    val exampleCaseClass = q"""case class BookJson(bookId: String = "abch dsf")"""
     
     val jsonFactorySource: Source =source"""
 /** 
@@ -548,14 +624,8 @@ import code.api.util.APIUtil
 
 $SecondLevelCaseClass
 $FirstLevelCaseClass
+$SecondLevelJsonCaseClass
 case class CreateBookJson( 
-  author: String = "Chinua Achebe",
-  pages: Int = 209,
-  points: Double = 1.3
-)
-
-case class BookJson( 
-  book_id: String = "123123213",
   author: String = "Chinua Achebe",
   pages: Int = 209,
   points: Double = 1.3
@@ -566,9 +636,8 @@ object JsonFactory_APIBuilder{
   val books = Books()
   val rootInterface = RootInterface(List(books))
   val createBookJson = CreateBookJson()
-  
-  def createBook(book: Book) = BookJson(book.bookId,book.author,book.pages,book.points)
-  def createBooks(books: List[Book])= books.map(book => BookJson(book.bookId,book.author,book.pages,book.points))
+  $createBank;
+  $createBanks;
     
   val allFields =
     for (
