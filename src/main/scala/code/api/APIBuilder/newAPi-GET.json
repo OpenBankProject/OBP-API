@@ -1,0 +1,19 @@
+{
+  "summary":"Get Books From Json File",
+  "description":"Return All my books from this Json File. Authentication is Mandatory. ",
+  "request_url": "/my/good/books",
+  "success_response_body": {
+    "books": [
+      {
+        "author": "Chinua Achebe",
+        "pages": 209,
+        "points": 1.3
+      },
+      {
+        "author": "Hans Christian Andersen",
+        "pages": 784,
+        "points": 1.3
+      }
+    ]
+  }
+}
