@@ -55,14 +55,16 @@ object LimitCallsUtil extends MdcLoggable {
             case java.lang.Boolean.TRUE =>
               val underLimit = jedis.get(key).toLong + 1 <= limit // +1 means we count the current call as well. We increment later i.e after successful call.
               underLimit
-            case java.lang.Boolean.FALSE =>
+            case java.lang.Boolean.FALSE => // In case that key does not exist we return successful result
               true
           }
         case _ =>
+          // Rate Limiting for a Consumer <= 0 implies successful result
+          // Or any other unhandled case implies successful result
           true
       }
     } else {
-      true
+      true // Rate Limiting disabled implies successful result
     }
   }
 
