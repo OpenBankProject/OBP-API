@@ -72,7 +72,7 @@ trait APIMethods310 {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetCheckbookOrdersFuture, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
           } yield
-           (JSONFactory310.createCheckbookOrdersJson(checkbookOrders), Some(cc))
+           (JSONFactory310.createCheckbookOrdersJson(checkbookOrders), callContext.map(_.copy(httpCode = Some(200))))
       }
     }
     
@@ -117,7 +117,7 @@ trait APIMethods310 {
               } map { unboxFull(_) }
             
           } yield
-           (JSONFactory310.createStatisOfCreditCardJson(checkbookOrders), Some(cc))
+           (JSONFactory310.createStatisOfCreditCardJson(checkbookOrders), callContext.map(_.copy(httpCode = Some(200))))
       }
     }
     
@@ -143,7 +143,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), Some(cc))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), Some(cc.copy(httpCode = Some(200))))}
       }
     }
     
@@ -169,7 +169,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), Some(cc))}
+           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), Some(cc.copy(httpCode = Some(200))))}
       }
     }
 
@@ -195,7 +195,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), Some(cc))}
+           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), Some(cc.copy(httpCode = Some(200))))}
       }
     }
     
@@ -277,7 +277,7 @@ trait APIMethods310 {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(GetTopApisError, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
           } yield
-           (JSONFactory310.createTopApisJson(toApis), Some(cc))
+           (JSONFactory310.createTopApisJson(toApis), callContext.map(_.copy(httpCode = Some(200))))
       }
     }
     
@@ -363,7 +363,7 @@ trait APIMethods310 {
               } map { unboxFull(_) }
             
           } yield
-           (JSONFactory310.createTopConsumersJson(topConsumers), Some(cc))
+           (JSONFactory310.createTopConsumersJson(topConsumers), callContext.map(_.copy(httpCode = Some(200))))
       }
     }
 
@@ -428,7 +428,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createCustomersJson(customers), callContext)
+            (JSONFactory300.createCustomersJson(customers), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }
@@ -499,7 +499,7 @@ trait APIMethods310 {
             _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
-            (createBadLoginStatusJson(badLoginStatus), callContext)
+            (createBadLoginStatusJson(badLoginStatus), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }
@@ -554,7 +554,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, UpdateConsumerError, 400)
             }
           } yield {
-            (createCallLimitJson(updatedConsumer), callContext)
+            (createCallLimitJson(updatedConsumer), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }
