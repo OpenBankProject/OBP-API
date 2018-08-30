@@ -298,6 +298,50 @@ object APIBuilder
       }
       """
     
+      
+    val jsonFieldname = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.name.toLowerCase.capitalize
+    
+    val jsonFieldValue =s"List[$jsonFieldname]" // List[Books]
+    val jsonFieldDefaultValue = s"List($jsonFieldname())" //List(Books())
+    
+    
+    val secondLevelFiledNames: List[String] = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.value.asInstanceOf[JsonAST.JArray].children.head.asInstanceOf[JsonAST.JObject].obj.map(_.name)
+    val secondLevelFiledTypes: List[String] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
+           case JField(n, v) => n == key
+         }).map(_.get.value.getClass.getSimpleName.replaceFirst("J","")).toList
+    
+    
+    
+    val secondLevelFiledDefalutValue: List[Any] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
+           case JField(n, v) => n == key
+         }).map(_.get.value.values).toList
+    
+    val SecondLevelCaseFieldNames: List[Term.Param] = { 
+      val fieldNames = for{
+      a <- 0 until secondLevelFiledNames.size
+        } yield Term.Param(Nil, Term.Name(secondLevelFiledNames(a).toLowerCase), Some(Type.Name(secondLevelFiledTypes(a))), Some(Term.Name(s"${secondLevelFiledDefalutValue(a)}")))
+      fieldNames.toList
+    }
+    
+    
+    val traitMethods: List[Decl.Def] =
+    {
+      val fieldNames = for
+        {
+        a <- 0 until secondLevelFiledNames.size
+      } yield Decl.Def(Nil,
+                       Term.Name(secondLevelFiledNames(a).toLowerCase),
+                       Nil, Nil,
+                       Type.Name(s"${secondLevelFiledTypes(a)}")
+        )
+      fieldNames.toList++ List(Decl.Def(Nil,Term.Name("bookId"), Nil, Nil, Type.Name("String")))
+    }
+
+    val self: Self = Self.apply(Name("_"), None)
+    val traitTempl = Template.apply(Nil,Nil, self, traitMethods)
+    val traitModel: Defn.Trait = q"""trait Book {}""".copy(templ = traitTempl)
+    
+    
     val apiSource: Source = source""" 
 /**         
 Open Bank Project - API         
@@ -417,12 +461,7 @@ class MappedBook extends Book with LongKeyedMapper[MappedBook] with IdPK {
 
 object MappedBook extends MappedBook with LongKeyedMetaMapper[MappedBook] {}
  
-trait Book {
-  def bookId : String
-  def author : String
-  def pages : Int
-  def points : Double
-}
+$traitModel
 """
   
     val builderAPIMethodsFile = new File("src/main/scala/code/api/APIBuilder/APIMethods_APIBuilder.scala")
@@ -437,30 +476,7 @@ trait Book {
     * ######################################Json_Factory###################################################
     * ##################################################################################################
     * */
-    
-    val jsonFieldname = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.name.toLowerCase.capitalize
-    
-    val jsonFieldValue =s"List[$jsonFieldname]" // List[Books]
-    val jsonFieldDefaultValue = s"List($jsonFieldname())" //List(Books())
-    
-    
-    val secondLevelFiledNames: List[String] = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.value.asInstanceOf[JsonAST.JArray].children.head.asInstanceOf[JsonAST.JObject].obj.map(_.name)
-    val secondLevelFiledTypes: List[String] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
-           case JField(n, v) => n == key
-         }).map(_.get.value.getClass.getSimpleName.replaceFirst("J","")).toList
-    
-    
-    
-    val secondLevelFiledTypes2: List[Any] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
-           case JField(n, v) => n == key
-         }).map(_.get.value.values).toList
-    
-    val SecondLevelCaseFieldNames: List[Term.Param] = { 
-      val fieldNames = for{
-      a <- 0 until secondLevelFiledNames.size
-        } yield Term.Param(Nil, Term.Name(secondLevelFiledNames(a).toLowerCase), Some(Type.Name(secondLevelFiledTypes(a))), Some(Term.Name(s"${secondLevelFiledTypes2(a)}")))
-      fieldNames.toList
-    } 
+   
     
     
     val RootFiledName = Type.Name("RootInterface")
