@@ -36,11 +36,29 @@ case class Books(
 
 case class RootInterface(books: List[Books] = List(Books()))
 
+case class CreateBookJson( 
+  author: String = """Chinua Achebe""",
+  pages: Int = 209,
+  points: Double = 1.3
+)
+
+case class BookJson( 
+  book_id: String = "123123213",
+  author: String = """Chinua Achebe""",
+  pages: Int = 209,
+  points: Double = 1.3
+)
+
 object JsonFactory_APIBuilder
 {
   
   val books = Books()
   val rootInterface = RootInterface(List(books))
+  val createBookJson = CreateBookJson()
+  
+  def createBook(book: Book) = BookJson(book.bookId,book.author,book.pages,book.points)
+  def createBooks(books: List[Book])= 
+    books.map(book => BookJson(book.bookId,book.author,book.pages,book.points))
   
   val allFields = for (
     v <- this.getClass.getDeclaredFields; 
