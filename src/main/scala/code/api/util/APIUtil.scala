@@ -1967,7 +1967,7 @@ Returns a string showed to the developer
   private def underCallLimits(x: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     import util.LimitCallPeriod._
     import util.LimitCallsUtil._
-    def composeMsg(period: LimitCallPeriod, limit: Long) = ToManyRequests + s"We only allow $limit requests ${LimitCallPeriod.toString(period)} to this Web site per logged in user."
+    def composeMsg(period: LimitCallPeriod, limit: Long) = ToManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} to this Web site per logged in user."
 
     def setXRateLimits(c: Consumer, z: (Long, Long)) = {
       val limit = c.perMinuteCallLimit.get
@@ -1982,30 +1982,30 @@ Returns a string showed to the developer
           case Full(c) =>
             val excededRateLimit = setXRateLimits(c, (0, 3)).map(_.toLight) // Set CalContext in case that Rate Limit is hit
             val checkLimits = List(
-              underConsumerLimits(c.key.get, MINUTELY, c.perMinuteCallLimit.get),
-              underConsumerLimits(c.key.get, HOURLY, c.perHourCallLimit.get),
-              underConsumerLimits(c.key.get, DAILY, c.perDayCallLimit.get),
-              underConsumerLimits(c.key.get, WEEKLY, c.perWeekCallLimit.get),
-              underConsumerLimits(c.key.get, MONTHLY, c.perMonthCallLimit.get)
+              underConsumerLimits(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),
+              underConsumerLimits(c.key.get, PER_HOUR, c.perHourCallLimit.get),
+              underConsumerLimits(c.key.get, PER_DAY, c.perDayCallLimit.get),
+              underConsumerLimits(c.key.get, PER_WEEK, c.perWeekCallLimit.get),
+              underConsumerLimits(c.key.get, PER_MONTH, c.perMonthCallLimit.get)
             )
             checkLimits match {
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(MINUTELY, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(HOURLY, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(DAILY, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(WEEKLY, c.perWeekCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_WEEK, c.perWeekCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(MONTHLY, c.perMonthCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MONTH, c.perMonthCallLimit.get), 429, excededRateLimit)), x._2)
               case _ =>
                 val incrementCounters = List (
-                  incrementConsumerCounters(c.key.get, MINUTELY, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, HOURLY, c.perHourCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, DAILY, c.perDayCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, WEEKLY, c.perWeekCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(c.key.get, MONTHLY, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, PER_HOUR, c.perHourCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, PER_DAY, c.perDayCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, PER_WEEK, c.perWeekCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
                   case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1))
