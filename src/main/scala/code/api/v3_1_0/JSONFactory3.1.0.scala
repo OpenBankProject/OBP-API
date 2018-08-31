@@ -27,11 +27,13 @@ Berlin 13359, Germany
 package code.api.v3_1_0
 
 import java.util.Date
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.BranchRoutingJsonV141
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
+import code.model.Consumer
 
 import scala.collection.immutable.List
 
@@ -119,6 +121,14 @@ case class BadLoginStatusJson(
   last_failure_date : Date
 )
 
+case class CallLimitJson(
+                          per_minute_call_limit : String,
+                          per_hour_call_limit : String,
+                          per_day_call_limit : String,
+                          per_week_call_limit : String,
+                          per_month_call_limit : String
+                        )
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson = 
     checkbookOrders
@@ -145,5 +155,14 @@ object JSONFactory310{
   
   def createBadLoginStatusJson(badLoginStatus: BadLoginAttempt) : BadLoginStatusJson = {
     BadLoginStatusJson(badLoginStatus.username,badLoginStatus.badAttemptsSinceLastSuccessOrReset, badLoginStatus.lastFailureDate)
+  }
+  def createCallLimitJson(consumer: Consumer) : CallLimitJson = {
+    CallLimitJson(
+      consumer.perMinuteCallLimit.get.toString,
+      consumer.perHourCallLimit.get.toString,
+      consumer.perDayCallLimit.get.toString,
+      consumer.perWeekCallLimit.get.toString,
+      consumer.perMonthCallLimit.get.toString
+    )
   }
 }

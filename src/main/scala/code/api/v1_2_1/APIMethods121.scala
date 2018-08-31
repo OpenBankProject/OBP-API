@@ -2126,6 +2126,12 @@ trait APIMethods121 {
       bankId: BankId,
       viewId : ViewId
     ): Box[JsonResponse] = {
+      /**
+        * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * The real value will be assigned by Macro during compile time at this line of a code:
+        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(apiMethods121GetTransactionsTTL millisecond) {

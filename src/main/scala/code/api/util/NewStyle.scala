@@ -3,6 +3,7 @@ package code.api.util
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 
 object NewStyle {
@@ -44,6 +45,17 @@ object NewStyle {
     (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
-    (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString)
+    (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getStatusOfCreditCardOrder), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createCreditLimitOrderRequest), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCreditLimitOrderRequests), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCreditLimitOrderRequestByRequestId), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getTopAPIs), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getMetricsTopConsumers), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getFirehoseCustomers), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getBadLoginStatus), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.unlockUser), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString)
   )
 }

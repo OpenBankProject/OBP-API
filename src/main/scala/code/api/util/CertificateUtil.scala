@@ -65,53 +65,6 @@ object CertificateUtil extends MdcLoggable {
     keyPairGenerator.genKeyPair
   }
 
-  @throws[Exception]
-  def sign(privateKey: PrivateKey, message: String, cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.ENCRYPT_MODE, privateKey)
-    cipher.doFinal(message.getBytes)
-  }
-  @throws[Exception]
-  def encrypt(publicKey: PublicKey, message: String, cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-    cipher.doFinal(message.getBytes)
-  }
-  @throws[Exception]
-  def encrypt(privateKey: PrivateKey, message: String, cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.ENCRYPT_MODE, privateKey)
-    cipher.doFinal(message.getBytes)
-  }
-  @throws[Exception]
-  def decrypt(privateKey: PrivateKey, encrypted: Array[Byte], cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.DECRYPT_MODE, privateKey)
-    cipher.doFinal(encrypted)
-  }
-  @throws[Exception]
-  def decrypt(publicKey: PublicKey, encrypted: Array[Byte], cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.DECRYPT_MODE, publicKey)
-    cipher.doFinal(encrypted)
-  }
-  @throws[Exception]
-  def validate(privateKey: PrivateKey, encrypted: Array[Byte], cryptoSystem: CryptoSystem): Array[Byte] = {
-    val cipher = Cipher.getInstance(cryptoSystem.toString)
-    cipher.init(Cipher.DECRYPT_MODE, privateKey)
-    cipher.doFinal(encrypted)
-  }
-
-  def getClaimSet(jwt: String): JWTClaimsSet = {
-    import com.nimbusds.jose.util.Base64URL
-    import com.nimbusds.jwt.PlainJWT
-    // {"alg":"none"}// {"alg":"none"}
-    val header = "eyJhbGciOiJub25lIn0"
-    val parts: Array[Base64URL] = JOSEObject.split(jwt)
-    val plainJwt = new PlainJWT(new Base64URL(header), (parts(1)))
-    plainJwt.getJWTClaimsSet
-  }
-
   def jwtWithHmacProtection(claimsSet: JWTClaimsSet) = {
     // Create HMAC signer
     val  signer: JWSSigner = new MACSigner(sharedSecret)
@@ -123,7 +76,7 @@ object CertificateUtil extends MdcLoggable {
     // Serialize to compact form, produces something like
     // eyJhbGciOiJIUzI1NiJ9.SGVsbG8sIHdvcmxkIQ.onO9Ihudz3WkiauDO2Uhyuz0Y18UASXlSc1eS0NkWyA
     val s: String = signedJWT.serialize()
-    logger.info("jwtWithHmacProtection: " + s)
+    // logger.info("jwtWithHmacProtection: " + s)
     s
   }
 
@@ -140,7 +93,7 @@ object CertificateUtil extends MdcLoggable {
     import com.nimbusds.jwt.SignedJWT
     val signedJWT: SignedJWT = SignedJWT.parse(jwt)
     val claimsSet = signedJWT.getJWTClaimsSet()
-    logger.debug("signedJWT.getJWTClaimsSet(): " + claimsSet)
+    // logger.debug("signedJWT.getJWTClaimsSet(): " + claimsSet)
     claimsSet
   }
 
@@ -153,8 +106,8 @@ object CertificateUtil extends MdcLoggable {
     val encryptedJWT = new EncryptedJWT(header, jwtClaims)
     // Do the actual encryption
     encryptedJWT.encrypt(encrypter)
-    logger.debug("encryptedJwtWithRsa: " + encryptedJWT.serialize())
-    logger.debug("jwtClaims: " + jwtClaims)
+    // logger.debug("encryptedJwtWithRsa: " + encryptedJWT.serialize())
+    // logger.debug("jwtClaims: " + jwtClaims)
     // Serialise to JWT compact form
     encryptedJWT.serialize()
   }
@@ -167,11 +120,13 @@ object CertificateUtil extends MdcLoggable {
     // Create a decrypter with the specified private RSA key
     val decrypter = new RSADecrypter(privateKey)
     jwtParsed.decrypt(decrypter)
-    logger.debug("encryptedJwtWithRsa: " + encryptedJwtWithRsa)
-    logger.debug("getState: " + jwtParsed.getState)
-    logger.debug("getJWTClaimsSet: " + jwtParsed.getJWTClaimsSet)
+    // logger.debug("encryptedJwtWithRsa: " + encryptedJwtWithRsa)
+    // logger.debug("getState: " + jwtParsed.getState)
+    // logger.debug("getJWTClaimsSet: " + jwtParsed.getJWTClaimsSet)
     jwtParsed.getJWTClaimsSet
   }
+
+
 
   def main(args: Array[String]): Unit = {
     System.out.println("Public key:" + publicKey.getEncoded)
