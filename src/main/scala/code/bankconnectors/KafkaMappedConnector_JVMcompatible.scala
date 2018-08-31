@@ -150,6 +150,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }
 
   def getAccountHolderCached(bankId: BankId, accountId: AccountId) : String = saveConnectorMetric {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getAccountHolderTTL millisecond) {
@@ -168,6 +174,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   //gets banks handled by this connector
   override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getBanksTTL millisecond) {
@@ -209,6 +221,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = saveConnectorMetric {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getBankTTL millisecond){
@@ -243,6 +261,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   //TODO this is not implement in adapter
   override def getUser( username: String, password: String ): Box[InboundUser] = saveConnectorMetric {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString()))(getUserTTL millisecond) {
@@ -284,6 +308,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getUser")
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = saveConnectorMetric {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString()))(updateUserAccountViewsTTL millisecond){
@@ -425,6 +455,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                transactionId: TransactionId,
                                callContext: Option[CallContext] = None): Box[Transaction] =
     saveConnectorMetric {
+      /**
+        * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * The real value will be assigned by Macro during compile time at this line of a code:
+        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString()))(getTransactionTTL millisecond)  {
@@ -499,6 +535,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         
         //TODO this is a quick solution for cache, because of (queryParams: OBPQueryParam*)
         def getTransactionsCached(bankId: BankId, accountId: AccountId, userId : String , loginUser: String): Box[List[Transaction]] =  {
+          /**
+            * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+            * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+            * The real value will be assigned by Macro during compile time at this line of a code:
+            * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+            */
           var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
           CacheKeyFromArguments.buildCacheKey {
             Caching.memoizeSyncWithProvider (Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
@@ -582,6 +624,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                 userId : String,
                                 loginUser: String // added the login user here ,is just for cache
                               ): Box[BankAccount] = {
+        /**
+          * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+          * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+          * The real value will be assigned by Macro during compile time at this line of a code:
+          * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+          */
         var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
         CacheKeyFromArguments.buildCacheKey {
           Caching.memoizeSyncWithProvider (Some(cacheKey.toString()))(getAccountTTL millisecond) {
