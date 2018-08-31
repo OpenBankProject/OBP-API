@@ -462,7 +462,7 @@ trait APIMethods310 {
             u <- unboxFullAndWrapIntoFuture{ user }
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
-            (createBadLoginStatusJson(badLoginStatus), callContext)
+            (createBadLoginStatusJson(badLoginStatus), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }
@@ -535,12 +535,12 @@ trait APIMethods310 {
             }
             postJson <- Future { tryo{json.extract[CallLimitJson]} } map {
               val msg = s"$InvalidJsonFormat The Json body should be the $CallLimitJson "
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, callContext,msg, 400)
+            }
             consumerIdToLong <- Future { tryo{consumerId.toLong} } map {
               val msg = s"$InvalidConsumerId"
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              unboxFullOrFail(_, callContext,msg, 400)
+            }
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
               unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
             }
