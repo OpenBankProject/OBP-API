@@ -7,27 +7,37 @@ import redis.clients.jedis.Jedis
 
 object LimitCallPeriod extends Enumeration {
   type LimitCallPeriod = Value
-  val MINUTELY, HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY = Value
+  val PER_MINUTE, PER_HOUR, PER_DAY, PER_WEEK, PER_MONTH, PER_YEAR = Value
 
   def toSeconds(period: LimitCallPeriod): Long = {
     period match {
-      case MINUTELY => 60
-      case HOURLY   => 60 * 60
-      case DAILY    => 60 * 60 * 24
-      case WEEKLY   => 60 * 60 * 24 * 7
-      case MONTHLY  => 60 * 60 * 24 * 7 * 30
-      case YEARLY   => 60 * 60 * 24 * 7 * 365
+      case PER_MINUTE => 60
+      case PER_HOUR   => 60 * 60
+      case PER_DAY    => 60 * 60 * 24
+      case PER_WEEK   => 60 * 60 * 24 * 7
+      case PER_MONTH  => 60 * 60 * 24 * 7 * 30
+      case PER_YEAR   => 60 * 60 * 24 * 7 * 365
     }
   }
 
   def toString(period: LimitCallPeriod): String = {
     period match {
-      case MINUTELY => "MINUTELY"
-      case HOURLY   => "HOURLY"
-      case DAILY    => "DAILY"
-      case WEEKLY   => "WEEKLY"
-      case MONTHLY  => "MONTHLY"
-      case YEARLY   => "YEARLY"
+      case PER_MINUTE => "PER_MINUTE"
+      case PER_HOUR   => "PER_HOUR"
+      case PER_DAY    => "PER_DAY"
+      case PER_WEEK   => "PER_WEEK"
+      case PER_MONTH  => "PER_MONTH"
+      case PER_YEAR   => "PER_YEAR"
+    }
+  }
+  def humanReadable(period: LimitCallPeriod): String = {
+    period match {
+      case PER_MINUTE => "per minute"
+      case PER_HOUR   => "per hour"
+      case PER_DAY    => "per day"
+      case PER_WEEK   => "per week"
+      case PER_MONTH  => "per month"
+      case PER_YEAR   => "per year"
     }
   }
 }
