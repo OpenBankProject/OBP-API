@@ -25,7 +25,7 @@
       "summary": "Get Book",
       "request_verb": "GET",
       "description": "Return one book. Authentication is Mandatory. ",
-      "request_url": "/my/books/BOOK_ID",
+      "request_url": "/my/books/TEMPLATE_ID",
       "example_request_body": {},
       "success_response_body": {
         "book": {
@@ -55,7 +55,7 @@
       "summary": "Delete Book",
       "request_verb": "DELETE",
       "description": "Delete a book by id. Authentication is Mandatory. ",
-      "request_url": "/my/books/BOOK_ID",
+      "request_url": "/my/books/TEMPLATE_ID",
       "example_request_body": {},
       "success_response_body": true
     }

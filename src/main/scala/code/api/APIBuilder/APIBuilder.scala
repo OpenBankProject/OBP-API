@@ -65,13 +65,21 @@ object APIBuilder
     val createSingleApiAuthentication:Boolean = createSingleApiDescription.contains("Authentication is Mandatory")
     val deleteSingleApiAuthentication:Boolean = deleteSingleApiDescription.contains("Authentication is Mandatory")
     
-    val getApiUrl: String = (getMultipleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
-    val getSingleApiUrl: String = (getSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
-    val createSingleApiUrl: String = (createSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
-    val deleteSingleApiUrl: String = (deleteSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/book
-    val getApiUrlFromJsonFile: String = "/file"+getApiUrl //eg: /my/book
+    val getApiUrl: String = (getMultipleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
+    val getSingleApiUrl: String = (getSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
+    val createSingleApiUrl: String = (createSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
+    val deleteSingleApiUrl: String = (deleteSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
+    val getApiUrlFromJsonFile: String = "/file"+getApiUrl //eg: /my/template
     
-    val getApiResponseBody: JValue= getMultipleApiJValue \\ "success_response_body"
+    val getApiResponseBody: JValue = getMultipleApiJValue \\ "success_response_body"
+    
+    //TODO, this is super important for all the endpoint, this will be used as Model Name Later, for now, only hard code it here.
+    val modelName = "MappedTemplate_"+Math.abs(scala.util.Random.nextLong())
+    val modelTypeName = Type.Name(modelName)
+    val modelTermName = Term.Name(modelName)
+    val modelInit =Init.apply(Type.Name(modelName),Term.Name(modelName),Nil)
+    val modelNameJson = "TemplateJson"//getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.name.toLowerCase.capitalize
+    
     
     val getApiAuthenticationStatement: Term.ApplyInfix = getApiAuthentication match {
       case true => q"cc.user ?~ UserNotLoggedIn"
@@ -94,11 +102,11 @@ object APIBuilder
     }
     
     
-    val getApiUrlVal = q""" "/books" """.copy(s"$getApiUrl")
-    val getSingleApiUrlVal = q""" "/books" """.copy(s"$getSingleApiUrl")
-    val createSingleApiUrlVal = q""" "/books" """.copy(s"$createSingleApiUrl")
-    val deleteSingleApiUrlVal = q""" "/books" """.copy(s"$deleteSingleApiUrl")
-    val getApiUrlFromJsonFileVal = q""" "/books" """.copy(s"$getApiUrlFromJsonFile")
+    val getApiUrlVal = q""" "/templates" """.copy(s"$getApiUrl")
+    val getSingleApiUrlVal = q""" "/templates" """.copy(s"$getSingleApiUrl")
+    val createSingleApiUrlVal = q""" "/templates" """.copy(s"$createSingleApiUrl")
+    val deleteSingleApiUrlVal = q""" "/templates" """.copy(s"$deleteSingleApiUrl")
+    val getApiUrlFromJsonFileVal = q""" "/templates" """.copy(s"$getApiUrlFromJsonFile")
     val getApiSummaryVal = q""" "" """.copy(s"$getApiSummary")
     val getSingleApiSummaryVal = q""" "" """.copy(s"$getSingleApiSummary")
     val createSingleApiSummaryVal = q""" "" """.copy(s"$createSingleApiSummary")
@@ -110,109 +118,109 @@ object APIBuilder
     val deleteSingleApiDescriptionVal = q""" "" """.copy(s"$deleteSingleApiDescription")
     val getApiDescriptionFromJsonFileVal = q""" "" """.copy(s"$getApiDescriptionFromJsonFile")
     
-    val getBookFromJsonFileResourceCode: Term.ApplyInfix = 
+    val getTemplateFromFileResourceCode: Term.ApplyInfix = 
       q"""
         resourceDocs += ResourceDoc(
-          getBooksFromJsonFile, 
+          getTemplatesFromFile, 
           apiVersion, 
-          "getBooksFromJsonFile", 
+          "getTemplatesFromFile", 
           "GET", 
           $getApiUrlFromJsonFileVal, 
           $getApiSummaryFromJsonFileVal, 
           $getApiDescriptionFromJsonFileVal, 
           emptyObjectJson, 
-          rootInterface, 
-          List(UnknownError), 
+          templatesJson, 
+          List(UserNotLoggedIn, UnknownError), 
           Catalogs(notCore, notPSD2, notOBWG), 
           apiTagApiBuilder :: Nil
         )"""
     
-    val getBooksResourceCode: Term.ApplyInfix = 
+    val getTemplatesResourceCode: Term.ApplyInfix = 
       q"""
         resourceDocs += ResourceDoc(
-          getBooks,
+          getTemplates,
           apiVersion,
-          "getBooks",
+          "getTemplates",
           "GET",
           $getApiUrlVal,        
           $getApiSummaryVal,       
           $getApiDescriptionVal,
           emptyObjectJson,
-          rootInterface,
-          List(UnknownError),
+          templatesJson,
+          List(UserNotLoggedIn, UnknownError),
           Catalogs(notCore, notPSD2, notOBWG),
           apiTagApiBuilder :: Nil
         )  
         """
     
-    val getBookResourceCode: Term.ApplyInfix = 
+    val getTemplateResourceCode: Term.ApplyInfix = 
     q"""
       resourceDocs += ResourceDoc(
-        getBook, 
+        getTemplate, 
         apiVersion, 
-        "getBook", 
+        "getTemplate", 
         "GET",
         $getSingleApiUrlVal,
         $getSingleApiSummaryVal,
         $getSingleApiDescriptionVal,
         emptyObjectJson, 
-        createBookJson,
-        List(UnknownError),
+        templateJson,
+        List(UserNotLoggedIn, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG), 
         apiTagApiBuilder :: Nil
       )
     """
     
-    val createBookResourceCode: Term.ApplyInfix = 
+    val createTemplateResourceCode: Term.ApplyInfix = 
     q"""
        resourceDocs += ResourceDoc(
-         createBook, 
+         createTemplate, 
          apiVersion, 
-         "createBook", 
+         "createTemplate", 
          "POST",
          $createSingleApiUrlVal,
          $createSingleApiSummaryVal,
          $createSingleApiDescriptionVal,
-         createBookJson, 
-         createBookJson,
+         createTemplateJson, 
+         templateJson,
          List(UnknownError),
          Catalogs(notCore, notPSD2, notOBWG), 
          apiTagApiBuilder :: Nil
        )
     """
     
-    val deleteBookResourceCode: Term.ApplyInfix = 
+    val deleteTemplateResourceCode: Term.ApplyInfix = 
     q"""
      resourceDocs += ResourceDoc(
-       deleteBook, 
+       deleteTemplate, 
        apiVersion, 
-       "deleteBook", 
+       "deleteTemplate", 
        "DELETE",
        $deleteSingleApiUrlVal,
        $deleteSingleApiSummaryVal,
        $deleteSingleApiDescriptionVal,
        emptyObjectJson, 
-       emptyObjectJson,
-       List(UnknownError),
+       emptyObjectJson.copy("true"),
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        apiTagApiBuilder :: Nil
      )
     """
     
     //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
-    //from "/my/book" --> "my  ::  book" 
+    //from "/my/template" --> "my  ::  template" 
     val getApiUrlLiftFormat = getApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
     val createApiUrlLiftFormat = createSingleApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
     val deleteApiUrlLiftFormat = deleteSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
     val getSingleApiUrlLiftFormat = getSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
-    val getApiUrlLiftweb: Lit.String = q""" "books"  """.copy(getApiUrlLiftFormat)
-    val createApiUrlLiftweb: Lit.String = q""" "books"  """.copy(createApiUrlLiftFormat)
-    val deleteApiUrlLiftweb: Lit.String = q""" "books"  """.copy(deleteApiUrlLiftFormat)
-    val getSingleApiUrlLiftweb: Lit.String = q""" "books"  """.copy(getSingleApiUrlLiftFormat)
+    val getApiUrlLiftweb: Lit.String = q""" "templates"  """.copy(getApiUrlLiftFormat)
+    val createApiUrlLiftweb: Lit.String = q""" "templates"  """.copy(createApiUrlLiftFormat)
+    val deleteApiUrlLiftweb: Lit.String = q""" "templates"  """.copy(deleteApiUrlLiftFormat)
+    val getSingleApiUrlLiftweb: Lit.String = q""" "templates"  """.copy(getSingleApiUrlLiftFormat)
     
     
-    val getBookFromJsonPartialFunction: Defn.Val = q"""
-      lazy val getBooksFromJsonFile: OBPEndpoint = {
+    val getTemplateFromFilePartialFunction: Defn.Val = q"""
+      lazy val getTemplatesFromFile: OBPEndpoint = {
         case ("file" :: $getApiUrlLiftweb :: Nil) JsonGet req =>
           cc => {
             for {
@@ -227,32 +235,32 @@ object APIBuilder
             }
           }
       }"""
-    val getBooksPartialFunction: Defn.Val = q"""
-      lazy val getBooks: OBPEndpoint ={
+    val getTemplatesPartialFunction: Defn.Val = q"""
+      lazy val getTemplates: OBPEndpoint ={
         case ($getApiUrlLiftweb:: Nil) JsonGet req =>
           cc =>
           {
             for{
               u <- $getApiAuthenticationStatement 
-              books <-  APIBuilder_Connector.getBooks
-              booksJson = JsonFactory_APIBuilder.createBooks(books)
-              jsonObject:JValue = decompose(booksJson)
+              templates <-  APIBuilder_Connector.getTemplates
+              templatesJson = JsonFactory_APIBuilder.createTemplates(templates)
+              jsonObject:JValue = decompose(templatesJson)
             }yield{
-                successJsonResponse(jsonObject)
+              successJsonResponse(jsonObject)
             }
           }
       }"""
     
-    val getBookPartialFunction: Defn.Val = q"""
-      lazy val getBook: OBPEndpoint ={
-        case ($getSingleApiUrlLiftweb :: bookId :: Nil) JsonGet _ => {
+    val getTemplatePartialFunction: Defn.Val = q"""
+      lazy val getTemplate: OBPEndpoint ={
+        case ($getSingleApiUrlLiftweb :: templateId :: Nil) JsonGet _ => {
           cc =>
           {
             for{
               u <- $getSingleApiAuthenticationStatement
-              book <- APIBuilder_Connector.getBookById(bookId) ?~! BookNotFound
-              bookJson = JsonFactory_APIBuilder.createBook(book)
-              jsonObject:JValue = decompose(bookJson)
+              template <- APIBuilder_Connector.getTemplateById(templateId) ?~! TemplateNotFound
+              templateJson = JsonFactory_APIBuilder.createTemplate(template)
+              jsonObject:JValue = decompose(templateJson)
             }yield{
               successJsonResponse(jsonObject)
             }
@@ -260,17 +268,17 @@ object APIBuilder
         }
       }"""
     
-    val createBookPartialFunction: Defn.Val = q"""
-      lazy val createBook: OBPEndpoint ={
+    val createTemplatePartialFunction: Defn.Val = q"""
+      lazy val createTemplate: OBPEndpoint ={
         case ($createApiUrlLiftweb:: Nil) JsonPost json -> _ => {
           cc =>
           {
             for{
-              createBookJson <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
+              createTemplateJson <- tryo(json.extract[CreateTemplateJson]) ?~! InvalidJsonFormat
               u <- $createSingleApiAuthenticationStatement
-              book <- APIBuilder_Connector.createBook(createBookJson)
-              bookJson = JsonFactory_APIBuilder.createBook(book)
-              jsonObject:JValue = decompose(bookJson)
+              template <- APIBuilder_Connector.createTemplate(createTemplateJson)
+              templateJson = JsonFactory_APIBuilder.createTemplate(template)
+              jsonObject:JValue = decompose(templateJson)
             }yield{
               successJsonResponse(jsonObject)
             }
@@ -279,14 +287,14 @@ object APIBuilder
       }
       """
     
-    val deleteBookPartialFunction: Defn.Val = q"""
-      lazy val deleteBook: OBPEndpoint ={
-        case ($deleteApiUrlLiftweb :: bookId :: Nil) JsonDelete _ => {
+    val deleteTemplatePartialFunction: Defn.Val = q"""
+      lazy val deleteTemplate: OBPEndpoint ={
+        case ($deleteApiUrlLiftweb :: templateId :: Nil) JsonDelete _ => {
           cc =>
           {
             for{
               u <- $deleteSingleApiAuthenticationStatement
-              deleted <- APIBuilder_Connector.deleteBook(bookId)
+              deleted <- APIBuilder_Connector.deleteTemplate(templateId)
             }yield{
               if(deleted)
                 noContentJsonResponse
@@ -298,69 +306,82 @@ object APIBuilder
       }
       """
     
-      
-    val jsonFieldname = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.name.toLowerCase.capitalize
     
-    val jsonFieldValue =s"List[$jsonFieldname]" // List[Books]
-    val jsonFieldDefaultValue = s"List($jsonFieldname())" //List(Books())
+    val jsonFieldValue =s"List[$modelNameJson]" // List[Templates]
+    val jsonFieldDefaultValue = s"List($modelNameJson())" //List(Templates())
     
-//    List(author, pages, points)
-    val secondLevelFiledNames: List[String] = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.value.asInstanceOf[JsonAST.JArray].children.head.asInstanceOf[JsonAST.JObject].obj.map(_.name)
-//    List(String, Int, Double)
-    val secondLevelFiledTypes: List[String] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
+    //List(author, pages, points)
+    val modelFieldNames: List[String] = getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.value.asInstanceOf[JsonAST.JArray].children.head.asInstanceOf[JsonAST.JObject].obj.map(_.name)
+
+    //List(String, Int, Double)
+    val modelFieldTypes: List[String] = modelFieldNames.map(key => getApiResponseBody.findField{
            case JField(n, v) => n == key
          }).map(_.get.value.getClass.getSimpleName.replaceFirst("J","")).toList
-//    List(Chinua Achebe, 209, 1.3)
-    val secondLevelFiledDefalutValue: List[Any] = secondLevelFiledNames.map(key => getApiResponseBody.findField{
+    
+    //List(Chinua Achebe, 209, 1.3)
+    val modelFieldDefaultValues: List[Any] = modelFieldNames.map(key => getApiResponseBody.findField{
            case JField(n, v) => n == key
          }).map(_.get.value.values).toList
-//    List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
-    val SecondLevelCaseFieldNames: List[Term.Param] = { 
+    
+    
+    //List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
+    val modelCaseClassParams: List[Term.Param] = { 
       val fieldNames = for{
-      a <- 0 until secondLevelFiledNames.size
-        } yield Term.Param(Nil, Term.Name(secondLevelFiledNames(a).toLowerCase), Some(Type.Name(secondLevelFiledTypes(a))), Some(Term.Name(s"${secondLevelFiledDefalutValue(a)}")))
+        i <- 0 until modelFieldNames.size
+        modelFieldName = Term.Name(modelFieldNames(i).toLowerCase)
+        modelFieldType = Type.Name(modelFieldTypes(i))
+        modelFieldDefaultValue =  modelFieldDefaultValues(i) match {
+          case inputDefaultValue: String if(! inputDefaultValue.contains(" "))  => Term.Name(s"`$inputDefaultValue`")
+          case inputDefaultValue => Term.Name(s"$inputDefaultValue")
+        }
+        
+      } yield 
+        Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue))
       fieldNames.toList
     }
     
-//    List(def author: String, def tutor: String, def pages: Int, def points: Double, def bookId: String)
-    val traitMethods: List[Decl.Def] =
+    // List(def author: String, 
+    // def tutor: String, 
+    // def pages: Int, 
+    // def points: Double, 
+    // def templateId: String)
+    val modelTraitMethods: List[Decl.Def] =
     {
       val fieldNames = for
         {
-        a <- 0 until secondLevelFiledNames.size
-      } yield Decl.Def(Nil,
-                       Term.Name(secondLevelFiledNames(a).toLowerCase),
-                       Nil, Nil,
-                       Type.Name(s"${secondLevelFiledTypes(a)}")
-        )
-      fieldNames.toList++ List(Decl.Def(Nil,Term.Name("bookId"), Nil, Nil, Type.Name("String")))
+        i <- 0 until modelFieldNames.size
+        methodName = Term.Name(modelFieldNames(i).toLowerCase)
+        methodType = Type.Name(s"${modelFieldTypes(i)}")
+      } yield 
+          Decl.Def(Nil, methodName, Nil, Nil, methodType)
+      
+      fieldNames.toList++ List(Decl.Def(Nil,Term.Name("templateId"), Nil, Nil, Type.Name("String")))
     }
 
-    val self: Self = Self.apply(Name("_"), None)
+    val modelTraitSelf: Self = Self.apply(Name("_"), None)
     
-//    {
-//      `_` => def author: String
-//        def pages: Int
-//        def points: Double
-//        def bookId: String
-//    }
-    val traitTempl = Template.apply(Nil,Nil, self, traitMethods)
+  //    {
+  //      `_` => def author: String
+  //        def pages: Int
+  //        def points: Double
+  //        def templateId: String
+  //    }
+    val modelTraitImpl = Template.apply(Nil, Nil, modelTraitSelf, modelTraitMethods)
     
-//    trait Book { `_` =>
+//    trait Template { `_` =>
 //      def author: String
 //      def tutor: String
 //      def pages: Int
 //      def points: Double
-//      def bookId: String
+//      def templateId: String
 //    }
-    val traitModel: Defn.Trait = q"""trait Book {}""".copy(templ = traitTempl)
+    val modelTrait: Defn.Trait = q"""trait Template {}""".copy(templ = modelTraitImpl)
     
     
     def mappedString(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedString(this,100) """
     def mappedInt(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedInt(this) """
     def mappedDouble(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedDouble(this) """
     def mappedMethod(methodName: Term.Name,objectName: Term.Name, methodReturnType: Type.Name): Defn.Def = q"""override def $methodName: $methodReturnType = $objectName.get"""
-    
     
     
 //    List(
@@ -371,65 +392,65 @@ object APIBuilder
 //      object mPoints extends MappedDouble(this), 
 //      override def points: Double = mPoints.get
 //    )
-    val mappedClassStatments =
+    val modelClassStatments =
     {
       val fieldNames = for
         {
-        i <- 0 until secondLevelFiledNames.size
-        fieldNameString = secondLevelFiledNames(i)
-        fieldTypeString = secondLevelFiledTypes(i)
+        i <- 0 until modelFieldNames.size
+        fieldNameString = modelFieldNames(i)
+        fieldTypeString = modelFieldTypes(i)
         objectName = Term.Name(s"m${fieldNameString.capitalize}")
         methodName = Term.Name(fieldNameString)
         methodReturnType = Type.Name(fieldTypeString)
-        stat = secondLevelFiledTypes(i) match {
-        case "String" => mappedString(objectName)
-        case "Int" => mappedInt(objectName)
-        case "Double" => mappedDouble(objectName)
-        }
+        stat = modelFieldTypes(i) match {
+          case "String" => mappedString(objectName)
+          case "Int" => mappedInt(objectName)
+          case "Double" => mappedDouble(objectName)
+          }
         methodStat = mappedMethod(methodName,objectName, methodReturnType)
       } yield 
           (stat,methodStat)
       fieldNames.flatMap (x => List(x._1, x._2)).toList
     }
     
-    val MappedModelClass: Defn.Class = q"""
-    class MappedBook extends Book with LongKeyedMapper[MappedBook] with IdPK {
-      def getSingleton = MappedBook
-      object mBookId extends MappedString(this,100)
-      override def bookId: String = mBookId.get
+    val modelClassExample: Defn.Class = q"""
+    class $modelTypeName extends Template with LongKeyedMapper[$modelTypeName] with IdPK {
+      def getSingleton = $modelTermName
+      object mTemplateId extends MappedString(this,100)
+      override def templateId: String = mTemplateId.get
     }"""
     
-//    Book with LongKeyedMapper[MappedBook] with IdPK {
-//      def getSingleton = MappedBook
-//      object mBookId extends MappedString(this, 100)
-//      override def bookId: String = mBookId.get
+//    Template with LongKeyedMapper[MappedTemplate] with IdPK {
+//      def getSingleton = MappedTemplate
+//      object mTemplateId extends MappedString(this, 100)
+//      override def templateId: String = mTemplateId.get
 //    }
-    val allTempls= MappedModelClass.templ
+    val modelClassExampleTempl= modelClassExample.templ
     
-//    Book with LongKeyedMapper[MappedBook] with IdPK {
+//    Template with LongKeyedMapper[MappedTemplate] with IdPK {
 //      override def author: String = mAuthor.get
 //      object mPages extends MappedInt(this)
 //      override def pages: Int = mPages.get
 //      object mPoints extends MappedDouble(this)
 //      override def points: Double = mPoints.get
-//      def getSingleton = MappedBook
-//      object mBookId extends MappedString(this, 100)
-//      override def bookId: String = mBookId.get
+//      def getSingleton = MappedTemplate
+//      object mTemplateId extends MappedString(this, 100)
+//      override def templateId: String = mTemplateId.get
 //    }
-    val newTempls = allTempls.copy(stats = mappedClassStatments++allTempls.stats)
+    val newTempls = modelClassExampleTempl.copy(stats = modelClassStatments++modelClassExampleTempl.stats)
      
-//    class MappedBook extends Book with LongKeyedMapper[MappedBook] with IdPK {
+//    class MappedTemplate extends Template with LongKeyedMapper[MappedTemplate] with IdPK {
 //      object mAuthor extends MappedString(this, 100)
 //      override def author: String = mAuthor.get
 //      object mPages extends MappedInt(this)
 //      override def pages: Int = mPages.get
 //      object mPoints extends MappedDouble(this)
 //      override def points: Double = mPoints.get
-//      def getSingleton = MappedBook
-//      object mBookId extends MappedString(this, 100)
-//      override def bookId: String = mBookId.get
+//      def getSingleton = MappedTemplate
+//      object mTemplateId extends MappedString(this, 100)
+//      override def templateId: String = mTemplateId.get
 //    }
-    val newMappedModelClass = MappedModelClass.copy(templ = newTempls)
+    val modelClass = modelClassExample.copy(templ = newTempls)
     
     
 /*
@@ -437,19 +458,19 @@ object APIBuilder
 * ######################################APIBuilder_Connector###################################################
 * ##################################################################################################
 * */
-    val createMappedBookFields= {
+    val createModelJsonMethodFields= {
       val fieldNames = for{
-        i <- 0 until secondLevelFiledNames.size
-        fieldName = secondLevelFiledNames(i)
+        i <- 0 until modelFieldNames.size
+        fieldName = modelFieldNames(i)
       } 
         yield 
-          Term.Name(s".m${fieldName.capitalize}(createBookJson.${fieldName})")
+          Term.Name(s".m${fieldName.capitalize}(createTemplateJson.${fieldName})")
       fieldNames.toList.mkString("")
     }
 
-    val createMappedBookBody: Term.Apply = q"""MappedBook.create.saveMe()""".copy(fun = Term.Name(s"MappedBook.create.mBookId(UUID.randomUUID().toString)$createMappedBookFields.saveMe"))
+    val createModelJsonMethodBody: Term.Apply = q"""MappedTemplate.create.saveMe()""".copy(fun = Term.Name(s"$modelName.create.mTemplateId(UUID.randomUUID().toString)$createModelJsonMethodFields.saveMe"))
     
-    val createMappedBook: Defn.Def = q"""def createBook(createBookJson: CreateBookJson) = Full($createMappedBookBody)"""
+    val createModelJsonMethod: Defn.Def = q"""def createTemplate(createTemplateJson: CreateTemplateJson) = Full($createModelJsonMethodBody)"""
     
     val apiSource: Source = source""" 
 /**         
@@ -474,25 +495,25 @@ TESOBE Ltd
 Osloerstrasse 16/17         
 Berlin 13359, Germany         
      
-  This product includes software developed at         
-  TESOBE (http://www.tesobe.com/)         
- */   
-package code.api.APIBuilder
+This product includes software developed at         
+TESOBE (http://www.tesobe.com/)         
+*/   
+package code.api.builder
 
 import java.util.UUID
-import scala.collection.immutable.Nil
-import scala.collection.mutable.ArrayBuffer
-import net.liftweb.json
-import net.liftweb.json._
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.common.Full
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.json.Extraction._
+import code.api.builder.JsonFactory_APIBuilder._
+import code.api.util.APIUtil._
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages._
-import code.api.util.APIUtil._
-import code.api.APIBuilder.JsonFactory_APIBuilder._
+import net.liftweb.common.Full
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json
+import net.liftweb.json.Extraction._
+import net.liftweb.json._
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.tryo
+import scala.collection.immutable.Nil
+import scala.collection.mutable.ArrayBuffer
 
 trait APIMethods_APIBuilder
 {
@@ -505,56 +526,56 @@ trait APIMethods_APIBuilder
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
-    val BookNotFound = "OBP-31001: Book not found. Please specify a valid value for BOOK_ID."
+    val TemplateNotFound = "OBP-31001: Template not found. Please specify a valid value for TEMPLATE_ID."
     
-    def endpointsOfBuilderAPI = getBooksFromJsonFile :: getBook :: createBook :: getBooks :: deleteBook :: Nil
+    def endpointsOfBuilderAPI = getTemplatesFromFile :: getTemplate :: createTemplate :: getTemplates :: deleteTemplate :: Nil
     
-    $getBookFromJsonFileResourceCode
-    $getBookFromJsonPartialFunction
+    $getTemplateFromFileResourceCode
+    $getTemplateFromFilePartialFunction
  
-    $getBooksResourceCode
-    $getBooksPartialFunction
+    $getTemplatesResourceCode
+    $getTemplatesPartialFunction
     
-    $getBookResourceCode                           
-    $getBookPartialFunction
+    $getTemplateResourceCode                           
+    $getTemplatePartialFunction
     
-    $createBookResourceCode                           
-    $createBookPartialFunction
+    $createTemplateResourceCode                           
+    $createTemplatePartialFunction
     
-    $deleteBookResourceCode                           
-    $deleteBookPartialFunction
+    $deleteTemplateResourceCode                           
+    $deleteTemplatePartialFunction
   }
 }
 
 object APIBuilder_Connector
 {
-  val allAPIBuilderModels = List(MappedBook)
+  val allAPIBuilderModels = List($modelTermName)
   
-  $createMappedBook;
+  $createModelJsonMethod;
   
-  def getBooks()= Full(MappedBook.findAll())
+  def getTemplates()= Full($modelTermName.findAll())
   
-  def getBookById(bookId: String)= MappedBook.find(By(MappedBook.mBookId, bookId))
+  def getTemplateById(templateId: String)= $modelTermName.find(By($modelTermName.mTemplateId, templateId))
   
-  def deleteBook(bookId: String)= MappedBook.find(By(MappedBook.mBookId, bookId)).map(_.delete_!)
+  def deleteTemplate(templateId: String)= $modelTermName.find(By($modelTermName.mTemplateId, templateId)).map(_.delete_!)
   
 }
 
 import net.liftweb.mapper._
 
-$newMappedModelClass
+$modelClass
 
-object MappedBook extends MappedBook with LongKeyedMetaMapper[MappedBook] {}
+object $modelTermName extends $modelInit with LongKeyedMetaMapper[$modelTypeName] {}
  
-$traitModel
+$modelTrait
 """
   
-    val builderAPIMethodsFile = new File("src/main/scala/code/api/APIBuilder/APIMethods_APIBuilder.scala")
+    val builderAPIMethodsFile = new File("src/main/scala/code/api/builder/APIMethods_APIBuilder.scala")
     builderAPIMethodsFile.getParentFile.mkdirs()
     Files.write(
       builderAPIMethodsFile.toPath,
       apiSource.syntax.replaceAll("""  ::  """,""""  ::  """").getBytes("UTF-8")
-  )
+    )
     
     /*
     * ##################################################################################################
@@ -562,42 +583,36 @@ $traitModel
     * ##################################################################################################
     * */
    
+    //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
+    //Added the templatedId to `modelCaseClassParams`
+    val templateIdField: Term.Param = Term.Param(Nil, Term.Name("templateId"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
+    val templateJsonClassParams = List(templateIdField)++ modelCaseClassParams
     
+    //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
+    val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
     
-    val RootFiledName = Type.Name("RootInterface")
-    val FirstLevelCaseClassFiledName = List(Term.Param(Nil, Term.Name(jsonFieldname.toLowerCase), Some(Type.Name(jsonFieldValue)), Some(Term.Name(jsonFieldDefaultValue))))
-    val SecondLevelCaseClassName = Type.Name(jsonFieldname)
+    //case class Template(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
+    //Note: No `templateId` in this class, the bank no need provide it, obp create a uuid for it.
+    val createTemplateJsonClass: Defn.Class = q"""case class CreateTemplateJson(..$modelCaseClassParams) """
     
-//    case class Books(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
-    val SecondLevelCaseClass: Defn.Class = q"""case class $SecondLevelCaseClassName(..$SecondLevelCaseFieldNames) """
-    val FirstLevelCaseClass: Defn.Class = q"""case class $RootFiledName(..$FirstLevelCaseClassFiledName) """ //case class Test(banks: List[Banks])
-    
-    val bookIdField: Term.Param = Term.Param(Nil, Term.Name("bookId"), Some(Type.Name("String")), Some(Term.Name(s"1234 5678")))
-    val SecondLevelCaseJsonFieldNames = List(bookIdField)++ SecondLevelCaseFieldNames
-    
-    //case class BookJson(bookId: String = """1234 5678""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
-    val SecondLevelJsonCaseClass: Defn.Class = q"""case class BookJson(..$SecondLevelCaseJsonFieldNames) """
-    val createJsonCaseClass: Defn.Class = SecondLevelCaseClass.copy(name = Type.Name("CreateBookJson"))
-    val instanceRootCaseClass: Defn.Val = q"val rootInterface = RootInterface()"
-    
-//  List(book.bookId, book.author, book.tutor, book.pages, book.points)
-    val bookJsonFieldNames: List[Term.Name] = {
+    //List(template.templateId, template.author, template.tutor, template.pages, template.points)
+    val createTemplateJsonArgs: List[Term.Name] = {
       val fieldNames = for{
-        i <- 0 until secondLevelFiledNames.size
+        i <- 0 until modelFieldNames.size
       } 
         yield 
-          Term.Name("book." + secondLevelFiledNames(i))
-      List(Term.Name("book.bookId")) ++ (fieldNames.toList)
+          Term.Name("template." + modelFieldNames(i))
+      List(Term.Name("template.templateId")) ++ (fieldNames.toList)
     }
     
-//  BookJson(book.bookId, book.author, book.tutor, book.pages, book.points)
-    val bookJsonParameter: Term.Apply = q"""BookJson()""".copy(fun = Term.Name("BookJson"), args = bookJsonFieldNames)
+    //TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+    val createTemplateJsonApply: Term.Apply = q"""TemplateJson()""".copy(fun = Term.Name("TemplateJson"), args = createTemplateJsonArgs)
     
-    //def createBook(book: Book) = BookJson(book.bookId, book.author, book.tutor, book.pages, book.points)
-    val createBank: Defn.Def =q"""def createBook(book: Book) = $bookJsonParameter"""
+    //def createTemplate(template: Template) = TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+    val createTemplateDef: Defn.Def =q"""def createTemplate(template: Template) = $createTemplateJsonApply"""
     
-//    def createBooks(books: List[Book]) = books.map(book => BookJson(book.bookId, book.author, book.tutor, book.pages, book.points))
-    val createBanks: Defn.Def = q"""def createBooks(books: List[Book])= books.map(book => $bookJsonParameter)"""
+//    def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
+    val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
     
     val jsonFactorySource: Source =source"""
 /** 
@@ -625,22 +640,20 @@ Berlin 13359, Germany
 This product includes software developed at       
 TESOBE (http://www.tesobe.com/)       
 */     
-
-package code.api.APIBuilder
+package code.api.builder
 import code.api.util.APIUtil
 
-$SecondLevelCaseClass
-$FirstLevelCaseClass
-$SecondLevelJsonCaseClass
-$createJsonCaseClass
+$createTemplateJsonClass
+$TemplateJsonClass
 
 object JsonFactory_APIBuilder{
               
-  val books = Books()
-  val rootInterface = RootInterface(List(books))
-  val createBookJson = CreateBookJson()
-  $createBank;
-  $createBanks;
+  val templateJson = TemplateJson()
+  val templatesJson = List(templateJson)
+  val createTemplateJson = CreateTemplateJson()
+  
+  $createTemplateDef;
+  $createTemplatesDef;
     
   val allFields =
     for (
@@ -653,12 +666,15 @@ object JsonFactory_APIBuilder{
         v.get(this)
       }
 }
-"""
-    val builderJsonFactoryFile = new File("src/main/scala/code/api/APIBuilder/JsonFactory_APIBuilder.scala")
+""" 
+    val builderJsonFactoryFile = new File("src/main/scala/code/api/builder/JsonFactory_APIBuilder.scala")
     builderJsonFactoryFile.getParentFile.mkdirs()
     Files.write(
       builderJsonFactoryFile.toPath,
-      jsonFactorySource.syntax.replaceAll("""`""",""""""""").getBytes("UTF-8")
+      jsonFactorySource.syntax
+        //TODO,maybe fix later ! in scalameta, Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue)) => the default value should be a string in API code.
+        .replaceAll("""`""",""""""""")
+        .getBytes("UTF-8")
     )
     
     println("Congratulations! You make the new APIs. Please restart OBP-API server!")
