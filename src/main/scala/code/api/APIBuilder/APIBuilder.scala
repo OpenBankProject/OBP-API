@@ -189,7 +189,7 @@ object APIBuilder
        "deleteBook", 
        "DELETE",
        $deleteSingleApiUrlVal,
-       $createSingleApiSummaryVal,
+       $deleteSingleApiSummaryVal,
        $deleteSingleApiDescriptionVal,
        emptyObjectJson, 
        emptyObjectJson,
@@ -266,9 +266,9 @@ object APIBuilder
           cc =>
           {
             for{
-              jsonBody <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
+              createBookJson <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
               u <- $createSingleApiAuthenticationStatement
-              book <-  APIBuilder_Connector.createBook(jsonBody.author,jsonBody.pages, jsonBody.points)
+              book <- APIBuilder_Connector.createBook(createBookJson)
               bookJson = JsonFactory_APIBuilder.createBook(book)
               jsonObject:JValue = decompose(bookJson)
             }yield{
@@ -431,6 +431,26 @@ object APIBuilder
 //    }
     val newMappedModelClass = MappedModelClass.copy(templ = newTempls)
     
+    
+/*
+* ##################################################################################################
+* ######################################APIBuilder_Connector###################################################
+* ##################################################################################################
+* */
+    val createMappedBookFields= {
+      val fieldNames = for{
+        i <- 0 until secondLevelFiledNames.size
+        fieldName = secondLevelFiledNames(i)
+      } 
+        yield 
+          Term.Name(s".m${fieldName.capitalize}(createBookJson.${fieldName})")
+      fieldNames.toList.mkString("")
+    }
+
+    val createMappedBookBody: Term.Apply = q"""MappedBook.create.saveMe()""".copy(fun = Term.Name(s"MappedBook.create.mBookId(UUID.randomUUID().toString)$createMappedBookFields.saveMe"))
+    
+    val createMappedBook: Defn.Def = q"""def createBook(createBookJson: CreateBookJson) = Full($createMappedBookBody)"""
+    
     val apiSource: Source = source""" 
 /**         
 Open Bank Project - API         
@@ -510,19 +530,7 @@ object APIBuilder_Connector
 {
   val allAPIBuilderModels = List(MappedBook)
   
-  def createBook(
-    author: String, 
-    pages: Int, 
-    points: Double
-  ) =
-    Full(
-      MappedBook.create
-        .mBookId(UUID.randomUUID().toString)
-        .mAuthor(author)
-        .mPages(pages)
-        .mPoints(points)
-        .saveMe()
-    )
+  $createMappedBook;
   
   def getBooks()= Full(MappedBook.findAll())
   
@@ -569,6 +577,7 @@ $traitModel
     
     //case class BookJson(bookId: String = """1234 5678""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
     val SecondLevelJsonCaseClass: Defn.Class = q"""case class BookJson(..$SecondLevelCaseJsonFieldNames) """
+    val createJsonCaseClass: Defn.Class = SecondLevelCaseClass.copy(name = Type.Name("CreateBookJson"))
     val instanceRootCaseClass: Defn.Val = q"val rootInterface = RootInterface()"
     
 //  List(book.bookId, book.author, book.tutor, book.pages, book.points)
@@ -589,8 +598,6 @@ $traitModel
     
 //    def createBooks(books: List[Book]) = books.map(book => BookJson(book.bookId, book.author, book.tutor, book.pages, book.points))
     val createBanks: Defn.Def = q"""def createBooks(books: List[Book])= books.map(book => $bookJsonParameter)"""
-    
-    val exampleCaseClass = q"""case class BookJson(bookId: String = "abch dsf")"""
     
     val jsonFactorySource: Source =source"""
 /** 
@@ -625,11 +632,7 @@ import code.api.util.APIUtil
 $SecondLevelCaseClass
 $FirstLevelCaseClass
 $SecondLevelJsonCaseClass
-case class CreateBookJson( 
-  author: String = "Chinua Achebe",
-  pages: Int = 209,
-  points: Double = 1.3
-)
+$createJsonCaseClass
 
 object JsonFactory_APIBuilder{
               
