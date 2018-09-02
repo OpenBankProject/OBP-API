@@ -24,22 +24,22 @@ Berlin 13359, Germany
   TESOBE (http://www.tesobe.com/)
  */
 
-package code.api.APIBuilder
+package code.api.builder
 
 import java.util.UUID
-import scala.collection.immutable.Nil
-import scala.collection.mutable.ArrayBuffer
-import net.liftweb.json
-import net.liftweb.json._
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.common.Full
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.json.Extraction._
+import code.api.builder.JsonFactory_APIBuilder._
+import code.api.util.APIUtil._
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages._
-import code.api.util.APIUtil._
-import code.api.APIBuilder.JsonFactory_APIBuilder._
+import net.liftweb.common.Full
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json
+import net.liftweb.json.Extraction._
+import net.liftweb.json._
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.tryo
+import scala.collection.immutable.Nil
+import scala.collection.mutable.ArrayBuffer
 
 trait APIMethods_APIBuilder
 {
@@ -62,7 +62,7 @@ trait APIMethods_APIBuilder
       apiVersion,
       "getBooksFromJsonFile",
       "GET",
-      "/my/good/books",
+      "/file/books",
       "Get Books From Json File",
       "Return All my books in Json ,Authentication is Mandatory",
       emptyObjectJson,
@@ -72,15 +72,18 @@ trait APIMethods_APIBuilder
       apiTagApiBuilder :: Nil
     )
     lazy val getBooksFromJsonFile: OBPEndpoint ={
-      case ("my" :: "good" :: "books" :: Nil) JsonGet req =>
+      case ("file" :: "books" :: Nil) JsonGet req =>
         cc =>
         {
           for{
             u <- cc.user ?~ UserNotLoggedIn;
-            jsonString = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/newAPi-GET.json").mkString;
-            jsonObject: JValue = json.parse(jsonString) \\ "success_response_body"
+            jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/apisResource.json").mkString; 
+            jsonJValueFromFile = json.parse(jsonStringFromFile); 
+            resourceDocsJObject = jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]; 
+            getMethodJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET") && !jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head; 
+            jsonObject = getMethodJValue \\ "success_response_body"
           }yield{
-              successJsonResponse(jsonObject)
+            successJsonResponse(jsonObject)
           }
         }
     }

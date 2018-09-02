@@ -24,7 +24,7 @@ Berlin 13359, Germany
   TESOBE (http://www.tesobe.com/)
  */
 
-package code.api.APIBuilder
+package code.api.builder
 
 import code.api.util.APIUtil
 

@@ -38,7 +38,7 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
-import code.api.APIBuilder.OBP_APIBuilder
+import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
