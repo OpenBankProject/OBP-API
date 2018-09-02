@@ -51,28 +51,28 @@ trait APIMethods_APIBuilder
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-    val BookNotFound = "OBP-31001: Book not found. Please specify a valid value for BOOK_ID."
+    val TemplateNotFound = "OBP-31001: Template not found. Please specify a valid value for TEMPLATE_ID."
     
     implicit val formats = net.liftweb.json.DefaultFormats
     
-    def endpointsOfBuilderAPI = getBooksFromJsonFile :: getBook :: createBook :: getBooks :: deleteBook :: Nil
+    def endpointsOfBuilderAPI = getTemplatesFromFile :: getTemplate :: createTemplate :: getTemplates :: deleteTemplate :: Nil
     
     resourceDocs += ResourceDoc(
-      getBooksFromJsonFile,
+      getTemplatesFromFile,
       apiVersion,
-      "getBooksFromJsonFile",
+      "getTemplatesFromFile",
       "GET",
-      "/file/books",
-      "Get Books From Json File",
-      "Return All my books in Json ,Authentication is Mandatory",
+      "/file/templates",
+      "Get Templates From File",
+      "Return all templates in file, Authentication is Mandatory",
       emptyObjectJson,
-      rootInterface,
-      List(UnknownError),
+      templatesJson,
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )
-    lazy val getBooksFromJsonFile: OBPEndpoint ={
-      case ("file" :: "books" :: Nil) JsonGet req =>
+    lazy val getTemplatesFromFile: OBPEndpoint ={
+      case ("file" :: "templates" :: Nil) JsonGet req =>
         cc =>
         {
           for{
@@ -81,7 +81,7 @@ trait APIMethods_APIBuilder
             jsonJValueFromFile = json.parse(jsonStringFromFile); 
             resourceDocsJObject = jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]; 
             getMethodJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET") && !jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head; 
-            jsonObject = getMethodJValue \\ "success_response_body"
+            jsonObject = getMethodJValue \ "success_response_body"
           }yield{
             successJsonResponse(jsonObject)
           }
@@ -89,57 +89,57 @@ trait APIMethods_APIBuilder
     }
 
     resourceDocs += ResourceDoc(
-      getBooks,
+      getTemplates,
       apiVersion,
-      "getBooks",
+      "getTemplates",
       "GET",
-      "/books",
-      "Get All Books.",
-      "Return All my books, Authentication is Mandatory",
+      "/templates",
+      "Get All Templates.",
+      "Return all templates, Authentication is Mandatory",
       emptyObjectJson,
-      rootInterface,
-      List(UnknownError),
+      templatesJson,
+      List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )
-    lazy val getBooks: OBPEndpoint ={
-      case ("books" :: Nil) JsonGet req =>
+    lazy val getTemplates: OBPEndpoint ={
+      case ("templates" :: Nil) JsonGet req =>
         cc =>
         {
           for{
             u <- cc.user ?~ UserNotLoggedIn
-            books <-  APIBuilder_Connector.getBooks
-            booksJson = JsonFactory_APIBuilder.createBooks(books)
-            jsonObject:JValue = decompose(booksJson)
+            templates <-  APIBuilder_Connector.getTemplates
+            templatesJson = JsonFactory_APIBuilder.createTemplates(templates)
+            jsonObject:JValue = decompose(templatesJson)
           }yield{
-              successJsonResponse(jsonObject)
+            successJsonResponse(jsonObject)
           }
         }
     }
     
     resourceDocs += ResourceDoc(
-      getBook, 
-      apiVersion, 
-      "getBook", 
+      getTemplate,
+      apiVersion,
+      "getTemplate",
       "GET",
-      "/books/BOOK_ID",
-      "Get Book ",
-      "Get a book by Id, Authentication is Mandatory",
-      createBookJson, 
-      rootInterface,
-      List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
+      "/templates/TEMPLATE_ID",
+      "Get Template ",
+      "Get a template by Id, Authentication is Mandatory",
+      emptyObjectJson,
+      templateJson,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )
-    lazy val getBook: OBPEndpoint ={
-      case "books" :: bookId :: Nil JsonGet _ => {
+    lazy val getTemplate: OBPEndpoint ={
+      case "templates" :: templateId :: Nil JsonGet _ => {
         cc =>
         {
           for{
             u <- cc.user ?~ UserNotLoggedIn
-            book <- APIBuilder_Connector.getBookById(bookId) ?~! BookNotFound
-            bookJson = JsonFactory_APIBuilder.createBook(book)
-            jsonObject:JValue = decompose(bookJson)
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! TemplateNotFound
+            templateJson = JsonFactory_APIBuilder.createTemplate(template)
+            jsonObject:JValue = decompose(templateJson)
           }yield{
             successJsonResponse(jsonObject)
           }
@@ -148,29 +148,29 @@ trait APIMethods_APIBuilder
     }
     
     resourceDocs += ResourceDoc(
-      createBook, 
-      apiVersion, 
-      "createBook", 
+      createTemplate,
+      apiVersion,
+      "createTemplate",
       "POST",
-      "/books",
-      "Create Book ",
-      "Create one book, Authentication is Mandatory",
-      createBookJson, 
-      rootInterface,
-      List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
+      "/templates",
+      "Create Template ",
+      "Create one template, Authentication is Mandatory",
+      createTemplateJson,
+      templateJson,
+      List(InvalidJsonFormat,UserNotLoggedIn, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )
-    lazy val createBook: OBPEndpoint ={
-      case "books" :: Nil JsonPost json -> _ => {
+    lazy val createTemplate: OBPEndpoint ={
+      case "templates" :: Nil JsonPost json -> _ => {
         cc =>
         {
           for{
-            jsonBody <- tryo(json.extract[CreateBookJson]) ?~! InvalidJsonFormat
+            createTemplateJson <- tryo(json.extract[CreateTemplateJson]) ?~! InvalidJsonFormat
             u <- cc.user ?~ UserNotLoggedIn
-            book <-  APIBuilder_Connector.createBook(jsonBody.author,jsonBody.pages, jsonBody.points)
-            bookJson = JsonFactory_APIBuilder.createBook(book)
-            jsonObject:JValue = decompose(bookJson)
+            template <-  APIBuilder_Connector.createTemplate(createTemplateJson.author, createTemplateJson.pages, createTemplateJson.points)
+            templateJson = JsonFactory_APIBuilder.createTemplate(template)
+            jsonObject:JValue = decompose(templateJson)
           }yield{
             successJsonResponse(jsonObject)
           }
@@ -179,26 +179,26 @@ trait APIMethods_APIBuilder
     }
     
     resourceDocs += ResourceDoc(
-      deleteBook, 
-      apiVersion, 
-      "deleteBook", 
+      deleteTemplate,
+      apiVersion,
+      "deleteTemplate",
       "DELETE",
-      "/books/BOOK_ID",
-      "Delete Book ",
-      "Delete a book, Authentication is Mandatory",
-      createBookJson, 
-      rootInterface,
-      List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
+      "/templates/TEMPLATE_ID",
+      "Delete Template ",
+      "Delete a template, Authentication is Mandatory",
+      emptyObjectJson,
+      emptyObjectJson.copy("true"),
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )
-    lazy val deleteBook: OBPEndpoint ={
-      case "books" :: bookId :: Nil JsonDelete _ => {
+    lazy val deleteTemplate: OBPEndpoint ={
+      case "templates" :: templateId :: Nil JsonDelete _ => {
         cc =>
         {
           for{
             u <- cc.user ?~ UserNotLoggedIn
-            deleted <- APIBuilder_Connector.deleteBook(bookId)
+            deleted <- APIBuilder_Connector.deleteTemplate(templateId)
           }yield{
             if(deleted)
               noContentJsonResponse
@@ -214,51 +214,51 @@ trait APIMethods_APIBuilder
 
 object APIBuilder_Connector
 {
-  val allAPIBuilderModels = List(MappedBook)
+  val allAPIBuilderModels = List(MappedTemplate)
   
-  def createBook(
+  def createTemplate(
     author: String, 
     pages: Int, 
     points: Double
   ) =
     Full(
-      MappedBook.create
-        .mBookId(UUID.randomUUID().toString)
+      MappedTemplate.create
+        .mTemplateId(UUID.randomUUID().toString)
         .mAuthor(author)
         .mPages(pages)
         .mPoints(points)
         .saveMe()
     )
   
-  def getBooks()= Full(MappedBook.findAll())
+  def getTemplates()= Full(MappedTemplate.findAll())
   
-  def getBookById(bookId: String)= MappedBook.find(By(MappedBook.mBookId, bookId))
+  def getTemplateById(templateId: String)= MappedTemplate.find(By(MappedTemplate.mTemplateId, templateId))
   
-  def deleteBook(bookId: String)= MappedBook.find(By(MappedBook.mBookId, bookId)).map(_.delete_!)
+  def deleteTemplate(templateId: String)= MappedTemplate.find(By(MappedTemplate.mTemplateId, templateId)).map(_.delete_!)
   
 }
 
 import net.liftweb.mapper._
 
-class MappedBook extends Book with LongKeyedMapper[MappedBook] with IdPK {
-  def getSingleton = MappedBook
+class MappedTemplate extends Template with LongKeyedMapper[MappedTemplate] with IdPK {
+  def getSingleton = MappedTemplate
 
-  object mBookId extends MappedString(this,100)
+  object mTemplateId extends MappedString(this,100)
   object mAuthor extends MappedString(this,100)
   object mPages extends MappedInt(this)
   object mPoints extends MappedDouble(this)
 
-  override def bookId: String = mBookId.get
+  override def templateId: String = mTemplateId.get
   override def author: String = mAuthor.get
   override def pages: Int = mPages.get
   override def points: Double = mPoints.get
 }
 
-object MappedBook extends MappedBook with LongKeyedMetaMapper[MappedBook] {
+object MappedTemplate extends MappedTemplate with LongKeyedMetaMapper[MappedTemplate] {
 }
  
-trait Book {
-  def bookId : String
+trait Template {
+  def templateId : String
   def author : String
   def pages : Int
   def points : Double

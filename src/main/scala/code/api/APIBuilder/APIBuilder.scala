@@ -221,7 +221,7 @@ object APIBuilder
               jsonJValueFromFile = json.parse(jsonStringFromFile)
               resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
               getMethodJValue = resourceDocsJObject.filter(jObject => jObject.\("request_verb") == JString("GET")&& !jObject.\("request_url").asInstanceOf[JString].values.contains("_ID")).head
-              jsonObject = getMethodJValue \\ "success_response_body"
+              jsonObject = getMethodJValue \ "success_response_body"
             } yield {
               successJsonResponse(jsonObject)
             }
