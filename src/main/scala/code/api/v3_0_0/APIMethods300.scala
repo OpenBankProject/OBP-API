@@ -794,7 +794,6 @@ trait APIMethods300 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouse)))
-    // TODO Rewrite as New Style Endpoint
     val esw = new elasticsearchWarehouse
     lazy val dataWarehouseSearch: OBPEndpoint = {
       case "search" :: "warehouse" :: index :: Nil JsonPost json -> _ => {
