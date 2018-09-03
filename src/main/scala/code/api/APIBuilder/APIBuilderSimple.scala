@@ -69,22 +69,32 @@ object APIBuilderSimple
     val createSingleApiDescriptionVal = q""" "" """.copy(s"Create One ${modelNameCapitalized}")
     val deleteSingleApiDescriptionVal = q""" "" """.copy(s"Delete One ${modelNameCapitalized}")
     
-    val authenticationStatement: Term.ApplyInfix = true match {
-      case true => q"cc.user ?~ UserNotLoggedIn"
-      case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
-    }
-    
     val errorMessageBody: Lit.String = q""""OBP-31001: Template not found."""".copy(s"OBP-31001: ${modelNameCapitalized} not found. Please specify a valid value for ${modelNameUpperCase}_ID.")
     val errorMessageName: Pat.Var = Pat.Var(Term.Name(s"${modelNameCapitalized}NotFound"))
     val errorMessageVal: Defn.Val = q"""val TemplateNotFound = $errorMessageBody""".copy(pats = List(errorMessageName))
-    val errorMessage: Term.Name = Term.Name(errorMessageVal.pats.head.toString())   
+    val errorMessage: Term.Name = Term.Name(errorMessageVal.pats.head.toString())
+  
+    val getPartialFuncTermName = Term.Name(s"get${modelNameCapitalized}s")
+    val getPartialFuncName = Pat.Var(getPartialFuncTermName)
+    val getSinglePartialFuncTermName = Term.Name(s"get${modelNameCapitalized}")
+    val getSinglePartialFuncName = Pat.Var(getSinglePartialFuncTermName)
+    val createPartialFuncTermName = Term.Name(s"create${modelNameCapitalized}")
+    val createPartialFuncName = Pat.Var(createPartialFuncTermName)
+    val deletePartialFuncTermName = Term.Name(s"delete${modelNameCapitalized}")
+    val deletePartialFuncName = Pat.Var(deletePartialFuncTermName)
+    
+    //implementedApiDefBody: scala.meta.Term.Name = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
+    val implementedApiDefBody= Term.Name(s"${getPartialFuncTermName.value} :: ${getSinglePartialFuncTermName.value} :: ${createPartialFuncTermName.value} :: ${deletePartialFuncTermName.value} :: Nil")
+    //implementedApisDef: scala.meta.Defn.Def = def endpointsOfBuilderAPI = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
+    val implementedApisDef: Defn.Def = q"""def endpointsOfBuilderAPI = $implementedApiDefBody"""
+    
     
     val getTemplatesResourceCode: Term.ApplyInfix = 
       q"""
         resourceDocs += ResourceDoc(
-          getTemplates,
+          $getPartialFuncTermName,
           apiVersion,
-          "getTemplates",
+          ${getPartialFuncTermName.value},
           "GET",
           $getApiUrlVal,        
           $getApiSummaryVal,       
@@ -100,9 +110,9 @@ object APIBuilderSimple
     val getTemplateResourceCode: Term.ApplyInfix = 
     q"""
       resourceDocs += ResourceDoc(
-        getTemplate, 
+        $getSinglePartialFuncTermName, 
         apiVersion, 
-        "getTemplate", 
+        ${getSinglePartialFuncTermName.value}, 
         "GET",
         $getSingleApiUrlVal,
         $getSingleApiSummaryVal,
@@ -118,9 +128,9 @@ object APIBuilderSimple
     val createTemplateResourceCode: Term.ApplyInfix = 
     q"""
        resourceDocs += ResourceDoc(
-         createTemplate, 
+         $createPartialFuncTermName, 
          apiVersion, 
-         "createTemplate", 
+         ${createPartialFuncTermName.value},  
          "POST",
          $createSingleApiUrlVal,
          $createSingleApiSummaryVal,
@@ -136,9 +146,9 @@ object APIBuilderSimple
     val deleteTemplateResourceCode: Term.ApplyInfix = 
     q"""
      resourceDocs += ResourceDoc(
-       deleteTemplate, 
+       $deletePartialFuncTermName, 
        apiVersion, 
-       "deleteTemplate", 
+       ${deletePartialFuncTermName.value},
        "DELETE",
        $deleteSingleApiUrlVal,
        $deleteSingleApiSummaryVal,
@@ -156,9 +166,15 @@ object APIBuilderSimple
     val apiUrlLiftFormat = apiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
     val apiUrlLiftweb: Lit.String = q""" "templates"  """.copy(apiUrlLiftFormat)
     
+    val authenticationStatement: Term.ApplyInfix = true match {
+      case true => q"cc.user ?~ UserNotLoggedIn"
+      case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+    }
+    
+    
     
     val getTemplatesPartialFunction: Defn.Val = q"""
-      lazy val getTemplates: OBPEndpoint ={
+      lazy val $getPartialFuncName: OBPEndpoint ={
         case ($apiUrlLiftweb:: Nil) JsonGet req =>
           cc =>
           {
@@ -174,7 +190,7 @@ object APIBuilderSimple
       }"""
     
     val getTemplatePartialFunction: Defn.Val = q"""
-      lazy val getTemplate: OBPEndpoint ={
+      lazy val $getSinglePartialFuncName: OBPEndpoint ={
         case ($apiUrlLiftweb :: templateId :: Nil) JsonGet _ => {
           cc =>
           {
@@ -191,7 +207,7 @@ object APIBuilderSimple
       }"""
     
     val createTemplatePartialFunction: Defn.Val = q"""
-      lazy val createTemplate: OBPEndpoint ={
+      lazy val $createPartialFuncName: OBPEndpoint ={
         case ($apiUrlLiftweb:: Nil) JsonPost json -> _ => {
           cc =>
           {
@@ -210,7 +226,7 @@ object APIBuilderSimple
       """
     
     val deleteTemplatePartialFunction: Defn.Val = q"""
-      lazy val deleteTemplate: OBPEndpoint ={
+      lazy val $deletePartialFuncName: OBPEndpoint ={
         case ($apiUrlLiftweb :: templateId :: Nil) JsonDelete _ => {
           cc =>
           {
@@ -443,7 +459,7 @@ trait APIMethods_APIBuilder
     implicit val formats = net.liftweb.json.DefaultFormats
     
     $errorMessageVal;
-    def endpointsOfBuilderAPI = getTemplate :: createTemplate :: getTemplates :: deleteTemplate :: Nil
+    $implementedApisDef
     
     $getTemplatesResourceCode
     $getTemplatesPartialFunction
@@ -486,7 +502,12 @@ $modelTrait
     builderAPIMethodsFile.getParentFile.mkdirs()
     Files.write(
       builderAPIMethodsFile.toPath,
-      apiSource.syntax.replaceAll("""  ::  """,""""  ::  """").getBytes("UTF-8")
+      apiSource.syntax
+        //TODO,maybe fix later ! in scalameta, Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue)) => the default value should be a string in API code.
+        .replaceAll("""`""","")
+        .replaceAll("trait Template \\{ _ =>","trait Template \\{ `_` =>")
+        .replaceAll("""  ::  """,""""  ::  """")
+        .getBytes("UTF-8")
     )
     
     /*
