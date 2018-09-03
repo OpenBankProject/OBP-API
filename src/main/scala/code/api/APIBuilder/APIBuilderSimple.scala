@@ -29,6 +29,7 @@ package code.api.APIBuilder
 import java.io.File
 import java.nio.file.Files
 
+import code.api.APIBuilder.APIBuilderSimple.modelFieldsJValue
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.{JValue, JsonAST}
@@ -37,241 +38,267 @@ import scala.meta._
 
 object APIBuilderSimple
 {
-  def main(args: Array[String]): Unit = {
-    val jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/modelSource.json").mkString 
-    val jsonJValueFromFile = json.parse(jsonStringFromFile)
-    val apiUrl= (jsonJValueFromFile \"request_url").asInstanceOf[JString].values //eg: /my/template
-    val modelName = jsonJValueFromFile.asInstanceOf[JObject].obj.map(_.name).filter(_!="request_url").head
-    val getApiResponseBody: JValue = jsonJValueFromFile \ modelName
   
-    val modelNameUpperCase = modelName.toUpperCase
-    val modelNameLowerCase = modelName.toLowerCase
-    val modelNameCapitalized = modelNameLowerCase.capitalize
-    
-    val modelMappedName = s"Mapped${modelNameCapitalized}_"+Math.abs(scala.util.Random.nextLong())
-    val modelTypeName = Type.Name(modelMappedName)
-    val modelTermName = Term.Name(modelMappedName)
-    val modelInit =Init.apply(Type.Name(modelMappedName), Term.Name(modelMappedName), Nil)
-    val modelJsonClassName = s"${modelNameCapitalized}Json"
-    
-    val getApiUrlVal = q""" "/templates" """.copy(s"$apiUrl")
-    val getSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl/${modelNameUpperCase}_ID")
-    val createSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl")
-    val deleteSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl/${modelNameUpperCase}_ID")
-    
-    val getApiSummaryVal = q""" "" """.copy(s"Get ${modelNameCapitalized}s")
-    val getSingleApiSummaryVal = q""" "" """.copy(s"Get ${modelNameCapitalized}")
-    val createSingleApiSummaryVal = q""" "" """.copy(s"Create ${modelNameCapitalized}")
-    val deleteSingleApiSummaryVal = q""" "" """.copy(s"Delete ${modelNameCapitalized}")
+  val jsonStringFromFile: String = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/modelSource.json").mkString 
+  val jsonJValueFromFile: JValue = json.parse(jsonStringFromFile)
+  
+  //"/books"
+  val apiUrl= getApiUrl(jsonJValueFromFile)
+  //"book"
+  val modelName = getModelName(jsonJValueFromFile)
+  
+  val modelFieldsJValue: JValue = jsonJValueFromFile \ modelName
 
-    val getApiDescriptionVal = q""" "" """.copy(s"Return All ${modelNameCapitalized}s")
-    val getSingleApiDescriptionVal = q""" "" """.copy(s"Return One ${modelNameCapitalized} By Id")
-    val createSingleApiDescriptionVal = q""" "" """.copy(s"Create One ${modelNameCapitalized}")
-    val deleteSingleApiDescriptionVal = q""" "" """.copy(s"Delete One ${modelNameCapitalized}")
-    
-    val errorMessageBody: Lit.String = q""""OBP-31001: Template not found."""".copy(s"OBP-31001: ${modelNameCapitalized} not found. Please specify a valid value for ${modelNameUpperCase}_ID.")
-    val errorMessageName: Pat.Var = Pat.Var(Term.Name(s"${modelNameCapitalized}NotFound"))
-    val errorMessageVal: Defn.Val = q"""val TemplateNotFound = $errorMessageBody""".copy(pats = List(errorMessageName))
-    val errorMessage: Term.Name = Term.Name(errorMessageVal.pats.head.toString())
+  //BOOK
+  val modelNameUpperCase = modelName.toUpperCase
+  //book
+  val modelNameLowerCase = modelName.toLowerCase
+  //Book
+  val modelNameCapitalized = modelNameLowerCase.capitalize
   
-    val getPartialFuncTermName = Term.Name(s"get${modelNameCapitalized}s")
-    val getPartialFuncName = Pat.Var(getPartialFuncTermName)
-    val getSinglePartialFuncTermName = Term.Name(s"get${modelNameCapitalized}")
-    val getSinglePartialFuncName = Pat.Var(getSinglePartialFuncTermName)
-    val createPartialFuncTermName = Term.Name(s"create${modelNameCapitalized}")
-    val createPartialFuncName = Pat.Var(createPartialFuncTermName)
-    val deletePartialFuncTermName = Term.Name(s"delete${modelNameCapitalized}")
-    val deletePartialFuncName = Pat.Var(deletePartialFuncTermName)
-    
-    //implementedApiDefBody: scala.meta.Term.Name = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
-    val implementedApiDefBody= Term.Name(s"${getPartialFuncTermName.value} :: ${getSinglePartialFuncTermName.value} :: ${createPartialFuncTermName.value} :: ${deletePartialFuncTermName.value} :: Nil")
-    //implementedApisDef: scala.meta.Defn.Def = def endpointsOfBuilderAPI = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
-    val implementedApisDef: Defn.Def = q"""def endpointsOfBuilderAPI = $implementedApiDefBody"""
-    
-    
-    val getTemplatesResourceCode: Term.ApplyInfix = 
-      q"""
-        resourceDocs += ResourceDoc(
-          $getPartialFuncTermName,
-          apiVersion,
-          ${getPartialFuncTermName.value},
-          "GET",
-          $getApiUrlVal,        
-          $getApiSummaryVal,       
-          $getApiDescriptionVal,
-          emptyObjectJson,
-          templatesJson,
-          List(UserNotLoggedIn, UnknownError),
-          Catalogs(notCore, notPSD2, notOBWG),
-          apiTagApiBuilder :: Nil
-        )  
-        """
-    
-    val getTemplateResourceCode: Term.ApplyInfix = 
+  //MappedBook_6285959801482269169
+  val modelMappedName = s"Mapped${modelNameCapitalized}_"+Math.abs(scala.util.Random.nextLong())
+  val modelTypeName = Type.Name(modelMappedName)
+  val modelTermName = Term.Name(modelMappedName)
+  val modelInit = Init.apply(Type.Name(modelMappedName), Term.Name(modelMappedName), Nil)
+  
+  //BookJson
+  val modelJsonClassName = s"${modelNameCapitalized}Json"
+  
+  //getApiUrlVal: scala.meta.Lit.String = "/books"
+  val getApiUrlVal: Lit.String = Lit.String(s"$apiUrl")
+  //getSingleApiUrlVal: scala.meta.Lit.String = "/books/BOOK_ID"
+  val getSingleApiUrlVal = Lit.String(s"$apiUrl/${modelNameUpperCase}_ID")
+  //createSingleApiUrlVal: scala.meta.Lit.String = "/books"
+  val createSingleApiUrlVal = Lit.String(s"$apiUrl")
+  //deleteSingleApiUrlVal: scala.meta.Lit.String = "/books/BOOK_ID"
+  val deleteSingleApiUrlVal = Lit.String(s"$apiUrl/${modelNameUpperCase}_ID")
+  
+  val getApiSummaryVal: Lit.String = Lit.String(s"Get ${modelNameCapitalized}s")
+  val getSingleApiSummaryVal = Lit.String(s"Get ${modelNameCapitalized}")
+  val createSingleApiSummaryVal = Lit.String(s"Create ${modelNameCapitalized}")
+  val deleteSingleApiSummaryVal = Lit.String(s"Delete ${modelNameCapitalized}")
+
+  val getApiDescriptionVal: Lit.String = Lit.String(s"Return All ${modelNameCapitalized}s")
+  val getSingleApiDescriptionVal = Lit.String(s"Return One ${modelNameCapitalized} By Id")
+  val createSingleApiDescriptionVal = Lit.String(s"Create One ${modelNameCapitalized}")
+  val deleteSingleApiDescriptionVal = Lit.String(s"Delete One ${modelNameCapitalized}")
+  
+  val errorMessageBody: Lit.String = Lit.String(s"OBP-31001: ${modelNameCapitalized} not found. Please specify a valid value for ${modelNameUpperCase}_ID.")
+  val errorMessageName: Pat.Var = Pat.Var(Term.Name(s"${modelNameCapitalized}NotFound"))
+  val errorMessageVal: Defn.Val = q"""val TemplateNotFound = $errorMessageBody""".copy(pats = List(errorMessageName))
+  val errorMessage: Term.Name = Term.Name(errorMessageVal.pats.head.toString())
+
+  val getPartialFuncTermName = Term.Name(s"get${modelNameCapitalized}s")
+  val getPartialFuncName = Pat.Var(getPartialFuncTermName)
+  val getSinglePartialFuncTermName = Term.Name(s"get${modelNameCapitalized}")
+  val getSinglePartialFuncName = Pat.Var(getSinglePartialFuncTermName)
+  val createPartialFuncTermName = Term.Name(s"create${modelNameCapitalized}")
+  val createPartialFuncName = Pat.Var(createPartialFuncTermName)
+  val deletePartialFuncTermName = Term.Name(s"delete${modelNameCapitalized}")
+  val deletePartialFuncName = Pat.Var(deletePartialFuncTermName)
+  
+  //implementedApiDefBody: scala.meta.Term.Name = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
+  val implementedApiDefBody= Term.Name(s"${getPartialFuncTermName.value} :: ${getSinglePartialFuncTermName.value} :: ${createPartialFuncTermName.value} :: ${deletePartialFuncTermName.value} :: Nil")
+  //implementedApisDef: scala.meta.Defn.Def = def endpointsOfBuilderAPI = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
+  val implementedApisDef: Defn.Def = q"""def endpointsOfBuilderAPI = $implementedApiDefBody"""
+  
+  
+  val getTemplatesResourceCode: Term.ApplyInfix = 
     q"""
       resourceDocs += ResourceDoc(
-        $getSinglePartialFuncTermName, 
-        apiVersion, 
-        ${getSinglePartialFuncTermName.value}, 
+        $getPartialFuncTermName,
+        apiVersion,
+        ${getPartialFuncTermName.value},
         "GET",
-        $getSingleApiUrlVal,
-        $getSingleApiSummaryVal,
-        $getSingleApiDescriptionVal,
-        emptyObjectJson, 
-        templateJson,
+        $getApiUrlVal,        
+        $getApiSummaryVal,       
+        $getApiDescriptionVal,
+        emptyObjectJson,
+        templatesJson,
         List(UserNotLoggedIn, UnknownError),
-        Catalogs(notCore, notPSD2, notOBWG), 
+        Catalogs(notCore, notPSD2, notOBWG),
         apiTagApiBuilder :: Nil
-      )
-    """
-    
-    val createTemplateResourceCode: Term.ApplyInfix = 
-    q"""
-       resourceDocs += ResourceDoc(
-         $createPartialFuncTermName, 
-         apiVersion, 
-         ${createPartialFuncTermName.value},  
-         "POST",
-         $createSingleApiUrlVal,
-         $createSingleApiSummaryVal,
-         $createSingleApiDescriptionVal,
-         createTemplateJson, 
-         templateJson,
-         List(UnknownError),
-         Catalogs(notCore, notPSD2, notOBWG), 
-         apiTagApiBuilder :: Nil
-       )
-    """
-    
-    val deleteTemplateResourceCode: Term.ApplyInfix = 
-    q"""
+      )  
+      """
+  
+  val getTemplateResourceCode: Term.ApplyInfix = 
+  q"""
+    resourceDocs += ResourceDoc(
+      $getSinglePartialFuncTermName, 
+      apiVersion, 
+      ${getSinglePartialFuncTermName.value}, 
+      "GET",
+      $getSingleApiUrlVal,
+      $getSingleApiSummaryVal,
+      $getSingleApiDescriptionVal,
+      emptyObjectJson, 
+      templateJson,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG), 
+      apiTagApiBuilder :: Nil
+    )
+  """
+  
+  val createTemplateResourceCode: Term.ApplyInfix = 
+  q"""
      resourceDocs += ResourceDoc(
-       $deletePartialFuncTermName, 
+       $createPartialFuncTermName, 
        apiVersion, 
-       ${deletePartialFuncTermName.value},
-       "DELETE",
-       $deleteSingleApiUrlVal,
-       $deleteSingleApiSummaryVal,
-       $deleteSingleApiDescriptionVal,
-       emptyObjectJson, 
-       emptyObjectJson.copy("true"),
-       List(UserNotLoggedIn, UnknownError),
+       ${createPartialFuncTermName.value},  
+       "POST",
+       $createSingleApiUrlVal,
+       $createSingleApiSummaryVal,
+       $createSingleApiDescriptionVal,
+       createTemplateJson, 
+       templateJson,
+       List(UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        apiTagApiBuilder :: Nil
      )
+  """
+  
+  val deleteTemplateResourceCode: Term.ApplyInfix = 
+  q"""
+   resourceDocs += ResourceDoc(
+     $deletePartialFuncTermName, 
+     apiVersion, 
+     ${deletePartialFuncTermName.value},
+     "DELETE",
+     $deleteSingleApiUrlVal,
+     $deleteSingleApiSummaryVal,
+     $deleteSingleApiDescriptionVal,
+     emptyObjectJson, 
+     emptyObjectJson.copy("true"),
+     List(UserNotLoggedIn, UnknownError),
+     Catalogs(notCore, notPSD2, notOBWG), 
+     apiTagApiBuilder :: Nil
+   )
+  """
+  
+  //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
+  //from "/my/template" --> "my  ::  template" 
+  val apiUrlLiftFormat = apiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
+  val apiUrlLiftweb: Lit.String = q""" "templates"  """.copy(apiUrlLiftFormat)
+  
+  val authenticationStatement: Term.ApplyInfix = true match {
+    case true => q"cc.user ?~ UserNotLoggedIn"
+    case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+  }
+  
+  
+  val getTemplatesPartialFunction: Defn.Val = q"""
+    lazy val $getPartialFuncName: OBPEndpoint ={
+      case ($apiUrlLiftweb:: Nil) JsonGet req =>
+        cc =>
+        {
+          for{
+            u <- $authenticationStatement 
+            templates <- APIBuilder_Connector.getTemplates
+            templatesJson = JsonFactory_APIBuilder.createTemplates(templates)
+            jsonObject:JValue = decompose(templatesJson)
+          }yield{
+            successJsonResponse(jsonObject)
+          }
+        }
+    }"""
+  
+  val getTemplatePartialFunction: Defn.Val = q"""
+    lazy val $getSinglePartialFuncName: OBPEndpoint ={
+      case ($apiUrlLiftweb :: templateId :: Nil) JsonGet _ => {
+        cc =>
+        {
+          for{
+            u <- $authenticationStatement
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
+            templateJson = JsonFactory_APIBuilder.createTemplate(template)
+            jsonObject:JValue = decompose(templateJson)
+          }yield{
+            successJsonResponse(jsonObject)
+          }
+        }
+      }
+    }"""
+  
+  val createTemplatePartialFunction: Defn.Val = q"""
+    lazy val $createPartialFuncName: OBPEndpoint ={
+      case ($apiUrlLiftweb:: Nil) JsonPost json -> _ => {
+        cc =>
+        {
+          for{
+            createTemplateJson <- tryo(json.extract[CreateTemplateJson]) ?~! InvalidJsonFormat
+            u <- $authenticationStatement
+            template <- APIBuilder_Connector.createTemplate(createTemplateJson)
+            templateJson = JsonFactory_APIBuilder.createTemplate(template)
+            jsonObject:JValue = decompose(templateJson)
+          }yield{
+            successJsonResponse(jsonObject)
+          }
+        }
+      }
+    }
     """
-    
-    //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
-    //from "/my/template" --> "my  ::  template" 
-    val apiUrlLiftFormat = apiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
-    val apiUrlLiftweb: Lit.String = q""" "templates"  """.copy(apiUrlLiftFormat)
-    
-    val authenticationStatement: Term.ApplyInfix = true match {
-      case true => q"cc.user ?~ UserNotLoggedIn"
-      case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
+  
+  val deleteTemplatePartialFunction: Defn.Val = q"""
+    lazy val $deletePartialFuncName: OBPEndpoint ={
+      case ($apiUrlLiftweb :: templateId :: Nil) JsonDelete _ => {
+        cc =>
+        {
+          for{
+            u <- $authenticationStatement
+            deleted <- APIBuilder_Connector.deleteTemplate(templateId)
+          }yield{
+            if(deleted)
+              noContentJsonResponse
+            else
+              errorJsonResponse("Delete not completed")
+          }
+        }
+      }
     }
-    
-    
-    
-    val getTemplatesPartialFunction: Defn.Val = q"""
-      lazy val $getPartialFuncName: OBPEndpoint ={
-        case ($apiUrlLiftweb:: Nil) JsonGet req =>
-          cc =>
-          {
-            for{
-              u <- $authenticationStatement 
-              templates <- APIBuilder_Connector.getTemplates
-              templatesJson = JsonFactory_APIBuilder.createTemplates(templates)
-              jsonObject:JValue = decompose(templatesJson)
-            }yield{
-              successJsonResponse(jsonObject)
-            }
-          }
-      }"""
-    
-    val getTemplatePartialFunction: Defn.Val = q"""
-      lazy val $getSinglePartialFuncName: OBPEndpoint ={
-        case ($apiUrlLiftweb :: templateId :: Nil) JsonGet _ => {
-          cc =>
-          {
-            for{
-              u <- $authenticationStatement
-              template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
-              templateJson = JsonFactory_APIBuilder.createTemplate(template)
-              jsonObject:JValue = decompose(templateJson)
-            }yield{
-              successJsonResponse(jsonObject)
-            }
-          }
-        }
-      }"""
-    
-    val createTemplatePartialFunction: Defn.Val = q"""
-      lazy val $createPartialFuncName: OBPEndpoint ={
-        case ($apiUrlLiftweb:: Nil) JsonPost json -> _ => {
-          cc =>
-          {
-            for{
-              createTemplateJson <- tryo(json.extract[CreateTemplateJson]) ?~! InvalidJsonFormat
-              u <- $authenticationStatement
-              template <- APIBuilder_Connector.createTemplate(createTemplateJson)
-              templateJson = JsonFactory_APIBuilder.createTemplate(template)
-              jsonObject:JValue = decompose(templateJson)
-            }yield{
-              successJsonResponse(jsonObject)
-            }
-          }
-        }
-      }
-      """
-    
-    val deleteTemplatePartialFunction: Defn.Val = q"""
-      lazy val $deletePartialFuncName: OBPEndpoint ={
-        case ($apiUrlLiftweb :: templateId :: Nil) JsonDelete _ => {
-          cc =>
-          {
-            for{
-              u <- $authenticationStatement
-              deleted <- APIBuilder_Connector.deleteTemplate(templateId)
-            }yield{
-              if(deleted)
-                noContentJsonResponse
-              else
-                errorJsonResponse("Delete not completed")
-            }
-          }
-        }
-      }
-      """
-    
-    //List(author, pages, points)
-    val modelFieldNames: List[String] = getApiResponseBody.asInstanceOf[JObject].obj.map(_.name) 
+    """
+  
+  def createTemplateJsonClass(className: String, templateJsonClassParams: List[Term.Param]) = q"""case class TemplateJson(..$templateJsonClassParams) """.copy(name = Type.Name(className))
+  
+  def getApiUrl(jsonJValueFromFile: JValue) = (jsonJValueFromFile \"request_url").asInstanceOf[JString].values //eg: /my/template
+  
+  def getModelName(jsonJValueFromFile: JValue) = jsonJValueFromFile.asInstanceOf[JObject].obj.map(_.name).filter(_!="request_url").head
+  
+  def getModelFieldsNames(modelFieldsJValue: JValue)= modelFieldsJValue.asInstanceOf[JObject].obj.map(_.name) 
+  
+  def getModelFieldsTypes(modelFieldsNames: List[String], modelFieldsJValue: JValue)= modelFieldsNames
+    .map(key => modelFieldsJValue.findField{case JField(n, v) => n == key})
+    .map(_.get.value.getClass.getSimpleName.replaceFirst("J",""))
+  
+  def getModelFieldDefaultValues(modelFieldsNames: List[String], modelFieldsJValue: JValue)= modelFieldsNames
+    .map(key => modelFieldsJValue.findField{case JField(n, v) => n == key})
+    .map(_.get.value.values)
+  
+  //List(author, pages, points)
+  val modelFieldsNames: List[String] = getModelFieldsNames(modelFieldsJValue)
 
-    //List(String, Int, Double)
-    val modelFieldTypes: List[String] = modelFieldNames.map(key => getApiResponseBody.findField{
-           case JField(n, v) => n == key
-         }).map(_.get.value.getClass.getSimpleName.replaceFirst("J","")).toList
-    
-    //List(Chinua Achebe, 209, 1.3)
-    val modelFieldDefaultValues: List[Any] = modelFieldNames.map(key => getApiResponseBody.findField{
-           case JField(n, v) => n == key
-         }).map(_.get.value.values).toList
-    
-    //List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
-    val modelCaseClassParams: List[Term.Param] = { 
-      val fieldNames = for{
-        i <- 0 until modelFieldNames.size
-        modelFieldName = Term.Name(modelFieldNames(i).toLowerCase)
-        modelFieldType = Type.Name(modelFieldTypes(i))
-        modelFieldDefaultValue =  modelFieldDefaultValues(i) match {
-          case inputDefaultValue: String if(! inputDefaultValue.contains(" "))  => Term.Name(s"`$inputDefaultValue`")
-          case inputDefaultValue => Term.Name(s"$inputDefaultValue")
-        }
-      } yield 
-        Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue))
-      fieldNames.toList
-    }
-    
+  //List(String, Int, Double)
+  val modelFieldTypes: List[String] = getModelFieldsTypes(modelFieldsNames, modelFieldsJValue)
+  
+  //List(Chinua Achebe, 209, 1.3)
+  val modelFieldDefaultValues: List[Any] = getModelFieldDefaultValues(modelFieldsNames, modelFieldsJValue)
+  
+  //List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
+  val modelCaseClassParams: List[Term.Param] = { 
+    val fieldNames = for{
+      i <- 0 until modelFieldsNames.size
+      modelFieldName = Term.Name(modelFieldsNames(i).toLowerCase)
+      modelFieldType = Type.Name(modelFieldTypes(i))
+      modelFieldDefaultValue =  modelFieldDefaultValues(i) match {
+        case inputDefaultValue: String if(! inputDefaultValue.contains(" "))  => Term.Name(s"`$inputDefaultValue`")
+        case inputDefaultValue => Term.Name(s"$inputDefaultValue")
+      }
+    } yield 
+      Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue))
+    fieldNames.toList
+  }
+  
+  def main(args: Array[String]): Unit = {
     // List(def author: String, 
     // def tutor: String, 
     // def pages: Int, 
@@ -281,8 +308,8 @@ object APIBuilderSimple
     {
       val fieldNames = for
         {
-        i <- 0 until modelFieldNames.size
-        methodName = Term.Name(modelFieldNames(i).toLowerCase)
+        i <- 0 until modelFieldsNames.size
+        methodName = Term.Name(modelFieldsNames(i).toLowerCase)
         methodType = Type.Name(s"${modelFieldTypes(i)}")
       } yield 
           Decl.Def(Nil, methodName, Nil, Nil, methodType)
@@ -328,8 +355,8 @@ object APIBuilderSimple
     {
       val fieldNames = for
         {
-        i <- 0 until modelFieldNames.size
-        fieldNameString = modelFieldNames(i)
+        i <- 0 until modelFieldsNames.size
+        fieldNameString = modelFieldsNames(i)
         fieldTypeString = modelFieldTypes(i)
         objectName = Term.Name(s"m${fieldNameString.capitalize}")
         methodName = Term.Name(fieldNameString)
@@ -391,8 +418,8 @@ object APIBuilderSimple
 * */
     val createModelJsonMethodFields= {
       val fieldNames = for{
-        i <- 0 until modelFieldNames.size
-        fieldName = modelFieldNames(i)
+        i <- 0 until modelFieldsNames.size
+        fieldName = modelFieldsNames(i)
       } 
         yield 
           Term.Name(s".m${fieldName.capitalize}(createTemplateJson.${fieldName})")
@@ -518,7 +545,7 @@ $modelTrait
     //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
     //Added the templatedId to `modelCaseClassParams`
     val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"${modelNameLowerCase}_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
-    val templateJsonClassParams = List(templateIdField)++ modelCaseClassParams
+    val templateJsonClassParams: List[Term.Param] = List(templateIdField)++ modelCaseClassParams
     
     //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
     val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
@@ -530,10 +557,10 @@ $modelTrait
     //List(template.templateId, template.author, template.tutor, template.pages, template.points)
     val createTemplateJsonArgs: List[Term.Name] = {
       val fieldNames = for{
-        i <- 0 until modelFieldNames.size
+        i <- 0 until modelFieldsNames.size
       } 
         yield 
-          Term.Name("template." + modelFieldNames(i))
+          Term.Name("template." + modelFieldsNames(i))
       List(Term.Name("template.templateId")) ++ (fieldNames.toList)
     }
     
