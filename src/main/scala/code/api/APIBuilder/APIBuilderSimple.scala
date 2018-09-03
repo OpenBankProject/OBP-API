@@ -41,39 +41,43 @@ object APIBuilderSimple
     val jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/modelSource.json").mkString 
     val jsonJValueFromFile = json.parse(jsonStringFromFile)
     val apiUrl= (jsonJValueFromFile \"request_url").asInstanceOf[JString].values //eg: /my/template
+    val modelName = jsonJValueFromFile.asInstanceOf[JObject].obj.map(_.name).filter(_!="request_url").head
+    val getApiResponseBody: JValue = jsonJValueFromFile \ modelName
+  
+    val modelNameUpperCase = modelName.toUpperCase
+    val modelNameLowerCase = modelName.toLowerCase
+    val modelNameCapitalized = modelNameLowerCase.capitalize
     
-    
-    val getApiResponseBody: JValue = jsonJValueFromFile \ "book"
-    
-    //TODO, this is super important for all the endpoint, this will be used as Model Name Later, for now, only hard code it here.
-    val modelName = "Book"
-    
-    val modelTalbleName = s"Mapped${modelName}_"+Math.abs(scala.util.Random.nextLong())
-    val modelTypeName = Type.Name(modelTalbleName)
-    val modelTermName = Term.Name(modelTalbleName)
-    val modelInit =Init.apply(Type.Name(modelTalbleName), Term.Name(modelTalbleName), Nil)
-    val modelNameJson = s"${modelName}Json"//getApiResponseBody.children.head.asInstanceOf[JsonAST.JObject].obj.head.name.toLowerCase.capitalize
-    
+    val modelMappedName = s"Mapped${modelNameCapitalized}_"+Math.abs(scala.util.Random.nextLong())
+    val modelTypeName = Type.Name(modelMappedName)
+    val modelTermName = Term.Name(modelMappedName)
+    val modelInit =Init.apply(Type.Name(modelMappedName), Term.Name(modelMappedName), Nil)
+    val modelJsonClassName = s"${modelNameCapitalized}Json"
     
     val getApiUrlVal = q""" "/templates" """.copy(s"$apiUrl")
-    val getSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl/${modelName.toUpperCase}_ID")
+    val getSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl/${modelNameUpperCase}_ID")
     val createSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl")
-    val deleteSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl/${modelName.toUpperCase}_ID")
+    val deleteSingleApiUrlVal = q""" "/templates" """.copy(s"$apiUrl/${modelNameUpperCase}_ID")
     
-    val getApiSummaryVal = q""" "" """.copy(s"Get ${modelName}s")
-    val getSingleApiSummaryVal = q""" "" """.copy(s"Get ${modelName}")
-    val createSingleApiSummaryVal = q""" "" """.copy(s"Create ${modelName}")
-    val deleteSingleApiSummaryVal = q""" "" """.copy(s"Delete ${modelName}")
+    val getApiSummaryVal = q""" "" """.copy(s"Get ${modelNameCapitalized}s")
+    val getSingleApiSummaryVal = q""" "" """.copy(s"Get ${modelNameCapitalized}")
+    val createSingleApiSummaryVal = q""" "" """.copy(s"Create ${modelNameCapitalized}")
+    val deleteSingleApiSummaryVal = q""" "" """.copy(s"Delete ${modelNameCapitalized}")
 
-    val getApiDescriptionVal = q""" "" """.copy(s"Return All ${modelName}s")
-    val getSingleApiDescriptionVal = q""" "" """.copy(s"Return One ${modelName} By Id")
-    val createSingleApiDescriptionVal = q""" "" """.copy(s"Create One ${modelName}")
-    val deleteSingleApiDescriptionVal = q""" "" """.copy(s"Delete One ${modelName}")
+    val getApiDescriptionVal = q""" "" """.copy(s"Return All ${modelNameCapitalized}s")
+    val getSingleApiDescriptionVal = q""" "" """.copy(s"Return One ${modelNameCapitalized} By Id")
+    val createSingleApiDescriptionVal = q""" "" """.copy(s"Create One ${modelNameCapitalized}")
+    val deleteSingleApiDescriptionVal = q""" "" """.copy(s"Delete One ${modelNameCapitalized}")
     
     val authenticationStatement: Term.ApplyInfix = true match {
       case true => q"cc.user ?~ UserNotLoggedIn"
       case false => q"Full(1) ?~ UserNotLoggedIn" //This will not throw error, only a placeholder 
     }
+    
+    val errorMessageBody: Lit.String = q""""OBP-31001: Template not found."""".copy(s"OBP-31001: ${modelNameCapitalized} not found. Please specify a valid value for ${modelNameUpperCase}_ID.")
+    val errorMessageName: Pat.Var = Pat.Var(Term.Name(s"${modelNameCapitalized}NotFound"))
+    val errorMessageVal: Defn.Val = q"""val TemplateNotFound = $errorMessageBody""".copy(pats = List(errorMessageName))
+    val errorMessage: Term.Name = Term.Name(errorMessageVal.pats.head.toString())   
     
     val getTemplatesResourceCode: Term.ApplyInfix = 
       q"""
@@ -160,7 +164,7 @@ object APIBuilderSimple
           {
             for{
               u <- $authenticationStatement 
-              templates <-  APIBuilder_Connector.getTemplates
+              templates <- APIBuilder_Connector.getTemplates
               templatesJson = JsonFactory_APIBuilder.createTemplates(templates)
               jsonObject:JValue = decompose(templatesJson)
             }yield{
@@ -176,7 +180,7 @@ object APIBuilderSimple
           {
             for{
               u <- $authenticationStatement
-              template <- APIBuilder_Connector.getTemplateById(templateId) ?~! TemplateNotFound
+              template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
               templateJson = JsonFactory_APIBuilder.createTemplate(template)
               jsonObject:JValue = decompose(templateJson)
             }yield{
@@ -224,10 +228,6 @@ object APIBuilderSimple
       }
       """
     
-    
-    val jsonFieldValue =s"List[$modelNameJson]" // List[Templates]
-    val jsonFieldDefaultValue = s"List($modelNameJson())" //List(Templates())
-    
     //List(author, pages, points)
     val modelFieldNames: List[String] = getApiResponseBody.asInstanceOf[JObject].obj.map(_.name) 
 
@@ -241,7 +241,6 @@ object APIBuilderSimple
            case JField(n, v) => n == key
          }).map(_.get.value.values).toList
     
-    
     //List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
     val modelCaseClassParams: List[Term.Param] = { 
       val fieldNames = for{
@@ -252,7 +251,6 @@ object APIBuilderSimple
           case inputDefaultValue: String if(! inputDefaultValue.contains(" "))  => Term.Name(s"`$inputDefaultValue`")
           case inputDefaultValue => Term.Name(s"$inputDefaultValue")
         }
-        
       } yield 
         Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue))
       fieldNames.toList
@@ -370,7 +368,6 @@ object APIBuilderSimple
 //    }
     val modelClass = modelClassExample.copy(templ = newTempls)
     
-    
 /*
 * ##################################################################################################
 * ######################################APIBuilder_Connector###################################################
@@ -386,7 +383,7 @@ object APIBuilderSimple
       fieldNames.toList.mkString("")
     }
 
-    val createModelJsonMethodBody: Term.Apply = q"""MappedTemplate.create.saveMe()""".copy(fun = Term.Name(s"$modelTalbleName.create.mTemplateId(UUID.randomUUID().toString)$createModelJsonMethodFields.saveMe"))
+    val createModelJsonMethodBody: Term.Apply = q"""MappedTemplate.create.saveMe()""".copy(fun = Term.Name(s"$modelMappedName.create.mTemplateId(UUID.randomUUID().toString)$createModelJsonMethodFields.saveMe"))
     
     val createModelJsonMethod: Defn.Def = q"""def createTemplate(createTemplateJson: CreateTemplateJson) = Full($createModelJsonMethodBody)"""
     
@@ -444,8 +441,8 @@ trait APIMethods_APIBuilder
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
-    val TemplateNotFound = "OBP-31001: Template not found. Please specify a valid value for TEMPLATE_ID."
     
+    $errorMessageVal;
     def endpointsOfBuilderAPI = getTemplate :: createTemplate :: getTemplates :: deleteTemplate :: Nil
     
     $getTemplatesResourceCode
@@ -497,10 +494,9 @@ $modelTrait
     * ######################################Json_Factory###################################################
     * ##################################################################################################
     * */
-   
     //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
     //Added the templatedId to `modelCaseClassParams`
-    val templateIdField: Term.Param = Term.Param(Nil, Term.Name("template_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
+    val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"${modelNameLowerCase}_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
     val templateJsonClassParams = List(templateIdField)++ modelCaseClassParams
     
     //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
