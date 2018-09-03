@@ -1,5 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
+import java.util.Date
+
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -2692,6 +2694,12 @@ object SwaggerDefinitionsJSON {
   val checkbookOrdersJson = CheckbookOrdersJson(
     account = accountV310Json ,
     orders = List(orderJson)
+  )
+
+  val checkFundsAvailableJson = CheckFundsAvailableJson(
+    "yes",
+    new Date()(),
+    "c4ykz59svsr9b7fmdxk8ezs7"
   )
   
   val cardObjectJson = CardObjectJson(

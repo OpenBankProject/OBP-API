@@ -3,7 +3,7 @@ package code.api.v3_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages._
+import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.JSONFactory310._
@@ -14,6 +14,7 @@ import code.metrics.APIMetrics
 import code.model._
 import code.util.Helper
 import code.views.Views
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers.tryo
 
@@ -555,6 +556,69 @@ trait APIMethods310 {
           } yield {
             (createCallLimitJson(updatedConsumer), callContext.map(_.copy(httpCode = Some(200))))
           }
+      }
+    }
+
+
+
+
+    resourceDocs += ResourceDoc(
+      checkFundsAvailable,
+      implementedInApiVersion,
+      "checkFundsAvailable",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/funds-available",
+      "check available funds",
+      """Check Available Funds
+        |Possible custom URL parameters for pagination:
+        |
+        |* amount=NUMBER ==> default value: 100
+        |* currency=STRING ==> default value: EUR
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      checkFundsAvailableJson,
+      List(UserNotLoggedIn, UnknownError, BankNotFound, BankAccountNotFound, "user does not have access to owner view on account"),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil)
+
+    lazy val checkFundsAvailable : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "funds-available" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- Connector.connector.vend.getBankFuture(bankId) map {
+              unboxFullOrFail(_, callContext, BankNotFound, 400)
+            }
+            account <- Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
+              unboxFullOrFail(_, callContext, BankAccountNotFound, 400)
+            }
+            view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
+              unboxFullOrFail(_, callContext, ViewNotFound, 400)
+            }
+            httpParams: List[HTTPParam] <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            available <- Future {
+              tryo {
+                val value = httpParams.filter(_.name == "amount").map(_.values.head).headOption.getOrElse("100")
+                new java.math.BigDecimal(value)
+              }
+            } map {
+              val msg = s"$InvalidConsumerId"
+              unboxFullOrFail(_, callContext, msg, 400)
+            }
+            _ <- Future {account.moderatedBankAccount(view, user) } map {
+              fullBoxOrException(_)
+            } map { unboxFull(_) }
+          } yield {
+            val currency = httpParams.filter(_.name == "currency").map(_.values.head).headOption
+            val fundsAvailable = if (account.currency == currency.getOrElse("EUR")) {
+              if (account.balance.compare(available) >= 0) "yes" else "no"
+            } else {
+              "no"
+            }
+            (createCheckFundsAvailableJson(fundsAvailable, callContext.map(_.correlationId).getOrElse("")), callContext.map(_.copy(httpCode = Some(200))))
+          }
+
       }
     }
     

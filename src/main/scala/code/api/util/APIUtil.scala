@@ -807,7 +807,9 @@ object APIUtil extends MdcLoggable {
     val verb =  getHttpRequestUrlParam(httpRequestUrl, "verb")
     val correlationId =  getHttpRequestUrlParam(httpRequestUrl, "correlation_id")
     val duration =  getHttpRequestUrlParam(httpRequestUrl, "duration")
-    
+    val currency =  getHttpRequestUrlParam(httpRequestUrl, "currency")
+    val amount =  getHttpRequestUrlParam(httpRequestUrl, "amount")
+
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
     val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names").split(",").toList
@@ -823,7 +825,10 @@ object APIUtil extends MdcLoggable {
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb), 
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
-      HTTPParam("function_name", functionName), HTTPParam("connector_name", connectorName)
+      HTTPParam("function_name", functionName),
+      HTTPParam("currency", currency),
+      HTTPParam("amount", amount),
+      HTTPParam("connector_name", connectorName)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
   

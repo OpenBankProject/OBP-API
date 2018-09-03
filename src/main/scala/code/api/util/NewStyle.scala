@@ -56,6 +56,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getFirehoseCustomers), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getBadLoginStatus), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.unlockUser), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.checkFundsAvailable), ApiVersion.v3_1_0.toString)
   )
 }
