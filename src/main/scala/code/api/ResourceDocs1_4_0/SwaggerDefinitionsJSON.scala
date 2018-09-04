@@ -2698,7 +2698,7 @@ object SwaggerDefinitionsJSON {
 
   val checkFundsAvailableJson = CheckFundsAvailableJson(
     "yes",
-    new Date()(),
+    new Date(),
     "c4ykz59svsr9b7fmdxk8ezs7"
   )
   
