@@ -599,15 +599,16 @@ trait APIMethods310 {
               val currencyCode = httpParams.filter(_.name == "currency").map(_.values.head).headOption.getOrElse("EUR")
               isValidCurrencyISOCode(currencyCode)
             }
-            modAcc <- Future {account.moderatedBankAccount(view, user) } map {
+            _ <- Future {account.moderatedBankAccount(view, user) } map {
               fullBoxOrException(_)
             } map { unboxFull(_) }
           } yield {
             val currency = httpParams.filter(_.name == "currency").map(_.values.head).headOption
-            val fundsAvailable = if (account.currency == currency.getOrElse("EUR")) {
-              if (modAcc.balance.equalsIgnoreCase("") == false && account.balance.compare(available) >= 0) "yes" else "no"
-            } else {
-              "no"
+            val fundsAvailable =  (view.canQueryAvailableFunds, account.balance, account.currency) match {
+              case (false, _, _) => "" // 1st condition: MUST have a view can_query_available_funds
+              case (true, _, c) if c != currency.getOrElse("EUR") => "no" // 2nd condition: Currency has to be matched
+              case (true, b, _) if b.compare(available) >= 0 => "yes" // We have the vew, the right currency and enough funds
+              case _ => "no"
             }
             (createCheckFundsAvailableJson(fundsAvailable, callContext.map(_.correlationId).getOrElse("")), callContext.map(_.copy(httpCode = Some(200))))
           }

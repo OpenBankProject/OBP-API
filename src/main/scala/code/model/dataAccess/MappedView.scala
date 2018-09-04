@@ -114,6 +114,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canSeeBankAccountOwners_(actions.exists(_ == "can_see_bank_account_owners"))
     canSeeBankAccountType_(actions.exists(_ == "can_see_bank_account_type"))
     canSeeBankAccountBalance_(actions.exists(_ == "can_see_bank_account_balance"))
+    canQueryAvailableFunds_(actions.exists(_ == "  val can_query_available_funds: Boolean,"))
     canSeeBankAccountCurrency_(actions.exists(_ == "can_see_bank_account_currency"))
     canSeeBankAccountLabel_(actions.exists(_ == "can_see_bank_account_label"))
     canSeeBankAccountNationalIdentifier_(actions.exists(_ == "can_see_bank_account_national_identifier"))
@@ -245,6 +246,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
   object canSeeBankAccountBalance_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canQueryAvailableFunds_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeBankAccountCurrency_ extends MappedBoolean(this){
@@ -456,6 +460,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeBankAccountType : Boolean = canSeeBankAccountType_.get
   def canSeeBankAccountBalance : Boolean = canSeeBankAccountBalance_.get
   def canSeeBankAccountCurrency : Boolean = canSeeBankAccountCurrency_.get
+  def canQueryAvailableFunds : Boolean = canQueryAvailableFunds_.get
   def canSeeBankAccountLabel : Boolean = canSeeBankAccountLabel_.get
   def canSeeBankAccountNationalIdentifier : Boolean = canSeeBankAccountNationalIdentifier_.get
   def canSeeBankAccountSwift_bic : Boolean = canSeeBankAccountSwift_bic_.get

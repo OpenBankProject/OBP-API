@@ -2296,6 +2296,7 @@ object SwaggerDefinitionsJSON {
     can_delete_where_tag = true,
     can_edit_owner_comment = true,
     can_see_bank_account_balance = true,
+    can_query_available_funds = true,
     can_see_bank_account_bank_name = true,
     can_see_bank_account_currency = true,
     can_see_bank_account_iban = true,

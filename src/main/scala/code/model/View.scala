@@ -249,6 +249,7 @@ trait View {
   def canSeeBankAccountOwners : Boolean
   def canSeeBankAccountType : Boolean
   def canSeeBankAccountBalance : Boolean
+  def canQueryAvailableFunds : Boolean
   def canSeeBankAccountCurrency : Boolean
   def canSeeBankAccountLabel : Boolean
   def canSeeBankAccountNationalIdentifier : Boolean
