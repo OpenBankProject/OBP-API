@@ -94,6 +94,21 @@ class APIBuilderSimpleTest extends FlatSpec with Matchers with MdcLoggable {
     mappedMethod.toString() should be ("override def author: String = mAuthor.get")
   }
   
+  "getModelClassStatements" should "work as expected" in {
+    val modelClassStatements= APIBuilderSimple.getModelClassStatements(modelFieldsNames, modelFieldTypes)
+    modelClassStatements.toString() should be ("List(object mAuthor extends MappedString(this, 100), override def author: String = mAuthor.get, object mPages extends MappedInt(this), override def pages: Int = mPages.get, object mPoints extends MappedDouble(this), override def points: Double = mPoints.get)")
+  }
+  
+  "generateCreateModelJsonMethod" should "work as expected" in {
+    val createModelJsonMethod= APIBuilderSimple.generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
+    createModelJsonMethod.toString() contains ("def createTemplate(createTemplateJson: CreateTemplateJson) = Full(MappedBook_") should be (true)
+    createModelJsonMethod.toString() contains (".create.mTemplateId(UUID.randomUUID().toString).mAuthor(createTemplateJson.author).mPages(createTemplateJson.pages).mPoints(createTemplateJson.points).saveMe())") should be (true)
+  }
+  
+  "generateCreateTemplateJsonApply" should "work as expected" in {
+    val createTemplateJsonApply= APIBuilderSimple.generateCreateTemplateJsonApply(modelFieldsNames)
+    createTemplateJsonApply.toString() should be ("TemplateJson(template.templateId, template.author, template.pages, template.points)") 
+  }
   
   "createTemplateJsonClass" should "work as expected" in {
     val className ="Book"

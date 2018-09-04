@@ -359,24 +359,7 @@ object APIBuilderSimple
     q"""override def $methodName: $methodReturnType = $mappedObject.get"""
   } 
   
-//  object mPages extends MappedInt(this)
-////  def mappedInt(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedInt(this) """
-//  
-//  //object mPoints extends MappedDouble(this)
-//  def mappedDouble(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedDouble(this) """
-  
-  
-  
-  def main(args: Array[String]): Unit = {
-//    List(
-//      object mAuthor extends MappedString(this, 100), 
-//      override def author: String = mAuthor.get, 
-//      object mPages extends MappedInt(this), 
-//      override def pages: Int = mPages.get, 
-//      object mPoints extends MappedDouble(this), 
-//      override def points: Double = mPoints.get
-//    )
-    val modelClassStatments =
+  def getModelClassStatements(modelFieldsNames: List[String], modelFieldTypes: List[String]) =
     {
       val fieldNames = for
         {
@@ -389,65 +372,120 @@ object APIBuilderSimple
           (mappedObject,mappedMethod)
       fieldNames.flatMap (x => List(x._1, x._2)).toList
     }
+  
+  //List(
+  //  object mAuthor extends MappedString(this, 100), 
+  //  override def author: String = mAuthor.get, 
+  //  object mPages extends MappedInt(this), 
+  //  override def pages: Int = mPages.get, 
+  //  object mPoints extends MappedDouble(this), 
+  //  override def points: Double = mPoints.get
+  //)
+  val modelClassStatements = getModelClassStatements(modelFieldsNames, modelFieldTypes)
+  
+  val modelClassExample: Defn.Class = q"""
+  class $modelTypeName extends Template with LongKeyedMapper[$modelTypeName] with IdPK {
+    def getSingleton = $modelTermName
+    object mTemplateId extends MappedString(this,100)
+    override def templateId: String = mTemplateId.get
+  }"""
+  
+  //Template with LongKeyedMapper[MappedTemplate] with IdPK {
+  //  def getSingleton = MappedTemplate
+  //  object mTemplateId extends MappedString(this, 100)
+  //  override def templateId: String = mTemplateId.get
+  //}
+  val modelClassExampleTempl= modelClassExample.templ
+  
+  //Template with LongKeyedMapper[MappedTemplate] with IdPK {
+  //  override def author: String = mAuthor.get
+  //  object mPages extends MappedInt(this)
+  //  override def pages: Int = mPages.get
+  //  object mPoints extends MappedDouble(this)
+  //  override def points: Double = mPoints.get
+  //  def getSingleton = MappedTemplate
+  //  object mTemplateId extends MappedString(this, 100)
+  //  override def templateId: String = mTemplateId.get
+  //}
+  val newTempls = modelClassExampleTempl.copy(stats = modelClassStatements++modelClassExampleTempl.stats)
+   
+  //class MappedTemplate extends Template with LongKeyedMapper[MappedTemplate] with IdPK {
+  //  object mAuthor extends MappedString(this, 100)
+  //  override def author: String = mAuthor.get
+  //  object mPages extends MappedInt(this)
+  //  override def pages: Int = mPages.get
+  //  object mPoints extends MappedDouble(this)
+  //  override def points: Double = mPoints.get
+  //  def getSingleton = MappedTemplate
+  //  object mTemplateId extends MappedString(this, 100)
+  //  override def templateId: String = mTemplateId.get
+  //}
+  val modelClass = modelClassExample.copy(templ = newTempls)
+  
+  
+  //def createTemplate(createTemplateJson: CreateTemplateJson) = 
+  // Full(MappedBook_2145180497484573086.create
+  // .mTemplateId(UUID.randomUUID().toString)
+  // .mAuthor(createTemplateJson.author)
+  // .mPages(createTemplateJson.pages)
+  // .mPoints(createTemplateJson.points)
+  // .saveMe())"
+  def generateCreateModelJsonMethod(modelFieldsNames: List[String], modelMappedName: String)= {
+    val fieldNames = for {
+      i <- 0 until modelFieldsNames.size
+      fieldName = modelFieldsNames(i)
+    } yield 
+      Term.Name(s".m${fieldName.capitalize}(createTemplateJson.${fieldName})")
     
-    val modelClassExample: Defn.Class = q"""
-    class $modelTypeName extends Template with LongKeyedMapper[$modelTypeName] with IdPK {
-      def getSingleton = $modelTermName
-      object mTemplateId extends MappedString(this,100)
-      override def templateId: String = mTemplateId.get
-    }"""
-    
-//    Template with LongKeyedMapper[MappedTemplate] with IdPK {
-//      def getSingleton = MappedTemplate
-//      object mTemplateId extends MappedString(this, 100)
-//      override def templateId: String = mTemplateId.get
-//    }
-    val modelClassExampleTempl= modelClassExample.templ
-    
-//    Template with LongKeyedMapper[MappedTemplate] with IdPK {
-//      override def author: String = mAuthor.get
-//      object mPages extends MappedInt(this)
-//      override def pages: Int = mPages.get
-//      object mPoints extends MappedDouble(this)
-//      override def points: Double = mPoints.get
-//      def getSingleton = MappedTemplate
-//      object mTemplateId extends MappedString(this, 100)
-//      override def templateId: String = mTemplateId.get
-//    }
-    val newTempls = modelClassExampleTempl.copy(stats = modelClassStatments++modelClassExampleTempl.stats)
-     
-//    class MappedTemplate extends Template with LongKeyedMapper[MappedTemplate] with IdPK {
-//      object mAuthor extends MappedString(this, 100)
-//      override def author: String = mAuthor.get
-//      object mPages extends MappedInt(this)
-//      override def pages: Int = mPages.get
-//      object mPoints extends MappedDouble(this)
-//      override def points: Double = mPoints.get
-//      def getSingleton = MappedTemplate
-//      object mTemplateId extends MappedString(this, 100)
-//      override def templateId: String = mTemplateId.get
-//    }
-    val modelClass = modelClassExample.copy(templ = newTempls)
-    
-/*
-* ##################################################################################################
-* ######################################APIBuilder_Connector###################################################
-* ##################################################################################################
-* */
-    val createModelJsonMethodFields= {
-      val fieldNames = for{
-        i <- 0 until modelFieldsNames.size
-        fieldName = modelFieldsNames(i)
-      } 
-        yield 
-          Term.Name(s".m${fieldName.capitalize}(createTemplateJson.${fieldName})")
-      fieldNames.toList.mkString("")
-    }
+    val createModelJsonMethodFields = fieldNames.toList.mkString("")
 
     val createModelJsonMethodBody: Term.Apply = q"""MappedTemplate.create.saveMe()""".copy(fun = Term.Name(s"$modelMappedName.create.mTemplateId(UUID.randomUUID().toString)$createModelJsonMethodFields.saveMe"))
     
-    val createModelJsonMethod: Defn.Def = q"""def createTemplate(createTemplateJson: CreateTemplateJson) = Full($createModelJsonMethodBody)"""
+    q"""def createTemplate(createTemplateJson: CreateTemplateJson) = Full($createModelJsonMethodBody)""" 
+  }
+  
+  val createModelJsonMethod: Defn.Def = generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
+  
+  // TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  def generateCreateTemplateJsonApply(modelFieldsNames: List[String]): Term.Apply = {
+    val fieldNames = for{
+      i <- 0 until modelFieldsNames.size
+    } yield 
+      Term.Name("template." + modelFieldsNames(i))
     
+   //List(template.templateId, template.author, template.tutor, template.pages, template.points)
+    val createTemplateJsonArgs =  List(Term.Name("template.templateId")) ++ (fieldNames.toList)
+    
+    q"""TemplateJson()""".copy(fun = Term.Name("TemplateJson"), args = createTemplateJsonArgs) 
+  }
+  
+  //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
+  //Added the templatedId to `modelCaseClassParams`
+  val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"${modelNameLowerCase}_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
+  val templateJsonClassParams: List[Term.Param] = List(templateIdField)++ modelCaseClassParams
+  
+  //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
+  val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
+  
+  //case class Template(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
+  //Note: No `templateId` in this class, the bank no need provide it, obp create a uuid for it.
+  val createTemplateJsonClass: Defn.Class = q"""case class CreateTemplateJson(..$modelCaseClassParams) """
+  
+  //TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateJsonApply: Term.Apply = generateCreateTemplateJsonApply(modelFieldsNames)
+  
+  //def createTemplate(template: Template) = TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateDef: Defn.Def =q"""def createTemplate(template: Template) = $createTemplateJsonApply"""
+  
+  //def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
+  val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
+    
+  def main(args: Array[String]): Unit = {
+    /*
+     * ##################################################################################################
+     * ######################################APIMethods_APIBuilder.scala###################################################
+     * ##################################################################################################
+     * */
     val apiSource: Source = source""" 
 /**         
 Open Bank Project - API         
@@ -542,7 +580,6 @@ object $modelTermName extends $modelInit with LongKeyedMetaMapper[$modelTypeName
  
 $modelTrait
 """
-  
     val builderAPIMethodsFile = new File("src/main/scala/code/api/builder/APIMethods_APIBuilder.scala")
     builderAPIMethodsFile.getParentFile.mkdirs()
     Files.write(
@@ -556,41 +593,10 @@ $modelTrait
     )
     
     /*
-    * ##################################################################################################
-    * ######################################Json_Factory###################################################
-    * ##################################################################################################
-    * */
-    //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
-    //Added the templatedId to `modelCaseClassParams`
-    val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"${modelNameLowerCase}_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
-    val templateJsonClassParams: List[Term.Param] = List(templateIdField)++ modelCaseClassParams
-    
-    //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
-    val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
-    
-    //case class Template(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
-    //Note: No `templateId` in this class, the bank no need provide it, obp create a uuid for it.
-    val createTemplateJsonClass: Defn.Class = q"""case class CreateTemplateJson(..$modelCaseClassParams) """
-    
-    //List(template.templateId, template.author, template.tutor, template.pages, template.points)
-    val createTemplateJsonArgs: List[Term.Name] = {
-      val fieldNames = for{
-        i <- 0 until modelFieldsNames.size
-      } 
-        yield 
-          Term.Name("template." + modelFieldsNames(i))
-      List(Term.Name("template.templateId")) ++ (fieldNames.toList)
-    }
-    
-    //TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
-    val createTemplateJsonApply: Term.Apply = q"""TemplateJson()""".copy(fun = Term.Name("TemplateJson"), args = createTemplateJsonArgs)
-    
-    //def createTemplate(template: Template) = TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
-    val createTemplateDef: Defn.Def =q"""def createTemplate(template: Template) = $createTemplateJsonApply"""
-    
-//    def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
-    val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
-    
+     * ##################################################################################################
+     * ######################################JsonFactory_APIBuilder.scala###################################################
+     * ##################################################################################################
+     * */
     val jsonFactorySource: Source =source"""
 /** 
 Open Bank Project - API       
