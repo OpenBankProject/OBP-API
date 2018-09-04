@@ -129,6 +129,8 @@ object ErrorMessages {
   val Oauth2BadJWTException = "OBP-20204: Bad JWT error. "
   val Oauth2ParseException = "OBP-20205: Parse error. "
 
+  val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
+
 
 
 

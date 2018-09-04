@@ -587,32 +587,25 @@ trait APIMethods310 {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Connector.connector.vend.getBankFuture(bankId) map {
-              unboxFullOrFail(_, callContext, BankNotFound, 400)
-            }
-            account <- Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
-              unboxFullOrFail(_, callContext, BankAccountNotFound, 400)
-            }
-            view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-              unboxFullOrFail(_, callContext, ViewNotFound, 400)
-            }
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             httpParams: List[HTTPParam] <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
-            available <- Future {
-              tryo {
-                val value = httpParams.filter(_.name == "amount").map(_.values.head).headOption.getOrElse("100")
-                new java.math.BigDecimal(value)
-              }
-            } map {
-              val msg = s"$InvalidConsumerId"
-              unboxFullOrFail(_, callContext, msg, 400)
+            available <- NewStyle.function.tryons(s"$InvalidAmount", 400, callContext) {
+              val value = httpParams.filter(_.name == "amount").map(_.values.head).headOption.getOrElse("100")
+              new java.math.BigDecimal(value)
             }
-            _ <- Future {account.moderatedBankAccount(view, user) } map {
+            _ <- Helper.booleanToFuture(failMsg = InvalidISOCurrencyCode) {
+              val currencyCode = httpParams.filter(_.name == "currency").map(_.values.head).headOption.getOrElse("EUR")
+              isValidCurrencyISOCode(currencyCode)
+            }
+            modAcc <- Future {account.moderatedBankAccount(view, user) } map {
               fullBoxOrException(_)
             } map { unboxFull(_) }
           } yield {
             val currency = httpParams.filter(_.name == "currency").map(_.values.head).headOption
             val fundsAvailable = if (account.currency == currency.getOrElse("EUR")) {
-              if (account.balance.compare(available) >= 0) "yes" else "no"
+              if (modAcc.balance.equalsIgnoreCase("") == false && account.balance.compare(available) >= 0) "yes" else "no"
             } else {
               "no"
             }
