@@ -443,47 +443,7 @@ object APIBuilderModel
   
   val createModelJsonMethod: Defn.Def = generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
   
-  // TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
-  def generateCreateTemplateJsonApply(modelFieldsNames: List[String]): Term.Apply = {
-    val fieldNames = for{
-      i <- 0 until modelFieldsNames.size
-    } yield 
-      Term.Name("template." + modelFieldsNames(i))
-    
-   //List(template.templateId, template.author, template.tutor, template.pages, template.points)
-    val createTemplateJsonArgs =  List(Term.Name("template.templateId")) ++ (fieldNames.toList)
-    
-    q"""TemplateJson()""".copy(fun = Term.Name("TemplateJson"), args = createTemplateJsonArgs) 
-  }
-  
-  //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
-  //Added the templatedId to `modelCaseClassParams`
-  val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"${modelNameLowerCase}_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
-  val templateJsonClassParams: List[Term.Param] = List(templateIdField)++ modelCaseClassParams
-  
-  //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
-  val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
-  
-  //case class Template(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
-  //Note: No `templateId` in this class, the bank no need provide it, obp create a uuid for it.
-  val createTemplateJsonClass: Defn.Class = q"""case class CreateTemplateJson(..$modelCaseClassParams) """
-  
-  //TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
-  val createTemplateJsonApply: Term.Apply = generateCreateTemplateJsonApply(modelFieldsNames)
-  
-  //def createTemplate(template: Template) = TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
-  val createTemplateDef: Defn.Def =q"""def createTemplate(template: Template) = $createTemplateJsonApply"""
-  
-  //def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
-  val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
-    
-  def main(args: Array[String]): Unit = {
-    /*
-     * ##################################################################################################
-     * ######################################APIMethods_APIBuilder.scala###################################################
-     * ##################################################################################################
-     * */
-    val apiSource: Source = source""" 
+  val apiSource: Source = source""" 
 /**         
 Open Bank Project - API         
 Copyright (C) 2011-2018, TESOBE Ltd         
@@ -577,24 +537,46 @@ object $modelTermName extends $modelInit with LongKeyedMetaMapper[$modelTypeName
  
 $modelTrait
 """
-    val builderAPIMethodsFile = new File("src/main/scala/code/api/builder/APIMethods_APIBuilder.scala")
-    builderAPIMethodsFile.getParentFile.mkdirs()
-    Files.write(
-      builderAPIMethodsFile.toPath,
-      apiSource.syntax
-        //TODO,maybe fix later ! in scalameta, Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue)) => the default value should be a string in API code.
-        .replaceAll("""`""","")
-        .replaceAll("trait Template \\{ _ =>","trait Template \\{ `_` =>")
-        .replaceAll("""  ::  """,""""  ::  """")
-        .getBytes("UTF-8")
-    )
+  
+  
+  /*
+   * ######################################JsonFactory_APIBuilder.scala###################################################
+   * */
+  // TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  def generateCreateTemplateJsonApply(modelFieldsNames: List[String]): Term.Apply = {
+    val fieldNames = for{
+      i <- 0 until modelFieldsNames.size
+    } yield 
+      Term.Name("template." + modelFieldsNames(i))
     
-    /*
-     * ##################################################################################################
-     * ######################################JsonFactory_APIBuilder.scala###################################################
-     * ##################################################################################################
-     * */
-    val jsonFactorySource: Source =source"""
+   //List(template.templateId, template.author, template.tutor, template.pages, template.points)
+    val createTemplateJsonArgs =  List(Term.Name("template.templateId")) ++ (fieldNames.toList)
+    
+    q"""TemplateJson()""".copy(fun = Term.Name("TemplateJson"), args = createTemplateJsonArgs) 
+  }
+  
+  //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
+  //Added the templatedId to `modelCaseClassParams`
+  val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"${modelNameLowerCase}_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
+  val templateJsonClassParams: List[Term.Param] = List(templateIdField)++ modelCaseClassParams
+  
+  //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
+  val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
+  
+  //case class Template(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
+  //Note: No `templateId` in this class, the bank no need provide it, obp create a uuid for it.
+  val createTemplateJsonClass: Defn.Class = q"""case class CreateTemplateJson(..$modelCaseClassParams) """
+  
+  //TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateJsonApply: Term.Apply = generateCreateTemplateJsonApply(modelFieldsNames)
+  
+  //def createTemplate(template: Template) = TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateDef: Defn.Def =q"""def createTemplate(template: Template) = $createTemplateJsonApply"""
+  
+  //def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
+  val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
+    
+  val jsonFactorySource: Source =source"""
 /** 
 Open Bank Project - API       
 Copyright (C) 2011-2018, TESOBE Ltd       
@@ -647,6 +629,26 @@ object JsonFactory_APIBuilder{
       }
 }
 """ 
+  
+  def main(args: Array[String]): Unit = {
+    /*
+     * ######################################APIMethods_APIBuilder.scala###################################################
+     * */
+    val builderAPIMethodsFile = new File("src/main/scala/code/api/builder/APIMethods_APIBuilder.scala")
+    builderAPIMethodsFile.getParentFile.mkdirs()
+    Files.write(
+      builderAPIMethodsFile.toPath,
+      apiSource.syntax
+        //TODO,maybe fix later ! in scalameta, Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue)) => the default value should be a string in API code.
+        .replaceAll("""`""","")
+        .replaceAll("trait Template \\{ _ =>","trait Template \\{ `_` =>")
+        .replaceAll("""  ::  """,""""  ::  """")
+        .getBytes("UTF-8")
+    )
+    
+    /*
+     * ######################################JsonFactory_APIBuilder.scala###################################################
+     * */
     val builderJsonFactoryFile = new File("src/main/scala/code/api/builder/JsonFactory_APIBuilder.scala")
     builderJsonFactoryFile.getParentFile.mkdirs()
     Files.write(
