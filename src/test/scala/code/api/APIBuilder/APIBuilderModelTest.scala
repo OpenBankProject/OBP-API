@@ -30,83 +30,82 @@ import code.util.Helper.MdcLoggable
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.meta.{Decl, Defn, Term, Type}
-import APIBuilderSimple._
+import APIBuilderModel._
 
-class APIBuilderSimpleTest extends FlatSpec with Matchers with MdcLoggable {
-  
+class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   
   "getApiUrl" should "work as expected" in {
-    val apiUrl: String = APIBuilderSimple.getApiUrl(jsonJValueFromFile)
+    val apiUrl: String = APIBuilderModel.getApiUrl(jsonJValueFromFile)
     apiUrl should be ("/books")
   }
   
   "getModelName" should "work as expected" in {
-    val apiUrl: String = APIBuilderSimple.getModelName(jsonJValueFromFile)
+    val apiUrl: String = APIBuilderModel.getModelName(jsonJValueFromFile)
     apiUrl should be ("book")
   }
   
   "getModelFieldsNames" should "work as expected" in {
-    val modelFieldsNames: List[String] = APIBuilderSimple.getModelFieldsNames(modelFieldsJValue)
+    val modelFieldsNames: List[String] = APIBuilderModel.getModelFieldsNames(modelFieldsJValue)
     modelFieldsNames should be (List("author", "pages", "points"))
   }
   
   "getModelFieldsTypes" should "work as expected" in {
-    val modelFieldsTypes: List[String] = APIBuilderSimple.getModelFieldsTypes(modelFieldsNames, modelFieldsJValue)
+    val modelFieldsTypes: List[String] = APIBuilderModel.getModelFieldsTypes(modelFieldsNames, modelFieldsJValue)
     modelFieldsTypes should be (List("String", "Int", "Double"))
   }
   
   "getModelFieldDefaultValues" should "work as expected" in {
-    val modelFieldsTypes: List[Any] = APIBuilderSimple.getModelFieldDefaultValues(modelFieldsNames, modelFieldsJValue)
+    val modelFieldsTypes: List[Any] = APIBuilderModel.getModelFieldDefaultValues(modelFieldsNames, modelFieldsJValue)
     modelFieldsTypes should be (List("Chinua Achebe", 209, 1.3))
   }
   
   "getModelTraitMethods" should "work as expected" in {
-    val modelTraitMethods: List[Decl.Def] = APIBuilderSimple.getModelTraitMethods(modelFieldsNames, modelFieldTypes)
+    val modelTraitMethods: List[Decl.Def] = APIBuilderModel.getModelTraitMethods(modelFieldsNames, modelFieldTypes)
     modelTraitMethods.toString() should be ("List(def author: String, def pages: Int, def points: Double, def templateId: String)")
   }
   
   "getModelCaseClassParams" should "work as expected" in {
-    val modelCaseClassParams: List[Term.Param] = APIBuilderSimple.getModelCaseClassParams(modelFieldsNames, modelFieldTypes, modelFieldDefaultValues)
+    val modelCaseClassParams: List[Term.Param] = APIBuilderModel.getModelCaseClassParams(modelFieldsNames, modelFieldTypes, modelFieldDefaultValues)
     modelCaseClassParams.toString() should be ("List(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)")
   }
   
   "changeStringToMappedObject" should "work as expected" in {
     val stringObjectName = "Author"
     val stringObjectType = "String"
-    val stringMappedObject= APIBuilderSimple.stringToMappedObject(stringObjectName, stringObjectType)
+    val stringMappedObject= APIBuilderModel.stringToMappedObject(stringObjectName, stringObjectType)
     stringMappedObject.toString() should be ("object Author extends MappedString(this, 100)")
     
     val intObjectName = 123
     val intObjectType = "Int"
-    val intMappedObject= APIBuilderSimple.stringToMappedObject(stringObjectName, intObjectType)
+    val intMappedObject= APIBuilderModel.stringToMappedObject(stringObjectName, intObjectType)
     intMappedObject.toString() should be ("object Author extends MappedInt(this)")
     
     val doubleObjectName = 123.1231
     val doubleObjectType = "Double"
-    val doubleMappedObject= APIBuilderSimple.stringToMappedObject(stringObjectName, doubleObjectType)
+    val doubleMappedObject= APIBuilderModel.stringToMappedObject(stringObjectName, doubleObjectType)
     doubleMappedObject.toString() should be ("object Author extends MappedDouble(this)")
   }
   
   "stringToMappedMethod" should "work as expected" in {
     val methodName = "author"
     val methodReturnType = "String"
-    val mappedMethod= APIBuilderSimple.stringToMappedMethod(methodName, methodReturnType)
+    val mappedMethod= APIBuilderModel.stringToMappedMethod(methodName, methodReturnType)
     mappedMethod.toString() should be ("override def author: String = mAuthor.get")
   }
   
   "getModelClassStatements" should "work as expected" in {
-    val modelClassStatements= APIBuilderSimple.getModelClassStatements(modelFieldsNames, modelFieldTypes)
+    val modelClassStatements= APIBuilderModel.getModelClassStatements(modelFieldsNames, modelFieldTypes)
     modelClassStatements.toString() should be ("List(object mAuthor extends MappedString(this, 100), override def author: String = mAuthor.get, object mPages extends MappedInt(this), override def pages: Int = mPages.get, object mPoints extends MappedDouble(this), override def points: Double = mPoints.get)")
   }
   
   "generateCreateModelJsonMethod" should "work as expected" in {
-    val createModelJsonMethod= APIBuilderSimple.generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
+    val createModelJsonMethod= APIBuilderModel.generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
     createModelJsonMethod.toString() contains ("def createTemplate(createTemplateJson: CreateTemplateJson) = Full(MappedBook_") should be (true)
     createModelJsonMethod.toString() contains (".create.mTemplateId(UUID.randomUUID().toString).mAuthor(createTemplateJson.author).mPages(createTemplateJson.pages).mPoints(createTemplateJson.points).saveMe())") should be (true)
   }
   
   "generateCreateTemplateJsonApply" should "work as expected" in {
-    val createTemplateJsonApply= APIBuilderSimple.generateCreateTemplateJsonApply(modelFieldsNames)
+    val createTemplateJsonApply= APIBuilderModel.generateCreateTemplateJsonApply(modelFieldsNames)
     createTemplateJsonApply.toString() should be ("TemplateJson(template.templateId, template.author, template.pages, template.points)") 
   }
   
@@ -115,7 +114,7 @@ class APIBuilderSimpleTest extends FlatSpec with Matchers with MdcLoggable {
     val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"book_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
     val templateJsonClassParams = List(templateIdField)
     
-    val templateJsonClass: Defn.Class = APIBuilderSimple.createTemplateJsonClass(className, templateJsonClassParams)
+    val templateJsonClass: Defn.Class = APIBuilderModel.createTemplateJsonClass(className, templateJsonClassParams)
     templateJsonClass.toString() should be ("case class Book(book_id: String = `11231231312`)")
   }
 }

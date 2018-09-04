@@ -28,15 +28,12 @@ package code.api.APIBuilder
 
 import java.io.File
 import java.nio.file.Files
-
-import code.api.APIBuilder.APIBuilderSimple.modelFieldsJValue
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.{JValue, JsonAST}
-
 import scala.meta._
 
-object APIBuilderSimple
+object APIBuilderModel
 {
   
   val jsonStringFromFile: String = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/modelSource.json").mkString 
