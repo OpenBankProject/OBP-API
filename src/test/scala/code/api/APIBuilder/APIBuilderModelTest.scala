@@ -29,8 +29,8 @@ package code.api.APIBuilder
 import code.util.Helper.MdcLoggable
 import org.scalatest.{FlatSpec, Matchers}
 
-import scala.meta.{Decl, Defn, Term, Type}
-import APIBuilderModel._
+import scala.meta.{Defn, Term, Type}
+import APIBuilderModel.{modelMappedName, _}
 import net.liftweb.json
 import net.liftweb.json.JValue
 
@@ -48,8 +48,10 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   val modelNameLowerCase = modelName.toLowerCase
   //Book
   val modelNameCapitalized = modelNameLowerCase.capitalize
-  //MappedBook_6285959801482269169
+  //MappedBook_1
   val modelMappedName = s"Mapped${modelNameCapitalized}_1"
+  val modelTypeName: Type.Name = Type.Name(modelMappedName)
+  val modelTermName = Term.Name(modelMappedName)
   
   val modelFieldsJValue: JValue = jsonJValueFromFile \ modelName
   
@@ -85,13 +87,24 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   }
   
   "getModelTraitMethods" should "work as expected" in {
-    val modelTraitMethods: List[Decl.Def] = APIBuilderModel.getModelTraitMethods(modelFieldsNames, modelFieldTypes)
-    modelTraitMethods.toString() should be ("List(def author: String, def pages: Int, def points: Double, def templateId: String)")
+    val modelTrait: Defn.Trait = APIBuilderModel.getModelTrait(modelFieldsNames, modelFieldTypes)
+    modelTrait.toString() should be (
+      "trait Template { `_` =>" +
+        "\n  def author: String" +
+        "\n  def pages: Int" +
+        "\n  def points: Double" +
+        "\n  def templateId: String" +
+        "\n" +
+        "}")
   }
   
   "getModelCaseClassParams" should "work as expected" in {
     val modelCaseClassParams: List[Term.Param] = APIBuilderModel.getModelCaseClassParams(modelFieldsNames, modelFieldTypes, modelFieldDefaultValues)
-    modelCaseClassParams.toString() should be ("List(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)")
+    modelCaseClassParams.toString() should be (
+      "List(" +
+        "author: String = `Chinua Achebe`, " +
+        "pages: Int = 209, " +
+        "points: Double = 1.3)")
   }
   
   "changeStringToMappedObject" should "work as expected" in {
@@ -120,17 +133,57 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   
   "getModelClassStatements" should "work as expected" in {
     val modelClassStatements= APIBuilderModel.getModelClassStatements(modelFieldsNames, modelFieldTypes)
-    modelClassStatements.toString() should be ("List(object mAuthor extends MappedString(this, 100), override def author: String = mAuthor.get, object mPages extends MappedInt(this), override def pages: Int = mPages.get, object mPoints extends MappedDouble(this), override def points: Double = mPoints.get)")
+    modelClassStatements.toString() should be (
+      "List(" +
+        "object mAuthor extends MappedString(this, 100), " +
+        "override def author: String = mAuthor.get, " +
+        "object mPages extends MappedInt(this), " +
+        "override def pages: Int = mPages.get, " +
+        "object mPoints extends MappedDouble(this), " +
+        "override def points: Double = mPoints.get)" +
+        "")
+  }
+  
+  
+  "getModelClass" should "work as expected" in {
+    val modelClass= APIBuilderModel.getModelClass(modelTypeName, modelTermName, modelFieldsNames, modelFieldTypes)
+    modelClass.toString() should be (
+      "class MappedBook_1 extends Template with LongKeyedMapper[MappedBook_1] with IdPK {" +
+        "\n  object mAuthor extends MappedString(this, 100)" +
+        "\n  override def author: String = mAuthor.get" +
+        "\n  object mPages extends MappedInt(this)" +
+        "\n  override def pages: Int = mPages.get" +
+        "\n  object mPoints extends MappedDouble(this)" +
+        "\n  override def points: Double = mPoints.get" +
+        "\n  def getSingleton = MappedBook_1" +
+        "\n  object mTemplateId extends MappedString(this, 100)" +
+        "\n  override def templateId: String = mTemplateId.get" +
+        "\n" +
+        "}")
   }
   
   "generateCreateModelJsonMethod" should "work as expected" in {
     val createModelJsonMethod= APIBuilderModel.generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
-    createModelJsonMethod.toString() should be ("def createTemplate(createTemplateJson: CreateTemplateJson) = Full(MappedBook_1.create.mTemplateId(UUID.randomUUID().toString).mAuthor(createTemplateJson.author).mPages(createTemplateJson.pages).mPoints(createTemplateJson.points).saveMe())")
+    createModelJsonMethod.toString() should be (
+      "def createTemplate(createTemplateJson: CreateTemplateJson) = " +
+        "Full(MappedBook_1.create" +
+        ".mTemplateId(UUID.randomUUID().toString)" +
+        ".mAuthor(createTemplateJson.author)" +
+        ".mPages(createTemplateJson.pages)" +
+        ".mPoints(createTemplateJson.points)" +
+        ".saveMe())")
   }
   
   "generateCreateTemplateJsonApply" should "work as expected" in {
     val createTemplateJsonApply= APIBuilderModel.generateCreateTemplateJsonApply(modelFieldsNames)
     createTemplateJsonApply.toString() should be ("TemplateJson(template.templateId, template.author, template.pages, template.points)") 
+  }
+  
+  "getAuthenticationStatement" should "work as expected" in {
+    val needAuth= APIBuilderModel.getAuthenticationStatement(true)
+    needAuth.toString() should be ("cc.user ?~ UserNotLoggedIn") 
+    val notNeedAuth= APIBuilderModel.getAuthenticationStatement(false)
+    notNeedAuth.toString() should be ("Full(1) ?~ UserNotLoggedIn") 
   }
   
   "createTemplateJsonClass" should "work as expected" in {
