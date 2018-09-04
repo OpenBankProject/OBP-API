@@ -31,8 +31,33 @@ import org.scalatest.{FlatSpec, Matchers}
 
 import scala.meta.{Decl, Defn, Term, Type}
 import APIBuilderModel._
+import net.liftweb.json
+import net.liftweb.json.JValue
 
 class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
+  
+  val jsonStringFromFile: String = scala.io.Source.fromFile("src/test/scala/code/api/APIBuilder/modelSource.json").mkString 
+  val jsonJValueFromFile: JValue = json.parse(jsonStringFromFile)
+  
+  //"book"
+  val modelName = getModelName(jsonJValueFromFile)
+  
+  //BOOK
+  val modelNameUpperCase = modelName.toUpperCase
+  //book
+  val modelNameLowerCase = modelName.toLowerCase
+  //Book
+  val modelNameCapitalized = modelNameLowerCase.capitalize
+  //MappedBook_6285959801482269169
+  val modelMappedName = s"Mapped${modelNameCapitalized}_1"
+  
+  val modelFieldsJValue: JValue = jsonJValueFromFile \ modelName
+  
+  val modelFieldsNames: List[String] = List("author", "pages", "points")
+  
+  val modelFieldTypes: List[String] = List("String", "Int", "Double")
+  
+  val modelFieldDefaultValues: List[Any] = List("Chinua Achebe", 209, 1.3)
   
   "getApiUrl" should "work as expected" in {
     val apiUrl: String = APIBuilderModel.getApiUrl(jsonJValueFromFile)
@@ -100,8 +125,7 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   
   "generateCreateModelJsonMethod" should "work as expected" in {
     val createModelJsonMethod= APIBuilderModel.generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
-    createModelJsonMethod.toString() contains ("def createTemplate(createTemplateJson: CreateTemplateJson) = Full(MappedBook_") should be (true)
-    createModelJsonMethod.toString() contains (".create.mTemplateId(UUID.randomUUID().toString).mAuthor(createTemplateJson.author).mPages(createTemplateJson.pages).mPoints(createTemplateJson.points).saveMe())") should be (true)
+    createModelJsonMethod.toString() should be ("def createTemplate(createTemplateJson: CreateTemplateJson) = Full(MappedBook_1.create.mTemplateId(UUID.randomUUID().toString).mAuthor(createTemplateJson.author).mPages(createTemplateJson.pages).mPoints(createTemplateJson.points).saveMe())")
   }
   
   "generateCreateTemplateJsonApply" should "work as expected" in {
