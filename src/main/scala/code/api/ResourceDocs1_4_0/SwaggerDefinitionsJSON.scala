@@ -2785,7 +2785,7 @@ object SwaggerDefinitionsJSON {
         v.get(this)
       }
 
-    allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields ++ JsonFactory_APIBuilder.allFields
+    allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields //++ JsonFactory_APIBuilder.allFields
   }
 
 }
