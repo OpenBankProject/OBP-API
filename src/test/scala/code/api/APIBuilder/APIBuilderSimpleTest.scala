@@ -29,7 +29,7 @@ package code.api.APIBuilder
 import code.util.Helper.MdcLoggable
 import org.scalatest.{FlatSpec, Matchers}
 
-import scala.meta.{Defn, Term, Type}
+import scala.meta.{Decl, Defn, Term, Type}
 import APIBuilderSimple._
 
 class APIBuilderSimpleTest extends FlatSpec with Matchers with MdcLoggable {
@@ -59,6 +59,41 @@ class APIBuilderSimpleTest extends FlatSpec with Matchers with MdcLoggable {
     val modelFieldsTypes: List[Any] = APIBuilderSimple.getModelFieldDefaultValues(modelFieldsNames, modelFieldsJValue)
     modelFieldsTypes should be (List("Chinua Achebe", 209, 1.3))
   }
+  
+  "getModelTraitMethods" should "work as expected" in {
+    val modelTraitMethods: List[Decl.Def] = APIBuilderSimple.getModelTraitMethods(modelFieldsNames, modelFieldTypes)
+    modelTraitMethods.toString() should be ("List(def author: String, def pages: Int, def points: Double, def templateId: String)")
+  }
+  
+  "getModelCaseClassParams" should "work as expected" in {
+    val modelCaseClassParams: List[Term.Param] = APIBuilderSimple.getModelCaseClassParams(modelFieldsNames, modelFieldTypes, modelFieldDefaultValues)
+    modelCaseClassParams.toString() should be ("List(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)")
+  }
+  
+  "changeStringToMappedObject" should "work as expected" in {
+    val stringObjectName = "Author"
+    val stringObjectType = "String"
+    val stringMappedObject= APIBuilderSimple.stringToMappedObject(stringObjectName, stringObjectType)
+    stringMappedObject.toString() should be ("object Author extends MappedString(this, 100)")
+    
+    val intObjectName = 123
+    val intObjectType = "Int"
+    val intMappedObject= APIBuilderSimple.stringToMappedObject(stringObjectName, intObjectType)
+    intMappedObject.toString() should be ("object Author extends MappedInt(this)")
+    
+    val doubleObjectName = 123.1231
+    val doubleObjectType = "Double"
+    val doubleMappedObject= APIBuilderSimple.stringToMappedObject(stringObjectName, doubleObjectType)
+    doubleMappedObject.toString() should be ("object Author extends MappedDouble(this)")
+  }
+  
+  "stringToMappedMethod" should "work as expected" in {
+    val methodName = "author"
+    val methodReturnType = "String"
+    val mappedMethod= APIBuilderSimple.stringToMappedMethod(methodName, methodReturnType)
+    mappedMethod.toString() should be ("override def author: String = mAuthor.get")
+  }
+  
   
   "createTemplateJsonClass" should "work as expected" in {
     val className ="Book"

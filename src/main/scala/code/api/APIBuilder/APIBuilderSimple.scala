@@ -274,38 +274,7 @@ object APIBuilderSimple
     .map(key => modelFieldsJValue.findField{case JField(n, v) => n == key})
     .map(_.get.value.values)
   
-  //List(author, pages, points)
-  val modelFieldsNames: List[String] = getModelFieldsNames(modelFieldsJValue)
-
-  //List(String, Int, Double)
-  val modelFieldTypes: List[String] = getModelFieldsTypes(modelFieldsNames, modelFieldsJValue)
-  
-  //List(Chinua Achebe, 209, 1.3)
-  val modelFieldDefaultValues: List[Any] = getModelFieldDefaultValues(modelFieldsNames, modelFieldsJValue)
-  
-  //List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
-  val modelCaseClassParams: List[Term.Param] = { 
-    val fieldNames = for{
-      i <- 0 until modelFieldsNames.size
-      modelFieldName = Term.Name(modelFieldsNames(i).toLowerCase)
-      modelFieldType = Type.Name(modelFieldTypes(i))
-      modelFieldDefaultValue =  modelFieldDefaultValues(i) match {
-        case inputDefaultValue: String if(! inputDefaultValue.contains(" "))  => Term.Name(s"`$inputDefaultValue`")
-        case inputDefaultValue => Term.Name(s"$inputDefaultValue")
-      }
-    } yield 
-      Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue))
-    fieldNames.toList
-  }
-  
-  def main(args: Array[String]): Unit = {
-    // List(def author: String, 
-    // def tutor: String, 
-    // def pages: Int, 
-    // def points: Double, 
-    // def templateId: String)
-    val modelTraitMethods: List[Decl.Def] =
-    {
+  def getModelTraitMethods(modelFieldsNames: List[String], modelFieldTypes: List[String])= {
       val fieldNames = for
         {
         i <- 0 until modelFieldsNames.size
@@ -316,33 +285,89 @@ object APIBuilderSimple
       
       fieldNames.toList++ List(Decl.Def(Nil,Term.Name("templateId"), Nil, Nil, Type.Name("String")))
     }
+  
+  def getModelCaseClassParams(modelFieldsNames: List[String], modelFieldTypes: List[String], modelFieldDefaultValues: List[Any])  =
+  {
+    val fieldNames = for {
+      i <- 0 until modelFieldsNames.size
+      modelFieldName = Term.Name(modelFieldsNames(i).toLowerCase)
+      modelFieldType = Type.Name(modelFieldTypes(i))
+      modelFieldDefaultValue = modelFieldDefaultValues(i) match{
+        case inputDefaultValue: String if (!inputDefaultValue.contains(" ")) => Term.Name(s"`$inputDefaultValue`")
+        case inputDefaultValue => Term.Name(s"$inputDefaultValue")
+      }} yield
+        Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue))
+    fieldNames.toList
+  }
+  
+  //List(author, pages, points)
+  val modelFieldsNames: List[String] = getModelFieldsNames(modelFieldsJValue)
 
-    val modelTraitSelf: Self = Self.apply(Name("_"), None)
-    
-  //    {
-  //      `_` => def author: String
-  //        def pages: Int
-  //        def points: Double
-  //        def templateId: String
+  //List(String, Int, Double)
+  val modelFieldTypes: List[String] = getModelFieldsTypes(modelFieldsNames, modelFieldsJValue)
+  
+  //List(Chinua Achebe, 209, 1.3)
+  val modelFieldDefaultValues: List[Any] = getModelFieldDefaultValues(modelFieldsNames, modelFieldsJValue)
+  
+  //List(author: String = `Chinua Achebe`, tutor: String = `1123123 1312`, pages: Int = 209, points: Double = 1.3)
+  val modelCaseClassParams: List[Term.Param] = getModelCaseClassParams(modelFieldsNames, modelFieldTypes, modelFieldDefaultValues)
+  
+  //List(def author: String, 
+  // def tutor: String, 
+  // def pages: Int, 
+  // def points: Double, 
+  // def templateId: String)
+  val modelTraitMethods: List[Decl.Def] = getModelTraitMethods(modelFieldsNames, modelFieldTypes)
+
+  val modelTraitSelf: Self = Self.apply(Name("_"), None)
+  
+  //{
+  //  `_` => def author: String
+  //    def pages: Int
+  //    def points: Double
+  //    def templateId: String
+  //}
+  val modelTraitImpl = Template.apply(Nil, Nil, modelTraitSelf, modelTraitMethods)
+  
+  //    trait Template { `_` =>
+  //      def author: String
+  //      def tutor: String
+  //      def pages: Int
+  //      def points: Double
+  //      def templateId: String
   //    }
-    val modelTraitImpl = Template.apply(Nil, Nil, modelTraitSelf, modelTraitMethods)
+  val modelTrait: Defn.Trait = q"""trait Template {}""".copy(templ = modelTraitImpl)
+  
+  
+  //object mAuthor extends MappedString(this, 100)
+  def stringToMappedObject(objectName: String, objectType: String): Defn.Object = {
+    val objectTermName = Term.Name(objectName)
+    objectType match {
+      case "String" => q"""object $objectTermName extends MappedString(this,100) """
+      case "Int" => q"""object $objectTermName extends MappedInt(this) """
+      case "Double" => q"""object $objectTermName extends MappedDouble(this) """
+    }
+  }
+  
+  //override def author: String = mAuthor.get
+  def stringToMappedMethod(methodNameString: String, methodReturnTypeString: String): Defn.Def ={
     
-//    trait Template { `_` =>
-//      def author: String
-//      def tutor: String
-//      def pages: Int
-//      def points: Double
-//      def templateId: String
-//    }
-    val modelTrait: Defn.Trait = q"""trait Template {}""".copy(templ = modelTraitImpl)
+    val methodName = Term.Name(methodNameString)
+    val methodReturnType = Type.Name(methodReturnTypeString)
+    val mappedObject = Term.Name(s"m${methodNameString.capitalize}")
     
-    
-    def mappedString(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedString(this,100) """
-    def mappedInt(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedInt(this) """
-    def mappedDouble(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedDouble(this) """
-    def mappedMethod(methodName: Term.Name,objectName: Term.Name, methodReturnType: Type.Name): Defn.Def = q"""override def $methodName: $methodReturnType = $objectName.get"""
-    
-    
+    q"""override def $methodName: $methodReturnType = $mappedObject.get"""
+  } 
+  
+//  object mPages extends MappedInt(this)
+////  def mappedInt(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedInt(this) """
+//  
+//  //object mPoints extends MappedDouble(this)
+//  def mappedDouble(objectName: Term.Name): Defn.Object = q"""object $objectName extends MappedDouble(this) """
+  
+  
+  
+  def main(args: Array[String]): Unit = {
 //    List(
 //      object mAuthor extends MappedString(this, 100), 
 //      override def author: String = mAuthor.get, 
@@ -358,17 +383,10 @@ object APIBuilderSimple
         i <- 0 until modelFieldsNames.size
         fieldNameString = modelFieldsNames(i)
         fieldTypeString = modelFieldTypes(i)
-        objectName = Term.Name(s"m${fieldNameString.capitalize}")
-        methodName = Term.Name(fieldNameString)
-        methodReturnType = Type.Name(fieldTypeString)
-        stat = modelFieldTypes(i) match {
-          case "String" => mappedString(objectName)
-          case "Int" => mappedInt(objectName)
-          case "Double" => mappedDouble(objectName)
-          }
-        methodStat = mappedMethod(methodName,objectName, methodReturnType)
+        mappedObject = stringToMappedObject(s"m${fieldNameString.capitalize}", fieldTypeString.capitalize)
+        mappedMethod = stringToMappedMethod(fieldNameString, fieldTypeString)
       } yield 
-          (stat,methodStat)
+          (mappedObject,mappedMethod)
       fieldNames.flatMap (x => List(x._1, x._2)).toList
     }
     
