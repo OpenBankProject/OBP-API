@@ -33,7 +33,7 @@ import net.liftweb.json.JValue
 
 object APIBuilder
 {
-  def main(args: Array[String]): Unit = overwriteApiCode(apiSource)
+  def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
 
   val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/apisResource.json")
 
@@ -419,4 +419,82 @@ object $modelTermName extends $modelInit with LongKeyedMetaMapper[$modelTypeName
  
 $modelTrait
 """
+  
+  /*
+  * ######################################JsonFactory_APIBuilder.scala###################################################
+  * */
+  
+  //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
+  //Added the templatedId to `modelCaseClassParams`
+  val templateJsonClassParams = List(APIBuilderModel.templateIdField)++ modelCaseClassParams
+  
+  //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
+  val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
+  
+  //case class Template(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
+  //Note: No `templateId` in this class, the bank no need provide it, obp create a uuid for it.
+  val createTemplateJsonClass: Defn.Class = q"""case class CreateTemplateJson(..$modelCaseClassParams) """
+  
+  //TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateJsonApply: Term.Apply = generateCreateTemplateJsonApply(modelFieldsNames)
+  
+  //def createTemplate(template: Template) = TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateDef: Defn.Def =q"""def createTemplate(template: Template) = $createTemplateJsonApply"""
+  
+  //def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
+  val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
+  
+  val jsonFactorySource: Source =source"""
+/** 
+Open Bank Project - API       
+Copyright (C) 2011-2018, TESOBE Ltd       
+       
+This program is free software: you can redistribute it and/or modify       
+it under the terms of the GNU Affero General Public License as published by       
+the Free Software Foundation, either version 3 of the License, or       
+(at your option) any later version.       
+       
+This program is distributed in the hope that it will be useful,       
+but WITHOUT ANY WARRANTY; without even the implied warranty of       
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the       
+GNU Affero General Public License for more details.       
+       
+You should have received a copy of the GNU Affero General Public License       
+along with this program.  If not, see <http://www.gnu.org/licenses/>.       
+       
+Email: contact@tesobe.com       
+TESOBE Ltd       
+Osloerstrasse 16/17       
+Berlin 13359, Germany       
+   
+This product includes software developed at       
+TESOBE (http://www.tesobe.com/)       
+*/     
+package code.api.builder
+import code.api.util.APIUtil
+
+$TemplateJsonClass
+$createTemplateJsonClass
+
+object JsonFactory_APIBuilder{
+              
+  val templateJson = TemplateJson()
+  val templatesJson = List(templateJson)
+  val createTemplateJson = CreateTemplateJson()
+  
+  $createTemplateDef;
+  $createTemplatesDef;
+    
+  val allFields =
+    for (
+      v <- this.getClass.getDeclaredFields
+      //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
+      if (APIUtil.notExstingBaseClass(v.getName()))
+    )
+      yield {
+        v.setAccessible(true)
+        v.get(this)
+      }
+}
+""" 
 }
