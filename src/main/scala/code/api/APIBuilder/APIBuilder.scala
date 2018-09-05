@@ -45,18 +45,18 @@ object APIBuilder
   val deleteSingleApiJValue = resourceDocsJObject.filter(_.\("request_verb") == JString("DELETE")).head
    
   val getSingleApiResponseBody: JValue = getSingleApiJValue \ "success_response_body"
-  //"book"
+  //"template"
   val modelName = getModelName(getSingleApiResponseBody)
-  //All the fields in the book object.
+  //All the fields in the template object.
   val modelFieldsJValue: JValue = getSingleApiResponseBody \ modelName
 
-  //BOOK
+  //TEMPLATE
   val modelNameUpperCase = modelName.toUpperCase
-  //book
+  //template
   val modelNameLowerCase = modelName.toLowerCase
-  //Book
+  //Template
   val modelNameCapitalized = modelNameLowerCase.capitalize
-  //MappedBook_123123
+  //MappedTemplate_123123
   val modelMappedName = s"Mapped${modelNameCapitalized}_"+Math.abs(scala.util.Random.nextLong())
   val modelTypeName = Type.Name(modelMappedName)
   val modelTermName = Term.Name(modelMappedName)
@@ -292,7 +292,7 @@ object APIBuilder
   val modelCaseClassParams: List[Term.Param] = getModelCaseClassParams(modelFieldsNames, modelFieldsTypes, modelFieldsDefaultValues)
   
   //def createTemplate(createTemplateJson: CreateTemplateJson) = Full(
-  // MappedBook_6099750036365020434.create
+  // MappedTemplate_6099750036365020434.create
   // .mTemplateId(UUID.randomUUID().toString)
   // .mAuthor(createTemplateJson.author)
   // .mPages(createTemplateJson.pages)

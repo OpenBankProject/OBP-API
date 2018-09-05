@@ -36,19 +36,27 @@ import net.liftweb.json.JValue
 
 class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   
-  val jsonStringFromFile: String = scala.io.Source.fromFile("src/test/scala/code/api/APIBuilder/modelSource.json").mkString 
+  val jsonStringFromFile: String =
+    """{
+         "request_url": "/templates",
+         "template": {
+           "author": "Chinua Achebe",
+           "pages": 209,
+           "points": 1.3
+         }
+       }"""
   val jsonJValueFromFile: JValue = json.parse(jsonStringFromFile)
   
-  //"book"
+  //"template"
   val modelName = getModelName(jsonJValueFromFile)
   
-  //BOOK
+  //TEMPLATE
   val modelNameUpperCase = modelName.toUpperCase
-  //book
+  //template
   val modelNameLowerCase = modelName.toLowerCase
-  //Book
+  //Template
   val modelNameCapitalized = modelNameLowerCase.capitalize
-  //MappedBook_1
+  //MappedTemplate_1
   val modelMappedName = s"Mapped${modelNameCapitalized}_1"
   val modelTypeName: Type.Name = Type.Name(modelMappedName)
   val modelTermName = Term.Name(modelMappedName)
@@ -63,16 +71,16 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   
   "getApiUrl" should "work as expected" in {
     val apiUrl: String = APIBuilderModel.getApiUrl(jsonJValueFromFile)
-    apiUrl should be ("/books")
+    apiUrl should be ("/templates")
     
-    val jvalueMissingSlash: JValue = json.parse("""{"request_url":"books/my"}""")
+    val jvalueMissingSlash: JValue = json.parse("""{"request_url":"templates/my"}""")
     val apiUrl2: String = APIBuilderModel.getApiUrl(jvalueMissingSlash)
-    apiUrl2 should be ("/books/my")
+    apiUrl2 should be ("/templates/my")
   }
   
   "getModelName" should "work as expected" in {
     val apiUrl: String = APIBuilderModel.getModelName(jsonJValueFromFile)
-    apiUrl should be ("book")
+    apiUrl should be ("template")
   }
   
   "getModelFieldsNames" should "work as expected" in {
@@ -152,14 +160,14 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   "getModelClass" should "work as expected" in {
     val modelClass= APIBuilderModel.getModelClass(modelTypeName, modelTermName, modelFieldsNames, modelFieldTypes)
     modelClass.toString() should be (
-      "class MappedBook_1 extends Template with LongKeyedMapper[MappedBook_1] with IdPK {" +
+      "class MappedTemplate_1 extends Template with LongKeyedMapper[MappedTemplate_1] with IdPK {" +
         "\n  object mAuthor extends MappedString(this, 100)" +
         "\n  override def author: String = mAuthor.get" +
         "\n  object mPages extends MappedInt(this)" +
         "\n  override def pages: Int = mPages.get" +
         "\n  object mPoints extends MappedDouble(this)" +
         "\n  override def points: Double = mPoints.get" +
-        "\n  def getSingleton = MappedBook_1" +
+        "\n  def getSingleton = MappedTemplate_1" +
         "\n  object mTemplateId extends MappedString(this, 100)" +
         "\n  override def templateId: String = mTemplateId.get" +
         "\n" +
@@ -170,7 +178,7 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
     val createModelJsonMethod= APIBuilderModel.generateCreateModelJsonMethod(modelFieldsNames, modelMappedName)
     createModelJsonMethod.toString() should be (
       "def createTemplate(createTemplateJson: CreateTemplateJson) = " +
-        "Full(MappedBook_1.create" +
+        "Full(MappedTemplate_1.create" +
         ".mTemplateId(UUID.randomUUID().toString)" +
         ".mAuthor(createTemplateJson.author)" +
         ".mPages(createTemplateJson.pages)" +
@@ -191,11 +199,11 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   }
   
   "createTemplateJsonClass" should "work as expected" in {
-    val className ="Book"
-    val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"book_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
+    val className ="Template"
+    val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"template_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
     val templateJsonClassParams = List(templateIdField)
     
     val templateJsonClass: Defn.Class = APIBuilderModel.createTemplateJsonClass(className, templateJsonClassParams)
-    templateJsonClass.toString() should be ("case class Book(book_id: String = `11231231312`)")
+    templateJsonClass.toString() should be ("case class Template(template_id: String = `11231231312`)")
   }
 }
