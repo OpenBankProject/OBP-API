@@ -204,7 +204,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     val getResourceDocsTTL : Int = 1000 * 60 * 60 * 24
 
     private def getResourceDocsObpCached(showCore: Option[Boolean], showPSD2: Option[Boolean], showOBWG: Option[Boolean], requestedApiVersion : ApiVersion, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
-      // cache this function with the parameters of the function
+      /**
+        * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * The real value will be assigned by Macro during compile time at this line of a code:
+        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
@@ -554,6 +559,12 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
     private def getResourceDocsSwaggerCached(@CacheKeyOmit showCore: Option[Boolean],@CacheKeyOmit showPSD2: Option[Boolean],@CacheKeyOmit showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
+      /**
+        * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * The real value will be assigned by Macro during compile time at this line of a code:
+        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {

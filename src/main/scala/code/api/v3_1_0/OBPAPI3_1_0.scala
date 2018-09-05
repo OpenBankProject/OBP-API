@@ -290,6 +290,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getFirehoseCustomers ::
                           Implementations3_1_0.getBadLoginStatus ::
                           Implementations3_1_0.unlockUser ::
+                          Implementations3_1_0.callsLimit ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

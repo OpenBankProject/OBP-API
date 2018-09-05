@@ -2071,7 +2071,7 @@ trait APIMethods200 {
               isSuperAdmin(u.userId)
             }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
-              unboxFullOrFail(_, cc, ConnectorEmptyResponse, 400)
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
             (JSONFactory200.createEntitlementJSONs(entitlements), callContext)

@@ -13,6 +13,10 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
 
   def receive = {
 
+    case cc.getConsumerByPrimaryIdFuture(id: Long) =>
+      logger.debug("getConsumerByPrimaryIdFuture(" + id +")")
+      sender ! (mapper.getConsumerByPrimaryId(id))
+
     case cc.getConsumerByPrimaryId(id: Long) =>
       logger.debug("getConsumerByPrimaryId(" + id +")")
       sender ! extractResult(mapper.getConsumerByPrimaryId(id))
@@ -30,8 +34,12 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
       sender ! extractResult(mapper.createConsumer(key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
 
     case cc.updateConsumer(id: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]) =>
-      logger.debug("createConsumer(" + id + ", " + "*****" + ", " + "*****" + ", " + isActive.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")
+      logger.debug("updateConsumer(" + id + ", " + "*****" + ", " + "*****" + ", " + isActive.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")
       sender ! extractResult(mapper.updateConsumer(id, key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
+
+     case cc.updateConsumerCallLimits(id: Long, perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]) =>
+      logger.debug("updateConsumerCallLimits(" + id + ", " + perMinute.getOrElse("None") + ", " + perHour.getOrElse("None") + ", " + perDay.getOrElse("None") + ", " + perWeek.getOrElse("None") + ", " + perMonth.getOrElse("None") + ")")
+      sender ! (mapper.updateConsumerCallLimitsRemote(id, perMinute, perHour, perDay, perWeek, perMonth))
 
     case cc.getOrCreateConsumer(consumerId: Option[String], key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]) =>
       logger.debug("getOrCreateConsumer(" + consumerId.getOrElse("None") + ", " + "*****" + ", " + "*****" + ", " + isActive.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")

@@ -26,7 +26,10 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
                        directLoginParams: Map[String, String] = Map(),
                        oAuthParams: Map[String, String] = Map(),
                        httpCode: Option[Int] = None,
-                       requestHeaders: List[HTTPParam] = Nil
+                       requestHeaders: List[HTTPParam] = Nil,
+                       `X-Rate-Limit-Limit` : Long = -1,
+                       `X-Rate-Limit-Remaining` : Long = -1,
+                       `X-Rate-Limit-Reset` : Long = -1
                       ) {
   def toLight: CallContextLight = {
     CallContextLight(
@@ -48,7 +51,10 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
       authReqHeaderField = this.authReqHeaderField.toOption,
       partialFunctionName = this.resourceDocument.map(_.partialFunctionName).getOrElse(""),
       directLoginToken = this.directLoginParams.get("token").getOrElse(""),
-      oAuthToken = this.oAuthParams.get(TokenName).getOrElse("")
+      oAuthToken = this.oAuthParams.get(TokenName).getOrElse(""),
+      `X-Rate-Limit-Limit` = this.`X-Rate-Limit-Limit`,
+      `X-Rate-Limit-Remaining` = this.`X-Rate-Limit-Remaining`,
+      `X-Rate-Limit-Reset` = this.`X-Rate-Limit-Reset`
     )
   }
 }
@@ -71,7 +77,10 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             authReqHeaderField: Option[String] = None,
                             partialFunctionName: String,
                             directLoginToken: String,
-                            oAuthToken: String
+                            oAuthToken: String,
+                            `X-Rate-Limit-Limit` : Long = -1,
+                            `X-Rate-Limit-Remaining` : Long = -1,
+                            `X-Rate-Limit-Reset` : Long = -1
                            )
 
 trait GatewayLoginParam

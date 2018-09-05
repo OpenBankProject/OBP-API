@@ -483,3 +483,11 @@ organisation_website = https://www.tesobe.com
 # true implies we only have new style endpoints
 # new_style_only=false
 # ----------------------------------------------
+
+# -- Calls Limit --------------------------------------
+# Define how many calls per time a Customer can make
+# In case isn't defined default value is "false"
+# use_consumer_limits=false
+# redis_address=127.0.0.1
+# redis_port=6379
+# -----------------------------------------------------
