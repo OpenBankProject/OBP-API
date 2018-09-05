@@ -13,7 +13,7 @@ import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.util.Helper
-import code.views.Views
+import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers.tryo
@@ -52,20 +52,13 @@ trait APIMethods310 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "checkbook"  :: "orders" :: Nil JsonGet req => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (_, callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-            bankBox <- Connector.connector.vend.getBankFuture(bankId) map {
-              unboxFullOrFail(_, callContext, BankNotFound, 400)
-            }
+            _ <- NewStyle.function.getBank(bankId, callContext)
 
-            account <- Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
-              unboxFullOrFail(_, callContext, BankAccountNotFound, 400)
-            }
+            account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
-            view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-              unboxFullOrFail(_, callContext, ViewNotFound, 400)
-            }
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             
             //TODO need error handling here
             checkbookOrders <- Connector.connector.vend.getCheckbookOrdersFuture(bankId.value,accountId.value, Some(cc)) map {
@@ -96,20 +89,13 @@ trait APIMethods310 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "credit_cards"  :: "orders" :: Nil JsonGet req => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (_, callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-            bankBox <- Connector.connector.vend.getBankFuture(bankId) map {
-              unboxFullOrFail(_, callContext, BankNotFound, 400)
-            }
+            _ <- NewStyle.function.getBank(bankId, callContext)
 
-            account <- Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
-              unboxFullOrFail(_, callContext, BankAccountNotFound, 400)
-            }
+            account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
-            view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-                unboxFullOrFail(_, callContext, ViewNotFound, 400)
-            }
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             
             //TODO need error handling here
             checkbookOrders <- Connector.connector.vend.getStatusOfCreditCardOrderFuture(bankId.value,accountId.value, Some(cc)) map {
@@ -260,9 +246,8 @@ trait APIMethods310 {
         cc =>
           for {
             
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
-            
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
               hasEntitlement("", u.userId, ApiRole.canReadMetrics)
             }
@@ -345,9 +330,8 @@ trait APIMethods310 {
         cc =>
           for {
             
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
-            
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
               hasEntitlement("", u.userId, ApiRole.canReadMetrics)
             }
@@ -414,9 +398,8 @@ trait APIMethods310 {
       case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet req => {
         cc =>
           for {
-            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
-            _ <- Future { Bank(bankId) } map { unboxFullOrFail(_, callContext, BankNotFound,400) }
+            (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
               canUseFirehose(u)
             }
@@ -458,8 +441,7 @@ trait APIMethods310 {
       case "users" :: username::  "lock-status" :: Nil JsonGet req => {
         cc =>
           for {
-            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), callContext.map(_.copy(httpCode = Some(200))))
@@ -491,8 +473,7 @@ trait APIMethods310 {
       case "users" :: username::  "lock-status" :: Nil JsonPut req => {
         cc =>
           for {
-            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanUnlockUser) {
               hasEntitlement("", u.userId, ApiRole.canUnlockUser)
             }
@@ -528,8 +509,7 @@ trait APIMethods310 {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimit) {
               hasEntitlement("", u.userId, canSetCallLimit)
             }
