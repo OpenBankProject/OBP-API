@@ -2,7 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.UUID.randomUUID
 
-import code.api.APIBuilder.OBP_APIBuilder
+import code.api.builder.OBP_APIBuilder
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.cache.Caching

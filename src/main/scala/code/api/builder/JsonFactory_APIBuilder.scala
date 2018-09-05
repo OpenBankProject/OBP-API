@@ -24,23 +24,33 @@ Berlin 13359, Germany
   TESOBE (http://www.tesobe.com/)
  */
 
-package code.api.APIBuilder
+package code.api.builder
 
 import code.api.util.APIUtil
 
-case class Books(
+case class TemplateJson( 
+  template_id: String = "123 abcd",
   author: String = """Chinua Achebe""",
   pages: Int = 209,
   points: Double = 1.3
 )
 
-case class RootInterface(books: List[Books] = List(Books()))
+case class CreateTemplateJson( 
+  author: String = """Chinua Achebe""",
+  pages: Int = 209,
+  points: Double = 1.3
+)
 
 object JsonFactory_APIBuilder
 {
   
-  val books = Books()
-  val rootInterface = RootInterface(List(books))
+  val templateJson = TemplateJson()
+  val templatesJson = List(templateJson)
+  val createTemplateJson = CreateTemplateJson()
+  
+  def createTemplate(template: Template) = TemplateJson(template.templateId,template.author,template.pages,template.points)
+  def createTemplates(templates: List[Template])= 
+    templates.map(template => TemplateJson(template.templateId,template.author,template.pages,template.points))
   
   val allFields = for (
     v <- this.getClass.getDeclaredFields; 
