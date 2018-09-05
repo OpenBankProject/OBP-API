@@ -89,8 +89,8 @@ class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdP
   override def bankId : String = mBankId.get.toString
 
   override def keys = MeetingKeys(mSessionId.get, mCustomerToken.get, mStaffToken.get)
-  override def present = MeetingPresent(staffUserId = mStaffUserId.get.toString,
-                                        customerUserId = mCustomerUserId.get.toString)
+  override def present = MeetingPresent(staffUserId = mStaffUserId.foreign.map(_.userId).getOrElse(""),
+                                        customerUserId = mCustomerUserId.foreign.map(_.userId).getOrElse(""))
 
 
 }
