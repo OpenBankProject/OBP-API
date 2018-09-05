@@ -38,7 +38,7 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
-import code.api.APIBuilder.OBP_APIBuilder
+import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.OauthParams._
 import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -66,6 +66,7 @@ import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
+import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
@@ -2264,5 +2265,10 @@ Returns a string showed to the developer
   def getOAuth2ServerUrl: String = getPropsValue("oauth2_server_url").openOr(MissingPropsValueAtThisInstance + "oauth2_server_url")
   
   lazy val defaultBankId = APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
+  
+  def getJValueFromFile (path: String) = {
+    val jsonStringFromFile: String = scala.io.Source.fromFile(path).mkString 
+    json.parse(jsonStringFromFile)
+  }
 
 }

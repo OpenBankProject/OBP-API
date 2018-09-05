@@ -21,7 +21,7 @@ import code.common._
 import code.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.api.APIBuilder.JsonFactory_APIBuilder
+import code.api.builder.JsonFactory_APIBuilder
 import net.liftweb.json
 
 import scala.collection.immutable.List
@@ -2803,7 +2803,7 @@ object SwaggerDefinitionsJSON {
         v.get(this)
       }
 
-    allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields ++ JsonFactory_APIBuilder.allFields
+    allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields //++ JsonFactory_APIBuilder.allFields
   }
 
 }
