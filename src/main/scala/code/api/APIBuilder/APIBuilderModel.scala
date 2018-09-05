@@ -34,11 +34,19 @@ import scala.meta._
 
 object APIBuilderModel
 {
-  def main(args: Array[String]) = overwriteApiCode(apiSource)
+  def main(args: Array[String]) = overwriteApiCode(apiSource, jsonFactorySource)
   
   def createTemplateJsonClass(className: String, templateJsonClassParams: List[Term.Param]) = q"""case class TemplateJson(..$templateJsonClassParams) """.copy(name = Type.Name(className))
   
-  def getApiUrl(jsonJValueFromFile: JValue) = (jsonJValueFromFile \"request_url").asInstanceOf[JString].values //eg: /my/template
+  def getApiUrl(jsonJValueFromFile: JValue) = {
+    val inputUrl = (jsonJValueFromFile \"request_url").asInstanceOf[JString].values
+    
+    inputUrl match {
+      case inputUrl if (!inputUrl.startsWith("""/""")) =>"""/"""+inputUrl 
+      case _ => inputUrl
+    }
+    
+  } //eg: /my/template
   
   def getModelName(jsonJValueFromFile: JValue) = jsonJValueFromFile.asInstanceOf[JObject].obj.map(_.name).filter(_!="request_url").head
   
@@ -233,7 +241,7 @@ object APIBuilderModel
     else
       Files.write(
       builderAPIMethodsFile.toPath,
-      jsonFactorySource.syntax
+      sourceCode.syntax
         //TODO,maybe fix later ! in scalameta, Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue)) => the default value should be a string in API code.
         .replaceAll("""`""",""""""""")
         .getBytes("UTF-8")

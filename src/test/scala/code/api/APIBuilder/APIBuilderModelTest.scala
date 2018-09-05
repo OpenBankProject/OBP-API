@@ -64,6 +64,10 @@ class APIBuilderModelTest extends FlatSpec with Matchers with MdcLoggable {
   "getApiUrl" should "work as expected" in {
     val apiUrl: String = APIBuilderModel.getApiUrl(jsonJValueFromFile)
     apiUrl should be ("/books")
+    
+    val jvalueMissingSlash: JValue = json.parse("""{"request_url":"books/my"}""")
+    val apiUrl2: String = APIBuilderModel.getApiUrl(jvalueMissingSlash)
+    apiUrl2 should be ("/books/my")
   }
   
   "getModelName" should "work as expected" in {
