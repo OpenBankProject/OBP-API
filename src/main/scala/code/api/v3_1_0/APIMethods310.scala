@@ -513,13 +513,11 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimit) {
               hasEntitlement("", u.userId, canSetCallLimit)
             }
-            postJson <- Future { tryo{json.extract[CallLimitJson]} } map {
-              val msg = s"$InvalidJsonFormat The Json body should be the $CallLimitJson "
-              unboxFullOrFail(_, callContext,msg, 400)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitJson ", 400, callContext) {
+              json.extract[CallLimitJson]
             }
-            consumerIdToLong <- Future { tryo{consumerId.toLong} } map {
-              val msg = s"$InvalidConsumerId"
-              unboxFullOrFail(_, callContext,msg, 400)
+            consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
+              consumerId.toLong
             }
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
               unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
