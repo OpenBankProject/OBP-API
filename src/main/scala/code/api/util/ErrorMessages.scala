@@ -130,6 +130,7 @@ object ErrorMessages {
   val Oauth2ParseException = "OBP-20205: Parse error. "
 
   val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
+  val MissingQueryParams = "OBP-20055: These query parameters are missing: "
 
 
 
