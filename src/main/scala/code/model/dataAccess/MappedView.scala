@@ -114,7 +114,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canSeeBankAccountOwners_(actions.exists(_ == "can_see_bank_account_owners"))
     canSeeBankAccountType_(actions.exists(_ == "can_see_bank_account_type"))
     canSeeBankAccountBalance_(actions.exists(_ == "can_see_bank_account_balance"))
-    canQueryAvailableFunds_(actions.exists(_ == "  val can_query_available_funds: Boolean,"))
+    canQueryAvailableFunds_(actions.exists(_ == "can_query_available_funds"))
     canSeeBankAccountCurrency_(actions.exists(_ == "can_see_bank_account_currency"))
     canSeeBankAccountLabel_(actions.exists(_ == "can_see_bank_account_label"))
     canSeeBankAccountNationalIdentifier_(actions.exists(_ == "can_see_bank_account_national_identifier"))
