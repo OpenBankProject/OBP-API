@@ -546,12 +546,12 @@ trait APIMethods310 {
       "checkFundsAvailable",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/funds-available",
-      "check available funds",
+      "Check available funds",
       """Check Available Funds
         |Possible custom URL parameters for pagination:
         |
-        |* amount=NUMBER ==> default value: 100
-        |* currency=STRING ==> default value: EUR
+        |* amount=NUMBER
+        |* currency=STRING
         |
       """.stripMargin,
       emptyObjectJson,
@@ -563,28 +563,36 @@ trait APIMethods310 {
     lazy val checkFundsAvailable : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "funds-available" :: Nil JsonGet req => {
         cc =>
+          val amount = "amount"
+          val currency = "currency"
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
             account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             httpParams: List[HTTPParam] <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
+              httpParams.exists(_.name == amount)
+            }
+            _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + currency) {
+              httpParams.exists(_.name == currency)
+            }
             available <- NewStyle.function.tryons(s"$InvalidAmount", 400, callContext) {
-              val value = httpParams.filter(_.name == "amount").map(_.values.head).headOption.getOrElse("100")
+              val value = httpParams.filter(_.name == amount).map(_.values.head).head
               new java.math.BigDecimal(value)
             }
             _ <- Helper.booleanToFuture(failMsg = InvalidISOCurrencyCode) {
-              val currencyCode = httpParams.filter(_.name == "currency").map(_.values.head).headOption.getOrElse("EUR")
+              val currencyCode = httpParams.filter(_.name == currency).map(_.values.head).head
               isValidCurrencyISOCode(currencyCode)
             }
             _ <- Future {account.moderatedBankAccount(view, user) } map {
               fullBoxOrException(_)
             } map { unboxFull(_) }
           } yield {
-            val currency = httpParams.filter(_.name == "currency").map(_.values.head).headOption
+            val ccy = httpParams.filter(_.name == currency).map(_.values.head).head
             val fundsAvailable =  (view.canQueryAvailableFunds, account.balance, account.currency) match {
               case (false, _, _) => "" // 1st condition: MUST have a view can_query_available_funds
-              case (true, _, c) if c != currency.getOrElse("EUR") => "no" // 2nd condition: Currency has to be matched
+              case (true, _, c) if c != ccy => "no" // 2nd condition: Currency has to be matched
               case (true, b, _) if b.compare(available) >= 0 => "yes" // We have the vew, the right currency and enough funds
               case _ => "no"
             }
