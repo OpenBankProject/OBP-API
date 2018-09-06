@@ -84,7 +84,7 @@ object SwaggerDefinitionsJSON {
   val createViewJson = CreateViewJson(
     name = "_test",
     description = "This view is for family",
-    metadata_view ="owner",
+    metadata_view ="_test",
     is_public = true,
     which_alias_to_use = "family",
     hide_metadata_if_alias_used = false,
@@ -157,7 +157,9 @@ object SwaggerDefinitionsJSON {
       "can_see_other_bank_routing_scheme",
       "can_see_other_bank_routing_address",
       "can_see_other_account_routing_scheme",
-      "can_see_other_account_routing_address"
+      "can_see_other_account_routing_address",
+      //v310
+      "can_query_available_funds"
     )
   )
   
@@ -235,7 +237,9 @@ object SwaggerDefinitionsJSON {
       "can_see_other_bank_routing_scheme",
       "can_see_other_bank_routing_address",
       "can_see_other_account_routing_scheme",
-      "can_see_other_account_routing_address"
+      "can_see_other_account_routing_address",
+      //v310
+      "can_query_available_funds"
     )
   )
   
