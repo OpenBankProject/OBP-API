@@ -34,11 +34,19 @@ import scala.meta._
 
 object APIBuilderModel
 {
-  def main(args: Array[String]) = overwriteApiCode(apiSource)
+  def main(args: Array[String]) = overwriteApiCode(apiSource, jsonFactorySource)
   
   def createTemplateJsonClass(className: String, templateJsonClassParams: List[Term.Param]) = q"""case class TemplateJson(..$templateJsonClassParams) """.copy(name = Type.Name(className))
   
-  def getApiUrl(jsonJValueFromFile: JValue) = (jsonJValueFromFile \"request_url").asInstanceOf[JString].values //eg: /my/template
+  def getApiUrl(jsonJValueFromFile: JValue) = {
+    val inputUrl = (jsonJValueFromFile \"request_url").asInstanceOf[JString].values
+    
+    inputUrl match {
+      case inputUrl if (!inputUrl.startsWith("""/""")) =>"""/"""+inputUrl 
+      case _ => inputUrl
+    }
+    
+  } //eg: /my/template
   
   def getModelName(jsonJValueFromFile: JValue) = jsonJValueFromFile.asInstanceOf[JObject].obj.map(_.name).filter(_!="request_url").head
   
@@ -184,7 +192,7 @@ object APIBuilderModel
   }
   
   //def createTemplate(createTemplateJson: CreateTemplateJson) = 
-  // Full(MappedBook_2145180497484573086.create
+  // Full(MappedTemplate_2145180497484573086.create
   // .mTemplateId(UUID.randomUUID().toString)
   // .mAuthor(createTemplateJson.author)
   // .mPages(createTemplateJson.pages)
@@ -233,7 +241,7 @@ object APIBuilderModel
     else
       Files.write(
       builderAPIMethodsFile.toPath,
-      jsonFactorySource.syntax
+      sourceCode.syntax
         //TODO,maybe fix later ! in scalameta, Term.Param(Nil, modelFieldName, Some(modelFieldType), Some(modelFieldDefaultValue)) => the default value should be a string in API code.
         .replaceAll("""`""",""""""""")
         .getBytes("UTF-8")
@@ -252,31 +260,31 @@ object APIBuilderModel
   
   val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/modelSource.json")
   
-  //"/books"
+  //"/templates"
   val apiUrl= getApiUrl(jsonJValueFromFile)
-  //"book"
+  //"template"
   val modelName = getModelName(jsonJValueFromFile)
-  //BOOK
+  //TEMPLATE
   val modelNameUpperCase = modelName.toUpperCase
-  //book
+  //template
   val modelNameLowerCase = modelName.toLowerCase
-  //Book
+  //Template
   val modelNameCapitalized = modelNameLowerCase.capitalize
   val modelFieldsJValue: JValue = jsonJValueFromFile \ modelName
   
-  //MappedBook_6285959801482269169
+  //MappedTemplate_6285959801482269169
   val modelMappedName = s"Mapped${modelNameCapitalized}_"+Math.abs(scala.util.Random.nextLong())
   val modelTypeName: Type.Name = Type.Name(modelMappedName)
   val modelTermName = Term.Name(modelMappedName)
   val modelInit = Init.apply(Type.Name(modelMappedName), Term.Name(modelMappedName), Nil)
   
-  //getApiUrlVal: scala.meta.Lit.StrincreateModelJsonMethodField = "/books"
+  //getApiUrlVal: scala.meta.Lit.StrincreateModelJsonMethodField = "/templates"
   val getApiUrlVal: Lit.String = Lit.String(s"$apiUrl")
-  //getSingleApiUrlVal: scala.meta.Lit.String = "/books/BOOK_ID"
+  //getSingleApiUrlVal: scala.meta.Lit.String = "/templates/TEMPLATE_ID"
   val getSingleApiUrlVal = Lit.String(s"$apiUrl/${modelNameUpperCase}_ID")
-  //createSingleApiUrlVal: scala.meta.Lit.String = "/books"
+  //createSingleApiUrlVal: scala.meta.Lit.String = "/templates"
   val createSingleApiUrlVal = Lit.String(s"$apiUrl")
-  //deleteSingleApiUrlVal: scala.meta.Lit.String = "/books/BOOK_ID"
+  //deleteSingleApiUrlVal: scala.meta.Lit.String = "/templates/TEMPLATE_ID"
   val deleteSingleApiUrlVal = Lit.String(s"$apiUrl/${modelNameUpperCase}_ID")
   //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
   //from "/my/template" --> "my  ::  template" 
@@ -307,9 +315,9 @@ object APIBuilderModel
   val deletePartialFuncTermName = Term.Name(s"delete${modelNameCapitalized}")
   val deletePartialFuncName = Pat.Var(deletePartialFuncTermName)
   
-  //implementedApiDefBody: scala.meta.Term.Name = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
+  //implementedApiDefBody: scala.meta.Term.Name = `getTemplates :: getTemplate :: createTemplate :: deleteTemplate :: Nil`
   val implementedApiDefBody= Term.Name(s"${getPartialFuncTermName.value} :: ${getSinglePartialFuncTermName.value} :: ${createPartialFuncTermName.value} :: ${deletePartialFuncTermName.value} :: Nil")
-  //implementedApisDef: scala.meta.Defn.Def = def endpointsOfBuilderAPI = `getBooks :: getBook :: createBook :: deleteBook :: Nil`
+  //implementedApisDef: scala.meta.Defn.Def = def endpointsOfBuilderAPI = `getTemplates :: getTemplate :: createTemplate :: deleteTemplate :: Nil`
   val implementedApisDef: Defn.Def = q"""def endpointsOfBuilderAPI = $implementedApiDefBody"""
   
   val getTemplatesResourceCode: Term.ApplyInfix =q"""

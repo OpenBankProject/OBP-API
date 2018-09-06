@@ -33,7 +33,7 @@ import net.liftweb.json.JValue
 
 object APIBuilder
 {
-  def main(args: Array[String]): Unit = overwriteApiCode(apiSource)
+  def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
 
   val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/apisResource.json")
 
@@ -45,29 +45,29 @@ object APIBuilder
   val deleteSingleApiJValue = resourceDocsJObject.filter(_.\("request_verb") == JString("DELETE")).head
    
   val getSingleApiResponseBody: JValue = getSingleApiJValue \ "success_response_body"
-  //"book"
+  //"template"
   val modelName = getModelName(getSingleApiResponseBody)
-  //All the fields in the book object.
+  //All the fields in the template object.
   val modelFieldsJValue: JValue = getSingleApiResponseBody \ modelName
 
-  //BOOK
+  //TEMPLATE
   val modelNameUpperCase = modelName.toUpperCase
-  //book
+  //template
   val modelNameLowerCase = modelName.toLowerCase
-  //Book
+  //Template
   val modelNameCapitalized = modelNameLowerCase.capitalize
-  //MappedBook_123123
+  //MappedTemplate_123123
   val modelMappedName = s"Mapped${modelNameCapitalized}_"+Math.abs(scala.util.Random.nextLong())
   val modelTypeName = Type.Name(modelMappedName)
   val modelTermName = Term.Name(modelMappedName)
   val modelInit =Init.apply(Type.Name(modelMappedName), Term.Name(modelMappedName), Nil)
   
   
-  val getApiSummary: String = (getMultipleApiJValue \ "summary").asInstanceOf[JString].values
+  val getMultipleApiSummary: String = (getMultipleApiJValue \ "summary").asInstanceOf[JString].values
   val getSingleApiSummary: String = (getSingleApiJValue \ "summary").asInstanceOf[JString].values
   val createSingleApiSummary: String = (createSingleApiJValue \ "summary").asInstanceOf[JString].values
   val deleteSingleApiSummary: String = (deleteSingleApiJValue \ "summary").asInstanceOf[JString].values
-  val getApiSummaryFromJsonFile: String = getApiSummary +"(from Json File)"
+  val getApiSummaryFromJsonFile: String = getMultipleApiSummary +"(from Json File)"
   
   val getApiDescription: String = (getMultipleApiJValue \ "description").asInstanceOf[JString].values 
   val getSingleApiDescription: String = (getSingleApiJValue \ "description").asInstanceOf[JString].values 
@@ -76,30 +76,30 @@ object APIBuilder
   val getApiDescriptionFromJsonFile: String = getApiDescription + "(From Json File)"
   
   //TODO, for now this is only in description, could be a single filed later.
-  val getApiAuthentication:Boolean = getApiDescriptionFromJsonFile.contains("Authentication is Mandatory")
+  val getMultipleApiAuthentication:Boolean = getApiDescriptionFromJsonFile.contains("Authentication is Mandatory")
   val getSingleApiAuthentication:Boolean = getSingleApiDescription.contains("Authentication is Mandatory")
   val createSingleApiAuthentication:Boolean = createSingleApiDescription.contains("Authentication is Mandatory")
   val deleteSingleApiAuthentication:Boolean = deleteSingleApiDescription.contains("Authentication is Mandatory")
   
-  val getApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(getApiAuthentication)
+  val getMultipleAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(getMultipleApiAuthentication)
   val getSingleApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(getSingleApiAuthentication)
   val createSingleApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(createSingleApiAuthentication)
   val deleteSingleApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(deleteSingleApiAuthentication)
   
-  val getApiUrl: String = (getMultipleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
-  val getSingleApiUrl: String = (getSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
-  val createSingleApiUrl: String = (createSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
-  val deleteSingleApiUrl: String = (deleteSingleApiJValue \ "request_url").asInstanceOf[JString].values //eg: /my/template
-  val getApiUrlFromJsonFile: String = "/file"+getApiUrl //eg: /file/my/template
+  val getMultipleApiUrl: String = getApiUrl(getMultipleApiJValue)//eg: /my/template
+  val getSingleApiUrl: String = getApiUrl(getSingleApiJValue) //eg: /my/template
+  val createSingleApiUrl: String = getApiUrl(createSingleApiJValue)//eg: /my/template
+  val deleteSingleApiUrl: String = getApiUrl(deleteSingleApiJValue)//eg: /my/template
+  val getApiUrlFromJsonFile: String = "/file"+getMultipleApiUrl //eg: /file/my/template
  
-  val getApiUrlVal = Lit.String(s"$getApiUrl")
+  val getMultipleApiUrlVal = Lit.String(s"$getMultipleApiUrl")
   val getSingleApiUrlVal = Lit.String(s"$getSingleApiUrl")
   val createSingleApiUrlVal = Lit.String(s"$createSingleApiUrl")
   val deleteSingleApiUrlVal = Lit.String(s"$deleteSingleApiUrl")
   val getApiUrlFromJsonFileVal = Lit.String(s"$getApiUrlFromJsonFile")
   //TODO, escape issue:return the space, I added quotes in the end: allSourceCode.syntax.replaceAll("""  ::  """,""""  ::  """")
   //from "/my/template" --> "my  ::  template" 
-  val getApiUrlLiftFormat = getApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
+  val getApiUrlLiftFormat = getMultipleApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
   val createApiUrlLiftFormat = createSingleApiUrl.replaceFirst("/", "").split("/").mkString("""""","""  ::  ""","""""")
   val deleteApiUrlLiftFormat = deleteSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
   val getSingleApiUrlLiftFormat = getSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
@@ -108,13 +108,13 @@ object APIBuilder
   val deleteApiUrlLiftweb: Lit.String = Lit.String(deleteApiUrlLiftFormat)
   val getSingleApiUrlLiftweb: Lit.String = Lit.String(getSingleApiUrlLiftFormat)
   
-  val getApiSummaryVal = Lit.String(s"$getApiSummary")
+  val getMultipleApiSummaryVal = Lit.String(s"$getMultipleApiSummary")
   val getSingleApiSummaryVal = Lit.String(s"$getSingleApiSummary")
   val createSingleApiSummaryVal = Lit.String(s"$createSingleApiSummary")
   val deleteSingleApiSummaryVal = Lit.String(s"$deleteSingleApiSummary")
   val getApiSummaryFromJsonFileVal = Lit.String(s"$getApiSummaryFromJsonFile")
 
-  val getApiDescriptionVal = Lit.String(s"$getApiDescription")
+  val getMultipleApiDescriptionVal = Lit.String(s"$getApiDescription")
   val getSingleApiDescriptionVal = Lit.String(s"$getSingleApiDescription")
   val createSingleApiDescriptionVal = Lit.String(s"$createSingleApiDescription")
   val deleteSingleApiDescriptionVal = Lit.String(s"$deleteSingleApiDescription")
@@ -141,9 +141,9 @@ object APIBuilder
       apiVersion,
       "getTemplates",
       "GET",
-      $getApiUrlVal,        
-      $getApiSummaryVal,       
-      $getApiDescriptionVal,
+      $getMultipleApiUrlVal,        
+      $getMultipleApiSummaryVal,       
+      $getMultipleApiDescriptionVal,
       emptyObjectJson,
       templatesJson,
       List(UserNotLoggedIn, UnknownError),
@@ -202,7 +202,7 @@ object APIBuilder
       case ("file" :: $getApiUrlLiftweb :: Nil) JsonGet req =>
         cc => {
           for {
-            u <- $getApiAuthenticationStatement
+            u <- $getMultipleAuthenticationStatement
             jsonStringFromFile = scala.io.Source.fromFile("src/main/scala/code/api/APIBuilder/apisResource.json").mkString 
             jsonJValueFromFile = json.parse(jsonStringFromFile)
             resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
@@ -219,7 +219,7 @@ object APIBuilder
         cc =>
         {
           for{
-            u <- $getApiAuthenticationStatement 
+            u <- $getMultipleAuthenticationStatement 
             templates <-  APIBuilder_Connector.getTemplates
             templatesJson = JsonFactory_APIBuilder.createTemplates(templates)
             jsonObject:JValue = decompose(templatesJson)
@@ -292,7 +292,7 @@ object APIBuilder
   val modelCaseClassParams: List[Term.Param] = getModelCaseClassParams(modelFieldsNames, modelFieldsTypes, modelFieldsDefaultValues)
   
   //def createTemplate(createTemplateJson: CreateTemplateJson) = Full(
-  // MappedBook_6099750036365020434.create
+  // MappedTemplate_6099750036365020434.create
   // .mTemplateId(UUID.randomUUID().toString)
   // .mAuthor(createTemplateJson.author)
   // .mPages(createTemplateJson.pages)
@@ -419,4 +419,82 @@ object $modelTermName extends $modelInit with LongKeyedMetaMapper[$modelTypeName
  
 $modelTrait
 """
+  
+  /*
+  * ######################################JsonFactory_APIBuilder.scala###################################################
+  * */
+  
+  //List(templateId:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
+  //Added the templatedId to `modelCaseClassParams`
+  val templateJsonClassParams = List(APIBuilderModel.templateIdField)++ modelCaseClassParams
+  
+  //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
+  val TemplateJsonClass: Defn.Class = q"""case class TemplateJson(..$templateJsonClassParams) """
+  
+  //case class Template(author: String = `Chinua Achebe`, pages: Int = 209, points: Double = 1.3)
+  //Note: No `templateId` in this class, the bank no need provide it, obp create a uuid for it.
+  val createTemplateJsonClass: Defn.Class = q"""case class CreateTemplateJson(..$modelCaseClassParams) """
+  
+  //TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateJsonApply: Term.Apply = generateCreateTemplateJsonApply(modelFieldsNames)
+  
+  //def createTemplate(template: Template) = TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points)
+  val createTemplateDef: Defn.Def =q"""def createTemplate(template: Template) = $createTemplateJsonApply"""
+  
+  //def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
+  val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
+  
+  val jsonFactorySource: Source =source"""
+/** 
+Open Bank Project - API       
+Copyright (C) 2011-2018, TESOBE Ltd       
+       
+This program is free software: you can redistribute it and/or modify       
+it under the terms of the GNU Affero General Public License as published by       
+the Free Software Foundation, either version 3 of the License, or       
+(at your option) any later version.       
+       
+This program is distributed in the hope that it will be useful,       
+but WITHOUT ANY WARRANTY; without even the implied warranty of       
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the       
+GNU Affero General Public License for more details.       
+       
+You should have received a copy of the GNU Affero General Public License       
+along with this program.  If not, see <http://www.gnu.org/licenses/>.       
+       
+Email: contact@tesobe.com       
+TESOBE Ltd       
+Osloerstrasse 16/17       
+Berlin 13359, Germany       
+   
+This product includes software developed at       
+TESOBE (http://www.tesobe.com/)       
+*/     
+package code.api.builder
+import code.api.util.APIUtil
+
+$TemplateJsonClass
+$createTemplateJsonClass
+
+object JsonFactory_APIBuilder{
+              
+  val templateJson = TemplateJson()
+  val templatesJson = List(templateJson)
+  val createTemplateJson = CreateTemplateJson()
+  
+  $createTemplateDef;
+  $createTemplatesDef;
+    
+  val allFields =
+    for (
+      v <- this.getClass.getDeclaredFields
+      //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
+      if (APIUtil.notExstingBaseClass(v.getName()))
+    )
+      yield {
+        v.setAccessible(true)
+        v.get(this)
+      }
+}
+""" 
 }
