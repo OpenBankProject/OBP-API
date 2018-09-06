@@ -30,7 +30,7 @@ Berlin 13359, Germany
 
  */
 package code.model
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.util.APIUtil
 import code.token.TokensProvider
@@ -326,7 +326,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   //But from `a4222f9824fcac039e7968f4abcd009fa3918d4a` 2017-07-07 we introduced the consumerId here. It is confused now
   //For now consumerId is only used in Gateway Login, all other cases, we should use the id instead `consumerId`.
   object id extends MappedLongIndex(this)
-  object consumerId extends MappedString(this, 250) // Introduced to cover gateway login functionality
+  object consumerId extends MappedString(this, 250) { // Introduced to cover gateway login functionality
+    override def defaultValue = UUID.randomUUID().toString
+  }
 
   private def minLength3(field: MappedString[Consumer])( s : String) = {
     if(s.length() < 3) List(FieldError(field, {field.displayName + " must be at least 3 characters"}))
