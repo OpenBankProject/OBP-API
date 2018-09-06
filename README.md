@@ -371,6 +371,28 @@ The Encrypt/Decrypt workflow is :
 echo -n $2 |openssl pkeyutl -pkeyopt rsa_padding_mode:pkcs1 -encrypt  -pubin -inkey $1 -out >(base64)
 ```
 
+## Code Generation
+We support to generate the OBP-API code from the following two types of json. You can choose one of them as your own requirements. 
+
+    1 Choose one of the following types: type1 or type2 
+    2 Modify the json file your selected,
+    3 Run the Main method according to your json file
+    4 Run/Restart OBP-API project.
+    5 Run API_Exploer project to test your new APIs. (click the Tag `APIBuilder B1)
+
+Here are the two types: 
+
+Type1: If you use `modelSource.json`, please run `APIBuilderModel.scala` main method
+```
+OBP-API/src/main/scala/code/api/APIBuilder/modelSource.json
+OBP-API/src/main/scala/code/api/APIBuilder/APIBuilderModel.scala
+```
+Type2: If you use `apisResource.json`, please run `APIBuilder.scala` main method
+```
+OBP-API/src/main/scala/code/api/APIBuilder/apisResource.json
+OBP-API/src/main/scala/code/api/APIBuilder/APIBuilder.scala
+```
+
 ## Using jetty password obfuscation with props file
 
 You can obfuscate passwords in the props file the same way as for jetty:
@@ -381,7 +403,6 @@ You can obfuscate passwords in the props file the same way as for jetty:
 
    *  db.url.is_obfuscated=true
    *  db.url=OBF:fdsafdsakwaetcetcetc
-
 
    
 ## Scala / Lift
