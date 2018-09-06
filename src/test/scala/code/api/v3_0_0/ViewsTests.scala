@@ -47,7 +47,7 @@ class ViewsTests extends V300ServerSetup {
   //Custom view, name starts from `_`
   val postBodyViewJson = createViewJson
   //System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name="owner")
+  val postBodySystemViewJson = createViewJson.copy(name="owner").copy(metadata_view = "owner")
   
   def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)

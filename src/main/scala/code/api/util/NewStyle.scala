@@ -1,10 +1,18 @@
 package code.api.util
 
+import code.api.util.APIUtil.unboxFullOrFail
+import code.api.util.ErrorMessages.{BankAccountNotFound, BankNotFound, InvalidAmount, ViewNotFound}
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.bankconnectors.Connector
+import code.model._
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.util.Helpers.tryo
+
+import scala.concurrent.Future
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -56,6 +64,51 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getFirehoseCustomers), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getBadLoginStatus), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.unlockUser), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.checkFundsAvailable), ApiVersion.v3_1_0.toString)
   )
+
+
+  object function {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[Bank] = {
+      Connector.connector.vend.getBankFuture(bankId) map {
+        unboxFullOrFail(_, callContext, BankNotFound, 400)
+      }
+    }
+
+    def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[BankAccount] = {
+      Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
+        unboxFullOrFail(_, callContext, BankAccountNotFound, 400)
+      }
+    }
+
+    def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.viewFuture(viewId, bankAccountId) map {
+        unboxFullOrFail(_, callContext, ViewNotFound, 400)
+      }
+    }
+
+
+    /**
+      * Wraps a Future("try") block around the function f and
+      * @param f - the block of code to evaluate
+      * @return <ul>
+      *   <li>Future(result of the evaluation of f) if f doesn't throw any exception
+      *   <li>a Failure if f throws an exception with message = failMsg and code = failCode
+      *   </ul>
+      */
+    def tryons[T](failMsg: String, failCode: Int = 400, callContext: Option[CallContext])(f: => T)(implicit m: Manifest[T]): Future[T]= {
+      Future {
+        tryo {
+          f
+        }
+      } map {
+        x => unboxFullOrFail(x, callContext, failMsg, failCode)
+      }
+    }
+
+  }
+
 }

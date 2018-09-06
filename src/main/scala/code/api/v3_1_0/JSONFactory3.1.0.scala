@@ -128,6 +128,9 @@ case class CallLimitJson(
                           per_week_call_limit : String,
                           per_month_call_limit : String
                         )
+case class CheckFundsAvailableJson(answer: String,
+                                   date: Date,
+                                   available_funds_request_id: String)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson = 
@@ -164,5 +167,8 @@ object JSONFactory310{
       consumer.perWeekCallLimit.get.toString,
       consumer.perMonthCallLimit.get.toString
     )
+  }
+  def createCheckFundsAvailableJson(fundsAvailable : String, availableFundsRequestId: String) : CheckFundsAvailableJson = {
+    CheckFundsAvailableJson(fundsAvailable,new Date(), availableFundsRequestId)
   }
 }

@@ -1,5 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
+import java.util.Date
+
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -82,7 +84,7 @@ object SwaggerDefinitionsJSON {
   val createViewJson = CreateViewJson(
     name = "_test",
     description = "This view is for family",
-    metadata_view ="owner",
+    metadata_view ="_test",
     is_public = true,
     which_alias_to_use = "family",
     hide_metadata_if_alias_used = false,
@@ -155,7 +157,9 @@ object SwaggerDefinitionsJSON {
       "can_see_other_bank_routing_scheme",
       "can_see_other_bank_routing_address",
       "can_see_other_account_routing_scheme",
-      "can_see_other_account_routing_address"
+      "can_see_other_account_routing_address",
+      //v310
+      "can_query_available_funds"
     )
   )
   
@@ -233,7 +237,9 @@ object SwaggerDefinitionsJSON {
       "can_see_other_bank_routing_scheme",
       "can_see_other_bank_routing_address",
       "can_see_other_account_routing_scheme",
-      "can_see_other_account_routing_address"
+      "can_see_other_account_routing_address",
+      //v310
+      "can_query_available_funds"
     )
   )
   
@@ -2294,6 +2300,7 @@ object SwaggerDefinitionsJSON {
     can_delete_where_tag = true,
     can_edit_owner_comment = true,
     can_see_bank_account_balance = true,
+    can_query_available_funds = true,
     can_see_bank_account_bank_name = true,
     can_see_bank_account_currency = true,
     can_see_bank_account_iban = true,
@@ -2692,6 +2699,12 @@ object SwaggerDefinitionsJSON {
   val checkbookOrdersJson = CheckbookOrdersJson(
     account = accountV310Json ,
     orders = List(orderJson)
+  )
+
+  val checkFundsAvailableJson = CheckFundsAvailableJson(
+    "yes",
+    new Date(),
+    "c4ykz59svsr9b7fmdxk8ezs7"
   )
   
   val cardObjectJson = CardObjectJson(
