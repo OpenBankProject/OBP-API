@@ -27,6 +27,7 @@ trait ConsumersProvider {
   def getConsumerByPrimaryId(id: Long): Box[Consumer]
   def getConsumerByConsumerKey(consumerKey: String): Box[Consumer]
   def getConsumerByConsumerKeyFuture(consumerKey: String): Future[Box[Consumer]]
+  def getConsumerByConsumerIdFuture(consumerId: String): Future[Box[Consumer]]
   def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer]
   def updateConsumer(id: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]): Box[Consumer]
   def updateConsumerCallLimits(id: Long, perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]): Future[Box[Consumer]]
@@ -40,6 +41,7 @@ class RemotedataConsumersCaseClasses {
   case class getConsumerByPrimaryId(id: Long)
   case class getConsumerByConsumerKey(consumerKey: String)
   case class getConsumerByConsumerKeyFuture(consumerKey: String)
+  case class getConsumerByConsumerIdFuture(consumerId: String)
   case class createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String])
   case class updateConsumer(id: Long, key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String])
   case class updateConsumerCallLimits(id: Long, perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String])

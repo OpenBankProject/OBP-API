@@ -94,6 +94,15 @@ object MappedConsumersProvider extends ConsumersProvider {
     }
   }
 
+  def getConsumerByConsumerId(consumerId: String): Box[Consumer] = {
+    Consumer.find(By(Consumer.consumerId, consumerId))
+  }
+  override def getConsumerByConsumerIdFuture(consumerId: String): Future[Box[Consumer]] = {
+    Future{
+      getConsumerByConsumerId(consumerId)
+    }
+  }
+
   override def createConsumer(key: Option[String],
                               secret: Option[String],
                               isActive: Option[Boolean],

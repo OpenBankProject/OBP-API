@@ -12,11 +12,11 @@ import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
+import code.users.Users
 import code.util.Helper
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -601,6 +601,51 @@ trait APIMethods310 {
 
       }
     }
+
+
+
+    resourceDocs += ResourceDoc(
+      getConsumer,
+      implementedInApiVersion,
+      "getConsumer",
+      "GET",
+      "/management/consumers/CONSUMER_ID",
+      "Get Consumer",
+      s"""Get the Consumer specified by CONSUMER_ID.
+         |
+        |""",
+      emptyObjectJson,
+      consumerJSON,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidConsumerId,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer, apiTagApi),
+      Some(List(canGetConsumers)))
+
+
+    lazy val getConsumer: OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConsumers) {
+              hasEntitlement("", u.userId, ApiRole.canGetConsumers)
+            }
+            consumer <- Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
+              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
+            }
+            user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
+          } yield {
+            (createConsumerJSON(consumer, user), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
+
     
   }
 }

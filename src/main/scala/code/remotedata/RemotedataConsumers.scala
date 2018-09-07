@@ -28,6 +28,9 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
   def getConsumerByPrimaryId(id: Long): Box[Consumer] =
     extractFutureToBox(actor ? cc.getConsumerByPrimaryId(id))
 
+  def getConsumerByConsumerIdFuture(consumerId: String): Future[Box[Consumer]] =
+    (actor ? cc.getConsumerByConsumerIdFuture(consumerId)).mapTo[Box[Consumer]]
+
   def getConsumerByConsumerKeyFuture(consumerKey: String): Future[Box[Consumer]] =
     (actor ? cc.getConsumerByConsumerKeyFuture(consumerKey)).mapTo[Box[Consumer]]
 
