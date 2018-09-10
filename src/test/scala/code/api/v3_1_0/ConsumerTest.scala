@@ -35,8 +35,10 @@ import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanGetConsumers
-import code.api.util.ErrorMessages.{ConsumerNotFoundByConsumerId, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{ConsumerNotFoundByConsumerId, UserHasMissingRoles, UserNotLoggedIn}
 import code.entitlement.Entitlement
+
+import scala.collection.immutable.List
 
 class ConsumerTest extends V310ServerSetup {
 
@@ -60,6 +62,27 @@ class ConsumerTest extends V310ServerSetup {
       response310.code should equal(400)
       And("error should be " + ConsumerNotFoundByConsumerId)
       response310.body.extract[ErrorMessage].error should equal (ConsumerNotFoundByConsumerId)
+    }
+  }
+
+  feature("Get Consumers for current use - v3.1.0")
+  {
+    scenario("We will Get Consumers for current user - NOT logged in") {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "users" / "current" / "consumers").GET
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+    }
+    scenario("We will Get Consumers for current user") {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "users" / "current" / "consumers").GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 200")
+      response310.code should equal(200)
+      response310.body.extract[List[ConsumerJson]]
     }
   }
 

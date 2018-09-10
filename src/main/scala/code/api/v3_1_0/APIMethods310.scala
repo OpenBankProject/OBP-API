@@ -674,9 +674,6 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConsumers) {
-              hasEntitlement("", u.userId, ApiRole.canGetConsumers)
-            }
             consumer <- Consumers.consumers.vend.getConsumersByUserIdFuture(u.userId)
           } yield {
             (createConsumersJson(consumer, Full(u)), callContext.map(_.copy(httpCode = Some(200))))
