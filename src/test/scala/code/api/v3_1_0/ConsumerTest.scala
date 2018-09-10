@@ -65,7 +65,7 @@ class ConsumerTest extends V310ServerSetup {
     }
   }
 
-  feature("Get Consumers for current use - v3.1.0")
+  feature("Get Consumers for current user - v3.1.0")
   {
     scenario("We will Get Consumers for current user - NOT logged in") {
       When("We make a request v3.1.0")
@@ -81,6 +81,38 @@ class ConsumerTest extends V310ServerSetup {
       val request310 = (v3_1_0_Request / "management" / "users" / "current" / "consumers").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
+      response310.code should equal(200)
+      response310.body.extract[List[ConsumerJson]]
+    }
+  }
+
+  feature("Get Consumers - v3.1.0")
+  {
+    scenario("We will Get Consumers - User NOT logged in") {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "consumers").GET
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+    }
+    scenario("We will Get Consumers without a proper Role " + ApiRole.canGetConsumers) {
+      When("We make a request v3.1.0 without a Role " + ApiRole.canGetConsumers)
+      val request310 = (v3_1_0_Request / "management" / "consumers").GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 403")
+      response310.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanGetConsumers)
+      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetConsumers)
+    }
+    scenario("We will Get Consumers with a proper Role " + ApiRole.canGetConsumers) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetConsumers.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "consumers").GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 200")
+      println(response310.body)
       response310.code should equal(200)
       response310.body.extract[List[ConsumerJson]]
     }
