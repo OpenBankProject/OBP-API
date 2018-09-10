@@ -164,8 +164,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         Full(list)
       case Full(list) if (list.errorCode!="") =>
         Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
-      case Empty =>
-        Failure(ErrorMessages.ConnectorEmptyResponse)
       case Failure(msg, e, c)  =>
         Failure(msg, e, c)
       case _ =>
@@ -574,12 +572,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         logger.debug(s"Kafka getBankAccounts says res is $future")
 
         future map {
-          case (List(), status) =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case (data, status) if (status.errorCode=="") =>
             Full(data)
           case (data, status) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
+          case (List(), status) =>
+            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
@@ -794,12 +792,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         logger.debug(s"Kafka getCoreBankAccountsFuture says res is $future")
 
         future map {
-          case List() =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case list if (list.head.errorCode=="") =>
             Full(list.map( x => CoreAccount(x.id,x.label,x.bankId,x.accountType, x.accountRoutings)))
           case list if (list.head.errorCode!="") =>
             Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
+          case List() =>
+            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
@@ -1597,12 +1595,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $future")
 
         val res = future map {
-          case (List(),status) =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case (list, status) if (status.errorCode=="") =>
             Full(list)
           case (list, status) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:" + status.backendMessages)
+          case (List(),status) =>
+            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }

@@ -10,9 +10,10 @@ trait KafkaConfig {
 
   val bootstrapServers = APIUtil.getPropsValue("kafka.bootstrap_hosts")openOr("localhost:9092")
   val groupId = APIUtil.getPropsValue("kafka.group.id").openOr("obp-api")
-  val clientId = APIUtil.getPropsValue("kafka.client.id").openOrThrowException(s"${ErrorMessages.MissingPropsValueAtThisInstance} kafka.client.id") 
+  val numberOfApiInstances = APIUtil.getPropsAsIntValue("api_instance_id").openOrThrowException(s"${ErrorMessages.MissingPropsValueAtThisInstance} number.of.api.instances") 
   val partitions = APIUtil.getPropsAsIntValue("kafka.partitions", 10)
 
+  val clientId = s"obp.api.$numberOfApiInstances"
   val autoOffsetResetConfig = "earliest"
   val maxWakeups = 50
   //TODO should be less then container's timeout
