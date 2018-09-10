@@ -144,6 +144,7 @@ case class ConsumerJson(consumer_id: String,
                         enabled: Boolean,
                         created: Date
                        )
+case class ConsumersJson(consumers: List[ConsumerJson])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -209,14 +210,16 @@ object JSONFactory310{
     )
   }
 
-  def createConsumersJson(consumers: List[Consumer], user: Box[User]): List[ConsumerJson] = {
-    consumers.map(createConsumerJSON(_, user))
+  def createConsumersJson(consumers: List[Consumer], user: Box[User]): ConsumersJson = {
+    val c = consumers.map(createConsumerJSON(_, user))
+    ConsumersJson(c)
   }
 
-  def createConsumersJson(consumers: List[Consumer], users: List[User]): List[ConsumerJson] = {
-    consumers.map(
+  def createConsumersJson(consumers: List[Consumer], users: List[User]): ConsumersJson = {
+    val cs = consumers.map(
       c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId.get).headOption)
     )
+    ConsumersJson(cs)
   }
 
 }

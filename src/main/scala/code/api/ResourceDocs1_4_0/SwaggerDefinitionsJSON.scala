@@ -1944,17 +1944,19 @@ object SwaggerDefinitionsJSON {
     list = List(consumerJSON)
   )
 
-  val consumersJson310 = List(
-    v3_1_0.ConsumerJson(
-      consumer_id = "8e716299-4668-4efd-976a-67f57a9984ec",
-      app_name = "SOFI",
-      app_type = "Web",
-      description = "Account Management",
-      developer_email = "contact@tesobe.com",
-      redirect_url = "www.openbankproject.com",
-      created_by_user = resourceUserJSON,
-      enabled = true,
-      created = DateWithDayExampleObject
+  val consumersJson310 = v3_1_0.ConsumersJson(
+    List(
+      v3_1_0.ConsumerJson(
+        consumer_id = "8e716299-4668-4efd-976a-67f57a9984ec",
+        app_name = "SOFI",
+        app_type = "Web",
+        description = "Account Management",
+        developer_email = "contact@tesobe.com",
+        redirect_url = "www.openbankproject.com",
+        created_by_user = resourceUserJSON,
+        enabled = true,
+        created = DateWithDayExampleObject
+      )
     )
   )
 
