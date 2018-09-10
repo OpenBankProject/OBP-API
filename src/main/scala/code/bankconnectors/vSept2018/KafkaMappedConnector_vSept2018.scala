@@ -1,8 +1,8 @@
-package code.bankconnectors.vJune2017
+package code.bankconnectors.vSept2018
 
 /*
 Open Bank Project - API
-Copyright (C) 2011-2017, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -25,15 +25,12 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
-import java.util.{Date, Locale}
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
-import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
+import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiSession, CallContext, ErrorMessages}
-import code.api.util.APIUtil._
-import code.api.v3_1_0.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
@@ -46,7 +43,6 @@ import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
-import com.google.common.cache.CacheBuilder
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, _}
@@ -54,7 +50,6 @@ import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers.tryo
-
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -62,9 +57,9 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with MdcLoggable {
+trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
-  implicit override val nameOfConnector = KafkaMappedConnector_vJune2017.toString
+  implicit override val nameOfConnector = KafkaMappedConnector_vSept2018.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
@@ -73,7 +68,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   // If we want to add a new message format, create a new file e.g. March2017_messages.scala
   // Then add a suffix to the connector value i.e. instead of kafka we might have kafka_march_2017.
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
-  val messageFormat: String = "June2017"
+  val messageFormat: String = "Sept2018"
 
   implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
@@ -111,7 +106,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           errorCodeExample,
           inboundStatusMessagesExample,
           name = "Obp-Kafka-South",
-          version = "June2017",
+          version = "Sept2018",
           git_commit = "...",
           date = DateWithSecondsExampleString
         )
@@ -466,10 +461,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           ))))
     ),
     exampleInboundMessage = decompose(
-      InboundGetAccounts(authInfoExample, statusExample, InboundAccountJune2017("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
+      InboundGetAccounts(authInfoExample, statusExample, InboundAccountSept2018("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
     )
   )
-  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
+  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountSept2018]] = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -482,7 +477,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
         val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
         val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
-        val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
+        val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
       
         //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
         val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, ""),forceFresh,internalCustomers)
@@ -491,9 +486,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val box = for {
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (inboundAccountJune2017, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
+          (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
         } yield{
-          (inboundAccountJune2017, status)
+          (inboundAccountSept2018, status)
         }
         logger.debug(s"Kafka getBankAccounts says res is $box")
 
@@ -513,7 +508,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountJune2017]]] = saveConnectorMetric {
+  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountSept2018]]] = saveConnectorMetric{
      /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -526,7 +521,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
         val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
         val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
-        val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
+        val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
 
         //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
         val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, ""),forceFresh,internalCustomers)
@@ -577,7 +572,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAccountbyAccountID(
         authInfoExample,
         statusExample,
-        Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
+        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
     /**
@@ -595,15 +590,15 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           _ <- Full(logger.debug(s"Kafka getBankAccount says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
           inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (inboundAccountJune2017, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
+          (inboundAccountSept2018, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
         } yield{
-          (inboundAccountJune2017, status)
+          (inboundAccountSept2018, status)
         }
 
         logger.debug(s"Kafka getBankAccount says res is $box")
         box match {
           case Full((Some(data), status)) if (status.errorCode=="") =>
-            Full(new BankAccountJune2017(data))
+            Full(new BankAccountSept2018(data))
           case Full((data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
@@ -632,7 +627,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundCheckBankAccountExists(
         authInfoExample,
         statusExample,
-        Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
+        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
     )
   )
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
@@ -655,15 +650,15 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           _ <- Full(logger.debug(s"Kafka checkBankAccountExists says: req is: $req"))
           kafkaMessage <- processToBox[OutboundCheckBankAccountExists](req)
           inboundCheckBankAccountExists <- tryo{kafkaMessage.extract[InboundCheckBankAccountExists]} ?~! s"$InboundCheckBankAccountExists extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (inboundAccountJune2017, status) <- Full(inboundCheckBankAccountExists.data, inboundCheckBankAccountExists.status)
+          (inboundAccountSept2018, status) <- Full(inboundCheckBankAccountExists.data, inboundCheckBankAccountExists.status)
         } yield{
-          (inboundAccountJune2017, status)
+          (inboundAccountSept2018, status)
         }
 
         logger.debug(s"Kafka checkBankAccountExists says res is $box")
         box match {
           case Full((Some(data), status)) if (status.errorCode=="") =>
-            Full(new BankAccountJune2017(data))
+            Full(new BankAccountSept2018(data))
           case Full((data,status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
@@ -692,7 +687,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAccountbyAccountID(
         authInfoExample,
         statusExample, 
-        Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
+        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
   )
   override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
     /**
@@ -800,7 +795,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetTransactions(
         authInfoExample,
         statusExample,
-        InternalTransaction_vJune2017(
+        InternalTransaction_vSept2018(
           transactionId = "String",
           accountId = "String",
           amount = "String",
@@ -965,7 +960,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundGetTransaction(authInfoExample, statusExample, Some(InternalTransaction_vJune2017(
+      InboundGetTransaction(authInfoExample, statusExample, Some(InternalTransaction_vSept2018(
                 transactionId = "String",
                 accountId = "String",
                 amount = "String",
@@ -1047,23 +1042,23 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundCreateChallengeJune2017(
+      InboundCreateChallengeSept2018(
         authInfoExample,
-        InternalCreateChallengeJune2017(
+        InternalCreateChallengeSept2018(
           errorCodeExample,
           inboundStatusMessagesExample,
           "1234"
         )
       )
     ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateChallengeJune2017]().toString(true))),
-    inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeJune2017]().toString(true)))
+    outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateChallengeSept2018]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeSept2018]().toString(true)))
   )
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) = {
     
     val box = for {
       authInfo <- getAuthInfo(callContext)
-      req = OutboundCreateChallengeJune2017(
+      req = OutboundCreateChallengeSept2018(
         authInfo = authInfo, 
         bankId = bankId.value,
         accountId = accountId.value,
@@ -1073,11 +1068,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         transactionRequestId = transactionRequestId
       )
       _ <- Full(logger.debug(s"Kafka createChallenge Req says:  is: $req"))
-      kafkaMessage <- processToBox[OutboundCreateChallengeJune2017](req)
-      inboundCreateChallengeJune2017 <- tryo{kafkaMessage.extract[InboundCreateChallengeJune2017]} ?~! s"$InboundCreateChallengeJune2017 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-      internalCreateChallengeJune2017 <- Full(inboundCreateChallengeJune2017.data)
+      kafkaMessage <- processToBox[OutboundCreateChallengeSept2018](req)
+      inboundCreateChallengeSept2018 <- tryo{kafkaMessage.extract[InboundCreateChallengeSept2018]} ?~! s"$InboundCreateChallengeSept2018 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+      internalCreateChallengeSept2018 <- Full(inboundCreateChallengeSept2018.data)
     } yield{
-      internalCreateChallengeJune2017
+      internalCreateChallengeSept2018
     }
     logger.debug(s"Kafka createChallenge Res says:  is: $Box")
     
@@ -1760,7 +1755,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
   /////////////////////////////////////////////////////////////////////////////
   // Helper for creating a transaction
-  def createInMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction_vJune2017): Box[Transaction] = {
+  def createInMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction_vSept2018): Box[Transaction] = {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1805,7 +1800,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }
 
-  def createInMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction_vJune2017): Box[TransactionCore] = {
+  def createInMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction_vSept2018): Box[TransactionCore] = {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1902,7 +1897,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         authInfoExample,
         Status("",
         inboundStatusMessagesExample),
-        InboundBranchVJune2017(
+        InboundBranchVSept2018(
           branchId = BranchId(""),
           bankId = BankId(""),
           name = "",
@@ -1941,7 +1936,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getBranchesFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[InboundBranchVJune2017]]] = saveConnectorMetric {
+  override def getBranchesFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[InboundBranchVSept2018]]] = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1954,7 +1949,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val req = OutboundGetBranches(AuthInfo(), bankId.toString)
         logger.debug(s"Kafka getBranchesFuture Req is: $req")
 
-        val future: Future[(List[InboundBranchVJune2017], Status)] = for {
+        val future: Future[(List[InboundBranchVSept2018], Status)] = for {
           res <- processToFuture[OutboundGetBranches](req) map {
             f =>
               try {
@@ -1994,7 +1989,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         authInfoExample,
         Status("",
           inboundStatusMessagesExample),
-        Some(InboundBranchVJune2017(
+        Some(InboundBranchVSept2018(
           branchId = BranchId(""),
           bankId = BankId(""),
           name = "",
@@ -2048,7 +2043,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val req = OutboundGetBranch(AuthInfo(), bankId.toString, branchId.toString)
         logger.debug(s"Kafka getBranchFuture Req is: $req")
 
-        val future: Future[(Option[InboundBranchVJune2017], Status)] = for {
+        val future: Future[(Option[InboundBranchVSept2018], Status)] = for {
           res <- processToFuture[OutboundGetBranch](req) map {
             f =>
               try {
@@ -2088,7 +2083,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAtms(
         authInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),
-        InboundAtmJune2017(
+        InboundAtmSept2018(
           atmId = AtmId("333"),
           bankId = BankId("10"),
           name = "",
@@ -2134,7 +2129,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getAtmsFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[InboundAtmJune2017]]] = saveConnectorMetric {
+  override def getAtmsFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[InboundAtmSept2018]]] = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2186,7 +2181,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAtm(
         authInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),
-        Some(InboundAtmJune2017(
+        Some(InboundAtmSept2018(
           atmId = AtmId("333"),
           bankId = BankId("10"),
           name = "",
@@ -2245,7 +2240,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val req = OutboundGetAtm(AuthInfo(), bankId.value, atmId.value)
         logger.debug(s"Kafka getAtmFuture Req is: $req")
 
-        val future: Future[(Option[InboundAtmJune2017], Status)] = for {
+        val future: Future[(Option[InboundAtmSept2018], Status)] = for {
           res <- processToFuture[OutboundGetAtm](req) map {
             f =>
               try {
@@ -2277,6 +2272,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 }
 
 
-object KafkaMappedConnector_vJune2017 extends KafkaMappedConnector_vJune2017{
+object KafkaMappedConnector_vSept2018 extends KafkaMappedConnector_vSept2018{
   
 }
+
+

@@ -34,7 +34,6 @@ package code.model.dataAccess
 
 import java.util.Date
 
-import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.{OBPLimit, OBPOffset, OBPOrdering, _}
 import code.model._
 import code.util.Helper

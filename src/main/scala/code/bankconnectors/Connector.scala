@@ -16,6 +16,7 @@ import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
+import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.customer.Customer
 import code.fx.FXRate
@@ -78,8 +79,9 @@ object Connector extends SimpleInjector {
       case "obpjvm" => ObpJvmMappedConnector
       case "kafka" => KafkaMappedConnector
       case "kafka_JVMcompatible" => KafkaMappedConnector_JVMcompatible
-      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
       case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
+      case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
+      case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
     }
   }
@@ -150,6 +152,28 @@ trait Connector extends MdcLoggable{
   val messageDocs = ArrayBuffer[MessageDoc]()
 
   implicit val nameOfConnector = Connector.getClass.getSimpleName
+  
+  //Move all the cache ttl to Connector, all the sub-connectors share the same cache.
+  val bankTTL = getSecondsCache("getBanks")
+  val banksTTL = getSecondsCache("getBanks")
+  val userTTL = getSecondsCache("getUser")
+  val accountTTL = getSecondsCache("getAccount")
+  val accountsTTL = getSecondsCache("getAccounts")
+  val transactionTTL = getSecondsCache("getTransaction")
+  val transactionsTTL = getSecondsCache("getTransactions")
+  val transactionRequests210TTL = getSecondsCache("getTransactionRequests210")
+  val counterpartiesTTL = getSecondsCache("getCounterparties")
+  val counterpartyByCounterpartyIdTTL = getSecondsCache("getCounterpartyByCounterpartyId")
+  val counterpartyTrait = getSecondsCache("getCounterpartyTrait")
+  val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
+  val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
+  val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
+  val branchesTTL = getSecondsCache("getBranches") 
+  val branchTTL = getSecondsCache("getBranch")
+  val atmsTTL = getSecondsCache("getAtms")
+  val atmTTL = getSecondsCache("getAtm")
+  val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
+  val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   
   /**
     * This method will return the method name of the current calling method

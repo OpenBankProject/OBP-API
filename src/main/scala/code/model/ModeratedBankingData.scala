@@ -35,7 +35,6 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages.NoViewPermission
-import code.bankconnectors.vJune2017.AccountRule
 import code.model.Moderation.Moderated
 import code.util.Helper
 import net.liftweb.common.{Box, Failure}

@@ -35,7 +35,6 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
 import code.bankconnectors.InboundUser
-import code.bankconnectors.vJune2017.AccountRule
 import code.fx.FXRate
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._

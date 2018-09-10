@@ -1,8 +1,6 @@
 package code.model.dataAccess
 
 import java.util.Date
-
-import code.bankconnectors.vJune2017.AccountRule
 import code.model._
 import code.util.{AccountIdString, Helper, MappedAccountNumber, UUIDString}
 import net.liftweb.mapper._
