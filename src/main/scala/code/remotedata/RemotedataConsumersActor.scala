@@ -33,6 +33,10 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug("getConsumerByConsumerIdFuture(" + "*****" +")")
       sender ! (mapper.getConsumerByConsumerId(consumerId))
 
+    case cc.getConsumersByUserIdFuture(id: String) =>
+      logger.debug("getConsumersByUserIdFuture(" + id +")")
+      sender ! (mapper.getConsumersByUserId(id))
+
     case cc.createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String]) =>
       logger.debug("createConsumer(" + "*****" + ", " + "*****" + ", " + isActive.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")
       sender ! extractResult(mapper.createConsumer(key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))

@@ -134,7 +134,7 @@ case class CheckFundsAvailableJson(answer: String,
                                    date: Date,
                                    available_funds_request_id: String)
 
-case class ConsumerJSON(consumer_id: String,
+case class ConsumerJson(consumer_id: String,
                         app_name: String,
                         app_type: String,
                         description: String,
@@ -146,29 +146,29 @@ case class ConsumerJSON(consumer_id: String,
                        )
 
 object JSONFactory310{
-  def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson = 
+  def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
-  
+
   def createStatisOfCreditCardJson(cards: List[CardObjectJson]): CreditCardOrderStatusResponseJson =
     CreditCardOrderStatusResponseJson(cards)
-  
+
   def createCreditLimitOrderResponseJson(): CreditLimitOrderResponseJson =
     SwaggerDefinitionsJSON.creditLimitOrderResponseJson
-  
+
   def getCreditLimitOrderResponseJson(): CreditLimitOrderJson =
     SwaggerDefinitionsJSON.creditLimitOrderJson
-  
+
   def getCreditLimitOrderByRequestIdResponseJson(): CreditLimitOrderJson =
     SwaggerDefinitionsJSON.creditLimitOrderJson
-  
+
   def createTopApisJson(topApis: List[TopApi]): TopApisJson ={
     TopApisJson(topApis.map(topApi => TopApiJson(topApi.count, topApi.ImplementedByPartialFunction, topApi.implementedInVersion)))
   }
-  
+
   def createTopConsumersJson(topConsumers: List[TopConsumer]): TopConsumersJson ={
     TopConsumersJson(topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)))
   }
-  
+
   def createBadLoginStatusJson(badLoginStatus: BadLoginAttempt) : BadLoginStatusJson = {
     BadLoginStatusJson(badLoginStatus.username,badLoginStatus.badAttemptsSinceLastSuccessOrReset, badLoginStatus.lastFailureDate)
   }
@@ -185,7 +185,7 @@ object JSONFactory310{
     CheckFundsAvailableJson(fundsAvailable,new Date(), availableFundsRequestId)
   }
 
-  def createConsumerJSON(c: Consumer, user: Box[User]): ConsumerJSON = {
+  def createConsumerJSON(c: Consumer, user: Box[User]): ConsumerJson = {
     val resourceUserJSON =  user match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
@@ -197,7 +197,7 @@ object JSONFactory310{
       case _ => null
     }
 
-    ConsumerJSON(consumer_id=c.consumerId.get,
+    ConsumerJson(consumer_id=c.consumerId.get,
       app_name=c.name.get,
       app_type=c.appType.toString(),
       description=c.description.get,
@@ -207,6 +207,10 @@ object JSONFactory310{
       enabled=c.isActive.get,
       created=c.createdAt.get
     )
+  }
+
+  def createConsumersJson(consumers: List[Consumer], user: Box[User]): List[ConsumerJson] = {
+    consumers.map(createConsumerJSON(_, user))
   }
 
 }

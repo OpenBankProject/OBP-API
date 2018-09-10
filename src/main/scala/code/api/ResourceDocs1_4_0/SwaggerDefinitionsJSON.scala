@@ -2,7 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
-import code.api.Constant
+import code.api.{Constant, v3_1_0}
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
@@ -1942,6 +1942,20 @@ object SwaggerDefinitionsJSON {
 
   val consumersJson = ConsumersJson(
     list = List(consumerJSON)
+  )
+
+  val consumersJson310 = List(
+    v3_1_0.ConsumerJson(
+      consumer_id = "8e716299-4668-4efd-976a-67f57a9984ec",
+      app_name = "SOFI",
+      app_type = "Web",
+      description = "Account Management",
+      developer_email = "contact@tesobe.com",
+      redirect_url = "www.openbankproject.com",
+      created_by_user = resourceUserJSON,
+      enabled = true,
+      created = DateWithDayExampleObject
+    )
   )
 
   val putEnabledJSON = PutEnabledJSON(

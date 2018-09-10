@@ -103,6 +103,13 @@ object MappedConsumersProvider extends ConsumersProvider {
     }
   }
 
+  def getConsumersByUserId(userId: String): List[Consumer] = {
+    Consumer.findAll(By(Consumer.createdByUserId, userId))
+  }
+  def getConsumersByUserIdFuture(userId: String): Future[List[Consumer]] = {
+    Future(getConsumersByUserId(userId))
+  }
+
   override def createConsumer(key: Option[String],
                               secret: Option[String],
                               isActive: Option[Boolean],
