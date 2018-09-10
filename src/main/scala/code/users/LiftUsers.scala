@@ -70,6 +70,14 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
+  def getUsersByUserIds(userIds : List[String]) : List[User] = {
+    ResourceUser.findAll(ByList(ResourceUser.userId_, userIds))
+  }
+
+  def getUsersByUserIdsFuture(userIds : List[String]) : Future[List[User]] = {
+    Future(getUsersByUserIds(userIds))
+  }
+
   override def getUserByUserName(userName: String): Box[ResourceUser] = {
     ResourceUser.find(By(ResourceUser.name_, userName))
   }

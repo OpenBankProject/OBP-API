@@ -682,6 +682,46 @@ trait APIMethods310 {
     }
 
 
+
+    resourceDocs += ResourceDoc(
+      getConsumers,
+      implementedInApiVersion,
+      "getConsumers",
+      "GET",
+      "/management/consumers",
+      "Get Consumers",
+      s"""Get the all Consumers.
+         |
+        |""",
+      emptyObjectJson,
+      consumersJson310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer, apiTagApi),
+      Some(List(canGetConsumers)))
+
+
+    lazy val getConsumers: OBPEndpoint = {
+      case "management" :: "consumers" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConsumers) {
+              hasEntitlement("", u.userId, ApiRole.canGetConsumers)
+            }
+            consumers <- Consumers.consumers.vend.getConsumersFuture()
+            users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
+          } yield {
+            (createConsumersJson(consumers, users), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
+
     
   }
 }

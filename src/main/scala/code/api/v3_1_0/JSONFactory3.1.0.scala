@@ -213,4 +213,10 @@ object JSONFactory310{
     consumers.map(createConsumerJSON(_, user))
   }
 
+  def createConsumersJson(consumers: List[Consumer], users: List[User]): List[ConsumerJson] = {
+    consumers.map(
+      c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId.get).headOption)
+    )
+  }
+
 }

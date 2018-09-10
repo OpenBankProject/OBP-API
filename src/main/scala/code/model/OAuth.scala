@@ -106,8 +106,15 @@ object MappedConsumersProvider extends ConsumersProvider {
   def getConsumersByUserId(userId: String): List[Consumer] = {
     Consumer.findAll(By(Consumer.createdByUserId, userId))
   }
-  def getConsumersByUserIdFuture(userId: String): Future[List[Consumer]] = {
+  override def getConsumersByUserIdFuture(userId: String): Future[List[Consumer]] = {
     Future(getConsumersByUserId(userId))
+  }
+
+  def getConsumers(): List[Consumer] = {
+    Consumer.findAll()
+  }
+  override def getConsumersFuture(): Future[List[Consumer]] = {
+    Future(getConsumers())
   }
 
   override def createConsumer(key: Option[String],

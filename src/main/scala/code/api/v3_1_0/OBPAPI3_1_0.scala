@@ -191,7 +191,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getRoles ::
                           Implementations2_1_0.getEntitlementsByBankAndUser ::
                           // Implementations2_1_0.getConsumer ::
-                          Implementations2_1_0.getConsumers ::
+                          // Implementations2_1_0.getConsumers ::
                           Implementations2_1_0.enableDisableConsumers ::
                           Implementations2_1_0.addCardForBank ::
                           // Implementations2_1_0.getUsers ::
@@ -294,6 +294,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.checkFundsAvailable ::
                           Implementations3_1_0.getConsumer ::
                           Implementations3_1_0.getConsumersForCurrentUser ::
+                          Implementations3_1_0.getConsumers ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

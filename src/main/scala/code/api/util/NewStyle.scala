@@ -67,7 +67,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.checkFundsAvailable), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumer), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString)
   )
 
 
