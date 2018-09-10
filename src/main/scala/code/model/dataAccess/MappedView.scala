@@ -58,6 +58,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def getSingleton = ViewImpl
 
   def primaryKeyField = id_
+  
+  //This field used ManyToMany  
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
   object bankPermalink extends UUIDString(this)

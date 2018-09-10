@@ -22,11 +22,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
       sender ! extractResult(mapper.addPermission(viewIdBankIdAccountId, user))
 
-    // TODO Remove duplicate bankId accountId inputs here.
-    case cc.getOrCreateViewPrivilege(view: View, user: User) =>
-      logger.debug("getOrCreateViewPrivilege(" + view +"," + user +")")
-      sender ! extractResult(mapper.getOrCreateViewPrivilege(view: View, user: User))
-  
     case cc.permission(account : BankIdAccountId, user: User) =>
       logger.debug("permission(" + account +"," + user +")")
       sender ! extractResult(mapper.permission(account, user))

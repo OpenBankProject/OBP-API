@@ -69,33 +69,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   
     }
   
-    scenario("test - getOrCreateViewPrivilege") {
-  
-      Given("the view and user for this method")
-      val viewOwner = MapperViews.getOrCreateAccountView(bankIdAccountId, viewIdOwner).head
-      viewOwner.viewId.value should equal("Owner".toLowerCase())
-      
-      Then("call the method, create the Privilege")
-      MapperViews.getOrCreateViewPrivilege(viewOwner, resourceUser1)
-      
-      Then("Check the result.")
-      val viewImpl = viewOwner.asInstanceOf[ViewImpl]
-      val numberOfViewPrivilege= ViewPrivileges.count(
-        By(ViewPrivileges.user, resourceUser1.resourceUserId.value), 
-        By(ViewPrivileges.view, viewImpl.id)
-      )
-      numberOfViewPrivilege should be(1)
-      
-      Then("call the method again")
-      MapperViews.getOrCreateViewPrivilege(viewOwner, resourceUser1)
-      
-      Then("We check the result, the number should be the same")
-      val numberOfViewPrivilege2= ViewPrivileges.count(
-        By(ViewPrivileges.user, resourceUser1.resourceUserId.value),
-        By(ViewPrivileges.view, viewImpl.id)
-      )
-      numberOfViewPrivilege2 should be(1)
-    }
+    
   
   }
   

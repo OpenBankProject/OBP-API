@@ -1228,6 +1228,9 @@ trait Connector extends MdcLoggable{
   }
   
 
+  //This method is in Connector.scala, not in MappedView.scala. 
+  //Reason: this method is only used for different connectors. Used for mapping users/accounts/ between MainFrame and OBP.
+  // Not used for creating views from OBP-API side. 
   def createViews(bankId: BankId, accountId: AccountId, owner_view: Boolean = false,
                   public_view: Boolean = false,
                   accountants_view: Boolean = false,
