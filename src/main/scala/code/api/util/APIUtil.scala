@@ -1111,6 +1111,8 @@ object APIUtil extends MdcLoggable {
     process: String,
     messageFormat: String,
     description: String,
+    outboundTopic: Option[String] = None,
+    inboundTopic: Option[String] = None,
     exampleOutboundMessage: JValue,
     exampleInboundMessage: JValue,
     outboundAvroSchema: Option[JValue] = None,

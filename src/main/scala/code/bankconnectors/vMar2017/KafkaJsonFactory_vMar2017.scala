@@ -620,6 +620,8 @@ case class InboundChargeLevel(
 case class MessageDocJson(
                            process: String, // Should be unique
                            message_format: String,
+                           outbound_topic: Option[String] = None,
+                           inbound_topic: Option[String] = None,
                            description: String,
                            example_outbound_message: JValue,
                            example_inbound_message: JValue,
@@ -641,6 +643,8 @@ object JsonFactory_vMar2017 {
       process = md.process,
       message_format = md.messageFormat,
       description = md.description,
+      outbound_topic = md.outboundTopic,
+      inbound_topic = md.inboundTopic,
       example_outbound_message = md.exampleOutboundMessage,
       example_inbound_message = md.exampleInboundMessage,
       inboundAvroSchema = md.inboundAvroSchema,
