@@ -619,7 +619,7 @@ trait APIMethods310 {
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
-        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -660,13 +660,11 @@ trait APIMethods310 {
       consumersJson310,
       List(
         UserNotLoggedIn,
-        UserHasMissingRoles,
-        InvalidConsumerId,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi),
-      Some(List(canGetConsumers)))
+      Some(List()))
 
 
     lazy val getConsumersForCurrentUser: OBPEndpoint = {
@@ -701,8 +699,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi),
-      Some(List(canGetConsumers)))
+      List(apiTagConsumer, apiTagApi)
+    )
 
 
     lazy val getConsumers: OBPEndpoint = {

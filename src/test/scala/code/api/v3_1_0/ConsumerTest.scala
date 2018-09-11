@@ -112,7 +112,6 @@ class ConsumerTest extends V310ServerSetup {
       val request310 = (v3_1_0_Request / "management" / "consumers").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
-      println(response310.body)
       response310.code should equal(200)
       response310.body.extract[ConsumersJson]
     }
