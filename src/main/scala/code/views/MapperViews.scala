@@ -62,6 +62,12 @@ object MapperViews extends Views with MdcLoggable {
     Full(Permission(user, views))
   }
 
+  def getPermissionForUser(user: User): Box[Permission] = {
+    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryId.value))
+    val views = privileges.flatMap(_.view.obj)
+    Full(Permission(user, views))
+  }
+  
   private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl): Box[ViewImpl] = {
     if (ViewPrivileges.count(By(ViewPrivileges.user, user.userPrimaryId.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
       //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
