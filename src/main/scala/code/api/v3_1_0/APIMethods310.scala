@@ -635,9 +635,7 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConsumers) {
               hasEntitlement("", u.userId, ApiRole.canGetConsumers)
             }
-            consumer <- Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
-              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
-            }
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
           } yield {
             (createConsumerJSON(consumer, user), callContext.map(_.copy(httpCode = Some(200))))
