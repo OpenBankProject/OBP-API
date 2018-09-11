@@ -44,7 +44,13 @@ trait APIMethods310 {
       """Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidConnectorResponseForGetCheckbookOrdersFuture,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -81,7 +87,13 @@ trait APIMethods310 {
         |""",
       emptyObjectJson,
       creditCardOrderStatusResponseJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -118,7 +130,7 @@ trait APIMethods310 {
         |""",
       creditLimitOrderRequestJson,
       creditLimitOrderResponseJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -144,7 +156,7 @@ trait APIMethods310 {
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -170,7 +182,7 @@ trait APIMethods310 {
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -237,9 +249,17 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       topApisJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetTopApisError,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagMetric :: Nil)
+      apiTagMetric :: Nil,
+      Some(List(canReadMetrics))
+    )
 
     lazy val getTopAPIs : OBPEndpoint = {
       case "management" :: "metrics" :: "top-apis" :: Nil JsonGet req => {
@@ -321,9 +341,17 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       topConsumersJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetMetricsTopConsumersError,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagMetric :: Nil)
+      apiTagMetric :: Nil,
+      Some(List(canReadMetrics))
+    )
 
     lazy val getMetricsTopConsumers : OBPEndpoint = {
       case "management" :: "metrics" :: "top-consumers" :: Nil JsonGet req => {
@@ -433,8 +461,8 @@ trait APIMethods310 {
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser),
-      Some(List(canUseFirehoseAtAnyBank)))
+      List(apiTagUser)
+    )
 
     lazy val getBadLoginStatus : OBPEndpoint = {
       //get private accounts for all banks
@@ -466,7 +494,7 @@ trait APIMethods310 {
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canUnlockUser)))
 
     lazy val unlockUser : OBPEndpoint = {
       //get private accounts for all banks
@@ -500,7 +528,15 @@ trait APIMethods310 {
          |""".stripMargin,
       callLimitJson,
       callLimitJson,
-      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles,
+        UpdateConsumerError,
+        UnknownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canSetCallLimit)))
@@ -556,7 +592,14 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       checkFundsAvailableJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound, BankAccountNotFound, "user does not have access to owner view on account"),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidAmount,
+        InvalidISOCurrencyCode,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -596,7 +639,8 @@ trait APIMethods310 {
               case (true, b, _) if b.compare(available) >= 0 => "yes" // We have the vew, the right currency and enough funds
               case _ => "no"
             }
-            (createCheckFundsAvailableJson(fundsAvailable, callContext.map(_.correlationId).getOrElse("")), callContext.map(_.copy(httpCode = Some(200))))
+            val availableFundsRequestId = callContext.map(_.correlationId).getOrElse("")
+            (createCheckFundsAvailableJson(fundsAvailable, availableFundsRequestId), callContext.map(_.copy(httpCode = Some(200))))
           }
 
       }
@@ -661,8 +705,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi),
-      Some(List()))
+      List(apiTagConsumer, apiTagApi)
+    )
 
 
     lazy val getConsumersForCurrentUser: OBPEndpoint = {
