@@ -28,9 +28,9 @@ class RemotedataWhereTagsActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug("deleteWhereTag(" + bankId +", "+ accountId + ", "+ transactionId + ", "+ viewId + ")")
       sender ! extractResult(mapper.deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId))
 
-    case cc.addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) =>
+    case cc.addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) =>
       logger.debug("addWhereTag(" + bankId +", "+ accountId + ", "+ transactionId + ", "+ userId + ", " + viewId + ", "+ datePosted +  ", "+ longitude +  ", "+ latitude + ")")
-      sender ! extractResult(mapper.addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double))
+      sender ! extractResult(mapper.addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

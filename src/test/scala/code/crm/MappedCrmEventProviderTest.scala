@@ -73,7 +73,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
       Given("MappedCrmEvent exists for a user on a bank")
       MappedCrmEvent.find(
         By(MappedCrmEvent.mBankId, testBankId1.toString),
-        By(MappedCrmEvent.mUserId, resourceUser1.resourceUserId.value)
+        By(MappedCrmEvent.mUserId, resourceUser1.userPrimaryId.value)
       ).isDefined should equal(true)
 
       When("We try to get it by bank and user")
@@ -111,7 +111,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
       Given("MappedCrmEvent exists for a user")
       MappedCrmEvent.find(
         By(MappedCrmEvent.mBankId, testBankId2.toString),
-        By(MappedCrmEvent.mUserId, resourceUser2.resourceUserId.value)
+        By(MappedCrmEvent.mUserId, resourceUser2.userPrimaryId.value)
       ).isDefined should equal(true)
 
       When("We try to get them")

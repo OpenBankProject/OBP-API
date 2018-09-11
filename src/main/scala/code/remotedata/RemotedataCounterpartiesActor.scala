@@ -142,11 +142,11 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
       logger.debug("addMoreInfo(" + counterpartyId + ", " + moreInfo +")")
       sender ! extractResult(mapper.addMoreInfo(counterpartyId, moreInfo))
 
-    case cc.addPhysicalLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double) =>
+    case cc.addPhysicalLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double) =>
       logger.debug("addPhysicalLocation(" + counterpartyId + ", " + userId + ", " + datePosted + ", " + longitude + ", " + latitude +")")
       sender ! extractResult(mapper.addPhysicalLocation(counterpartyId, userId, datePosted, longitude, latitude))
 
-    case cc.addCorporateLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double) =>
+    case cc.addCorporateLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double) =>
       logger.debug("addCorporateLocation(" + counterpartyId + ", " + userId + ", " + datePosted + ", " + longitude + ", " + latitude +")")
       sender ! extractResult(mapper.addCorporateLocation(counterpartyId, userId, datePosted, longitude, latitude))
 

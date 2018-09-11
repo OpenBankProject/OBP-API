@@ -1099,11 +1099,6 @@ trait Connector extends MdcLoggable{
     accountRoutingAddress: String
   ): Box[BankAccount] = Failure(NotImplemented + currentMethodName)
 
-  //sets a user as an account owner/holder
-  def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
-  }
-
   /**
     * sets a user as an account owner/holder, this maybe duplicated with
     * @ setAccountHolder(bankAccountUID: BankAccountUID, user: User)
@@ -1113,13 +1108,14 @@ trait Connector extends MdcLoggable{
     * @param accountId
     * @param account_owners
     */
+  @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this","11 September 2018")
   def setAccountHolder(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
 //    if (account_owners.contains(owner)) { // No need for now, fix it later
       val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
       resourceUserOwner match {
         case Full(owner) => {
           if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {
-            val holder = AccountHolders.accountHolders.vend.createAccountHolder(owner.resourceUserId.value, bankId.value, accountId.value)
+            val holder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(owner, BankIdAccountId(bankId, accountId))
             logger.debug(s"Connector.setAccountHolder create account holder: $holder")
           }
         }

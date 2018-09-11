@@ -22,7 +22,7 @@ object MapperWhereTags extends WhereTags {
   }
 
   override def addWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
-                          (userId: UserId, viewId: ViewId, datePosted: Date, longitude: Double, latitude: Double): Boolean = {
+                          (userId: UserPrimaryId, viewId: ViewId, datePosted: Date, longitude: Double, latitude: Double): Boolean = {
 
     val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     val found = findMappedWhereTag(bankId, accountId, transactionId, ViewId(metadateViewId))

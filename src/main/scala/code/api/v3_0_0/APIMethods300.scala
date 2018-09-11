@@ -116,7 +116,7 @@ trait APIMethods300 {
               account <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
-              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.resourceUserId + ". account : " + accountId) {
+              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userPrimaryId + ". account : " + accountId){
                 u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
               }
             } yield {

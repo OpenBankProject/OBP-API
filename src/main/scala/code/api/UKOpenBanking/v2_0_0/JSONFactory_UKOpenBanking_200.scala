@@ -221,7 +221,7 @@ object JSONFactory_UKOpenBanking_200 {
       accounts.map(account => BalanceJsonUKV200(
         AccountId = account.accountId.value,
         Amount = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
-        CreditDebitIndicator = account.owners.headOption.getOrElse(null).name,
+        CreditDebitIndicator = account.userOwners.headOption.getOrElse(null).name,
         Type = "Credit",
         DateTime = null,
         CreditLine = List(CreditLineJson(
