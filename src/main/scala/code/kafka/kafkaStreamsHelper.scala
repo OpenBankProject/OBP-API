@@ -235,8 +235,8 @@ object Topics extends KafkaConfig {
       *  to.obp.api.1.caseclass.GetBank
       */
     TopicPair(
-      s"from.${clientId}.to.adapter.mf.caseclass.${className.replace("$", "")}",
-      s"to.${clientId}.caseclass.${className.replace("$", "")}"
+      s"from.obp.api.${apiInstanceId}.to.adapter.mf.caseclass.${className.replace("$", "")}",
+      s"to.obp.api.${apiInstanceId}.caseclass.${className.replace("$", "")}"
     )
   }
 

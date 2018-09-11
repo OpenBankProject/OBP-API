@@ -62,20 +62,6 @@ object MapperViews extends Views with MdcLoggable {
     Full(Permission(user, views))
   }
 
-  /**
-    * This gives the user access to the view.
-    * Note: This method is a little different with addPermission,
-    * The parameter is the view object, and this view can be changed to ViewImpl
-    */
-  def getOrCreateViewPrivilege(view: View, user: User): Box[View] = {
-    
-    val viewImpl = view.asInstanceOf[ViewImpl]
-
-    if(viewImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-    // SQL Select Count ViewPrivileges where
-    getOrCreateViewPrivilege(user, viewImpl)
-  }
-  
   private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl): Box[ViewImpl] = {
     if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
       //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
@@ -225,7 +211,7 @@ object MapperViews extends Views with MdcLoggable {
     if(view.name.contentEquals("")) {
       return Failure("You cannot create a View with an empty Name")
     }
-    //view-permalink is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
+    //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
     val newViewPermalink = {
       view.name.replaceAllLiterally(" ", "").toLowerCase
     }

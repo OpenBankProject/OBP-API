@@ -4,10 +4,10 @@
 ```
 Date          Commit        Action 
 
+07/07/2018    4944572       Added Props api_instance_id, default is 1. This deceides the current api instance number, start from 1.  
 29/06/2018    7422894       Added Props logging.database.queries.enable, default is false. This should enable logging all the database queries in log file.
 01/06/2018    a286684       Added Props write_connector_metrics, default is false. This decides whether the connector level metric save or not
 29/05/2018    c0d50b5       Added Props kafka.partitions, default is 3. This should match the partitions in Kafka config
-29/05/2018    c0d50b5       Added Props kafka.client.id, default is false.This is a unique id for each api instance. Must set it manully in props
 08/05/2018    38e8641       Added Props require_scopes, default is false. Api will not use the scope role guards.
 02/03/2018    6f9ad08       Added Props documented_server_url which is required for some glossary items
 19/02/2018                  Added possibility of Encryption/Decryption of properties in the props file over SSL Private/Public key infrastructure

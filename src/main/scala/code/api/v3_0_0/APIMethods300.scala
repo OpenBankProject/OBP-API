@@ -1028,7 +1028,7 @@ trait APIMethods300 {
         _ =>
           for {
             _ <- Bank(bankId) ?~! BankNotFound
-            ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ "Not implemented"
+            ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ s"$ConnectorEmptyResponse or not implemented for this instance "
           }
           yield {
             successJsonResponseNewStyle(createAdapterInfoJson(ai), None)

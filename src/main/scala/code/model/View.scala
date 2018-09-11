@@ -196,19 +196,28 @@ case class UpdateViewJSON(
 trait View {
 
   val viewLogger = Logger(classOf[View])
-  //e.g. "Public", "Authorities", "Our Network", etc.
 
+  // metedataView is tricky, it used for all the transaction meta in different views share the same metadataView.
+  // we create, get, update transaction.meta call the deufault metadataView. Not the currentView.
+  // eg: If current view is _tesobe, you set metadataView is `owner`, then all the transaction.meta will just point to `owner` view.
+  // Look into the following method in code, you will know more about it: 
+  //  code.metadata.wheretags.MapperWhereTags.addWhereTag 
+  //  val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
+  def metadataView : String
+  
   //This is used for distinguishing all the views
   //For now, we need have some system views and user created views.
-  // System Views: eg: owner, accountant ... They are the fixed views, account owner can not modify it. 
-  // User Created Views: Start with _, eg _son, _wife ... The owner can update the fields for these views. 
-  def metadataView : String
+  // 1 `System Views` : eg: owner, accountant ... They are the fixed views, developers can not modify it. 
+  // 2 `User Created Views`: Start with _, eg _son, _wife ... The developers can update the fields for these views. 
   def isSystem : Boolean
   def isFirehose : Boolean
   def isPublic : Boolean
   def isPrivate : Boolean
   
-  //these ids are used together to uniquely identify a view
+  //these three Ids are used together to uniquely identify a view: 
+  // eg: a view = viewId(`owner`) + accountId('e4f001fe-0f0d-4f93-a8b2-d865077315ec')+bankId('gh.29.uk')
+  // the viewId is not OBP uuid here, view.viewId is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
+  // aslo @code.views.MapperViews.createView see how we create the viewId.  
   def viewId : ViewId
   def accountId : AccountId
   def bankId : BankId
@@ -216,8 +225,27 @@ trait View {
   //and here is the unique identifier
   def uid : ViewIdBankIdAccountId = ViewIdBankIdAccountId(viewId, bankId, accountId)
 
+  //The name is the orignal value from developer, when they create the views.
+  // It can be any string value, also see the viewId,
+  // the viewId is not OBP uuid here, view.viewId is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
+  // aslo @code.views.MapperViews.createView see how we create the viewId.  
   def name: String
+  //the Value from developer, can be any string value.
   def description : String
+  
+  /**This users is tricky, this use ManyToMany relationship, 
+   1st: when create view, we need carefully map this view to the owner user. 
+   2rd: the view can grant the access to any other (not owner) users. eg: Simon's accountant view can grant access to Carola, then Carola can see Simon's accountant data 
+   also look into some createView methods in code, you can understand more: 
+      create1: code.bankconnectors.Connector.createViews 
+               need also look into here code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017.updateUserAccountViewsOld
+                    after createViews method, always need call addPermission(v.uid, user). This will create this field
+      Create2: code.model.dataAccess.BankAccountCreation.createOwnerView
+                    after create view, always need call `addPermission(ownerViewUID, user)`, this will create this field
+      create3: code.model.dataAccess.AuthUser#updateUserAccountViews
+                    after create view, always need call `getOrCreateViewPrivilege(view,user)`, this will create this filed
+    Both uses should be in this List.
+    */
   def users: List[User]
 
   //the view settings

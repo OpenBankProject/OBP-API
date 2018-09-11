@@ -861,7 +861,7 @@ import net.liftweb.util.Helpers._
       bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId)))
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)
     } yield {
-      Views.views.vend.getOrCreateViewPrivilege(view,user)
+      Views.views.vend.addPermission(view.uid, user)
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
     }
   }

@@ -355,12 +355,11 @@ The Encrypt/Decrypt workflow is :
 
 1st, 2nd and 3rd step can be done using an external tool
 
-
-####Encrypting props values with openssl on the commandline
+### Encrypting props values with openssl on the commandline
 
 1. Export the public certificate from the keystore:
 
-    `keytool -export -/PATH/TO/KEYSTORE.jks -alias CERTIFICATE_ALIAS -rfc -file apipub.cert`
+    `keytool -export -keystore /PATH/TO/KEYSTORE.jks -alias CERTIFICATE_ALIAS -rfc -file apipub.cert`
 2. Extract the public key from the public certificate
 
     `openssl x509 -pubkey -noout -in apipub.cert > PUBKEY.pub`
@@ -370,6 +369,17 @@ The Encrypt/Decrypt workflow is :
 #!/bin/bash
 echo -n $2 |openssl pkeyutl -pkeyopt rsa_padding_mode:pkcs1 -encrypt  -pubin -inkey $1 -out >(base64)
 ```
+
+## Using jetty password obfuscation with props file
+
+You can obfuscate passwords in the props file the same way as for jetty:
+
+1. Create the obfuscated value as described here: https://www.eclipse.org/jetty/documentation/9.3.x/configuring-security-secure-passwords.html
+
+2. A props key value, XXX, is considered obfuscated if has an obfuscation property (XXX.is_obfuscated) in addition to the regular props key name in the props file e.g:
+
+   *  db.url.is_obfuscated=true
+   *  db.url=OBF:fdsafdsakwaetcetcetc
 
 ## Code Generation
 We support to generate the OBP-API code from the following two types of json. You can choose one of them as your own requirements. 

@@ -36,7 +36,6 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
-import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.fx.{FXRate, fx}

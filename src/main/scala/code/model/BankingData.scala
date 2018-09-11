@@ -36,7 +36,6 @@ import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.hasEntitlement
 import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
-import code.bankconnectors.vJune2017.AccountRule
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -807,6 +806,11 @@ case class AmountOfMoney (
 
 case class Iban(
   val iban: String
+)
+
+case class AccountRule(
+  scheme: String, 
+  value: String
 )
 
 case class AccountRouting(
