@@ -39,6 +39,7 @@ trait Users {
   //resourceuser has two ids: id(Long)and userid_(String), this method use userid_(String)
   def getUserByUserId(userId : String) : Box[User]
   def getUserByUserIdFuture(userId : String) : Future[Box[User]]
+  def getUsersByUserIdsFuture(userIds : List[String]) : Future[List[User]]
 
   // find ResourceUser by Resourceuser user name 
   def getUserByUserName(userName: String) : Box[ResourceUser]
@@ -71,6 +72,7 @@ class RemotedataUsersCaseClasses {
   case class getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String)
   case class getUserByUserId(userId : String)
   case class getUserByUserIdFuture(userId : String)
+  case class getUsersByUserIdsFuture(userId : List[String])
   case class getUserByUserName(userName : String)
   case class getUserByUserNameFuture(userName : String)
   case class getUserByEmail(email : String)

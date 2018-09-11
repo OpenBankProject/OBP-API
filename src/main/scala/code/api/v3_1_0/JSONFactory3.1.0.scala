@@ -31,9 +31,11 @@ import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.BranchRoutingJsonV141
+import code.api.v2_1_0.ResourceUserJSON
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
-import code.model.Consumer
+import code.model.{Consumer, User}
+import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
 
@@ -132,30 +134,42 @@ case class CheckFundsAvailableJson(answer: String,
                                    date: Date,
                                    available_funds_request_id: String)
 
+case class ConsumerJson(consumer_id: String,
+                        app_name: String,
+                        app_type: String,
+                        description: String,
+                        developer_email: String,
+                        redirect_url: String,
+                        created_by_user: ResourceUserJSON,
+                        enabled: Boolean,
+                        created: Date
+                       )
+case class ConsumersJson(consumers: List[ConsumerJson])
+
 object JSONFactory310{
-  def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson = 
+  def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
-  
+
   def createStatisOfCreditCardJson(cards: List[CardObjectJson]): CreditCardOrderStatusResponseJson =
     CreditCardOrderStatusResponseJson(cards)
-  
+
   def createCreditLimitOrderResponseJson(): CreditLimitOrderResponseJson =
     SwaggerDefinitionsJSON.creditLimitOrderResponseJson
-  
+
   def getCreditLimitOrderResponseJson(): CreditLimitOrderJson =
     SwaggerDefinitionsJSON.creditLimitOrderJson
-  
+
   def getCreditLimitOrderByRequestIdResponseJson(): CreditLimitOrderJson =
     SwaggerDefinitionsJSON.creditLimitOrderJson
-  
+
   def createTopApisJson(topApis: List[TopApi]): TopApisJson ={
     TopApisJson(topApis.map(topApi => TopApiJson(topApi.count, topApi.ImplementedByPartialFunction, topApi.implementedInVersion)))
   }
-  
+
   def createTopConsumersJson(topConsumers: List[TopConsumer]): TopConsumersJson ={
     TopConsumersJson(topConsumers.map(topConsumer => TopConsumerJson(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)))
   }
-  
+
   def createBadLoginStatusJson(badLoginStatus: BadLoginAttempt) : BadLoginStatusJson = {
     BadLoginStatusJson(badLoginStatus.username,badLoginStatus.badAttemptsSinceLastSuccessOrReset, badLoginStatus.lastFailureDate)
   }
@@ -171,4 +185,41 @@ object JSONFactory310{
   def createCheckFundsAvailableJson(fundsAvailable : String, availableFundsRequestId: String) : CheckFundsAvailableJson = {
     CheckFundsAvailableJson(fundsAvailable,new Date(), availableFundsRequestId)
   }
+
+  def createConsumerJSON(c: Consumer, user: Box[User]): ConsumerJson = {
+    val resourceUserJSON =  user match {
+      case Full(resourceUser) => ResourceUserJSON(
+        user_id = resourceUser.userId,
+        email = resourceUser.emailAddress,
+        provider_id = resourceUser.idGivenByProvider,
+        provider = resourceUser.provider,
+        username = resourceUser.name
+      )
+      case _ => null
+    }
+
+    ConsumerJson(consumer_id=c.consumerId.get,
+      app_name=c.name.get,
+      app_type=c.appType.toString(),
+      description=c.description.get,
+      developer_email=c.developerEmail.get,
+      redirect_url=c.redirectURL.get,
+      created_by_user =resourceUserJSON,
+      enabled=c.isActive.get,
+      created=c.createdAt.get
+    )
+  }
+
+  def createConsumersJson(consumers: List[Consumer], user: Box[User]): ConsumersJson = {
+    val c = consumers.map(createConsumerJSON(_, user))
+    ConsumersJson(c)
+  }
+
+  def createConsumersJson(consumers: List[Consumer], users: List[User]): ConsumersJson = {
+    val cs = consumers.map(
+      c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId.get).headOption)
+    )
+    ConsumersJson(cs)
+  }
+
 }

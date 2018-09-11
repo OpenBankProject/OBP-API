@@ -12,6 +12,7 @@ import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
+import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
@@ -42,7 +43,8 @@ import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{tryo, _}
-import net.liftweb.util.Props
+import scalacache.ScalaCache
+import scalacache.guava.GuavaCache
 
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -50,9 +52,6 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.math.BigInt
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
-import scalacache.memoization._
 
 
 object LocalMappedConnector extends Connector with MdcLoggable {
@@ -180,6 +179,55 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getBanksFuture(): Future[Box[List[Bank]]] = Future {
     getBanks()
+  }
+
+
+  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = {
+    val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
+    val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
+    Full(
+      InboundAccountJune2017(
+        "",
+        cbsToken = "cbsToken",
+        bankId = bankIdAccountId.bankId.value,
+        branchId = "222",
+        accountId = bankIdAccountId.accountId.value,
+        accountNumber = "123",
+        accountType = "AC",
+        balanceAmount = "50",
+        balanceCurrency = "EUR",
+        owners = Nil,
+        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban",
+        bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress",
+        accountRouting = Nil, accountRules = Nil) ::
+      InboundAccountJune2017(
+        "",
+        cbsToken = "cbsToken",
+        bankId = bankIdAccountId2.bankId.value,
+        branchId = "222", accountId = bankIdAccountId2.accountId.value,
+        accountNumber = "123",
+        accountType = "AC",
+        balanceAmount = "50",
+        balanceCurrency = "EUR",
+        owners = Nil,
+        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress",
+        branchRoutingScheme = "branchRoutingScheme",
+        branchRoutingAddress = " branchRoutingAddress",
+        accountRoutingScheme = "accountRoutingScheme",
+        accountRoutingAddress = "accountRoutingAddress",
+        accountRouting = Nil, accountRules = Nil
+      ) :: Nil
+    )
+  }
+
+  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountJune2017]]] = Future {
+    getBankAccounts(username, forceFresh)
   }
 
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[Transaction] = {

@@ -1,12 +1,13 @@
 package code.api.util
 
 import code.api.util.APIUtil.unboxFullOrFail
-import code.api.util.ErrorMessages.{BankAccountNotFound, BankNotFound, InvalidAmount, ViewNotFound}
+import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.bankconnectors.Connector
+import code.consumer.Consumers
 import code.model._
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -65,7 +66,10 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getBadLoginStatus), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.unlockUser), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.checkFundsAvailable), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.checkFundsAvailable), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getConsumer), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString)
   )
 
 
@@ -87,6 +91,12 @@ object NewStyle {
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
         unboxFullOrFail(_, callContext, ViewNotFound, 400)
+      }
+    }
+
+    def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
+      Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
+        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
       }
     }
 

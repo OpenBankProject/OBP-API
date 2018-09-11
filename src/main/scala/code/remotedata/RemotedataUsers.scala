@@ -42,6 +42,9 @@ object RemotedataUsers extends ObpActorInit with Users {
   def getUserByUserIdFuture(userId : String) : Future[Box[User]] =
     (actor ? cc.getUserByUserIdFuture(userId)).mapTo[Box[User]]
 
+  def getUsersByUserIdsFuture(userIds : List[String]) : Future[List[User]] =
+    (actor ? cc.getUsersByUserIdsFuture(userIds)).mapTo[List[User]]
+
   def getUserByUserName(userName : String) : Box[ResourceUser] =
     extractFutureToBox(actor ? cc.getUserByUserName(userName))
 
