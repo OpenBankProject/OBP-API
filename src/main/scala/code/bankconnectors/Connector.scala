@@ -1100,13 +1100,11 @@ trait Connector extends MdcLoggable{
   ): Box[BankAccount] = Failure(NotImplemented + currentMethodName)
 
   /**
-    * sets a user as an account owner/holder, this maybe duplicated with
-    * @ setAccountHolder(bankAccountUID: BankAccountUID, user: User)
-    *
-    * @param owner
-    * @param bankId
-    * @param accountId
-    * @param account_owners
+    * A sepecil method: 
+    *   This used for set account holder for accounts from Adapter. used in side @code.bankconnectors.Connector#updateUserAccountViewsOld
+    * But from vJune2017 we introduce the new method `code.model.dataAccess.AuthUser.updateUserAccountViews` instead.
+    * New method is much powerful and clear then this one. 
+    * If you only want to use this method, please double check your design. You need also think about the view, account holders. 
     */
   @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this","11 September 2018")
   def setAccountHolder(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {

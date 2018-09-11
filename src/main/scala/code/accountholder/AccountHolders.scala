@@ -22,6 +22,7 @@ object AccountHolders extends SimpleInjector {
 }
 
 trait AccountHolders {
+  
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User]
   def getAccountsHeld(bankId: BankId, user: User): Set[BankIdAccountId]
   def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] //There is no AccountHolder trait, database structure different with view

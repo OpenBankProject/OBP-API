@@ -72,11 +72,10 @@ case class UserPrimaryId(val value : Long) {
   *
  */
 trait User extends MdcLoggable {
-
+  
+  /**This will return resouceUser primary id: it is a long value !!!*/
   def userPrimaryId : UserPrimaryId
-  /**
-    *  This will be a UUID for Resource User Docment
-    */
+  /** This will be a UUID for Resource User Docment */
   def userId: String
 
   def idGivenByProvider: String
