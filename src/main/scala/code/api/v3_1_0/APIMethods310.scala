@@ -108,21 +108,21 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      createCreditLimitOrderRequest,
+      createCreditLimitRequest,
       implementedInApiVersion,
-      "createCreditLimitOrderRequest",
+      "createCreditLimitRequest",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
       "Create Credit Limit Order Request",
       """Create credit limit order request
         |""",
-      creditLimitOrderRequestJson,
+      creditLimitRequestJson,
       creditLimitOrderResponseJson,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
-    lazy val createCreditLimitOrderRequest : OBPEndpoint = {
+    lazy val createCreditLimitRequest : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonPost json -> _  => {
         cc =>
 //          val a: Future[(ChecksOrderStatusResponseDetails, Some[CallContext])] = for {
@@ -134,9 +134,9 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      getCreditLimitOrderRequests,
+      getCreditLimitRequests,
       implementedInApiVersion,
-      "getCreditLimitOrderRequests",
+      "getCreditLimitRequests",
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
       "Get Credit Limit Order Requests ",
@@ -148,7 +148,7 @@ trait APIMethods310 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
-    lazy val getCreditLimitOrderRequests : OBPEndpoint = {
+    lazy val getCreditLimitRequests : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonGet req => {
         cc =>
 //          val a: Future[(ChecksOrderStatusResponseDetails, Some[CallContext])] = for {
@@ -160,13 +160,13 @@ trait APIMethods310 {
     }
 
     resourceDocs += ResourceDoc(
-      getCreditLimitOrderRequestByRequestId,
+      getCreditLimitRequestByRequestId,
       implementedInApiVersion,
-      "getCreditLimitOrderRequestByRequestId",
+      "getCreditLimitRequestByRequestId",
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests/REQUEST_ID",
-      "Get Creadit Limit Order Request By Request Id",
-      """Get Creadit Limit Order Request By Request Id
+      "Get Credit Limit Order Request By Request Id",
+      """Get Credit Limit Order Request By Request Id
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
@@ -174,7 +174,7 @@ trait APIMethods310 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
-    lazy val getCreditLimitOrderRequestByRequestId : OBPEndpoint = {
+    lazy val getCreditLimitRequestByRequestId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: requestId :: Nil JsonGet req => {
         cc =>
 //          val a: Future[(ChecksOrderStatusResponseDetails, Some[CallContext])] = for {

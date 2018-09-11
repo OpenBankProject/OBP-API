@@ -75,7 +75,7 @@ case class CreditCardOrderStatusResponseJson(
 )
 
 
-case class CreditLimitOrderRequestJson(
+case class CreditLimitRequestJson(
   requested_current_rate_amount1: String,
   requested_current_rate_amount2: String,
   requested_current_valid_end_date: String,
