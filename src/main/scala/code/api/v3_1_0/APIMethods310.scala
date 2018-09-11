@@ -165,8 +165,8 @@ trait APIMethods310 {
       "getCreditLimitOrderRequestByRequestId",
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests/REQUEST_ID",
-      "Get Creadit Limit Order Request By Request Id",
-      """Get Creadit Limit Order Request By Request Id
+      "Get Credit Limit Order Request By Request Id",
+      """Get Credit Limit Order Request By Request Id
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
