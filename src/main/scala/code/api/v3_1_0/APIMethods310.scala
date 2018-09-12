@@ -613,7 +613,10 @@ trait APIMethods310 {
           val amount = "amount"
           val currency = "currency"
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanCheckFundsAvailable) {
+              hasEntitlement("", u.userId, canCheckFundsAvailable)
+            }
             _ <- NewStyle.function.getBank(bankId, callContext)
             account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
@@ -632,7 +635,7 @@ trait APIMethods310 {
               val currencyCode = httpParams.filter(_.name == currency).map(_.values.head).head
               isValidCurrencyISOCode(currencyCode)
             }
-            _ <- Future {account.moderatedBankAccount(view, user) } map {
+            _ <- Future {account.moderatedBankAccount(view, Full(u)) } map {
               fullBoxOrException(_)
             } map { unboxFull(_) }
           } yield {

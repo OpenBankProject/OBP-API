@@ -171,6 +171,9 @@ object ApiRole {
 
   case class CanSetCallLimit (requiresBankId: Boolean = false) extends ApiRole
   lazy val canSetCallLimit = CanSetCallLimit()
+
+  case class CanCheckFundsAvailable (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCheckFundsAvailable = CanCheckFundsAvailable()
   
   private val roles =
       canSearchAllTransactions ::
@@ -228,6 +231,7 @@ object ApiRole {
       canUnlockUser ::
       canSetCallLimit ::
       canReadBadLoginStatus ::
+      canCheckFundsAvailable ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
