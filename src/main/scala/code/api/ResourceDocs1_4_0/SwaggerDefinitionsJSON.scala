@@ -2733,7 +2733,7 @@ object SwaggerDefinitionsJSON {
     cards = List(cardObjectJson)
   )
   
-  val creditLimitOrderRequestJson = CreditLimitOrderRequestJson(
+  val creditLimitRequestJson = CreditLimitRequestJson(
     requested_current_rate_amount1 = "String",
     requested_current_rate_amount2 = "String",
     requested_current_valid_end_date = "String",
