@@ -25,7 +25,7 @@ trait TransactionImages {
   def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage]
   
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-  (userId: UserPrimaryId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage]
+  (userId: UserPrimaryKey, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage]
   
   def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Boolean]
 
@@ -35,7 +35,7 @@ trait TransactionImages {
 
 class RemotedataTransactionImagesCaseClasses {
   case class getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
-  case class addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryId, viewId : ViewId, description : String, datePosted : Date, imageURL: String)
+  case class addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryKey, viewId : ViewId, description : String, datePosted : Date, imageURL: String)
   case class deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, imageId : String)
   case class bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId)
 }

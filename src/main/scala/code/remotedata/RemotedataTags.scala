@@ -16,7 +16,7 @@ object RemotedataTags extends ObpActorInit with Tags {
   def getTags(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[TransactionTag] =
     extractFuture(actor ? cc.getTags(bankId, accountId, transactionId, viewId))
 
-  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryId, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] =
+  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryKey, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] =
     extractFutureToBox(actor ? cc.addTag(bankId, accountId, transactionId, userId, viewId, tagText, datePosted))
 
   def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Boolean] =

@@ -152,7 +152,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
         Views.views.vend.addPermission(v.uid, user)
         //logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
-      existing_views.filterNot(_.users.contains(user.userPrimaryId)).foreach (v => {
+      existing_views.filterNot(_.users.contains(user.userPrimaryKey)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
         //logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })

@@ -143,8 +143,8 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
   override def addImageURL(counterpartyId : String, imageUrl: String): Box[Boolean] = ???
   override def addOpenCorporatesURL(counterpartyId : String, url: String): Box[Boolean] = ???
   override def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean] = ???
-  override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = ???
-  override def addCorporateLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = ???
+  override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = ???
+  override def addCorporateLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = ???
   override def deletePhysicalLocation(counterpartyId : String): Box[Boolean] = ???
   override def deleteCorporateLocation(counterpartyId : String): Box[Boolean] = ???
   override def getCorporateLocation(counterpartyId : String): Box[GeoTag] = ???

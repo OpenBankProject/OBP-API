@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.util.APIUtil
-import code.model.{User, UserPrimaryId}
+import code.model.{User, UserPrimaryKey}
 import code.util.MappedUUID
 import net.liftweb.mapper._
 
@@ -87,7 +87,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   }
 
   def idGivenByProvider = providerId.get
-  def userPrimaryId = UserPrimaryId(id.get)
+  def userPrimaryKey = UserPrimaryKey(id.get)
 
   def userId = userId_.get
 
@@ -98,7 +98,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     ResourceUserCaseClass(
       emailAddress = emailAddress,
       idGivenByProvider = idGivenByProvider,
-      resourceUserId = userPrimaryId.value,
+      resourceUserId = userPrimaryKey.value,
       userId = userId,
       name = name,
       provider = provider

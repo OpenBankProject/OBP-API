@@ -18,7 +18,7 @@ object MappedTags extends Tags {
   }
 
   override def addTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
-                     (userId: UserPrimaryId, viewId: ViewId, tagText: String, datePosted: Date): Box[TransactionTag] = {
+                     (userId: UserPrimaryKey, viewId: ViewId, tagText: String, datePosted: Date): Box[TransactionTag] = {
     val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo{
       MappedTag.create

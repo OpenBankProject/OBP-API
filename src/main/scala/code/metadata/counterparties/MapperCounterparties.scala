@@ -267,11 +267,11 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
     getCounterpartyMetadata(counterpartyId).map(_.moreInfo(moreInfo).save())
   }
 
-  override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
+  override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
     getCounterpartyMetadata(counterpartyId).map(_.setPhysicalLocation(userId, datePosted, longitude, latitude))
   }
 
-  override def addCorporateLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
+  override def addCorporateLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
     getCounterpartyMetadata(counterpartyId).map(_.setCorporateLocation(userId, datePosted, longitude, latitude))
   }
 
@@ -330,7 +330,7 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
     }.getOrElse(false)
 
   private def setWhere(whereTag : Box[MappedCounterpartyWhereTag])
-                      (userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double) : Box[MappedCounterpartyWhereTag] = {
+                      (userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double) : Box[MappedCounterpartyWhereTag] = {
     val toUpdate = whereTag match {
       case Full(c) => c
       case _ => MappedCounterpartyWhereTag.create
@@ -346,14 +346,14 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
     }
   }
 
-  def setCorporateLocation(userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def setCorporateLocation(userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     //save where tag
     val savedWhere = setWhere(corporateLocation.obj)(userId, datePosted, longitude, latitude)
     //set where tag for counterparty
     savedWhere.map(location => trySave{corporateLocation(location)}).getOrElse(false)
   }
 
-  def setPhysicalLocation(userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def setPhysicalLocation(userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     //save where tag
     val savedWhere = setWhere(physicalLocation.obj)(userId, datePosted, longitude, latitude)
     //set where tag for counterparty
@@ -373,8 +373,8 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
     physicalLocation.obj
   override def getUrl: String = url.get
 
-  override val addPhysicalLocation: (UserPrimaryId, Date, Double, Double) => Boolean = setPhysicalLocation _
-  override val addCorporateLocation: (UserPrimaryId, Date, Double, Double) => Boolean = setCorporateLocation _
+  override val addPhysicalLocation: (UserPrimaryKey, Date, Double, Double) => Boolean = setPhysicalLocation _
+  override val addCorporateLocation: (UserPrimaryKey, Date, Double, Double) => Boolean = setCorporateLocation _
   override val addPrivateAlias: (String) => Boolean = (x) =>
     trySave{privateAlias(x)}
   override val addURL: (String) => Boolean = (x) =>

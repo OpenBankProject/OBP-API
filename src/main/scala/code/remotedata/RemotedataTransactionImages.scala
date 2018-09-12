@@ -16,7 +16,7 @@ object RemotedataTransactionImages extends ObpActorInit with TransactionImages {
     extractFuture(actor ? cc.getImagesForTransaction(bankId, accountId, transactionId, viewId))
 
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-                         (userId: UserPrimaryId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] =
+                         (userId: UserPrimaryKey, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] =
     extractFutureToBox(actor ? cc.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL))
 
   def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Boolean] =

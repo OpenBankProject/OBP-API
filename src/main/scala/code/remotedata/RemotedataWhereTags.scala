@@ -17,8 +17,8 @@ object RemotedataWhereTags extends ObpActorInit with WhereTags {
       extractFutureToBox(actor ? cc.getWhereTagForTransaction(bankId, accountId, transactionId, viewId))
 
   def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-                 (userId: UserPrimaryId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean =
-      extractFuture(actor ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserPrimaryId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double))
+                 (userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean =
+      extractFuture(actor ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double))
 
   def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean =
       extractFuture(actor ? cc.deleteWhereTag(bankId, accountId, transactionId, viewId))

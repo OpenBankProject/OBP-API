@@ -111,7 +111,7 @@ import net.liftweb.common.{Failure, Full}
       existingOwnerView match {
         case Full(v) => {
           logger.debug(s"account $accountId at bank $bankId has already an owner view")
-          v.users.toList.find(_.userPrimaryId == user.userPrimaryId) match {
+          v.users.toList.find(_.userPrimaryKey == user.userPrimaryKey) match {
             case Some(u) => {
               logger.debug(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
             }

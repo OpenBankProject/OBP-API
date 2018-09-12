@@ -69,8 +69,8 @@ trait Counterparties {
   def addImageURL(counterpartyId : String, imageUrl: String): Box[Boolean]
   def addOpenCorporatesURL(counterpartyId : String, imageUrl: String): Box[Boolean]
   def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean]
-  def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
-  def addCorporateLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
+  def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
+  def addCorporateLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean]
   def deletePhysicalLocation(counterpartyId : String): Box[Boolean]
   def deleteCorporateLocation(counterpartyId : String): Box[Boolean]
   def getCorporateLocation(counterpartyId : String): Box[GeoTag]
@@ -170,9 +170,9 @@ class RemotedataCounterpartiesCaseClasses {
 
   case class addMoreInfo(counterpartyId : String, moreInfo: String)
 
-  case class addPhysicalLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double)
+  case class addPhysicalLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double)
 
-  case class addCorporateLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double)
+  case class addCorporateLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double)
 
   case class deletePhysicalLocation(counterpartyId : String)
 

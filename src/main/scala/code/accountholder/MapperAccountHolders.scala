@@ -35,7 +35,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   def getOrCreateAccountHolder(user: User, bankIdAccountId :BankIdAccountId): Box[MapperAccountHolders] ={
   
     val mapperAccountHolder = MapperAccountHolders.find(
-      By(MapperAccountHolders.user, user.userPrimaryId.value),
+      By(MapperAccountHolders.user, user.userPrimaryKey.value),
       By(MapperAccountHolders.accountBankPermalink, bankIdAccountId.bankId.value),
       By(MapperAccountHolders.accountPermalink, bankIdAccountId.accountId.value)
     )
@@ -51,7 +51,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
         val holder: MapperAccountHolders = MapperAccountHolders.create
           .accountBankPermalink(bankIdAccountId.bankId.value)
           .accountPermalink(bankIdAccountId.accountId.value)
-          .user(user.userPrimaryId.value)
+          .user(user.userPrimaryKey.value)
           .saveMe
         logger.debug(
           s"getOrCreateAccountHolder--> create account holder: $holder"

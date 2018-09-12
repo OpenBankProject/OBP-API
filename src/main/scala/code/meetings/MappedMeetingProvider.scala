@@ -37,7 +37,7 @@ object MappedMeetingProvider extends MeetingProvider {
     val createdMeeting = MappedMeeting.create
       .mBankId(bankId.value.toString)
       //.mStaffUserId(staffUser.apiId.value)
-      .mCustomerUserId(customerUser.userPrimaryId.value)
+      .mCustomerUserId(customerUser.userPrimaryKey.value)
       .mProviderId(providerId)
       .mPurposeId(purposeId)
       .mWhen(when)

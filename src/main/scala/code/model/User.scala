@@ -45,7 +45,7 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.By
 
-case class UserPrimaryId(val value : Long) {
+case class UserPrimaryKey(val value : Long) {
   override def toString = value.toString
 }
 
@@ -73,8 +73,9 @@ case class UserPrimaryId(val value : Long) {
  */
 trait User extends MdcLoggable {
   
-  /**This will return resouceUser primary id: it is a long value !!!*/
-  def userPrimaryId : UserPrimaryId
+  /**This will return resouceUser primary key: it is a long value !!!
+    * This should not be exposed to outside. */
+  def userPrimaryKey : UserPrimaryKey
   /** This will be a UUID for Resource User Docment */
   def userId: String
 
@@ -109,7 +110,7 @@ trait User extends MdcLoggable {
     */
   final def hasViewAccess(view: View): Boolean ={
     val viewImpl = view.asInstanceOf[ViewImpl]
-    !(ViewPrivileges.count(By(ViewPrivileges.user, this.userPrimaryId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+    !(ViewPrivileges.count(By(ViewPrivileges.user, this.userPrimaryKey.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
   
   def assignedEntitlements : List[Entitlement] = {

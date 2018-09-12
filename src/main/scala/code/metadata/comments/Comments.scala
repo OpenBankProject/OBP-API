@@ -23,7 +23,7 @@ object Comments extends SimpleInjector {
 trait Comments {
   
   def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment]
-  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryId, viewId : ViewId, text : String, datePosted : Date) : Box[Comment]
+  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryKey, viewId : ViewId, text : String, datePosted : Date) : Box[Comment]
   //TODO: should commentId be unique among all comments, removing the need for the other parameters?
   def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Boolean]
   def bulkDeleteComments(bankId: BankId, accountId: AccountId) : Boolean
@@ -32,7 +32,7 @@ trait Comments {
 
 class RemotedataCommentsCaseClasses {
   case class getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId)
-  case class addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryId, viewId : ViewId, text : String, datePosted : Date)
+  case class addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserPrimaryKey, viewId : ViewId, text : String, datePosted : Date)
   case class deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, commentId : String)
   case class bulkDeleteComments(bankId: BankId, accountId: AccountId)
 }

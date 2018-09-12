@@ -5,7 +5,7 @@ import code.util.Helper
 import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
-import code.model.{CounterpartyMetadata, UserPrimaryId, ViewId, GeoTag}
+import code.model.{CounterpartyMetadata, UserPrimaryKey, ViewId, GeoTag}
 //TODO: this should be private
 class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata] with ObjectIdPk[Metadata] {
   import net.liftweb.mongodb.record.field.BsonRecordField
@@ -32,7 +32,7 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
   object corporateLocation extends BsonRecordField(this, OBPGeoTag)
   object physicalLocation extends BsonRecordField(this, OBPGeoTag)
 
-  def addCorporateLocationFn(userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addCorporateLocationFn(userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
       date(datePosted).
@@ -48,7 +48,7 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
     true
   }
 
-  def addPhysicalLocationFn(userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addPhysicalLocationFn(userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
       date(datePosted).
@@ -95,8 +95,8 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
     //so we a true
     true
   })
-  override val addPhysicalLocation: (UserPrimaryId, Date, Double, Double) => Boolean = addPhysicalLocationFn _
-  override val addCorporateLocation: (UserPrimaryId, Date, Double, Double) => Boolean = addCorporateLocationFn _
+  override val addPhysicalLocation: (UserPrimaryKey, Date, Double, Double) => Boolean = addPhysicalLocationFn _
+  override val addCorporateLocation: (UserPrimaryKey, Date, Double, Double) => Boolean = addCorporateLocationFn _
   override val addMoreInfo: (String) => Boolean = (text => {
     moreInfo(text).saveTheRecord()
     //the save method does not return a Boolean to inform about the saving state,
