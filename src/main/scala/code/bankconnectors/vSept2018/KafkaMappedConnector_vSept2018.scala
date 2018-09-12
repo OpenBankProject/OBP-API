@@ -92,8 +92,13 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           view <- views
           account <- checkBankAccountExists(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
           internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
+          internalUsers = JsonFactory_vSept2018.createUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
-          accountBasic =  AccountBasic(account.accountId.value, account.accountRoutings, internalCustomers.customers)
+          accountBasic =  AccountBasic(
+            account.accountId.value, 
+            account.accountRoutings, 
+            internalCustomers.customers,
+            internalUsers.users)
         }yield 
           AuthView(viewBasic, accountBasic)
       )
@@ -110,11 +115,18 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     legalName = "legalName",
     dateOfBirth = DateWithSecondsExampleObject
   )
+  val internalBasicUser = InternalBasicUser(
+    userId = "userId",
+    emailAddress = "emailAddress",
+    name = "name"
+  )
   val accountBasic = AccountBasic(
     "123123",
     List(AccountRouting("AccountNumber","2345 6789 1234"), 
          AccountRouting("IBAN","DE91 1000 0000 0123 4567 89")), 
-    List(internalBasicCustomer))
+    List(internalBasicCustomer),
+    List(internalBasicUser)
+  )
   val authView = AuthView(viewBasic, accountBasic)
   val authViews = List(authView)
   val authInfoExample = AuthInfo(
