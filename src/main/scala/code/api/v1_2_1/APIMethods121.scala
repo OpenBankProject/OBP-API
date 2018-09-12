@@ -530,7 +530,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.resourceUserId + ". account : " + accountId)
+            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
             views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)
@@ -1864,7 +1864,7 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            added <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be deleted"}
+            added <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.userPrimaryKey, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be deleted"}
             if(added)
           } yield {
             val successJson = SuccessMessage("corporate location added")
@@ -1908,7 +1908,7 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
+            updated <- Counterparties.counterparties.vend.addCorporateLocation(other_account_id, u.userPrimaryKey, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude) ?~ {"Corporate Location cannot be updated"}
             if(updated)
           } yield {
             val successJson = SuccessMessage("corporate location updated")
@@ -1995,7 +1995,7 @@ trait APIMethods121 {
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            added <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be added"}
+            added <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.userPrimaryKey, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be added"}
             if(added)
           } yield {
             val successJson = SuccessMessage("physical location added")
@@ -2040,7 +2040,7 @@ trait APIMethods121 {
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            updated <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.resourceUserId, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be updated"}
+            updated <- Counterparties.counterparties.vend.addPhysicalLocation(other_account_id, u.userPrimaryKey, (now:TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude) ?~ {"Physical Location cannot be updated"}
             if(updated)
           } yield {
             val successJson = SuccessMessage("physical location updated")
@@ -2413,7 +2413,7 @@ trait APIMethods121 {
             commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addCommentFunc <- Box(metadata.addComment) ?~ { s"$NoViewPermission can_add_comment. Current ViewId($viewId)" }
-            postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
+            postedComment <- addCommentFunc(u.userPrimaryKey, viewId, commentJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
           }
@@ -2525,7 +2525,7 @@ trait APIMethods121 {
             tagJson <- tryo{json.extract[PostTransactionTagJSON]} ?~ { s"$InvalidJsonFormat Check your Post Json Body." }
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addTagFunc <- Box(metadata.addTag) ?~ { s"$NoViewPermission can_add_tag. Current ViewId($viewId)" }
-            postedTag <- addTagFunc(u.resourceUserId, viewId, tagJson.value, now)
+            postedTag <- addTagFunc(u.userPrimaryKey, viewId, tagJson.value, now)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
           }
@@ -2637,7 +2637,7 @@ trait APIMethods121 {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addImageFunc <- Box(metadata.addImage) ?~ { s"$NoViewPermission can_add_image. Current ViewId($viewId)" }
             url <- tryo{new URL(imageJson.URL)} ?~! s"$InvalidUrl Could not parse url string as a valid URL"
-            postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url.toString)
+            postedImage <- addImageFunc(u.userPrimaryKey, viewId, imageJson.label, now, url.toString)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
           }
@@ -2753,7 +2753,7 @@ trait APIMethods121 {
             addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            if(addWhereTag(u.userPrimaryKey, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -2797,7 +2797,7 @@ trait APIMethods121 {
             addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }
             whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {InvalidJsonFormat}
             correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-            if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+            if(addWhereTag(u.userPrimaryKey, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
           } yield {
             val successJson = SuccessMessage("where tag updated")
             successJsonResponse(Extraction.decompose(successJson))

@@ -680,7 +680,7 @@ object JSONFactory220{
   def createUserCustomerViewJsonV220(user: ResourceUser, customer: Customer, view: View): CustomerViewJsonV220 = {
 
     var basicUser = BasicUserJsonV220(
-      user_id = user.resourceUserId.toString,
+      user_id = user.userId,
       email = user.email.get,
       provider_id = user.idGivenByProvider,
       provider = user.provider,

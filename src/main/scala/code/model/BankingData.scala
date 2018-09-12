@@ -32,11 +32,13 @@ Berlin 13359, Germany
 package code.model
 
 import java.util.Date
+
 import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.hasEntitlement
 import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
 import code.bankconnectors.{Connector, OBPQueryParam}
+import code.customer.Customer
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.Narrative
@@ -309,14 +311,27 @@ trait BankAccount extends MdcLoggable {
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
     }
   }
-
-  final def owners: Set[User] = {
+  
+  /**
+    * Note: There are two types of account-owners in OBP: the OBP users and the customers(in a real bank, these should from Main Frame)
+    * 
+    * This will return all the OBP users who have the link in code.accountholder.MapperAccountHolders.
+    * This field is tricky, it belongs to Trait `BankAccount` directly, not a filed in `MappedBankAccount`
+    * So this method always need to call the Model `MapperAccountHolders` and get the data there.
+    * Note: 
+    *  We need manully create records for`MapperAccountHolders`, then we can get the data back. 
+    *  each time when we create a account, we need call `getOrCreateAccountHolder`
+    *  eg1: code.sandbox.OBPDataImport#setAccountOwner used in createSandBox
+    *  eg2: code.model.dataAccess.AuthUser#updateUserAccountViews used in Adapter create accounts.
+    *  eg3: code.bankconnectors.Connector#setAccountHolder used in api level create account.
+    */
+  final def userOwners: Set[User] = {
     val accountHolders = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)
     if(accountHolders.isEmpty) {
       //account holders are not all set up in the db yet, so we might not get any back.
       //In this case, we just use the previous behaviour, which did not return very much information at all
       Set(new User {
-        val resourceUserId = UserId(-1)
+        val userPrimaryKey = UserPrimaryKey(-1)
         val userId = ""
         val idGivenByProvider = ""
         val provider = ""
@@ -328,6 +343,25 @@ trait BankAccount extends MdcLoggable {
     }
   }
 
+  /**
+    * Note: There are two types of account-owners in OBP: the OBP users and the customers(in a real bank, these should from Main Frame)
+    * This method is in processing, not finished yet.
+    * For now, it just returns the Customers link to the OBP user, both for `Sandbox Mode` and `MainFrame Mode`.
+    * 
+    * Maybe later, we need to create a new model, store the link between account<--> Customers. But this is not OBP Standard, these customers should come 
+    * from MainFrame, this is only for MainFrame Mode. We need to clarify what kind of Customers we can get from MainFrame. 
+    * 
+    */
+  final def customerOwners: Set[Customer] = {
+    val customerList = for{
+        accountHolder <- (AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList)
+        customers <- Customer.customerProvider.vend.getCustomersByUserId(accountHolder.userId)
+       } yield {
+      customers
+    }
+    customerList.toSet
+  }
+  
   private def viewNotAllowed(view : View ) = Failure(s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})")
   
  

@@ -403,7 +403,7 @@ trait View {
             else
               None
 
-          val addWhereTagFunc : Option[(UserId, ViewId, Date, Double, Double) => Boolean] =
+          val addWhereTagFunc : Option[(UserPrimaryKey, ViewId, Date, Double, Double) => Boolean] =
             if(canAddWhereTag)
               Some(transaction.metadata.addWhereTag)
             else
@@ -609,7 +609,7 @@ trait View {
   def moderateAccount(bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
     if(canSeeTransactionThisBankAccount)
     {
-      val owners : Set[User] = if(canSeeBankAccountOwners) bankAccount.owners else Set()
+      val owners : Set[User] = if(canSeeBankAccountOwners) bankAccount.userOwners else Set()
       val balance = if(canSeeBankAccountBalance) bankAccount.balance.toString else ""
       val accountType = if(canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(canSeeBankAccountCurrency) Some(bankAccount.currency) else None

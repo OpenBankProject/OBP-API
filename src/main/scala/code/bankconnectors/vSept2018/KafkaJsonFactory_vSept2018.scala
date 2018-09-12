@@ -139,7 +139,33 @@ case class Status(
                    errorCode: String,
                    backendMessages: List[InboundStatusMessage]
                  )
-case class AuthInfo(userId: String = "", username: String ="", cbsToken: String ="", isFirst: Boolean = true, correlationId: String="")
+
+case class ViewBasic(
+  id: String,
+  short_name: String,
+  description: String,
+)
+
+case class AccountBasic(
+  id: String,
+  accountRoutings: List[AccountRouting],
+  customerOwners: List[InternalBasicCustomer]
+)
+
+case class AuthView(
+  view: ViewBasic,
+  account:AccountBasic,
+)
+
+case class AuthInfo(
+  userId: String = "", 
+  username: String = "", 
+  cbsToken: String = "", 
+  isFirst: Boolean = true, 
+  correlationId: String = "",
+  authViews: List[AuthView] = Nil
+)
+
 
 case class InboundAccountSept2018(
   errorCode: String,

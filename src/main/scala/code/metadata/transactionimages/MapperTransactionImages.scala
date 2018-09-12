@@ -29,7 +29,7 @@ object MapperTransactionImages extends TransactionImages {
   }
 
   override def addTransactionImage(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
-                                  (userId: UserId, viewId: ViewId, description: String, datePosted: Date, imageURL: String): Box[TransactionImage] = {
+                                  (userId: UserPrimaryKey, viewId: ViewId, description: String, datePosted: Date, imageURL: String): Box[TransactionImage] = {
     val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo {
       MappedTransactionImage.create

@@ -174,8 +174,8 @@ trait OBPDataImport extends MdcLoggable {
     //println("{resourceUserOwner: " + resourceUserOwner)
 
     resourceUserOwner match {
-      case Some(o) => {
-        AccountHolders.accountHolders.vend.createAccountHolder(o.resourceUserId.value, account.bankId.value, account.accountId.value)
+      case Some(user) => {
+        val accountHolder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user, BankIdAccountId(account.bankId, account.accountId))
       }
       case None => {
         //This shouldn't happen as AuthUser should generate the ResourceUsers when saved

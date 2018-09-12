@@ -18,7 +18,7 @@ object RemotedataComments extends ObpActorInit with Comments {
   def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] =
     extractFuture(actor ? cc.getComments(bankId, accountId, transactionId, viewId))
 
-  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] =
+  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryKey, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] =
     extractFutureToBox(actor ? cc.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted))
 
   def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Boolean] =

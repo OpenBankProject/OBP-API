@@ -14,10 +14,6 @@ class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLo
 
   def receive = {
 
-    case cc.createAccountHolder(userId: Long, bankId: String, accountId: String) =>
-      logger.debug("createAccountHolder(" + userId +", "+ bankId +", "+ accountId +", " +")")
-      sender ! extractResult(mapper.createAccountHolder(userId, bankId, accountId))
-
     case cc.getOrCreateAccountHolder(user: User, account :BankIdAccountId) =>
       logger.debug("getOrCreateAccountHolder(" + user +", "+ account +", " +")")
       sender ! extractResult(mapper.getOrCreateAccountHolder(user: User, account :BankIdAccountId))

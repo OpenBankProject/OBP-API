@@ -10,7 +10,7 @@ import code.util.Helper.MdcLoggable
 private object MongoTransactionWhereTags extends WhereTags with MdcLoggable {
 
   def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-                 (userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+                 (userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
 
     //avoiding upsert for now as it seemed to behave a little strangely
     val findQuery = OBPWhereTag.getFindQuery(bankId, accountId, transactionId, viewId)

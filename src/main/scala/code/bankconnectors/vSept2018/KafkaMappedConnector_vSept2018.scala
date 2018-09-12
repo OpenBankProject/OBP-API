@@ -43,6 +43,7 @@ import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
+import code.views.Views
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, _}
@@ -84,11 +85,46 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
       isFirst <- Full(gatewayLoginPayLoad.is_first)
       correlationId <- Full(cc.correlationId)
+      permission <- Views.views.vend.getPermissionForUser(user)
+      views <- Full(permission.views)
+      authViews<- Full(
+        for{
+          view <- views
+          account <- checkBankAccountExists(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
+          internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
+          viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
+          accountBasic =  AccountBasic(account.accountId.value, account.accountRoutings, internalCustomers.customers)
+        }yield 
+          AuthView(viewBasic, accountBasic)
+      )
     } yield{
-      AuthInfo(currentResourceUserId,username, cbs_token, isFirst,correlationId)
+      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, authViews)
     }
-
-  val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
+  
+  val viewBasic = ViewBasic("owner","Owner", "This is the owner view")
+  
+  val internalBasicCustomer = InternalBasicCustomer(
+    bankId = "bankId",
+    customerId = "customerId",
+    customerNumber = "customerNumber",
+    legalName = "legalName",
+    dateOfBirth = DateWithSecondsExampleObject
+  )
+  val accountBasic = AccountBasic(
+    "123123",
+    List(AccountRouting("AccountNumber","2345 6789 1234"), 
+         AccountRouting("IBAN","DE91 1000 0000 0123 4567 89")), 
+    List(internalBasicCustomer))
+  val authView = AuthView(viewBasic, accountBasic)
+  val authViews = List(authView)
+  val authInfoExample = AuthInfo(
+    userId = "userId", 
+    username = "username",
+    cbsToken = "cbsToken", 
+    isFirst = true,
+    correlationId = "correlationId", 
+    authViews
+  )
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
   val statusExample = Status(errorCodeExample, inboundStatusMessagesExample)
@@ -461,14 +497,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       OutboundGetAccounts(
         authInfoExample,
         true,
-        InternalBasicCustomers(customers =List(
-          InternalBasicCustomer(
-            bankId="bankId",
-            customerId = "customerId",
-            customerNumber = "customerNumber",
-            legalName = "legalName",
-            dateOfBirth = DateWithSecondsExampleObject
-          ))))
+        InternalBasicCustomers(customers =List(internalBasicCustomer)))
     ),
     exampleInboundMessage = decompose(
       InboundGetAccounts(authInfoExample, statusExample, InboundAccountSept2018("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
