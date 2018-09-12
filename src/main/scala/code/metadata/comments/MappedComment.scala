@@ -35,7 +35,7 @@ object MappedComments extends Comments {
     }
   }
 
-  override def addComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(userId: UserId, viewId: ViewId, text: String, datePosted: Date): Box[Comment] = {
+  override def addComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(userId: UserPrimaryId, viewId: ViewId, text: String, datePosted: Date): Box[Comment] = {
     val metadateViewId = Views.views.vend.getMetadataViewId(BankIdAccountId(bankId, accountId), viewId)
     tryo {
       MappedComment.create

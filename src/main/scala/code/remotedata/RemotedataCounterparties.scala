@@ -109,10 +109,10 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
   override def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean] =
     extractFutureToBox(actor ? cc.addMoreInfo(counterpartyId, moreInfo))
 
-  override def addPhysicalLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
+  override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
     extractFutureToBox(actor ? cc.addPhysicalLocation(counterpartyId, userId, datePosted, longitude, latitude))
 
-  override def addCorporateLocation(counterpartyId : String, userId: UserId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
+  override def addCorporateLocation(counterpartyId : String, userId: UserPrimaryId, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
     extractFutureToBox(actor ? cc.addCorporateLocation(counterpartyId, userId, datePosted, longitude, latitude))
 
   override def deletePhysicalLocation(counterpartyId: String): Box[Boolean] =

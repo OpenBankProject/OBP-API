@@ -19,7 +19,7 @@ import code.api.util.ErrorMessages._
 trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
   override protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankId.value, accountId.value)
+    AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user, BankIdAccountId(bankId, accountId))
   }
 
   override protected def grantAccessToAllExistingViews(user : User) = {

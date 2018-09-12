@@ -355,7 +355,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           //3 get all the existing views.
           existingViewsNotBelongtoTheUser <- tryo {
             Views.views.vend.viewsForAccount(BankIdAccountId(BankId(acc.bankId), AccountId(acc.accountId)))
-              .filterNot(_.users.contains(user.resourceUserId))
+              .filterNot(_.users.contains(user.userPrimaryId))
           }
         } yield {
           //4 set Account link to User

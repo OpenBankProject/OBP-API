@@ -40,8 +40,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       var accountholder1 = MapperAccountHolders.getAccountHolders(bankIdAccountId.bankId, bankIdAccountId.accountId)
       var accountholder2 = MapperAccountHolders.getAccountHolders(bankIdAccountId2.bankId, bankIdAccountId2.accountId)
       var accountholders = MapperAccountHolders.findAll()
-      accountholder1.head.resourceUserId should equal(resourceUser1.resourceUserId)
-      accountholder2.head.resourceUserId should equal(resourceUser1.resourceUserId)
+      accountholder1.head.userPrimaryId should equal(resourceUser1.userPrimaryId)
+      accountholder2.head.userPrimaryId should equal(resourceUser1.userPrimaryId)
       accountholders.length should equal(2)
 
       Then("We check the views")  //"Owner"::"Public" :: "Accountant" :: "Auditor"

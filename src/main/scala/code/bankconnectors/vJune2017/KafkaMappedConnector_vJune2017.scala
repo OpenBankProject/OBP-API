@@ -101,7 +101,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
-    description = "getAdapterInfo from kafka ",
+    description = "getAdapterInfo from Adapter, just for testing kafka and Adapter setting.  ",
     exampleOutboundMessage = decompose(
       OutboundGetAdapterInfo(date = DateWithSecondsExampleString)
     ),

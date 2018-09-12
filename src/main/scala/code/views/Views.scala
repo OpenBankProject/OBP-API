@@ -32,6 +32,7 @@ trait Views {
   
   def permissions(account : BankIdAccountId) : List[Permission]
   def permission(account : BankIdAccountId, user: User) : Box[Permission]
+  def getPermissionForUser(user: User) : Box[Permission]
   /**
     * This is for @ViewPrivileges. 
     * It will first find the view object by `viewIdBankIdAccountId`
@@ -99,8 +100,8 @@ trait Views {
 class RemotedataViewsCaseClasses {
 
   case class permissions(account: BankIdAccountId)
+  case class getPermissionForUser(user: User)
   case class permission(account: BankIdAccountId, user: User)
-  case class getOrCreateViewPrivilege(view: View, user: User)
   case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)

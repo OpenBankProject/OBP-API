@@ -48,7 +48,7 @@ object MapperViews extends Views with MdcLoggable {
     //search ViewPrivileges to get all views for user and then filter the views
     // by bankPermalink and accountPermalink
     //TODO: do it in a single query with a join
-    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
+    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryId.value))
     val views = privileges.flatMap(_.view.obj).filter(v =>
       if (ALLOW_PUBLIC_VIEWS) {
         v.accountId == account.accountId &&
@@ -62,12 +62,18 @@ object MapperViews extends Views with MdcLoggable {
     Full(Permission(user, views))
   }
 
+  def getPermissionForUser(user: User): Box[Permission] = {
+    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryId.value))
+    val views = privileges.flatMap(_.view.obj)
+    Full(Permission(user, views))
+  }
+  
   private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl): Box[ViewImpl] = {
-    if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
+    if (ViewPrivileges.count(By(ViewPrivileges.user, user.userPrimaryId.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
       //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
       // SQL Insert ViewPrivileges
       val saved = ViewPrivileges.create.
-        user(user.resourceUserId.value).
+        user(user.userPrimaryId.value).
         view(viewImpl.id).
         save
       if (saved) {
@@ -118,7 +124,7 @@ object MapperViews extends Views with MdcLoggable {
     val res =
     for {
       viewImpl <- ViewImpl.find(viewUID)
-      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id))
+      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.userPrimaryId.value), By(ViewPrivileges.view, viewImpl.id))
       deletable <- accessRemovableAsBox(viewImpl, user)
     } yield {
       vp.delete_!
@@ -139,8 +145,8 @@ object MapperViews extends Views with MdcLoggable {
       //if the user is an account holder, we can't revoke access to the owner view
       val accountHolders = MapperAccountHolders.getAccountHolders(viewImpl.bankId, viewImpl.accountId)
       if(accountHolders.map {h =>
-        h.resourceUserId
-      }.contains(user.resourceUserId)) {
+        h.userPrimaryId
+      }.contains(user.userPrimaryId)) {
         false
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
@@ -160,7 +166,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
-    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
+    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryId.value))
 
     val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
       case Full(v) => {
@@ -291,7 +297,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccess(user: User): List[View] ={
-    ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value)).map(_.view.obj).flatten.filter(_.isPrivate)
+    ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryId.value)).map(_.view.obj).flatten.filter(_.isPrivate)
   }
   
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =
@@ -477,11 +483,11 @@ object MapperViews extends Views with MdcLoggable {
   def grantAccessToAllExistingViews(user : User) = {
     ViewImpl.findAll.foreach(v => {
       //Get All the views from ViewImpl table, and create the link user <--> each view. The link record the access permission. 
-      if ( ViewPrivileges.find(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ).isEmpty )
+      if ( ViewPrivileges.find(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.userPrimaryId.value) ).isEmpty )
         //If the user and one view has no link, it will create one .
         ViewPrivileges.create.
           view(v).
-          user(user.resourceUserId.value).
+          user(user.userPrimaryId.value).
           save
       })
     true
@@ -502,10 +508,10 @@ object MapperViews extends Views with MdcLoggable {
     */
   def grantAccessToView(user : User, view : View): Boolean = {
     val v = ViewImpl.find(view.uid).orNull
-    if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceUserId.value) ) == 0 )
+    if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.userPrimaryId.value) ) == 0 )
     ViewPrivileges.create.
       view(v). //explodes if no viewImpl exists, but that's okay, the test should fail then
-      user(user.resourceUserId.value).
+      user(user.userPrimaryId.value).
       save
     else
       false

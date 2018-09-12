@@ -45,16 +45,37 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.By
 
-case class UserId(val value : Long) {
+case class UserPrimaryId(val value : Long) {
   override def toString = value.toString
 }
 
-
-// TODO Document clearly the difference between this and AuthUser
-
+/**
+ * An O-R mapped "User" class that includes first name, last name, password
+  *
+  * 1 AuthUser : is used for authentication, only for webpage Login in stuff
+  *   1) It is MegaProtoUser, has lots of methods for validation username, password, email ....
+  *      Such as lost password, reset password ..... 
+  *      Lift have some helper methods to make these things easily. 
+  *   
+  *  
+  * 
+  * 2 ResourceUser: is only a normal LongKeyedMapper 
+  *   1) All the accounts, transactions ,roles, views, accountHolders, customers... should be linked to ResourceUser.userId_ field.
+  *   2) The consumer keys, tokens are also belong ResourceUser
+  *  
+  * 
+  * 3 RelationShips:
+  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save() --> create ResourceUser user.
+  *      They share the same username and email.
+  *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
+  *      one AuthUser <---> one ResourceUser 
+  *
+ */
 trait User extends MdcLoggable {
-
-  def resourceUserId : UserId
+  
+  /**This will return resouceUser primary id: it is a long value !!!*/
+  def userPrimaryId : UserPrimaryId
+  /** This will be a UUID for Resource User Docment */
   def userId: String
 
   def idGivenByProvider: String
@@ -88,7 +109,7 @@ trait User extends MdcLoggable {
     */
   final def hasViewAccess(view: View): Boolean ={
     val viewImpl = view.asInstanceOf[ViewImpl]
-    !(ViewPrivileges.count(By(ViewPrivileges.user, this.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+    !(ViewPrivileges.count(By(ViewPrivileges.user, this.userPrimaryId.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
   
   def assignedEntitlements : List[Entitlement] = {

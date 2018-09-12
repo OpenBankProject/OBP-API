@@ -32,13 +32,32 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.util.APIUtil
-import code.model.{User, UserId}
+import code.model.{User, UserPrimaryId}
 import code.util.MappedUUID
 import net.liftweb.mapper._
 
 /**
-  * Refer to AuthUser, see the difference between AuthUser and ResourceUser
-  */
+ * An O-R mapped "User" class that includes first name, last name, password
+  *
+  * 1 AuthUser : is used for authentication, only for webpage Login in stuff
+  *   1) It is MegaProtoUser, has lots of methods for validation username, password, email ....
+  *      Such as lost password, reset password ..... 
+  *      Lift have some helper methods to make these things easily. 
+  *   
+  *  
+  * 
+  * 2 ResourceUser: is only a normal LongKeyedMapper 
+  *   1) All the accounts, transactions ,roles, views, accountHolders, customers... should be linked to ResourceUser.userId_ field.
+  *   2) The consumer keys, tokens are also belong ResourceUser
+  *  
+  * 
+  * 3 RelationShips:
+  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save() --> create ResourceUser user.
+  *      They share the same username and email.
+  *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
+  *      one AuthUser <---> one ResourceUser 
+  *
+ */
 class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMany with OneToMany[Long, ResourceUser]{
   def getSingleton = ResourceUser
   def primaryKeyField = id
@@ -68,7 +87,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   }
 
   def idGivenByProvider = providerId.get
-  def resourceUserId = UserId(id.get)
+  def userPrimaryId = UserPrimaryId(id.get)
 
   def userId = userId_.get
 
@@ -79,7 +98,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     ResourceUserCaseClass(
       emailAddress = emailAddress,
       idGivenByProvider = idGivenByProvider,
-      resourceUserId = resourceUserId.value,
+      resourceUserId = userPrimaryId.value,
       userId = userId,
       name = name,
       provider = provider

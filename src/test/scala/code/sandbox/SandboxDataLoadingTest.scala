@@ -291,7 +291,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundAccount.balance.toString should equal(account.balance.amount)
     foundAccount.currency should equal(account.balance.currency)
 
-    foundAccount.owners.map(_.name) should equal(account.owners.toSet)
+    foundAccount.userOwners.map(_.name) should equal(account.owners.toSet)
 
     if(account.generate_public_view) {
       Views.views.vend.viewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(1)
@@ -299,7 +299,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       Views.views.vend.viewsForAccount(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)).filter(_.isPublic).size should equal(0)
     }
 
-    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.userOwners.toList.head.name).openOrThrowException(attemptedToOpenAnEmptyBox)
     //there should be an owner view
     val views = Views.views.vend.privateViewsUserCanAccessForAccount(owner, BankIdAccountId(foundAccount.bankId, foundAccount.accountId))
     val ownerView = views.find(v => v.viewId.value == "owner")
