@@ -1980,8 +1980,8 @@ Returns a string showed to the developer
     def setXRateLimits(c: Consumer, z: (Long, Long)) = {
       val limit = c.perMinuteCallLimit.get
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Remaining` = z._1))
-        .map(_.copy(`X-Rate-Limit-Reset` = limit - z._2))
+        .map(_.copy(`X-Rate-Limit-Reset` = z._1))
+        .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
     }
 
     x._2 match {
