@@ -462,7 +462,7 @@ trait APIMethods310 {
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
-      Some(List(canReadBadLoginStatus))
+      Some(List(canReadUserLockedStatus))
     )
 
     lazy val getBadLoginStatus : OBPEndpoint = {
@@ -471,8 +471,8 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadBadLoginStatus) {
-              hasEntitlement("", u.userId, ApiRole.canReadBadLoginStatus)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadUserLockedStatus) {
+              hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus)
             }
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
