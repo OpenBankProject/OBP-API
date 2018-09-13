@@ -443,6 +443,11 @@ X-Rate-Limit-Limit → 3
 X-Rate-Limit-Remaining → 0
 X-Rate-Limit-Reset → 0
 ```
+Description of the headers above:
+1. `X-Rate-Limit-Limit` - The number of allowed requests in the current period
+2. `X-Rate-Limit-Remaining` - The number of remaining requests in the current period
+3. `X-Rate-Limit-Reset` - The number of seconds left in the current period
+
 Please note that first will be checked `per minute` call limit then `per hour` etc.
    
 ## Scala / Lift
