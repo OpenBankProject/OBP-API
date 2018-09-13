@@ -1968,14 +1968,14 @@ Returns a string showed to the developer
     * This function checks rate limiting for a Consumer.
     * It will check rate limiting per minute, hour, day, week and month.
     * In case any of the above is hit an error is thrown.
-    * In case two or more limits are hit rate limit with lower period has precedence regardig the error message.
+    * In case two or more limits are hit rate limit with lower period has precedence regarding the error message.
     * @param x is a Tuple (Box[User], Option[CallContext]) provided from getUserAndSessionContextFuture function
     * @return a Tuple (Box[User], Option[CallContext]) enriched with rate limiting header or an error.
     */
   private def underCallLimits(x: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     import util.LimitCallPeriod._
     import util.LimitCallsUtil._
-    def composeMsg(period: LimitCallPeriod, limit: Long) = ToManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} to this Web site per logged in user."
+    def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} to this Web site per logged in user."
 
     def setXRateLimits(c: Consumer, z: (Long, Long)) = {
       val limit = c.perMinuteCallLimit.get
@@ -2000,9 +2000,9 @@ Returns a string showed to the developer
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perDayCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_WEEK, c.perWeekCallLimit.get), 429, excededRateLimit)), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5 == false =>

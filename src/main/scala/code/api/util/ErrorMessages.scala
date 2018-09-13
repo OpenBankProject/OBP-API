@@ -49,7 +49,7 @@ object ErrorMessages {
   val AllowedValuesAre = "OBP-10015: Allowed values are: "
   val InvalidFilterParameterFormat = "OBP-10016: Incorrect filter Parameters in URL. "
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
-  val ToManyRequests = "OBP-10018: Too Many Requests."
+  val TooManyRequests = "OBP-10018: Too Many Requests."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
