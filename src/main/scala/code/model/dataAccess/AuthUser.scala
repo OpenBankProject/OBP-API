@@ -59,9 +59,6 @@ import scala.collection.immutable.List
 /**
  * An O-R mapped "User" class that includes first name, last name, password
   *
-  *
-  * // TODO Document the difference between this and AuthUser / ResourceUser
-  * 
   * 1 AuthUser : is used for authentication, only for webpage Login in stuff
   *   1) It is MegaProtoUser, has lots of methods for validation username, password, email ....
   *      Such as lost password, reset password ..... 
@@ -79,7 +76,6 @@ import scala.collection.immutable.List
   *      They share the same username and email.
   *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
   *      one AuthUser <---> one ResourceUser 
-  *  
   *
  */
 class AuthUser extends MegaProtoUser[AuthUser] with Logger {

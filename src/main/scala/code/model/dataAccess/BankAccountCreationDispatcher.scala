@@ -48,6 +48,7 @@ package com.tesobe.model {
 
 package code.model.dataAccess {
 
+import code.accountholder.AccountHolders
 import code.api.util.APIUtil
 import code.bankconnectors.Connector
 import code.model._
@@ -90,7 +91,7 @@ import net.liftweb.common.{Failure, Full}
       */
     def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
       createOwnerView(bankId, accountId, user)
-      Connector.connector.vend.setAccountHolder(BankIdAccountId(bankId, accountId), user)
+      val accountHolder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
     }
   
     /**
@@ -110,7 +111,7 @@ import net.liftweb.common.{Failure, Full}
       existingOwnerView match {
         case Full(v) => {
           logger.debug(s"account $accountId at bank $bankId has already an owner view")
-          v.users.toList.find(_.resourceUserId == user.resourceUserId) match {
+          v.users.toList.find(_.userPrimaryKey == user.userPrimaryKey) match {
             case Some(u) => {
               logger.debug(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
             }

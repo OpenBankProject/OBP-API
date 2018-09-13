@@ -126,7 +126,7 @@ trait CounterpartyMetadata {
    * @param: longitude
    * @param: latitude
    */
-  val addCorporateLocation: (UserId, Date, Double, Double) => Boolean
+  val addCorporateLocation: (UserPrimaryKey, Date, Double, Double) => Boolean
   val deleteCorporateLocation: () => Boolean
   /**
    * @param: userId
@@ -134,7 +134,7 @@ trait CounterpartyMetadata {
    * @param: longitude
    * @param: latitude
    */
-  val addPhysicalLocation: (UserId, Date, Double, Double) => Boolean
+  val addPhysicalLocation: (UserPrimaryKey, Date, Double, Double) => Boolean
   val deletePhysicalLocation: () => Boolean
   val addPublicAlias: (String) => Boolean
   val addPrivateAlias: (String) => Boolean
@@ -154,7 +154,7 @@ class TransactionMetadata(
   * @param: text
   * @param: datePosted
   */
-  val addComment : (UserId, ViewId, String, Date) => Box[Comment],
+  val addComment : (UserPrimaryKey, ViewId, String, Date) => Box[Comment],
   /**
   * @param: commentId
   */
@@ -167,7 +167,7 @@ class TransactionMetadata(
   * @param: tag
   * @param: datePosted
   */
-  val addTag: (UserId, ViewId, String, Date) => Box[TransactionTag],
+  val addTag: (UserPrimaryKey, ViewId, String, Date) => Box[TransactionTag],
   /**
   * @param: tagId
   */
@@ -180,7 +180,7 @@ class TransactionMetadata(
   * @param: datePosted
   * @param: imageURL
   */
-  val addImage : (UserId, ViewId, String, Date, String) => Box[TransactionImage],
+  val addImage : (UserPrimaryKey, ViewId, String, Date, String) => Box[TransactionImage],
   /**
   * @param: imageId
   */
@@ -200,7 +200,7 @@ class TransactionMetadata(
   * @param: longitude
   * @param: latitude
   */
-  val addWhereTag : (UserId, ViewId, Date, Double, Double) => Boolean,
+  val addWhereTag : (UserPrimaryKey, ViewId, Date, Double, Double) => Boolean,
   /**
   * @param: viewId
   */

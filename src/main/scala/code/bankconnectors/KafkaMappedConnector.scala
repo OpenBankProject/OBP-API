@@ -152,7 +152,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
         Views.views.vend.addPermission(v.uid, user)
         //logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
-      existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach (v => {
+      existing_views.filterNot(_.users.contains(user.userPrimaryKey)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
         //logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
@@ -819,11 +819,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
-  }
-
-  //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankIdAccountId, user: User): Unit = {
-    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,

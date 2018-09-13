@@ -101,9 +101,9 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   userEmail <- tryo{(json_user \ "email").extractOrElse[String]("")}
                   auth_user: AuthUser <- AuthUser.find(By(AuthUser.email, userEmail))
                   resource_user: ResourceUser <- User.findResourceUserByResourceUserId(auth_user.user.get)
-                  if emailVerified && resource_user.resourceUserId.value > 0
+                  if emailVerified && resource_user.userPrimaryKey.value > 0
                 } yield {
-                  saveAuthorizationToken(accessToken, accessToken, resource_user.resourceUserId.value)
+                  saveAuthorizationToken(accessToken, accessToken, resource_user.userPrimaryKey.value)
                   httpCode = 200
                   message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
                   val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil

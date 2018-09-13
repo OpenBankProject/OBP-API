@@ -21,7 +21,7 @@ private object MongoTransactionImages extends TransactionImages with MdcLoggable
   }
   
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-  (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] = {
+  (userId: UserPrimaryKey, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] = {
     OBPTransactionImage.createRecord.
       bankId(bankId.value).
       accountId(accountId.value).
