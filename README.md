@@ -414,6 +414,36 @@ You can obfuscate passwords in the props file the same way as for jetty:
    *  db.url.is_obfuscated=true
    *  db.url=OBF:fdsafdsakwaetcetcetc
 
+## Rate Limiting
+We support rate limiting i.e functionality to limit calls per consumer key (App). 
+It is assumed that you have a Redis instance if you wan to use the functionality. In order to make it work edit your props file in next way:
+```
+use_consumer_limits=false, In case isn't defined default value is "false"
+redis_address=YOUR_REDIS_URL_ADDRESS for instance 127.0.0.1
+redis_port=YOUR_REDIS_PORT for intance 6379
+```
+Next types are supported:
+```
+    1 per minute
+    2 per hour
+    3 per day
+    4 per week
+    5 per month
+    6 per year
+```    
+If you exced rate limit per minute for instance you will get the response:
+```
+{
+    "error": "OBP-10018: Too Many Requests.We only allow 3 requests per minute to this Web site per logged in user."
+}
+```
+and response headers:
+```
+X-Rate-Limit-Limit → 3
+X-Rate-Limit-Remaining → 0
+X-Rate-Limit-Reset → 0
+```
+Please note that first will be checked `per minute` call limit then `per hour` etc.
    
 ## Scala / Lift
 
