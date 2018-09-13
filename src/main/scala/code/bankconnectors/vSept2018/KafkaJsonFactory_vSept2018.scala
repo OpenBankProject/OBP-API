@@ -149,7 +149,8 @@ case class ViewBasic(
 case class AccountBasic(
   id: String,
   accountRoutings: List[AccountRouting],
-  customerOwners: List[InternalBasicCustomer]
+  customerOwners: List[InternalBasicCustomer],
+  userOwners: List[InternalBasicUser]
 )
 
 case class AuthView(
@@ -229,7 +230,15 @@ case class InternalBasicCustomer(
   dateOfBirth: Date
 )
 
+case class InternalBasicUser(
+  userId:String,
+  emailAddress: String,
+  name: String
+)
+
 case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
+
+case class InternalBasicUsers(users: List[InternalBasicUser])
 
 case class InternalCreateChallengeSept2018(
   errorCode: String,
@@ -402,7 +411,19 @@ object JsonFactory_vSept2018 {
     )
   }
   
+  def createUserJson(user : User) : InternalBasicUser = {
+    InternalBasicUser(
+      user.userId,
+      user.emailAddress,
+      user.name,
+    )
+  }
+  
   def createCustomersJson(customers : List[Customer]) : InternalBasicCustomers = {
     InternalBasicCustomers(customers.map(createCustomerJson))
+  }
+  
+  def createUsersJson(users : List[User]) : InternalBasicUsers = {
+    InternalBasicUsers(users.map(createUserJson))
   }
 }
