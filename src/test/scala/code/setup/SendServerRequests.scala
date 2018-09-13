@@ -153,6 +153,7 @@ trait SendServerRequests {
     val form_params: Map[String,String] = r.getFormParams.asScala.map( fp => fp.getName -> fp.getValue).toMap[String,String]
     var headers:Map[String,String] = r.getHeaders.entries().asScala.map (h => h.getKey -> h.getValue).toMap[String,String]
     val url:String = r.getUrl
+    val urlWithoutQueryParams:String = if (r.getUrl.contains("?")) r.getUrl.splitAt("?").head._1 else r.getUrl
     val method:String = r.getMethod
 
     if (headers.isDefinedAt("Authorization") && headers("Authorization").contains("OAuth")) {
@@ -161,7 +162,7 @@ trait SendServerRequests {
       val token_secret = getTokenSecret(oauth_params(TokenName))
       val new_oauth_params = OAuth.sign(
         method,
-        url,
+        urlWithoutQueryParams,
         query_params ++ form_params, // ++ extra_headers,
         OAuth.Consumer(oauth_params("oauth_consumer_key"), consumer_secret),
         Option(OAuth.Token(oauth_params.getOrElse(TokenName, ""), token_secret)),
