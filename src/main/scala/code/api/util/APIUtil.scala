@@ -1984,11 +1984,16 @@ Returns a string showed to the developer
         .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
     }
 
+    def exceededRateLimit(c: Consumer, period: LimitCallPeriod) = {
+      val remain = ttl(c.key.get, period)
+      val exceededRateLimit = setXRateLimits(c, (remain, 3)).map(_.toLight)
+      exceededRateLimit
+    }
+
     x._2 match {
       case Some(cc) =>
         cc.consumer match {
           case Full(c) =>
-            val excededRateLimit = setXRateLimits(c, (0, 3)).map(_.toLight) // Set CalContext in case that Rate Limit is hit
             val checkLimits = List(
               underConsumerLimits(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),
               underConsumerLimits(c.key.get, PER_HOUR, c.perHourCallLimit.get),
@@ -1998,15 +2003,15 @@ Returns a string showed to the developer
             )
             checkLimits match {
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, exceededRateLimit(c, PER_MINUTE))), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, excededRateLimit)), x._2)
+               (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, exceededRateLimit(c, PER_HOUR))), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perDayCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perDayCallLimit.get), 429, exceededRateLimit(c, PER_DAY))), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_WEEK, c.perWeekCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_WEEK, c.perWeekCallLimit.get), 429, exceededRateLimit(c, PER_WEEK))), x._2)
               case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MONTH, c.perMonthCallLimit.get), 429, excededRateLimit)), x._2)
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MONTH, c.perMonthCallLimit.get), 429, exceededRateLimit(c, PER_MONTH))), x._2)
               case _ =>
                 val incrementCounters = List (
                   incrementConsumerCounters(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.

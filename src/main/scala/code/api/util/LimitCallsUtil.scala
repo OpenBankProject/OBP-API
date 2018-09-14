@@ -112,5 +112,16 @@ object LimitCallsUtil extends MdcLoggable {
 
   }
 
+  def ttl(consumerKey: String, period: LimitCallPeriod): Long = {
+    val key = createUniqueKey(consumerKey, period)
+    val ttl =  jedis.ttl(key).toInt
+    ttl match {
+      case -2 => // if the Key does not exists, -2 is returned
+        0
+      case _ => // otherwise increment the counter
+        ttl
+    }
+  }
+
 
 }
