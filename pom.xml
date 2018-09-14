@@ -371,6 +371,12 @@
       <artifactId>scalameta_${scala.version}</artifactId>
       <version>3.7.4</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.github.sebruck/scalatest-embedded-redis -->
+    <dependency>
+      <groupId>com.github.sebruck</groupId>
+      <artifactId>scalatest-embedded-redis_${scala.version}</artifactId>
+      <version>0.3.0</version>
+    </dependency>
 
 
   </dependencies>
