@@ -29,11 +29,11 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
 
   feature("Rate Limit - v3.1.0")
   {
-    val Some((c, _)) = user1
-    val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
 
     scenario("We will try to set calls limit per minute for a Consumer - unauthorized access") {
       When("We make a request v3.1.0")
+      val Some((c, _)) = user1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
       val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT
       val response310 = makePutRequest(request310, write(callLimitJson1))
       Then("We should get a 400")
@@ -43,19 +43,25 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
     }
     scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canGetConsumers) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canSetCallLimit)
+      val Some((c, _)) = user1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
       val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
       val response310 = makePutRequest(request310, write(callLimitJson1))
       Then("We should get a 403")
+      org.scalameta.logger.elem(response310.body)
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanSetCallLimit)
       response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanSetCallLimit)
     }
     scenario("We will try to set calls limit per minute with a proper Role " + ApiRole.canGetConsumers) {
       When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimit)
+      val Some((c, _)) = user1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimit.toString)
       val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
       val response310 = makePutRequest(request310, write(callLimitJson1))
       Then("We should get a 200")
+      org.scalameta.logger.elem(response310.body)
       response310.code should equal(200)
       response310.body.extract[CallLimitJson]
     }
@@ -64,6 +70,8 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
         port =>
           if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
             When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimit)
+            val Some((c, _)) = user1
+            val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
             Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimit.toString)
             val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
             val response01 = makePutRequest(request310, write(callLimitJson2))
