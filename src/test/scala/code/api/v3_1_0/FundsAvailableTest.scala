@@ -33,16 +33,29 @@ package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{ApiRole, ApiVersion}
 import code.api.util.ApiRole.{CanCheckFundsAvailable, canCheckFundsAvailable}
 import code.api.util.ErrorMessages._
+import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
+import com.github.dwickern.macros.NameOf.nameOf
+import org.scalatest.Tag
 
 class FundsAvailableTest extends V310ServerSetup {
 
+  /**
+    * Test tags
+    * Example: To run tests with tag "getPermissions":
+    * 	mvn test -D tagsToInclude
+    *
+    *  This is made possible by the scalatest maven plugin
+    */
+  object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
+  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.checkFundsAvailable))
+
   feature("Check available funds v3.1.0 - Unauthorized access")
   {
-    scenario("We will check available without user credentials") {
+    scenario("We will check available without user credentials", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
       val view = randomViewPermalink(bankId, bankAccount)
@@ -58,7 +71,7 @@ class FundsAvailableTest extends V310ServerSetup {
 
   feature("Check available funds v3.1.0 - Authorized access")
   {
-    scenario("We will check available funds without a proper Role " + canCheckFundsAvailable) {
+    scenario("We will check available funds without a proper Role " + canCheckFundsAvailable, ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
       val view = randomViewPermalink(bankId, bankAccount)
@@ -71,7 +84,7 @@ class FundsAvailableTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCheckFundsAvailable)
     }
 
-    scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " but without params") {
+    scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " but without params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
       val view = randomViewPermalink(bankId, bankAccount)
@@ -98,7 +111,7 @@ class FundsAvailableTest extends V310ServerSetup {
       response310_ccy.body.extract[ErrorMessage].error should startWith (MissingQueryParams)
     }
 
-    scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " and params") {
+    scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " and params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
       val view = randomViewPermalink(bankId, bankAccount)

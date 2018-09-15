@@ -2,15 +2,28 @@ package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util.{APIUtil, ApiRole, ApiVersion}
 import code.api.util.ApiRole.CanSetCallLimit
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
+import com.github.dwickern.macros.NameOf.nameOf
 import com.github.sebruck.EmbeddedRedis
 import net.liftweb.json.Serialization.write
+import org.scalatest.Tag
 
 class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
+
+  /**
+    * Test tags
+    * Example: To run tests with tag "getPermissions":
+    * 	mvn test -D tagsToInclude
+    *
+    *  This is made possible by the scalatest maven plugin
+    */
+  object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
+  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.callsLimit))
 
   val callLimitJson1 = CallLimitJson(
     per_minute_call_limit = "-1",
@@ -30,7 +43,7 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
   feature("Rate Limit - v3.1.0")
   {
 
-    scenario("We will try to set calls limit per minute for a Consumer - unauthorized access") {
+    scenario("We will try to set calls limit per minute for a Consumer - unauthorized access", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -41,7 +54,7 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
     }
-    scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canGetConsumers) {
+    scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canGetConsumers, ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canSetCallLimit)
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -53,7 +66,7 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
       And("error should be " + UserHasMissingRoles + CanSetCallLimit)
       response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanSetCallLimit)
     }
-    scenario("We will try to set calls limit per minute with a proper Role " + ApiRole.canGetConsumers) {
+    scenario("We will try to set calls limit per minute with a proper Role " + ApiRole.canGetConsumers, ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimit)
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
@@ -65,7 +78,7 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
       response310.code should equal(200)
       response310.body.extract[CallLimitJson]
     }
-    scenario("We will set calls limit per minute for a Consumer") {
+    scenario("We will set calls limit per minute for a Consumer", ApiEndpoint, VersionOfApi) {
       withRedis() {
         port =>
           if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
