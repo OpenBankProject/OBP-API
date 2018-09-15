@@ -39,7 +39,7 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
   )
-
+/*
   feature("Rate Limit - v3.1.0")
   {
 
@@ -108,5 +108,5 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
         succeed
     }
   }
-
+*/
 }
