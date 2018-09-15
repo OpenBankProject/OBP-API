@@ -441,7 +441,7 @@ and response headers:
 ```
 X-Rate-Limit-Limit → 3
 X-Rate-Limit-Remaining → 0
-X-Rate-Limit-Reset → 0
+X-Rate-Limit-Reset → 22
 ```
 Description of the headers above:
 1. `X-Rate-Limit-Limit` - The number of allowed requests in the current period
