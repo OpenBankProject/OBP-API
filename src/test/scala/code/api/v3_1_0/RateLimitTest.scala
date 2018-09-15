@@ -84,7 +84,7 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
           if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
             When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimit)
             val Some((c, _)) = user1
-            val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
+            val consumerId: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
             Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimit.toString)
             val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
             val response01 = makePutRequest(request310, write(callLimitJson2))
