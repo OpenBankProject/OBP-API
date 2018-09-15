@@ -100,6 +100,9 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
             val response03 = makePutRequest(request310, write(callLimitJson2))
             Then("We should get a 429")
             response03.code should equal(429)
+
+            // Revert to initial state
+            Consumers.consumers.vend.updateConsumerCallLimits(consumerId, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
           }
       }
         succeed
