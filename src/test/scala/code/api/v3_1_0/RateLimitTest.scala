@@ -2,9 +2,9 @@ package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiRole, ApiVersion}
 import code.api.util.ApiRole.CanSetCallLimit
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.{APIUtil, ApiRole, ApiVersion}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -39,7 +39,7 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
   )
-/*
+
   feature("Rate Limit - v3.1.0")
   {
 
@@ -105,8 +105,8 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
             Consumers.consumers.vend.updateConsumerCallLimits(consumerId, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
           }
       }
-        succeed
+      succeed
     }
   }
-*/
+
 }

@@ -45,10 +45,20 @@ object LimitCallPeriod extends Enumeration {
 
 object LimitCallsUtil extends MdcLoggable {
 
-  val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
-  val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
   val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
-  lazy val jedis = new Jedis(url, port)
+
+  lazy val jedis = Props.mode match {
+    case Props.RunModes.Test  =>
+      import redis.clients.jedis.Jedis
+      import ai.grakn.redismock.RedisServer
+      val server = RedisServer.newRedisServer // bind to a random port
+      server.start()
+      new Jedis(server.getHost, server.getBindPort)
+    case _ =>
+      val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
+      val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
+      new Jedis(url, port)
+  }
 
   private def createUniqueKey(consumerKey: String, period: LimitCallPeriod) = consumerKey + LimitCallPeriod.toString(period)
 
