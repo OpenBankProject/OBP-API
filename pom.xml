@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 
   <modelVersion>4.0.0</modelVersion>
@@ -58,7 +58,7 @@
   <pluginRepositories>
     <pluginRepository>
       <id>org.sonatype.oss.groups.public</id>
-      <name>Sonatype Public</name>
+    <name>Sonatype Public</name>
       <url>https://oss.sonatype.org/content/groups/public</url>
     </pluginRepository>
   </pluginRepositories>
@@ -171,10 +171,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-webapp</artifactId>
-      <version>9.2.15.v20160210</version>
-      <scope>test</scope>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-webapp</artifactId>
+        <version>9.2.15.v20160210</version>
+        <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
@@ -371,12 +371,6 @@
       <artifactId>scalameta_${scala.version}</artifactId>
       <version>3.7.4</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.sebruck/scalatest-embedded-redis -->
-    <dependency>
-      <groupId>com.github.sebruck</groupId>
-      <artifactId>scalatest-embedded-redis_${scala.version}</artifactId>
-      <version>0.3.0</version>
-    </dependency>
     <dependency>
       <groupId>ai.grakn</groupId>
       <artifactId>redis-mock</artifactId>
@@ -405,11 +399,11 @@
         <version>1.0</version>
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-          <forkMode>once</forkMode>
-          <junitxml>.</junitxml>
-          <filereports>WDF TestSuite.txt</filereports>
-          <argLine>-Drun.mode=test -XX:MaxPermSize=128m -Xms512m -Xmx512m</argLine>
-          <tagsToExclude>code.external</tagsToExclude>
+            <forkMode>once</forkMode>
+            <junitxml>.</junitxml>
+            <filereports>WDF TestSuite.txt</filereports>
+            <argLine>-Drun.mode=test -XX:MaxPermSize=128m -Xms512m -Xmx512m</argLine>
+            <tagsToExclude>code.external</tagsToExclude>
         </configuration>
         <executions>
           <execution>
@@ -420,95 +414,95 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <!-- add src/main/java to source dirs -->
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.10</version>
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>src/main/java</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>net.alchim31.maven</groupId>
-        <artifactId>scala-maven-plugin</artifactId>
-        <version>3.2.2</version>
-        <configuration>
-          <charset>${project.build.sourceEncoding}</charset>
-          <jvmArgs>
-            <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
-          </jvmArgs>
-          <scalaVersion>${scala.compiler}</scalaVersion>
-          <scalaCompatVersion>${scala.version}</scalaCompatVersion>
-          <recompileMode>incremental</recompileMode>
-          <useZincServer>true</useZincServer>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>testCompile</goal>
-            </goals>
-            <configuration>
-              <args>
-                <arg>-dependencyfile</arg>
-                <arg>${project.build.directory}/.scala_dependencies</arg>
-                <arg>-Xmax-classfile-name</arg>
-                <arg>78</arg>
-              </args>
-            </configuration>
-          </execution>
-          <execution>
-            <id>scala-test-compile</id>
-            <phase>process-test-resources</phase>
-            <goals>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-war-plugin</artifactId>
-        <version>2.6</version>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.1</version>
-        <executions>
-          <execution>
-            <id>default-copy-resources</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <overwrite>true</overwrite>
-              <outputDirectory>${project.build.directory}</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${project.basedir}/src</directory>
-                  <includes>
-                    <include>packageLinkDefs.properties</include>
-                  </includes>
-                  <filtering>true</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+        <plugin>
+          <!-- add src/main/java to source dirs -->
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.10</version>
+          <executions>
+            <execution>
+              <phase>generate-sources</phase>
+              <goals>
+                <goal>add-source</goal>
+              </goals>
+              <configuration>
+                <sources>
+                  <source>src/main/java</source>
+                </sources>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>net.alchim31.maven</groupId>
+          <artifactId>scala-maven-plugin</artifactId>
+          <version>3.2.2</version>
+          <configuration>
+            <charset>${project.build.sourceEncoding}</charset>
+            <jvmArgs>
+              <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
+            </jvmArgs>
+            <scalaVersion>${scala.compiler}</scalaVersion>
+            <scalaCompatVersion>${scala.version}</scalaCompatVersion>
+            <recompileMode>incremental</recompileMode>
+            <useZincServer>true</useZincServer>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>compile</goal>
+                <goal>testCompile</goal>
+              </goals>
+              <configuration>
+                <args>
+                  <arg>-dependencyfile</arg>
+                  <arg>${project.build.directory}/.scala_dependencies</arg>
+                  <arg>-Xmax-classfile-name</arg>
+                  <arg>78</arg>
+                </args>
+              </configuration>
+            </execution>
+            <execution>
+              <id>scala-test-compile</id>
+              <phase>process-test-resources</phase>
+              <goals>
+                <goal>testCompile</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-war-plugin</artifactId>
+          <version>2.6</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.0.1</version>
+          <executions>
+            <execution>
+              <id>default-copy-resources</id>
+              <phase>process-resources</phase>
+              <goals>
+                <goal>copy-resources</goal>
+              </goals>
+              <configuration>
+                <overwrite>true</overwrite>
+                <outputDirectory>${project.build.directory}</outputDirectory>
+                <resources>
+                  <resource>
+                    <directory>${project.basedir}/src</directory>
+                    <includes>
+                      <include>packageLinkDefs.properties</include>
+                    </includes>
+                    <filtering>true</filtering>
+                  </resource>
+                </resources>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
       <plugin>
         <groupId>org.mortbay.jetty</groupId>
         <artifactId>maven-jetty-plugin</artifactId>
@@ -520,66 +514,66 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>net.alchim31.maven</groupId>
-        <artifactId>yuicompressor-maven-plugin</artifactId>
-        <version>1.5.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compress</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <nosuffix>true</nosuffix>
-          <encoding>${project.build.sourceEncoding}</encoding>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-idea-plugin</artifactId>
-        <version>2.2.1</version>
-        <configuration>
-          <downloadSources>true</downloadSources>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-eclipse-plugin</artifactId>
-        <version>2.10</version>
-        <configuration>
-          <downloadSources>true</downloadSources>
-          <additionalProjectnatures>
-            <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
-          </additionalProjectnatures>
-          <additionalBuildcommands>
-            <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
-          </additionalBuildcommands>
-          <classpathContainers>
-            <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
-            <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
-          </classpathContainers>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>pl.project13.maven</groupId>
-        <artifactId>git-commit-id-plugin</artifactId>
-        <version>2.2.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>revision</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
-          <generateGitPropertiesFile>true</generateGitPropertiesFile>
-          <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
-          <failOnNoGitDirectory>false</failOnNoGitDirectory>
-        </configuration>
-      </plugin>
-    </plugins>
+          <groupId>net.alchim31.maven</groupId>
+          <artifactId>yuicompressor-maven-plugin</artifactId>
+          <version>1.5.1</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>compress</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <nosuffix>true</nosuffix>
+            <encoding>${project.build.sourceEncoding}</encoding>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-idea-plugin</artifactId>
+          <version>2.2.1</version>
+          <configuration>
+            <downloadSources>true</downloadSources>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-eclipse-plugin</artifactId>
+          <version>2.10</version>
+          <configuration>
+            <downloadSources>true</downloadSources>
+            <additionalProjectnatures>
+              <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
+            </additionalProjectnatures>
+            <additionalBuildcommands>
+              <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
+            </additionalBuildcommands>
+            <classpathContainers>
+              <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
+              <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
+            </classpathContainers>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>pl.project13.maven</groupId>
+          <artifactId>git-commit-id-plugin</artifactId>
+          <version>2.2.1</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>revision</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+            <generateGitPropertiesFile>true</generateGitPropertiesFile>
+            <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
+            <failOnNoGitDirectory>false</failOnNoGitDirectory>
+          </configuration>
+        </plugin>
+      </plugins>
   </build>
   <reporting>
     <plugins>
