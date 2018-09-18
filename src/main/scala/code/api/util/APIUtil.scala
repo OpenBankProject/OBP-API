@@ -1975,7 +1975,7 @@ Returns a string showed to the developer
   private def underCallLimits(x: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
     import util.LimitCallPeriod._
     import util.LimitCallsUtil._
-    def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} to this Web site per logged in user."
+    def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} for this Consumer."
 
     def setXRateLimits(c: Consumer, z: (Long, Long)) = {
       val limit = c.perMinuteCallLimit.get
