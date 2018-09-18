@@ -26,7 +26,7 @@ If would like to report an issue or suggest any kind of improvement please use G
 
 ## Licenses
 
-Open Bank Project API, API Explorer and Sofi are dual licenced under the AGPL and commercial licenses. Open Bank Project SDKs are licenced under Apache 2 or MIT style licences.
+Open Bank Project API, API Explorer and Sofit are dual licenced under the AGPL and commercial licenses. Open Bank Project SDKs are licenced under Apache 2 or MIT style licences.
 
 Please see the NOTICE for each project licence.
 
