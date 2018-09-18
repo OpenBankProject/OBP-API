@@ -79,33 +79,29 @@ class RateLimitTest extends V310ServerSetup with EmbeddedRedis {
       response310.body.extract[CallLimitJson]
     }
     scenario("We will set calls limit per minute for a Consumer", ApiEndpoint, VersionOfApi) {
-      withRedis() {
-        port =>
-          if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
-            When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimit)
-            val Some((c, _)) = user1
-            val consumerId: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
-            Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimit.toString)
-            val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
-            val response01 = makePutRequest(request310, write(callLimitJson2))
-            Then("We should get a 200")
-            response01.code should equal(200)
+      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+        When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimit)
+        val Some((c, _)) = user1
+        val consumerId: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimit.toString)
+        val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
+        val response01 = makePutRequest(request310, write(callLimitJson2))
+        Then("We should get a 200")
+        response01.code should equal(200)
 
-            When("We make the first call after update")
-            val response02 = makePutRequest(request310, write(callLimitJson2))
-            Then("We should get a 200")
-            response02.code should equal(200)
+        When("We make the first call after update")
+        val response02 = makePutRequest(request310, write(callLimitJson2))
+        Then("We should get a 200")
+        response02.code should equal(200)
 
-            When("We make the second call after update")
-            val response03 = makePutRequest(request310, write(callLimitJson2))
-            Then("We should get a 429")
-            response03.code should equal(429)
+        When("We make the second call after update")
+        val response03 = makePutRequest(request310, write(callLimitJson2))
+        Then("We should get a 429")
+        response03.code should equal(429)
 
-            // Revert to initial state
-            Consumers.consumers.vend.updateConsumerCallLimits(consumerId, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-          }
+        // Revert to initial state
+        Consumers.consumers.vend.updateConsumerCallLimits(consumerId, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
       }
-      succeed
     }
   }
 
