@@ -1,8 +1,9 @@
 package code.webhook
 
-import code.util.{AccountIdString, UUIDString}
+import code.util.{AccountIdString, MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -33,7 +34,7 @@ object MappedAccountWebHookProvider extends AccountWebHookProvider {
                                          ): Future[Box[AccountWebHook]] = {
     val createAccountWebHook = MappedAccountWebHook.create
       .mBankId(bankId)
-      .mAccountWebHookId(accountId)
+      .mAccountId(accountId)
       .mCreatedByUserId(userId)
       .mTriggerName(triggerName)
       .mUrl(url)
@@ -47,7 +48,7 @@ object MappedAccountWebHookProvider extends AccountWebHookProvider {
 class MappedAccountWebHook extends AccountWebHook with LongKeyedMapper[MappedAccountWebHook] with IdPK with CreatedUpdated {
   def getSingleton = MappedAccountWebHook
 
-  object mAccountWebHookId extends UUIDString(this)
+  object mAccountWebHookId extends MappedUUID(this)
   object mBankId extends UUIDString(this)
   object mAccountId extends AccountIdString(this)
   object mTriggerName extends MappedString(this, 64)

@@ -14,6 +14,7 @@ import code.metrics.APIMetrics
 import code.model._
 import code.users.Users
 import code.util.Helper
+import code.webhook.AccountWebHook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -748,7 +749,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi)
+      List(apiTagConsumer, apiTagApi),
+      Some(List(canGetConsumers))
     )
 
 
@@ -764,6 +766,56 @@ trait APIMethods310 {
             users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
           } yield {
             (createConsumersJson(consumers, users), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createAccountWebHook,
+      implementedInApiVersion,
+      "createAccountWebHook",
+      "POST",
+      "/banks/BANK_ID/account-web-hook",
+      "Create an Account Web Hook",
+      """Create an Account Web Hook
+        |""",
+      accountWebHookPostJson,
+      accountWebHookJson,
+      List(UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil,
+      Some(List(canCreateWebHook))
+    )
+
+    lazy val createAccountWebHook : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "account-web-hook" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanCreateWebHook) {
+              hasEntitlement(bankId.value, u.userId, ApiRole.canCreateWebHook)
+            }
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $AccountWebHookPostJson ", 400, callContext) {
+              json.extract[AccountWebHookPostJson]
+            }
+            _ <- NewStyle.function.tryons(IncorrectTriggerName + postJson.trigger_name + ". Possible values are " + ApiTrigger.availableTriggers.sorted.mkString(", "), 400, callContext) {
+              ApiTrigger.valueOf(postJson.trigger_name)
+            }
+            wh <- AccountWebHook.accountWebHook.vend.createAccountWebHookFuture(
+              bankId = bankId.value,
+              accountId = postJson.account_id,
+              userId = u.userId,
+              triggerName = postJson.trigger_name,
+              url = postJson.url,
+              httpMethod = postJson.http_method
+            ) map {
+              unboxFullOrFail(_, callContext, CreateWebHookError, 400)
+            }
+          } yield {
+            (createAccountWebHookJson(wh), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }
