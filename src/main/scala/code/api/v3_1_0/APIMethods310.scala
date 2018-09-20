@@ -7,7 +7,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.JSONFactory310._
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, OBPBankId}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
@@ -777,7 +777,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "createAccountWebHook",
       "POST",
-      "/banks/BANK_ID/account-web-hook",
+      "/banks/BANK_ID/account-web-hooks",
       "Create an Account Web Hook",
       """Create an Account Web Hook
         |""",
@@ -790,7 +790,7 @@ trait APIMethods310 {
     )
 
     lazy val createAccountWebHook : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "account-web-hook" :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "account-web-hooks" :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
@@ -816,6 +816,60 @@ trait APIMethods310 {
             }
           } yield {
             (createAccountWebHookJson(wh), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAccountWebHooks,
+      implementedInApiVersion,
+      "getAccountWebHooks",
+      "GET",
+      "/management/banks/BANK_ID/account-web-hooks",
+      "Get Account Web Hooks",
+      s"""Get Account Web Hooks.
+         |
+         |Possible custom URL parameters for pagination:
+         |
+         |* limit=NUMBER
+         |* offset=NUMBER
+         |* account_id=STRING
+         |* user_id=STRING
+         |
+         |
+        |""",
+      emptyObjectJson,
+      List(accountWebHookJson),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer, apiTagApi),
+      Some(List(canGetWebHooks))
+    )
+
+
+    lazy val getAccountWebHooks: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) ::"account-web-hooks" :: Nil JsonGet _ => {
+        cc =>
+          val allowedParams = List("limit", "offset", "account_id", "user_id")
+          val additionalParam = OBPBankId(bankId.value)
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetWebHooks) {
+              hasEntitlement(bankId.value, u.userId, ApiRole.canGetWebHooks)
+            }
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            webHooks <- AccountWebHook.accountWebHook.vend.getAccountWebHooksFuture(additionalParam :: obpParams)  map {
+              unboxFullOrFail(_, callContext, GetWebHooksError, 400)
+            }
+          } yield {
+            (createAccountWebHooksJson(webHooks), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }

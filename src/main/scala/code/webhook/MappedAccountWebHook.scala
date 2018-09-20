@@ -1,9 +1,11 @@
 package code.webhook
 
+import code.bankconnectors._
 import code.util.{AccountIdString, MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -15,7 +17,7 @@ object MappedAccountWebHookProvider extends AccountWebHookProvider {
       )
     )
   }
-  override def getAccountWebHookByUserIdFuture(userId: String): Future[Box[List[AccountWebHook]]] = {
+  override def getAccountWebHooksByUserIdFuture(userId: String): Future[Box[List[AccountWebHook]]] = {
     Future(
       Full(
         MappedAccountWebHook.findAll(
@@ -25,6 +27,20 @@ object MappedAccountWebHookProvider extends AccountWebHookProvider {
       )
     )
   }
+  override def getAccountWebHooksFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AccountWebHook]]] = {
+    val limit = queryParams.collectFirst { case OBPLimit(value) => MaxRows[MappedAccountWebHook](value) }
+    val offset = queryParams.collectFirst { case OBPOffset(value) => StartAt[MappedAccountWebHook](value) }
+    val userId = queryParams.collectFirst { case OBPUserId(value) => By(MappedAccountWebHook.mCreatedByUserId, value) }
+    val bankId = queryParams.collectFirst { case OBPBankId(value) => By(MappedAccountWebHook.mBankId, value) }
+    val accountId = queryParams.collectFirst { case OBPAccountId(value) => By(MappedAccountWebHook.mAccountId, value) }
+    val optionalParams: Seq[QueryParam[MappedAccountWebHook]] = Seq(limit.toSeq, offset.toSeq, userId.toSeq, bankId.toSeq, accountId.toSeq).flatten
+    Future(
+      Full(
+        MappedAccountWebHook.findAll(optionalParams: _*)
+      )
+    )
+  }
+
   override def createAccountWebHookFuture(bankId: String,
                                           accountId: String,
                                           userId: String,

@@ -707,6 +707,8 @@ object APIUtil extends MdcLoggable {
            
          case "consumer_id" => Full(OBPConsumerId(values.head))
          case "user_id" => Full(OBPUserId(values.head))
+         case "bank_id" => Full(OBPBankId(values.head))
+         case "account_id" => Full(OBPAccountId(values.head))
          case "url" => Full(OBPUrl(values.head))
          case "app_name" => Full(OBPAppName(values.head))
          case "implemented_by_partial_function" => Full(OBPImplementedByPartialFunction(values.head))
@@ -745,6 +747,8 @@ object APIUtil extends MdcLoggable {
       anon <- getHttpParamValuesByName(httpParams,"anon")
       consumerId <- getHttpParamValuesByName(httpParams,"consumer_id")
       userId <- getHttpParamValuesByName(httpParams, "user_id")
+      bankId <- getHttpParamValuesByName(httpParams, "bank_id")
+      accountId <- getHttpParamValuesByName(httpParams, "account_id")
       url <- getHttpParamValuesByName(httpParams, "url")
       appName <- getHttpParamValuesByName(httpParams, "app_name")
       implementedByPartialFunction <- getHttpParamValuesByName(httpParams, "implemented_by_partial_function")
@@ -776,7 +780,7 @@ object APIUtil extends MdcLoggable {
       List(limit, offset, ordering, fromDate, toDate, 
            anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
            verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
-           connectorName,functionName
+           connectorName,functionName, bankId, accountId
        ).filter(_ != OBPEmpty())
     }
   }
@@ -801,6 +805,8 @@ object APIUtil extends MdcLoggable {
     val anon =  getHttpRequestUrlParam(httpRequestUrl,"anon")
     val consumerId =  getHttpRequestUrlParam(httpRequestUrl,"consumer_id")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
+    val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
+    val accountId =  getHttpRequestUrlParam(httpRequestUrl, "account_id")
     val url =  getHttpRequestUrlParam(httpRequestUrl, "url")
     val appName =  getHttpRequestUrlParam(httpRequestUrl, "app_name")
     val implementedByPartialFunction =  getHttpRequestUrlParam(httpRequestUrl, "implemented_by_partial_function")
@@ -829,6 +835,8 @@ object APIUtil extends MdcLoggable {
       HTTPParam("function_name", functionName),
       HTTPParam("currency", currency),
       HTTPParam("amount", amount),
+      HTTPParam("bank_id", bankId),
+      HTTPParam("account_id", accountId),
       HTTPParam("connector_name", connectorName)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }

@@ -178,6 +178,9 @@ object ApiRole {
   case class CanCreateWebHook(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateWebHook = CanCreateWebHook()
 
+  case class CanGetWebHooks(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetWebHooks = CanGetWebHooks()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -236,6 +239,7 @@ object ApiRole {
       canReadUserLockedStatus ::
       canCheckFundsAvailable ::
       canCreateWebHook ::
+      canGetWebHooks ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

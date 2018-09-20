@@ -251,4 +251,8 @@ object JSONFactory310{
     )
   }
 
+  def createAccountWebHooksJson(whs: List[AccountWebHook]) = {
+    whs.map(createAccountWebHookJson(_))
+  }
+
 }
