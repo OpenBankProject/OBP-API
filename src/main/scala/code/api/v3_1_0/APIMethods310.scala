@@ -840,7 +840,7 @@ trait APIMethods310 {
          |
         |""",
       emptyObjectJson,
-      List(accountWebHookJson),
+      accountWebHooksJson,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,

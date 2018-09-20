@@ -2822,6 +2822,8 @@ object SwaggerDefinitionsJSON {
     created_by_user_id = "b1fd9b29-659d-4838-a300-ea65b65b5fb6"
   )
 
+  val accountWebHooksJson = AccountWebHooksJson(List(accountWebHookJson))
+
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

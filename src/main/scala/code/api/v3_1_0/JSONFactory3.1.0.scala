@@ -162,6 +162,7 @@ case class AccountWebHookPostJson(account_id: String,
                                   http_method: String
                                   )
 
+case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
