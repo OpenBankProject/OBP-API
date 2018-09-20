@@ -49,7 +49,7 @@ object ErrorMessages {
   val AllowedValuesAre = "OBP-10015: Allowed values are: "
   val InvalidFilterParameterFormat = "OBP-10016: Incorrect filter Parameters in URL. "
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
-  val ToManyRequests = "OBP-10018: Too Many Requests."
+  val TooManyRequests = "OBP-10018: Too Many Requests."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -60,6 +60,7 @@ object ErrorMessages {
   val FilterDurationFormatError = s"OBP-10029: wrong value for `duration` parameter. Please send a positive integer (=>0)!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
+  val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name: "
 
 
 
@@ -196,6 +197,8 @@ object ErrorMessages {
   val GetAggregateMetricsError = "OBP-30043: Could not get the aggregate metrics from database.  "
 
   val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
+
+  val CreateWebHookError = "OBP-30047: Cannot create Web Hook "
 
 
   // Meetings
