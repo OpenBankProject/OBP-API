@@ -295,6 +295,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getConsumer ::
                           Implementations3_1_0.getConsumersForCurrentUser ::
                           Implementations3_1_0.getConsumers ::
+                          Implementations3_1_0.createAccountWebHook ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

@@ -14,6 +14,7 @@ import code.metrics.APIMetrics
 import code.model._
 import code.users.Users
 import code.util.Helper
+import code.webhook.AccountWebHook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -44,7 +45,13 @@ trait APIMethods310 {
       """Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidConnectorResponseForGetCheckbookOrdersFuture,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -81,7 +88,13 @@ trait APIMethods310 {
         |""",
       emptyObjectJson,
       creditCardOrderStatusResponseJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -118,7 +131,7 @@ trait APIMethods310 {
         |""",
       creditLimitRequestJson,
       creditLimitOrderResponseJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -144,7 +157,7 @@ trait APIMethods310 {
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -170,7 +183,7 @@ trait APIMethods310 {
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -237,9 +250,17 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       topApisJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetTopApisError,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagMetric :: Nil)
+      apiTagMetric :: Nil,
+      Some(List(canReadMetrics))
+    )
 
     lazy val getTopAPIs : OBPEndpoint = {
       case "management" :: "metrics" :: "top-apis" :: Nil JsonGet req => {
@@ -321,9 +342,17 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       topConsumersJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidFilterParameterFormat,
+        GetMetricsTopConsumersError,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagMetric :: Nil)
+      apiTagMetric :: Nil,
+      Some(List(canReadMetrics))
+    )
 
     lazy val getMetricsTopConsumers : OBPEndpoint = {
       case "management" :: "metrics" :: "top-consumers" :: Nil JsonGet req => {
@@ -431,10 +460,11 @@ trait APIMethods310 {
          |""".stripMargin,
       emptyObjectJson,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByUsername, UnknownError),
+      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canReadUserLockedStatus))
+    )
 
     lazy val getBadLoginStatus : OBPEndpoint = {
       //get private accounts for all banks
@@ -442,6 +472,9 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadUserLockedStatus) {
+              hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus)
+            }
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), callContext.map(_.copy(httpCode = Some(200))))
@@ -466,7 +499,7 @@ trait APIMethods310 {
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
-      Some(List(canUseFirehoseAtAnyBank)))
+      Some(List(canUnlockUser)))
 
     lazy val unlockUser : OBPEndpoint = {
       //get private accounts for all banks
@@ -500,7 +533,15 @@ trait APIMethods310 {
          |""".stripMargin,
       callLimitJson,
       callLimitJson,
-      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles,
+        UpdateConsumerError,
+        UnknownError
+      ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser),
       Some(List(canSetCallLimit)))
@@ -556,7 +597,14 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       checkFundsAvailableJson,
-      List(UserNotLoggedIn, UnknownError, BankNotFound, BankAccountNotFound, "user does not have access to owner view on account"),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        InvalidAmount,
+        InvalidISOCurrencyCode,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
@@ -566,7 +614,10 @@ trait APIMethods310 {
           val amount = "amount"
           val currency = "currency"
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanCheckFundsAvailable) {
+              hasEntitlement("", u.userId, canCheckFundsAvailable)
+            }
             _ <- NewStyle.function.getBank(bankId, callContext)
             account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
@@ -585,7 +636,7 @@ trait APIMethods310 {
               val currencyCode = httpParams.filter(_.name == currency).map(_.values.head).head
               isValidCurrencyISOCode(currencyCode)
             }
-            _ <- Future {account.moderatedBankAccount(view, user) } map {
+            _ <- Future {account.moderatedBankAccount(view, Full(u)) } map {
               fullBoxOrException(_)
             } map { unboxFull(_) }
           } yield {
@@ -596,7 +647,8 @@ trait APIMethods310 {
               case (true, b, _) if b.compare(available) >= 0 => "yes" // We have the vew, the right currency and enough funds
               case _ => "no"
             }
-            (createCheckFundsAvailableJson(fundsAvailable, callContext.map(_.correlationId).getOrElse("")), callContext.map(_.copy(httpCode = Some(200))))
+            val availableFundsRequestId = callContext.map(_.correlationId).getOrElse("")
+            (createCheckFundsAvailableJson(fundsAvailable, availableFundsRequestId), callContext.map(_.copy(httpCode = Some(200))))
           }
 
       }
@@ -661,8 +713,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi),
-      Some(List()))
+      List(apiTagConsumer, apiTagApi)
+    )
 
 
     lazy val getConsumersForCurrentUser: OBPEndpoint = {
@@ -697,7 +749,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi)
+      List(apiTagConsumer, apiTagApi),
+      Some(List(canGetConsumers))
     )
 
 
@@ -713,6 +766,56 @@ trait APIMethods310 {
             users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
           } yield {
             (createConsumersJson(consumers, users), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createAccountWebHook,
+      implementedInApiVersion,
+      "createAccountWebHook",
+      "POST",
+      "/banks/BANK_ID/account-web-hook",
+      "Create an Account Web Hook",
+      """Create an Account Web Hook
+        |""",
+      accountWebHookPostJson,
+      accountWebHookJson,
+      List(UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: Nil,
+      Some(List(canCreateWebHook))
+    )
+
+    lazy val createAccountWebHook : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "account-web-hook" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanCreateWebHook) {
+              hasEntitlement(bankId.value, u.userId, ApiRole.canCreateWebHook)
+            }
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $AccountWebHookPostJson ", 400, callContext) {
+              json.extract[AccountWebHookPostJson]
+            }
+            _ <- NewStyle.function.tryons(IncorrectTriggerName + postJson.trigger_name + ". Possible values are " + ApiTrigger.availableTriggers.sorted.mkString(", "), 400, callContext) {
+              ApiTrigger.valueOf(postJson.trigger_name)
+            }
+            wh <- AccountWebHook.accountWebHook.vend.createAccountWebHookFuture(
+              bankId = bankId.value,
+              accountId = postJson.account_id,
+              userId = u.userId,
+              triggerName = postJson.trigger_name,
+              url = postJson.url,
+              httpMethod = postJson.http_method
+            ) map {
+              unboxFullOrFail(_, callContext, CreateWebHookError, 400)
+            }
+          } yield {
+            (createAccountWebHookJson(wh), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }

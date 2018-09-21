@@ -6,7 +6,7 @@ import code.api.{Constant, v3_1_0}
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ApiTrigger}
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.Glossary.GlossaryItem
@@ -2804,6 +2804,22 @@ object SwaggerDefinitionsJSON {
     per_day_call_limit ="-1",
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
+  )
+
+  val accountWebHookPostJson = AccountWebHookPostJson(
+    account_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+    trigger_name = ApiTrigger.onBalanceChange.toString(),
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST"
+  )
+  val accountWebHookJson =  AccountWebHookJson(
+    account_web_hook_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    bank_id = "obp-x",
+    account_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+    trigger_name = ApiTrigger.onBalanceChange.toString(),
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST",
+    created_by_user_id = "b1fd9b29-659d-4838-a300-ea65b65b5fb6"
   )
 
   //The common error or success format.

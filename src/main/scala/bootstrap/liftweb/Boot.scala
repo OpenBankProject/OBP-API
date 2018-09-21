@@ -84,6 +84,7 @@ import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequ
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
 import code.api.builder.APIBuilder_Connector
+import code.webhook.MappedAccountWebHook
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
 import net.liftweb.http._
@@ -567,6 +568,7 @@ object ToSchemify {
     MappedBadLoginAttempt,
     MappedFXRate,
     MappedCurrency,
-    MappedTransactionRequestTypeCharge
+    MappedTransactionRequestTypeCharge,
+    MappedAccountWebHook
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
