@@ -17,7 +17,7 @@
     <akka-streams-kafka.version>0.22</akka-streams-kafka.version>
     <kafka.version>1.1.0</kafka.version>
     <avro.version>1.8.3</avro.version>
-    <lift.version>3.1.0</lift.version>
+    <lift.version>3.3.0</lift.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
