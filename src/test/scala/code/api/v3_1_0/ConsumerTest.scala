@@ -54,7 +54,7 @@ class ConsumerTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getConsumer))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getConsumersForCurrentUser))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getConsumers))
-
+/*
   feature("Get Consumer by CONSUMER_ID - v3.1.0")
   {
     scenario("We will Get Consumer by CONSUMER_ID without a proper Role " + ApiRole.canGetConsumers, ApiEndpoint1, VersionOfApi) {
@@ -77,7 +77,7 @@ class ConsumerTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].error should equal (ConsumerNotFoundByConsumerId)
     }
   }
-
+*/
   feature("Get Consumers for current user - v3.1.0")
   {
     scenario("We will Get Consumers for current user - NOT logged in", ApiEndpoint2, VersionOfApi) {
@@ -98,7 +98,7 @@ class ConsumerTest extends V310ServerSetup {
       response310.body.extract[ConsumersJson]
     }
   }
-
+/*
   feature("Get Consumers - v3.1.0")
   {
     scenario("We will Get Consumers - User NOT logged in", ApiEndpoint3, VersionOfApi) {
@@ -129,5 +129,5 @@ class ConsumerTest extends V310ServerSetup {
       response310.body.extract[ConsumersJson]
     }
   }
-
+*/
 }
