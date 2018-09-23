@@ -543,7 +543,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser),
+      List(apiTagConsumer),
       Some(List(canSetCallLimit)))
 
     lazy val callsLimit : OBPEndpoint = {
