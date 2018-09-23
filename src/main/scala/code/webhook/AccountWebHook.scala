@@ -1,8 +1,10 @@
 package code.webhook
 
+import code.bankconnectors.OBPQueryParam
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object AccountWebHook extends SimpleInjector {
@@ -14,7 +16,8 @@ object AccountWebHook extends SimpleInjector {
 
 trait AccountWebHookProvider {
   def getAccountWebHookByIdFuture(accountWebHookId: String): Future[Box[AccountWebHook]]
-  def getAccountWebHookByUserIdFuture(userId: String): Future[Box[List[AccountWebHook]]]
+  def getAccountWebHooksByUserIdFuture(userId: String): Future[Box[List[AccountWebHook]]]
+  def getAccountWebHooksFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AccountWebHook]]]
   def createAccountWebHookFuture(bankId: String,
                                  accountId: String,
                                  userId: String,

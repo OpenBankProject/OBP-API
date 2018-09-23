@@ -162,6 +162,7 @@ case class AccountWebHookPostJson(account_id: String,
                                   http_method: String
                                   )
 
+case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -249,6 +250,10 @@ object JSONFactory310{
       http_method = wh.httpMethod,
       created_by_user_id = wh.createdByUserId
     )
+  }
+
+  def createAccountWebHooksJson(whs: List[AccountWebHook]) = {
+    whs.map(createAccountWebHookJson(_))
   }
 
 }

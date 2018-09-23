@@ -198,7 +198,8 @@ object ErrorMessages {
 
   val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
 
-  val CreateWebHookError = "OBP-30047: Cannot create Web Hook "
+  val CreateWebHookError = "OBP-30047: Cannot create Web Hook"
+  val GetWebHooksError = "OBP-30048: Cannot get Web Hooks"
 
 
   // Meetings

@@ -707,6 +707,8 @@ object APIUtil extends MdcLoggable {
            
          case "consumer_id" => Full(OBPConsumerId(values.head))
          case "user_id" => Full(OBPUserId(values.head))
+         case "bank_id" => Full(OBPBankId(values.head))
+         case "account_id" => Full(OBPAccountId(values.head))
          case "url" => Full(OBPUrl(values.head))
          case "app_name" => Full(OBPAppName(values.head))
          case "implemented_by_partial_function" => Full(OBPImplementedByPartialFunction(values.head))
@@ -745,6 +747,8 @@ object APIUtil extends MdcLoggable {
       anon <- getHttpParamValuesByName(httpParams,"anon")
       consumerId <- getHttpParamValuesByName(httpParams,"consumer_id")
       userId <- getHttpParamValuesByName(httpParams, "user_id")
+      bankId <- getHttpParamValuesByName(httpParams, "bank_id")
+      accountId <- getHttpParamValuesByName(httpParams, "account_id")
       url <- getHttpParamValuesByName(httpParams, "url")
       appName <- getHttpParamValuesByName(httpParams, "app_name")
       implementedByPartialFunction <- getHttpParamValuesByName(httpParams, "implemented_by_partial_function")
@@ -776,7 +780,7 @@ object APIUtil extends MdcLoggable {
       List(limit, offset, ordering, fromDate, toDate, 
            anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion, 
            verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
-           connectorName,functionName
+           connectorName,functionName, bankId, accountId
        ).filter(_ != OBPEmpty())
     }
   }
@@ -801,6 +805,8 @@ object APIUtil extends MdcLoggable {
     val anon =  getHttpRequestUrlParam(httpRequestUrl,"anon")
     val consumerId =  getHttpRequestUrlParam(httpRequestUrl,"consumer_id")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
+    val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
+    val accountId =  getHttpRequestUrlParam(httpRequestUrl, "account_id")
     val url =  getHttpRequestUrlParam(httpRequestUrl, "url")
     val appName =  getHttpRequestUrlParam(httpRequestUrl, "app_name")
     val implementedByPartialFunction =  getHttpRequestUrlParam(httpRequestUrl, "implemented_by_partial_function")
@@ -829,6 +835,8 @@ object APIUtil extends MdcLoggable {
       HTTPParam("function_name", functionName),
       HTTPParam("currency", currency),
       HTTPParam("amount", amount),
+      HTTPParam("bank_id", bankId),
+      HTTPParam("account_id", accountId),
       HTTPParam("connector_name", connectorName)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
@@ -1977,8 +1985,15 @@ Returns a string showed to the developer
     import util.LimitCallsUtil._
     def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} for this Consumer."
 
-    def setXRateLimits(c: Consumer, z: (Long, Long)) = {
-      val limit = c.perMinuteCallLimit.get
+    def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod) = {
+      val limit = period match {
+        case PER_MINUTE => c.perMinuteCallLimit.get
+        case PER_HOUR   => c.perHourCallLimit.get
+        case PER_DAY    => c.perDayCallLimit.get
+        case PER_WEEK   => c.perWeekCallLimit.get
+        case PER_MONTH  => c.perDayCallLimit.get
+        case PER_YEAR   => -1
+      }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = z._1))
         .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
@@ -1986,8 +2001,17 @@ Returns a string showed to the developer
 
     def exceededRateLimit(c: Consumer, period: LimitCallPeriod) = {
       val remain = ttl(c.key.get, period)
-      val exceededRateLimit = setXRateLimits(c, (remain, 3)).map(_.toLight)
-      exceededRateLimit
+      val limit = period match {
+        case PER_MINUTE => c.perMinuteCallLimit.get
+        case PER_HOUR   => c.perHourCallLimit.get
+        case PER_DAY    => c.perDayCallLimit.get
+        case PER_WEEK   => c.perWeekCallLimit.get
+        case PER_MONTH  => c.perDayCallLimit.get
+        case PER_YEAR   => -1
+      }
+      x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
+        .map(_.copy(`X-Rate-Limit-Reset` = remain))
+        .map(_.copy(`X-Rate-Limit-Remaining` = 0)).map(_.toLight)
     }
 
     x._2 match {
@@ -2021,11 +2045,11 @@ Returns a string showed to the developer
                   incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2._1 > 0 => (x._1, setXRateLimits(c, x2))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3._1 > 0 => (x._1, setXRateLimits(c, x3))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4._1 > 0 => (x._1, setXRateLimits(c, x4))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5._1 > 0 => (x._1, setXRateLimits(c, x5))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1, PER_MINUTE))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2._1 > 0 => (x._1, setXRateLimits(c, x2, PER_HOUR))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3._1 > 0 => (x._1, setXRateLimits(c, x3, PER_DAY))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4._1 > 0 => (x._1, setXRateLimits(c, x4, PER_WEEK))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5._1 > 0 => (x._1, setXRateLimits(c, x5, PER_MONTH))
                   case _                                              => (x._1, x._2)
                 }
             }
