@@ -1985,8 +1985,15 @@ Returns a string showed to the developer
     import util.LimitCallsUtil._
     def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} for this Consumer."
 
-    def setXRateLimits(c: Consumer, z: (Long, Long)) = {
-      val limit = c.perMinuteCallLimit.get
+    def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod) = {
+      val limit = period match {
+        case PER_MINUTE => c.perMinuteCallLimit.get
+        case PER_HOUR   => c.perHourCallLimit.get
+        case PER_DAY    => c.perDayCallLimit.get
+        case PER_WEEK   => c.perWeekCallLimit.get
+        case PER_MONTH  => c.perDayCallLimit.get
+        case PER_YEAR   => -1
+      }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = z._1))
         .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
@@ -1994,8 +2001,17 @@ Returns a string showed to the developer
 
     def exceededRateLimit(c: Consumer, period: LimitCallPeriod) = {
       val remain = ttl(c.key.get, period)
-      val exceededRateLimit = setXRateLimits(c, (remain, 3)).map(_.toLight)
-      exceededRateLimit
+      val limit = period match {
+        case PER_MINUTE => c.perMinuteCallLimit.get
+        case PER_HOUR   => c.perHourCallLimit.get
+        case PER_DAY    => c.perDayCallLimit.get
+        case PER_WEEK   => c.perWeekCallLimit.get
+        case PER_MONTH  => c.perDayCallLimit.get
+        case PER_YEAR   => -1
+      }
+      x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
+        .map(_.copy(`X-Rate-Limit-Reset` = remain))
+        .map(_.copy(`X-Rate-Limit-Remaining` = 0)).map(_.toLight)
     }
 
     x._2 match {
@@ -2029,11 +2045,11 @@ Returns a string showed to the developer
                   incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2._1 > 0 => (x._1, setXRateLimits(c, x2))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3._1 > 0 => (x._1, setXRateLimits(c, x3))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4._1 > 0 => (x._1, setXRateLimits(c, x4))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5._1 > 0 => (x._1, setXRateLimits(c, x5))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1, PER_MINUTE))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2._1 > 0 => (x._1, setXRateLimits(c, x2, PER_HOUR))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3._1 > 0 => (x._1, setXRateLimits(c, x3, PER_DAY))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4._1 > 0 => (x._1, setXRateLimits(c, x4, PER_WEEK))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5._1 > 0 => (x._1, setXRateLimits(c, x5, PER_MONTH))
                   case _                                              => (x._1, x._2)
                 }
             }
