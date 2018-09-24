@@ -578,6 +578,53 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getCallsLimit,
+      implementedInApiVersion,
+      "getCallsLimit",
+      "GET",
+      "/management/consumers/CONSUMER_ID/consumer/calls_limit",
+      "Get Calls' Limit for a Consumer",
+      s"""
+         |Get calls' limit per Consumer.
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      callLimitJson,
+      callLimitJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles,
+        UpdateConsumerError,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer),
+      Some(List(canSetCallLimit)))
+
+    lazy val getCallsLimit : OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadCallLimit) {
+              hasEntitlement("", u.userId, canReadCallLimit)
+            }
+            consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
+              consumerId.toLong
+            }
+            consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
+              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
+            }
+          } yield {
+            (createCallLimitJson(consumer), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
 
 
 
