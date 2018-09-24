@@ -544,15 +544,15 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer),
-      Some(List(canSetCallLimit)))
+      Some(List(canSetCallLimits)))
 
     lazy val callsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimit) {
-              hasEntitlement("", u.userId, canSetCallLimit)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimits) {
+              hasEntitlement("", u.userId, canSetCallLimits)
             }
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitJson ", 400, callContext) {
               json.extract[CallLimitJson]
@@ -603,15 +603,15 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer),
-      Some(List(canSetCallLimit)))
+      Some(List(canSetCallLimits)))
 
     lazy val getCallsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadCallLimit) {
-              hasEntitlement("", u.userId, canReadCallLimit)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadCallLimits) {
+              hasEntitlement("", u.userId, canReadCallLimits)
             }
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong

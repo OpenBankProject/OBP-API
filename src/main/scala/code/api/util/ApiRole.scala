@@ -169,11 +169,11 @@ object ApiRole {
   case class CanReadUserLockedStatus(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadUserLockedStatus = CanReadUserLockedStatus()
 
-  case class CanSetCallLimit (requiresBankId: Boolean = false) extends ApiRole
-  lazy val canSetCallLimit = CanSetCallLimit()
+  case class CanSetCallLimits(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSetCallLimits = CanSetCallLimits()
 
-  case class CanReadCallLimit (requiresBankId: Boolean = false) extends ApiRole
-  lazy val canReadCallLimit = CanReadCallLimit()
+  case class CanReadCallLimits(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadCallLimits = CanReadCallLimits()
 
   case class CanCheckFundsAvailable (requiresBankId: Boolean = false) extends ApiRole
   lazy val canCheckFundsAvailable = CanCheckFundsAvailable()
@@ -238,8 +238,8 @@ object ApiRole {
       canDeleteScopeAtAnyBank ::
       canDeleteScopeAtOneBank ::
       canUnlockUser ::
-      canSetCallLimit ::
-      canReadCallLimit ::
+      canSetCallLimits ::
+      canReadCallLimits ::
       canReadUserLockedStatus ::
       canCheckFundsAvailable ::
       canCreateWebHook ::
