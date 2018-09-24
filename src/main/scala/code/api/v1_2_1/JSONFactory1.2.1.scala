@@ -52,7 +52,7 @@ case class HostedBy(
   organisation_website: String
 )
 case class Akka(remote_data_secret_matched: Option[Boolean])
-case class RateLimiting(enabled: Boolean, redis_available: Option[Boolean])
+case class RateLimiting(enabled: Boolean, redis_available: Boolean, is_active: Boolean)
 
 case class ErrorMessage(
   error : String
