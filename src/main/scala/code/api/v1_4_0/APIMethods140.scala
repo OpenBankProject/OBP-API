@@ -744,7 +744,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "https://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))
+            val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()), None)
             Extraction.decompose(apiInfoJSON)
           }
 

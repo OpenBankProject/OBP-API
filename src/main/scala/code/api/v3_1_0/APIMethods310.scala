@@ -544,15 +544,15 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer),
-      Some(List(canSetCallLimit)))
+      Some(List(canSetCallLimits)))
 
     lazy val callsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimit) {
-              hasEntitlement("", u.userId, canSetCallLimit)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimits) {
+              hasEntitlement("", u.userId, canSetCallLimits)
             }
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitJson ", 400, callContext) {
               json.extract[CallLimitJson]
@@ -574,6 +574,53 @@ trait APIMethods310 {
             }
           } yield {
             (createCallLimitJson(updatedConsumer), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCallsLimit,
+      implementedInApiVersion,
+      "getCallsLimit",
+      "GET",
+      "/management/consumers/CONSUMER_ID/consumer/calls_limit",
+      "Get Calls' Limit for a Consumer",
+      s"""
+         |Get calls' limit per Consumer.
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      callLimitJson,
+      callLimitJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles,
+        UpdateConsumerError,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsumer),
+      Some(List(canSetCallLimits)))
+
+    lazy val getCallsLimit : OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadCallLimits) {
+              hasEntitlement("", u.userId, canReadCallLimits)
+            }
+            consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
+              consumerId.toLong
+            }
+            consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
+              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
+            }
+          } yield {
+            (createCallLimitJson(consumer), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }
