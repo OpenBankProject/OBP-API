@@ -441,6 +441,8 @@ object SwaggerDefinitionsJSON {
   val akka = Akka(
     remote_data_secret_matched = Option(true)
   )
+
+  val rateLimiting = Option(RateLimiting(true, Option(true)))
   
   val apiInfoJSON = APIInfoJSON(
     version = "String",
@@ -448,7 +450,8 @@ object SwaggerDefinitionsJSON {
     git_commit = "String",
     connector = "String",
     hosted_by = hostedBy,
-    akka = akka
+    akka = akka,
+    rate_limiting = rateLimiting
   )
 
   /*  val aggregateMetricsJSON = AggregateMetricJSON(

@@ -2,12 +2,13 @@ package code.api.v1_2_1
 
 import java.net.URL
 import java.util.UUID.randomUUID
+
 import com.tesobe.CacheKeyFromArguments
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiVersion, CallContext, ErrorMessages}
+import code.api.util._
 import code.bankconnectors._
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
@@ -34,7 +35,7 @@ trait APIMethods121 {
   self: RestHelper =>
 
   val apiMethods121GetTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.APIMethods121.getTransactions", "0").toInt * 1000 // Miliseconds
-  
+
   // helper methods begin here
 
   private def privateBankAccountsListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccess: List[View]): JValue = {
@@ -50,7 +51,7 @@ trait APIMethods121 {
     val accounts = new AccountsJSON(accJson)
     Extraction.decompose(accounts)
   }
-  
+
   private def publicBankAccountsListToJson(bankAccounts: List[BankAccount], publicViews: List[View]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
       val viewsAvailable : List[ViewJSONV121] =
@@ -60,7 +61,7 @@ trait APIMethods121 {
           .distinct
       JSONFactory.createAccountJSON(account,viewsAvailable)
     })
-    
+
     val accounts = new AccountsJSON(accJson)
     Extraction.decompose(accounts)
   }
@@ -90,9 +91,10 @@ trait APIMethods121 {
       val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
 
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+      val rateLimiting = RateLimiting(LimitCallsUtil.useConsumerLimits, Some(LimitCallsUtil.isRedisAvailable()))
 
       val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
-      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
+      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()), Some(rateLimiting))
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails
