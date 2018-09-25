@@ -84,25 +84,25 @@ object NewStyle {
 
     def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[Bank] = {
       Connector.connector.vend.getBankFuture(bankId) map {
-        unboxFullOrFail(_, callContext, BankNotFound, 400)
+        unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 400)
       }
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[BankAccount] = {
       Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
-        unboxFullOrFail(_, callContext, BankAccountNotFound, 400)
+        unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
       }
     }
 
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
-        unboxFullOrFail(_, callContext, ViewNotFound, 400)
+        unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is $viewId", 400)
       }
     }
 
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
-        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
+        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId", 400)
       }
     }
 
