@@ -920,7 +920,45 @@ trait APIMethods310 {
           }
       }
     }
+    
+    resourceDocs += ResourceDoc(
+      config,
+      implementedInApiVersion,
+      "config",
+      "GET",
+      "/config",
+      "Get API Configuration",
+      """Returns information about:
+        |
+        |* API Config
+        |* Default bank id
+        |* Akka ports
+        |* Elastic search ports
+        |* Cached function """,
+      emptyObjectJson,
+      configurationJSON,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      apiTagApi :: Nil,
+      Some(List(canGetConfig)))
 
+    lazy val config: OBPEndpoint = {
+      case "config" :: Nil JsonGet _ =>
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
+              hasEntitlement("", u.userId, ApiRole.canGetConfig)
+            }
+          } yield {
+            (JSONFactory310.getConfigInfoJSON(), callContext)
+          }
+    }
 
     
   }

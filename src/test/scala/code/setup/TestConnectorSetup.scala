@@ -41,7 +41,7 @@ trait TestConnectorSetup {
   }
 
   final protected def createBanks() : Traversable[Bank] = {
-    val defaultBank = createBank(APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET"))
+    val defaultBank = createBank(APIUtil.defaultBankId)
     val banks = for{i <- 0 until 4} yield {
       if (i==3) createBank("testBankWithoutBranches") else createBank("testBank"+i)
     }
