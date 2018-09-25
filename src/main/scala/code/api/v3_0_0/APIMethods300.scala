@@ -1025,14 +1025,15 @@ trait APIMethods300 {
 
     lazy val getAdapter: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
-        _ =>
-          for {
-            _ <- Bank(bankId) ?~! BankNotFound
-            ai: InboundAdapterInfoInternal <- Connector.connector.vend.getAdapterInfo() ?~ s"$ConnectorEmptyResponse or not implemented for this instance "
-          }
-          yield {
-            successJsonResponseNewStyle(createAdapterInfoJson(ai), None)
-          }
+          cc =>
+            for {
+              _ <- NewStyle.function.getBank(bankId, Some(cc))
+              ai: InboundAdapterInfoInternal <- Future(Connector.connector.vend.getAdapterInfo()) map {
+                unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
+              }
+            } yield {
+              (createAdapterInfoJson(ai), Some(cc))
+            }
       }
     }
 
