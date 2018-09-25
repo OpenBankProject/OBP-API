@@ -445,6 +445,7 @@ object APIBuilderModel
         {
           for{
             u <- $authenticationStatement
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
             deleted <- APIBuilder_Connector.deleteTemplate(templateId)
           }yield{
             if(deleted)
