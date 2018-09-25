@@ -6,7 +6,9 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util._
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPBankId}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
@@ -917,6 +919,39 @@ trait APIMethods310 {
             }
           } yield {
             (createAccountWebHooksJson(webHooks), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAdapterInfo,
+      implementedInApiVersion,
+      "getAdapterInfo",
+      "GET",
+      "/adapter",
+      "Get Adapter Info (general)",
+      s"""Get basic information about the Adapter.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      adapterInfoJsonV300,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagApi))
+
+
+    lazy val getAdapterInfo: OBPEndpoint = {
+      case "adapter" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            ai: InboundAdapterInfoInternal <- Future(Connector.connector.vend.getAdapterInfo()) map {
+              unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            (createAdapterInfoJson(ai), Some(cc))
           }
       }
     }
