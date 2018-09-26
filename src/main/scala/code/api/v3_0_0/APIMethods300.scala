@@ -2289,11 +2289,10 @@ trait APIMethods300 {
 
     //The Json Body is totally the same as V121, just use new style endpoint.
     lazy val getBanks : OBPEndpoint = {
-      case "banks" :: Nil JsonGet req => {
+      case "banks" :: Nil JsonGet _ => {
         cc =>
           for {
-            banksBox: Box[List[Bank]] <- Connector.connector.vend.getBanksFuture()
-            banks <- unboxFullAndWrapIntoFuture{ banksBox }
+            banks <- NewStyle.function.getBanks(Some(cc))
           } yield 
             (JSONFactory300.createBanksJson(banks), Some(cc.copy(httpCode = Some(200))))
       }
@@ -2321,55 +2320,14 @@ trait APIMethods300 {
     //The Json Body is totally the same as V121, just use new style endpoint.
     lazy val bankById : OBPEndpoint = {
       //get bank by id
-      case "banks" :: BankId(bankId) :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
         cc =>
           for {
-            bankBox <- Connector.connector.vend.getBankFuture(bankId)
-            bank <- unboxFullAndWrapIntoFuture{ bankBox }
+            bank <- NewStyle.function.getBank(bankId, Some(cc))
           } yield
             (JSONFactory.createBankJSON(bank), Some(cc.copy(httpCode = Some(200))))
       }
     }
-
-    /* WIP
-        resourceDocs += ResourceDoc(
-          getOtherAccountsForBank,
-          apiVersion,
-          "getOtherAccountsForBank",
-          "GET",
-          "/banks/BANK_ID/other_accounts",
-          "Get Other Accounts of a Bank.",
-          s"""Returns data about all the other accounts at BANK_ID.
-              |This is a fireho
-              |${authenticationRequiredMessage(true)}
-              |""",
-          emptyObjectJson,
-          otherAccountsJSON,
-          List(
-            BankAccountNotFound,
-            UnknownError
-          ),
-          Catalogs(notCore, PSD2, OBWG),
-          List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
-
-        lazy val getOtherAccountsForBank : OBPEndpoint = {
-          //get other accounts for one account
-          case "banks" :: BankId(bankId) :: "other_accounts" :: Nil JsonGet req => {
-            cc =>
-              for {
-                _ <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-                account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-                view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-                otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
-              } yield {
-                val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
-                successJsonResponse(Extraction.decompose(otherBankAccountsJson))
-              }
-          }
-        }
-    */
-
-
 
 
 

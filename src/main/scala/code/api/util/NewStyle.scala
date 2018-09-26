@@ -88,6 +88,11 @@ object NewStyle {
         unboxFullOrFail(_, callContext, BankNotFound, 400)
       }
     }
+    def getBanks(callContext: Option[CallContext]) : Future[List[Bank]] = {
+      Connector.connector.vend.getBanksFuture() map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[BankAccount] = {
       Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
