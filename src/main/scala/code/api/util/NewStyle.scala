@@ -55,6 +55,7 @@ object NewStyle {
     (nameOf(Implementations3_0_0.getBanks), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getAdapter), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
@@ -74,7 +75,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountWebHook), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getAdapterInfo), ApiVersion.v3_1_0.toString)
   )
 
 
