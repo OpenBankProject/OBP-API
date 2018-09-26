@@ -78,23 +78,28 @@ object JSONFactory_BERLIN_GROUP_1 {
     )
   }
 
-  def createAccountBalanceJSON(moderatedAccount : ModeratedBankAccount, transactionRequests: List[TransactionRequest] ) = {
-    //get the latest end_date of `COMPLETED` transactionRequests
-    val latestCompletedEndDate = transactionRequests.filter(_.status =="COMPLETED").map(_.end_date).max
-  
+  def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccount, transactionRequests: List[TransactionRequest]) = {
+    // get the latest end_date of `COMPLETED` transactionRequests
+    val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
+
     //get the latest end_date of !`COMPLETED` transactionRequests
-    val latestUncompletedEndDate = transactionRequests.filter(_.status !="COMPLETED").map(_.end_date).max
-    
-    //get the SUM of the amount of all !`COMPLETED` transactionRequests
-    val sumOfAllUncompletedTransactionrequests = transactionRequests.filter(_.status !="COMPLETED").map(_.body.value.amount).map(BigDecimal(_)).sum
-    //sum of the unCompletedTransactions and the account.balance is the current expectd amount:
+    val latestUncompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status != "COMPLETED").map(_.end_date).headOption.getOrElse(null)
+
+    // get the SUM of the amount of all !`COMPLETED` transactionRequests
+    val sumOfAllUncompletedTransactionrequests = transactionRequests.filter(_.status != "COMPLETED").map(_.body.value.amount).map(BigDecimal(_)).sum
+    // sum of the unCompletedTransactions and the account.balance is the current expectd amount:
     val sumOfAll = (BigDecimal(moderatedAccount.balance) + sumOfAllUncompletedTransactionrequests).toString()
-    
+
     AccountBalances(
       AccountBalance(
-        closingBooked = ClosingBookedBody(amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance ), 
-                                          date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)),
-        expected = ExpectedBody (amount = AmountOfMoneyV1(currency=moderatedAccount.currency.getOrElse(""), content = sumOfAll), lastActionDateTime = latestUncompletedEndDate)
+        closingBooked = ClosingBookedBody(
+          amount = AmountOfMoneyV1(currency = moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance),
+          date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)
+        ),
+        expected = ExpectedBody(
+          amount = AmountOfMoneyV1(currency = moderatedAccount.currency.getOrElse(""),
+          content = sumOfAll),
+          lastActionDateTime = latestUncompletedEndDate)
       ) :: Nil
     )
   }

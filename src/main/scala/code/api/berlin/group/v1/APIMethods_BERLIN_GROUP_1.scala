@@ -2,7 +2,7 @@ package code.api.berlin.group.v1
 
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
@@ -104,29 +104,19 @@ trait APIMethods_BERLIN_GROUP_1 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-  
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-
-            bankId = BankId(defaultBankId)
-  
-            _ <- NewStyle.function.getBank(bankId, callContext)
-
-            bankAccount <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-  
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
-  
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+            _ <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+            bankAccount <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
-
             transactionRequests <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-  
             moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u))} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            
           } yield {
-            (JSONFactory_BERLIN_GROUP_1.createAccountBalanceJSON(moderatedAccount, transactionRequests), callContext)
+            (JSONFactory_BERLIN_GROUP_1.createAccountBalanceJSON(moderatedAccount, transactionRequests), callContext.map(_.copy(httpCode = Some(200))))
           }
       }
     }
