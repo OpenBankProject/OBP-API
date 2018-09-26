@@ -215,6 +215,11 @@ class WebUI extends MdcLoggable{
 
 
 
+  def getStartedText: CssSel = {
+    "@get-started *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_get_started_text", "Get started building your applications now!"))
+  }
+
+
   val displayForBanks = if (APIUtil.getPropsAsBoolValue("webui_display_for_banks_section", true)) {
     logger.info("show for banks section")
     "block"

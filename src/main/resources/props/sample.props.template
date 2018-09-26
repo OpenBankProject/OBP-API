@@ -329,6 +329,8 @@ webui_agree_terms_url =
 ## Display For Banks section
 webui_display_for_banks_section = true
 
+webui_get_started_text = Get started building your application using this sandbox now
+
 
 ## API Options
 apiOptions.getBranchesIsPublic = true
