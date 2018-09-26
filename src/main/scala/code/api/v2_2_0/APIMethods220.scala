@@ -802,8 +802,7 @@ trait APIMethods220 {
       case "config" :: Nil JsonGet _ =>
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
               hasEntitlement("", u.userId, ApiRole.canGetConfig)
             }
