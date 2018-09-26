@@ -1,16 +1,18 @@
 package code.api.util
 
-import code.api.util.APIUtil.unboxFullOrFail
+import code.api.APIFailureNewStyle
+import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, OBPQueryParam}
 import code.consumer.Consumers
 import code.model._
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future
@@ -66,10 +68,13 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getBadLoginStatus), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.unlockUser), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCallsLimit), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.checkFundsAvailable), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumer), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createAccountWebHook), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString)
   )
 
 
@@ -117,6 +122,18 @@ object NewStyle {
       } map {
         x => unboxFullOrFail(x, callContext, failMsg, failCode)
       }
+    }
+
+    def createHttpParams(url: String): Future[List[HTTPParam]] = {
+      createHttpParamsByUrlFuture(url) map { unboxFull(_) }
+    }
+    def createObpParams(httpParams: List[HTTPParam], allowedParams: List[String], callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
+      val httpParamsAllowed = httpParams.filter(
+        x => allowedParams.contains(x.name)
+      )
+      createQueriesByHttpParamsFuture(httpParamsAllowed) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
     }
 
   }

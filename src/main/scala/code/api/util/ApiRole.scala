@@ -166,65 +166,85 @@ object ApiRole {
   case class CanUnlockUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canUnlockUser = CanUnlockUser()
 
-  case class CanSetCallLimit (requiresBankId: Boolean = false) extends ApiRole
-  lazy val canSetCallLimit = CanSetCallLimit()
-  
+  case class CanReadUserLockedStatus(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadUserLockedStatus = CanReadUserLockedStatus()
+
+  case class CanSetCallLimits(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSetCallLimits = CanSetCallLimits()
+
+  case class CanReadCallLimits(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadCallLimits = CanReadCallLimits()
+
+  case class CanCheckFundsAvailable (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCheckFundsAvailable = CanCheckFundsAvailable()
+
+  case class CanCreateWebHook(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateWebHook = CanCreateWebHook()
+
+  case class CanGetWebHooks(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetWebHooks = CanGetWebHooks()
+
   private val roles =
-    canSearchAllTransactions ::
-    canSearchAllAccounts ::
-    canQueryOtherUser ::
-    canSearchWarehouse ::
-    canSearchWarehouseStatistics ::
-    canSearchMetrics ::
-    canCreateCustomer ::
-    canCreateCustomerAtAnyBank ::
-    canCreateUserCustomerLink ::
-    canCreateUserCustomerLinkAtAnyBank ::
-    canCreateAccount ::
-    canGetAnyUser ::
-    canCreateAnyTransactionRequest ::
-    canAddSocialMediaHandle ::
-    canGetSocialMediaHandles ::
-    canCreateSandbox ::
-    canGetEntitlementsForAnyUserAtOneBank ::
-    canCreateEntitlementAtOneBank ::
-    canDeleteEntitlementAtOneBank ::
-    canGetEntitlementsForAnyUserAtAnyBank ::
-    canCreateEntitlementAtAnyBank ::
-    canDeleteEntitlementAtAnyBank ::
-    canGetConsumers ::
-    canDisableConsumers ::
-    canEnableConsumers ::
-    canUpdateConsumerRedirectUrl ::
-    canCreateConsumer ::
-    canCreateTransactionType::
-    canCreateCardsForBank ::
-    canCreateBranch ::
-    canCreateBranchAtAnyBank ::
-    canCreateAtm ::
-    canCreateAtmAtAnyBank ::
-    canCreateProduct ::
-    canCreateProductAtAnyBank ::
-    canCreateFxRate ::
-    canCreateFxRateAtAnyBank ::
-    canCreateBank ::
-    canReadMetrics ::
-    canGetConfig ::
-    canGetConnectorMetrics ::
-    canGetOtherAccountsAtBank ::
-    canDeleteEntitlementRequestsAtOneBank ::
-    canDeleteEntitlementRequestsAtAnyBank ::
-    canGetEntitlementRequestsAtOneBank ::
-    canGetEntitlementRequestsAtAnyBank ::
-    canUseFirehoseAtAnyBank ::
-    canReadAggregateMetrics :: 
-    canCreateScopeAtOneBank ::
-    canCreateScopeAtAnyBank ::
-    canDeleteScopeAtAnyBank ::
-    canDeleteScopeAtOneBank ::
-    canUnlockUser ::
-    canSetCallLimit ::
-    Nil
+      canSearchAllTransactions ::
+      canSearchAllAccounts ::
+      canQueryOtherUser ::
+      canSearchWarehouse ::
+      canSearchWarehouseStatistics ::
+      canSearchMetrics ::
+      canCreateCustomer ::
+      canCreateCustomerAtAnyBank ::
+      canCreateUserCustomerLink ::
+      canCreateUserCustomerLinkAtAnyBank ::
+      canCreateAccount ::
+      canGetAnyUser ::
+      canCreateAnyTransactionRequest ::
+      canAddSocialMediaHandle ::
+      canGetSocialMediaHandles ::
+      canCreateSandbox ::
+      canGetEntitlementsForAnyUserAtOneBank ::
+      canCreateEntitlementAtOneBank ::
+      canDeleteEntitlementAtOneBank ::
+      canGetEntitlementsForAnyUserAtAnyBank ::
+      canCreateEntitlementAtAnyBank ::
+      canDeleteEntitlementAtAnyBank ::
+      canGetConsumers ::
+      canDisableConsumers ::
+      canEnableConsumers ::
+      canUpdateConsumerRedirectUrl ::
+      canCreateConsumer ::
+      canCreateTransactionType::
+      canCreateCardsForBank ::
+      canCreateBranch ::
+      canCreateBranchAtAnyBank ::
+      canCreateAtm ::
+      canCreateAtmAtAnyBank ::
+      canCreateProduct ::
+      canCreateProductAtAnyBank ::
+      canCreateFxRate ::
+      canCreateFxRateAtAnyBank ::
+      canCreateBank ::
+      canReadMetrics ::
+      canGetConfig ::
+      canGetConnectorMetrics ::
+      canGetOtherAccountsAtBank ::
+      canDeleteEntitlementRequestsAtOneBank ::
+      canDeleteEntitlementRequestsAtAnyBank ::
+      canGetEntitlementRequestsAtOneBank ::
+      canGetEntitlementRequestsAtAnyBank ::
+      canUseFirehoseAtAnyBank ::
+      canReadAggregateMetrics ::
+      canCreateScopeAtOneBank ::
+      canCreateScopeAtAnyBank ::
+      canDeleteScopeAtAnyBank ::
+      canDeleteScopeAtOneBank ::
+      canUnlockUser ::
+      canSetCallLimits ::
+      canReadCallLimits ::
+      canReadUserLockedStatus ::
+      canCheckFundsAvailable ::
+      canCreateWebHook ::
+      canGetWebHooks ::
+      Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
 

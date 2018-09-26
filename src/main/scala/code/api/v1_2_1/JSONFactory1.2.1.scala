@@ -42,7 +42,8 @@ case class APIInfoJSON(
   git_commit : String,
   connector : String,
   hosted_by : HostedBy,
-  akka: Akka
+  akka: Akka,
+  rate_limiting: Option[RateLimiting]
 )
 case class HostedBy(
   organisation : String,
@@ -51,6 +52,8 @@ case class HostedBy(
   organisation_website: String
 )
 case class Akka(remote_data_secret_matched: Option[Boolean])
+case class RateLimiting(enabled: Boolean, redis_available: Option[Boolean])
+
 case class ErrorMessage(
   error : String
 )

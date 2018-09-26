@@ -35,6 +35,7 @@ import code.api.v2_1_0.ResourceUserJSON
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
+import code.webhook.AccountWebHook
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -146,6 +147,23 @@ case class ConsumerJson(consumer_id: String,
                        )
 case class ConsumersJson(consumers: List[ConsumerJson])
 
+case class AccountWebHookJson(account_web_hook_id: String,
+                              bank_id: String,
+                              account_id: String,
+                              trigger_name: String,
+                              url: String,
+                              http_method: String,
+                              created_by_user_id: String
+                             )
+
+case class AccountWebHookPostJson(account_id: String,
+                                  trigger_name: String,
+                                  url: String,
+                                  http_method: String
+                                  )
+
+case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -220,6 +238,22 @@ object JSONFactory310{
       c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId.get).headOption)
     )
     ConsumersJson(cs)
+  }
+
+  def createAccountWebHookJson(wh: AccountWebHook) = {
+    AccountWebHookJson(
+      account_web_hook_id = wh.accountWebHookId,
+      bank_id = wh.bankId,
+      account_id = wh.accountId,
+      trigger_name = wh.triggerName,
+      url = wh.url,
+      http_method = wh.httpMethod,
+      created_by_user_id = wh.createdByUserId
+    )
+  }
+
+  def createAccountWebHooksJson(whs: List[AccountWebHook]) = {
+    whs.map(createAccountWebHookJson(_))
   }
 
 }

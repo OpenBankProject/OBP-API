@@ -415,7 +415,7 @@ You can obfuscate passwords in the props file the same way as for jetty:
    *  db.url=OBF:fdsafdsakwaetcetcetc
 
 ## Rate Limiting
-We support rate limiting i.e functionality to limit calls per consumer key (App). 
+We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this fie: https://github.com/OpenBankProject/OBP-API/blob/develop/src/main/scala/code/api/util/NewStyle.scala. 
 It is assumed that you have a Redis instance if you wan to use the functionality. In order to make it work edit your props file in next way:
 ```
 use_consumer_limits=false, In case isn't defined default value is "false"
@@ -429,7 +429,6 @@ Next types are supported:
 3. per day
 4. per week
 5. per month
-6. per year
 ```    
 If you exced rate limit per minute for instance you will get the response:
 ```json
@@ -449,6 +448,19 @@ Description of the headers above:
 3. `X-Rate-Limit-Reset` - The number of seconds left in the current period
 
 Please note that first will be checked `per minute` call limit then `per hour` etc.
+
+Info about rate limiting availibility at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/root. Response we are interested in looks lke:
+```json
+{
+  ...
+  ,
+  "rate_limiting":{
+    "enabled":true,
+    "redis_available":true,
+    "is_active":true
+  }
+}
+```
    
 ## Scala / Lift
 
