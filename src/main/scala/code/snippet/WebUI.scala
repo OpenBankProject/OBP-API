@@ -213,6 +213,27 @@ class WebUI extends MdcLoggable{
     "#main_style_sheet [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_main_style_sheet", "/media/css/website.css"))
   }
 
+
+
+  def getStartedText: CssSel = {
+    "@get-started *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_get_started_text", "Get started building your applications now!"))
+  }
+
+
+  val displayForBanks = if (APIUtil.getPropsAsBoolValue("webui_display_for_banks_section", true)) {
+    logger.info("show for banks section")
+    "block"
+  } else {
+    logger.info("not show for banks section")
+    "none"
+  }
+
+
+  def forBanks: CssSel = {
+    "@for-banks [style]" #> s"display: $displayForBanks"
+  }
+
+
   def overrideStyleSheet: CssSel = {
     val stylesheet = APIUtil.getPropsValue("webui_override_style_sheet", "")
     if (stylesheet.isEmpty) {

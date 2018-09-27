@@ -442,7 +442,7 @@ object SwaggerDefinitionsJSON {
     remote_data_secret_matched = Option(true)
   )
 
-  val rateLimiting = Option(RateLimiting(true, Option(true)))
+  val rateLimiting = Option(RateLimiting(true, true, true))
   
   val apiInfoJSON = APIInfoJSON(
     version = "String",
