@@ -2293,7 +2293,7 @@ trait APIMethods300 {
           for {
             banks <- NewStyle.function.getBanks(Some(cc))
           } yield 
-            (JSONFactory300.createBanksJson(banks), Some(cc.copy(httpCode = Some(200))))
+            (JSONFactory300.createBanksJson(banks), HttpCode.`200`(Some(cc)))
       }
     }
   
@@ -2324,7 +2324,7 @@ trait APIMethods300 {
           for {
             bank <- NewStyle.function.getBank(bankId, Some(cc))
           } yield
-            (JSONFactory.createBankJSON(bank), Some(cc.copy(httpCode = Some(200))))
+            (JSONFactory.createBankJSON(bank), HttpCode.`200`(Some(cc)))
       }
     }
 

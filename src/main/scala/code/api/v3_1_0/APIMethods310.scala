@@ -145,7 +145,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), Some(cc.copy(httpCode = Some(200))))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
       }
     }
     
@@ -171,7 +171,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), Some(cc.copy(httpCode = Some(200))))}
+           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
       }
     }
 
@@ -197,7 +197,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), Some(cc.copy(httpCode = Some(200))))}
+           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(Some(cc)))}
       }
     }
     
@@ -429,13 +429,13 @@ trait APIMethods310 {
       //get private accounts for all banks
       case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet _ => {
         cc =>
-          val allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
               canUseFirehose(u)
             }
+            allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.createHttpParams(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
@@ -898,8 +898,6 @@ trait APIMethods310 {
     lazy val getAccountWebHooks: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) ::"account-web-hooks" :: Nil JsonGet _ => {
         cc =>
-          val allowedParams = List("limit", "offset", "account_id", "user_id")
-          val additionalParam = OBPBankId(bankId.value)
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
@@ -907,7 +905,9 @@ trait APIMethods310 {
               hasEntitlement(bankId.value, u.userId, ApiRole.canGetWebHooks)
             }
             httpParams <- NewStyle.function.createHttpParams(cc.url)
+            allowedParams = List("limit", "offset", "account_id", "user_id")
             obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            additionalParam = OBPBankId(bankId.value)
             webHooks <- NewStyle.function.getAccountWebHooks(additionalParam :: obpParams, callContext)
           } yield {
             (createAccountWebHooksJson(webHooks), HttpCode.`200`(callContext))
@@ -937,7 +937,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      apiTagApi :: Nil,
+      apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 
     lazy val config: OBPEndpoint = {
