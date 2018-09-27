@@ -120,6 +120,12 @@ object APIBuilder
   val deleteSingleApiDescriptionVal = Lit.String(s"$deleteSingleApiDescription")
   val getApiDescriptionFromJsonFileVal = Lit.String(s"$getApiDescriptionFromJsonFile")
   
+  val errorMessageBody: Lit.String = Lit.String(s"OBP-31001: ${modelNameCapitalized} not found. Please specify a valid value for ${modelNameUpperCase}_ID.")
+  val errorMessageName: Pat.Var = Pat.Var(Term.Name(s"${modelNameCapitalized}NotFound"))
+  val errorMessageVal: Defn.Val = q"""val TemplateNotFound = $errorMessageBody""".copy(pats = List(errorMessageName))
+  val errorMessage: Term.Name = Term.Name(errorMessageVal.pats.head.toString())
+
+  
   val getTemplateFromFileResourceCode: Term.ApplyInfix =q"""
     resourceDocs += ResourceDoc(
       getTemplatesFromFile, 
@@ -235,7 +241,7 @@ object APIBuilder
         {
           for{
             u <- $getSingleApiAuthenticationStatement
-            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! TemplateNotFound
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
             templateJson = JsonFactory_APIBuilder.createTemplate(template)
             jsonObject:JValue = decompose(templateJson)
           }yield{
@@ -269,6 +275,7 @@ object APIBuilder
         {
           for{
             u <- $deleteSingleApiAuthenticationStatement
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
             deleted <- APIBuilder_Connector.deleteTemplate(templateId)
           }yield{
             if(deleted)
@@ -376,8 +383,8 @@ trait APIMethods_APIBuilder
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
-    val TemplateNotFound = "OBP-31001: Template not found. Please specify a valid value for TEMPLATE_ID."
-    
+
+    $errorMessageVal;
     def endpointsOfBuilderAPI = getTemplatesFromFile :: getTemplate :: createTemplate :: getTemplates :: deleteTemplate :: Nil
     
     $getTemplateFromFileResourceCode

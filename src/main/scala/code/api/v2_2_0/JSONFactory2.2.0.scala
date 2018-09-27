@@ -34,6 +34,8 @@ package code.api.v2_2_0
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
 
+import code.actorsystem.ObpActorConfig
+import code.api.util.APIUtil
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
@@ -781,6 +783,29 @@ object JSONFactory220{
     Full(atm)
   }
 
+  def getConfigInfoJSON(): ConfigurationJSON = {
 
+    val f1 = CachedFunctionJSON("getBank", APIUtil.getPropsValue("connector.cache.ttl.seconds.getBank", "0").toInt)
+    val f2 = CachedFunctionJSON("getBanks", APIUtil.getPropsValue("connector.cache.ttl.seconds.getBanks", "0").toInt)
+    val f3 = CachedFunctionJSON("getAccount", APIUtil.getPropsValue("connector.cache.ttl.seconds.getAccount", "0").toInt)
+    val f4 = CachedFunctionJSON("getAccounts", APIUtil.getPropsValue("connector.cache.ttl.seconds.getAccounts", "0").toInt)
+    val f5 = CachedFunctionJSON("getTransaction", APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransaction", "0").toInt)
+    val f6 = CachedFunctionJSON("getTransactions", APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt)
+    val f7 = CachedFunctionJSON("getCounterpartyFromTransaction", APIUtil.getPropsValue("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt)
+    val f8 = CachedFunctionJSON("getCounterpartiesFromTransaction", APIUtil.getPropsValue("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt)
+
+    val akkaPorts = PortJSON("remotedata.local.port", ObpActorConfig.localPort.toString) :: PortJSON("remotedata.port", ObpActorConfig.remotePort) :: Nil
+    val akka = AkkaJSON(akkaPorts, ObpActorConfig.akka_loglevel)
+    val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
+
+    val metrics = MetricsJSON("es.metrics.port.tcp", APIUtil.getPropsValue("es.metrics.port.tcp", "9300")) ::
+                  MetricsJSON("es.metrics.port.http", APIUtil.getPropsValue("es.metrics.port.tcp", "9200")) ::
+                  Nil
+    val warehouse = WarehouseJSON("es.warehouse.port.tcp", APIUtil.getPropsValue("es.warehouse.port.tcp", "9300")) ::
+                    WarehouseJSON("es.warehouse.port.http", APIUtil.getPropsValue("es.warehouse.port.http", "9200")) ::
+                    Nil
+
+    ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache)
+  }
   
 }

@@ -2058,7 +2058,7 @@ trait APIMethods200 {
       entitlementJSONs,
       List(UserNotLoggedIn, UserNotSuperAdmin, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement))
+      List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
 
     lazy val getAllEntitlements: OBPEndpoint = {

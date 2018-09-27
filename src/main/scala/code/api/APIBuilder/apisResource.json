@@ -1,6 +1,20 @@
 {
   "resource_docs": [
     {
+      "summary": "Get Template",
+      "request_verb": "GET",
+      "description": "Return one template. Authentication is Mandatory. ",
+      "request_url": "/my/templates/TEMPLATE_ID",
+      "example_request_body": {},
+      "success_response_body": {
+        "template": {
+          "author": "Chinua Achebe",
+          "pages": 209,
+          "points": 1.3
+        }
+      }
+    },
+    {
       "summary": "Get Templates",
       "request_verb": "GET",
       "description": "Return All my templates. Authentication is Mandatory. ",
@@ -19,20 +33,6 @@
             "points": 1.3
           }
         ]
-      }
-    },
-    {
-      "summary": "Get Template",
-      "request_verb": "GET",
-      "description": "Return one template. Authentication is Mandatory. ",
-      "request_url": "/my/templates/TEMPLATE_ID",
-      "example_request_body": {},
-      "success_response_body": {
-        "template": {
-          "author": "Chinua Achebe",
-          "pages": 209,
-          "points": 1.3
-        }
       }
     },
     {

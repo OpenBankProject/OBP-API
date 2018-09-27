@@ -1049,6 +1049,7 @@ object APIUtil extends MdcLoggable {
   val apiTagUKOpenBanking = ResourceDocTag("UKOpenBanking")
   val apiTagApiBuilder = ResourceDocTag("API_Builder")
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
+  val apiTagNewStyle = ResourceDocTag("New-Style")
 
   case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 
@@ -2295,7 +2296,12 @@ Returns a string showed to the developer
   // Get OAuth2 Authentication Server URL
   def getOAuth2ServerUrl: String = getPropsValue("oauth2_server_url").openOr(MissingPropsValueAtThisInstance + "oauth2_server_url")
   
-  lazy val defaultBankId = APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
+  lazy val defaultBankId = 
+    if (Props.mode == Props.RunModes.Test)
+      APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")
+    else
+      APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
+      
   
   def getJValueFromFile (path: String) = {
     val jsonStringFromFile: String = scala.io.Source.fromFile(path).mkString 

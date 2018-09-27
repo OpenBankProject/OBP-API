@@ -53,7 +53,11 @@ trait APIMethods_APIBuilder { self: RestHelper =>
     lazy val deleteTemplate: OBPEndpoint = {
       case ("templates" :: templateId :: Nil) JsonDelete _ =>
         cc => {
-          for (u <- cc.user ?~ UserNotLoggedIn; deleted <- APIBuilder_Connector.deleteTemplate(templateId)) yield {
+          for (
+            u <- cc.user ?~ UserNotLoggedIn; 
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! TemplateNotFound;
+            deleted <- APIBuilder_Connector.deleteTemplate(templateId)
+          ) yield {
             if (deleted) noContentJsonResponse else errorJsonResponse("Delete not completed")
           }
         }

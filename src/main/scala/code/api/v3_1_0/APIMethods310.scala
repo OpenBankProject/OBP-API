@@ -6,7 +6,9 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util._
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPBankId}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
@@ -53,7 +55,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagNewStyle :: Nil)
 
     lazy val getCheckbookOrders : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "checkbook"  :: "orders" :: Nil JsonGet req => {
@@ -96,7 +98,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagNewStyle :: Nil)
 
     lazy val getStatusOfCreditCardOrder : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "credit_cards"  :: "orders" :: Nil JsonGet req => {
@@ -133,7 +135,7 @@ trait APIMethods310 {
       creditLimitOrderResponseJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagNewStyle :: Nil)
 
     lazy val createCreditLimitRequest : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonPost json -> _  => {
@@ -185,7 +187,7 @@ trait APIMethods310 {
       creditLimitOrderJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagNewStyle :: Nil)
 
     lazy val getCreditLimitRequestByRequestId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: requestId :: Nil JsonGet req => {
@@ -258,7 +260,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagMetric :: Nil,
+      apiTagMetric :: apiTagNewStyle :: Nil,
       Some(List(canReadMetrics))
     )
 
@@ -350,7 +352,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagMetric :: Nil,
+      apiTagMetric :: apiTagNewStyle :: Nil,
       Some(List(canReadMetrics))
     )
 
@@ -419,7 +421,7 @@ trait APIMethods310 {
       transactionsJsonV300,
       List(UserNotLoggedIn, FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData),
+      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseFirehoseAtAnyBank)))
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
@@ -462,7 +464,7 @@ trait APIMethods310 {
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser),
+      List(apiTagUser, apiTagNewStyle),
       Some(List(canReadUserLockedStatus))
     )
 
@@ -498,7 +500,7 @@ trait APIMethods310 {
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser),
+      List(apiTagUser, apiTagNewStyle),
       Some(List(canUnlockUser)))
 
     lazy val unlockUser : OBPEndpoint = {
@@ -543,7 +545,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
 
     lazy val callsLimit : OBPEndpoint = {
@@ -602,7 +604,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
 
     lazy val getCallsLimit : OBPEndpoint = {
@@ -653,7 +655,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagBank :: apiTagNewStyle :: Nil)
 
     lazy val checkFundsAvailable : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "funds-available" :: Nil JsonGet req => {
@@ -722,7 +724,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
       Some(List(canGetConsumers)))
 
 
@@ -760,7 +762,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi)
+      List(apiTagConsumer, apiTagApi, apiTagNewStyle)
     )
 
 
@@ -796,7 +798,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
       Some(List(canGetConsumers))
     )
 
@@ -832,7 +834,7 @@ trait APIMethods310 {
       accountWebHookJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil,
+      apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebHook))
     )
 
@@ -894,7 +896,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
       Some(List(canGetWebHooks))
     )
 
@@ -917,6 +919,77 @@ trait APIMethods310 {
             }
           } yield {
             (createAccountWebHooksJson(webHooks), callContext.map(_.copy(httpCode = Some(200))))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      config,
+      implementedInApiVersion,
+      "config",
+      "GET",
+      "/config",
+      "Get API Configuration",
+      """Returns information about:
+        |
+        |* API Config
+        |* Default bank id
+        |* Akka ports
+        |* Elastic search ports
+        |* Cached function """,
+      emptyObjectJson,
+      configurationJSON,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      apiTagApi :: Nil,
+      Some(List(canGetConfig)))
+
+    lazy val config: OBPEndpoint = {
+      case "config" :: Nil JsonGet _ =>
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            u <- unboxFullAndWrapIntoFuture{ user }
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
+              hasEntitlement("", u.userId, ApiRole.canGetConfig)
+            }
+          } yield {
+            (JSONFactory310.getConfigInfoJSON(), callContext)
+          }
+    }
+
+    resourceDocs += ResourceDoc(
+      getAdapterInfo,
+      implementedInApiVersion,
+      "getAdapterInfo",
+      "GET",
+      "/adapter",
+      "Get Adapter Info (general)",
+      s"""Get basic information about the Adapter.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      adapterInfoJsonV300,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagApi, apiTagNewStyle))
+
+
+    lazy val getAdapterInfo: OBPEndpoint = {
+      case "adapter" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            ai: InboundAdapterInfoInternal <- Future(Connector.connector.vend.getAdapterInfo()) map {
+              unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            (createAdapterInfoJson(ai), Some(cc))
           }
       }
     }
