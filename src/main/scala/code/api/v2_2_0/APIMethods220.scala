@@ -768,7 +768,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      apiTagApi :: Nil,
+      apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 
     lazy val config: OBPEndpoint = {

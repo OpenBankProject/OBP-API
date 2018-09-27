@@ -326,6 +326,11 @@ webui_agree_terms_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
 
 
+## Display For Banks section
+webui_display_for_banks_section = true
+
+webui_get_started_text = Get started building your application using this sandbox now
+
 
 ## API Options
 apiOptions.getBranchesIsPublic = true
