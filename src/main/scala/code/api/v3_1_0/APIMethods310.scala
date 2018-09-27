@@ -426,21 +426,18 @@ trait APIMethods310 {
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet _ => {
         cc =>
+          val allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
               canUseFirehose(u)
             }
-            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
-            }
-            customers <- Connector.connector.vend.getCustomersFuture(bankId, callContext, obpQueryParams) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
-            }
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
           } yield {
             (JSONFactory300.createCustomersJson(customers), callContext.map(_.copy(httpCode = Some(200))))
           }
@@ -562,9 +559,7 @@ trait APIMethods310 {
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong
             }
-            consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
-              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
-            }
+            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
             updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
               consumer.id.get,
               Some(postJson.per_minute_call_limit),
@@ -618,9 +613,7 @@ trait APIMethods310 {
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong
             }
-            consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
-              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
-            }
+            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
           } yield {
             (createCallLimitJson(consumer), callContext.map(_.copy(httpCode = Some(200))))
           }
@@ -914,9 +907,7 @@ trait APIMethods310 {
             }
             httpParams <- NewStyle.function.createHttpParams(cc.url)
             obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
-            webHooks <- AccountWebHook.accountWebHook.vend.getAccountWebHooksFuture(additionalParam :: obpParams)  map {
-              unboxFullOrFail(_, callContext, GetWebHooksError, 400)
-            }
+            webHooks <- NewStyle.function.getAccountWebHooks(additionalParam :: obpParams, callContext)
           } yield {
             (createAccountWebHooksJson(webHooks), callContext.map(_.copy(httpCode = Some(200))))
           }
@@ -952,8 +943,7 @@ trait APIMethods310 {
       case "config" :: Nil JsonGet _ =>
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
               hasEntitlement("", u.userId, ApiRole.canGetConfig)
             }
