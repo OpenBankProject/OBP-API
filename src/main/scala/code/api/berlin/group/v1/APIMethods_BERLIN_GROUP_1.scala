@@ -3,12 +3,13 @@ package code.api.berlin.group.v1
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil._
-import code.api.util.ApiVersion
+import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.model._
 import code.util.Helper
 import code.views.Views
+import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 
 import scala.collection.immutable.Nil
@@ -39,9 +40,9 @@ trait APIMethods_BERLIN_GROUP_1 {
          |Reads a list of bank accounts, with balances where required.
          |It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system.
          |
-        |${authenticationRequiredMessage(true)}
-        |
-        |This endpoint is work in progress. Experimental!
+         |${authenticationRequiredMessage(true)}
+         |
+         |This endpoint is work in progress. Experimental!
          |""",
       emptyObjectJson,
       SwaggerDefinitionsJSON.coreAccountsJsonV1,
@@ -55,14 +56,22 @@ trait APIMethods_BERLIN_GROUP_1 {
 
 
     lazy val getAccountList : OBPEndpoint = {
-      //get private accounts for all banks
+      //get private accounts for one bank
       case "accounts" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+  
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+  
+            bankId = BankId(defaultBankId)
+  
+            _ <- NewStyle.function.getBank(bankId, callContext)
+  
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            
             coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
+            
           } yield {
             (JSONFactory_BERLIN_GROUP_1.createTransactionListJSON(coreAccounts.getOrElse(Nil)), callContext)
           }
@@ -94,24 +103,25 @@ trait APIMethods_BERLIN_GROUP_1 {
       case "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+  
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
 
-            account <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-          
-            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-          
+            bankId = BankId(defaultBankId)
+  
+            _ <- NewStyle.function.getBank(bankId, callContext)
+
+            bankAccount <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+  
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+  
             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
 
-            transactionRequests <- Future { Connector.connector.vend.getTransactionRequests210(u, account)} map {
+            transactionRequests <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-          
-            moderatedAccount <- Future {account.moderatedBankAccount(view, user)} map {
+  
+            moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u))} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             
@@ -145,14 +155,19 @@ trait APIMethods_BERLIN_GROUP_1 {
       case "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
-            bankAccount <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+            
+            bankId = BankId(defaultBankId)
+            
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            
+            bankAccount <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+            
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -161,7 +176,7 @@ trait APIMethods_BERLIN_GROUP_1 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 
-            transactions <- Future { bankAccount.getModeratedTransactions(user, view, callContext, params: _*)} map {
+            transactions <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             
