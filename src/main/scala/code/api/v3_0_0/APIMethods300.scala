@@ -12,6 +12,7 @@ import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{BankJSON, BanksJSON, JSONFactory}
 import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
@@ -122,7 +123,7 @@ trait APIMethods300 {
               for {
                 views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
               } yield {
-                (createViewsJSON(views), callContext.map(_.copy(httpCode = Some(200))))
+                (createViewsJSON(views), HttpCode.`200`(callContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -228,7 +229,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           } yield {
-            (createViewsJSON(permission.views.sortBy(_.viewId.value)), callContext.map(_.copy(httpCode = Some(200))))
+            (createViewsJSON(permission.views.sortBy(_.viewId.value)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -290,7 +291,7 @@ trait APIMethods300 {
               for {
                 updatedView <- account.updateView(u, viewId, updateJson)
               } yield {
-                (JSONFactory300.createViewJSON(updatedView), callContext.map(_.copy(httpCode = Some(200))))
+                (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -344,7 +345,7 @@ trait APIMethods300 {
               for {
                 moderatedAccount <- account.moderatedBankAccount(view, Full(u))
               } yield {
-                (createCoreBankAccountJSON(moderatedAccount), callContext.map(_.copy(httpCode = Some(200))))
+                (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -450,7 +451,7 @@ trait APIMethods300 {
             for {
               moderatedAccount <- account.moderatedBankAccount(view, Full(u))
             } yield {
-              (createCoreBankAccountJSON(moderatedAccount), callContext.map(_.copy(httpCode = Some(200))))
+              (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
             }
           }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -490,7 +491,7 @@ trait APIMethods300 {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -550,7 +551,7 @@ trait APIMethods300 {
               moderatedAccount
             }
           } yield {
-            (JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -605,7 +606,7 @@ trait APIMethods300 {
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
               } yield {
-                (createTransactionsJson(transactions), callContext.map(_.copy(httpCode = Some(200))))
+                (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -667,7 +668,7 @@ trait APIMethods300 {
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
               } yield {
-                (createCoreTransactionsJSON(transactionsCore), callContext.map(_.copy(httpCode = Some(200))))
+                (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -732,7 +733,7 @@ trait APIMethods300 {
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                 transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
-                (createTransactionsJson(transactions), callContext.map(_.copy(httpCode = Some(200))))
+                (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
@@ -800,7 +801,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result: esw.APIResponse <- esw.searchProxyAsyncV300(u.userId, indexPart, bodyPart)
           } yield {
-            (esw.parseResponse(result), callContext.map(_.copy(httpCode = Some(200))))
+            (esw.parseResponse(result), HttpCode.`200`(callContext))
           }
       }
     }
@@ -868,7 +869,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
-            (esw.parseResponse(result), callContext.map(_.copy(httpCode = Some(200))))
+            (esw.parseResponse(result), HttpCode.`200`(callContext))
           }
       }
     }
@@ -905,7 +906,7 @@ trait APIMethods300 {
             }
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
-            (JSONFactory300.createUserJSONs (users), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createUserJSONs (users), HttpCode.`200`(callContext))
           }
       }
     }
@@ -944,7 +945,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createUserJSON (Full(user), entitlements), HttpCode.`200`(callContext))
           }
       }
     }
@@ -984,7 +985,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createUserJSON (Full(user), entitlements), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1181,7 +1182,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createBranchJsonV300(branch), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createBranchJsonV300(branch), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1266,7 +1267,7 @@ trait APIMethods300 {
                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             }
           } yield {
-            (JSONFactory300.createBranchesJson(branches), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createBranchesJson(branches), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1311,7 +1312,7 @@ trait APIMethods300 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory300.createAtmJsonV300(atm), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createAtmJsonV300(atm), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1389,7 +1390,7 @@ trait APIMethods300 {
                 .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
             }
           } yield {
-            (JSONFactory300.createAtmsJsonV300(atms), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createAtmsJsonV300(atms), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1437,7 +1438,7 @@ trait APIMethods300 {
             
             users <- Users.users.vend.getAllUsersF(obpQueryParams)
           } yield {
-            (JSONFactory300.createUserJSONs (users), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createUserJSONs (users), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1486,7 +1487,7 @@ trait APIMethods300 {
             }
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersJson(customers), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1518,7 +1519,7 @@ trait APIMethods300 {
               getFullBoxOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createUserJSON (Full(u), entitlements), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createUserJSON (Full(u), entitlements), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1559,7 +1560,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1599,7 +1600,7 @@ trait APIMethods300 {
             }
             bankAccountIds <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
           } yield {
-            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1733,7 +1734,7 @@ trait APIMethods300 {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementRequestCannotBeAdded, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             } yield {
-              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), callContext.map(_.copy(httpCode = Some(200))))
+              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`200`(callContext))
             }
       }
     }
@@ -1777,7 +1778,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1822,7 +1823,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1862,7 +1863,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1906,7 +1907,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (Full(deleteEntitlementRequest), callContext.map(_.copy(httpCode = Some(200))))
+            (Full(deleteEntitlementRequest), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1945,7 +1946,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory200.createEntitlementJSONs(getEntitlements), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory200.createEntitlementJSONs(getEntitlements), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2006,7 +2007,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2095,7 +2096,7 @@ trait APIMethods300 {
               } map { unboxFull(_) }
               
             } yield {
-              (createAggregateMetricJson(aggregateMetrics), callContext.map(_.copy(httpCode = Some(200))))
+              (createAggregateMetricJson(aggregateMetrics), HttpCode.`200`(callContext))
             }
           }
 
@@ -2181,7 +2182,7 @@ trait APIMethods300 {
             addedEntitlement <- Future {Scope.scope.vend.addScope(postedData.bank_id, consumerId, postedData.role_name)} map { unboxFull(_) }
             
           } yield {
-            (JSONFactory300.createScopeJson(addedEntitlement), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2225,7 +2226,7 @@ trait APIMethods300 {
             
             _ <- Future {Scope.scope.vend.deleteScope(Full(scope))} 
           } yield
-            (JsRaw(""), callContext.map(_.copy(httpCode = Some(200))))
+            (JsRaw(""), HttpCode.`200`(callContext))
       }
     }
   
@@ -2261,7 +2262,7 @@ trait APIMethods300 {
             scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerId)} map { unboxFull(_) }
            
           } yield
-            (JSONFactory300.createScopeJSONs(scopes), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createScopeJSONs(scopes), HttpCode.`200`(callContext))
       }
     }
 

@@ -83,6 +83,12 @@ object NewStyle {
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString)
   )
 
+  object HttpCode {
+    def `200`(callContext: Option[CallContext])  = {
+      callContext.map(_.copy(httpCode = Some(200)))
+    }
+  }
+
 
   object function {
     import scala.concurrent.ExecutionContext.Implicits.global
