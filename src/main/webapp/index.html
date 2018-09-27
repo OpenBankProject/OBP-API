@@ -344,7 +344,7 @@ Berlin 13359, Germany
 
 
 	<div id="main-start_building">
-		<h1>Get started building your application using this sandbox now</h1>
+		<h1 name="get-started" data-lift="WebUI.getStartedText">Get started building your application using this sandbox now</h1>
 		<div class="bigbutton">
 			<a href="/consumer-registration">Get your API key</a>
 		</div>
@@ -361,6 +361,7 @@ Berlin 13359, Germany
 	
 
 	<div id="main-support">
+		<h1>For technical support</h1>
 		<div class="main-support-item">
 			<img class="support-mail" src="https://static.openbankproject.com/images/sandbox/support/mail.png" width="150" height="150" alt="mail" />
 			<h2>Email us</h2>
@@ -373,14 +374,20 @@ Berlin 13359, Germany
 		</div>
 		<div class="main-support-item">
 			<img class="support-slack" src="https://static.openbankproject.com/images/sandbox/support/slack.png" width="150" height="150" alt="slack" />
-			<h2>Support</h2>
+			<h2>Chat</h2>
 			<a class="support-platform-link" data-lift="WebUI.supportPlatformLink" href="" target="_blank">Slack channel</a>
 		</div>
 	</div>
 
-	<div id="for-banks">
+
+	<div id="vendor-support"></div>
+	<div id="vendor-support-script" data-lift="WebUI.vendorSupport"></div>
+
+	<div id="for-banks" name="for-banks" data-lift="WebUI.forBanks" >
 		<h1>For Banks</h1>
 		<a class="api-manager-link btn btn-default btn-for-banks" data-lift="WebUI.apiManagerLink" href="">API Manager</a>
 		<a class="api-tester-link btn btn-default btn-for-banks" data-lift="WebUI.apiTesterLink" href="">API Tester</a>
 	</div>
+
+
 </div>

@@ -35,11 +35,13 @@ package code.snippet
 import code.api.util.APIUtil
 import code.api.util.APIUtil.getRemoteIpAddress
 import code.util.Helper.MdcLoggable
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds.Run
 import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 
-
+import scala.xml.{XML, NodeSeq}
 
 
 class WebUI extends MdcLoggable{
@@ -212,6 +214,45 @@ class WebUI extends MdcLoggable{
   def mainStyleSheet: CssSel = {
     "#main_style_sheet [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_main_style_sheet", "/media/css/website.css"))
   }
+
+
+
+  def getStartedText: CssSel = {
+    "@get-started *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_get_started_text", "Get started building your applications now!"))
+  }
+
+
+  val displayForBanks = if (APIUtil.getPropsAsBoolValue("webui_display_for_banks_section", true)) {
+    logger.info("show for banks section")
+    "block"
+  } else {
+    logger.info("not show for banks section")
+    "none"
+  }
+
+
+  def forBanks: CssSel = {
+    "@for-banks [style]" #> s"display: $displayForBanks"
+  }
+
+
+  ///////////////////////////////////////////////////////////////
+  // Quick tryout of approach to load (external) HTML
+  val vendorSupportHtmlUrl = APIUtil.getPropsValue("webui_vendor_support_html_url", "")
+
+  // Note this causes a browser warning : Synchronous XMLHttpRequest on the main thread is deprecated because of its detrimental effects to the end user's experience.
+  val vendorSupportHtmlScript : String =  s"""<script>jQuery("#vendor-support").load("$vendorSupportHtmlUrl");</script>""".toString
+
+  val jsVendorSupportHtml: NodeSeq = vendorSupportHtmlUrl match {
+    case "" => <script></script>
+    case _ => XML.loadString(vendorSupportHtmlScript)
+ }
+
+  def vendorSupport(): NodeSeq = {
+    jsVendorSupportHtml
+  }
+  ////////////////////////////////////////////////////////////////
+
 
   def overrideStyleSheet: CssSel = {
     val stylesheet = APIUtil.getPropsValue("webui_override_style_sheet", "")

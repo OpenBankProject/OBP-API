@@ -29,9 +29,11 @@ package code.api.v3_1_0
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.util.APIUtil
 import code.api.v1_2_1.AccountRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.BranchRoutingJsonV141
 import code.api.v2_1_0.ResourceUserJSON
+import code.api.v2_2_0._
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
@@ -164,6 +166,8 @@ case class AccountWebHookPostJson(account_id: String,
 
 case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 
+case class ConfigurationJsonV310(default_bank_id: String , akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -254,6 +258,12 @@ object JSONFactory310{
 
   def createAccountWebHooksJson(whs: List[AccountWebHook]) = {
     whs.map(createAccountWebHookJson(_))
+  }
+  
+  def getConfigInfoJSON(): ConfigurationJsonV310 = {
+    val configurationJson: ConfigurationJSON = JSONFactory220.getConfigInfoJSON()
+    val defaultBankId= APIUtil.defaultBankId
+    ConfigurationJsonV310(defaultBankId,configurationJson.akka,configurationJson.elastic_search, configurationJson.cache)
   }
 
 }

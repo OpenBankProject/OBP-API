@@ -41,9 +41,16 @@ object APIBuilderModel
   def getApiUrl(jsonJValueFromFile: JValue) = {
     val inputUrl = (jsonJValueFromFile \"request_url").asInstanceOf[JString].values
     
-    inputUrl match {
+    // if input is `my/template` --> `/my/template`
+    val checkedStartWith =  inputUrl match {
       case inputUrl if (!inputUrl.startsWith("""/""")) =>"""/"""+inputUrl 
       case _ => inputUrl
+    }
+    
+    // if input is `/my/template/` --> `/my/template`
+    checkedStartWith.endsWith("""/""") match {
+      case true => checkedStartWith.dropRight(1)
+      case _ => checkedStartWith
     }
     
   } //eg: /my/template
@@ -438,6 +445,7 @@ object APIBuilderModel
         {
           for{
             u <- $authenticationStatement
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
             deleted <- APIBuilder_Connector.deleteTemplate(templateId)
           }yield{
             if(deleted)
@@ -540,7 +548,7 @@ trait APIMethods_APIBuilder
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
     
-    $errorMessageVal;
+    $errorMessageVal
     $implementedApisDef
     
     $getTemplatesResourceCode
@@ -578,11 +586,16 @@ $modelClass
 object $modelTermName extends $modelInit with LongKeyedMetaMapper[$modelTypeName] {}
  
 $modelTrait
+                             
 """
+      
+ /*
+  * ######################################JsonFactory_APIBuilder.scala###################################################
+  */
   
-  //List(template_id:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
-  //Added the templated_id to `modelCaseClassParams`
-  val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"${modelNameLowerCase}_id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
+  //List(id:String = "11231231312" ,author: String = `Chinua Achebe`, tutor: String = `11231231312`, pages: Int = 209, points: Double = 1.3)
+  //Added the id to `modelCaseClassParams`
+  val templateIdField: Term.Param = Term.Param(Nil, Term.Name(s"id"), Some(Type.Name("String")), Some(Term.Name("`11231231312`")))
   val templateJsonClassParams: List[Term.Param] = List(templateIdField)++ modelCaseClassParams
   
   //case class TemplateJson(templateId: String = """1123123 1312""", author: String = """Chinua Achebe""", tutor: String = """1123123 1312""", pages: Int = 209, points: Double = 1.3)
@@ -601,7 +614,8 @@ $modelTrait
   //def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
   val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
     
-  val jsonFactorySource: Source =source"""
+  val jsonFactorySource: Source =
+source"""
 /** 
 Open Bank Project - API       
 Copyright (C) 2011-2018, TESOBE Ltd       
@@ -653,5 +667,5 @@ object JsonFactory_APIBuilder{
         v.get(this)
       }
 }
-""" 
+"""
 }

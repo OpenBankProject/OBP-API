@@ -342,6 +342,7 @@ class Boot extends MdcLoggable {
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
+          Menu.i("Plain") / "plain",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
