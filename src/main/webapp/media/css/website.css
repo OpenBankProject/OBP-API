@@ -301,6 +301,27 @@ footer #copyright {
 
 
 
+#vendor-support {
+	padding: 60px 10px;
+	color: white;
+	background-color: #53C4EF;
+	text-align: center;
+}
+#vendor-support h2 {
+	font-size: 24px;
+}
+.vendor-support-item {
+	display: inline-block;
+	margin: 30px 10px;
+}
+.vendor-support-item a {
+	color: white;
+}
+
+
+
+
+
 .bigbutton {
 	margin: 30px auto;
 	text-align: center;
