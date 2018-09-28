@@ -139,6 +139,14 @@ object NewStyle {
       }
     }
 
+    def getAdapterInfo(callContext: Option[CallContext]) = {
+      Future {
+        Connector.connector.vend.getAdapterInfo()
+      } map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
+
     /**
       * Wraps a Future("try") block around the function f and
       * @param f - the block of code to evaluate

@@ -976,9 +976,7 @@ trait APIMethods310 {
       case "adapter" :: Nil JsonGet _ => {
         cc =>
           for {
-            ai: InboundAdapterInfoInternal <- Future(Connector.connector.vend.getAdapterInfo()) map {
-              unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
-            }
+            ai: InboundAdapterInfoInternal <- NewStyle.function.getAdapterInfo(Some(cc))
           } yield {
             (createAdapterInfoJson(ai), HttpCode.`200`(Some(cc)))
           }
