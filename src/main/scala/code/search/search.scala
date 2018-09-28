@@ -65,8 +65,8 @@ class elasticsearch extends MdcLoggable {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
       val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
-      logger.debug(esUrl)
-      logger.debug(body)
+      logger.info(s"searchProxyV300 says esUrl is: $esUrl")
+      logger.info(s"searchProxyV300 says body is: $body")
       val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
       val response = getAPIResponse(request)
          if (statsOnly) Full(ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
@@ -78,8 +78,8 @@ class elasticsearch extends MdcLoggable {
   def searchProxyAsyncV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Future[APIResponse] = {
       val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
       val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
-      logger.debug(esUrl)
-      logger.debug(body)
+      logger.info(s"searchProxyAsyncV300 says esUrl is: $esUrl")
+      logger.info(s"searchProxyAsyncV300 says body is: $body")
       val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
       val response = getAPIResponseAsync(request)
       response
