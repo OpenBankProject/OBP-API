@@ -81,9 +81,9 @@ class elasticsearch extends MdcLoggable {
       logger.info(s"searchProxyAsyncV300 says esUrl is: $esUrl")
       logger.info(s"searchProxyAsyncV300 says body is: $body")
       val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
-      logger.info (s"searchProxyAsyncV300 says request is: $request")
+      //logger.info (s"searchProxyAsyncV300 says request is: $request")
       val response = getAPIResponseAsync(request)
-      logger.info (s"searchProxyAsyncV300 says response is: $response")
+      //logger.info (s"searchProxyAsyncV300 says response is: $response")
     response
   }
 
