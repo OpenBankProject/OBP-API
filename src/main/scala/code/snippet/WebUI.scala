@@ -236,7 +236,16 @@ class WebUI extends MdcLoggable{
   }
 
 
-
+  val aboutVendorHtmlUrl = APIUtil.getPropsValue("webui_about_vendor_html_url", "")
+  // Note this causes a browser warning : Synchronous XMLHttpRequest on the main thread is deprecated because of its detrimental effects to the end user's experience.
+  val aboutVendorHtmlScript : String =  s"""<script>jQuery("#about-vendor").load("$aboutVendorHtmlUrl");</script>""".toString
+  val jsAboutVendorHtml: NodeSeq = aboutVendorHtmlUrl match {
+    case "" => <script></script>
+    case _ => XML.loadString(aboutVendorHtmlScript)
+  }
+  def aboutVendor(): NodeSeq = {
+    jsAboutVendorHtml
+  }
 
 
   def overrideStyleSheet: CssSel = {
