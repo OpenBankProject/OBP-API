@@ -12,6 +12,8 @@ import code.util.Helper
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
 import code.api.util.ErrorMessages._
+import net.liftweb.common.Full
+
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -56,8 +58,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(ErrorMessages.UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(ErrorMessages.UserNotLoggedIn, cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
@@ -90,8 +91,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             bankAccount <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -106,7 +106,7 @@ trait APIMethods_UKOpenBanking_200 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
-            transactions <- Future { bankAccount.getModeratedTransactions(user, view, callContext, params: _*)} map {
+            transactions <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
@@ -145,8 +145,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: AccountId(accountId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(ErrorMessages.UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(ErrorMessages.UserNotLoggedIn, cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
               _.filter(_.accountId.value == accountId.value)
             }
@@ -183,9 +182,8 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
-        
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+
             account <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -196,7 +194,7 @@ trait APIMethods_UKOpenBanking_200 {
         
             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
         
-            moderatedAccount <- Future {account.moderatedBankAccount(view, user)} map {
+            moderatedAccount <- Future {account.moderatedBankAccount(view, Full(u))} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
         
@@ -234,8 +232,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           

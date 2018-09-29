@@ -9,12 +9,15 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.consumer.Consumers
+import code.customer.Customer
 import code.model._
 import code.views.Views
+import code.webhook.AccountWebHook
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object NewStyle {
@@ -80,6 +83,12 @@ object NewStyle {
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString)
   )
 
+  object HttpCode {
+    def `200`(callContext: Option[CallContext])  = {
+      callContext.map(_.copy(httpCode = Some(200)))
+    }
+  }
+
 
   object function {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -87,6 +96,11 @@ object NewStyle {
     def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[Bank] = {
       Connector.connector.vend.getBankFuture(bankId) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 400)
+      }
+    }
+    def getBanks(callContext: Option[CallContext]) : Future[List[Bank]] = {
+      Connector.connector.vend.getBanksFuture() map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
     }
 
@@ -108,6 +122,30 @@ object NewStyle {
       }
     }
 
+    def getAccountWebHooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebHook]] = {
+      AccountWebHook.accountWebHook.vend.getAccountWebHooksFuture(queryParams) map {
+        unboxFullOrFail(_, callContext, GetWebHooksError, 400)
+      }
+    }
+
+    def getConsumerByPrimaryId(id: Long, callContext: Option[CallContext]): Future[Consumer]= {
+      Consumers.consumers.vend.getConsumerByPrimaryIdFuture(id) map {
+        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
+      }
+    }
+    def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
+      Connector.connector.vend.getCustomersFuture(bankId, callContext, queryParams) map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
+
+    def getAdapterInfo(callContext: Option[CallContext]) = {
+      Future {
+        Connector.connector.vend.getAdapterInfo()
+      } map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
 
     /**
       * Wraps a Future("try") block around the function f and

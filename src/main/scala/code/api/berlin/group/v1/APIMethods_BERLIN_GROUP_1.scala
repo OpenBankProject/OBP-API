@@ -5,6 +5,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
+import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
 import code.model._
 import code.util.Helper
@@ -116,7 +117,7 @@ trait APIMethods_BERLIN_GROUP_1 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           } yield {
-            (JSONFactory_BERLIN_GROUP_1.createAccountBalanceJSON(moderatedAccount, transactionRequests), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory_BERLIN_GROUP_1.createAccountBalanceJSON(moderatedAccount, transactionRequests), HttpCode.`200`(callContext))
           }
       }
     }
