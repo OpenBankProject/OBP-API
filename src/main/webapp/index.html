@@ -47,7 +47,7 @@ Berlin 13359, Germany
 		</div>
 	</div>
 	
-	
+
 	<div id="main-get-started">
 		<h1>Get Started</h1>
 		<div class="row">
@@ -91,6 +91,17 @@ Berlin 13359, Germany
 			<a href="/consumer-registration">Get your API key</a>
 		</div>
 	</div>
+
+
+<!--
+<div id="get-started-control" data-lift="WebUI.getStartedContentLoader">
+	<div id="override-get-started-script"></div>
+</div>
+-->
+
+	<div id="get-started-script" data-lift="WebUI.getStartedContentLoader"></div>
+
+
 
 	<div id="main-apis">
 		<h1>Your APIs</h1>
@@ -380,17 +391,18 @@ Berlin 13359, Germany
 	</div>
 
 
+	<!--
 	<div id="vendor-support" data-lift="LazyLoad">
 		<div id="vendor-support-script" data-lift="GetHtmlFromUrl.vendorSupport"></div>
 	</div>
-
-<!--
-	<div id="vendor-support"></div>
-	<div id="vendor-support-script" data-lift="WebUI.vendorSupport"></div>
 -->
 
+	<div id="vendor-support"></div>
+	<div id="vendor-support-script" data-lift="WebUI.vendorSupportContentLoader"></div>
+
+
 	<div id="about-vendor"></div>
-	<div id="about-vendor-script" data-lift="WebUI.aboutVendor"></div>
+	<div id="about-vendor-script" data-lift="WebUI.aboutVendorContentLoader"></div>
 
 
 
