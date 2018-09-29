@@ -35,26 +35,30 @@ package code.snippet
 import net.liftweb.util.{Helpers, Props}
 import Helpers._
 import code.api.util.APIUtil
+import code.util.Helper.MdcLoggable
 
 import scala.xml.{NodeSeq, XML}
 
 /**
   * Do something that can take a long time to do
   */
-object GetHtmlFromUrl {
+object GetHtmlFromUrl extends MdcLoggable {
 
     def vendorSupport(): NodeSeq = {
       val vendorSupportHtmlUrl = APIUtil.getPropsValue("webui_vendor_support_html_url", "")
 
-      def vendorSupportHtmlScript = tryo(scala.io.Source.fromURL(vendorSupportHtmlUrl)).map(_.mkString).getOrElse("")
-
+      def vendorSupportHtml = tryo(scala.io.Source.fromURL(vendorSupportHtmlUrl))
+      logger.debug("vendorSupportHtml: " + vendorSupportHtml)
+      def vendorSupportHtmlScript = vendorSupportHtml.map(_.mkString).getOrElse("")
+      logger.debug("vendorSupportHtmlScript: " + vendorSupportHtmlScript)
       val jsVendorSupportHtml: NodeSeq = vendorSupportHtmlScript match {
         case "" => <script></script>
         case _ => XML.loadString(vendorSupportHtmlScript)
       }
+      logger.debug("jsVendorSupportHtml: " + jsVendorSupportHtml)
 
       // sleep for up to 5 seconds at development environment
-      if (Props.mode == Props.RunModes.Development) Thread.sleep(randomLong(5 seconds))
+      if (Props.mode == Props.RunModes.Development) Thread.sleep(randomLong(3 seconds))
 
       jsVendorSupportHtml
     }
