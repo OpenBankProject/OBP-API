@@ -2065,8 +2065,7 @@ trait APIMethods200 {
       case "entitlements" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture(user)
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }

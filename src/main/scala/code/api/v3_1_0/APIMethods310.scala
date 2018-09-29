@@ -4,6 +4,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
+import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
@@ -74,7 +75,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetCheckbookOrdersFuture, 400)
             }
           } yield
-           (JSONFactory310.createCheckbookOrdersJson(checkbookOrders), callContext.map(_.copy(httpCode = Some(200))))
+           (JSONFactory310.createCheckbookOrdersJson(checkbookOrders), HttpCode.`200`(callContext))
       }
     }
     
@@ -118,7 +119,7 @@ trait APIMethods310 {
             }
             
           } yield
-           (JSONFactory310.createStatisOfCreditCardJson(checkbookOrders), callContext.map(_.copy(httpCode = Some(200))))
+           (JSONFactory310.createStatisOfCreditCardJson(checkbookOrders), HttpCode.`200`(callContext))
       }
     }
     
@@ -144,7 +145,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), Some(cc.copy(httpCode = Some(200))))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
       }
     }
     
@@ -170,7 +171,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), Some(cc.copy(httpCode = Some(200))))}
+           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
       }
     }
 
@@ -196,7 +197,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), Some(cc.copy(httpCode = Some(200))))}
+           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(Some(cc)))}
       }
     }
     
@@ -285,7 +286,7 @@ trait APIMethods310 {
                 unboxFullOrFail(_, callContext, GetTopApisError, 400)
             }
           } yield
-           (JSONFactory310.createTopApisJson(toApis), callContext.map(_.copy(httpCode = Some(200))))
+           (JSONFactory310.createTopApisJson(toApis), HttpCode.`200`(callContext))
       }
     }
     
@@ -378,7 +379,7 @@ trait APIMethods310 {
             }
             
           } yield
-           (JSONFactory310.createTopConsumersJson(topConsumers), callContext.map(_.copy(httpCode = Some(200))))
+           (JSONFactory310.createTopConsumersJson(topConsumers), HttpCode.`200`(callContext))
       }
     }
 
@@ -426,7 +427,7 @@ trait APIMethods310 {
 
     lazy val getFirehoseCustomers : OBPEndpoint = {
       //get private accounts for all banks
-      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId):: "firehose" ::  "customers" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
@@ -434,15 +435,12 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
               canUseFirehose(u)
             }
-            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
-            }
-            customers <- Connector.connector.vend.getCustomersFuture(bankId, callContext, obpQueryParams) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
-            }
+            allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
           } yield {
-            (JSONFactory300.createCustomersJson(customers), callContext.map(_.copy(httpCode = Some(200))))
+            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
           }
       }
     }
@@ -479,7 +477,7 @@ trait APIMethods310 {
             }
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
-            (createBadLoginStatusJson(badLoginStatus), callContext.map(_.copy(httpCode = Some(200))))
+            (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
       }
     }
@@ -515,7 +513,7 @@ trait APIMethods310 {
             _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
-            (createBadLoginStatusJson(badLoginStatus), callContext.map(_.copy(httpCode = Some(200))))
+            (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
       }
     }
@@ -562,9 +560,7 @@ trait APIMethods310 {
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong
             }
-            consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
-              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
-            }
+            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
             updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
               consumer.id.get,
               Some(postJson.per_minute_call_limit),
@@ -575,7 +571,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, UpdateConsumerError, 400)
             }
           } yield {
-            (createCallLimitJson(updatedConsumer), callContext.map(_.copy(httpCode = Some(200))))
+            (createCallLimitJson(updatedConsumer), HttpCode.`200`(callContext))
           }
       }
     }
@@ -618,11 +614,9 @@ trait APIMethods310 {
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong
             }
-            consumer <- Consumers.consumers.vend.getConsumerByPrimaryIdFuture(consumerIdToLong) map {
-              unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
-            }
+            consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
           } yield {
-            (createCallLimitJson(consumer), callContext.map(_.copy(httpCode = Some(200))))
+            (createCallLimitJson(consumer), HttpCode.`200`(callContext))
           }
       }
     }
@@ -697,7 +691,7 @@ trait APIMethods310 {
               case _ => "no"
             }
             val availableFundsRequestId = callContext.map(_.correlationId).getOrElse("")
-            (createCheckFundsAvailableJson(fundsAvailable, availableFundsRequestId), callContext.map(_.copy(httpCode = Some(200))))
+            (createCheckFundsAvailableJson(fundsAvailable, availableFundsRequestId), HttpCode.`200`(callContext))
           }
 
       }
@@ -739,7 +733,7 @@ trait APIMethods310 {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
           } yield {
-            (createConsumerJSON(consumer, user), callContext.map(_.copy(httpCode = Some(200))))
+            (createConsumerJSON(consumer, user), HttpCode.`200`(callContext))
           }
       }
     }
@@ -773,7 +767,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             consumer <- Consumers.consumers.vend.getConsumersByUserIdFuture(u.userId)
           } yield {
-            (createConsumersJson(consumer, Full(u)), callContext.map(_.copy(httpCode = Some(200))))
+            (createConsumersJson(consumer, Full(u)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -814,7 +808,7 @@ trait APIMethods310 {
             consumers <- Consumers.consumers.vend.getConsumersFuture()
             users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
           } yield {
-            (createConsumersJson(consumers, users), callContext.map(_.copy(httpCode = Some(200))))
+            (createConsumersJson(consumers, users), HttpCode.`200`(callContext))
           }
       }
     }
@@ -864,7 +858,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, CreateWebHookError, 400)
             }
           } yield {
-            (createAccountWebHookJson(wh), callContext.map(_.copy(httpCode = Some(200))))
+            (createAccountWebHookJson(wh), HttpCode.`200`(callContext))
           }
       }
     }
@@ -904,8 +898,6 @@ trait APIMethods310 {
     lazy val getAccountWebHooks: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) ::"account-web-hooks" :: Nil JsonGet _ => {
         cc =>
-          val allowedParams = List("limit", "offset", "account_id", "user_id")
-          val additionalParam = OBPBankId(bankId.value)
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
@@ -913,12 +905,12 @@ trait APIMethods310 {
               hasEntitlement(bankId.value, u.userId, ApiRole.canGetWebHooks)
             }
             httpParams <- NewStyle.function.createHttpParams(cc.url)
+            allowedParams = List("limit", "offset", "account_id", "user_id")
             obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
-            webHooks <- AccountWebHook.accountWebHook.vend.getAccountWebHooksFuture(additionalParam :: obpParams)  map {
-              unboxFullOrFail(_, callContext, GetWebHooksError, 400)
-            }
+            additionalParam = OBPBankId(bankId.value)
+            webHooks <- NewStyle.function.getAccountWebHooks(additionalParam :: obpParams, callContext)
           } yield {
-            (createAccountWebHooksJson(webHooks), callContext.map(_.copy(httpCode = Some(200))))
+            (createAccountWebHooksJson(webHooks), HttpCode.`200`(callContext))
           }
       }
     }
@@ -945,20 +937,19 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      apiTagApi :: Nil,
+      apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 
     lazy val config: OBPEndpoint = {
       case "config" :: Nil JsonGet _ =>
         cc =>
           for {
-            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            u <- unboxFullAndWrapIntoFuture{ user }
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
               hasEntitlement("", u.userId, ApiRole.canGetConfig)
             }
           } yield {
-            (JSONFactory310.getConfigInfoJSON(), callContext)
+            (JSONFactory310.getConfigInfoJSON(), HttpCode.`200`(callContext))
           }
     }
 
@@ -985,11 +976,9 @@ trait APIMethods310 {
       case "adapter" :: Nil JsonGet _ => {
         cc =>
           for {
-            ai: InboundAdapterInfoInternal <- Future(Connector.connector.vend.getAdapterInfo()) map {
-              unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
-            }
+            ai: InboundAdapterInfoInternal <- NewStyle.function.getAdapterInfo(Some(cc))
           } yield {
-            (createAdapterInfoJson(ai), Some(cc))
+            (createAdapterInfoJson(ai), HttpCode.`200`(Some(cc)))
           }
       }
     }
