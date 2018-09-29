@@ -235,17 +235,50 @@ class WebUI extends MdcLoggable{
     "@for-banks [style]" #> s"display: $displayForBanks"
   }
 
+  ///////////////////////////////////////////////////////////////
+  // Quick tryout of approach to load (external) HTML
 
-  val aboutVendorHtmlUrl = APIUtil.getPropsValue("webui_about_vendor_html_url", "")
+  val vendorSupportContentUrl = APIUtil.getPropsValue("webui_vendor_support_content_url", "")
+
   // Note this causes a browser warning : Synchronous XMLHttpRequest on the main thread is deprecated because of its detrimental effects to the end user's experience.
-  val aboutVendorHtmlScript : String =  s"""<script>jQuery("#about-vendor").load("$aboutVendorHtmlUrl");</script>""".toString
-  val jsAboutVendorHtml: NodeSeq = aboutVendorHtmlUrl match {
+  val vendorSupportContentScript : String =  s"""<script>jQuery("#vendor-support").load("$vendorSupportContentUrl");</script>""".toString
+
+  val jsVendorSupportContent: NodeSeq = vendorSupportContentUrl match {
     case "" => <script></script>
-    case _ => XML.loadString(aboutVendorHtmlScript)
+    case _ => XML.loadString(vendorSupportContentScript)
+  }
+
+  def vendorSupport(): NodeSeq = {
+    jsVendorSupportContent
+  }
+  ////////////////////////////////////////////////////////////////
+
+
+  val aboutVendorContentUrl = APIUtil.getPropsValue("webui_about_vendor_content_url", "")
+  // Note this causes a browser warning : Synchronous XMLHttpRequest on the main thread is deprecated because of its detrimental effects to the end user's experience.
+  val aboutVendorContentScript : String =  s"""<script>jQuery("#about-vendor").load("$aboutVendorContentUrl");</script>""".toString
+  val jsAboutVendorContent: NodeSeq = aboutVendorContentUrl match {
+    case "" => <script></script>
+    case _ => XML.loadString(aboutVendorContentScript)
   }
   def aboutVendor(): NodeSeq = {
-    jsAboutVendorHtml
+    jsAboutVendorContent
   }
+
+/////
+
+  val getStartedContentUrl = APIUtil.getPropsValue("webui_get_started_content_url", "")
+  // Note this causes a browser warning : Synchronous XMLHttpRequest on the main thread is deprecated because of its detrimental effects to the end user's experience.
+  val getStartedContentScript : String =  s"""<script>jQuery("#get-started").load("$getStartedContentUrl");</script>""".toString
+  val jsGetStartedContent: NodeSeq = getStartedContentUrl match {
+    case "" => <script></script>
+    case _ => XML.loadString(getStartedContentScript)
+  }
+  def getStarted(): NodeSeq = {
+    jsGetStartedContent
+  }
+
+
 
 
   def overrideStyleSheet: CssSel = {
