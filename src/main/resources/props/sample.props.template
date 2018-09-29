@@ -319,11 +319,16 @@ webui_override_style_sheet =
 ## Link to agree to Terms & Conditions, shown on signup page
 webui_agree_terms_url =
 
-# Link to include vendor-specific html content to include below technical support
-webui_vendor_support_html_url =
+# URL to load vendor support content
+webui_vendor_support_content_url =
 
-# Link to include about vendor html content
-webui_about_vendor_html_url =
+# URL to load about vendor content
+webui_about_vendor_content_url =
+
+# URL to load get started content
+webui_get_started_content_url =
+
+
 
 # If we want to gather more informaiton about an Applicaiton / Startup fill this url and text
 # Will be displayed on the post Consumer Registration page.
