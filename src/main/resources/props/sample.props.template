@@ -319,14 +319,14 @@ webui_override_style_sheet =
 ## Link to agree to Terms & Conditions, shown on signup page
 webui_agree_terms_url =
 
-# URL to load vendor support content
-webui_vendor_support_content_url =
+# URL to load (additional) vendor support content
+#webui_vendor_support_content_url = http://127.0.0.1:8080/plain.html
 
-# URL to load about vendor content
-webui_about_vendor_content_url =
+# URL to load (additional) about vendor content
+#webui_about_vendor_content_url = http://127.0.0.1:8080/plain.html
 
-# URL to load get started content
-webui_get_started_content_url =
+# URL to load (alternative) get started content (this replaces the normal content in index.html
+#webui_get_started_content_url = http://127.0.0.1:8080/plain.html
 
 
 
