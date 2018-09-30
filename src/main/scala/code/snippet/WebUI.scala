@@ -238,7 +238,7 @@ class WebUI extends MdcLoggable{
 
 
   def getStartedContentLoader: NodeSeq = {
-    contentLoader("webui_vendor_support_content_url", "main-get-started")
+    contentLoader("webui_get_started_content_url", "main-get-started")
   }
 
   def vendorSupportContentLoader: NodeSeq = {
