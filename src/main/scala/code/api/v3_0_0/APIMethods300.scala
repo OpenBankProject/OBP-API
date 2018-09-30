@@ -813,7 +813,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       "dataWarehouseStatistics",
       "POST",
-      "/search/warehouse/statistics/FIELD",
+      "/search/warehouse/statistics/INDEX/FIELD",
       "Data Warehouse Statistics",
       s"""
          |Search the data warehouse and get statistical aggregations over a warehouse field
