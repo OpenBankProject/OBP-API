@@ -50,6 +50,11 @@ class elasticsearch extends MdcLoggable {
   val esType = ""
   val esIndex = ""
 
+
+  def isEnabled(): Boolean = {
+    APIUtil.getPropsAsBoolValue("allow_elasticsearch", false)
+  }
+
   def searchProxy(userId: String, queryString: String): LiftResponse = {
     //println("-------------> " + esHost + ":" + esPortHTTP + "/" + esIndex + "/" + queryString)
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {

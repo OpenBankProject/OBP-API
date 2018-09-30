@@ -793,6 +793,9 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSearchWarehouse) {
               hasEntitlement("", u.userId, ApiRole.canSearchWarehouse)
             }
+            _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
+              esw.isEnabled()
+            }
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchIndexNotFound, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -860,6 +863,9 @@ trait APIMethods300 {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSearchWarehouseStatistics) {
               hasEntitlement("", u.userId, ApiRole.canSearchWarehouseStatistics)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
+              esw.isEnabled()
             }
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchIndexNotFound, 400, callContext.map(_.toLight)))
