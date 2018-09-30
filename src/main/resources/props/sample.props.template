@@ -74,11 +74,16 @@ write_connector_metrics=true
 #allow_elasticsearch_metrics=true
 #es.cluster.name=elasticsearch
 
+
 ## ElasticSearch warehouse
 #es.warehouse.index=warehouse
 #es.warehouse.host=localhost
 #es.warehouse.port.tcp=9300
 #es.warehouse.port.http=9200
+
+#es.warehouse.allowed.indices = index1,index2 (or = ALL for all).
+
+
 
 ## ElasticSearch metrics
 #es.metrics.index=metrics
@@ -477,7 +482,7 @@ documented_server_url=https://apisandbox.openbankproject.com
 organisation_website = https://www.tesobe.com
 
 ## This property is a comma separated list of APIs that should be "featured" i.e. highlighted, or listed prominently in the API Explorer etc.
-# featured_apis=elasticSearchWarehouseV300
+featured_apis=elasticSearchWarehouseV300
 
 ## Note: To add special instructions for an endpoint, just add a folder called  of named special_instructions_for_resources
 ## to your src main resources folder and create markdown files there for each partial function that needs special instructions

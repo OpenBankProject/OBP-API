@@ -84,6 +84,10 @@ class elasticsearch extends MdcLoggable {
       //logger.info (s"searchProxyAsyncV300 says request is: $request")
       val response = getAPIResponseAsync(request)
       //logger.info (s"searchProxyAsyncV300 says response is: $response")
+
+//    response foreach {
+//      msg => println(msg.body)
+//    }
     response
   }
 
@@ -214,7 +218,7 @@ class elasticsearch extends MdcLoggable {
       case x => x
     }
     checkIndicesValidity(indexString, validIndices) match {
-      case x: Failure => Failure("InvalidIndices")
+      case x: Failure => Failure(s"Invalid Indices: You used: $indexString . Valid indices are: $validIndices")
       case Full(y) => Full("/" + y + "/_search")
       case Empty => Full("/_search")
     }
