@@ -88,7 +88,7 @@ class elasticsearch extends MdcLoggable {
       // TODO Extract code and hits from response and log that.
 
     response foreach {
-      msg => println(msg.body)
+      msg => logger.info(msg.body)
     }
     response
   }
