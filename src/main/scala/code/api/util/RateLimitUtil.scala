@@ -2,13 +2,13 @@ package code.api.util
 
 import java.util.UUID
 
-import code.api.util.LimitCallPeriod.LimitCallPeriod
+import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 import redis.clients.jedis.Jedis
 
 
-object LimitCallPeriod extends Enumeration {
+object RateLimitPeriod extends Enumeration {
   type LimitCallPeriod = Value
   val PER_MINUTE, PER_HOUR, PER_DAY, PER_WEEK, PER_MONTH, PER_YEAR = Value
 
@@ -45,7 +45,7 @@ object LimitCallPeriod extends Enumeration {
   }
 }
 
-object LimitCallsUtil extends MdcLoggable {
+object RateLimitUtil extends MdcLoggable {
 
   val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
 
@@ -73,7 +73,7 @@ object LimitCallsUtil extends MdcLoggable {
     }
   }
 
-  private def createUniqueKey(consumerKey: String, period: LimitCallPeriod) = consumerKey + LimitCallPeriod.toString(period)
+  private def createUniqueKey(consumerKey: String, period: LimitCallPeriod) = consumerKey + RateLimitPeriod.toString(period)
 
   def underConsumerLimits(consumerKey: String, period: LimitCallPeriod, limit: Long): Boolean = {
     if (useConsumerLimits) {
@@ -123,7 +123,7 @@ object LimitCallsUtil extends MdcLoggable {
             val ttl =  jedis.ttl(key).toInt
             ttl match {
               case -2 => // if the Key does not exists, -2 is returned
-                val seconds =  LimitCallPeriod.toSeconds(period).toInt
+                val seconds =  RateLimitPeriod.toSeconds(period).toInt
                 jedis.setex(key, seconds, "1")
                 (seconds, 1)
               case _ => // otherwise increment the counter
