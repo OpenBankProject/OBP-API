@@ -22,11 +22,7 @@ Berlin 13359, Germany
 
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+
 
 */
 
@@ -41,7 +37,13 @@ import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 
+import net.liftweb.util.{Props}
+
 import scala.xml.{XML, NodeSeq}
+
+import scala.io.Source
+
+
 
 
 class WebUI extends MdcLoggable{
@@ -249,6 +251,23 @@ class WebUI extends MdcLoggable{
     contentLoader("webui_about_vendor_content_url", "about-vendor")
   }
 
+
+// This load content directly into the div that calls it.
+  def getStartedDirectContentLoader: NodeSeq = {
+    directContentLoader("webui_get_started_content_url")
+  }
+
+  def vendorSupporDirectContentLoader: NodeSeq = {
+    directContentLoader("webui_vendor_support_content_url")
+  }
+
+  def aboutVendorDirectContentLoader: NodeSeq = {
+    directContentLoader("webui_about_vendor_content_url")
+  }
+
+
+
+
   /*
   This will return a script tag which will use jQuery to load HTML content from an external URL (which is specified in Props)
   - and replace the specified DIV with that content.
@@ -259,6 +278,7 @@ class WebUI extends MdcLoggable{
   def contentLoader(property: String, contentId : String) : NodeSeq = {
     // Get the url that has the content we want to use
     val url = APIUtil.getPropsValue(property, "")
+
 
     // See if we need to do something
     val activeScriptTag: NodeSeq = url match {
@@ -272,6 +292,33 @@ class WebUI extends MdcLoggable{
     }
     // Return the script tag
       activeScriptTag
+  }
+
+
+  /*
+  Loads content directly into the div (no explicit javascript to load it.)
+  Note this causes multiple comet calls.
+   */
+  def directContentLoader(property: String) : NodeSeq = {
+    // Get the url that has the content we want to use
+    val url = APIUtil.getPropsValue(property, "")
+
+    // Try to get that content.
+    val htmlTry = tryo(scala.io.Source.fromURL(url))
+    logger.info("htmlTry: " + htmlTry)
+
+    // Convert to a string
+    val htmlString = htmlTry.map(_.mkString).getOrElse("")
+    logger.info("something: " + htmlString)
+
+    // Create an HTML object
+    val html = XML.loadString(htmlString)
+
+    // Sleep if in development environment so can see the effects of content loading slowly
+    if (Props.mode == Props.RunModes.Development) Thread.sleep(10 seconds)
+
+    // Return the HTML
+    html
   }
 
 
