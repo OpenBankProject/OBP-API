@@ -166,7 +166,7 @@ case class AccountWebHookPostJson(account_id: String,
 
 case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 
-case class ConfigurationJsonV310(default_bank_id: String , akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
+case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -220,7 +220,7 @@ object JSONFactory310{
       case _ => null
     }
 
-    ConsumerJson(consumer_id=c.consumerId.get,
+    code.api.v3_1_0.ConsumerJson(consumer_id=c.consumerId.get,
       app_name=c.name.get,
       app_type=c.appType.toString(),
       description=c.description.get,
@@ -257,7 +257,7 @@ object JSONFactory310{
   }
 
   def createAccountWebHooksJson(whs: List[AccountWebHook]) = {
-    whs.map(createAccountWebHookJson(_))
+    AccountWebHooksJson(whs.map(createAccountWebHookJson(_)))
   }
   
   def getConfigInfoJSON(): ConfigurationJsonV310 = {

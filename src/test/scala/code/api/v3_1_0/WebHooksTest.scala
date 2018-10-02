@@ -34,7 +34,7 @@ package code.api.v3_1_0
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateWebHook, canCreateWebHook}
+import code.api.util.ApiRole.{CanCreateWebHook, CanGetWebHooks, canCreateWebHook, canGetWebHooks}
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ApiTrigger, ApiVersion}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
@@ -111,5 +111,42 @@ class WebHooksTest extends V310ServerSetup {
     }
 
   }
+
+  feature("Get Account Web Hooks v3.1.0 - Unauthorized access") {
+    scenario("We will try to get web hooks without user credentials", ApiEndpoint1, VersionOfApi) {
+      val bankId = randomBankId
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "banks" / bankId / "account-web-hooks").GET
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+    }
+  }
+
+  feature("Get Account Web Hooks v3.1.0 - Authorized access") {
+    scenario("We will try to get web hooks without a proper Role " + canGetWebHooks, ApiEndpoint1, VersionOfApi) {
+      val bankId = randomBankId
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "banks" / bankId / "account-web-hooks").GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 403")
+      response310.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanGetWebHooks)
+      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetWebHooks)
+    }
+    scenario("We will try to get web hooks with a proper Role " + canGetWebHooks, ApiEndpoint1, VersionOfApi) {
+      val bankId = randomBankId
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanGetWebHooks.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "banks" / bankId / "account-web-hooks").GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 200")
+      response310.code should equal(200)
+      response310.body.extract[AccountWebHooksJson]
+    }
+  }
+
 
 }
