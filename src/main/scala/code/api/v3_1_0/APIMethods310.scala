@@ -841,10 +841,12 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanCreateWebHook) {
               hasEntitlement(bankId.value, u.userId, ApiRole.canCreateWebHook)
             }
-            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $AccountWebHookPostJson ", 400, callContext) {
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPostJson "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountWebHookPostJson]
             }
-            _ <- NewStyle.function.tryons(IncorrectTriggerName + postJson.trigger_name + ". Possible values are " + ApiTrigger.availableTriggers.sorted.mkString(", "), 400, callContext) {
+            failMsg = IncorrectTriggerName + postJson.trigger_name + ". Possible values are " + ApiTrigger.availableTriggers.sorted.mkString(", ")
+            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ApiTrigger.valueOf(postJson.trigger_name)
             }
             wh <- AccountWebHook.accountWebHook.vend.createAccountWebHookFuture(
