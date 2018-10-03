@@ -849,13 +849,18 @@ trait APIMethods310 {
             _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ApiTrigger.valueOf(postJson.trigger_name)
             }
+            failMsg = s"$InvalidBoolean Possible values of the json field is_active are true or false."
+            isActive <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              postJson.is_active.toBoolean
+            }
             wh <- AccountWebHook.accountWebHook.vend.createAccountWebHookFuture(
               bankId = bankId.value,
               accountId = postJson.account_id,
               userId = u.userId,
               triggerName = postJson.trigger_name,
               url = postJson.url,
-              httpMethod = postJson.http_method
+              httpMethod = postJson.http_method,
+              isActive = isActive
             ) map {
               unboxFullOrFail(_, callContext, CreateWebHookError, 400)
             }

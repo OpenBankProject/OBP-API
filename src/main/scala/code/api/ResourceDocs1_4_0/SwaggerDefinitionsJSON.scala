@@ -2813,7 +2813,8 @@ object SwaggerDefinitionsJSON {
     account_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
     trigger_name = ApiTrigger.onBalanceChange.toString(),
     url = "https://localhost.openbankproject.com",
-    http_method = "POST"
+    http_method = "POST",
+    is_active = "true"
   )
   val accountWebHookJson =  AccountWebHookJson(
     account_web_hook_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
@@ -2822,7 +2823,8 @@ object SwaggerDefinitionsJSON {
     trigger_name = ApiTrigger.onBalanceChange.toString(),
     url = "https://localhost.openbankproject.com",
     http_method = "POST",
-    created_by_user_id = "b1fd9b29-659d-4838-a300-ea65b65b5fb6"
+    created_by_user_id = "b1fd9b29-659d-4838-a300-ea65b65b5fb6",
+    is_active = true
   )
 
   val accountWebHooksJson = AccountWebHooksJson(List(accountWebHookJson))

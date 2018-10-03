@@ -23,7 +23,8 @@ trait AccountWebHookProvider {
                                  userId: String,
                                  triggerName: String,
                                  url: String,
-                                 httpMethod: String
+                                 httpMethod: String,
+                                 isActive: Boolean
                                 ): Future[Box[AccountWebHook]]
 }
 
@@ -41,4 +42,6 @@ trait AccountWebHook {
   def httpMethod: String
 
   def createdByUserId: String
+
+  def isActive(): Boolean
 }
