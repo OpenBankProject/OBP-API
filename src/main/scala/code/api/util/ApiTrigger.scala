@@ -15,10 +15,7 @@ object ApiTrigger {
   case class OnDebitTransaction() extends ApiTrigger
   lazy val onDebitTransaction = OnDebitTransaction()
 
-  case class Balance() extends ApiTrigger
-  lazy val balance = Balance()
-
-  private val triggers = onBalanceChange :: onCreditTransaction :: onDebitTransaction :: balance :: Nil
+  private val triggers = onBalanceChange :: onCreditTransaction :: onDebitTransaction :: Nil
 
   lazy val triggersMappedToClasses = triggers.map(_.getClass)
 

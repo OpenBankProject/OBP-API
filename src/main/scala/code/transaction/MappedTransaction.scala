@@ -2,7 +2,7 @@ package code.transaction
 
 import java.util.UUID
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ApiTrigger}
 import code.bankconnectors.Connector
 import code.util._
 import net.liftweb.common.Logger
@@ -215,5 +215,16 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 }
 
 object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[MappedTransaction] {
+  private val logger = Logger(classOf[MappedTransaction])
   override def dbIndexes = UniqueIndex(transactionId, bank, account) :: Index(bank, account) :: super.dbIndexes
+  override def afterSave = List(
+    t => {
+      // TODO Make an Actor and send data below to it
+      logger.debug("TRIGGER: " + ApiTrigger.OnBalanceChange.toString())
+      logger.debug("ACCOUNT_ID: " + t.theAccountId)
+      logger.debug("BANK_ID: " + t.theBankId)
+      logger.debug("AMOUNT: " + t.amount.get)
+      logger.debug("BALANCE: " + t.newAccountBalance.get)
+    }
+  )
 }
