@@ -1,5 +1,6 @@
 package code.connector
 
+import code.api.util.CallContext
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.bankconnectors.vMar2017.InboundStatusMessage
@@ -25,14 +26,14 @@ object MockedJune2017Connector extends ServerSetup
   val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
   val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
-  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = {
+  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[List[InboundAccountJune2017]] = {
     Full(
       InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId.bankId.value, branchId = "222", accountId = bankIdAccountId.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId2.bankId.value, branchId = "222", accountId = bankIdAccountId2.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil
     )
   }
 
-  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountJune2017]]] = Future {
-    getBankAccounts(username, forceFresh)
+  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[List[InboundAccountJune2017]]] = Future {
+    getBankAccounts(username, callContext)
   }
 }
 

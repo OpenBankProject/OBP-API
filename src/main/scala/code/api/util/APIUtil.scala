@@ -1911,10 +1911,8 @@ Returns a string showed to the developer
                   GatewayLogin.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
                     case Full((u, cbsToken, callContext)) => // Authentication is successful
                       val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
-                      val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
-                      val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), callContext)
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
-                      val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
+                      val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContext)
                       (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)

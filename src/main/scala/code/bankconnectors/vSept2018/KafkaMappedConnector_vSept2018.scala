@@ -508,14 +508,13 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetAccounts(
         authInfoExample,
-        true,
         InternalBasicCustomers(customers =List(internalBasicCustomer)))
     ),
     exampleInboundMessage = decompose(
       InboundGetAccounts(authInfoExample, statusExample, InboundAccountSept2018("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
     )
   )
-  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountSept2018]] = saveConnectorMetric{
+  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[List[InboundAccountSept2018]] = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -530,11 +529,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
         val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
       
-        //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
-        val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, ""),forceFresh,internalCustomers)
-        logger.debug(s"Kafka getBankAccounts says: req is: $req")
-
         val box = for {
+          authInfo <- getAuthInfo(callContext)
+          req = OutboundGetAccounts(authInfo, internalCustomers)
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
@@ -559,7 +556,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountSept2018]]] = saveConnectorMetric{
+  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[List[InboundAccountSept2018]]] = saveConnectorMetric{
      /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -575,7 +572,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
 
         //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
-        val req = OutboundGetAccounts(AuthInfo(currentResourceUserId, username, ""),forceFresh,internalCustomers)
+        val req = OutboundGetAccounts(getAuthInfo(callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.getAuthInfo return empty Box !"),internalCustomers)
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
 
         val future = for {
