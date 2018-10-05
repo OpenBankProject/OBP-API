@@ -828,7 +828,7 @@ trait APIMethods310 {
       accountWebHookJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil,
+      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebHook))
     )
 
@@ -884,7 +884,7 @@ trait APIMethods310 {
       accountWebHookJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil,
+      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebHook))
     )
 
@@ -947,7 +947,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canGetWebHooks))
     )
 
