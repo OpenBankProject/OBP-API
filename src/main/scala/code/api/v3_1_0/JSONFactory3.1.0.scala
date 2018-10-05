@@ -165,6 +165,9 @@ case class AccountWebHookPostJson(account_id: String,
                                   http_method: String,
                                   is_active: String
                                   )
+case class AccountWebHookPutJson(account_web_hook_id: String,
+                                 is_active: String
+                                 )
 
 case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 

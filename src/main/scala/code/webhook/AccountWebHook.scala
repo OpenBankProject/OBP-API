@@ -26,6 +26,9 @@ trait AccountWebHookProvider {
                                  httpMethod: String,
                                  isActive: Boolean
                                 ): Future[Box[AccountWebHook]]
+  def updateAccountWebHookFuture(accountWebHookId: String,
+                                isActive: Boolean
+                                ): Future[Box[AccountWebHook]]
 }
 
 trait AccountWebHook {
