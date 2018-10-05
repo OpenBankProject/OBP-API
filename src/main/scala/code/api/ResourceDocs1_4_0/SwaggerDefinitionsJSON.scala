@@ -406,8 +406,10 @@ object SwaggerDefinitionsJSON {
   ///////////////////////////////////////////////////////////////////////////
   
   val messageDocJson = MessageDocJson(
-    process = "getBanks",
+    process = "getAccounts",
     message_format = "KafkaV2017",
+    inbound_topic = Some("from.obp.api.1.to.adapter.mf.caseclass.OutboundGetAccounts"),
+    outbound_topic = Some("to.obp.api.1.caseclass.OutboundGetAccounts"),
     description = "get Banks",
     example_outbound_message = defaultJValue,
     example_inbound_message = defaultJValue,
@@ -442,7 +444,7 @@ object SwaggerDefinitionsJSON {
     remote_data_secret_matched = Option(true)
   )
 
-  val rateLimiting = Option(RateLimiting(true, true, true))
+  val rateLimiting = RateLimiting(true, true, true)
   
   val apiInfoJSON = APIInfoJSON(
     version = "String",
@@ -451,7 +453,7 @@ object SwaggerDefinitionsJSON {
     connector = "String",
     hosted_by = hostedBy,
     akka = akka,
-    rate_limiting = rateLimiting
+    rate_limiting = Option(rateLimiting)
   )
 
   /*  val aggregateMetricsJSON = AggregateMetricJSON(
