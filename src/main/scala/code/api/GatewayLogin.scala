@@ -59,7 +59,8 @@ object JSONFactoryGateway {
                                app_name: String,
                                time_stamp: String,
                                cbs_token: Option[String],
-                               cbs_id: String
+                               cbs_id: String, 
+                               session_id: Option[String]
                              )
 
 }
@@ -74,6 +75,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val consumerName = getFieldFromPayloadJson(payloadAsJsonString, "app_name")
     val timestamp = getFieldFromPayloadJson(payloadAsJsonString, "time_stamp")
     val cbsId = getFieldFromPayloadJson(payloadAsJsonString, "cbs_id")
+    val sessionId = getFieldFromPayloadJson(payloadAsJsonString, "session_id")
     val cbsToken = cbsAuthToken match {
       case Some(v) => v
       case None => getFieldFromPayloadJson(payloadAsJsonString, "cbs_token")
@@ -86,7 +88,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       app_name = consumerName,
       time_stamp = timestamp,
       cbs_token = Some(cbsToken),
-      cbs_id = cbsId
+      cbs_id = cbsId,
+      session_id= Some(sessionId)
     )
     val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)

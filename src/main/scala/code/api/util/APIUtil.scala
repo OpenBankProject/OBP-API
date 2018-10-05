@@ -69,7 +69,7 @@ import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
+import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 

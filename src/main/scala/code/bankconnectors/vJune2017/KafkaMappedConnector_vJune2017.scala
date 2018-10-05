@@ -85,12 +85,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       user <- cc.user
       username <- Full(user.name)
       currentResourceUserId <- Some(user.userId)
-      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload
-      cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
-      isFirst <- Full(gatewayLoginPayLoad.is_first)
+      gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload
+      cbs_token <- gatewayLoginRequestPayLoad.cbs_token.orElse(Full(""))
+      isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
       correlationId <- Full(cc.correlationId)
+      sessionId <- Full(gatewayLoginRequestPayLoad.session_id.getOrElse(""))
     } yield{
-      AuthInfo(currentResourceUserId,username, cbs_token, isFirst,correlationId)
+      AuthInfo(currentResourceUserId,username, cbs_token, isFirst,correlationId, sessionId)
     }
 
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")

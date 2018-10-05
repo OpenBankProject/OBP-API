@@ -142,7 +142,7 @@ case class Status(
                    errorCode: String,
                    backendMessages: List[InboundStatusMessage]
                  )
-case class AuthInfo(userId: String = "", username: String ="", cbsToken: String ="", isFirst: Boolean = true, correlationId: String="")
+case class AuthInfo(userId: String = "", username: String ="", cbsToken: String ="", isFirst: Boolean = true, correlationId: String="", sessionId :String = "")
 
 case class InboundAccountJune2017(
   errorCode: String,
