@@ -2818,6 +2818,10 @@ object SwaggerDefinitionsJSON {
     http_method = "POST",
     is_active = "true"
   )
+  val accountWebHookPutJson = AccountWebHookPutJson(
+    account_web_hook_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+    is_active = "true"
+  )
   val accountWebHookJson =  AccountWebHookJson(
     account_web_hook_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     bank_id = "obp-x",

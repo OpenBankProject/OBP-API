@@ -872,6 +872,56 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
+      enableDisableAccountWebHook,
+      implementedInApiVersion,
+      "enableDisableAccountWebHook",
+      "PUT",
+      "/banks/BANK_ID/account-web-hooks",
+      "Update an Account Web Hook",
+      """Update an Account Web Hook
+        |""",
+      accountWebHookPutJson,
+      accountWebHookJson,
+      List(UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canCreateWebHook))
+    )
+
+    lazy val enableDisableAccountWebHook : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "account-web-hooks" :: Nil JsonPut json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanUpdateWebHook) {
+              hasEntitlement(bankId.value, u.userId, ApiRole.canUpdateWebHook)
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPutJson "
+            putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountWebHookPutJson]
+            }
+            failMsg = s"$InvalidBoolean Possible values of the json field is_active are true or false."
+            isActive <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              putJson.is_active.toBoolean
+            }
+            _ <- AccountWebHook.accountWebHook.vend.getAccountWebHookByIdFuture(putJson.account_web_hook_id) map {
+              unboxFullOrFail(_, callContext, WebHookNotFound, 400)
+            }
+            wh <- AccountWebHook.accountWebHook.vend.updateAccountWebHookFuture(
+              accountWebHookId = putJson.account_web_hook_id,
+              isActive = isActive
+            ) map {
+              unboxFullOrFail(_, callContext, UpdateWebHookError, 400)
+            }
+          } yield {
+            (createAccountWebHookJson(wh), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
       getAccountWebHooks,
       implementedInApiVersion,
       "getAccountWebHooks",

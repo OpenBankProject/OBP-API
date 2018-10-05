@@ -4,6 +4,7 @@ import code.bankconnectors._
 import code.util.{AccountIdString, MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -59,6 +60,23 @@ object MappedAccountWebHookProvider extends AccountWebHookProvider {
       .mIsActive(isActive)
       .saveMe()
     Future(Full(createAccountWebHook))
+  }
+
+  override def updateAccountWebHookFuture(accountWebHookId: String,
+                                          isActive: Boolean
+                                         ): Future[Box[AccountWebHook]] = {
+    val createAccountWebHook = MappedAccountWebHook.find(By(MappedAccountWebHook.mAccountWebHookId, accountWebHookId))
+    createAccountWebHook match {
+      case Full(c) =>
+        Future(
+          tryo {
+            c.mAccountWebHookId(accountWebHookId)
+             .mIsActive(isActive)
+             .saveMe()
+          }
+        )
+      case _ => Future(createAccountWebHook)
+    }
   }
 
 }
