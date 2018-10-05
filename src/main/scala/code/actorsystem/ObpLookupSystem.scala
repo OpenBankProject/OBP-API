@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import code.api.util.APIUtil
 import code.util.Helper
 import code.util.Helper.MdcLoggable
+import code.webhook.WebHookHelperActors
 import com.typesafe.config.ConfigFactory
 import net.liftweb.util.Props
 
@@ -72,6 +73,21 @@ trait ObpLookupSystem extends MdcLoggable {
       s"akka.tcp://ObpActorSystem_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
 
+    this.obpLookupSystem.actorSelection(actorPath)
+  }
+
+
+  def getWebHookActor() = {
+    val name = WebHookHelperActors.actorName
+    val actorPath: String = {
+      val hostname = ObpActorConfig.localHostname
+      val port = ObpActorConfig.localPort
+      val props_hostname = Helper.getHostname
+      if (port == 0) {
+        logger.error("Failed to connect to local Web Hook actor")
+      }
+      s"akka.tcp://ObpActorSystem_${props_hostname}@${hostname}:${port}/user/${name}"
+    }
     this.obpLookupSystem.actorSelection(actorPath)
   }
 

@@ -155,18 +155,20 @@ case class AccountWebHookJson(account_web_hook_id: String,
                               trigger_name: String,
                               url: String,
                               http_method: String,
-                              created_by_user_id: String
+                              created_by_user_id: String,
+                              is_active: Boolean
                              )
 
 case class AccountWebHookPostJson(account_id: String,
                                   trigger_name: String,
                                   url: String,
-                                  http_method: String
+                                  http_method: String,
+                                  is_active: String
                                   )
 
 case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 
-case class ConfigurationJsonV310(default_bank_id: String , akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
+case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -220,7 +222,7 @@ object JSONFactory310{
       case _ => null
     }
 
-    ConsumerJson(consumer_id=c.consumerId.get,
+    code.api.v3_1_0.ConsumerJson(consumer_id=c.consumerId.get,
       app_name=c.name.get,
       app_type=c.appType.toString(),
       description=c.description.get,
@@ -252,12 +254,13 @@ object JSONFactory310{
       trigger_name = wh.triggerName,
       url = wh.url,
       http_method = wh.httpMethod,
-      created_by_user_id = wh.createdByUserId
+      created_by_user_id = wh.createdByUserId,
+      is_active = wh.isActive()
     )
   }
 
   def createAccountWebHooksJson(whs: List[AccountWebHook]) = {
-    whs.map(createAccountWebHookJson(_))
+    AccountWebHooksJson(whs.map(createAccountWebHookJson(_)))
   }
   
   def getConfigInfoJSON(): ConfigurationJsonV310 = {

@@ -46,7 +46,8 @@ object MappedAccountWebHookProvider extends AccountWebHookProvider {
                                           userId: String,
                                           triggerName: String,
                                           url: String,
-                                          httpMethod: String
+                                          httpMethod: String,
+                                          isActive: Boolean
                                          ): Future[Box[AccountWebHook]] = {
     val createAccountWebHook = MappedAccountWebHook.create
       .mBankId(bankId)
@@ -55,6 +56,7 @@ object MappedAccountWebHookProvider extends AccountWebHookProvider {
       .mTriggerName(triggerName)
       .mUrl(url)
       .mHttpMethod(httpMethod)
+      .mIsActive(isActive)
       .saveMe()
     Future(Full(createAccountWebHook))
   }
@@ -71,6 +73,7 @@ class MappedAccountWebHook extends AccountWebHook with LongKeyedMapper[MappedAcc
   object mUrl extends MappedString(this, 64)
   object mHttpMethod extends MappedString(this, 64)
   object mCreatedByUserId extends UUIDString(this)
+  object mIsActive extends MappedBoolean(this)
 
   def accountWebHookId: String = mAccountWebHookId.get
   def bankId: String = mBankId.get
@@ -79,6 +82,7 @@ class MappedAccountWebHook extends AccountWebHook with LongKeyedMapper[MappedAcc
   def url: String = mUrl.get
   def httpMethod: String = mHttpMethod.get
   def createdByUserId: String = mCreatedByUserId.get
+  def isActive: Boolean = mIsActive.get
 }
 
 object MappedAccountWebHook extends MappedAccountWebHook with LongKeyedMetaMapper[MappedAccountWebHook] {

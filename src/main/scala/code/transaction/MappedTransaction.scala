@@ -2,12 +2,15 @@ package code.transaction
 
 import java.util.UUID
 
-import code.api.util.APIUtil
+import code.actorsystem.ObpLookupSystem
+import code.api.util.{APIUtil, ApiTrigger}
 import code.bankconnectors.Connector
-import code.util._
-import net.liftweb.common.Logger
-import net.liftweb.mapper._
 import code.model._
+import code.util._
+import code.webhook.WebHookActor
+import net.liftweb.common._
+import net.liftweb.common.Box.tryo
+import net.liftweb.mapper._
 
 class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated with TransactionUUID {
 
@@ -216,4 +219,19 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
 object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[MappedTransaction] {
   override def dbIndexes = UniqueIndex(transactionId, bank, account) :: Index(bank, account) :: super.dbIndexes
+  override def afterSave = List(
+    t =>
+      tryo {
+        val eventId = UUID.randomUUID().toString()
+        val actor = ObpLookupSystem.getWebHookActor()
+        actor ! WebHookActor.Request(
+          ApiTrigger.onBalanceChange,
+          eventId,
+          t.theBankId.value,
+          t.theBankId.value,
+          t.amount.get.toString,
+          t.newAccountBalance.get.toString
+        )
+    }
+  )
 }

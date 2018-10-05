@@ -319,7 +319,7 @@ object APIUtil extends MdcLoggable {
   }
 
   private def getRateLimitHeadersNewStyle(cc: Option[CallContextLight]) = {
-    (cc, LimitCallsUtil.useConsumerLimits) match {
+    (cc, RateLimitUtil.useConsumerLimits) match {
       case (Some(x), true) =>
         CustomResponseHeaders(
           List(
@@ -1982,9 +1982,9 @@ Returns a string showed to the developer
     * @return a Tuple (Box[User], Option[CallContext]) enriched with rate limiting header or an error.
     */
   private def underCallLimits(x: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
-    import util.LimitCallPeriod._
-    import util.LimitCallsUtil._
-    def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${LimitCallPeriod.humanReadable(period)} for this Consumer."
+    import util.RateLimitPeriod._
+    import util.RateLimitUtil._
+    def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for this Consumer."
 
     def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod) = {
       val limit = period match {

@@ -50,6 +50,7 @@ object ErrorMessages {
   val InvalidFilterParameterFormat = "OBP-10016: Incorrect filter Parameters in URL. "
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
   val TooManyRequests = "OBP-10018: Too Many Requests."
+  val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023

@@ -34,13 +34,13 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
-import javax.mail.internet.MimeMessage
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs300.ResourceDocs310
 import code.api.ResourceDocs1_4_0._
 import code.api._
+import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.enableVersionIfAllowed
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
@@ -83,8 +83,8 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
-import code.api.builder.APIBuilder_Connector
-import code.webhook.MappedAccountWebHook
+import code.webhook.{MappedAccountWebHook, WebHookHelperActors}
+import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
 import net.liftweb.http._
@@ -305,6 +305,8 @@ class Boot extends MdcLoggable {
         Nil
       }
     }
+
+    WebHookHelperActors.startLocalWebHookHelperWorkers(actorSystem)
 
     if (connector.startsWith("kafka")) {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
