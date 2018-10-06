@@ -517,7 +517,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val box = callAdapter(callContext, internalCustomers)
 
         val box1 = box match {
-          case Full((data, status, callerContext)) if (status.errorCode=="xxx") =>
+          case Full((data, status, callerContext)) if (status.errorCode=="xxxxx") =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             callAdapter(callContextUpdatedSessionId,internalCustomers)
@@ -582,7 +582,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
         //Try once again, if first get the cbs error. 
         val future1 = future flatMap  {
-          case (data, status, callContext) if (status.errorCode=="xxxxxx") =>
+          case (data, status, callContext) if (status.errorCode=="xxxxx") =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             //2 call Adapter
@@ -738,7 +738,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         statusExample, 
         Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
   )
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[List[CoreAccount]] = saveConnectorMetric{
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -746,35 +746,44 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+
+    def callAdapter(callContext: Option[CallContext]) = {
+      val box = for {
+        authInfo <- getAuthInfo(callContext)
+        req = OutboundGetCoreBankAccounts(
+          authInfo = authInfo,
+          BankIdAccountIds
+        )
+        _ <- Full(logger.debug(s"Kafka getCoreBankAccounts says: req is: $req"))
+        kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
+        inboundGetCoreBankAccounts <- tryo {
+          kafkaMessage.extract[InboundGetCoreBankAccounts]
+        } ?~! s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+        internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
+      } yield {
+        (internalInboundCoreAccounts,callContext)
+      }
+      logger.debug(s"Kafka getCoreBankAccounts says res is $box")
+      box
+    }
+
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
-        val box = for {
-          authInfo <- getAuthInfo(callContext)
-          req = OutboundGetCoreBankAccounts(
-            authInfo = authInfo,
-            BankIdAccountIds
-          )
-          _<-Full(logger.debug(s"Kafka getCoreBankAccounts says: req is: $req"))
-          kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
-          inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
-        } yield{
-          internalInboundCoreAccounts
-        }
-        logger.debug(s"Kafka getCoreBankAccounts says res is $box")
+        val box= callAdapter(callContext)
 
-//       val box2 = box match {
-//          case Full(f) if (f.head.errorCode=="xxx") =>
-//            //1 update sessionId
-//            //2 call adapter again.
-//          case _ =>
-//            box
-//        }
+        val box1 = box match {
+          case Full((list,_)) if (list.head.errorCode=="xxxxx") =>
+            //1 update the callContext
+            val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
+            callAdapter(callContextUpdatedSessionId)
+          case _ =>
+            box
+        }
         
-        box match {
-          case Full(f) if (f.head.errorCode=="") =>
-            Full(f.map( x => CoreAccount(x.id,x.label,x.bankId,x.accountType, x.accountRoutings)))
-          case Full(f) if (f.head.errorCode!="") =>
+        box1 match {
+          case Full((list, callContext)) if (list.head.errorCode=="") =>
+            Full(list.map( x => CoreAccount(x.id,x.label,x.bankId,x.accountType, x.accountRoutings)), callContext)
+          case Full((f,_)) if (f.head.errorCode!="") =>
             Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
           case Empty =>
             Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
@@ -787,7 +796,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[List[CoreAccount]]] = saveConnectorMetric{
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -795,37 +804,52 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+
+    def callAdapter(callContext: Option[CallContext]) = {
+      val req = OutboundGetCoreBankAccounts(
+        authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
+        BankIdAccountIds
+      )
+      logger.debug(s"Kafka getCoreBankAccountsFuture says: req is: $req")
+
+      val future = for {
+        res <- processToFuture[OutboundGetCoreBankAccounts](req) map {
+          f =>
+            try {
+              f.extract[InboundGetCoreBankAccounts]
+            } catch {
+              case e: Exception => throw new MappingException(s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+            }
+        } map {
+          (_.data)
+        }
+      } yield {
+        (res, callContext)
+      }
+      logger.debug(s"Kafka getCoreBankAccountsFuture says res is $future")
+      future
+    }
+
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second){
 
-        val req = OutboundGetCoreBankAccounts(
-          authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
-          BankIdAccountIds
-        )
-        logger.debug(s"Kafka getCoreBankAccountsFuture says: req is: $req")
+        val future = callAdapter(callContext)
 
-        val future = for {
-          res <- processToFuture[OutboundGetCoreBankAccounts](req) map {
-            f =>
-              try {
-                f.extract[InboundGetCoreBankAccounts]
-              } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
-              }
-          } map {
-            _.data
-          }
-        } yield {
-          res
+        val future1: Future[(List[InternalInboundCoreAccount], Option[CallContext])] = future flatMap {
+          case (list,_)if (list.head.errorCode=="xxxxx") =>
+            //1 update the callContext
+            val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
+            callAdapter(callContextUpdatedSessionId)
+          case _ =>
+            future
         }
-        logger.debug(s"Kafka getCoreBankAccountsFuture says res is $future")
-
-        future map {
-          case list if (list.head.errorCode=="") =>
-            Full(list.map( x => CoreAccount(x.id,x.label,x.bankId,x.accountType, x.accountRoutings)))
-          case list if (list.head.errorCode!="") =>
+          
+        future1 map {
+          case (list, callContext) if (list.head.errorCode=="") =>
+            Full(list.map( x => CoreAccount(x.id,x.label,x.bankId,x.accountType, x.accountRoutings)), callContext)
+          case (list,_) if (list.head.errorCode!="") =>
             Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
-          case List() =>
+          case (List(),_) =>
             Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
@@ -1630,7 +1654,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val future: Future[(List[InternalCustomer], Status, Option[CallContext])] = callAdapter(callContext)
 
         val future1 = future flatMap {
-          case (_, status, callerContext) if (status.errorCode=="xxx") =>
+          case (_, status, callerContext) if (status.errorCode=="xxxxx") =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             callAdapter(callContextUpdatedSessionId)

@@ -388,7 +388,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccount(bankId: BankId, accountId: AccountId)
   }
   
-  override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[CoreAccount]]= {
+  override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {
     Full(
       bankIdAcountIds
         .map(bankIdAccountId =>
@@ -402,11 +402,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             stringOrNull(account.label),
             account.bankId.value, 
             account.accountType,
-            account.accountRoutings))
+            account.accountRoutings)),
+      callContext
     )
   }
 
-  override def getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[CoreAccount]]] = {
+  override def getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
     Future {getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext])}
   }
   

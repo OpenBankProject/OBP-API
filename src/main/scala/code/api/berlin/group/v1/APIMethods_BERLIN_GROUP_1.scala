@@ -71,10 +71,10 @@ trait APIMethods_BERLIN_GROUP_1 {
   
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             
-            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
+            Full((coreAccounts,callContext1)) <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
             
           } yield {
-            (JSONFactory_BERLIN_GROUP_1.createTransactionListJSON(coreAccounts.getOrElse(Nil)), callContext)
+            (JSONFactory_BERLIN_GROUP_1.createTransactionListJSON(coreAccounts), callContext)
           }
       }
     }

@@ -489,9 +489,9 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
+            Full((coreAccounts, callContext)) <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1562,11 +1562,11 @@ trait APIMethods300 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
             }
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
+            ((accounts, callContext1)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext1))
           }
       }
     }
