@@ -517,7 +517,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val box = callAdapter(callContext, internalCustomers)
 
         val box1 = box match {
-          case Full((data, status, callerContext)) if (status.errorCode=="xxxxx") =>
+          case Full((data, status, callerContext)) if (status.errorCode!="" && status.backendMessages.map(_.status).toString().contains("PAPIErrorResponse")) =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             callAdapter(callContextUpdatedSessionId,internalCustomers)
@@ -582,7 +582,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
         //Try once again, if first get the cbs error. 
         val future1 = future flatMap  {
-          case (data, status, callContext) if (status.errorCode=="xxxxx") =>
+          case (data, status, callContext) if (status.errorCode!="" && status.backendMessages.map(_.status).toString().contains("PAPIErrorResponse")) =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             //2 call Adapter
@@ -772,7 +772,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val box= callAdapter(callContext)
 
         val box1 = box match {
-          case Full((list,_)) if (list.head.errorCode=="xxxxx") =>
+          case Full((list,_)) if (list.head.backendMessages.head.errorCode!="" && list.map(_.backendMessages.map(_.status)).toString().contains("PAPIErrorResponse")) =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             callAdapter(callContextUpdatedSessionId)
@@ -836,7 +836,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val future = callAdapter(callContext)
 
         val future1: Future[(List[InternalInboundCoreAccount], Option[CallContext])] = future flatMap {
-          case (list,_)if (list.head.errorCode=="xxxxx") =>
+          case (list,_)if (list.head.backendMessages.head.errorCode!="" && list.map(_.backendMessages.map(_.status)).toString().contains("PAPIErrorResponse")) =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             callAdapter(callContextUpdatedSessionId)
@@ -1654,7 +1654,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val future: Future[(List[InternalCustomer], Status, Option[CallContext])] = callAdapter(callContext)
 
         val future1 = future flatMap {
-          case (_, status, callerContext) if (status.errorCode=="xxxxx") =>
+          case (_, status, callerContext) if (status.errorCode!="" && status.backendMessages.map(_.status).toString().contains("PAPIErrorResponse")) =>
             //1 update the callContext
             val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
             callAdapter(callContextUpdatedSessionId)
