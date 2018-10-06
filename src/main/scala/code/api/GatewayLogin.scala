@@ -175,8 +175,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       // Call CBS, Note, this is the first time to call Adapter in GatewayLogin process
       val res = Connector.connector.vend.getBankAccounts(username, callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
       res match {
-        case Full(l) =>
-          Full(compactRender(Extraction.decompose(l)),l, callContextUpdatedSessionId) // case class --> JValue --> Json string
+        case Full((l, callContextReturn))=>
+          Full(compactRender(Extraction.decompose(l)),l, callContextReturn) // case class --> JValue --> Json string
         case Empty =>
           Empty
         case Failure(msg, t, c) =>
@@ -206,8 +206,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       // Call CBS
       val res = Connector.connector.vend.getBankAccountsFuture(username, callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
       res map {
-        case Full(l) =>
-          Full(compactRender(Extraction.decompose(l)), l, callContextUpdatedSessionId) // case class --> JValue --> Json string
+        case Full((l, callContextReturn)) =>
+          Full(compactRender(Extraction.decompose(l)), l, callContextReturn) // case class --> JValue --> Json string
         case Empty =>
           Empty
         case Failure(msg, t, c) =>

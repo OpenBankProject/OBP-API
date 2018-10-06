@@ -842,7 +842,7 @@ import net.liftweb.util.Helpers._
     val accounts = Connector.connector.vend.getBankAccounts(user.name, None).openOrThrowException(attemptedToOpenAnEmptyBox)
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
-    updateUserAccountViews(user, accounts)
+    updateUserAccountViews(user, accounts._1)
   }
 
   /**

@@ -481,7 +481,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAccounts(authInfoExample, statusExample, InboundAccountJune2017("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
     )
   )
-  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[List[InboundAccountJune2017]] = saveConnectorMetric {
+  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])] = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -489,28 +489,46 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+
+    def callAdapter(callContext: Option[CallContext], internalCustomers: InternalBasicCustomers) = {
+      val box = for {
+        authInfo <- getAuthInfoFirstCbsCall(username, callContext)
+        req = OutboundGetAccounts(authInfo, internalCustomers)
+        kafkaMessage <- processToBox[OutboundGetAccounts](req)
+        inboundGetAccounts <- tryo {
+          kafkaMessage.extract[InboundGetAccounts]
+        } ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+        (inboundAccountJune2017, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
+      } yield {
+        (inboundAccountJune2017, status, callContext)
+      }
+      logger.debug(s"Kafka getBankAccounts says res is $box")
+      
+      box
+    }
+
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
         //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
         val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
         val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
         val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
-      
-        val box = for {
-          authInfo <- getAuthInfoFirstCbsCall(username, callContext)
-          req = OutboundGetAccounts(authInfo, internalCustomers)
-          kafkaMessage <- processToBox[OutboundGetAccounts](req)
-          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (inboundAccountJune2017, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
-        } yield{
-          (inboundAccountJune2017, status)
-        }
-        logger.debug(s"Kafka getBankAccounts says res is $box")
 
-        box match {
-          case Full((data, status)) if (status.errorCode=="") =>
-            Full(data)
-          case Full((data, status)) if (status.errorCode!="") =>
+        val box = callAdapter(callContext, internalCustomers)
+
+        val box1 = box match {
+          case Full((data, status, callerContext)) if (status.errorCode=="xxx") =>
+            //1 update the callContext
+            val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
+            callAdapter(callContextUpdatedSessionId,internalCustomers)
+          case _ =>
+            box
+        }
+      
+        box1 match {
+          case Full((data, status, callerContext)) if (status.errorCode=="") =>
+            Full(data, callerContext)
+          case Full((data, status, callerContext)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
             Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
@@ -523,7 +541,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[List[InboundAccountJune2017]]] = saveConnectorMetric {
+  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountJune2017], Option[CallContext])]] = saveConnectorMetric {
      /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -576,7 +594,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         
         future1 map {
           case (data, status, callContext ) if (status.errorCode=="") =>
-            Full(data)
+            Full(data, callContext)
           case (data, status, callContext) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case (List(), status, callContext) =>

@@ -180,7 +180,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[List[InboundAccountJune2017]] = {
+  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])]= {
     val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
     val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
     Full(
@@ -220,11 +220,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         accountRoutingScheme = "accountRoutingScheme",
         accountRoutingAddress = "accountRoutingAddress",
         accountRouting = Nil, accountRules = Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
   }
 
-  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[List[InboundAccountJune2017]]] = Future {
+  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = Future {
     getBankAccounts(username, callContext)
   }
 
