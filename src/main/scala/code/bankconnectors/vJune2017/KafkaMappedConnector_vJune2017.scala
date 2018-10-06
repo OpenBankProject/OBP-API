@@ -1595,7 +1595,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = None
   )
 
-  override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]): Future[Box[List[Customer]]] = saveConnectorMetric{
+  override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1603,32 +1603,47 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+
+    def callAdapter(callContext: Option[CallContext]) = {
+      val req = OutboundGetCustomersByUserId(getAuthInfo(callContext).openOrThrowException(NoCallContext))
+      logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+
+      val future = for {
+        res <- processToFuture[OutboundGetCustomersByUserId](req) map {
+          f =>
+            try {
+              f.extract[InboundGetCustomersByUserId]
+            } catch {
+              case e: Exception => throw new MappingException(s"$InboundGetCustomersByUserId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+            }
+        } map { x => (x.data, x.status, callContext) }
+      } yield {
+        res
+      }
+      logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $future")
+      future
+    }
+
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(customersByUserIdBoxTTL second) {
 
-        val req = OutboundGetCustomersByUserId(getAuthInfo(callContext).openOrThrowException(NoCallContext))
-        logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
+        val future: Future[(List[InternalCustomer], Status, Option[CallContext])] = callAdapter(callContext)
 
-        val future = for {
-          res <- processToFuture[OutboundGetCustomersByUserId](req) map {
-            f =>
-              try {
-                f.extract[InboundGetCustomersByUserId]
-              } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetCustomersByUserId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
-              }
-          } map {x => (x.data, x.status)}
-        } yield{
-          res
+        val future1 = future flatMap {
+          case (_, status, callerContext) if (status.errorCode=="xxx") =>
+            //1 update the callContext
+            val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContext)
+            callAdapter(callContextUpdatedSessionId)
+          case _ =>
+            future
         }
-        logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $future")
-
-        val res = future map {
-          case (list, status) if (status.errorCode=="") =>
-            Full(list)
-          case (list, status) if (status.errorCode!="") =>
+          
+        val res = future1 map {
+          case (list, status, callerContext1) if (status.errorCode=="") =>
+            Full(list, callerContext1)
+          case (_, status, _) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:" + status.backendMessages)
-          case (List(),status) =>
+          case (List(),status, _) =>
             Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
