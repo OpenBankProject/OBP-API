@@ -304,7 +304,7 @@ trait Connector extends MdcLoggable{
   def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[AccountHeld]]= Failure(NotImplemented + currentMethodName)
   def getCoreBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]]= Future {Failure(NotImplemented + currentMethodName)}
 
-  def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
+  def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[(BankAccount, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
   /**
     * This method is just return an empty account to AccountType.
@@ -353,15 +353,15 @@ trait Connector extends MdcLoggable{
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]]= Failure(NotImplemented + currentMethodName)
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]= {
-    getTransactions(bankId, accountID, None, queryParams: _*)
+    getTransactions(bankId, accountID, None, queryParams: _*).map(_._1)
   }
 
   //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class, 
   // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
-  def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]]= Failure(NotImplemented + currentMethodName)
+  def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[Transaction], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
   def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
-  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[Transaction] = Failure(NotImplemented + currentMethodName)
+  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
 
   def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(NotImplemented + currentMethodName)
   

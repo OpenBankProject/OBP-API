@@ -281,7 +281,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
@@ -320,7 +320,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
@@ -1027,7 +1027,7 @@ trait APIMethods220 {
             _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             _ <- Bank(bankId) ?~! s"$BankNotFound Current BANK_ID = $bankId"
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)

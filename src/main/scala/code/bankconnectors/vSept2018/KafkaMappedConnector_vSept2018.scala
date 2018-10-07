@@ -90,7 +90,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       authViews<- Full(
         for{
           view <- views
-          account <- checkBankAccountExists(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
+          (account, callContext )<- checkBankAccountExists(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
           internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
           internalUsers = JsonFactory_vSept2018.createUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
@@ -682,7 +682,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
     )
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]): Box[BankAccount] = saveConnectorMetric {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext])= saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -710,7 +710,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         logger.debug(s"Kafka checkBankAccountExists says res is $box")
         box match {
           case Full((Some(data), status)) if (status.errorCode=="") =>
-            Full(new BankAccountSept2018(data))
+            Full(new BankAccountSept2018(data), callContext)
           case Full((data,status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
@@ -868,7 +868,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           userId = "String")::Nil))
   )
   // TODO Get rid on these param lookups and document.
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = saveConnectorMetric {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
@@ -883,7 +883,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     )
 
     //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
-    def getTransactionsCached(req: OutboundGetTransactions): Box[List[Transaction]] = {
+    def getTransactionsCached(req: OutboundGetTransactions): Box[(List[Transaction],Option[CallContext])] = {
       /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -911,16 +911,16 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case Full((data, status)) if (!data.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)) =>
               Failure(InvalidConnectorResponseForGetTransactions)
             case Full((data, status)) if (status.errorCode == "") =>
-              val bankAccount = checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext)
+              val bankAccountAndCallContext = checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext)
 
               val res = for {
                 internalTransaction <- data
-                thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
+                thisBankAccount <- bankAccountAndCallContext.map(_._1) ?~! ErrorMessages.BankAccountNotFound
                 transaction <- createInMemoryTransaction(thisBankAccount, internalTransaction)
               } yield {
                 transaction
               }
-              Full(res)
+              Full((res, bankAccountAndCallContext.map(_._2).openOrThrowException(attemptedToOpenAnEmptyBox)))
             case Empty =>
               Failure(ErrorMessages.ConnectorEmptyResponse)
             case Failure(msg, e, c) =>
@@ -951,7 +951,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
     //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCoreCached to cache data.
     //Note: getTransactionsCoreCached and getTransactionsCached have the same parameters,but the different method name.
-    def getTransactionsCoreCached(req:OutboundGetTransactions): Box[List[TransactionCore]] = {
+    def getTransactionsCoreCached(req:OutboundGetTransactions): Box[(List[TransactionCore], Option[CallContext])] = {
       /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -979,16 +979,16 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case Full((data, status)) if (!data.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)) =>
               Failure(InvalidConnectorResponseForGetTransactions)
             case Full((data, status)) if (status.errorCode == "") =>
-              val bankAccount = checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext)
+              val bankAccountAndCallContetxt = checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext)
 
               val res = for {
                 internalTransaction <- data
-                thisBankAccount <- bankAccount ?~! ErrorMessages.BankAccountNotFound
+                thisBankAccount <- bankAccountAndCallContetxt.map(_._1) ?~! ErrorMessages.BankAccountNotFound
                 transaction <- createInMemoryTransactionCore(thisBankAccount, internalTransaction)
               } yield {
                 transaction
               }
-              Full(res)
+              Full(res, bankAccountAndCallContetxt.map(_._2).openOrThrowException(attemptedToOpenAnEmptyBox))
             case Empty =>
               Failure(ErrorMessages.ConnectorEmptyResponse)
             case Failure(msg, e, c) =>
@@ -999,7 +999,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         }
       }
     }
-    getTransactionsCoreCached(req).map(transactions => (transactions, callContext))
+    getTransactionsCoreCached(req)
     
   }("getTransactions")
   
@@ -1036,7 +1036,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               )))
     )
   )
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[Transaction] = saveConnectorMetric{
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1066,10 +1066,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Full((Some(data), status)) if (transactionId.value == data.transactionId && status.errorCode=="") =>
             for {
-              bankAccount <- checkBankAccountExists(BankId(data.bankId), AccountId(data.accountId),callContext) ?~! ErrorMessages.BankAccountNotFound
+              (bankAccount, callContext) <- checkBankAccountExists(BankId(data.bankId), AccountId(data.accountId),callContext) ?~! ErrorMessages.BankAccountNotFound
               transaction: Transaction <- createInMemoryTransaction(bankAccount,data)
             } yield {
-              transaction
+              (transaction,callContext)
             }
           case Full((data,status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)

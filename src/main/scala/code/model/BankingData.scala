@@ -516,7 +516,7 @@ trait BankAccount extends MdcLoggable {
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Box[ModeratedTransaction] = {
     if(APIUtil.hasAccess(view, user))
-      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext).flatMap(view.moderateTransaction)
+      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext).map(_._1).flatMap(view.moderateTransaction)
     else
       viewNotAllowed(view)
   }
@@ -526,12 +526,12 @@ trait BankAccount extends MdcLoggable {
   */
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactions(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[List[ModeratedTransaction]] = {
+  final def getModeratedTransactions(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[(List[ModeratedTransaction],Option[CallContext])] = {
     if(APIUtil.hasAccess(view, user)) {
       for {
-        transactions <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams: _*)
+        (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams: _*)
         moderated <- view.moderateTransactionsWithSameAccount(transactions) ?~! "Server error"
-      } yield moderated
+      } yield (moderated, callContext)
     }
     else viewNotAllowed(view)
   }

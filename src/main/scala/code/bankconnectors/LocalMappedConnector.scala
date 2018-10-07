@@ -229,7 +229,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccounts(username, callContext)
   }
 
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
 
     updateAccountTransactions(bankId, accountId)
 
@@ -237,9 +237,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       By(MappedTransaction.bank, bankId.value),
       By(MappedTransaction.account, accountId.value),
       By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
+      .map(transaction => (transaction, callContext))
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
 
     // TODO Refactor this. No need for database lookups etc.
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
@@ -281,7 +282,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         }
       }
     }
-    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
+    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams).map(transactions => (transactions, callContext))
   }
   
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) =
@@ -384,8 +385,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
   
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[BankAccount] = {
-    getBankAccount(bankId: BankId, accountId: AccountId)
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+    getBankAccount(bankId: BankId, accountId: AccountId, callContext)
   }
   
   override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {

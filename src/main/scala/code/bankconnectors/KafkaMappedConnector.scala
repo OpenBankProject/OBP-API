@@ -316,7 +316,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
     val req = Map(
       "north" -> "getTransaction",
       "version" -> formatVersion,
@@ -333,13 +333,13 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     r match {
       // Check does the response data match the requested data
       case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-      case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
+      case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x).map(transaction => (transaction, callContext))
       case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
     }
 
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
     val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
@@ -372,7 +372,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     } yield {
       transaction
     }
-    Full(res)
+    Full(res, callContext)
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 

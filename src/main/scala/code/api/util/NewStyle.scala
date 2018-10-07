@@ -104,7 +104,7 @@ object NewStyle {
       }
     }
 
-    def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[BankAccount] = {
+    def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[(BankAccount, Option[CallContext])] = {
       Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
       }

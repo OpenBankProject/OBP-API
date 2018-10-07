@@ -604,7 +604,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                transactions <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -731,7 +731,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -1635,7 +1635,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            (account, callContext)<- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccounts <- account.moderatedOtherBankAccounts(view, cc.user)
           } yield {
@@ -1666,7 +1666,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet req => {
         cc =>
           for {
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
           } yield {

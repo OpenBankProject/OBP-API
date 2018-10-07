@@ -106,7 +106,7 @@ trait APIMethods_UKOpenBanking_200 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
-            transactions <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           

@@ -66,7 +66,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.getBank(bankId, callContext)
 
-            account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             
@@ -109,7 +109,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.getBank(bankId, callContext)
 
-            account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             
@@ -662,7 +662,7 @@ trait APIMethods310 {
               hasEntitlement("", u.userId, canCheckFundsAvailable)
             }
             _ <- NewStyle.function.getBank(bankId, callContext)
-            account <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             httpParams: List[HTTPParam] <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
             _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
