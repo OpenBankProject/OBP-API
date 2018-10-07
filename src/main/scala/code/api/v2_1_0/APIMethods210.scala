@@ -673,7 +673,7 @@ trait APIMethods210 {
             for {
               u <- cc.user ?~ UserNotLoggedIn
               _ <- Bank(bankId) ?~! {BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
+              (fromAccount, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)

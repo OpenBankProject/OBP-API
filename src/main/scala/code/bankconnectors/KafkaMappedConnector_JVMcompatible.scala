@@ -613,7 +613,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                bankId: BankId,
                                accountId: AccountId,
                                callContext: Option[CallContext]
-                             ): Box[BankAccount] = saveConnectorMetric {
+                             )= saveConnectorMetric {
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)
 
@@ -622,7 +622,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                 accountId: AccountId,
                                 userId : String,
                                 loginUser: String // added the login user here ,is just for cache
-                              ): Box[BankAccount] = {
+                              ): Box[(BankAccount, Option[CallContext])] = {
         /**
           * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
           * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -644,7 +644,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             )
             val r = process(req).extract[KafkaInboundAccount]
             logger.debug(s"getBankAccount says ! account.isPresent and userId is ${userId}")
-            Full(new KafkaBankAccount(r))
+            Full(new KafkaBankAccount(r), callContext)
           }
         }}
       getBankAccountCached(bankId: BankId, accountId: AccountId, accountHolder, AuthUser.getCurrentUserUsername)

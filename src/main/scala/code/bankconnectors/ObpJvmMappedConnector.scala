@@ -380,7 +380,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[BankAccount] = memoizeSync(getAccountTTL millisecond) {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = memoizeSync(getAccountTTL millisecond) {
     val parameters = new JHashMap
 
     //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
@@ -418,7 +418,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         account_routing_scheme  = "None",
         account_routing_address = "None",
         branchId = "None"
-      )))
+      )), callContext)
       case None =>
         logger.info(s"getBankAccount says ! account.isPresent and userId is ${primaryUserIdentifier}")
         Empty

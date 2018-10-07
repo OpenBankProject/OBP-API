@@ -426,7 +426,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId, Some(cc)) ?~! {ErrorMessages.AccountNotFound}
+              (fromAccount, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! {ErrorMessages.AccountNotFound}
               isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)

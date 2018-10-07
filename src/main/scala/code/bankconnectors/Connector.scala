@@ -289,11 +289,12 @@ trait Connector extends MdcLoggable{
   @deprecated("Now move it to AuthUser.updateUserAccountViews","17-07-2017")
   def updateUserAccountViewsOld(user: ResourceUser) = {}
 
+  //This is old one, no callContext there. only for old style endpoints.
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount]= {
-    getBankAccount(bankId, accountId, None)
+    getBankAccount(bankId, accountId, None).map(_._1)
   }
 
-  def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[BankAccount]= Failure(NotImplemented + currentMethodName)
+  def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
   def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
 
@@ -828,7 +829,7 @@ trait Connector extends MdcLoggable{
 
   def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext] = None) : Box[List[TransactionRequestType]] = {
     for {
-      fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId, callContext) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      (fromAccount, callContext)<- getBankAccount(fromAccount.bankId, fromAccount.accountId, callContext) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
       transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
     } yield transactionRequestTypes

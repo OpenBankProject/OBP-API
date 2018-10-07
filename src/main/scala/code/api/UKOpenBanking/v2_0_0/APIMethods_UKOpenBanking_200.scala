@@ -92,7 +92,7 @@ trait APIMethods_UKOpenBanking_200 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            bankAccount <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
+            (bankAccount, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
@@ -184,7 +184,7 @@ trait APIMethods_UKOpenBanking_200 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-            account <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
+            (account, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
         

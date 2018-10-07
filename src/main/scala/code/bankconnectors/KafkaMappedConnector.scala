@@ -376,7 +376,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[BankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
       "north" -> "getBankAccount",
@@ -400,7 +400,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
 
-    Full(new KafkaBankAccount(r))
+    Full(new KafkaBankAccount(r),callContext)
   }
 
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {

@@ -600,7 +600,7 @@ object BankAccount {
     Connector.connector.vend.getBankAccount(bankId, accountId)
   }
 
-  def apply(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : Box[BankAccount] = {
+  def apply(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : Box[(BankAccount,Option[CallContext])] = {
     Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
   }
   /**
