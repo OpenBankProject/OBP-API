@@ -284,7 +284,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
   }
   
-  override def getTransactionsCore(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] =
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) =
     {
 
       // TODO Refactor this. No need for database lookups etc.
@@ -326,7 +326,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
     }
 
-    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
+    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams).map(transactions =>(transactions,callContext))
   }
 
   /**

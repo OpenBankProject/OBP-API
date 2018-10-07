@@ -666,7 +666,7 @@ trait APIMethods300 {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
+                (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
               }
