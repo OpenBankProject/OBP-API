@@ -81,7 +81,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getAdapterInfo), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {

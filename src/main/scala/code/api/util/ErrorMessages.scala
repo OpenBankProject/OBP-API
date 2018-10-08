@@ -317,6 +317,7 @@ object ErrorMessages {
   val SaveTransactionRequestStatusException = "OBP-60007: Save Transaction Request Status Exception. "
   val TransactionRequestDetailsExtractException = "OBP-60008: Transaction detail body extract exception. "
   val GetTransactionsException = "OBP-60009: Get Transaction Exception. "
+  val GetTransactionRequestsException = "OBP-60010: Get Transaction Requests Exception. "
 
 
   ///////////

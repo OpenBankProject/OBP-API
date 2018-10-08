@@ -7,6 +7,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.JSONFactory
+import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -1005,7 +1006,7 @@ trait APIMethods310 {
       transactionJSON,
       List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransaction))
+      List(apiTagTransaction, apiTagNewStyle))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet _ => {
@@ -1020,6 +1021,77 @@ trait APIMethods310 {
             }
           } yield {
             (JSONFactory.createTransactionJSON(moderatedTransaction), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getTransactionRequests,
+      implementedInApiVersion,
+      "getTransactionRequests",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
+      "Get Transaction Requests." ,
+      """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
+        |
+        |The VIEW_ID specified must be 'owner' and the user must have access to this view.
+        |
+        |Version 2.0.0 now returns charge information.
+        |
+        |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
+        |
+        |* Transaction Request Id
+        |* Type
+        |* Status (INITIATED, COMPLETED)
+        |* Challenge (in order to confirm the request)
+        |* From Bank / Account
+        |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)
+        |* Related Transactions
+        |
+        |PSD2 Context: PSD2 requires transparency of charges to the customer.
+        |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
+        |The customer can proceed with the Transaction by answering the security challenge.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      transactionRequestWithChargeJSONs210,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        BankAccountNotFound,
+        UserNoPermissionAccessView,
+        UserNoOwnerView,
+        GetTransactionRequestsException,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest, apiTagNewStyle))
+
+    lazy val getTransactionRequests: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = "Sorry, Transaction Requests are not enabled in this API instance.") {
+              APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)
+            }
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
+              u.hasViewAccess(view)
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView) {
+              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
+            }
+            transactionRequests <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
+              unboxFullOrFail(_, callContext, GetTransactionRequestsException)
+            }
+          } yield {
+            val json = JSONFactory210.createTransactionRequestJSONs(transactionRequests)
+            (json, HttpCode.`200`(callContext))
           }
       }
     }
