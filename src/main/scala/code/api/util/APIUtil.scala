@@ -69,7 +69,7 @@ import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Extraction, JsonAST, MappingException, parse}
+import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
@@ -1491,7 +1491,15 @@ Returns a string showed to the developer
     */
   def getServerName(): String = S.containerRequest.map(_.serverName).openOr("Unknown")
 
-
+  /**
+    * @return - the HTTP session ID
+    */
+  def updateCallContextSessionId(callContext: Option[CallContext]): Option[CallContext] = {
+      val sessionId = UUID.randomUUID().toString
+      val gatewayLoginRequestPayloadNew = callContext.map(_.gatewayLoginRequestPayload.map(_.copy(session_id = Some(sessionId)))).flatten
+      callContext.map(_.copy(gatewayLoginRequestPayload = gatewayLoginRequestPayloadNew))
+  }
+  
   /**
     * Defines Gateway Custom Response Header.
     */
@@ -1900,14 +1908,12 @@ Returns a string showed to the developer
               val payload = GatewayLogin.parseJwt(parameters)
               payload match {
                 case Full(payload) =>
-                  GatewayLogin.getOrCreateResourceUserFuture(payload: String) map {
-                    case Full((u, cbsToken)) => // Authentication is successful
+                  GatewayLogin.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
+                    case Full((u, cbsToken, callContext)) => // Authentication is successful
                       val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
-                      val payloadJson = parse(payload).extract[PayloadOfJwtJSON]
-                      val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), Some(cc))
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
-                      val callContext = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextForRequest)
-                      (Full(u), callContext.map(_.copy(consumer=consumer, user = Full(u))))
+                      val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContext)
+                      (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
                     case Failure(msg, t, c) =>
                       (Failure(msg, t, c), None)
                     case _ =>

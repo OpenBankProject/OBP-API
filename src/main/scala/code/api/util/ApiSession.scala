@@ -91,7 +91,7 @@ case class Spelling(spelling: Box[String])
 
 object ApiSession {
 
-  val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", cbs_id = "", time_stamp = "", cbs_token = None)
+  val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", cbs_id = "", time_stamp = "", cbs_token = None, session_id = None)
 
   def updateCallContext(s: Spelling, cnt: Option[CallContext]): Option[CallContext] = {
     cnt match {

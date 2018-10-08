@@ -63,11 +63,11 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def getBanks(): Box[List[Bank]] =
     Full(HostedBank.findAll)
 
-  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[BankAccount] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
-    } yield account
+    } yield (account,callContext)
   }
 
 
@@ -135,25 +135,26 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
-    for{
+    val transactions = for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
     } yield {
       updateAccountTransactions(bank, account)
       account.envelopes(queryParams: _*).map(createTransaction(_, account))
     }
+    transactions.map( transactions => (transactions, callContext))
   }
 
-  override def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext]): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId, callContext: Option[CallContext])= {
     for{
       bank <- getHostedBank(bankId) ?~! s"Transaction not found: bank $bankId not found"
       account  <- bank.getAccount(accountId) ?~! s"Transaction not found: account $accountId not found"
       envelope <- OBPEnvelope.find(account.transactionsForAccount.put("transactionId").is(transactionId.value).get)
     } yield {
       updateAccountTransactions(bank, account)
-      createTransaction(envelope,account)
+      (createTransaction(envelope,account), callContext)
     }
   }
 

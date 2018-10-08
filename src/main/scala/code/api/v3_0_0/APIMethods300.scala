@@ -113,7 +113,7 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-              account <- Future { BankAccount(bankId, accountId, callContext) } map {
+              (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
               _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
@@ -180,7 +180,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 createViewJson.name.startsWith("_")
               }
-              account <- Future { BankAccount(bankId, accountId, callContext) } map {
+              (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             } yield {
@@ -222,7 +222,7 @@ trait APIMethods300 {
             bank <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            account <- Future { BankAccount(bankId, accountId, callContext) } map {
+            (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(AccountNotFound, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             permission <- Future { account permission(u, provider, providerId) } map {
@@ -284,7 +284,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = SystemViewsCanNotBeModified) {
                 !view.isSystem
               }
-              account <- Future { BankAccount(bankId, accountId, callContext) } map {
+              (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             } yield {
@@ -332,7 +332,7 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-              account <- Future { BankAccount(bankId, accountId, callContext) } map {
+              (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
@@ -439,7 +439,7 @@ trait APIMethods300 {
           val res =
             for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            account <- Future { BankAccount(bankId, accountId, callContext) } map {
+            (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             // Assume owner view was requested
@@ -489,9 +489,9 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            coreAccounts <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
+            Full((coreAccounts, callContext)) <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts.getOrElse(Nil)), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -594,7 +594,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
                canUseFirehose(u)
               }
-              bankAccount <- Future { BankAccount(bankId, accountId, callContext) } map {
+              (bankAccount, callContext)<- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
               view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
@@ -604,7 +604,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                transactions <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -655,7 +655,7 @@ trait APIMethods300 {
           val res =
             for {
               (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-              bankAccount <- Future { BankAccount(bankId, accountId, callContext) } map {
+              (bankAccount, callContext)<- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
               // Assume owner view was requested
@@ -666,7 +666,7 @@ trait APIMethods300 {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                transactionsCore <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
+                (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
               } yield {
                 (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
               }
@@ -720,7 +720,7 @@ trait APIMethods300 {
           val res =
             for {
               (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-              bankAccount <- Future { BankAccount(bankId, accountId, callContext) } map {
+              (bankAccount, callContext)<- Future { BankAccount(bankId, accountId, callContext) } map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
               // Assume owner view was requested
@@ -731,7 +731,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                transactions <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -1488,12 +1488,12 @@ trait APIMethods300 {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
-            customers <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
+            (customers,callContext1) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
+            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext1))
           }
         }
       }
@@ -1562,11 +1562,11 @@ trait APIMethods300 {
               x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
             }
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            accounts <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
+            ((accounts, callContext1)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext1))
           }
       }
     }
@@ -1635,7 +1635,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            (account, callContext)<- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccounts <- account.moderatedOtherBankAccounts(view, cc.user)
           } yield {
@@ -1666,7 +1666,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet req => {
         cc =>
           for {
-            account <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
           } yield {
