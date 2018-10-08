@@ -1074,9 +1074,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = "Sorry, Transaction Requests are not enabled in this API instance.") {
-              APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)
-            }
+            _ <- NewStyle.function.isEnabledTransactionRequests()
             _ <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)

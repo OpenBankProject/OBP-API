@@ -11,6 +11,7 @@ import code.bankconnectors.{Connector, OBPQueryParam}
 import code.consumer.Consumers
 import code.customer.Customer
 import code.model._
+import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebHook
 import com.github.dwickern.macros.NameOf.nameOf
@@ -148,6 +149,8 @@ object NewStyle {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
     }
+
+    def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = "Sorry, Transaction Requests are not enabled in this API instance.")(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
       * Wraps a Future("try") block around the function f and
