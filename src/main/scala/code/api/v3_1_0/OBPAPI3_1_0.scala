@@ -103,7 +103,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations1_2_1.getCounterpartyPublicAlias ::
                           Implementations1_2_1.getImagesForViewOnTransaction ::
                           Implementations1_2_1.getTagsForViewOnTransaction ::
-                          Implementations1_2_1.getTransactionByIdForBankAccount ::
+                          // Implementations1_2_1.getTransactionByIdForBankAccount ::
                           Implementations1_2_1.getTransactionNarrative ::
                           //now in V300      
                           //Implementations1_2_1.getTransactionsForBankAccount ::
@@ -300,6 +300,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getAccountWebHooks ::
                           Implementations3_1_0.config ::
                           Implementations3_1_0.getAdapterInfo ::
+                          Implementations3_1_0.getTransactionByIdForBankAccount ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

@@ -6,6 +6,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
+import code.api.v1_2_1.JSONFactory
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -17,10 +18,12 @@ import code.metrics.APIMetrics
 import code.model._
 import code.users.Users
 import code.util.Helper
+import code.views.Views
 import code.webhook.AccountWebHook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.Extraction
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -983,6 +986,43 @@ trait APIMethods310 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      getTransactionByIdForBankAccount,
+      implementedInApiVersion,
+      "getTransactionByIdForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
+      "Get Transaction by Id.",
+      s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+         |
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.
+         |
+         |
+         |""",
+      emptyObjectJson,
+      transactionJSON,
+      List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransaction))
+
+    lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            moderatedTransaction <- Future(account.moderatedTransaction(transactionId, view, user, callContext)) map {
+              unboxFullOrFail(_, callContext, GetTransactionsException)
+            }
+          } yield {
+            (JSONFactory.createTransactionJSON(moderatedTransaction), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     
   }
