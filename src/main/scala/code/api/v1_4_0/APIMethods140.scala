@@ -413,7 +413,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         ,"Current user does not have access to the view ",
         "account not found at bank",
         "user does not have access to owner view",
-        "Sorry, Transaction Requests are not enabled in this API instance.",
+        TransactionRequestsNotEnabled,
         UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -437,7 +437,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 successJsonResponse(Extraction.decompose(json))
               }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionRequestsNotEnabled))
           }
       }
     }
@@ -481,7 +481,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               successJsonResponse(successJson)
             }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionRequestsNotEnabled))
           }
       }
     }
@@ -524,7 +524,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "amount ${body.value.amount} not convertible to number",
         "Cannot send payment to account with different currency",
         "Can't send a payment with a value of 0 or less.",
-        "Sorry, Transaction Requests are not enabled in this API instance.",
+        TransactionRequestsNotEnabled,
         UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -557,7 +557,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               createdJsonResponse(json)
             }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionRequestsNotEnabled))
           }
       }
     }
@@ -584,7 +584,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         InvalidJsonFormat,
         "Current user does not have access to the view ",
         "Couldn't create Transaction",
-        "Sorry, Transaction Requests are not enabled in this API instance.",
+        TransactionRequestsNotEnabled,
         "Need a non-empty answer",
         "Need a numeric TAN",
         "Need a positive TAN",
@@ -619,7 +619,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               successJsonResponse(successJson, 202)
             }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionRequestsNotEnabled))
           }
       }
     }

@@ -150,7 +150,7 @@ object NewStyle {
       }
     }
 
-    def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = "Sorry, Transaction Requests are not enabled in this API instance.")(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
+    def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
       * Wraps a Future("try") block around the function f and

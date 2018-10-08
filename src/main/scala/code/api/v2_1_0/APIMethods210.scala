@@ -685,7 +685,7 @@ trait APIMethods210 {
                 successJsonResponse(Extraction.decompose(json))
               }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionRequestsNotEnabled))
           }
       }
     }
