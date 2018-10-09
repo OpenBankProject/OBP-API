@@ -839,10 +839,10 @@ import net.liftweb.util.Helpers._
     */
   def updateUserAccountViews(user: User): Unit = {
     //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccounts(user.name, false).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val accounts = Connector.connector.vend.getBankAccounts(user.name, None).openOrThrowException(attemptedToOpenAnEmptyBox)
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
-    updateUserAccountViews(user, accounts)
+    updateUserAccountViews(user, accounts._1)
   }
 
   /**

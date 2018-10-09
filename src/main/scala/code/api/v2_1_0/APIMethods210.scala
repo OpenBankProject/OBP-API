@@ -576,7 +576,7 @@ trait APIMethods210 {
               _ <- Bank(bankId) ?~! {BankNotFound}
 
               // Check Account exists on this server
-              fromAccount <-Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! {BankAccountNotFound}
+              (fromAccount, callContext) <-Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! {BankAccountNotFound}
 
               // Check User has access to the View
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
@@ -673,7 +673,7 @@ trait APIMethods210 {
             for {
               u <- cc.user ?~ UserNotLoggedIn
               _ <- Bank(bankId) ?~! {BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
+              (fromAccount, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
@@ -685,7 +685,7 @@ trait APIMethods210 {
                 successJsonResponse(Extraction.decompose(json))
               }
           } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+            Full(errorJsonResponse(TransactionRequestsNotEnabled))
           }
       }
     }

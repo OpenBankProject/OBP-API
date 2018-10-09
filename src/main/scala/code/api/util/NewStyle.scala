@@ -11,6 +11,7 @@ import code.bankconnectors.{Connector, OBPQueryParam}
 import code.consumer.Consumers
 import code.customer.Customer
 import code.model._
+import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebHook
 import com.github.dwickern.macros.NameOf.nameOf
@@ -81,7 +82,9 @@ object NewStyle {
     (nameOf(Implementations3_1_0.enableDisableAccountWebHook), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAdapterInfo), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -105,7 +108,7 @@ object NewStyle {
       }
     }
 
-    def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[BankAccount] = {
+    def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[(BankAccount, Option[CallContext])] = {
       Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
       }
@@ -147,6 +150,8 @@ object NewStyle {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
     }
+
+    def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
       * Wraps a Future("try") block around the function f and

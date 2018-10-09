@@ -267,7 +267,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -304,10 +304,10 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         case None => Empty
       }
     }
-    getTransactionInner(bankId, accountId, transactionId, primaryUserIdentifier)
+    getTransactionInner(bankId, accountId, transactionId, primaryUserIdentifier).map(transaction =>(transaction, callContext))
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -376,11 +376,11 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       Full(res)
     }
 
-    getTransactionsInner(bankId, accountId, primaryUserIdentifier, queryParams: _*)
+    getTransactionsInner(bankId, accountId, primaryUserIdentifier, queryParams: _*).map(transactions =>(transactions, callContext))
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[BankAccount] = memoizeSync(getAccountTTL millisecond) {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = memoizeSync(getAccountTTL millisecond) {
     val parameters = new JHashMap
 
     //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
@@ -418,7 +418,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         account_routing_scheme  = "None",
         account_routing_address = "None",
         branchId = "None"
-      )))
+      )), callContext)
       case None =>
         logger.info(s"getBankAccount says ! account.isPresent and userId is ${primaryUserIdentifier}")
         Empty

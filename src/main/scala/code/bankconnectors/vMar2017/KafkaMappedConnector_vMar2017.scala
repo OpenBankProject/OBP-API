@@ -563,7 +563,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
   // Gets transaction identified by bankid, accountid and transactionId
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext])= {
     val req = OutboundTransactionQueryBase(
       messageFormat = messageFormat,
       action = "obp.get.Transaction",
@@ -578,7 +578,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     r match {
       // Check does the response data match the requested data
       case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-      case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
+      case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x).map(transaction =>(transaction, callContext))
       case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
     }
 
@@ -621,7 +621,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
   //TODO, this action is different from method name
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*)= {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
     val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
@@ -652,7 +652,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     } yield {
       transaction
     }
-    Full(res)
+    Full(res, callContext)
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
   
@@ -688,7 +688,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     )
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[BankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     // Generate random uuid to be used as request-response match id
     val req = OutboundBankAccountBase(
       action = "obp.get.Account",
@@ -711,7 +711,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
 
-    Full(new BankAccount2(r))
+    Full(new BankAccount2(r), callContext)
   }
   
   messageDocs += MessageDoc(

@@ -452,7 +452,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                bankId: BankId,
                                accountId: AccountId,
                                transactionId: TransactionId,
-                               callContext: Option[CallContext] = None): Box[Transaction] =
+                               callContext: Option[CallContext] = None) =
     saveConnectorMetric {
       /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -478,7 +478,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             r match {
               // Check does the response data match the requested data
               case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
-              case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x)
+              case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x).map(transaction =>(transaction, callContext))
               case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
             }
           } catch {
@@ -526,7 +526,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                 accountId: AccountId,
                                 callContext: Option[CallContext],
                                 queryParams: OBPQueryParam*
-  ): Box[List[Transaction]] = 
+  ) = 
     saveConnectorMetric 
     {
       try {
@@ -589,7 +589,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           }
         }
       }
-        getTransactionsCached(bankId,accountId,accountHolder , AuthUser.getCurrentUserUsername)
+        getTransactionsCached(bankId,accountId,accountHolder , AuthUser.getCurrentUserUsername).map(transactions => (transactions, callContext))
       } catch {
         case m: MappingException =>
           logger.error("getTransactions-MappingException",m)
@@ -613,7 +613,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                bankId: BankId,
                                accountId: AccountId,
                                callContext: Option[CallContext]
-                             ): Box[BankAccount] = saveConnectorMetric {
+                             )= saveConnectorMetric {
     try {
       val accountHolder = getAccountHolderCached(bankId,accountId)
 
@@ -622,7 +622,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                 accountId: AccountId,
                                 userId : String,
                                 loginUser: String // added the login user here ,is just for cache
-                              ): Box[BankAccount] = {
+                              ): Box[(BankAccount, Option[CallContext])] = {
         /**
           * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
           * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -644,7 +644,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
             )
             val r = process(req).extract[KafkaInboundAccount]
             logger.debug(s"getBankAccount says ! account.isPresent and userId is ${userId}")
-            Full(new KafkaBankAccount(r))
+            Full(new KafkaBankAccount(r), callContext)
           }
         }}
       getBankAccountCached(bankId: BankId, accountId: AccountId, accountHolder, AuthUser.getCurrentUserUsername)

@@ -180,7 +180,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getBankAccounts(username: String, forceFresh: Boolean): Box[List[InboundAccountJune2017]] = {
+  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])]= {
     val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
     val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
     Full(
@@ -220,15 +220,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         accountRoutingScheme = "accountRoutingScheme",
         accountRoutingAddress = "accountRoutingAddress",
         accountRouting = Nil, accountRules = Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
   }
 
-  override def getBankAccountsFuture(username: String, forceFresh: Boolean): Future[Box[List[InboundAccountJune2017]]] = Future {
-    getBankAccounts(username, forceFresh)
+  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = Future {
+    getBankAccounts(username, callContext)
   }
 
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
 
     updateAccountTransactions(bankId, accountId)
 
@@ -236,9 +237,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       By(MappedTransaction.bank, bankId.value),
       By(MappedTransaction.account, accountId.value),
       By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
+      .map(transaction => (transaction, callContext))
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
 
     // TODO Refactor this. No need for database lookups etc.
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
@@ -280,10 +282,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         }
       }
     }
-    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
+    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams).map(transactions => (transactions, callContext))
   }
   
-  override def getTransactionsCore(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[List[TransactionCore]] =
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) =
     {
 
       // TODO Refactor this. No need for database lookups etc.
@@ -325,7 +327,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
     }
 
-    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams)
+    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams).map(transactions =>(transactions,callContext))
   }
 
   /**
@@ -358,7 +360,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[BankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     MappedBankAccount
       .find(By(MappedBankAccount.bank, bankId.value),
         By(MappedBankAccount.theAccountId, accountId.value))
@@ -367,7 +369,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             account
               .mAccountRoutingScheme(APIUtil.ValueOrOBP(account.accountRoutingScheme))
               .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress,account.accountId.value))
-      )
+      ).map(bankAccount => (bankAccount,callContext))
   }
 
   override def getBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]] = {
@@ -383,11 +385,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
   
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[BankAccount] = {
-    getBankAccount(bankId: BankId, accountId: AccountId)
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+    getBankAccount(bankId: BankId, accountId: AccountId, callContext)
   }
   
-  override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[CoreAccount]]= {
+  override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {
     Full(
       bankIdAcountIds
         .map(bankIdAccountId =>
@@ -401,11 +403,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             stringOrNull(account.label),
             account.bankId.value, 
             account.accountType,
-            account.accountRoutings))
+            account.accountRoutings)),
+      callContext
     )
   }
 
-  override def getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[CoreAccount]]] = {
+  override def getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
     Future {getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext])}
   }
   
@@ -1718,8 +1721,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   
   
-  override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[List[Customer]]] =
-    Customer.customerProvider.vend.getCustomersByUserIdFuture(userId)
+  override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]]=
+    Customer.customerProvider.vend.getCustomersByUserIdFuture(userId) map {
+      customersBox =>(customersBox.map(customers=>(customers,callContext)))
+    }
 
   override def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersFuture(bankId, queryParams)

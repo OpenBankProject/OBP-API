@@ -317,7 +317,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     foundTransactionBox.isDefined should equal(true)
 
-    val foundTransaction = foundTransactionBox.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val foundTransaction = foundTransactionBox.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     foundTransaction.id should equal(transactionId)
     foundTransaction.bankId should equal(bankId)
@@ -1242,7 +1242,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val created = createdTransaction.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName.nonEmpty should equal(true)
 //    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
@@ -1270,7 +1270,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val created = createdTransaction.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName.nonEmpty should equal(true)
 //    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
@@ -1298,7 +1298,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val created = createdTransaction.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName should equal(t.counterparty.get.name.get)
 //    created.otherAccount.thisAccountId.value should equal("")
@@ -1325,7 +1325,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       TransactionId(t.id))
 
     createdTransaction.isDefined should equal(true)
-    val created = createdTransaction.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val created = createdTransaction.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     created.otherAccount.counterpartyName should equal(t.counterparty.get.name.get)
 //    created.otherAccount.thisAccountId.value should equal("")
@@ -1385,8 +1385,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     getResponse(t1 :: t2 :: Nil).code should equal(SUCCESS)
 
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id))
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id))
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id)).map(_._1)
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id)).map(_._1)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
@@ -1453,8 +1453,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     val bankId = BankId(transactionWithCounterparty.this_account.bank)
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1)).map(_._1)
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2)).map(_._1)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
@@ -1492,8 +1492,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     val bankId = BankId(baseT.this_account.bank)
     val accountId = AccountId(baseT.this_account.id)
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1)).map(_._1)
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2)).map(_._1)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
@@ -1544,9 +1544,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     foundTransaction2Box.isDefined should equal(true)
     foundTransaction3Box.isDefined should equal(true)
 
-    val counter1 = foundTransaction1Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
-    val counter2 = foundTransaction2Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
-    val counter3 = foundTransaction3Box.openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter1 = foundTransaction1Box.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter2 = foundTransaction2Box.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
+    val counter3 = foundTransaction3Box.map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).otherAccount
 
     counter1.counterpartyId should not equal(counter2.counterpartyId)
     counter1.counterpartyId should not equal(counter3.counterpartyId)
@@ -1684,7 +1684,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     def getCreatedTransaction(id : String) =
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
-        TransactionId(id)).openOrThrowException(attemptedToOpenAnEmptyBox)
+        TransactionId(id)).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     val t1 = getCreatedTransaction(t.id)
     val t2 = getCreatedTransaction(newTransId)

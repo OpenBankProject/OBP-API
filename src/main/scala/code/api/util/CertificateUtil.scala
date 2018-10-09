@@ -140,22 +140,25 @@ object CertificateUtil extends MdcLoggable {
            "app_name":"myapp4",
            "time_stamp":"19-06-2017:22:27:11:100",
            "cbs_token":"",
-           "cbs_id":""
+           "cbs_id":"",
+           "session_id":"123"
          }"""
 
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwwtPayloadAsJson)
 
     // 1.1 Encryption - JWT with RSA encryption
     val encryptTokenWithRsa = encryptJwtWithRsa(jwtClaims)
-
+    logger.info(s"encryptTokenWithRsa =$encryptTokenWithRsa")
+    
     // 1.2  Decryption - JWT with RSA encryption
     val decryptToken = decryptJwtWithRsa(encryptTokenWithRsa)
+    logger.info(s"decryptToken = $decryptToken")
 
     // 2.1 JWT with HMAC protection
     val hmacJwt = jwtWithHmacProtection(jwtClaims)
+    logger.info(s"hmacJwt = $hmacJwt")
 
     parseJwtWithHmacProtection(hmacJwt)
-
 
   }
 

@@ -75,7 +75,7 @@ trait APIMethods121 {
 
   private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedTransactionMetadata] ={
     for {
-      account <- BankAccount(bankId, accountId, callContext) ?~! BankAccountNotFound
+      (account, callContext) <- BankAccount(bankId, accountId, callContext) ?~! BankAccountNotFound
       view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user, callContext)
       metadata <- Box(moderatedTransaction.metadata) ?~ { s"$NoViewPermission can_see_transaction_metadata. Current ViewId($viewId)" }
@@ -443,7 +443,7 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
+            (account, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             availableviews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user)
@@ -2144,7 +2144,7 @@ trait APIMethods121 {
             params <- paramsBox
             bankAccount <- BankAccount(bankId, accountId)
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
-            transactions <- bankAccount.getModeratedTransactions(user, view, None, params: _* )
+            (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, None, params: _* )
           } yield {
             val json = JSONFactory.createTransactionsJSON(transactions)
             successJsonResponse(Extraction.decompose(json))
@@ -2192,7 +2192,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- BankAccount(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
+            (account, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             moderatedTransaction <- account.moderatedTransaction(transactionId, view, cc.user, Some(cc))
           } yield {
