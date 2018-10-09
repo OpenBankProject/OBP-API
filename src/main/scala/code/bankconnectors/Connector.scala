@@ -483,7 +483,7 @@ trait Connector extends MdcLoggable{
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
       // Version 200 below has more support for charge
       charge = TransactionRequestCharge("Charge for completed transaction", AmountOfMoney(body.value.currency, "0.00"))
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
     } yield transactionRequest
 
     //make sure we get something back
@@ -509,7 +509,7 @@ trait Connector extends MdcLoggable{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -542,7 +542,7 @@ trait Connector extends MdcLoggable{
       chargeValue <- tryo {(BigDecimal(body.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${body.value.amount}"
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(body.value.currency, chargeValue.toString()))
 
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, body, status.toString, charge)
     } yield transactionRequest
 
     //make sure we get something back
@@ -577,7 +577,7 @@ trait Connector extends MdcLoggable{
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.SANDBOX_TAN.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -654,7 +654,7 @@ trait Connector extends MdcLoggable{
       chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount) ?~! GetChargeValueException
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
-      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy) ?~! InvalidConnectorResponseForCreateTransactionRequestImpl210
+      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy) ?~! InvalidConnectorResponseForCreateTransactionRequestImpl210
 
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
       newTransactionRequest <- status match {
@@ -687,7 +687,7 @@ trait Connector extends MdcLoggable{
             challengeAnswer <- createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.id.value
             ) ?~! "OBP-40xxx : createTransactionRequestv300.createChallenge exception !"
       
-            challengeId = UUID.randomUUID().toString
+            challengeId = generateUUID()
             salt = BCrypt.gensalt()
             challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
       

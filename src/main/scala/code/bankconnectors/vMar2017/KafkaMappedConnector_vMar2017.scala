@@ -1019,7 +1019,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
                               chargePolicy: String): Box[TransactionId] = {
   
     val postedDate = APIUtil.DateWithMsFormat.format(now)
-    val transactionId = UUID.randomUUID().toString
+    val transactionId = APIUtil.generateUUID()
 
     val req = OutboundSaveTransactionBase(
       messageFormat = messageFormat,
@@ -1358,7 +1358,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     //TODO: pass in currency as a parameter?
     val account = createAccountIfNotExisting(
       bank.bankId,
-      AccountId(UUID.randomUUID().toString),
+      AccountId(APIUtil.generateUUID()),
       accountNumber,
       accountType,
       accountLabel,

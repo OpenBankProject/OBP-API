@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.api.v1_4_0.V140ServerSetup
 import code.api.v2_0_0.CreateCustomerJson
@@ -70,7 +70,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
     }
 
     scenario("Customer exists and we try to get it") {
-      val customerId = createCustomer(testBankId1, resourceUser1, UUID.randomUUID().toString, user1)
+      val customerId = createCustomer(testBankId1, resourceUser1, APIUtil.generateUUID(), user1)
       Given("MappedCustomer exists for a user")
       When("We try to get it")
       val foundOpt = Customer.customerProvider.vend.getCustomerByUserId(testBankId1, resourceUser1.userId)

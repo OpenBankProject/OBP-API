@@ -42,7 +42,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       thisBankId = bankId,
       thisAccountId = accountId,
       thisViewId = "",
-      name = UUID.randomUUID().toString,
+      name = APIUtil.generateUUID(),
       otherAccountRoutingScheme = otherAccountRoutingScheme,
       otherAccountRoutingAddress = accountId,
       otherBankRoutingScheme = "OBP",
@@ -138,7 +138,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   override protected def createTransactionRequest(account: BankAccount) = {
   
     MappedTransactionRequest.create
-      .mTransactionRequestId(UUID.randomUUID().toString)
+      .mTransactionRequestId(APIUtil.generateUUID())
       .mType("SANDBOX_TAN")
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)
@@ -153,7 +153,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .saveMe
   
     MappedTransactionRequest.create
-      .mTransactionRequestId(UUID.randomUUID().toString)
+      .mTransactionRequestId(APIUtil.generateUUID())
       .mType("SANDBOX_TAN")
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)

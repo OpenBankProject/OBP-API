@@ -1449,7 +1449,7 @@ Returns a string showed to the developer
     * @return - the HTTP session ID
     */
   def updateCallContextSessionId(callContext: Option[CallContext]): Option[CallContext] = {
-      val sessionId = UUID.randomUUID().toString
+      val sessionId = generateUUID()
       val gatewayLoginRequestPayloadNew = callContext.map(_.gatewayLoginRequestPayload.map(_.copy(session_id = Some(sessionId)))).flatten
       callContext.map(_.copy(gatewayLoginRequestPayload = gatewayLoginRequestPayloadNew))
   }
@@ -2133,7 +2133,7 @@ Returns a string showed to the developer
     *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
     *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
     */
-  def createExplicitCounterpartyId()= UUID.randomUUID().toString
+  def createExplicitCounterpartyId()= generateUUID()
 
   /**
     * Create the implicit CounterpartyId, we can only get limit data from Adapter. (Used in `getTransactions` endpoint, we create the counterparty implicitly.)
@@ -2267,5 +2267,11 @@ Returns a string showed to the developer
     val jsonStringFromFile: String = scala.io.Source.fromFile(path).mkString 
     json.parse(jsonStringFromFile)
   }
+
+  /**
+    * This function is used to centralize generation of UUID values
+    * @return UUID as a String value
+    */
+  def generateUUID(): String = UUID.randomUUID().toString
 
 }

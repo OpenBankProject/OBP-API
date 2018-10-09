@@ -620,7 +620,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
     val userId = AuthUser.getCurrentResourceUserUserId
     val postedDate = ZonedDateTime.now
-    val transactionUUID = UUID.randomUUID().toString
+    val transactionUUID = APIUtil.generateUUID()
     // Remove last "-" from UUIID to make it 35-character
     // long string (8-4-4-4-12 -> 8-4-4-16)
     val transactionId   = transactionUUID.patch(transactionUUID.lastIndexOf('-'), "", 1)
@@ -764,7 +764,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //TODO: pass in currency as a parameter?
     val account = createAccountIfNotExisting(
       bank.bankId,
-      AccountId(UUID.randomUUID().toString),
+      AccountId(APIUtil.generateUUID()),
       accountNumber,
       accountType,
       accountLabel,

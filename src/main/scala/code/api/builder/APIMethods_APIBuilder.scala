@@ -67,7 +67,7 @@ trait APIMethods_APIBuilder { self: RestHelper =>
 }
 object APIBuilder_Connector {
   val allAPIBuilderModels = List(MappedTemplate_4824100653501473508)
-  def createTemplate(createTemplateJson: CreateTemplateJson) = Full(MappedTemplate_4824100653501473508.create.mTemplateId(UUID.randomUUID().toString).mAuthor(createTemplateJson.author).mPages(createTemplateJson.pages).mPoints(createTemplateJson.points).saveMe())
+  def createTemplate(createTemplateJson: CreateTemplateJson) = Full(MappedTemplate_4824100653501473508.create.mTemplateId(generateUUID()).mAuthor(createTemplateJson.author).mPages(createTemplateJson.pages).mPoints(createTemplateJson.points).saveMe())
   def getTemplates() = Full(MappedTemplate_4824100653501473508.findAll())
   def getTemplateById(templateId: String) = MappedTemplate_4824100653501473508.find(By(MappedTemplate_4824100653501473508.mTemplateId, templateId))
   def deleteTemplate(templateId: String) = MappedTemplate_4824100653501473508.find(By(MappedTemplate_4824100653501473508.mTemplateId, templateId)).map(_.delete_!)
