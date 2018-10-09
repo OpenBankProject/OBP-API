@@ -1445,9 +1445,6 @@ Returns a string showed to the developer
     */
   def getServerName(): String = S.containerRequest.map(_.serverName).openOr("Unknown")
 
-  /**
-    * @return - the HTTP session ID
-    */
   def updateCallContextSessionId(callContext: Option[CallContext]): Option[CallContext] = {
       val sessionId = generateUUID()
       val gatewayLoginRequestPayloadNew = callContext.map(_.gatewayLoginRequestPayload.map(_.copy(session_id = Some(sessionId)))).flatten
@@ -1592,7 +1589,12 @@ Returns a string showed to the developer
       case _ => true
 
     }
-  }/*
+  }
+  
+  def isFirst(isFirst: String): Boolean = {
+    isFirst.equalsIgnoreCase("true")
+  }
+  /*
   Determine if a version should be allowed.
 
     For a VERSION to be allowed it must be:

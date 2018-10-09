@@ -168,7 +168,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val payloadJson = parse(jwtPayload).extract[PayloadOfJwtJSON]
     val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), callContext)
     
-    if(isFirst.equalsIgnoreCase("true")) // Case is_first="true"
+    if(APIUtil.isFirst(isFirst)) // Case is_first="true"
     { 
       //We update the sessionid only once, and only when is_first = true. 
       val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContextForRequest)
@@ -198,7 +198,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val payloadJson = parse(jwtPayload).extract[PayloadOfJwtJSON]
     val callContextForRequest = ApiSession.updateCallContext(GatewayLoginRequestPayload(Some(payloadJson)), callContext)
     
-    if(isFirst.equalsIgnoreCase("true")) // Case is_first="true"
+    if(APIUtil.isFirst(isFirst)) // Case is_first="true"
     { 
       //We update the sessionId only once, and only when is_first = true. 
       val callContextUpdatedSessionId = APIUtil.updateCallContextSessionId(callContextForRequest)
@@ -253,7 +253,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             case Full(u) =>
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .
-              if(isFirst.equalsIgnoreCase("true")) {
+              if(APIUtil.isFirst(isFirst)) {
                 AuthUser.updateUserAccountViews(u, accounts)
               }
               Full((u, Some(getCbsTokens(s).head),callContextNew)) // Return user
@@ -305,7 +305,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             case Full(u) =>
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .
-              if(isFirst.equalsIgnoreCase("true")) {
+              if(APIUtil.isFirst(isFirst)) {
                 AuthUser.updateUserAccountViews(u, accounts)
               }
               Full(u, Some(getCbsTokens(s).head), callContextNew) // Return user
