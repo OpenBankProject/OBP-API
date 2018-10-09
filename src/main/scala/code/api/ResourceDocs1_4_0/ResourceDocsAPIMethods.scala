@@ -7,6 +7,7 @@ import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.cache.Caching
 import code.api.util.APIUtil._
+import code.api.util.ApiTag._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiVersion}
 import code.api.v1_2_1.Akka

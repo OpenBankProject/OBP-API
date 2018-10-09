@@ -3,6 +3,7 @@ package code.api.v1_4_0
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ApiVersion}
+import code.api.util.ApiTag._
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson

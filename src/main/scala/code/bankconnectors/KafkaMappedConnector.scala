@@ -735,7 +735,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //TODO: pass in currency as a parameter?
     val account = createAccountIfNotExisting(
       bank.bankId,
-      AccountId(UUID.randomUUID().toString),
+      AccountId(APIUtil.generateUUID()),
       accountNumber,
       accountType,
       accountLabel,

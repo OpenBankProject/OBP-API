@@ -350,7 +350,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   //For now consumerId is only used in Gateway Login, all other cases, we should use the id instead `consumerId`.
   object id extends MappedLongIndex(this)
   object consumerId extends MappedString(this, 250) { // Introduced to cover gateway login functionality
-    override def defaultValue = UUID.randomUUID().toString
+    override def defaultValue = APIUtil.generateUUID()
   }
 
   private def minLength3(field: MappedString[Consumer])( s : String) = {

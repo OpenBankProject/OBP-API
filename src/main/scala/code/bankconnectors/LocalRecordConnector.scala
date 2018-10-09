@@ -462,7 +462,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       }
     }
 
-    val createdAccount = createAccount(hostedBank, AccountId(UUID.randomUUID().toString),
+    val createdAccount = createAccount(hostedBank, AccountId(APIUtil.generateUUID()),
       accountNumber, accountType, accountLabel, currency, BigDecimal("0.00"), accountHolderName)
 
     Full((hostedBank, createdAccount))

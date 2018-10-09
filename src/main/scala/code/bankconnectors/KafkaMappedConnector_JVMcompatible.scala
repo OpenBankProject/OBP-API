@@ -876,7 +876,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
         fromAccountBankId = fromAccount.bankId.value , //"00100", //need fill 3
         fromAccountCurrency = fromAccount.currency,//"XAF", //need fill 4
         //transaction detail
-        transactionId = UUID.randomUUID().toString.take(35), //need fill 5
+        transactionId = APIUtil.generateUUID().take(35), //need fill 5
         transactionRequestType = transactionRequestType.value,
         transactionCurrency = "XAF", //need fill 6
         transactionAmount = amount.toString(), //"3001", //need fill 7
@@ -1014,7 +1014,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     //TODO: pass in currency as a parameter?
     val account = createAccountIfNotExisting(
       bank.bankId,
-      AccountId(UUID.randomUUID().toString),
+      AccountId(APIUtil.generateUUID()),
       accountNumber,
       accountType,
       accountLabel,

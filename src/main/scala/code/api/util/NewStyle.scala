@@ -4,6 +4,7 @@ import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
+import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
@@ -84,7 +85,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {

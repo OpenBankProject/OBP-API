@@ -600,7 +600,7 @@ import net.liftweb.util.Helpers._
               .email(extEmail)
               .username(extUsername)
               // No need to store password, so store dummy string instead
-              .password(UUID.randomUUID().toString)
+              .password(generateUUID())
               .provider(extProvider)
               .validated(true)
             // Save the user in order to be able to log in

@@ -6,7 +6,9 @@ import java.util.{Date, Locale}
 import code.TransactionTypes.TransactionType
 import code.api.util
 import code.api.util.ErrorMessages.TransactionDisabled
+import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiRole}
+import code.api.util.ApiTag._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -706,19 +708,18 @@ trait APIMethods210 {
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole))
+      List(apiTagRole, apiTagNewStyle))
 
     lazy val getRoles: OBPEndpoint = {
       case "roles" :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- cc.user ?~ UserNotLoggedIn
-            // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ UserNotSuperAdmin
+            _ <- extractCallContext(UserNotLoggedIn, cc)
           }
           yield {
             // Format the data as V2.1.0 json
             val json = JSONFactory210.createAvailableRolesJSON(ApiRole.availableRoles.sorted)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(Some(cc)))
           }
       }
     }

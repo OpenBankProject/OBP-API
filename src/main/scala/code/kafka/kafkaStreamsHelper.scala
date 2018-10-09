@@ -36,7 +36,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     *Random select the partitions number from 0 to kafka.partitions value
     *The specified partition number will be inside the Key.
     */
-  private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + UUID.randomUUID().toString
+  private def keyAndPartition = scala.util.Random.nextInt(partitions) + "_" + APIUtil.generateUUID()
 
   private val producerSettings = if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
     ProducerSettings(system, new StringSerializer, new StringSerializer)

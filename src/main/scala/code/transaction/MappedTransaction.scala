@@ -21,7 +21,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object bank extends MappedString(this, 255)
   object account extends AccountIdString(this)
   object transactionId extends MappedString(this, 255) {
-    override def defaultValue = UUID.randomUUID().toString
+    override def defaultValue = APIUtil.generateUUID()
   }
   
   //TODO: review the need for this
@@ -222,7 +222,7 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
   override def afterSave = List(
     t =>
       tryo {
-        val eventId = UUID.randomUUID().toString()
+        val eventId = APIUtil.generateUUID()
         val actor = ObpLookupSystem.getWebHookActor()
         actor ! WebHookActor.Request(
           ApiTrigger.onBalanceChange,

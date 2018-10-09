@@ -6,6 +6,7 @@ import java.util.{Calendar, Date}
 import code.TransactionTypes.TransactionType
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.UserNotLoggedIn
 import code.api.util.{APIUtil, ApiRole, ApiVersion, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._

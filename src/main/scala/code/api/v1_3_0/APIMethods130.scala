@@ -2,6 +2,7 @@ package code.api.v1_3_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
 import code.bankconnectors.Connector
