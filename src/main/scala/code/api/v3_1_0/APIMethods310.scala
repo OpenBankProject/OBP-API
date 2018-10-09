@@ -2,6 +2,7 @@ package code.api.v3_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ApiTag._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode

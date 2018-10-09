@@ -2,6 +2,7 @@ package code.api.UKOpenBanking.v2_0_0
 
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.util.ApiTag._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.{BankAccountNotFound, InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, ViewNotFound}
 import code.api.util.{ApiVersion, ErrorMessages}

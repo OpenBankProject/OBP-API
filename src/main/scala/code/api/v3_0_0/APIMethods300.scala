@@ -10,6 +10,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, _}
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.NewStyle.HttpCode
