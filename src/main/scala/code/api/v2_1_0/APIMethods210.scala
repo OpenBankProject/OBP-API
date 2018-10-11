@@ -1,14 +1,13 @@
 package code.api.v2_1_0
 
-import java.text.SimpleDateFormat
-import java.util.{Date, Locale}
+import java.util.Date
 
 import code.TransactionTypes.TransactionType
 import code.api.util
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.TransactionDisabled
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiRole}
-import code.api.util.ApiTag._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -17,7 +16,7 @@ import code.api.v2_0_0._
 import code.api.v2_1_0.JSONFactory210._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.{OBPQueryParam, _}
+import code.bankconnectors._
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
@@ -34,13 +33,11 @@ import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
 import code.views.Views
-import net.liftweb.http.S
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
 // Makes JValue assignment to Nil work
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -55,7 +52,6 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
 import net.liftweb.json._
-import net.liftweb.util.Helpers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -719,7 +715,7 @@ trait APIMethods210 {
           yield {
             // Format the data as V2.1.0 json
             val json = JSONFactory210.createAvailableRolesJSON(ApiRole.availableRoles.sorted)
-            (json, HttpCode.`200`(Some(cc)))
+            (json, HttpCode.`200`(cc))
           }
       }
     }

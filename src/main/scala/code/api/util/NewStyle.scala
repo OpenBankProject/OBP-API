@@ -24,6 +24,10 @@ import scala.concurrent.Future
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -61,7 +65,6 @@ object NewStyle {
     (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getAdapter), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getStatusOfCreditCardOrder), ApiVersion.v3_1_0.toString),
@@ -85,13 +88,15 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
-    def `200`(callContext: Option[CallContext])  = {
+    def `200`(callContext: Option[CallContext])= {
       callContext.map(_.copy(httpCode = Some(200)))
+    }
+    def `200`(callContext: CallContext)  = {
+      Some(callContext.copy(httpCode = Some(200)))
     }
   }
 

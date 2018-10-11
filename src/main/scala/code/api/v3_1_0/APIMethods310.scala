@@ -27,7 +27,6 @@ import code.webhook.AccountWebHook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
 
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
@@ -208,7 +207,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(Some(cc)))}
+           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(cc))}
       }
     }
     
@@ -1090,6 +1089,7 @@ trait APIMethods310 {
     }
 
 
+
     resourceDocs += ResourceDoc(
       getTransactionRequests,
       implementedInApiVersion,
@@ -1219,7 +1219,7 @@ trait APIMethods310 {
           }
       }
     }
-    
+
   }
 }
 
