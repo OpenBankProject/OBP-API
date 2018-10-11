@@ -18,7 +18,7 @@ import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
 import code.common.OpeningTimes
-import code.customer.Customer
+import code.customer._
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -1719,7 +1719,45 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       description = description,
       bespoke = bespoke
     )
-  
+
+  override def createCustomer(
+                               bankId: BankId,
+                               number: String,
+                               legalName: String,
+                               mobileNumber: String,
+                               email: String,
+                               faceImage:
+                               CustomerFaceImageTrait,
+                               dateOfBirth: Date,
+                               relationshipStatus: String,
+                               dependents: Int,
+                               dobOfDependents: List[Date],
+                               highestEducationAttained: String,
+                               employmentStatus: String,
+                               kycStatus: Boolean,
+                               lastOkDate: Date,
+                               creditRating: Option[CreditRatingTrait],
+                               creditLimit: Option[AmountOfMoneyTrait],
+                               callContext: Option[CallContext] = None): Box[Customer] = {
+    Customer.customerProvider.vend.addCustomer(
+      bankId,
+      number,
+      legalName,
+      mobileNumber,
+      email,
+      faceImage,
+      dateOfBirth,
+      relationshipStatus,
+      dependents,
+      dobOfDependents,
+      highestEducationAttained,
+      employmentStatus,
+      kycStatus,
+      lastOkDate,
+      creditRating,
+      creditLimit
+    )
+  }
   
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]]=
     Customer.customerProvider.vend.getCustomersByUserIdFuture(userId) map {
