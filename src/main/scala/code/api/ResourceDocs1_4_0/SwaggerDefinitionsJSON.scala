@@ -1908,6 +1908,26 @@ object SwaggerDefinitionsJSON {
       last_ok_date = DateWithDayExampleObject
     )
 
+  val postCustomerJsonV310 =
+    PostCustomerJsonV310(
+      number = "string",
+      customer_number = "new customer number 687687678",
+      legal_name = "NONE",
+      mobile_phone_number = "+44 07972 444 876",
+      email = "person@example.com",
+      face_image = customerFaceImageJson,
+      date_of_birth = DateWithDayExampleObject,
+      relationship_status = "Single",
+      dependants = 5,
+      dob_of_dependants = List(DateWithDayExampleObject),
+      credit_rating = customerCreditRatingJSON,
+      credit_limit = amountOfMoneyJsonV121,
+      highest_education_attained = "string",
+      employment_status = "Employed",
+      kyc_status = true,
+      last_ok_date = DateWithDayExampleObject
+    )
+
   val transactionRequestWithChargeJSON210 = TransactionRequestWithChargeJSON210(
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",
     `type` = SANDBOX_TAN.toString,
