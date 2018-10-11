@@ -92,8 +92,11 @@ object NewStyle {
   )
 
   object HttpCode {
-    def `200`(callContext: Option[CallContext])  = {
+    def `200`(callContext: Option[CallContext])= {
       callContext.map(_.copy(httpCode = Some(200)))
+    }
+    def `200`(callContext: CallContext)  = {
+      Some(callContext.copy(httpCode = Some(200)))
     }
   }
 

@@ -2,8 +2,8 @@ package code.api.v3_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiTag._
 import code.api.util.ApiRole._
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -20,12 +20,10 @@ import code.metrics.APIMetrics
 import code.model._
 import code.users.Users
 import code.util.Helper
-import code.views.Views
 import code.webhook.AccountWebHook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -150,7 +148,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(cc))}
       }
     }
     
@@ -176,7 +174,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
+           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(cc))}
       }
     }
 
@@ -202,7 +200,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(Some(cc)))}
+           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(cc))}
       }
     }
     
@@ -1040,7 +1038,7 @@ trait APIMethods310 {
           for {
             ai: InboundAdapterInfoInternal <- NewStyle.function.getAdapterInfo(Some(cc))
           } yield {
-            (createAdapterInfoJson(ai), HttpCode.`200`(Some(cc)))
+            (createAdapterInfoJson(ai), HttpCode.`200`(cc))
           }
       }
     }
