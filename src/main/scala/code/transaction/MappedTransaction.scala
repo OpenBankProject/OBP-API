@@ -228,7 +228,7 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
           ApiTrigger.onBalanceChange,
           eventId,
           t.theBankId.value,
-          t.theBankId.value,
+          t.theAccountId.value,
           t.amount.get.toString,
           t.newAccountBalance.get.toString
         )

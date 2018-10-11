@@ -1,9 +1,5 @@
 package code.api.v3_0_0
 
-import java.text.SimpleDateFormat
-import java.time.format.DateTimeFormatter
-import java.util.{Date, Locale}
-
 import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -12,11 +8,10 @@ import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.Glossary.GlossaryItem
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.v1_2_1.{BankJSON, BanksJSON, JSONFactory}
-import code.api.v2_0_0.{CreateEntitlementJSON, JSONFactory200}
+import code.api.v1_2_1.JSONFactory
+import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
 import code.bankconnectors._
@@ -26,30 +21,26 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.metrics.{APIMetrics, MappedMetric, OBPUrlQueryParams}
+import code.metrics.APIMetrics
 import code.model.{BankId, ViewId, _}
+import code.scope.Scope
 import code.search.elasticsearchWarehouse
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.{DateFormatWithCurrentTimeZone, booleanToBox}
+import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.S
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
-import net.liftweb.mapper.DB
-import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.scope.Scope
-import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.provider.HTTPParam
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers._
 
 
 
@@ -2300,7 +2291,7 @@ trait APIMethods300 {
           for {
             banks <- NewStyle.function.getBanks(Some(cc))
           } yield 
-            (JSONFactory300.createBanksJson(banks), HttpCode.`200`(Some(cc)))
+            (JSONFactory300.createBanksJson(banks), HttpCode.`200`(cc))
       }
     }
   
@@ -2331,7 +2322,7 @@ trait APIMethods300 {
           for {
             bank <- NewStyle.function.getBank(bankId, Some(cc))
           } yield
-            (JSONFactory.createBankJSON(bank), HttpCode.`200`(Some(cc)))
+            (JSONFactory.createBankJSON(bank), HttpCode.`200`(cc))
       }
     }
 
