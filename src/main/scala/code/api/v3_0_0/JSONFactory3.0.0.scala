@@ -27,17 +27,15 @@ Berlin 13359, Germany
 package code.api.v3_0_0
 
 import java.lang
-import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
-import code.api.v1_2_1.JSONFactory.{createViewJSON, _}
+import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs}
-import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSON}
+import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -50,8 +48,6 @@ import code.model.dataAccess.ResourceUser
 import code.scope.Scope
 import code.views.Views
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
 import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.List
@@ -1062,15 +1058,8 @@ object JSONFactory300{
     )
   }
 
-  def createUserJSON(user : Box[User], entitlements: Box[List[Entitlement]]) : UserJsonV200 = {
-    (user, entitlements) match {
-      case (Full(u), Full(е)) => createUserJSON(u, е)
-      case _ => null
-    }
-  }
-
   def createUserJSONs(users : List[(ResourceUser, Box[List[Entitlement]])]) : UsersJsonV200 = {
-    UsersJsonV200(users.map(t => createUserJSON(Full(t._1), t._2)))
+    UsersJsonV200(users.map(t => createUserJSON(t._1, t._2.getOrElse(Nil))))
   }
 
 

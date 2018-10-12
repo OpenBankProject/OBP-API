@@ -941,9 +941,9 @@ trait APIMethods300 {
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), HttpCode.`200`(callContext))
+            (JSONFactory300.createUserJSON (user, entitlements), HttpCode.`200`(callContext))
           }
       }
     }
@@ -981,9 +981,9 @@ trait APIMethods300 {
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
-            (JSONFactory300.createUserJSON (Full(user), entitlements), HttpCode.`200`(callContext))
+            (JSONFactory300.createUserJSON (user, entitlements), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1513,11 +1513,9 @@ trait APIMethods300 {
         cc => {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
-              getFullBoxOrFail(_, callContext, ConnectorEmptyResponse, 400)
-            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
-            (JSONFactory300.createUserJSON (Full(u), entitlements), HttpCode.`200`(callContext))
+            (JSONFactory300.createUserJSON (u, entitlements), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1940,9 +1938,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            getEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(u.userId) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
-            }
+            getEntitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
             (JSONFactory200.createEntitlementJSONs(getEntitlements), HttpCode.`200`(callContext))
           }

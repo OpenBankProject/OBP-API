@@ -11,6 +11,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.consumer.Consumers
 import code.customer.Customer
+import code.entitlement.Entitlement
 import code.model._
 import code.util.Helper
 import code.views.Views
@@ -155,6 +156,12 @@ object NewStyle {
       Future {
         Connector.connector.vend.getAdapterInfo()
       } map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
+
+    def getEntitlementsByUserId(userId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
+      Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
     }
