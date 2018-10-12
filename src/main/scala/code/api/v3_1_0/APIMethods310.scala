@@ -277,7 +277,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanReadMetrics)("", u.userId, ApiRole.canReadMetrics)
             
-            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
@@ -367,7 +367,7 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanReadMetrics)("", u.userId, ApiRole.canReadMetrics)
             
-            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
@@ -653,7 +653,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            httpParams: List[HTTPParam] <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            httpParams: List[HTTPParam] <- NewStyle.function.createHttpParams(cc.url)
             _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
               httpParams.exists(_.name == amount)
             }

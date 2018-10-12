@@ -1428,7 +1428,7 @@ trait APIMethods300 {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
             
-            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
@@ -2082,7 +2082,7 @@ trait APIMethods300 {
                 hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
               }
               
-              httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+              httpParams <- NewStyle.function.createHttpParams(cc.url)
               
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
