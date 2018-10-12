@@ -117,6 +117,12 @@ object NewStyle {
       }
     }
 
+    def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] = {
+      Future { BankAccount(bankId, accountId, callContext) } map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[(BankAccount, Option[CallContext])] = {
       Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
