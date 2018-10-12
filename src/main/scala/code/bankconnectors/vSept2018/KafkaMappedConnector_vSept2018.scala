@@ -75,6 +75,17 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   override val messageDocs = ArrayBuffer[MessageDoc]()
   val emptyObjectJson: JValue = decompose(Nil)
   
+  //This is special method, it is only used for the first cbs call. cbsToken can be empty here.
+  def getAuthInfoFirstCbsCall (username: String, callContext: Option[CallContext]): Box[AuthInfo]=
+    for{
+      cc <- tryo {callContext.get} ?~! NoCallContext
+      gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload
+      isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
+      correlationId <- Full(cc.correlationId)
+    } yield{
+      AuthInfo("",username, "", isFirst, correlationId)
+    }
+  
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
     for{
       cc <- tryo {callContext.get} ?~! NoCallContext
@@ -508,6 +519,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetAccounts(
         authInfoExample,
+        true,
         InternalBasicCustomers(customers =List(internalBasicCustomer)))
     ),
     exampleInboundMessage = decompose(
@@ -531,7 +543,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       
         val box = for {
           authInfo <- getAuthInfo(callContext)
-          req = OutboundGetAccounts(authInfo, internalCustomers)
+          req = OutboundGetAccounts(authInfo, true, internalCustomers)
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
@@ -572,7 +584,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
 
         //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
-        val req = OutboundGetAccounts(getAuthInfo(callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.getAuthInfo return empty Box !"),internalCustomers)
+        val req = OutboundGetAccounts(
+          getAuthInfoFirstCbsCall(username, callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
+          true,
+          internalCustomers
+        )
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
 
         val future = for {
