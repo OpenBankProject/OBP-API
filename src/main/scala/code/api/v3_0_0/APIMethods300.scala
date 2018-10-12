@@ -1742,9 +1742,7 @@ trait APIMethods300 {
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + allowedEntitlementsTxt) {
-              hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
-            }
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
@@ -1787,9 +1785,7 @@ trait APIMethods300 {
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + allowedEntitlementsTxt) {
-              hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
-            }
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
@@ -1868,12 +1864,10 @@ trait APIMethods300 {
       case "entitlement-requests" :: entitlementRequestId :: Nil JsonDelete _ => {
         cc =>
           val allowedEntitlements = canDeleteEntitlementRequestsAtAnyBank :: Nil
-          val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
+          val allowedEntitlementsTxt = UserHasMissingRoles + allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + allowedEntitlementsTxt) {
-              hasAtLeastOneEntitlement("", u.userId, allowedEntitlements)
-            }
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
             deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
@@ -2135,10 +2129,9 @@ trait APIMethods300 {
             }
             
             allowedEntitlements = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
+            allowedEntitlementsTxt = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
 
-            _ <- Helper.booleanToFuture(failMsg = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!") {
-               hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements)
-            }
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements)
 
             _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
               postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false

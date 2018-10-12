@@ -210,6 +210,12 @@ object NewStyle {
       }
     }
 
+    def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
+      Helper.booleanToFuture(failMsg) {
+        code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
+      }
+    }
+
   }
 
 }
