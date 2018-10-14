@@ -9,11 +9,10 @@ import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
+import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
@@ -1720,7 +1719,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bespoke = bespoke
     )
 
-  override def createCustomer(
+  override def createCustomerFuture(
                                bankId: BankId,
                                number: String,
                                legalName: String,
@@ -1738,7 +1737,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                lastOkDate: Date,
                                creditRating: Option[CreditRatingTrait],
                                creditLimit: Option[AmountOfMoneyTrait],
-                               callContext: Option[CallContext] = None): Box[Customer] = {
+                               callContext: Option[CallContext] = None): Future[Box[Customer]] = Future{
     Customer.customerProvider.vend.addCustomer(
       bankId,
       number,

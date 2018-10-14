@@ -11,7 +11,7 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
+import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310, PostCustomerResponseJsonV310}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
@@ -1350,7 +1350,7 @@ trait Connector extends MdcLoggable{
     callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
 
 
-  def createCustomer(
+  def createCustomerFuture(
                       bankId: BankId,
                       number: String,
                       legalName: String,
@@ -1369,7 +1369,7 @@ trait Connector extends MdcLoggable{
                       creditRating: Option[CreditRatingTrait],
                       creditLimit: Option[AmountOfMoneyTrait],
                       callContext: Option[CallContext] = None
-                    ): Box[Customer] = Failure(NotImplemented + currentMethodName())
+                    ): Future[Box[Customer]] = Future{Failure(NotImplemented + currentMethodName())}
 
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
 

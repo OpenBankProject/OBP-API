@@ -43,6 +43,7 @@ import code.webhook.AccountWebHook
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
+import code.customer.Customer
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,
@@ -175,6 +176,8 @@ case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 
 case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
 
+
+
 case class PostCustomerJsonV310(
                                  number: String,
                                  customer_number : String,
@@ -193,6 +196,9 @@ case class PostCustomerJsonV310(
                                  kyc_status: Boolean,
                                  last_ok_date: Date
                                )
+case class PostCustomerResponseJsonV310(
+                                         messages: List[String]
+                                       )
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -291,6 +297,15 @@ object JSONFactory310{
     val configurationJson: ConfigurationJSON = JSONFactory220.getConfigInfoJSON()
     val defaultBankId= APIUtil.defaultBankId
     ConfigurationJsonV310(defaultBankId,configurationJson.akka,configurationJson.elastic_search, configurationJson.cache)
+  }
+
+  def createCustomerJson(postCustomer: Customer) = {
+      postCustomer
+  }
+
+
+  def updateCustomerJson(postCustomer: Customer) = {
+    postCustomer
   }
 
 }

@@ -202,6 +202,7 @@ object ErrorMessages {
 
   val CreateWebHookError = "OBP-30047: Cannot create Web Hook"
   val GetWebHooksError = "OBP-30048: Cannot get Web Hooks"
+  val CreateCustomerError = "OBP-30049: Cannot create Customer"
   val UpdateWebHookError = "OBP-30049: Cannot create Web Hook"
   val WebHookNotFound = "OBP-30050: Web Hook not found. Please specify a valid value for account_web_hook_id."
 
