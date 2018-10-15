@@ -104,9 +104,7 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-              (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
                 u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
               }
@@ -171,9 +169,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 createViewJson.name.startsWith("_")
               }
-              (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {
               for {
                 view <- account createView (u, createViewJson)
@@ -269,9 +265,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = SystemViewsCanNotBeModified) {
                 !view.isSystem
               }
-              (account, callContext) <- Future { BankAccount(bankId, accountId, callContext) } map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {
               for {
                 updatedView <- account.updateView(u, viewId, updateJson)
@@ -565,7 +559,7 @@ trait APIMethods300 {
               _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
                canUseFirehose(u)
               }
-              (bankAccount, callContext)<- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             } yield {
               for {
@@ -748,9 +742,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSearchWarehouse) {
-              hasEntitlement("", u.userId, ApiRole.canSearchWarehouse)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanSearchWarehouse)("", u.userId, ApiRole.canSearchWarehouse)
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
@@ -819,9 +811,7 @@ trait APIMethods300 {
           //if (field == "/") throw new RuntimeException("No aggregation field supplied") with NoStackTrace
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSearchWarehouseStatistics) {
-              hasEntitlement("", u.userId, ApiRole.canSearchWarehouseStatistics)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanSearchWarehouseStatistics)("", u.userId, ApiRole.canSearchWarehouseStatistics)
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
@@ -865,9 +855,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetAnyUser)("", u.userId, ApiRole.canGetAnyUser)
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
             (JSONFactory300.createUserJSONs (users), HttpCode.`200`(callContext))
@@ -901,9 +889,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetAnyUser)("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -941,9 +927,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetAnyUser)("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -1386,9 +1370,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetAnyUser)("", u.userId, ApiRole.canGetAnyUser)
             
             httpParams <- NewStyle.function.createHttpParams(cc.url)
               
@@ -2040,9 +2022,7 @@ trait APIMethods300 {
             for {
               (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-              _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadAggregateMetrics) {
-                hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
-              }
+              _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanReadAggregateMetrics)("", u.userId, ApiRole.canReadAggregateMetrics)
               
               httpParams <- NewStyle.function.createHttpParams(cc.url)
               

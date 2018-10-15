@@ -788,9 +788,7 @@ trait APIMethods220 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
-              hasEntitlement("", u.userId, ApiRole.canGetConfig)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetConfig)("", u.userId, ApiRole.canGetConfig)
           } yield {
             (JSONFactory220.getConfigInfoJSON(), callContext)
           }
