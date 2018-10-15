@@ -677,7 +677,7 @@ trait APIMethods210 {
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
-              transactionRequests <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, Some(cc))
+              (transactionRequests,callContext) <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, Some(cc))
             }
               yield {
                 // Format the data as V2.0.0 json

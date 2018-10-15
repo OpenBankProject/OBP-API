@@ -514,9 +514,12 @@ trait BankAccount extends MdcLoggable {
     }
   }
 
-  final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Box[ModeratedTransaction] = {
+  final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Box[(ModeratedTransaction, Option[CallContext])] = {
     if(APIUtil.hasAccess(view, user))
-      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext).map(_._1).flatMap(view.moderateTransaction)
+      for{
+       (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext)
+        moderatedTransaction<- view.moderateTransaction(transaction)
+      } yield (moderatedTransaction, callContext)
     else
       viewNotAllowed(view)
   }

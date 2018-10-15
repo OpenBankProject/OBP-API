@@ -1303,14 +1303,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.createOrUpdateBranch(branch)
   }
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT]= {
-    LocalMappedConnector.getBranch(bankId, branchId)
-  }
-
-  override def getBranchFuture(bankId : BankId, branchId: BranchId) : Future[Box[BranchT]]= {
-    LocalMappedConnector.getBranchFuture(bankId, branchId)
-  }
-
   override def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = {
     LocalMappedConnector.createOrUpdateAtm(atm)
   }
@@ -1318,9 +1310,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = {
     LocalMappedConnector.getAtm(bankId, atmId)
   }
-  override def getAtmFuture(bankId: BankId, atmId: AtmId): Future[Box[MappedAtm]] = {
-    LocalMappedConnector.getAtmFuture(bankId, atmId)
-  }
+  
 
   override def getCurrentFxRate(bankId : BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   

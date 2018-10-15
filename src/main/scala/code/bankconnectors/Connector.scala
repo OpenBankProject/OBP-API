@@ -790,14 +790,14 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext] = None) : Box[List[TransactionRequest]] = {
+  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext] = None) : Box[(List[TransactionRequest], Option[CallContext])] = {
     val transactionRequests =
       for {
         transactionRequests <- getTransactionRequestsImpl210(fromAccount)
       } yield transactionRequests
 
     //make sure we return null if no challenge was saved (instead of empty fields)
-    if (!transactionRequests.isEmpty) {
+    val transactionRequestsNew = if (!transactionRequests.isEmpty) {
       for {
         treq <- transactionRequests
       } yield {
@@ -810,6 +810,8 @@ trait Connector extends MdcLoggable{
     } else {
       transactionRequests
     }
+    
+    transactionRequestsNew.map(transactionRequests =>(transactionRequests, callContext))
   }
 
   def getTransactionRequestStatuses() : Box[TransactionRequestStatus] = {
@@ -1195,20 +1197,20 @@ trait Connector extends MdcLoggable{
 
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[BranchT] = Failure(NotImplemented + currentMethodName)
-  def getBranchFuture(bankId : BankId, branchId: BranchId) :  Future[Box[BranchT]] = Future {
+  def getBranchFuture(bankId : BankId, branchId: BranchId, callContext: Option[CallContext]) :  Future[Box[(BranchT, Option[CallContext])]] = Future {
     Failure(NotImplemented + currentMethodName)
   }
 
-  def getBranchesFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[BranchT]]] = Future {
+  def getBranchesFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Future[Box[(List[BranchT], Option[CallContext])]] = Future {
     Failure(NotImplemented + currentMethodName)
   }
 
   def getAtm(bankId : BankId, atmId: AtmId) : Box[AtmT] = Failure(NotImplemented + currentMethodName)
-  def getAtmFuture(bankId : BankId, atmId: AtmId) : Future[Box[AtmT]] = Future {
+  def getAtmFuture(bankId : BankId, atmId: AtmId, callContext: Option[CallContext]) : Future[Box[(AtmT, Option[CallContext])]] = Future {
     Failure(NotImplemented + currentMethodName)
   }
 
-  def getAtmsFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[AtmT]]] = Future {
+  def getAtmsFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Future[Box[(List[AtmT], Option[CallContext])]] = Future {
     Failure(NotImplemented + currentMethodName)
   }
 

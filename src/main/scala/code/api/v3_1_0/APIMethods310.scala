@@ -1073,7 +1073,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            moderatedTransaction <- Future(account.moderatedTransaction(transactionId, view, user, callContext)) map {
+            (moderatedTransaction, callContext) <- Future(account.moderatedTransaction(transactionId, view, user, callContext)) map {
               unboxFullOrFail(_, callContext, GetTransactionsException)
             }
           } yield {
@@ -1141,7 +1141,7 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView) {
               u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
             }
-            transactionRequests <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
+            (transactionRequests, callContext) <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
               unboxFullOrFail(_, callContext, GetTransactionRequestsException)
             }
           } yield {

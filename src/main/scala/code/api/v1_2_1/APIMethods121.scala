@@ -77,7 +77,7 @@ trait APIMethods121 {
     for {
       (account, callContext) <- BankAccount(bankId, accountId, callContext) ?~! BankAccountNotFound
       view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-      moderatedTransaction <- account.moderatedTransaction(transactionID, view, user, callContext)
+      (moderatedTransaction, callContext) <- account.moderatedTransaction(transactionID, view, user, callContext)
       metadata <- Box(moderatedTransaction.metadata) ?~ { s"$NoViewPermission can_see_transaction_metadata. Current ViewId($viewId)" }
     } yield metadata
   }
@@ -2194,7 +2194,7 @@ trait APIMethods121 {
           for {
             (account, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            moderatedTransaction <- account.moderatedTransaction(transactionId, view, cc.user, Some(cc))
+            (moderatedTransaction, callContext) <- account.moderatedTransaction(transactionId, view, cc.user, Some(cc))
           } yield {
             val json = JSONFactory.createTransactionJSON(moderatedTransaction)
             successJsonResponse(Extraction.decompose(json))
@@ -2877,7 +2877,7 @@ trait APIMethods121 {
           for {
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            transaction <- account.moderatedTransaction(transactionId, view, cc.user, Some(cc))
+            (transaction, callerContext) <- account.moderatedTransaction(transactionId, view, cc.user, Some(cc))
             moderatedOtherBankAccount <- transaction.otherBankAccount
           } yield {
             val otherBankAccountJson = JSONFactory.createOtherBankAccount(moderatedOtherBankAccount)

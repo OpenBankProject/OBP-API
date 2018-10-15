@@ -1512,15 +1512,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getBranchesFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[MappedBranch]]] = {
+  override def getBranchesFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
     Future {
-      Full(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)))
+      Full(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)), callContext)
     }
   }
 
-  override def getBranchFuture(bankId : BankId, branchId: BranchId) : Future[Box[MappedBranch]]= {
+  override def getBranchFuture(bankId : BankId, branchId: BranchId, callContext: Option[CallContext]) = {
     Future {
-      getBranch(bankId, branchId)
+      getBranch(bankId, branchId).map(branch=>(branch, callContext))
     }
   }
 
@@ -1530,15 +1530,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         By(MappedAtm.mBankId, bankId.value),
         By(MappedAtm.mAtmId, atmId.value))
   }
-  override def getAtmFuture(bankId : BankId, atmId: AtmId) : Future[Box[MappedAtm]]= {
+  override def getAtmFuture(bankId : BankId, atmId: AtmId, callContext: Option[CallContext]) = 
     Future {
-      getAtm(bankId, atmId)
+      getAtm(bankId, atmId).map(atm =>(atm, callContext))
     }
-  }
 
-  override def getAtmsFuture(bankId: BankId, queryParams: OBPQueryParam*): Future[Box[List[MappedAtm]]] = {
+  override def getAtmsFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*)= {
     Future {
-      Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)))
+      Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)),callContext)
     }
   }
 

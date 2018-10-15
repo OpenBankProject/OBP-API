@@ -1183,7 +1183,7 @@ trait APIMethods300 {
             _ <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
             }
-            branch <- Connector.connector.vend.getBranchFuture(bankId, branchId) map {
+            (branch, callContext) <- Connector.connector.vend.getBranchFuture(bankId, branchId, callContext) map {
               val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
               x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -1259,10 +1259,10 @@ trait APIMethods300 {
               }
             }
             _ <- Future { Bank(bankId) } map { x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight))) }
-            branches <- Connector.connector.vend.getBranchesFuture(bankId) map {
-              case Full(List()) | Empty =>
+            branches <- Connector.connector.vend.getBranchesFuture(bankId, callContext) map {
+              case Full((List(), _)) | Empty =>
                 fullBoxOrException(Empty ?~! BranchesNotFound)
-              case Full(list) =>
+              case Full((list,_)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
                 else Full(branchesWithLicense)
@@ -1314,7 +1314,7 @@ trait APIMethods300 {
             _ <- Future { Bank(bankId) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
             }
-            atm <- Connector.connector.vend.getAtmFuture(bankId,atmId) map {
+            (atm, callContext) <- Connector.connector.vend.getAtmFuture(bankId, atmId, callContext) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           } yield {
@@ -1382,10 +1382,10 @@ trait APIMethods300 {
               }
             }
             _ <- Future { Bank(bankId) } map { x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight))) }
-            atms <- Connector.connector.vend.getAtmsFuture(bankId) map {
-              case Full(List()) | Empty =>
+            atms <- Connector.connector.vend.getAtmsFuture(bankId, callContext) map { 
+              case Full((List(),_)) | Empty =>
                 fullBoxOrException(Empty ?~! atmsNotFound)
-              case Full(list) =>
+              case Full((list,_)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
                 else Full(branchesWithLicense)
