@@ -6,9 +6,11 @@ import java.util.{Date, Locale, UUID}
 import code.actorsystem.ObpActorConfig
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
+import code.api.util.ApiTag._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
-import code.api.util.{APIUtil, ApiRole, ApiVersion, ErrorMessages}
+import code.api.util.NewStyle.HttpCode
+import code.api.util._
 import code.api.v1_2_1.{CreateViewJsonV121, UpdateViewJsonV121}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
@@ -28,9 +30,10 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 
@@ -88,20 +91,22 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagView, apiTagAccount))
+      List(apiTagView, apiTagAccount, apiTagNewStyle))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet _ => {
         cc =>
           for {
-            u <- cc.user ?~ UserNotLoggedIn
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
-            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
-            views <- Full(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId) {
+              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
+            }
+            views <- Future(Views.views.vend.viewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             val viewsJSON = JSONFactory220.createViewsJSON(views)
-            successJsonResponse(Extraction.decompose(viewsJSON))
+            (viewsJSON, HttpCode.`200`(callContext))
           }
       }
     }
@@ -234,21 +239,28 @@ trait APIMethods220 {
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagFx))
+      List(apiTagFx, apiTagNewStyle))
 
     lazy val getCurrentFxRate: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- Bank(bankId)?~! BankNotFound
-            _ <- tryo(assert(isValidCurrencyISOCode(fromCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
-            _ <- tryo(assert(isValidCurrencyISOCode(toCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
-            _ <- cc.user ?~! UserNotLoggedIn
-            fxRate <- Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
+            (_, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
+              assert(isValidCurrencyISOCode(fromCurrencyCode))
+            }
+            _ <- NewStyle.function.tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
+              assert(isValidCurrencyISOCode(toCurrencyCode))
+            }
+            fxRate <- Future(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode)) map {
+              unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported,400)
+            }
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
-            successJsonResponse(Extraction.decompose(viewJSON))
+            (viewJSON, HttpCode.`200`(callContext))
           }
+
       }
     }
 
@@ -898,8 +910,8 @@ trait APIMethods220 {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canCreateConsumer), UserHasMissingRoles + CanCreateConsumer )
             postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
-            consumer <- Consumers.consumers.vend.createConsumer(Some(UUID.randomUUID().toString),
-                                                                Some(UUID.randomUUID().toString),
+            consumer <- Consumers.consumers.vend.createConsumer(Some(generateUUID()),
+                                                                Some(generateUUID()),
                                                                 Some(postedJson.enabled),
                                                                 Some(postedJson.app_name),
                                                                 None,

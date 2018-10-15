@@ -64,7 +64,7 @@ object RateLimitUtil extends MdcLoggable {
 
   def isRedisAvailable() = {
     try {
-      val uuid = UUID.randomUUID().toString()
+      val uuid = APIUtil.generateUUID()
       jedis.connect()
       jedis.set(uuid, "10")
       jedis.exists(uuid) == true

@@ -1,20 +1,23 @@
 package code.api.util
 
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, hasEntitlement, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
+import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.consumer.Consumers
 import code.customer.Customer
+import code.entitlement.Entitlement
 import code.model._
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebHook
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.common.Box
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 
@@ -23,6 +26,10 @@ import scala.concurrent.Future
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -60,7 +67,6 @@ object NewStyle {
     (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getAdapter), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getStatusOfCreditCardOrder), ApiVersion.v3_1_0.toString),
@@ -88,8 +94,11 @@ object NewStyle {
   )
 
   object HttpCode {
-    def `200`(callContext: Option[CallContext])  = {
+    def `200`(callContext: Option[CallContext])= {
       callContext.map(_.copy(httpCode = Some(200)))
+    }
+    def `200`(callContext: CallContext)  = {
+      Some(callContext.copy(httpCode = Some(200)))
     }
   }
 
@@ -106,6 +115,12 @@ object NewStyle {
       Connector.connector.vend.getBanksFuture() map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
+    }
+
+    def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] = {
+      Future { BankAccount(bankId, accountId, callContext) } map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[(BankAccount, Option[CallContext])] = {
@@ -151,6 +166,12 @@ object NewStyle {
       }
     }
 
+    def getEntitlementsByUserId(userId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
+      Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
+
     def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
@@ -181,6 +202,18 @@ object NewStyle {
       createQueriesByHttpParamsFuture(httpParamsAllowed) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
+    }
+
+    def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
+      Helper.booleanToFuture(failMsg) {
+        code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
+      }
+    }
+
+    def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
+      Helper.booleanToFuture(failMsg) {
+        code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
+      }
     }
 
   }

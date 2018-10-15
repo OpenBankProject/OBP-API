@@ -20,23 +20,18 @@ TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
-
-  */
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+*/
 package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountWebHookPutJson
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateWebHook, CanGetWebHooks, canCreateWebHook, canGetWebHooks}
+import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, ApiTrigger, ApiVersion}
+import code.api.util.{ApiTrigger, ApiVersion}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -55,6 +50,7 @@ class WebHooksTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getAccountWebHooks))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.createAccountWebHook))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.enableDisableAccountWebHook))
 
   val postJson = SwaggerDefinitionsJSON.accountWebHookPostJson
   val postJsonIncorrectTriggerName = SwaggerDefinitionsJSON.accountWebHookPostJson.copy(trigger_name = "I am not a valid trigger name")
@@ -88,8 +84,8 @@ class WebHooksTest extends V310ServerSetup {
 
     scenario("We will try to create the web hook with a proper Role " + canCreateWebHook + " but without proper trigger name", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateWebHook.toString)
-      When("We make a request v3.1.0 without a Role " + canCreateWebHook)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateWebHook.toString)
+      When("We make a request v3.1.0 with a Role " + canCreateWebHook)
       val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").POST <@(user1)
       val response310 = makePostRequest(request310, write(postJsonIncorrectTriggerName))
       Then("We should get a 400")
@@ -101,8 +97,8 @@ class WebHooksTest extends V310ServerSetup {
 
     scenario("We will try to create the web hook with a proper Role " + canCreateWebHook, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateWebHook.toString)
-      When("We make a request v3.1.0 without a Role " + canCreateWebHook)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateWebHook.toString)
+      When("We make a request v3.1.0 with a Role " + canCreateWebHook)
       val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").POST <@(user1)
       val response310 = makePostRequest(request310, write(postJson))
       Then("We should get a 200")
@@ -138,10 +134,41 @@ class WebHooksTest extends V310ServerSetup {
     }
     scenario("We will try to get web hooks with a proper Role " + canGetWebHooks, ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanGetWebHooks.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetWebHooks.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "banks" / bankId / "account-web-hooks").GET <@(user1)
       val response310 = makeGetRequest(request310)
+      Then("We should get a 200")
+      response310.code should equal(200)
+      response310.body.extract[AccountWebHooksJson]
+    }
+  }
+
+
+  feature("Update an Account Web Hook v3.1.0 - Authorized access") {
+    scenario("We will try to Update an Account Web Hook without a proper Role " + canUpdateWebHook, ApiEndpoint3, VersionOfApi) {
+      val bankId = randomBankId
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").PUT <@(user1)
+      val response310 = makePutRequest(request310, write(accountWebHookPutJson))
+      Then("We should get a 403")
+      response310.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanUpdateWebHook)
+      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanUpdateWebHook)
+    }
+    scenario("We will try to Update an Account Web Hook with a proper Role " + canUpdateWebHook, ApiEndpoint3, VersionOfApi) {
+      val bankId = randomBankId
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateWebHook.toString)
+      When("We create a web hook with a Role " + canCreateWebHook)
+      val createRequest310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").POST <@(user1)
+      val createResponse310 = makePostRequest(createRequest310, write(postJson))
+      Then("We should get a 200")
+      createResponse310.code should equal(200)
+      val id = createResponse310.body.extract[AccountWebHookJson].account_web_hook_id
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateWebHook.toString)
+      When("We update the web hook")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").PUT <@(user1)
+      val response310 = makePutRequest(request310, write(accountWebHookPutJson.copy(account_web_hook_id = id)))
       Then("We should get a 200")
       response310.code should equal(200)
       response310.body.extract[AccountWebHooksJson]

@@ -196,7 +196,7 @@ object PostCustomer extends SendServerRequests {
 
               val url = s"/v2.1.0/banks/${b.id}/customers"
 
-              val customerId: String = UUID.randomUUID().toString
+              val customerId: String = APIUtil.generateUUID()
 
               val customerFaceImageJson = CustomerFaceImageJson(url = c.face_image.url, date = c.face_image.date)
 

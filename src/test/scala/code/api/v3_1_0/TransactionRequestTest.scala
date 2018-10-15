@@ -22,17 +22,19 @@ Berlin 13359, Germany
 
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
-  */
+*/
 package code.api.v3_1_0
 
 import code.api.ErrorMessage
+import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiVersion
-import code.api.util.ErrorMessages._
+import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
 
-class GetAdapterInfoTest extends V310ServerSetup {
+class TransactionRequestTest extends V310ServerSetup {
 
   /**
     * Test tags
@@ -42,20 +44,33 @@ class GetAdapterInfoTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.getAdapterInfo))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getTransactionRequests))
 
-  feature("Get Adapter Info v3.1.0")
+  feature("Get Transaction Requests - v3.1.0")
   {
-    scenario("We will try to get adapter info", ApiEndpoint, VersionOfApi) {
+    scenario("We will Get Transaction Requests - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "adapter").GET
+      val bankId = randomBankId
+      val bankAccount = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
-      And("error should be " + NotImplemented)
-      response310.body.extract[ErrorMessage].error should include (NotImplemented + ApiEndpoint.name)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+    }
+    scenario("We will Get Transaction Requests - user is logged in", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val bankId = randomBankId
+      val bankAccount = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 200")
+      response310.code should equal(200)
+      response310.body.extract[TransactionRequestWithChargeJSONs210]
     }
   }
-
 
 }

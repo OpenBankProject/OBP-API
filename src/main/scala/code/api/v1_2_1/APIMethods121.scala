@@ -7,6 +7,7 @@ import com.tesobe.CacheKeyFromArguments
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.Caching
 import code.api.util.APIUtil._
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors._

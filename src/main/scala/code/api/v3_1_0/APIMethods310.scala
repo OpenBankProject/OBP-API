@@ -3,6 +3,7 @@ package code.api.v3_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -19,12 +20,10 @@ import code.metrics.APIMetrics
 import code.model._
 import code.users.Users
 import code.util.Helper
-import code.views.Views
 import code.webhook.AccountWebHook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -149,7 +148,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(cc))}
       }
     }
     
@@ -175,7 +174,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(Some(cc)))}
+           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(cc))}
       }
     }
 
@@ -201,7 +200,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(Some(cc)))}
+           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(cc))}
       }
     }
     
@@ -276,11 +275,9 @@ trait APIMethods310 {
             
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
-              hasEntitlement("", u.userId, ApiRole.canReadMetrics)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanReadMetrics)("", u.userId, ApiRole.canReadMetrics)
             
-            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
@@ -368,11 +365,9 @@ trait APIMethods310 {
             
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadMetrics) {
-              hasEntitlement("", u.userId, ApiRole.canReadMetrics)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanReadMetrics)("", u.userId, ApiRole.canReadMetrics)
             
-            httpParams <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
@@ -476,9 +471,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadUserLockedStatus) {
-              hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanReadUserLockedStatus)("", u.userId, ApiRole.canReadUserLockedStatus)
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
@@ -511,9 +504,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanUnlockUser) {
-              hasEntitlement("", u.userId, ApiRole.canUnlockUser)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUnlockUser)("", u.userId, ApiRole.canUnlockUser)
             _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
             badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
           } yield {
@@ -555,9 +546,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanSetCallLimits) {
-              hasEntitlement("", u.userId, canSetCallLimits)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanSetCallLimits)("", u.userId, canSetCallLimits)
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitJson ", 400, callContext) {
               json.extract[CallLimitJson]
             }
@@ -612,9 +601,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanReadCallLimits) {
-              hasEntitlement("", u.userId, canReadCallLimits)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanReadCallLimits)("", u.userId, canReadCallLimits)
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong
             }
@@ -662,13 +649,11 @@ trait APIMethods310 {
           val currency = "currency"
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanCheckFundsAvailable) {
-              hasEntitlement("", u.userId, canCheckFundsAvailable)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCheckFundsAvailable)("", u.userId, canCheckFundsAvailable)
             _ <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            httpParams: List[HTTPParam] <- createHttpParamsByUrlFuture(cc.url) map { unboxFull(_) }
+            httpParams: List[HTTPParam] <- NewStyle.function.createHttpParams(cc.url)
             _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
               httpParams.exists(_.name == amount)
             }
@@ -731,9 +716,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConsumers) {
-              hasEntitlement("", u.userId, ApiRole.canGetConsumers)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetConsumers)("", u.userId, ApiRole.canGetConsumers)
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             user <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
           } yield {
@@ -806,9 +789,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConsumers) {
-              hasEntitlement("", u.userId, ApiRole.canGetConsumers)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetConsumers)("", u.userId, ApiRole.canGetConsumers)
             consumers <- Consumers.consumers.vend.getConsumersFuture()
             users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
           } yield {
@@ -832,7 +813,7 @@ trait APIMethods310 {
       accountWebHookJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil,
+      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebHook))
     )
 
@@ -842,9 +823,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanCreateWebHook) {
-              hasEntitlement(bankId.value, u.userId, ApiRole.canCreateWebHook)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateWebHook)(bankId.value, u.userId, ApiRole.canCreateWebHook)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPostJson "
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountWebHookPostJson]
@@ -888,7 +867,7 @@ trait APIMethods310 {
       accountWebHookJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil,
+      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebHook))
     )
 
@@ -898,9 +877,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanUpdateWebHook) {
-              hasEntitlement(bankId.value, u.userId, ApiRole.canUpdateWebHook)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateWebHook)(bankId.value, u.userId, ApiRole.canUpdateWebHook)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPutJson "
             putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountWebHookPutJson]
@@ -951,7 +928,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canGetWebHooks))
     )
 
@@ -962,9 +939,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetWebHooks) {
-              hasEntitlement(bankId.value, u.userId, ApiRole.canGetWebHooks)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetWebHooks)(bankId.value, u.userId, ApiRole.canGetWebHooks)
             httpParams <- NewStyle.function.createHttpParams(cc.url)
             allowedParams = List("limit", "offset", "account_id", "user_id")
             obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
@@ -1006,9 +981,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
-              hasEntitlement("", u.userId, ApiRole.canGetConfig)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetConfig)("", u.userId, ApiRole.canGetConfig)
           } yield {
             (JSONFactory310.getConfigInfoJSON(), HttpCode.`200`(callContext))
           }
@@ -1039,7 +1012,7 @@ trait APIMethods310 {
           for {
             ai: InboundAdapterInfoInternal <- NewStyle.function.getAdapterInfo(Some(cc))
           } yield {
-            (createAdapterInfoJson(ai), HttpCode.`200`(Some(cc)))
+            (createAdapterInfoJson(ai), HttpCode.`200`(cc))
           }
       }
     }
