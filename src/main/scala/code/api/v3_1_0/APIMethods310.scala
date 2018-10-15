@@ -15,7 +15,7 @@ import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPBankId}
 import code.consumer.Consumers
-import code.customer.{CreditRating, CreditLimit, CustomerFaceImage}
+import code.customer.{CreditLimit, CreditRating, CustomerFaceImage}
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
@@ -1162,14 +1162,14 @@ trait APIMethods310 {
       "POST",
       "/banks/BANK_ID/customers",
       "Create Customer.",
-      s"""Add a customer linked to the user specified by user_id
+      s"""
          |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
          |Dates need to be in the format 2013-01-21T23:08:00Z
          |
           |${authenticationRequiredMessage(true)}
          |""",
       postCustomerJsonV310,
-      customerJsonV210,
+      customerJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -1195,11 +1195,20 @@ trait APIMethods310 {
 
             _ <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV310 "
-
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerJsonV310]
             }
-            customer <- Connector.connector.vend.createCustomerFuture(bankId,
+  
+            customerIsExisted <- Connector.connector.vend.checkCustomerNumberAvailableFuture(bankId, postedData.customer_number) map {
+              unboxFullOrFail(_, callContext, CheckCustomerError, 400)
+            }
+  
+            - <- Helper.booleanToFuture( s"${CustomerNumberAlreadyExists
+              .replace("BANK_ID",s"BANK_ID(${bankId.value})")
+              .replace("CUSTOMER_NUMBER", s"CUSTOMER_NUMBER(${postedData.customer_number})")}") {customerIsExisted == true}
+  
+            customer <- Connector.connector.vend.createCustomerFuture(
+              bankId,
               postedData.customer_number,
               postedData.legal_name,
               postedData.mobile_phone_number,
@@ -1215,7 +1224,11 @@ trait APIMethods310 {
               postedData.last_ok_date,
               Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
               Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
-              Some(cc)) map {
+              Some(cc),
+              postedData.title,
+              postedData.branchId,
+              postedData.nameSuffix
+            ) map {
               unboxFullOrFail(_, Some(cc), CreateCustomerError, 400)
             }
           } yield {

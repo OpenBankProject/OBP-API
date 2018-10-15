@@ -1350,6 +1350,11 @@ trait Connector extends MdcLoggable{
     callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
 
 
+  def checkCustomerNumberAvailableFuture(
+    bankId : BankId, 
+    customerNumber : String
+  ) : Future[Box[Boolean]] = Future{Failure(NotImplemented + currentMethodName())}
+  
   def createCustomerFuture(
                       bankId: BankId,
                       number: String,
@@ -1368,7 +1373,10 @@ trait Connector extends MdcLoggable{
                       lastOkDate: Date,
                       creditRating: Option[CreditRatingTrait],
                       creditLimit: Option[AmountOfMoneyTrait],
-                      callContext: Option[CallContext] = None
+                      callContext: Option[CallContext] = None,
+                      title: String,
+                      branchId: String,
+                      nameSuffix: String
                     ): Future[Box[Customer]] = Future{Failure(NotImplemented + currentMethodName())}
 
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}

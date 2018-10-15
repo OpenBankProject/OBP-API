@@ -1719,6 +1719,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bespoke = bespoke
     )
 
+  override def checkCustomerNumberAvailableFuture(
+    bankId: BankId,
+    customerNumber: String
+  ) = Future{tryo {Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)} }
+  
+  
   override def createCustomerFuture(
                                bankId: BankId,
                                number: String,
@@ -1737,7 +1743,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                lastOkDate: Date,
                                creditRating: Option[CreditRatingTrait],
                                creditLimit: Option[AmountOfMoneyTrait],
-                               callContext: Option[CallContext] = None): Future[Box[Customer]] = Future{
+                               callContext: Option[CallContext] = None,
+                               title: String,
+                               branchId: String,
+                               nameSuffix: String): Future[Box[Customer]] = Future{
     Customer.customerProvider.vend.addCustomer(
       bankId,
       number,
@@ -1754,7 +1763,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       kycStatus,
       lastOkDate,
       creditRating,
-      creditLimit
+      creditLimit,
+      title,
+      branchId,
+      nameSuffix
     )
   }
   

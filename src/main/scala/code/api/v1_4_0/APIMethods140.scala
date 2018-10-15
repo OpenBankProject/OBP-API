@@ -686,7 +686,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 postedData.kyc_status,
                 postedData.last_ok_date,
                 None,
-                None) ?~! "Could not create customer"
+                None,
+                "",
+                "",
+                ""
+            ) ?~! "Could not create customer"
             _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, DateWithMsExampleObject, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = JSONFactory1_4_0.createCustomerJson(customer)

@@ -26,15 +26,14 @@ Berlin 13359, Germany
  */
 package code.api.v3_1_0
 
+import java.lang
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
-
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson}
-import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
-
+import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
@@ -177,25 +176,50 @@ case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
 case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
 
 
-
 case class PostCustomerJsonV310(
-                                 number: String,
-                                 customer_number : String,
-                                 legal_name : String,
-                                 mobile_phone_number : String,
-                                 email : String,
-                                 face_image : CustomerFaceImageJson,
-                                 date_of_birth: Date,
-                                 relationship_status: String,
-                                 dependants: Int,
-                                 dob_of_dependants: List[Date],
-                                 credit_rating: CustomerCreditRatingJSON,
-                                 credit_limit: AmountOfMoneyJsonV121,
-                                 highest_education_attained: String,
-                                 employment_status: String,
-                                 kyc_status: Boolean,
-                                 last_ok_date: Date
-                               )
+  customer_number: String,
+  legal_name: String,
+  mobile_phone_number: String,
+  email: String,
+  face_image: CustomerFaceImageJson,
+  date_of_birth: Date,
+  relationship_status: String,
+  dependants: Int,
+  dob_of_dependants: List[Date],
+  credit_rating: CustomerCreditRatingJSON,
+  credit_limit: AmountOfMoneyJsonV121,
+  highest_education_attained: String,
+  employment_status: String,
+  kyc_status: Boolean,
+  last_ok_date: Date,
+  title: String,
+  branchId: String,
+  nameSuffix: String
+)
+
+case class CustomerJsonV310(
+  bank_id: String,
+  customer_id: String,
+  customer_number : String,
+  legal_name : String,
+  mobile_phone_number : String,
+  email : String,
+  face_image : CustomerFaceImageJson,
+  date_of_birth: Date,
+  relationship_status: String,
+  dependants: Integer,
+  dob_of_dependants: List[Date],
+  credit_rating: Option[CustomerCreditRatingJSON],
+  credit_limit: Option[AmountOfMoneyJsonV121],
+  highest_education_attained: String,
+  employment_status: String,
+  kyc_status: lang.Boolean,
+  last_ok_date: Date,
+  title: String,
+  branchId: String,
+  nameSuffix: String
+)
+
 case class PostCustomerResponseJsonV310(
                                          messages: List[String]
                                        )
@@ -299,13 +323,31 @@ object JSONFactory310{
     ConfigurationJsonV310(defaultBankId,configurationJson.akka,configurationJson.elastic_search, configurationJson.cache)
   }
 
-  def createCustomerJson(postCustomer: Customer) = {
-      postCustomer
+  def createCustomerJson(cInfo : Customer) : CustomerJsonV310 = {
+    CustomerJsonV310(
+      bank_id = cInfo.bankId.toString,
+      customer_id = cInfo.customerId,
+      customer_number = cInfo.number,
+      legal_name = cInfo.legalName,
+      mobile_phone_number = cInfo.mobileNumber,
+      email = cInfo.email,
+      face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
+        date = cInfo.faceImage.date),
+      date_of_birth = cInfo.dateOfBirth,
+      relationship_status = cInfo.relationshipStatus,
+      dependants = cInfo.dependents,
+      dob_of_dependants = cInfo.dobOfDependents,
+      credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
+      credit_limit = Option(AmountOfMoneyJsonV121(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
+      highest_education_attained = cInfo.highestEducationAttained,
+      employment_status = cInfo.employmentStatus,
+      kyc_status = cInfo.kycStatus,
+      last_ok_date = cInfo.lastOkDate,
+      title = cInfo.title,
+      branchId = cInfo.branchId,
+      nameSuffix = cInfo.nameSuffix
+    )
   }
 
-
-  def updateCustomerJson(postCustomer: Customer) = {
-    postCustomer
-  }
 
 }

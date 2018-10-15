@@ -1716,7 +1716,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           
         val res = future1 map {
           case (list, status, callerContext1) if (status.errorCode=="") =>
-            Full(list, callerContext1)
+            Full(JsonFactory_vJune2017.createObpCustomers(list), callerContext1)
           case (_, status, _) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:" + status.backendMessages)
           case (List(),status, _) =>
