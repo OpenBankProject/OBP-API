@@ -1589,22 +1589,28 @@ trait APIMethods300 {
       emptyObjectJson,
       otherAccountsJsonV300,
       List(
+        UserNotLoggedIn,
         BankAccountNotFound,
+        ViewNotFound,
+        ConnectorEmptyResponse,
         UnknownError
       ),
       Catalogs(notCore, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagAccount))
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
   
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
         cc =>
           for {
-            (account, callContext)<- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            otherBankAccounts <- account.moderatedOtherBankAccounts(view, cc.user)
+            (u, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            otherBankAccounts <- Future(account.moderatedOtherBankAccounts(view, u)) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
           } yield {
             val otherBankAccountsJson = createOtherBankAccountsJson(otherBankAccounts)
-            successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+            (otherBankAccountsJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -1625,6 +1631,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
+        ViewNotFound,
         ConnectorEmptyResponse,
         UnknownError),
       Catalogs(notCore, PSD2, OBWG),
