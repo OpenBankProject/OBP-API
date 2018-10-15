@@ -19,7 +19,6 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
-import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.metrics.APIMetrics
 import code.model.{BankId, ViewId, _}
@@ -1594,7 +1593,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, PSD2, OBWG),
-      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
+      List(apiTagCounterparty, apiTagAccount))
   
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
@@ -1623,20 +1622,27 @@ trait APIMethods300 {
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       otherAccountJsonV300,
-      List(BankAccountNotFound, UnknownError),
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        ConnectorEmptyResponse,
+        UnknownError),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
   
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet req => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet _ => {
         cc =>
           for {
-            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
+            (u, callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            otherBankAccount <- Future(account.moderatedOtherBankAccount(other_account_id, view, u)) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
           } yield {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)
-            successJsonResponse(Extraction.decompose(otherBankAccountJson))
+            (otherBankAccountJson, HttpCode.`200`(callContext))
           }
       }
     }
