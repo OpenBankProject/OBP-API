@@ -2,18 +2,16 @@ package code.api.UKOpenBanking.v2_0_0
 
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.ApiTag._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.{BankAccountNotFound, InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, ViewNotFound}
-import code.api.util.{ApiVersion, ErrorMessages}
+import code.api.util.ApiTag._
+import code.api.util.ErrorMessages.{InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, _}
+import code.api.util.{ApiVersion, ErrorMessages, NewStyle}
 import code.bankconnectors.Connector
-import code.model._
-import code.model.AccountId
+import code.model.{AccountId, _}
 import code.util.Helper
 import code.views.Views
-import net.liftweb.http.rest.RestHelper
-import code.api.util.ErrorMessages._
 import net.liftweb.common.Full
+import net.liftweb.http.rest.RestHelper
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -96,9 +94,7 @@ trait APIMethods_UKOpenBanking_200 {
             (bankAccount, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -188,10 +184,8 @@ trait APIMethods_UKOpenBanking_200 {
             (account, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-        
-            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
         
             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
         

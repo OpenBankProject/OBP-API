@@ -265,9 +265,7 @@ trait APIMethods300 {
                 x => fullBoxOrException(
                   x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${updateJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
-              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankId, accountId)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              view <- NewStyle.function.view(viewId, BankIdAccountId(bankId, accountId), callContext)
               _ <- Helper.booleanToFuture(failMsg = SystemViewsCanNotBeModified) {
                 !view.isSystem
               }
@@ -320,9 +318,7 @@ trait APIMethods300 {
             for {
               (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
               _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
                 (u.hasViewAccess(view))
               }
@@ -373,10 +369,7 @@ trait APIMethods300 {
         cc =>
           for {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
-            view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(account.bankId, account.accountId)) map {
-              val msg = s"$ViewNotFound(${viewId.value})"
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             moderatedAccount <- Future {account.moderatedBankAccount(view, Empty) } map {
               x => fullBoxOrException(x)
             } map { unboxFull(_) }
@@ -424,9 +417,7 @@ trait APIMethods300 {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             // Assume owner view was requested
-            view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId)) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewAccess(view))}
           } yield {
             for {
@@ -575,9 +566,7 @@ trait APIMethods300 {
                canUseFirehose(u)
               }
               (bankAccount, callContext)<- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
@@ -635,9 +624,7 @@ trait APIMethods300 {
               (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               // Assume owner view was requested
-              view <- Views.views.vend.viewFuture(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             } yield {
               for {
                 //Note: error handling and messages for getTransactionParams are in the sub method
@@ -697,10 +684,7 @@ trait APIMethods300 {
             for {
               (user, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              // Assume owner view was requested
-              view <- Views.views.vend.viewFuture(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId)) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(ViewNotFound, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+              view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             } yield {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
