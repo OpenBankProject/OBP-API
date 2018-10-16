@@ -160,7 +160,7 @@ object NewStyle {
 
     def getAdapterInfo(callContext: Option[CallContext]) = {
       Future {
-        Connector.connector.vend.getAdapterInfo()
+        Connector.connector.vend.getAdapterInfo(callContext)
       } map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }

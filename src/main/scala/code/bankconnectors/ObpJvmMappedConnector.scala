@@ -111,8 +111,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   val getCounterpartyFromTransactionTTL     = APIUtil.getPropsValue("connector.cache.ttl.seconds.getCounterpartyFromTransaction", "0").toInt * 1000 // Miliseconds
   val getCounterpartiesFromTransactionTTL   = APIUtil.getPropsValue("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt * 1000 // Miliseconds
 
-  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = Empty
-  
   override def getUser( username: String, password: String ): Box[InboundUser] = {
     val parameters = new JHashMap
     parameters.put("username", username)

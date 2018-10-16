@@ -110,7 +110,14 @@ object ApiSession {
     */
   def updateSessionId(callContext: Option[CallContext]): Option[CallContext] = {
     val gatewayLoginRequestSessionId = callContext.map(_.gatewayLoginRequestPayload.map(_.session_id)).flatten.flatten
-      callContext.map(_.copy(sessionId = gatewayLoginRequestSessionId))
+    callContext.map(_.copy(sessionId = gatewayLoginRequestSessionId))
+  }
+
+  /**
+    * Used for update the callContext.sessionId by the parameter . 
+    */
+  def updateSessionId(callContext: Option[CallContext], newSessionId: String): Option[CallContext] = {
+    callContext.map(_.copy(sessionId = Some(newSessionId)))
   }
   
   def updateCallContext(s: Spelling, cnt: Option[CallContext]): Option[CallContext] = {

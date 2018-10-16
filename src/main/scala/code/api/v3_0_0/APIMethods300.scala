@@ -996,11 +996,11 @@ trait APIMethods300 {
           cc =>
             for {
               _ <- NewStyle.function.getBank(bankId, Some(cc))
-              ai: InboundAdapterInfoInternal <- Future(Connector.connector.vend.getAdapterInfo()) map {
+              (ai, cc) <- Future(Connector.connector.vend.getAdapterInfo(Some(cc))) map {
                 unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
               }
             } yield {
-              (createAdapterInfoJson(ai), Some(cc))
+              (createAdapterInfoJson(ai), cc)
             }
       }
     }

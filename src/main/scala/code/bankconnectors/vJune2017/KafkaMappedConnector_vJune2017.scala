@@ -116,10 +116,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     messageFormat = messageFormat,
     description = "getAdapterInfo from Adapter, just for testing kafka and Adapter setting.  ",
     exampleOutboundMessage = decompose(
-      OutboundGetAdapterInfo(date = DateWithSecondsExampleString)
+      OutboundGetAdapterInfo(authInfoExample, date = DateWithSecondsExampleString)
     ),
     exampleInboundMessage = decompose(
       InboundAdapterInfo(
+        authInfoExample,
         InboundAdapterInfoInternal(
           errorCodeExample,
           inboundStatusMessagesExample,
@@ -133,8 +134,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAdapterInfo]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true)))
   )
-  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = {
-    val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
+  override def getAdapterInfo(callContext: Option[CallContext]) = {
+    val req = OutboundGetAdapterInfo(
+      AuthInfo(sessionId = callContext.get.correlationId),
+      DateWithSecondsExampleString
+    )
     
     logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
   
@@ -142,17 +146,18 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
       inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"$InboundAdapterInfo extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
       inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
+      callContextUpdated = ApiSession.updateSessionId(callContext, inboundAdapterInfo.authInfo.sessionId)
     } yield{
-      inboundAdapterInfoInternal
+      (inboundAdapterInfoInternal,callContextUpdated)
     }
     
     
     logger.debug(s"Kafka getAdapterInfo Res says:  is: $Box")
     
     val res = box match {
-      case Full(list) if (list.errorCode=="") =>
-        Full(list)
-      case Full(list) if (list.errorCode!="") =>
+      case Full((list, callContext)) if (list.errorCode=="") =>
+        Full((list, callContext))
+      case Full((list, callContext)) if (list.errorCode!="") =>
         Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
       case Failure(msg, e, c)  =>
         Failure(msg, e, c)

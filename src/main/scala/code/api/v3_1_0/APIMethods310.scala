@@ -1010,7 +1010,7 @@ trait APIMethods310 {
       case "adapter" :: Nil JsonGet _ => {
         cc =>
           for {
-            ai: InboundAdapterInfoInternal <- NewStyle.function.getAdapterInfo(Some(cc))
+            (ai,cc) <- NewStyle.function.getAdapterInfo(Some(cc))
           } yield {
             (createAdapterInfoJson(ai), HttpCode.`200`(cc))
           }

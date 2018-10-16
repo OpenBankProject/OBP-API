@@ -183,7 +183,7 @@ trait Connector extends MdcLoggable{
     */
   private def currentMethodName() : String = Thread.currentThread.getStackTrace()(2).getMethodName
   
-  def getAdapterInfo(): Box[InboundAdapterInfoInternal] = Failure(NotImplemented + currentMethodName)
+  def getAdapterInfo(callContext: Option[CallContext]) : Box[(InboundAdapterInfoInternal, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
 
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered

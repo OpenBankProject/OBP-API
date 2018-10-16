@@ -99,8 +99,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
 
-  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = Empty
-  
   // "Versioning" of the messages sent by this or similar connector might work like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
   // Probably should be in a separate file e.g. Nov2016_messages.scala

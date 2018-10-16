@@ -442,10 +442,10 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    Connector.connector.vend.getAdapterInfo() match {
+    Connector.connector.vend.getAdapterInfo(None) match {
       case Empty =>
         logger.info("ADAPTER INFO - Adapter is not implemented.")
-      case Full(obj@InboundAdapterInfoInternal(errorCode, backendMessages, name, version, git_commit, date)) =>
+      case Full((obj@InboundAdapterInfoInternal(errorCode, backendMessages, name, version, git_commit, date),_)) =>
         logger.info("ADAPTER INFO - errorCode: " + errorCode)
         logger.info("ADAPTER INFO - backendMessages: " + backendMessages)
         logger.info("ADAPTER INFO - name: " + name)

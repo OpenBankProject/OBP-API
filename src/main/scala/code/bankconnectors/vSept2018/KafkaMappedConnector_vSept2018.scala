@@ -176,7 +176,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAdapterInfo]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true)))
   )
-  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = {
+  override def getAdapterInfo(callContext: Option[CallContext]) = {
     val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
     
     logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
@@ -194,7 +194,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
     val res = box match {
       case Full(list) if (list.errorCode=="") =>
-        Full(list)
+        Full(list, callContext)
       case Full(list) if (list.errorCode!="") =>
         Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
       case Failure(msg, e, c)  =>

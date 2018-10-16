@@ -38,7 +38,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
   
-  feature("test APIUtil.updateCallContextSessionId method") 
+  feature("test ApiSession.createSessionId method") 
   {
     scenario("update the CallContext Session Id") 
     {
@@ -48,6 +48,17 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
       callContext.sessionId should be (None)
       callContextUpdated.get.sessionId should not be (None)
     }
-    
+  }
+  
+  feature("test ApiSession.updateCallContextSessionId method") 
+  {
+    scenario("update the CallContext Session Id") 
+    {
+      val callContext = CallContext() 
+      
+      val callContextUpdated = ApiSession.updateSessionId(Some(callContext), "12345")
+      callContext.sessionId should be (None)
+      callContextUpdated.sessionId should be (Some("12345"))
+    }
   }
 }
