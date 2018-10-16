@@ -8,7 +8,10 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPQueryParam}
+import code.branches.Branches
+import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
@@ -107,6 +110,19 @@ object NewStyle {
 
   object function {
     import scala.concurrent.ExecutionContext.Implicits.global
+
+    def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): Future[Branches.BranchT] = {
+      Connector.connector.vend.getBranchFuture(bankId, branchId) map {
+        val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+        x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]) = {
+      Connector.connector.vend.getAtmFuture(bankId, atmId) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
 
     def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[Bank] = {
       Connector.connector.vend.getBankFuture(bankId) map {

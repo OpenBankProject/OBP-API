@@ -1123,10 +1123,7 @@ trait APIMethods300 {
               canGetBranch(getBranchesIsPublic, user)
             }
             _ <- NewStyle.function.getBank(bankId, callContext)
-            branch <- Connector.connector.vend.getBranchFuture(bankId, branchId) map {
-              val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            branch <- NewStyle.function.getBranch(bankId, branchId, callContext)
           } yield {
             (JSONFactory300.createBranchJsonV300(branch), HttpCode.`200`(callContext))
           }
@@ -1198,7 +1195,7 @@ trait APIMethods300 {
                 case _ => true
               }
             }
-            _ <- Future { Bank(bankId) } map { x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight))) }
+            _ <- NewStyle.function.getBank(bankId, callContext)
             branches <- Connector.connector.vend.getBranchesFuture(bankId) map {
               case Full(List()) | Empty =>
                 fullBoxOrException(Empty ?~! BranchesNotFound)
@@ -1252,9 +1249,7 @@ trait APIMethods300 {
               canGetAtm(getAtmsIsPublic, user)
             }
             _ <- NewStyle.function.getBank(bankId, callContext)
-            atm <- Connector.connector.vend.getAtmFuture(bankId,atmId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+            atm <- NewStyle.function.getAtm(bankId,atmId, callContext)
           } yield {
             (JSONFactory300.createAtmJsonV300(atm), HttpCode.`200`(callContext))
           }
@@ -1494,7 +1489,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            ((accounts, callContext1)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
+            (accounts, callContext1) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
