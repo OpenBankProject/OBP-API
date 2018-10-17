@@ -448,7 +448,7 @@ trait APIMethods210 {
                   //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
                   transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}, it should be COUNTERPARTY input format"
                   toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
-                  toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), Some(cc)) ?~! {CounterpartyNotFoundByCounterpartyId}
+                  (toCounterparty, callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), Some(cc)) ?~! {CounterpartyNotFoundByCounterpartyId}
                   toAccount <- BankAccount.toBankAccount(toCounterparty)
                   // Check we can send money to it.
                   _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)

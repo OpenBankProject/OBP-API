@@ -93,7 +93,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
 //    val challengeId = UUID.randomUUID().toString
 //    val challenge = StringHelpers.randomString(6)
 //    // Random string. For instance: EONXOA
@@ -477,13 +477,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
   
-  //Note: in local mapped database, we have the unique constraint counterparty Id, so just call `getCounterpartyByCounterpartyId` is enough.
-  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext] = None): Box[CounterpartyTrait]= {
-    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId))
+  override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext])= {
+    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
   }
   
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext] = None): Box[CounterpartyTrait] ={
-    Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) ={
+    Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty => (counterparty, callContext))
   }
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] ={

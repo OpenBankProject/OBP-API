@@ -340,9 +340,9 @@ trait Connector extends MdcLoggable{
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]= Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext] = None): Box[CounterpartyTrait]= getCounterpartyByCounterpartyId(CounterpartyId(couterpartyId))
+  def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext] = None): Box[CounterpartyTrait]= Failure(NotImplemented + currentMethodName)
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
   /**
     * get Counterparty by iban (OtherAccountRoutingAddress field in MappedCounterparty table)
@@ -947,7 +947,7 @@ trait Connector extends MdcLoggable{
         case COUNTERPARTY   =>
           for{
            counterpartyId <- tryo{CounterpartyId(body.to_counterparty.get.counterparty_id)}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON"
-           toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId, callContext) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+           (toCounterparty,callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId, callContext) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
            toAccount <- BankAccount.toBankAccount(toCounterparty)
            counterpartyBody <- Full(
              TransactionRequestBodyCounterpartyJSON(

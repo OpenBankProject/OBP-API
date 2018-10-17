@@ -465,7 +465,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountJune2017], Option[CallContext])]] = saveConnectorMetric {
+  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]) = saveConnectorMetric {
      /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -659,7 +659,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         statusExample, 
         Some(InboundAccountJune2017("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil))))
   )
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
+  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -708,7 +708,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1062,7 +1062,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateChallengeJune2017]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeJune2017]().toString(true)))
   )
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
     
     val box = for {
       authInfo <- getAuthInfo(callContext)
@@ -1172,7 +1172,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke], 
-    callContext: Option[CallContext] = None): Box[(CounterpartyTrait, Option[CallContext])] = {
+    callContext: Option[CallContext]) = {
   
     val box = for {
       authInfo <- getAuthInfo(callContext)
@@ -1446,7 +1446,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     )
   )
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext] = None): Box[CounterpartyTrait] = saveConnectorMetric{
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1464,16 +1464,17 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           inboundGetCustomersByUserIdFuture <- tryo {
             kafkaMessage.extract[InboundGetCounterparty]
           } ?~! s"$InboundGetCustomersByUserId extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (internalCustomer, status) <- Full(inboundGetCustomersByUserIdFuture.data, inboundGetCustomersByUserIdFuture.status)
+          (authInfo, internalCustomer, status) <- Full(inboundGetCustomersByUserIdFuture.authInfo, inboundGetCustomersByUserIdFuture.data, inboundGetCustomersByUserIdFuture.status)
         } yield {
-          (internalCustomer, status)
+          (authInfo, internalCustomer, status)
         }
         logger.debug(s"Kafka getCounterpartyByCounterpartyId Res says: is: $box")
 
         val res = box match {
-          case Full((Some(data), status)) if (status.errorCode == "") =>
-            Full(data)
-          case Full((data, status)) if (status.errorCode != "") =>
+          case Full((authInfo, Some(data), status)) if (status.errorCode == "") =>
+            val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
+            Full((data,callContextUpdated))
+          case Full((authInfo, data, status)) if (status.errorCode != "") =>
             Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages)
           case Empty =>
             Failure(ErrorMessages.ConnectorEmptyResponse)
@@ -1488,7 +1489,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getCounterpartyByCounterpartyId")
 
 
-  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String, callContext: Option[CallContext] = None): Box[CounterpartyTrait] = saveConnectorMetric{
+  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1504,16 +1505,17 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           _ <- Full(logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterparty](req)
           inboundGetCounterparty <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (data, status) <- Full(inboundGetCounterparty.data, inboundGetCounterparty.status)
+          (authInfo, data, status) <- Full(inboundGetCounterparty.authInfo, inboundGetCounterparty.data, inboundGetCounterparty.status)
         } yield{
-          (data, status)
+          (authInfo, data, status)
         }
         logger.debug(s"Kafka getCounterpartyTrait Res says: is: $box")
 
         val res = box match {
-          case Full((Some(data), status)) if (status.errorCode=="")  =>
-            Full(data)
-          case Full((data, status)) if (status.errorCode!="") =>
+          case Full((authInfo, Some(data), status)) if (status.errorCode=="")  =>
+            val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
+            Full((data, callContextUpdated))
+          case Full((authInfo, data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
             Failure(ErrorMessages.ConnectorEmptyResponse)
@@ -1558,7 +1560,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = None
   )
 
-  override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric{
+  override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

@@ -251,7 +251,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     Full(chargeValue)
   }
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
     // Create argument list
     val req = Map(
       "north" -> "createChallenge",
@@ -497,10 +497,10 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Get one counterparty by the Counterparty Id
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext] = None): Box[CounterpartyTrait] = {
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = {
 
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
-      Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
+      Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty =>(counterparty, callContext))
     } else {
       val req = Map(
         "north" -> "getCounterpartyByCounterpartyId",
@@ -514,7 +514,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       val r = {
         cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
       }
-      Full(new KafkaCounterparty(r))
+      Full(new KafkaCounterparty(r), callContext)
     }
   }
 
