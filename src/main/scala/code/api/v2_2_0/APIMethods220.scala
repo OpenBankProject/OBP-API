@@ -1062,7 +1062,7 @@ trait APIMethods220 {
             else
               Full()
               
-            counterparty <- Connector.connector.vend.createCounterparty(
+            (counterparty, callConext) <- Connector.connector.vend.createCounterparty(
               name=postJson.name,
               description=postJson.description,
               createdByUserId=u.userId,

@@ -1349,7 +1349,8 @@ trait Connector extends MdcLoggable{
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke],
-    callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
+    callContext: Option[CallContext] = None
+  ): Box[(CounterpartyTrait, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
   
   
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}

@@ -1699,7 +1699,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke],
-    callContext: Option[CallContext] = None): Box[CounterpartyTrait] =
+    callContext: Option[CallContext] = None): Box[(CounterpartyTrait, Option[CallContext])] =
     Counterparties.counterparties.vend.createCounterparty(
       createdByUserId = createdByUserId,
       thisBankId = thisBankId,
@@ -1717,7 +1717,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       otherAccountSecondaryRoutingAddress = otherAccountSecondaryRoutingAddress,
       description = description,
       bespoke = bespoke
-    )
+    ).map(counterparty => (counterparty, callContext))
   
   
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]]=

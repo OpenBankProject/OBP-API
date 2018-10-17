@@ -1241,7 +1241,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     otherBranchRoutingAddress: String,
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke], 
-    callContext: Option[CallContext] = None): Box[CounterpartyTrait] = {
+    callContext: Option[CallContext] = None) = {
   
     val box = for {
       authInfo <- getAuthInfo(callContext)
@@ -1274,9 +1274,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
     logger.debug(s"Kafka createCounterparty Res says: is: $box")
     
-    val res: Box[CounterpartyTrait] = box match {
+    val res = box match {
       case Full((Some(data), status)) if (status.errorCode=="")  =>
-        Full(data)
+        Full((data, callContext))
       case Full((data, status)) if (status.errorCode!="") =>
         Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
       case Empty =>
