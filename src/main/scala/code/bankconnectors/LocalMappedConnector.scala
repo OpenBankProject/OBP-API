@@ -158,8 +158,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress,bank.bankId.value))
       )
 
-  override def getBankFuture(bankId : BankId) : Future[Box[Bank]]= Future {
-    getBank(bankId)
+  override def getBankFuture(bankId : BankId, callContext: Option[CallContext]) = Future {
+    getBank(bankId).map(bank =>(bank,callContext))
   }
   
   //gets banks handled by this connector

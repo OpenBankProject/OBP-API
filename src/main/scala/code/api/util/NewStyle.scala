@@ -106,8 +106,8 @@ object NewStyle {
   object function {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[Bank] = {
-      Connector.connector.vend.getBankFuture(bankId) map {
+    def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[(Bank, Option[CallContext])] = {
+      Connector.connector.vend.getBankFuture(bankId, callContext) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 400)
       }
     }

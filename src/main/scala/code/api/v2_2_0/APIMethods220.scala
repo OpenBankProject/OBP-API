@@ -246,7 +246,7 @@ trait APIMethods220 {
         cc =>
           for {
             (_, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
               assert(isValidCurrencyISOCode(fromCurrencyCode))
             }
