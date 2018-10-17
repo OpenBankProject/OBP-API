@@ -1459,12 +1459,12 @@ trait APIMethods300 {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
-            (customers,callContext1) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
+            (customers,callContext) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext1))
+            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1529,11 +1529,11 @@ trait APIMethods300 {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            ((accounts, callContext1)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
+            ((accounts, callContext)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext1))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
           }
       }
     }

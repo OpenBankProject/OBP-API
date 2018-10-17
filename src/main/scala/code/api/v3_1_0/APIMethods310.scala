@@ -12,7 +12,6 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPBankId}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
