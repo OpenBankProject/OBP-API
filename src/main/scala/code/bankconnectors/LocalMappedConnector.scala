@@ -175,8 +175,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
      )
   }("getBanks")
 
-  override def getBanksFuture(): Future[Box[List[Bank]]] = Future {
-    getBanks()
+  override def getBanksFuture(callContext: Option[CallContext]) = Future {
+    getBanks().map(banks =>(banks, callContext))
   }
 
 

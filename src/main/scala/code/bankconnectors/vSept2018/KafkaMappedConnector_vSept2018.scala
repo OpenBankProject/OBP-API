@@ -348,7 +348,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getBanks")
 
-  override def getBanksFuture(): Future[Box[List[Bank]]] = saveConnectorMetric {
+  override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -380,7 +380,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((banks, status)) if (status.errorCode=="") =>
             val banksResponse =  banks map (new Bank2(_))
             logger.debug(s"Kafka getBanksFuture Res says:  is: $banksResponse")
-            Full(banksResponse)
+            Full((banksResponse, callContext))
           case Full((banks, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case _ =>

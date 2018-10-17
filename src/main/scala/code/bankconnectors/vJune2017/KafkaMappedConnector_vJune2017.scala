@@ -234,7 +234,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBanks")
 
-  override def getBanksFuture(): Future[Box[List[Bank]]] = saveConnectorMetric {
+  override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -256,18 +256,19 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
                 case e: Exception => throw new MappingException(s"$InboundGetBanks extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
               }
           } map {
-            (x => (x.data, x.status))
+            (x => (x.authInfo, x.data, x.status))
           }
         } yield {
           Full(res)
         }
 
         val res = future map {
-          case Full((banks, status)) if (status.errorCode=="") =>
+          case Full((authInfo, banks, status)) if (status.errorCode=="") =>
+            val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
             val banksResponse =  banks map (new Bank2(_))
             logger.debug(s"Kafka getBanksFuture Res says:  is: $banksResponse")
-            Full(banksResponse)
-          case Full((banks, status)) if (status.errorCode!="") =>
+            Full((banksResponse, callContextUpdated))
+          case Full((authInfo, banks, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case _ =>
             Failure(ErrorMessages.UnknownError)

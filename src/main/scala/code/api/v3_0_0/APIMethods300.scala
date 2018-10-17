@@ -2253,9 +2253,9 @@ trait APIMethods300 {
       case "banks" :: Nil JsonGet _ => {
         cc =>
           for {
-            banks <- NewStyle.function.getBanks(Some(cc))
+            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
           } yield 
-            (JSONFactory300.createBanksJson(banks), HttpCode.`200`(cc))
+            (JSONFactory300.createBanksJson(banks), HttpCode.`200`(callContext))
       }
     }
   

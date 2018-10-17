@@ -111,8 +111,8 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 400)
       }
     }
-    def getBanks(callContext: Option[CallContext]) : Future[List[Bank]] = {
-      Connector.connector.vend.getBanksFuture() map {
+    def getBanks(callContext: Option[CallContext]) : Future[(List[Bank], Option[CallContext])] = {
+      Connector.connector.vend.getBanksFuture(callContext: Option[CallContext]) map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
     }

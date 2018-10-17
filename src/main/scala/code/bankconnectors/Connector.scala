@@ -240,7 +240,7 @@ trait Connector extends MdcLoggable{
   //gets banks handled by this connector
   def getBanks(): Box[List[Bank]] = Failure(NotImplemented + currentMethodName)
   
-  def getBanksFuture(): Future[Box[List[Bank]]] = Future {Failure(NotImplemented + currentMethodName)}
+  def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = Future {Failure(NotImplemented + currentMethodName)}
 
   def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
     for {
