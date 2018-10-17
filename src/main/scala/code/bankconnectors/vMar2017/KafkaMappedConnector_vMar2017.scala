@@ -1228,36 +1228,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 //////////////////////////////Following is not over Kafka now //////////////////////////  
   //////////////////////////////////////////////////////////////////////////////////////////  
   
-  
-  
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] = {
-    //note: kafka mode just used the mapper data
-    LocalMappedConnector.getCounterparties(thisBankId, thisAccountId, viewId)
-  }
-  
-  override def createOrUpdatePhysicalCard(bankCardNumber: String,
-    nameOnCard: String,
-    issueNumber: String,
-    serialNumber: String,
-    validFrom: Date,
-    expires: Date,
-    enabled: Boolean,
-    cancelled: Boolean,
-    onHotList: Boolean,
-    technology: String,
-    networks: List[String],
-    allows: List[String],
-    accountId: String,
-    bankId: String,
-    replacement: Option[CardReplacementInfo],
-    pinResets: List[PinResetInfo],
-    collected: Option[CardCollectionInfo],
-    posted: Option[CardPostedInfo]
-  ) : Box[PhysicalCard] = {
-    Empty
-  }
-  
-  
   protected override def makePaymentImpl(
     fromAccount: BankAccount,
     toAccount: BankAccount,

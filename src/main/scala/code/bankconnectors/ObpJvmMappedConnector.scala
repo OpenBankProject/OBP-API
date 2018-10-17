@@ -1384,11 +1384,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     transactionRequestTypeCharge
   }
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] =
-  {
-    LocalMappedConnector.getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId)
-  }
-
   override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(new ObpJvmBankAccount(ObpJvmInboundAccount(id = "",
                                                     bank = "",

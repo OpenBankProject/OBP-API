@@ -545,11 +545,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     }
   }
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] = {
-    //note: kafka mode just used the mapper data
-    LocalMappedConnector.getCounterparties(thisBankId, thisAccountId, viewId)
-  }
-
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
                       issueNumber: String,

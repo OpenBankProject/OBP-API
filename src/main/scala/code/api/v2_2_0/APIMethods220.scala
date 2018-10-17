@@ -297,7 +297,7 @@ trait APIMethods220 {
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
-            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId, Some(cc))
+            (counterparties, callContext)  <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId, Some(cc))
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
             _ <- tryo {for{counterparty <-counterparties}Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name)} ?~! CreateOrUpdateCounterpartyMetadataError 

@@ -1384,7 +1384,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   )
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] = saveConnectorMetric{
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] ) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1406,16 +1406,17 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           _<-Full(logger.debug(s"Kafka getCounterparties Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterparties](req)
           inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"$InboundGetCounterparties extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (internalCounterparties, status) <- Full(inboundGetCounterparties.data, inboundGetCounterparties.status)
+          (authInfo, internalCounterparties, status) <- Full(inboundGetCounterparties.authInfo, inboundGetCounterparties.data, inboundGetCounterparties.status)
         } yield{
-          (internalCounterparties, status)
+          (authInfo, internalCounterparties, status)
         }
         logger.debug(s"Kafka getCounterparties Res says: is: $box")
 
-        val res: Box[List[CounterpartyTrait]] = box match {
-          case Full((data, status)) if (status.errorCode=="")  =>
-            Full(data)
-          case Full((data, status)) if (status.errorCode!="") =>
+        val res = box match {
+          case Full((authInfo, data, status)) if (status.errorCode=="")  =>
+            val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
+            Full((data, callContextUpdated))
+          case Full((authInfo, data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
             Failure(ErrorMessages.ConnectorEmptyResponse)

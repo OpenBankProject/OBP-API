@@ -350,7 +350,7 @@ trait Connector extends MdcLoggable{
     */
   def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
 
-  def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]]= Failure(NotImplemented + currentMethodName)
+  def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]= {
     getTransactions(bankId, accountID, None, queryParams: _*).map(_._1)

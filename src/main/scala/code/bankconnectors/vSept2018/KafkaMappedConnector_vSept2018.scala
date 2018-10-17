@@ -1448,7 +1448,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   )
   )
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] = saveConnectorMetric{
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1476,9 +1476,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         }
         logger.debug(s"Kafka getCounterparties Res says: is: $box")
 
-        val res: Box[List[CounterpartyTrait]] = box match {
+        val res = box match {
           case Full((data, status)) if (status.errorCode=="")  =>
-            Full(data)
+            Full((data,callContext))
           case Full((data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>

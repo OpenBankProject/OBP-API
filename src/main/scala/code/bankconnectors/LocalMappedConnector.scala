@@ -1635,8 +1635,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(transactionRequestTypeCharge)
   }
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] = {
-    Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId)
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None) = {
+    Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId).map(counterparties =>(counterparties, callContext))
   }
 
   override def createOrUpdateBank(

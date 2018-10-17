@@ -1342,8 +1342,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     transactionRequestTypeCharge
   }
   
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] =
-    LocalMappedConnector.getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId)
   
   override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(

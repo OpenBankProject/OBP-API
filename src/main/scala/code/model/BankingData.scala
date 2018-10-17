@@ -569,7 +569,7 @@ trait BankAccount extends MdcLoggable {
       val implicitModeratedOtherBankAccounts = Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderateOtherAccount(oAcc)).flatten
       val explictCounterpartiesBox = Connector.connector.vend.getCounterparties(view.bankId, view.accountId, view.viewId)
       explictCounterpartiesBox match {
-        case Full(counterparties) => {
+        case Full((counterparties, callContext))=> {
           val explictModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccount.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty))
           Full(explictModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
         }
