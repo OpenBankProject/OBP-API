@@ -30,7 +30,6 @@ import scala.collection.immutable.List
 case class OutboundGetAdapterInfo(authInfo: AuthInfo, date: String) extends TopicTrait
 case class OutboundGetBanks(authInfo: AuthInfo) extends TopicTrait
 case class OutboundGetBank(authInfo: AuthInfo, bankId: String) extends TopicTrait
-case class OutboundGetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends TopicTrait
 case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers) extends TopicTrait
 case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
 case class OutboundCheckBankAccountExists(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait

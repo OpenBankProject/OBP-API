@@ -58,7 +58,7 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
       
       val callContextUpdated = ApiSession.updateSessionId(Some(callContext), "12345")
       callContext.sessionId should be (None)
-      callContextUpdated.sessionId should be (Some("12345"))
+      callContextUpdated.get.sessionId should be (Some("12345"))
     }
   }
 }
