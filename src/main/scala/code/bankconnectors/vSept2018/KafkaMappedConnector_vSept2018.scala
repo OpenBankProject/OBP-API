@@ -1698,7 +1698,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     bankId: String, 
     accountId: String, 
     @CacheKeyOmit callContext: Option[CallContext]
-  ): Future[Box[CheckbookOrdersJson]] = saveConnectorMetric{
+  )= saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1735,7 +1735,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val res = future map {
           case (checksOrderStatusResponseDetails, status) if (status.errorCode=="") =>
             logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCheckbookOrdersFuture Res says: is: $checksOrderStatusResponseDetails")
-            Full(checksOrderStatusResponseDetails)
+            Full(checksOrderStatusResponseDetails, callContext)
           case (accountDetails, status) if (status.errorCode!="") =>
             val errorMessage = "INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages
             logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCheckbookOrdersFuture Res says: is: $errorMessage")
@@ -1788,7 +1788,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     bankId: String, 
     accountId: String, 
     @CacheKeyOmit callContext: Option[CallContext]
-  ): Future[Box[List[CardObjectJson]]] = saveConnectorMetric{
+  ) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1830,7 +1830,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 card_type= card.creditCardType,
                 card_description = card.cardDescription,
                 use_type= card.creditCardType
-              )))
+              )), callContext)
           case (accountDetails, status) if (status.errorCode!="") =>
             val errorMessage = "INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages
             logger.debug(s"correlationId(${req.authInfo.correlationId}): Kafka getStatusOfCreditCardOrderFuture Res says: is: $errorMessage")

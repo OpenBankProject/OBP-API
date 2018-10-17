@@ -1362,11 +1362,11 @@ trait Connector extends MdcLoggable{
     bankId: String, 
     accountId: String, 
     callContext: Option[CallContext]
-  ): Future[Box[CheckbookOrdersJson]] = Future{Failure(NotImplemented + currentMethodName)}
+  ): Future[Box[(CheckbookOrdersJson, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName)}
   
   def getStatusOfCreditCardOrderFuture(
     bankId: String, 
     accountId: String, 
     callContext: Option[CallContext]
-  ): Future[Box[List[CardObjectJson]]] = Future{Failure(NotImplemented + currentMethodName)}
+  ): Future[Box[(List[CardObjectJson], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName)}
 }

@@ -1731,9 +1731,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     bankId: String, 
     accountId: String, 
     callContext: Option[CallContext]
-  ): Future[Box[CheckbookOrdersJson]] = Future
-  {
-    Full(SwaggerDefinitionsJSON.checkbookOrdersJson)
+  ) = Future {
+    Full(SwaggerDefinitionsJSON.checkbookOrdersJson, callContext)
   }
   
   
@@ -1741,9 +1740,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     bankId: String, 
     accountId: String, 
     callContext: Option[CallContext]
-  ): Future[Box[List[CardObjectJson]]] = Future
+  ) = Future
   {
-    Full(List(SwaggerDefinitionsJSON.cardObjectJson))
+    Full(List(SwaggerDefinitionsJSON.cardObjectJson), callContext)
   }
   
 }
