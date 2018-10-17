@@ -1314,7 +1314,7 @@ trait APIMethods300 {
                 case _ => true
               }
             }
-            _ <- Future { Bank(bankId) } map { x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight))) }
+            _ <- NewStyle.function.getBank(bankId, callContext)
             atms <- Connector.connector.vend.getAtmsFuture(bankId) map {
               case Full(List()) | Empty =>
                 fullBoxOrException(Empty ?~! atmsNotFound)
