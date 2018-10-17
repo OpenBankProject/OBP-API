@@ -8,7 +8,10 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPQueryParam}
+import code.branches.Branches
+import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
@@ -26,10 +29,12 @@ import scala.concurrent.Future
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -67,7 +72,8 @@ object NewStyle {
     (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getAdapter), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations3_0_0.getOtherAccountByIdForBankAccount), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getOtherAccountsForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getStatusOfCreditCardOrder), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createCreditLimitRequest), ApiVersion.v3_1_0.toString),
@@ -105,6 +111,19 @@ object NewStyle {
 
   object function {
     import scala.concurrent.ExecutionContext.Implicits.global
+
+    def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): Future[Branches.BranchT] = {
+      Connector.connector.vend.getBranchFuture(bankId, branchId) map {
+        val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
+        x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]) = {
+      Connector.connector.vend.getAtmFuture(bankId, atmId) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
 
     def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[Bank] = {
       Connector.connector.vend.getBankFuture(bankId) map {
@@ -170,6 +189,12 @@ object NewStyle {
       Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
+    }
+
+    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]) = {
+      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext))  map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
     }
 
     def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
