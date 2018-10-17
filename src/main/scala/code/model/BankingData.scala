@@ -225,8 +225,6 @@ object Bank {
     Connector.connector.vend.getBank(bankId)
   }
 
-  def all(): Box[List[Bank]] = Connector.connector.vend.getBanks
-
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson(banks: Seq[Bank]) : JArray =
     banks.map(bank => bank.toJson)

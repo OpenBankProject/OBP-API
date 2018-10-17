@@ -190,7 +190,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBanks]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBanks]().toString(true)))
   )
-  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext])= saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -203,23 +203,24 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val req = OutboundGetBanks(AuthInfo())
         logger.debug(s"Kafka getBanks Req is: $req")
 
-        val box: Box[(List[InboundBank], Status)] = for {
+        val box = for {
          _ <- Full(logger.debug("Enter GetBanks BOX1: prekafka") )
           kafkaMessage <- processToBox[OutboundGetBanks](req)
          _ <- Full(logger.debug(s"Enter GetBanks BOX2: postkafka: $kafkaMessage") )
          inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
          _ <- Full(logger.debug(s"Enter GetBanks BOX3 : $inboundGetBanks") )
-         (inboundBanks, status) <- Full(inboundGetBanks.data, inboundGetBanks.status)
+         (authInfo, inboundBanks, status) <- Full(inboundGetBanks.authInfo, inboundGetBanks.data, inboundGetBanks.status)
          _ <- Full(logger.debug(s"Enter GetBanks BOX4: $inboundBanks") )
         } yield {
-          (inboundBanks, status)
+          (authInfo, inboundBanks, status)
         }
 
         logger.debug(s"Kafka getBanks Res says:  is: $Box")
         val res = box match {
-          case Full((banks, status)) if (status.errorCode=="") =>
-            Full(banks map (new Bank2(_)))
-          case Full((banks, status)) if (status.errorCode!="") =>
+          case Full((authInfo, banks, status)) if (status.errorCode=="") =>
+            val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
+            Full((banks.map(Bank2(_)), callContextUpdated))
+          case Full((authInfo, banks, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
             Failure(ErrorMessages.ConnectorEmptyResponse)

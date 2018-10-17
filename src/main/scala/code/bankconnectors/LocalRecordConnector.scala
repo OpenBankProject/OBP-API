@@ -58,8 +58,8 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     getHostedBank(bankId)
 
   //gets banks handled by this connector
-  override def getBanks(): Box[List[Bank]] =
-    Full(HostedBank.findAll)
+  override def getBanks(callContext: Option[CallContext]) =
+    Full(HostedBank.findAll, callContext)
 
   override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])] = {
     for{

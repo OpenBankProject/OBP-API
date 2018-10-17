@@ -112,7 +112,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[KafkaInboundAccount] = getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
+    val accounts: List[KafkaInboundAccount] = getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -158,7 +158,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
 
   //gets banks handled by this connector
-  override def getBanks(): Box[List[Bank]] = {
+  override def getBanks(callContext: Option[CallContext]) = {
     val req = Map(
       "north" -> "getBanks",
       "version" -> formatVersion,
@@ -185,7 +185,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     // Return list of results
 
     logger.debug(s"Kafka getBanks says res is $res")
-    Full(res)
+    Full(res, callContext)
   }
 
   // Gets current challenge level for transaction request

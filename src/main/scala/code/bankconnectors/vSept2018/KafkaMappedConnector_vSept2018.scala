@@ -304,7 +304,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBanks]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBanks]().toString(true)))
   )
-  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -332,7 +332,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         logger.debug(s"Kafka getBanks Res says:  is: $Box")
         val res = box match {
           case Full((banks, status)) if (status.errorCode=="") =>
-            Full(banks map (new Bank2(_)))
+            Full((banks map (new Bank2(_)),callContext))
           case Full((banks, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>

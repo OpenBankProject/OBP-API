@@ -189,7 +189,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[InboundAccount] = getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
+    val accounts: List[InboundAccount] = getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -255,7 +255,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   //gets banks handled by this connector
-  override def getBanks(): Box[List[Bank]] = {
+  override def getBanks(callContext: Option[CallContext]) = {
     val req = OutboundBanksBase(
       messageFormat = messageFormat,
       action = "obp.get.Banks",
@@ -279,7 +279,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Return list of results
 
     logger.debug(s"Kafka getBanks says res is $res")
-    Full(res)
+    Full(res, callContext)
   }
   
   messageDocs += MessageDoc(

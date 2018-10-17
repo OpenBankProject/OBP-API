@@ -163,7 +163,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   //gets banks handled by this connector
-  override def getBanks(): Box[List[Bank]] = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
      Full(MappedBank
         .findAll()
         .map(
@@ -171,12 +171,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
              bank
                .mBankRoutingScheme(APIUtil.ValueOrOBP(bank.bankRoutingScheme))
                .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress, bank.bankId.value))
-        )
+        ),
+       callContext
      )
   }("getBanks")
 
   override def getBanksFuture(callContext: Option[CallContext]) = Future {
-    getBanks().map(banks =>(banks, callContext))
+    getBanks(callContext)
   }
 
 
