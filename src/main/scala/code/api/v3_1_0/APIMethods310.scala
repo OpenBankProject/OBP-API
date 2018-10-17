@@ -15,15 +15,20 @@ import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPBankId}
 import code.consumer.Consumers
+import code.customer.{CreditLimit, CreditRating, CustomerFaceImage}
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.users.Users
 import code.util.Helper
+import code.util.Helper.booleanToBox
 import code.webhook.AccountWebHook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
+
+import net.liftweb.json.Extraction
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1124,6 +1129,87 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      createCustomer,
+      implementedInApiVersion,
+      "createCustomer",
+      "POST",
+      "/banks/BANK_ID/customers",
+      "Create Customer.",
+      s"""
+         |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+         |Dates need to be in the format 2013-01-21T23:08:00Z
+         |
+          |${authenticationRequiredMessage(true)}
+         |""",
+      postCustomerJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        CustomerAlreadyExistsForUser,
+        CreateConsumerError,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagPerson),
+      Some(List(canCreateCustomer,canCreateUserCustomerLink,canCreateCustomerAtAnyBank,canCreateUserCustomerLinkAtAnyBank)))
+    lazy val createCustomer : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+
+            - <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles ) {
+              hasAtLeastOneEntitlement(bankId.value, u.userId,  canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil)
+            }
+
+            _ <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV310 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerJsonV310]
+            }
+  
+            customerIsExisted <- Connector.connector.vend.checkCustomerNumberAvailableFuture(bankId, postedData.customer_number) map {
+              unboxFullOrFail(_, callContext, CheckCustomerError, 400)
+            }
+  
+            - <- Helper.booleanToFuture( s"${CustomerNumberAlreadyExists
+              .replace("BANK_ID",s"BANK_ID(${bankId.value})")
+              .replace("CUSTOMER_NUMBER", s"CUSTOMER_NUMBER(${postedData.customer_number})")}") {customerIsExisted == true}
+  
+            customer <- Connector.connector.vend.createCustomerFuture(
+              bankId,
+              postedData.customer_number,
+              postedData.legal_name,
+              postedData.mobile_phone_number,
+              postedData.email,
+              CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              postedData.date_of_birth,
+              postedData.relationship_status,
+              postedData.dependants,
+              postedData.dob_of_dependants,
+              postedData.highest_education_attained,
+              postedData.employment_status,
+              postedData.kyc_status,
+              postedData.last_ok_date,
+              Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
+              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
+              Some(cc),
+              postedData.title,
+              postedData.branchId,
+              postedData.nameSuffix
+            ) map {
+              unboxFullOrFail(_, Some(cc), CreateCustomerError, 400)
+            }
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
     
   }
 }

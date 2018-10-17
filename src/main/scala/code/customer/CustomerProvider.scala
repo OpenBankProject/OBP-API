@@ -61,7 +61,10 @@ trait CustomerProvider {
                   kycStatus: Boolean,
                   lastOkDate: Date,
                   creditRating: Option[CreditRatingTrait],
-                  creditLimit: Option[AmountOfMoneyTrait]
+                  creditLimit: Option[AmountOfMoneyTrait],
+                  title: String,      
+                  branchId: String,   
+                  nameSuffix: String   
                  ): Box[Customer]
 
   def bulkDeleteCustomers(): Boolean
@@ -93,7 +96,10 @@ class RemotedataCustomerProviderCaseClasses {
                          kycStatus: Boolean,
                          lastOkDate: Date,
                          creditRating: Option[CreditRatingTrait],
-                         creditLimit: Option[AmountOfMoneyTrait]
+                         creditLimit: Option[AmountOfMoneyTrait],
+                         title: String,     
+                         branchId: String,  
+                         nameSuffix: String
                         )
   case class bulkDeleteCustomers()
 
@@ -119,6 +125,9 @@ trait Customer {
   def creditLimit: AmountOfMoneyTrait
   def kycStatus: lang.Boolean
   def lastOkDate: Date
+  def title: String
+  def branchId: String
+  def nameSuffix: String
 }
 
 trait CustomerFaceImageTrait {

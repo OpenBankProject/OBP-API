@@ -282,7 +282,48 @@ case class InternalCounterparty(
                                  bespoke: List[CounterpartyBespoke]) extends CounterpartyTrait
 
 
-case class InternalCustomer(customerId: String, bankId: String, number: String, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImage, dateOfBirth: Date, relationshipStatus: String, dependents: Integer, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, creditRating: CreditRating, creditLimit: CreditLimit, kycStatus: lang.Boolean, lastOkDate: Date) extends Customer
+case class InternalCustomer(
+  customerId: String,
+  bankId: String,
+  number: String,
+  legalName: String,
+  mobileNumber: String,
+  email: String,
+  faceImage: CustomerFaceImage,
+  dateOfBirth: Date,
+  relationshipStatus: String,
+  dependents: Integer,
+  dobOfDependents: List[Date],
+  highestEducationAttained: String,
+  employmentStatus: String,
+  creditRating: CreditRating,
+  creditLimit: CreditLimit,
+  kycStatus: lang.Boolean,
+  lastOkDate: Date
+)
+
+case class ObpCustomer(
+  customerId: String,
+  bankId: String,
+  number: String,
+  legalName: String,
+  mobileNumber: String,
+  email: String,
+  faceImage: CustomerFaceImage,
+  dateOfBirth: Date,
+  relationshipStatus: String,
+  dependents: Integer,
+  dobOfDependents: List[Date],
+  highestEducationAttained: String,
+  employmentStatus: String,
+  creditRating: CreditRating,
+  creditLimit: CreditLimit,
+  kycStatus: lang.Boolean,
+  lastOkDate: Date,
+  title: String = "", //These new fields for V310, not from Connector for now. 
+  branchId: String = "", //These new fields for V310, not from Connector for now. 
+  nameSuffix: String = "", //These new fields for V310, not from Connector for now. 
+) extends Customer
 
 case class  InboundBranchVJune2017(
                            branchId: BranchId,
@@ -378,8 +419,33 @@ object JsonFactory_vJune2017 {
       dateOfBirth = customer.dateOfBirth
     )
   }
+  def createObpCustomer(customer : InternalCustomer) : Customer = {
+    ObpCustomer(
+      customerId = customer.customerId,
+      bankId = customer.bankId,
+      number = customer.number,
+      legalName = customer.legalName,
+      mobileNumber = customer.mobileNumber,
+      email = customer.email,
+      faceImage = customer.faceImage,
+      dateOfBirth = customer.dateOfBirth,
+      relationshipStatus = customer.relationshipStatus,
+      dependents = customer.dependents,
+      dobOfDependents = customer.dobOfDependents,
+      highestEducationAttained = customer.highestEducationAttained,
+      employmentStatus = customer.employmentStatus,
+      creditRating = customer.creditRating,
+      creditLimit = customer.creditLimit,
+      kycStatus = customer.kycStatus,
+      lastOkDate = customer.lastOkDate,
+      )
+  }
   
   def createCustomersJson(customers : List[Customer]) : InternalBasicCustomers = {
     InternalBasicCustomers(customers.map(createCustomerJson))
+  }
+  
+  def createObpCustomers(customers : List[InternalCustomer]) : List[Customer] = {
+    customers.map(createObpCustomer)
   }
 }

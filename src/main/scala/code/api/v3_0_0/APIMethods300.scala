@@ -1395,7 +1395,7 @@ trait APIMethods300 {
         |
         |""",
       emptyObjectJson,
-      customerJsonV210,
+      customerJsonV300,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,

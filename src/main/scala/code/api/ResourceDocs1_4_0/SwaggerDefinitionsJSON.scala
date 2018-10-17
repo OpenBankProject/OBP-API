@@ -1908,6 +1908,75 @@ object SwaggerDefinitionsJSON {
       last_ok_date = DateWithDayExampleObject
     )
 
+  val customerJsonV300 = CustomerJsonV300(
+    bank_id = "bankid1234",
+    customer_id = "123",
+    customer_number = "123",
+    legal_name = "legal_name",
+    mobile_phone_number = "123",
+    email = "contact@tesobe.com",
+    face_image = customerFaceImageJson,
+    date_of_birth = "19900101",
+    relationship_status = "123",
+    dependants = 123,
+    dob_of_dependants = List("19900101"),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = "123",
+    employment_status = "123",
+    kyc_status = true,
+    last_ok_date = DateWithDayExampleObject,
+    title  = "Dr.",
+    branchId = "12314",
+    nameSuffix = "Sr"
+  )
+  
+  val postCustomerJsonV310 =
+    PostCustomerJsonV310(
+      customer_number = "new customer number 687687678",
+      legal_name = "NONE",
+      mobile_phone_number = "+44 07972 444 876",
+      email = "person@example.com",
+      face_image = customerFaceImageJson,
+      date_of_birth = DateWithDayExampleObject,
+      relationship_status = "Single",
+      dependants = 5,
+      dob_of_dependants = List(DateWithDayExampleObject),
+      credit_rating = customerCreditRatingJSON,
+      credit_limit = amountOfMoneyJsonV121,
+      highest_education_attained = "string",
+      employment_status = "Employed",
+      kyc_status = true,
+      last_ok_date = DateWithDayExampleObject,
+      title  = "Dr.",
+      branchId = "12314",
+      nameSuffix = "Sr"
+    )
+  
+  val customerJsonV310 = CustomerJsonV310(
+    bank_id = "bankid1234",
+    customer_id = "123",
+    customer_number = "123",
+    legal_name = "legal_name",
+    mobile_phone_number = "123",
+    email = "contact@tesobe.com",
+    face_image = customerFaceImageJson,
+    date_of_birth = DateWithDayExampleObject,
+    relationship_status = "123",
+    dependants = 123,
+    dob_of_dependants = List(DateWithDayExampleObject),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = "123",
+    employment_status = "123",
+    kyc_status = true,
+    last_ok_date = DateWithDayExampleObject,
+    title  = "Dr.",
+    branchId = "12314",
+    nameSuffix = "Sr"
+  )
+
+
   val transactionRequestWithChargeJSON210 = TransactionRequestWithChargeJSON210(
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",
     `type` = SANDBOX_TAN.toString,

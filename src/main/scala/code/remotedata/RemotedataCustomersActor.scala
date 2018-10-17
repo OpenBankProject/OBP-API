@@ -71,7 +71,10 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                         kycStatus: Boolean,
                         lastOkDate: Date,
                         creditRating: Option[CreditRatingTrait],
-                        creditLimit: Option[AmountOfMoneyTrait]
+                        creditLimit: Option[AmountOfMoneyTrait],
+                        title: String,     
+                        branchId: String,  
+                        nameSuffix: String
                         ) =>
       logger.debug("addCustomer(" + bankId + ", " + number + ")")
       sender ! extractResult(mapper.addCustomer(bankId,
@@ -89,7 +92,10 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                                                 kycStatus,
                                                 lastOkDate,
                                                 creditRating,
-                                                creditLimit
+                                                creditLimit,
+                                                title: String,     
+                                                branchId: String,  
+                                                nameSuffix: String
                                               ))
 
     case cc.bulkDeleteCustomers() =>
