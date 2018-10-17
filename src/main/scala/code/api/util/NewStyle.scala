@@ -34,6 +34,7 @@ object NewStyle {
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -188,6 +189,12 @@ object NewStyle {
       Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
+    }
+
+    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]) = {
+      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext))  map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
     }
 
     def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
