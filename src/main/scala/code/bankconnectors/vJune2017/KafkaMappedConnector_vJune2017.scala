@@ -1078,16 +1078,17 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       _ <- Full(logger.debug(s"Kafka createChallenge Req says:  is: $req"))
       kafkaMessage <- processToBox[OutboundCreateChallengeJune2017](req)
       inboundCreateChallengeJune2017 <- tryo{kafkaMessage.extract[InboundCreateChallengeJune2017]} ?~! s"$InboundCreateChallengeJune2017 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-      internalCreateChallengeJune2017 <- Full(inboundCreateChallengeJune2017.data)
+      (authInfo, internalCreateChallengeJune2017) <- Full(inboundCreateChallengeJune2017.authInfo, inboundCreateChallengeJune2017.data)
     } yield{
-      internalCreateChallengeJune2017
+      (authInfo, internalCreateChallengeJune2017)
     }
     logger.debug(s"Kafka createChallenge Res says:  is: $Box")
     
     val res = box match {
-      case Full(x) if (x.errorCode=="")  =>
-        Full(x.answer)
-      case Full(x) if (x.errorCode!="") =>
+      case Full((authInfo,x)) if (x.errorCode=="")  =>
+        val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
+        Full((x.answer, callContextUpdated))
+      case Full((authInfo, x)) if (x.errorCode!="") =>
         Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Empty =>
         Failure(ErrorMessages.ConnectorEmptyResponse)

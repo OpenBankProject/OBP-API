@@ -437,7 +437,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x) => Full(x.challengeId)
+      case Some(x) => Full((x.challengeId, callContext))
       case _ => Empty
     }
   }

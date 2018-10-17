@@ -268,7 +268,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => Full(x.challengeId)
+      case Some(x)  => Full(x.challengeId, callContext)
       case _        => Empty
     }
   }

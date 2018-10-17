@@ -104,7 +104,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 //    // TODO Send challenge to the user over an separate communication channel
 //    //Return id of challenge
 //    Full(challengeId)
-    Full("123")
+    Full("123", callContext)
   }
 
   /**

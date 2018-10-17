@@ -1154,7 +1154,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
     val res = box match {
       case Full(x) if (x.errorCode=="")  =>
-        Full(x.answer)
+        Full((x.answer, callContext))
       case Full(x) if (x.errorCode!="") =>
         Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
       case Empty =>
