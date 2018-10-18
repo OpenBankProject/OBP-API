@@ -21,14 +21,10 @@ import code.metrics.APIMetrics
 import code.model._
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.booleanToBox
-import code.webhook.AccountWebHook
+import code.webhook.AccountWebhook
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-
-import net.liftweb.json.Extraction
-import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -814,9 +810,9 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      createAccountWebHook,
+      createAccountWebhook,
       implementedInApiVersion,
-      "createAccountWebHook",
+      "createAccountWebhook",
       "POST",
       "/banks/BANK_ID/account-web-hooks",
       "Create an Account Webhook",
@@ -824,24 +820,24 @@ trait APIMethods310 {
         |
         |$accountWebHookInfo
         |""",
-      accountWebHookPostJson,
-      accountWebHookJson,
+      accountWebhookPostJson,
+      accountWebhookJson,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
-      Some(List(canCreateWebHook))
+      apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canCreateWebhook))
     )
 
-    lazy val createAccountWebHook : OBPEndpoint = {
+    lazy val createAccountWebhook : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "account-web-hooks" :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateWebHook)(bankId.value, u.userId, ApiRole.canCreateWebHook)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPostJson "
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateWebhook)(bankId.value, u.userId, ApiRole.canCreateWebhook)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebhookPostJson "
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[AccountWebHookPostJson]
+              json.extract[AccountWebhookPostJson]
             }
             failMsg = IncorrectTriggerName + postJson.trigger_name + ". Possible values are " + ApiTrigger.availableTriggers.sorted.mkString(", ")
             _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -851,7 +847,7 @@ trait APIMethods310 {
             isActive <- NewStyle.function.tryons(failMsg, 400, callContext) {
               postJson.is_active.toBoolean
             }
-            wh <- AccountWebHook.accountWebHook.vend.createAccountWebHookFuture(
+            wh <- AccountWebhook.accountWebhook.vend.createAccountWebhookFuture(
               bankId = bankId.value,
               accountId = postJson.account_id,
               userId = u.userId,
@@ -860,19 +856,19 @@ trait APIMethods310 {
               httpMethod = postJson.http_method,
               isActive = isActive
             ) map {
-              unboxFullOrFail(_, callContext, CreateWebHookError, 400)
+              unboxFullOrFail(_, callContext, CreateWebhookError, 400)
             }
           } yield {
-            (createAccountWebHookJson(wh), HttpCode.`200`(callContext))
+            (createAccountWebhookJson(wh), HttpCode.`200`(callContext))
           }
       }
     }
 
 
     resourceDocs += ResourceDoc(
-      enableDisableAccountWebHook,
+      enableDisableAccountWebhook,
       implementedInApiVersion,
-      "enableDisableAccountWebHook",
+      "enableDisableAccountWebhook",
       "PUT",
       "/banks/BANK_ID/account-web-hooks",
       "Update an Account Webhook",
@@ -881,49 +877,49 @@ trait APIMethods310 {
         |
         |$accountWebHookInfo
         |""",
-      accountWebHookPutJson,
-      accountWebHookJson,
+      accountWebhookPutJson,
+      accountWebhookJson,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
-      Some(List(canCreateWebHook))
+      apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canCreateWebhook))
     )
 
-    lazy val enableDisableAccountWebHook : OBPEndpoint = {
+    lazy val enableDisableAccountWebhook : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "account-web-hooks" :: Nil JsonPut json -> _  => {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateWebHook)(bankId.value, u.userId, ApiRole.canUpdateWebHook)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPutJson "
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateWebhook)(bankId.value, u.userId, ApiRole.canUpdateWebhook)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebhookPutJson "
             putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[AccountWebHookPutJson]
+              json.extract[AccountWebhookPutJson]
             }
             failMsg = s"$InvalidBoolean Possible values of the json field is_active are true or false."
             isActive <- NewStyle.function.tryons(failMsg, 400, callContext) {
               putJson.is_active.toBoolean
             }
-            _ <- AccountWebHook.accountWebHook.vend.getAccountWebHookByIdFuture(putJson.account_web_hook_id) map {
-              unboxFullOrFail(_, callContext, WebHookNotFound, 400)
+            _ <- AccountWebhook.accountWebhook.vend.getAccountWebhookByIdFuture(putJson.account_webhook_id) map {
+              unboxFullOrFail(_, callContext, WebhookNotFound, 400)
             }
-            wh <- AccountWebHook.accountWebHook.vend.updateAccountWebHookFuture(
-              accountWebHookId = putJson.account_web_hook_id,
+            wh <- AccountWebhook.accountWebhook.vend.updateAccountWebhookFuture(
+              accountWebhookId = putJson.account_webhook_id,
               isActive = isActive
             ) map {
-              unboxFullOrFail(_, callContext, UpdateWebHookError, 400)
+              unboxFullOrFail(_, callContext, UpdateWebhookError, 400)
             }
           } yield {
-            (createAccountWebHookJson(wh), HttpCode.`200`(callContext))
+            (createAccountWebhookJson(wh), HttpCode.`200`(callContext))
           }
       }
     }
 
 
     resourceDocs += ResourceDoc(
-      getAccountWebHooks,
+      getAccountWebhooks,
       implementedInApiVersion,
-      "getAccountWebHooks",
+      "getAccountWebhooks",
       "GET",
       "/management/banks/BANK_ID/account-web-hooks",
       "Get Account Webhooks",
@@ -939,32 +935,32 @@ trait APIMethods310 {
          |
         |""",
       emptyObjectJson,
-      accountWebHooksJson,
+      accountWebhooksJson,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
-      Some(List(canGetWebHooks))
+      apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canGetWebhooks))
     )
 
 
-    lazy val getAccountWebHooks: OBPEndpoint = {
+    lazy val getAccountWebhooks: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) ::"account-web-hooks" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetWebHooks)(bankId.value, u.userId, ApiRole.canGetWebHooks)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetWebhooks)(bankId.value, u.userId, ApiRole.canGetWebhooks)
             httpParams <- NewStyle.function.createHttpParams(cc.url)
             allowedParams = List("limit", "offset", "account_id", "user_id")
             obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             additionalParam = OBPBankId(bankId.value)
-            webHooks <- NewStyle.function.getAccountWebHooks(additionalParam :: obpParams, callContext)
+            webhooks <- NewStyle.function.getAccountWebhooks(additionalParam :: obpParams, callContext)
           } yield {
-            (createAccountWebHooksJson(webHooks), HttpCode.`200`(callContext))
+            (createAccountWebhooksJson(webhooks), HttpCode.`200`(callContext))
           }
       }
     }

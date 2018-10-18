@@ -200,10 +200,10 @@ object ErrorMessages {
 
   val DefaultBankIdNotSet = "OBP-30044: Default BankId is not set on this instance. Please set defaultBank.bank_id in props files. "
 
-  val CreateWebHookError = "OBP-30047: Cannot create Web Hook"
-  val GetWebHooksError = "OBP-30048: Cannot get Web Hooks"
-  val UpdateWebHookError = "OBP-30049: Cannot create Web Hook"
-  val WebHookNotFound = "OBP-30050: Web Hook not found. Please specify a valid value for account_web_hook_id."
+  val CreateWebhookError = "OBP-30047: Cannot create Webhook"
+  val GetWebhooksError = "OBP-30048: Cannot get Webhooks"
+  val UpdateWebhookError = "OBP-30049: Cannot create Webhook"
+  val WebhookNotFound = "OBP-30050: Webhook not found. Please specify a valid value for account_webhook_id."
   val CreateCustomerError = "OBP-30051: Cannot create Customer"
   val CheckCustomerError = "OBP-30052: Cannot check Customer"
 

@@ -296,9 +296,9 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           // Implementations3_1_0.getConsumer ::
                           Implementations3_1_0.getConsumersForCurrentUser ::
                           // Implementations3_1_0.getConsumers ::
-                          Implementations3_1_0.createAccountWebHook ::
-                          Implementations3_1_0.enableDisableAccountWebHook ::
-                          Implementations3_1_0.getAccountWebHooks ::
+                          Implementations3_1_0.createAccountWebhook ::
+                          Implementations3_1_0.enableDisableAccountWebhook ::
+                          Implementations3_1_0.getAccountWebhooks ::
                           Implementations3_1_0.config ::
                           Implementations3_1_0.getAdapterInfo ::
                           Implementations3_1_0.getTransactionByIdForBankAccount ::

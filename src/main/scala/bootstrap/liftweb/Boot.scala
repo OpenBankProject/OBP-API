@@ -83,7 +83,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
-import code.webhook.{MappedAccountWebHook, WebHookHelperActors}
+import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -306,7 +306,7 @@ class Boot extends MdcLoggable {
       }
     }
 
-    WebHookHelperActors.startLocalWebHookHelperWorkers(actorSystem)
+    WebhookHelperActors.startLocalWebhookHelperWorkers(actorSystem)
 
     if (connector.startsWith("kafka")) {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
@@ -572,6 +572,6 @@ object ToSchemify {
     MappedFXRate,
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
-    MappedAccountWebHook
+    MappedAccountWebhook
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

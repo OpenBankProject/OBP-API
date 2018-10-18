@@ -3,10 +3,10 @@ package code.webhook
 import akka.actor.{Actor, ActorLogging}
 import code.api.util.ApiTrigger
 import code.util.Helper.MdcLoggable
-import code.webhook.WebHookActor.Request
+import code.webhook.WebhookActor.Request
 
 
-object WebHookActor {
+object WebhookActor {
   case class Request(trigger: ApiTrigger , eventId: String, bankId: String, accountId: String, amount: String, balance: String)
 }
 
@@ -14,7 +14,7 @@ object WebHookActor {
 /**
   * This Actor acts in next way:
   */
-class WebHookActor extends Actor with ActorLogging with MdcLoggable {
+class WebhookActor extends Actor with ActorLogging with MdcLoggable {
 
   def receive = waitingForRequest
 

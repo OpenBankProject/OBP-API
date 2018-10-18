@@ -19,7 +19,7 @@ import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.util.Helper
 import code.views.Views
-import code.webhook.AccountWebHook
+import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Box
 import net.liftweb.http.provider.HTTPParam
@@ -92,10 +92,10 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getConsumer), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccountWebHook), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.enableDisableAccountWebHook), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createAccountWebhook), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.enableDisableAccountWebhook), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAdapterInfo), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getAccountWebhooks), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString)
@@ -162,9 +162,9 @@ object NewStyle {
       }
     }
 
-    def getAccountWebHooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebHook]] = {
-      AccountWebHook.accountWebHook.vend.getAccountWebHooksFuture(queryParams) map {
-        unboxFullOrFail(_, callContext, GetWebHooksError, 400)
+    def getAccountWebhooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebhook]] = {
+      AccountWebhook.accountWebhook.vend.getAccountWebhooksFuture(queryParams) map {
+        unboxFullOrFail(_, callContext, GetWebhooksError, 400)
       }
     }
 
