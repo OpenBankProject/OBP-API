@@ -1207,12 +1207,12 @@ trait APIMethods310 {
               postedData.last_ok_date,
               Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
               Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
-              Some(cc),
+              callContext,
               postedData.title,
               postedData.branchId,
               postedData.nameSuffix
             ) map {
-              unboxFullOrFail(_, Some(cc), CreateCustomerError, 400)
+              unboxFullOrFail(_, callContext, CreateCustomerError, 400)
             }
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
