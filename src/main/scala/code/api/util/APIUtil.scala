@@ -2026,7 +2026,7 @@ Returns a string showed to the developer
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def extractCallContext(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def authorizeEndpoint(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc) map {
       x => underCallLimits(x)
     } map {
@@ -2036,7 +2036,7 @@ Returns a string showed to the developer
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
-  def extractCallContext(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def authorizeEndpoint(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc)
   }
 

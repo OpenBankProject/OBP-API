@@ -2069,7 +2069,7 @@ trait APIMethods200 {
       case "entitlements" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }

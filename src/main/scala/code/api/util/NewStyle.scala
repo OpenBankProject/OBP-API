@@ -1,8 +1,9 @@
 package code.api.util
 
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, hasEntitlement, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
+import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
@@ -15,10 +16,11 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.util.Helper
 import code.views.Views
-import code.webhook.AccountWebHook
+import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Box
 import net.liftweb.http.provider.HTTPParam
@@ -29,12 +31,14 @@ import scala.concurrent.Future
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getExplictCounterpartyById), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -90,10 +94,10 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getConsumer), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccountWebHook), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.enableDisableAccountWebHook), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createAccountWebhook), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.enableDisableAccountWebhook), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAdapterInfo), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAccountWebHooks), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getAccountWebhooks), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString)
@@ -160,9 +164,9 @@ object NewStyle {
       }
     }
 
-    def getAccountWebHooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebHook]] = {
-      AccountWebHook.accountWebHook.vend.getAccountWebHooksFuture(queryParams) map {
-        unboxFullOrFail(_, callContext, GetWebHooksError, 400)
+    def getAccountWebhooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebhook]] = {
+      AccountWebhook.accountWebhook.vend.getAccountWebhooksFuture(queryParams) map {
+        unboxFullOrFail(_, callContext, GetWebhooksError, 400)
       }
     }
 
@@ -191,11 +195,24 @@ object NewStyle {
       }
     }
 
-    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]) = {
-      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext))  map {
+    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): Future[List[CounterpartyTrait]] = {
+      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext)) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
+
+    def getMetadata(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyMetadata] = {
+      Future(Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId)) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(CounterpartyMetadataNotFound, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyTrait] = {
+      Future(Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext)) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
 
     def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 

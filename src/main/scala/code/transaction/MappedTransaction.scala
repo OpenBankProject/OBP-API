@@ -7,7 +7,7 @@ import code.api.util.{APIUtil, ApiTrigger}
 import code.bankconnectors.Connector
 import code.model._
 import code.util._
-import code.webhook.WebHookActor
+import code.webhook.WebhookActor
 import net.liftweb.common._
 import net.liftweb.common.Box.tryo
 import net.liftweb.mapper._
@@ -223,8 +223,8 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
     t =>
       tryo {
         val eventId = APIUtil.generateUUID()
-        val actor = ObpLookupSystem.getWebHookActor()
-        actor ! WebHookActor.Request(
+        val actor = ObpLookupSystem.getWebhookActor()
+        actor ! WebhookActor.Request(
           ApiTrigger.onBalanceChange,
           eventId,
           t.theBankId.value,

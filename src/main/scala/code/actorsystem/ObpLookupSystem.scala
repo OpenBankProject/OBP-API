@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import code.api.util.APIUtil
 import code.util.Helper
 import code.util.Helper.MdcLoggable
-import code.webhook.WebHookHelperActors
+import code.webhook.WebhookHelperActors
 import com.typesafe.config.ConfigFactory
 import net.liftweb.util.Props
 
@@ -77,8 +77,8 @@ trait ObpLookupSystem extends MdcLoggable {
   }
 
 
-  def getWebHookActor() = {
-    val name = WebHookHelperActors.actorName
+  def getWebhookActor() = {
+    val name = WebhookHelperActors.actorName
     val actorPath: String = {
       val hostname = ObpActorConfig.localHostname
       val port = ObpActorConfig.localPort

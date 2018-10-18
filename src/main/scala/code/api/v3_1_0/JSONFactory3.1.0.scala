@@ -38,7 +38,7 @@ import code.api.v2_2_0._
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
-import code.webhook.AccountWebHook
+import code.webhook.AccountWebhook
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -151,7 +151,7 @@ case class ConsumerJson(consumer_id: String,
                        )
 case class ConsumersJson(consumers: List[ConsumerJson])
 
-case class AccountWebHookJson(account_web_hook_id: String,
+case class AccountWebhookJson(account_webhook_id: String,
                               bank_id: String,
                               account_id: String,
                               trigger_name: String,
@@ -161,17 +161,17 @@ case class AccountWebHookJson(account_web_hook_id: String,
                               is_active: Boolean
                              )
 
-case class AccountWebHookPostJson(account_id: String,
+case class AccountWebhookPostJson(account_id: String,
                                   trigger_name: String,
                                   url: String,
                                   http_method: String,
                                   is_active: String
                                   )
-case class AccountWebHookPutJson(account_web_hook_id: String,
+case class AccountWebhookPutJson(account_webhook_id: String,
                                  is_active: String
                                  )
 
-case class AccountWebHooksJson(web_hooks: List[AccountWebHookJson])
+case class AccountWebhooksJson(web_hooks: List[AccountWebhookJson])
 
 case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
 
@@ -300,9 +300,9 @@ object JSONFactory310{
     ConsumersJson(cs)
   }
 
-  def createAccountWebHookJson(wh: AccountWebHook) = {
-    AccountWebHookJson(
-      account_web_hook_id = wh.accountWebHookId,
+  def createAccountWebhookJson(wh: AccountWebhook) = {
+    AccountWebhookJson(
+      account_webhook_id = wh.accountWebhookId,
       bank_id = wh.bankId,
       account_id = wh.accountId,
       trigger_name = wh.triggerName,
@@ -313,8 +313,8 @@ object JSONFactory310{
     )
   }
 
-  def createAccountWebHooksJson(whs: List[AccountWebHook]) = {
-    AccountWebHooksJson(whs.map(createAccountWebHookJson(_)))
+  def createAccountWebhooksJson(whs: List[AccountWebhook]) = {
+    AccountWebhooksJson(whs.map(createAccountWebhookJson(_)))
   }
   
   def getConfigInfoJSON(): ConfigurationJsonV310 = {

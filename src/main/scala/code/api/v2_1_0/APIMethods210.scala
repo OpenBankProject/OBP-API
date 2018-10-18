@@ -710,7 +710,7 @@ trait APIMethods210 {
       case "roles" :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- authorizeEndpoint(UserNotLoggedIn, cc)
           }
           yield {
             // Format the data as V2.1.0 json
@@ -994,7 +994,7 @@ trait APIMethods210 {
       case "users" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }

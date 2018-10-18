@@ -57,7 +57,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(ErrorMessages.UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(ErrorMessages.UserNotLoggedIn, cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
           } yield {
@@ -90,7 +90,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             (bankAccount, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -142,7 +142,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: AccountId(accountId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(ErrorMessages.UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(ErrorMessages.UserNotLoggedIn, cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
               _.filter(_.accountId.value == accountId.value)
             }
@@ -179,7 +179,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
 
             (account, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
@@ -227,7 +227,7 @@ trait APIMethods_UKOpenBanking_200 {
       case "balances" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
 
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           

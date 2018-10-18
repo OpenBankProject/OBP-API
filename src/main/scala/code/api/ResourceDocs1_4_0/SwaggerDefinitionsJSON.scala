@@ -2880,19 +2880,19 @@ object SwaggerDefinitionsJSON {
     per_month_call_limit = "-1"
   )
 
-  val accountWebHookPostJson = AccountWebHookPostJson(
+  val accountWebhookPostJson = AccountWebhookPostJson(
     account_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
     trigger_name = ApiTrigger.onBalanceChange.toString(),
     url = "https://localhost.openbankproject.com",
     http_method = "POST",
     is_active = "true"
   )
-  val accountWebHookPutJson = AccountWebHookPutJson(
-    account_web_hook_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+  val accountWebhookPutJson = AccountWebhookPutJson(
+    account_webhook_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
     is_active = "true"
   )
-  val accountWebHookJson =  AccountWebHookJson(
-    account_web_hook_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+  val accountWebhookJson =  AccountWebhookJson(
+    account_webhook_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     bank_id = "obp-x",
     account_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
     trigger_name = ApiTrigger.onBalanceChange.toString(),
@@ -2902,7 +2902,7 @@ object SwaggerDefinitionsJSON {
     is_active = true
   )
 
-  val accountWebHooksJson = AccountWebHooksJson(List(accountWebHookJson))
+  val accountWebhooksJson = AccountWebhooksJson(List(accountWebhookJson))
 
   //The common error or success format.
   //Just some helper format to use in Json 
