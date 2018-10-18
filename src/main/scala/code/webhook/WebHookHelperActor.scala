@@ -7,7 +7,7 @@ import code.util.Helper.MdcLoggable
 object WebhookHelperActors extends MdcLoggable {
 
   val props_hostname = Helper.getHostname
-  val actorName = "Web-Hook-Actor"
+  val actorName = "Webhook-Actor"
 
   //This method is called in Boot.scala
   def startLocalWebhookHelperWorkers(system: ActorSystem): Unit = {
