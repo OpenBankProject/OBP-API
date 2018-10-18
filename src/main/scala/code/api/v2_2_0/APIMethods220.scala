@@ -99,7 +99,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId) {
               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
@@ -246,7 +246,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <-  extractCallContext(UserNotLoggedIn, cc)
+            (_, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
               assert(isValidCurrencyISOCode(fromCurrencyCode))
@@ -293,7 +293,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
@@ -347,7 +347,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
@@ -807,7 +807,7 @@ trait APIMethods220 {
       case "config" :: Nil JsonGet _ =>
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetConfig)("", u.userId, ApiRole.canGetConfig)
           } yield {
             (JSONFactory220.getConfigInfoJSON(), callContext)
