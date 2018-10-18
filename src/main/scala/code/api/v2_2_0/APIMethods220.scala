@@ -471,7 +471,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
               hasEntitlement("", u.userId, canCreateBranchAtAnyBank)
@@ -525,7 +525,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             canCreateAtm <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
@@ -580,7 +580,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createProductEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createProductEntitlementsRequiredForAnyBank),
@@ -646,7 +646,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             canCreateFx <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createFxEntitlementsRequiredForAnyBank),
@@ -717,7 +717,7 @@ trait APIMethods220 {
         cc =>{
           for {
             jsonBody <- tryo (json.extract[CreateAccountJSONV220]) ?~! InvalidJsonFormat
-            _ <- Bank(bankId) ?~! BankNotFound
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             loggedInUser <- cc.user ?~! UserNotLoggedIn
             user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~! InvalidUserId
             _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
@@ -1038,7 +1038,7 @@ trait APIMethods220 {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            _ <- Bank(bankId) ?~! s"$BankNotFound Current BANK_ID = $bankId"
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! s"$BankNotFound Current BANK_ID = $bankId"
             (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
@@ -1053,7 +1053,7 @@ trait APIMethods220 {
             _<- if (APIUtil.isSandboxMode){
               for{
                 _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maxsinec length of `description` filed is ${MappedCounterparty.mDescription.maxLen}")
-                _ <- Bank(BankId(postJson.other_bank_routing_address)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
+                (bank, callContext) <- Bank(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
                 account <- Connector.connector.vend.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address),Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
               } yield {
                 account
@@ -1123,7 +1123,7 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "customer-views" :: Nil JsonGet req => {
         cc =>
           for {
-            bank <- Bank(bankId) ?~ BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~ BankNotFound
             account <- BankAccount(bank.bankId, accountId) ?~ ErrorMessages.AccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             availableViews <- Full(account.permittedViews(user))

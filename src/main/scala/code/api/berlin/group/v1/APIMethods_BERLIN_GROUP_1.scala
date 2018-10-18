@@ -154,7 +154,7 @@ trait APIMethods_BERLIN_GROUP_1 {
             
             bankId = BankId(defaultBankId)
             
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             

@@ -66,7 +66,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
       DefaultFormats.lossless.dateFormat.format(date)
     }
 
-    val thisBank = Connector.connector.vend.getBank(t.bankId)
+    val thisBank = Connector.connector.vend.getBank(t.bankId, None).map(_._1)
     val thisAcc = Connector.connector.vend.getBankAccount(t.bankId, t.accountId)
     val thisAccJson = JObject(List(JField("holder",
       JObject(List(

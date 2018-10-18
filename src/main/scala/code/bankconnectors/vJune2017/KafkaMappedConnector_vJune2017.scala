@@ -304,7 +304,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBank]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true)))
   )
-  override def getBank(bankId: BankId): Box[Bank] =  saveConnectorMetric {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -320,23 +320,24 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
         logger.debug(s"Kafka getBank Req says:  is: $req")
 
-        val box: Box[(InboundBank, Status)] = for {
+        val box= for {
           kafkaMessage <- processToBox[OutboundGetBank](req)
           inboundGetBank <- tryo {
             kafkaMessage.extract[InboundGetBank]
           } ?~! s"$InboundGetBank extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (inboundBank, status) <- Full(inboundGetBank.data, inboundGetBank.status)
+          (authInfo, inboundBank, status) <- Full(inboundGetBank.authInfo, inboundGetBank.data, inboundGetBank.status)
         } yield {
-          (inboundBank, status)
+          (authInfo, inboundBank, status)
         }
 
 
         logger.debug(s"Kafka getBank Res says:  is: $Box")
 
         box match {
-          case Full((bank, status)) if (status.errorCode == "") =>
-            Full((new Bank2(bank)))
-          case Full((_, status)) if (status.errorCode != "") =>
+          case Full((authInfo, bank, status)) if (status.errorCode == "") =>
+            val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
+            Full((new Bank2(bank), callContextUpdated))
+          case Full((_, _, status)) if (status.errorCode != "") =>
             Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages)
           case Empty =>
             Failure(ErrorMessages.ConnectorEmptyResponse)

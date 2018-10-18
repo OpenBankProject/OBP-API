@@ -294,14 +294,14 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets bank identified by bankId
-  override def getBank(id: BankId): Box[Bank] = {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = {
     // Create argument list
     val req = Map(
       "north" -> "getBank",
       "version" -> formatVersion,
       "name" -> "get",
       "target" -> "bank",
-      "bankId" -> id.toString,
+      "bankId" -> bankId.toString,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername
       )
@@ -309,7 +309,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundBank])
     }
     // Return result
-    Full(new KafkaBank(r))
+    Full(new KafkaBank(r), callContext)
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
@@ -473,7 +473,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
 
     for {
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
@@ -804,7 +804,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   ): Box[BankAccount] = {
 
     for {
-      bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
@@ -867,7 +867,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
     } yield {
       //acc.balance = newBalance
       setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -976,7 +976,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)

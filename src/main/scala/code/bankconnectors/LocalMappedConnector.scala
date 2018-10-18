@@ -64,7 +64,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   val getTransactionsTTL                    = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
 
   //This is the implicit parameter for saveConnectorMetric function.
-  //eg:  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric
+  //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
 
@@ -144,8 +144,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //gets a particular bank handled by this connector
-  override def getBank(bankId: BankId): Box[Bank] = saveConnectorMetric {
-    getMappedBank(bankId)
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
+    getMappedBank(bankId).map(bank =>(bank, callContext))
   }("getBank")
 
   private def getMappedBank(bankId: BankId): Box[MappedBank] =
@@ -159,7 +159,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
 
   override def getBankFuture(bankId : BankId, callContext: Option[CallContext]) = Future {
-    getBank(bankId).map(bank =>(bank,callContext))
+    getBank(bankId, callContext)
   }
   
   //gets banks handled by this connector
@@ -859,7 +859,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): Box[BankAccount] = {
 
     for {
-      bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)

@@ -66,7 +66,7 @@ trait APIMethods310 {
           for {
             (_, callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
 
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
@@ -108,7 +108,7 @@ trait APIMethods310 {
           for {
             (_, callContext) <- extractCallContext(UserNotLoggedIn, cc)
 
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
 
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
 
@@ -428,7 +428,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  extractCallContext(UserNotLoggedIn, cc)
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
               canUseFirehose(u)
             }
@@ -648,7 +648,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCheckFundsAvailable)("", u.userId, canCheckFundsAvailable)
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             httpParams: List[HTTPParam] <- NewStyle.function.createHttpParams(cc.url)
@@ -820,7 +820,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateWebHook)(bankId.value, u.userId, ApiRole.canCreateWebHook)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPostJson "
             postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -874,7 +874,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateWebHook)(bankId.value, u.userId, ApiRole.canUpdateWebHook)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountWebHookPutJson "
             putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -936,7 +936,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetWebHooks)(bankId.value, u.userId, ApiRole.canGetWebHooks)
             httpParams <- NewStyle.function.createHttpParams(cc.url)
             allowedParams = List("limit", "offset", "account_id", "user_id")
@@ -1041,7 +1041,7 @@ trait APIMethods310 {
         cc =>
           for {
             (user, callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             (moderatedTransaction, callContext) <- Future(account.moderatedTransaction(transactionId, view, user, callContext)) map {
@@ -1103,7 +1103,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
-            (_, callContext)  <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {

@@ -221,8 +221,8 @@ trait Bank {
 }
 
 object Bank {
-  def apply(bankId: BankId) : Box[Bank] = {
-    Connector.connector.vend.getBank(bankId)
+  def apply(bankId: BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = {
+    Connector.connector.vend.getBank(bankId, callContext)
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -280,16 +280,16 @@ trait BankAccount extends MdcLoggable {
 
   //TODO: remove?
   final def bankName : String =
-    Connector.connector.vend.getBank(bankId).map(_.fullName).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.fullName).getOrElse("")
   //TODO: remove?
   final def nationalIdentifier : String =
-    Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.nationalIdentifier).getOrElse("")
 
   //From V300, used scheme, address
   final def bankRoutingScheme : String =
-    Connector.connector.vend.getBank(bankId).map(_.bankRoutingScheme).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.bankRoutingScheme).getOrElse("")
   final def bankRoutingAddress : String =
-    Connector.connector.vend.getBank(bankId).map(_.bankRoutingAddress).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.bankRoutingAddress).getOrElse("")
 
   /*
   * Delete this account (if connector allows it, e.g. local mirror of account data)

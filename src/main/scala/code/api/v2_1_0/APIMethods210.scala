@@ -154,7 +154,7 @@ trait APIMethods210 {
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
             transactionRequestTypes <- tryo(APIUtil.getPropsValue("transactionRequests_supported_types", ""))
           } yield {
@@ -406,7 +406,7 @@ trait APIMethods210 {
             u <- cc.user ?~ UserNotLoggedIn
             _ <- tryo(assert(isValidID(accountId.value))) ?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value))) ?~! InvalidBankIdFormat
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
             _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
             isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
@@ -571,7 +571,7 @@ trait APIMethods210 {
               challengeAnswerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {InvalidJsonFormat}
 
               // Check Bank exists on this server
-              _ <- Bank(bankId) ?~! {BankNotFound}
+              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
 
               // Check Account exists on this server
               (fromAccount, callContext) <-Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! {BankAccountNotFound}
@@ -670,7 +670,7 @@ trait APIMethods210 {
           if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ UserNotLoggedIn
-              _ <- Bank(bankId) ?~! {BankNotFound}
+              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
               (fromAccount, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
@@ -752,7 +752,7 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~ UserNotLoggedIn
-            _ <- Bank(bankId) ?~ {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~ {BankNotFound}
             _ <- User.findByUserId(userId) ?~! UserNotFoundById
             allowedEntitlements = canGetEntitlementsForAnyUserAtOneBank ::
                                   canGetEntitlementsForAnyUserAtAnyBank::
@@ -1047,7 +1047,7 @@ trait APIMethods210 {
         cc => {
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            bank <- Bank(bankId) ?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             postedData <- tryo {json.extract[TransactionTypeJsonV200]} ?~! InvalidJsonFormat
             _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateTransactionType) == true,InsufficientAuthorisationToCreateTransactionType)
             returnTranscationType <- TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)
@@ -1091,7 +1091,7 @@ trait APIMethods210 {
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             atm  <- Box(Atms.atmsProvider.vend.getAtm(bankId, atmId)) ?~! {AtmNotFoundByAtmId}
           } yield {
             // Format the data as json
@@ -1140,7 +1140,7 @@ trait APIMethods210 {
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             branch <- Box(Branches.branchesProvider.vend.getBranch(bankId, branchId)) ?~! s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
           } yield {
             // Format the data as json
@@ -1193,7 +1193,7 @@ trait APIMethods210 {
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             product <- Connector.connector.vend.getProduct(bankId, productCode)?~! {ProductNotFoundByProductCode}
           } yield {
             // Format the data as json
@@ -1245,7 +1245,7 @@ trait APIMethods210 {
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             products <- Connector.connector.vend.getProducts(bankId)?~!  {ProductNotFoundByProductCode}
           } yield {
             // Format the data as json
@@ -1309,7 +1309,7 @@ trait APIMethods210 {
           for {
             u <- cc.user ?~! UserNotLoggedIn // TODO. CHECK user has role to create a customer / create a customer for another user id.
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! InvalidJsonFormat
             _ <- booleanToBox(
               hasAllEntitlements(bankId.value, u.userId, createCustomerEntitlementsRequiredForSpecificBank)
@@ -1410,7 +1410,7 @@ trait APIMethods210 {
         cc => {
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            _ <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
             // Filter so we only see the ones for the bank in question
             bankCustomers = customers.filter(_.bankId==bankId.value)
@@ -1451,7 +1451,7 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~ UserNotLoggedIn
-            bank <- Bank(bankId) ?~! {BankNotFound}
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
             _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
@@ -1494,7 +1494,7 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~ UserNotLoggedIn
-            bank <- Bank(bankId)?~! {BankNotFound}
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             branchJsonPostV210 <- tryo {json.extract[BranchJsonPostV210]} ?~! InvalidJsonFormat
             _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
             branch <- transformToBranch(branchJsonPostV210)

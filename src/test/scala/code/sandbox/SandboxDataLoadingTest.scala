@@ -146,7 +146,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
   def verifyBankCreated(bank : SandboxBankImport) = {
     val bankId = BankId(bank.id)
-    val foundBankBox = Connector.connector.vend.getBank(bankId)
+    val foundBankBox = Connector.connector.vend.getBank(bankId, None).map(_._1)
 
     foundBankBox.isDefined should equal(true)
 
@@ -714,7 +714,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(bank1Json, Extraction.decompose(bank2))).code should equal(FAILED)
 
     //and the other bank should not have been created
-    Connector.connector.vend.getBank(BankId(otherBank.id)).isDefined should equal(false)
+    Connector.connector.vend.getBank(BankId(otherBank.id), None).map(_._1).isDefined should equal(false)
   }
 
   it should "require users to have valid emails" in {

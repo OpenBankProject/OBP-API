@@ -202,7 +202,7 @@ trait APIMethods121 {
             val bankJSON = JSONFactory.createBankJSON(bank)
             Extraction.decompose(bankJSON)
           }
-          for(bank <- Bank(bankId) ?~! BankNotFound)
+          for((bank, callContext)<- Bank(bankId, Some(cc)) ?~! BankNotFound)
           yield successJsonResponse(bankToJson(bank))
       }
     }
@@ -333,7 +333,7 @@ trait APIMethods121 {
         cc =>
           for{
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
@@ -367,7 +367,7 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
@@ -399,7 +399,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for {
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             publicViewsForBank <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
             publicAccounts<- Full(bank.publicAccounts(publicViewsForBank))
           } yield {

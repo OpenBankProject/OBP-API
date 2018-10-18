@@ -233,7 +233,7 @@ trait Connector extends MdcLoggable{
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Full(true)
 
   //gets a particular bank handled by this connector
-  def getBank(bankId : BankId) : Box[Bank] = Failure(NotImplemented + currentMethodName)
+  def getBank(bankId : BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
   
   def getBankFuture(bankId : BankId, callContext: Option[CallContext]) : Future[Box[(Bank, Option[CallContext])]] = Future(Failure(NotImplemented + currentMethodName))
 

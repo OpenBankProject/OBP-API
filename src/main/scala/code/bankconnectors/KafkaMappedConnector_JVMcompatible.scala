@@ -218,7 +218,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getBanks")
 
   // Gets bank identified by bankId
-  override def getBank(id: BankId): Box[Bank] = saveConnectorMetric {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -233,12 +233,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           "version" -> formatVersion,
           "name" -> "get",
           "target" -> "bank",
-          "bankId" -> id.value
+          "bankId" -> bankId.value
         )
         try {
           val r = process(req).extract[KafkaInboundBank]
           // Return result
-          Full(new KafkaBank(r))
+          Full(new KafkaBank(r), callContext)
         } catch {
           case m: MappingException =>
             logger.error("getBank-MappingException",m)
@@ -737,7 +737,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
 
     for {
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
@@ -1089,7 +1089,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   ): Box[BankAccount] = {
 
     for {
-      bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
@@ -1152,7 +1152,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
     } yield {
       //acc.balance = newBalance
       setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -1264,7 +1264,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)

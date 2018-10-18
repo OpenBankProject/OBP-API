@@ -132,7 +132,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
     scenario("Creating a bank account when the associated bank does not exist") {
       Given("A bank that doesn't exist")
-      Connector.connector.vend.getBank(bankId).isDefined should equal(false)
+      Connector.connector.vend.getBank(bankId, None).map(_._1).isDefined should equal(false)
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createSandboxBankAccount(
@@ -150,7 +150,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     scenario("Creating a bank account with an account number") {
       Given("A bank that does exist")
       createBank(bankId.value)
-      Connector.connector.vend.getBank(bankId).isDefined should equal(true)
+      Connector.connector.vend.getBank(bankId, None).map(_._1).isDefined should equal(true)
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createSandboxBankAccount(bankId, accountId, defaultAccountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName,
@@ -172,7 +172,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     scenario("Creating a bank account without an account number") {
       Given("A bank that does exist")
       createBank(bankId.value)
-      Connector.connector.vend.getBank(bankId).isDefined should equal(true)
+      Connector.connector.vend.getBank(bankId, None).map(_._1).isDefined should equal(true)
 
       When("We try to create an account at that bank")
       Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName,

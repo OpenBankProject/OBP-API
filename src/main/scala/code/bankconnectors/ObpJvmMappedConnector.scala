@@ -245,16 +245,16 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String)
 
   // Gets bank identified by bankId
-  override def getBank(id: BankId): Box[Bank] = memoizeSync(getBankTTL millisecond) {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = memoizeSync(getBankTTL millisecond) {
     val parameters = new JHashMap
 
-    parameters.put(com.tesobe.obp.transport.nov2016.Bank.bankId, id.value)
+    parameters.put(com.tesobe.obp.transport.nov2016.Bank.bankId, bankId.value)
 
     val response = jvmNorth.get("getBank", Transport.Target.bank, parameters)
 
     // todo response.error().isPresent
 
-    response.data().map(d => new BankReader(d)).headOption match {
+    val bank = response.data().map(d => new BankReader(d)).headOption match {
       case Some(b) => Full(ObpJvmBank(ObpJvmInboundBank(
         b.bankId,
         b.name,
@@ -262,6 +262,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         b.url)))
       case None => Empty
     }
+    bank.map(bank=>(bank, callContext))
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
@@ -524,7 +525,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
 
     for {
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
@@ -836,7 +837,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   ): Box[BankAccount] = {
   
     for {
-      bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
@@ -900,7 +901,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
     } yield {
       //acc.balance = newBalance
       setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -1009,7 +1010,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)
