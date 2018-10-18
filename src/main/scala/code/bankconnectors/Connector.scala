@@ -1324,10 +1324,11 @@ trait Connector extends MdcLoggable{
     * get transaction request type charges
     */
   def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
-    val res = for {
-      trt <- transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _))
-    } yield { trt }.toList
-    res.headOption
+    val res: List[TransactionRequestTypeCharge] = for {
+      trt: TransactionRequestType <- transactionRequestTypes
+      trtc: TransactionRequestTypeCharge <- getTransactionRequestTypeCharge(bankId, accountId, viewId, trt)
+    } yield { trtc }
+    Full(res)
   }
   
   def createCounterparty(
