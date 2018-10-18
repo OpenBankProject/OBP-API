@@ -347,16 +347,20 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
-            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
-            counterpartyMetadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId.value) ?~! CounterpartyMetadataNotFound
-            counterparty <- Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId.value, Some(cc))
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
+              view.canAddCounterparty == true
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
+              u.hasViewAccess(view)
+            }
+            counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
+            counterparty <- NewStyle.function.getCounterpartyTrait(bankId, accountId, counterpartyId.value, callContext)
           } yield {
             val counterpartyJson = JSONFactory220.createCounterpartyWithMetadataJSON(counterparty,counterpartyMetadata)
-            successJsonResponse(Extraction.decompose(counterpartyJson))
+            (counterpartyJson, HttpCode.`200`(callContext))
           }
       }
     }

@@ -15,6 +15,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.util.Helper
 import code.views.Views
@@ -35,6 +36,7 @@ object NewStyle {
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.getExplictCounterpartyById), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -191,11 +193,24 @@ object NewStyle {
       }
     }
 
-    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]) = {
-      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext))  map {
+    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): Future[List[CounterpartyTrait]] = {
+      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext)) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
+
+    def getMetadata(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyMetadata] = {
+      Future(Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId)) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(CounterpartyMetadataNotFound, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyTrait] = {
+      Future(Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext)) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
 
     def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
