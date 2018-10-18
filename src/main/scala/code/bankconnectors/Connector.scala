@@ -11,14 +11,14 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
+import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310, PostCustomerResponseJsonV310}
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.customer.Customer
+import code.customer._
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
@@ -1348,8 +1348,37 @@ trait Connector extends MdcLoggable{
     isBeneficiary:Boolean,
     bespoke: List[CounterpartyBespoke],
     callContext: Option[CallContext] = None): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
+
+
+  def checkCustomerNumberAvailableFuture(
+    bankId : BankId, 
+    customerNumber : String
+  ) : Future[Box[Boolean]] = Future{Failure(NotImplemented + currentMethodName())}
   
-  
+  def createCustomerFuture(
+                      bankId: BankId,
+                      number: String,
+                      legalName: String,
+                      mobileNumber: String,
+                      email: String,
+                      faceImage:
+                      CustomerFaceImageTrait,
+                      dateOfBirth: Date,
+                      relationshipStatus: String,
+                      dependents: Int,
+                      dobOfDependents: List[Date],
+                      highestEducationAttained: String,
+                      employmentStatus: String,
+                      kycStatus: Boolean,
+                      lastOkDate: Date,
+                      creditRating: Option[CreditRatingTrait],
+                      creditLimit: Option[AmountOfMoneyTrait],
+                      callContext: Option[CallContext] = None,
+                      title: String,
+                      branchId: String,
+                      nameSuffix: String
+                    ): Future[Box[Customer]] = Future{Failure(NotImplemented + currentMethodName())}
+
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
 
   def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersFuture in Connector!")}

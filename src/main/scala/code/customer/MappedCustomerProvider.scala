@@ -10,6 +10,7 @@ import code.users.Users
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, _}
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -118,7 +119,10 @@ object MappedCustomerProvider extends CustomerProvider {
                            kycStatus: Boolean,
                            lastOkDate: Date,
                            creditRating: Option[CreditRatingTrait],
-                           creditLimit: Option[AmountOfMoneyTrait]
+                           creditLimit: Option[AmountOfMoneyTrait],
+                           title: String,     
+                           branchId: String,  
+                           nameSuffix: String 
                           ) : Box[Customer] = {
 
     val cr = creditRating match {
@@ -130,30 +134,35 @@ object MappedCustomerProvider extends CustomerProvider {
       case Some(c) => CreditLimit(currency = c.currency, amount = c.amount)
       case _       => CreditLimit(currency = "", amount = "")
     }
+       
+    tryo { 
+      MappedCustomer
+        .create
+        .mBank(bankId.value)
+        .mEmail(email)
+        .mFaceImageTime(faceImage.date)
+        .mFaceImageUrl(faceImage.url)
+        .mLegalName(legalName)
+        .mMobileNumber(mobileNumber)
+        .mNumber(number)
+        //.mUser(user.resourceUserId.value)
+        .mDateOfBirth(dateOfBirth)
+        .mRelationshipStatus(relationshipStatus)
+        .mDependents(dependents)
+        .mHighestEducationAttained(highestEducationAttained)
+        .mEmploymentStatus(employmentStatus)
+        .mKycStatus(kycStatus)
+        .mLastOkDate(lastOkDate)
+        .mCreditRating(cr.rating)
+        .mCreditSource(cr.source)
+        .mCreditLimitCurrency(cl.currency)
+        .mCreditLimitAmount(cl.amount)
+        .mTitle(title)
+        .mBranchId(branchId)
+        .mNameSuffix(nameSuffix)
+        .saveMe()
+        } 
 
-    val createdCustomer = MappedCustomer.create
-      .mBank(bankId.value)
-      .mEmail(email)
-      .mFaceImageTime(faceImage.date)
-      .mFaceImageUrl(faceImage.url)
-      .mLegalName(legalName)
-      .mMobileNumber(mobileNumber)
-      .mNumber(number)
-      //.mUser(user.resourceUserId.value)
-      .mDateOfBirth(dateOfBirth)
-      .mRelationshipStatus(relationshipStatus)
-      .mDependents(dependents)
-      .mHighestEducationAttained(highestEducationAttained)
-      .mEmploymentStatus(employmentStatus)
-      .mKycStatus(kycStatus)
-      .mLastOkDate(lastOkDate)
-      .mCreditRating(cr.rating)
-      .mCreditSource(cr.source)
-      .mCreditLimitCurrency(cl.currency)
-      .mCreditLimitAmount(cl.amount)
-      .saveMe()
-
-    Full(createdCustomer)
   }
 
   override def bulkDeleteCustomers(): Boolean = {
@@ -189,6 +198,9 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mCreditLimitAmount extends MappedString(this, 100)
   object mKycStatus extends MappedBoolean(this)
   object mLastOkDate extends MappedDateTime(this)
+  object mTitle extends MappedString(this, 255)
+  object mBranchId extends MappedString(this, 255)
+  object mNameSuffix extends MappedString(this, 255)
 
   override def customerId: String = mCustomerId.get // id.toString
   override def bankId: String = mBank.get
@@ -216,6 +228,10 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   }
   override def kycStatus: lang.Boolean = mKycStatus.get
   override def lastOkDate: Date = mLastOkDate.get
+  
+  override def title: String = mTitle.get
+  override def branchId: String = mBranchId.get
+  override def nameSuffix: String = mNameSuffix.get
 }
 
 object MappedCustomer extends MappedCustomer with LongKeyedMetaMapper[MappedCustomer] {

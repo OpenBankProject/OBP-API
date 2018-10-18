@@ -9,16 +9,15 @@ import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
+import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
 import code.common.OpeningTimes
-import code.customer.Customer
+import code.customer._
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -1719,7 +1718,57 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       description = description,
       bespoke = bespoke
     )
+
+  override def checkCustomerNumberAvailableFuture(
+    bankId: BankId,
+    customerNumber: String
+  ) = Future{tryo {Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)} }
   
+  
+  override def createCustomerFuture(
+                               bankId: BankId,
+                               number: String,
+                               legalName: String,
+                               mobileNumber: String,
+                               email: String,
+                               faceImage:
+                               CustomerFaceImageTrait,
+                               dateOfBirth: Date,
+                               relationshipStatus: String,
+                               dependents: Int,
+                               dobOfDependents: List[Date],
+                               highestEducationAttained: String,
+                               employmentStatus: String,
+                               kycStatus: Boolean,
+                               lastOkDate: Date,
+                               creditRating: Option[CreditRatingTrait],
+                               creditLimit: Option[AmountOfMoneyTrait],
+                               callContext: Option[CallContext] = None,
+                               title: String,
+                               branchId: String,
+                               nameSuffix: String): Future[Box[Customer]] = Future{
+    Customer.customerProvider.vend.addCustomer(
+      bankId,
+      number,
+      legalName,
+      mobileNumber,
+      email,
+      faceImage,
+      dateOfBirth,
+      relationshipStatus,
+      dependents,
+      dobOfDependents,
+      highestEducationAttained,
+      employmentStatus,
+      kycStatus,
+      lastOkDate,
+      creditRating,
+      creditLimit,
+      title,
+      branchId,
+      nameSuffix
+    )
+  }
   
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]]=
     Customer.customerProvider.vend.getCustomersByUserIdFuture(userId) map {

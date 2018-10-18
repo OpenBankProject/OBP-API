@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.actorsystem.ObpActorConfig
+import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -292,18 +293,33 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
-            view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
-            _ <- booleanToBox(view.canAddCounterparty == true, s"${NoViewPermission}canAddCounterparty")
-            _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
-            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId, Some(cc))
-            //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.  
+            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
+              view.canAddCounterparty == true
+            }
+            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
+              u.hasViewAccess(view)
+            }
+            counterparties <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
+            //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
-            _ <- tryo {for{counterparty <-counterparties}Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name)} ?~! CreateOrUpdateCounterpartyMetadataError 
+            _ <- Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400) {
+              {
+                for {
+                  counterparty <- counterparties
+                } yield {
+                  Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name) match {
+                    case Full(_) => true
+                    case _ => false
+                  }
+                }
+              }.forall(_ == true)
+            }
           } yield {
             val counterpartiesJson = JSONFactory220.createCounterpartiesJSON(counterparties)
-            successJsonResponse(Extraction.decompose(counterpartiesJson))
+            (counterpartiesJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -788,9 +804,7 @@ trait APIMethods220 {
         cc =>
           for {
             (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetConfig) {
-              hasEntitlement("", u.userId, ApiRole.canGetConfig)
-            }
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetConfig)("", u.userId, ApiRole.canGetConfig)
           } yield {
             (JSONFactory220.getConfigInfoJSON(), callContext)
           }
