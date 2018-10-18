@@ -804,6 +804,14 @@ trait APIMethods310 {
     }
 
 
+    val accountWebHookInfo = """Webhooks are used to call external URLs when certain events happen.
+                               |
+                               |Account Webhooks focus on events around accounts.
+                               |
+                               |For instance, a webhook could be used to notify an external serivce if a balance changes on an account.
+                               |
+                               |This functionality is work in progress! Although you can create and modify Webhooks, they do not yet fire on triggers."""
+
 
     resourceDocs += ResourceDoc(
       createAccountWebHook,
@@ -811,13 +819,15 @@ trait APIMethods310 {
       "createAccountWebHook",
       "POST",
       "/banks/BANK_ID/account-web-hooks",
-      "Create an Account Web Hook",
-      """Create an Account Web Hook
+      "Create an Account Webhook",
+      s"""Create an Account Webhook
+        |
+        |$accountWebHookInfo
         |""",
       accountWebHookPostJson,
       accountWebHookJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebHook))
     )
@@ -865,13 +875,16 @@ trait APIMethods310 {
       "enableDisableAccountWebHook",
       "PUT",
       "/banks/BANK_ID/account-web-hooks",
-      "Update an Account Web Hook",
-      """Update an Account Web Hook
+      "Update an Account Webhook",
+      s"""Update an Account Webhook
+        |
+        |
+        |$accountWebHookInfo
         |""",
       accountWebHookPutJson,
       accountWebHookJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagWebHook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebHook))
     )
@@ -913,8 +926,8 @@ trait APIMethods310 {
       "getAccountWebHooks",
       "GET",
       "/management/banks/BANK_ID/account-web-hooks",
-      "Get Account Web Hooks",
-      s"""Get Account Web Hooks.
+      "Get Account Webhooks",
+      s"""Get Account Webhooks.
          |
          |Possible custom URL parameters for pagination:
          |
