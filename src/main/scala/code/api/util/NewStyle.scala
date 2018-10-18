@@ -1,8 +1,9 @@
 package code.api.util
 
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, hasEntitlement, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
+import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
@@ -30,6 +31,7 @@ import scala.concurrent.Future
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
+    (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
