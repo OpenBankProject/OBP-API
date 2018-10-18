@@ -1172,7 +1172,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
 
-            - <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles ) {
+            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles ) {
               hasAtLeastOneEntitlement(bankId.value, u.userId,  canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil)
             }
 
@@ -1186,7 +1186,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, CheckCustomerError, 400)
             }
   
-            - <- Helper.booleanToFuture( s"${CustomerNumberAlreadyExists
+            _ <- Helper.booleanToFuture( s"${CustomerNumberAlreadyExists
               .replace("BANK_ID",s"BANK_ID(${bankId.value})")
               .replace("CUSTOMER_NUMBER", s"CUSTOMER_NUMBER(${postedData.customer_number})")}") {customerIsExisted == true}
   
