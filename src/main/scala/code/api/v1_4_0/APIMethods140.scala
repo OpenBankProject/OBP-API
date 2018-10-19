@@ -437,8 +437,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
               u.hasViewAccess(view)
-            } //TODO why not callContext return
-            transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount, callContext)) map {
+            } 
+            transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
             transactionRequestTypeCharges <- Future(Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)) map {

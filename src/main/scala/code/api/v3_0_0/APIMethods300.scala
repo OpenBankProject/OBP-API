@@ -1196,18 +1196,20 @@ trait APIMethods300 {
               }
             }
             (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
-            branches <- Connector.connector.vend.getBranchesFuture(bankId) map {
-              case Full(List(), _) | Empty =>
+            (branches, callContext) <- Connector.connector.vend.getBranchesFuture(bankId, callContext) map {
+              case Full((List(), _)) | Empty =>
                 fullBoxOrException(Empty ?~! BranchesNotFound)
-              case Full((list, _)) =>
+              case Full((list, callContext)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
                 else Full(branchesWithLicense)
             } map { unboxFull(_) } map {
+              branches =>
               // Before we slice we need to sort in order to keep consistent results
-              _.sortWith(_.branchId.value < _.branchId.value)
+                (branches.sortWith(_.branchId.value < _.branchId.value)
               // Slice the result in next way: from=offset and until=offset + limit
                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+              , callContext)
             }
           } yield {
             (JSONFactory300.createBranchesJson(branches), HttpCode.`200`(callContext))
@@ -1315,7 +1317,7 @@ trait APIMethods300 {
               }
             }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            atms <- Connector.connector.vend.getAtmsFuture(bankId) map {
+            (atms, callContext) <- Connector.connector.vend.getAtmsFuture(bankId, callContext) map {
               case Full((List(),_)) | Empty =>
                 fullBoxOrException(Empty ?~! atmsNotFound)
               case Full((list, _)) =>
@@ -1323,10 +1325,12 @@ trait APIMethods300 {
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
                 else Full(branchesWithLicense)
             } map { unboxFull(_) } map {
-              // Before we slice we need to sort in order to keep consistent results
-              _.sortWith(_.atmId.value < _.atmId.value)
+              branch =>
+                // Before we slice we need to sort in order to keep consistent results
+                (branch.sortWith(_.atmId.value < _.atmId.value)
                 // Slice the result in next way: from=offset and until=offset + limit
                 .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+                ,callContext)
             }
           } yield {
             (JSONFactory300.createAtmsJsonV300(atms), HttpCode.`200`(callContext))
