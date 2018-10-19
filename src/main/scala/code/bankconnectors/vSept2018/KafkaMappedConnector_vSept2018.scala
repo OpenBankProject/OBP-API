@@ -520,7 +520,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetAccounts(
         authInfoExample,
-        true,
         InternalBasicCustomers(customers =List(internalBasicCustomer)))
     ),
     exampleInboundMessage = decompose(
@@ -544,7 +543,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       
         val box = for {
           authInfo <- getAuthInfoFirstCbsCall(username, callContext)
-          req = OutboundGetAccounts(authInfo, true, internalCustomers)
+          req = OutboundGetAccounts(authInfo, internalCustomers)
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
@@ -587,7 +586,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
         val req = OutboundGetAccounts(
           getAuthInfoFirstCbsCall(username, callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
-          true,
           internalCustomers
         )
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
