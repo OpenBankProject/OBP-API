@@ -1445,12 +1445,6 @@ Returns a string showed to the developer
     */
   def getServerName(): String = S.containerRequest.map(_.serverName).openOr("Unknown")
 
-  def updateCallContextSessionId(callContext: Option[CallContext]): Option[CallContext] = {
-      val sessionId = generateUUID()
-      val gatewayLoginRequestPayloadNew = callContext.map(_.gatewayLoginRequestPayload.map(_.copy(session_id = Some(sessionId)))).flatten
-      callContext.map(_.copy(gatewayLoginRequestPayload = gatewayLoginRequestPayloadNew))
-  }
-  
   /**
     * Defines Gateway Custom Response Header.
     */

@@ -73,7 +73,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         Views.views.vend.getPrivateBankAccounts(user).size should equal(0)
 
         And("The bank in question doesn't already exist")
-        Connector.connector.vend.getBank(BankId(expectedBankId)).isDefined should equal(false)
+        Connector.connector.vend.getBank(BankId(expectedBankId), None).map(_._1).isDefined should equal(false)
 
         When("We create a bank account")
 
@@ -89,7 +89,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         thenCheckAccountCreated(user)
 
         And("A bank should be created")
-        val createdBankBox = Connector.connector.vend.getBank(BankId(expectedBankId))
+        val createdBankBox = Connector.connector.vend.getBank(BankId(expectedBankId), None).map(_._1)
         createdBankBox.isDefined should equal(true)
         val createdBank = createdBankBox.openOrThrowException(attemptedToOpenAnEmptyBox)
         createdBank.nationalIdentifier should equal(bankIdentifier)

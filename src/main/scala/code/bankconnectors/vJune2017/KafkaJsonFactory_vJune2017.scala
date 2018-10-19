@@ -27,10 +27,9 @@ import scala.collection.immutable.List
   * case classes used to define topics, these are outbound kafka messages
   */
 
-case class OutboundGetAdapterInfo(date: String) extends TopicTrait
+case class OutboundGetAdapterInfo(authInfo: AuthInfo, date: String) extends TopicTrait
 case class OutboundGetBanks(authInfo: AuthInfo) extends TopicTrait
 case class OutboundGetBank(authInfo: AuthInfo, bankId: String) extends TopicTrait
-case class OutboundGetUserByUsernamePassword(authInfo: AuthInfo, password: String) extends TopicTrait
 case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustomers) extends TopicTrait
 case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
 case class OutboundCheckBankAccountExists(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
@@ -101,8 +100,7 @@ case class OutboundGetCreditCardOrderStatus(
   * case classes used in Kafka message, these are InBound Kafka messages
   */
 
-//AdapterInfo has no AuthInfo, because it just get data from Adapter, no need for AuthInfo
-case class InboundAdapterInfo(data: InboundAdapterInfoInternal)
+case class InboundAdapterInfo(authInfo: AuthInfo, data: InboundAdapterInfoInternal)
 case class InboundGetUserByUsernamePassword(authInfo: AuthInfo, data: InboundValidatedUser)
 case class InboundGetBanks(authInfo: AuthInfo, status: Status,data: List[InboundBank])
 case class InboundGetBank(authInfo: AuthInfo, status: Status, data: InboundBank)

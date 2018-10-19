@@ -1,6 +1,7 @@
 package code.api.util
 
-import java.util.Date
+import java.util.{Date, UUID}
+
 import code.api.oauth1a.OauthParams._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
@@ -10,7 +11,8 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
-case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
+case class CallContext(
+                       gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!  
                        gatewayLoginResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
@@ -19,6 +21,7 @@ case class CallContext(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = No
                        startTime: Option[Date] = Some(Helpers.now),
                        endTime: Option[Date] = None,
                        correlationId: String = "",
+                       sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
                        url: String = "",
                        verb: String = "",
                        implementedInVersion: String = "",
@@ -93,6 +96,30 @@ object ApiSession {
 
   val emptyPayloadOfJwt = PayloadOfJwtJSON(login_user_name = "", is_first = true, app_id = "", app_name = "", cbs_id = "", time_stamp = "", cbs_token = None, session_id = None)
 
+  /**
+    * This method accept a callContext, and return the new CallContext with the new callContesxt.sessionId
+    */
+  def createSessionId(callContext: Option[CallContext]): Option[CallContext] = {
+    val sessionId = Some(UUID.randomUUID().toString)
+    callContext.map(_.copy(sessionId = sessionId ))
+  }
+  
+  /**
+    * Will update the callContext.sessionId using the gatewayLoginRequestPayload.session_id.
+    * This is used for GatewayLogin for now. Only when is_first = false will call this method.
+    */
+  def updateSessionId(callContext: Option[CallContext]): Option[CallContext] = {
+    val gatewayLoginRequestSessionId = callContext.map(_.gatewayLoginRequestPayload.map(_.session_id)).flatten.flatten
+    callContext.map(_.copy(sessionId = gatewayLoginRequestSessionId))
+  }
+
+  /**
+    * Used for update the callContext.sessionId by the parameter . 
+    */
+  def updateSessionId(callContext: Option[CallContext], newSessionId: String): Option[CallContext] = {
+    callContext.map(_.copy(sessionId = Some(newSessionId)))
+  }
+  
   def updateCallContext(s: Spelling, cnt: Option[CallContext]): Option[CallContext] = {
     cnt match {
       case None =>

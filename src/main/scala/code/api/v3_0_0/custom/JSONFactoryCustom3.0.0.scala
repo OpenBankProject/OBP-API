@@ -26,6 +26,7 @@ Berlin 13359, Germany
  */
 package code.api.v3_0_0.custom
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.amountOfMoneyJsonV121
 import code.api.util.APIUtil
 
 object JSONFactoryCustom300{

@@ -221,11 +221,9 @@ trait Bank {
 }
 
 object Bank {
-  def apply(bankId: BankId) : Box[Bank] = {
-    Connector.connector.vend.getBank(bankId)
+  def apply(bankId: BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = {
+    Connector.connector.vend.getBank(bankId, callContext)
   }
-
-  def all(): Box[List[Bank]] = Connector.connector.vend.getBanks
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson(banks: Seq[Bank]) : JArray =
@@ -282,16 +280,16 @@ trait BankAccount extends MdcLoggable {
 
   //TODO: remove?
   final def bankName : String =
-    Connector.connector.vend.getBank(bankId).map(_.fullName).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.fullName).getOrElse("")
   //TODO: remove?
   final def nationalIdentifier : String =
-    Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.nationalIdentifier).getOrElse("")
 
   //From V300, used scheme, address
   final def bankRoutingScheme : String =
-    Connector.connector.vend.getBank(bankId).map(_.bankRoutingScheme).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.bankRoutingScheme).getOrElse("")
   final def bankRoutingAddress : String =
-    Connector.connector.vend.getBank(bankId).map(_.bankRoutingAddress).getOrElse("")
+    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.bankRoutingAddress).getOrElse("")
 
   /*
   * Delete this account (if connector allows it, e.g. local mirror of account data)
@@ -514,9 +512,12 @@ trait BankAccount extends MdcLoggable {
     }
   }
 
-  final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Box[ModeratedTransaction] = {
+  final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Box[(ModeratedTransaction, Option[CallContext])] = {
     if(APIUtil.hasAccess(view, user))
-      Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext).map(_._1).flatMap(view.moderateTransaction)
+      for{
+       (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext)
+        moderatedTransaction<- view.moderateTransaction(transaction)
+      } yield (moderatedTransaction, callContext)
     else
       viewNotAllowed(view)
   }
@@ -566,7 +567,7 @@ trait BankAccount extends MdcLoggable {
       val implicitModeratedOtherBankAccounts = Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderateOtherAccount(oAcc)).flatten
       val explictCounterpartiesBox = Connector.connector.vend.getCounterparties(view.bankId, view.accountId, view.viewId)
       explictCounterpartiesBox match {
-        case Full(counterparties) => {
+        case Full((counterparties, callContext))=> {
           val explictModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccount.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty))
           Full(explictModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
         }
@@ -584,7 +585,7 @@ trait BankAccount extends MdcLoggable {
   */
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(APIUtil.hasAccess(view, user))
-      Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID)).flatMap(BankAccount.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
+      Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID), None).map(_._1).flatMap(BankAccount.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
         //First check the explict counterparty 
         case Full(moderatedOtherBankAccount) => Full(moderatedOtherBankAccount)
         //Than we checked the implict counterparty.  
