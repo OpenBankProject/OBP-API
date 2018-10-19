@@ -250,6 +250,9 @@ case class SocialMediaJSON(
 case class SocialMediasJSON(checks: List[SocialMediaJSON])
 
 case class CreateCustomerJson(
+                             title: String,
+                             branchId: String,
+                             nameSuffix: String,
                              user_id: String,
                              customer_number : String,
                              legal_name : String,
