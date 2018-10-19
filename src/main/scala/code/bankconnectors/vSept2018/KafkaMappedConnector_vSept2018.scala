@@ -101,8 +101,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       views <- Full(permission.views)
       authViews<- Full(
         for{
-          view <- views
-          (account, callContext )<- checkBankAccountExists(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
+          view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
           internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
           internalUsers = JsonFactory_vSept2018.createUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
@@ -543,7 +543,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
       
         val box = for {
-          authInfo <- getAuthInfo(callContext)
+          authInfo <- getAuthInfoFirstCbsCall(username, callContext)
           req = OutboundGetAccounts(authInfo, true, internalCustomers)
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
