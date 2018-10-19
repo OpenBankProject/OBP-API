@@ -1038,14 +1038,14 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 accountId = "String",
                 amount = "String",
                 bankId = "String",
-                completedDate = "String",
+                completedDate = "2018-10-19T21:17:03Z",
                 counterpartyId = "String",
                 counterpartyName = "String",
                 currency = "String",
                 description = "String",
                 newBalanceAmount = "String",
                 newBalanceCurrency = "String",
-                postedDate = "String",
+                postedDate = "2018-10-19T21:17:03Z",
                 `type` = "String",
                 userId = "String"
               )))
