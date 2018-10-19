@@ -58,7 +58,10 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                   kycStatus: Boolean,
                   lastOkDate: Date,
                   creditRating: Option[CreditRatingTrait],
-                  creditLimit: Option[AmountOfMoneyTrait]
+                  creditLimit: Option[AmountOfMoneyTrait],
+                  title: String,     
+                  branchId: String,  
+                  nameSuffix: String 
                  ) : Box[Customer] =
     extractFutureToBox(actor ? cc.addCustomer(
                                               bankId = bankId,
@@ -76,7 +79,10 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                                               kycStatus = kycStatus,
                                               lastOkDate = lastOkDate,
                                               creditRating = creditRating,
-                                              creditLimit = creditLimit
+                                              creditLimit = creditLimit,
+                                              title = title,
+                                              branchId = branchId,
+                                              nameSuffix= nameSuffix
                                             ))
 
   def bulkDeleteCustomers(): Boolean =

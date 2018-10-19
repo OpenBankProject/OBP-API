@@ -2,16 +2,17 @@ package code.api.v1_4_0
 
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ApiRole, ApiVersion}
 import code.api.util.ApiTag._
+import code.api.util.NewStyle.HttpCode
+import code.api.util.{APIUtil, ApiRole, ApiVersion, NewStyle}
 import code.api.v1_2_1.Akka
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
-import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
+import code.bankconnectors.Connector
 import code.usercustomerlinks.UserCustomerLink
+import code.util.Helper
 import code.views.Views
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
@@ -19,6 +20,7 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
+import scala.concurrent.Future
 
 // JObject creation
 import code.api.APIFailure
@@ -30,8 +32,6 @@ import scala.collection.mutable.ArrayBuffer
 
 // So we can include resource docs from future versions
 //import code.api.v1_4_0.JSONFactory1_4_0._
-import java.text.SimpleDateFormat
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{ResourceDoc, authenticationRequiredMessage, _}
 import code.api.util.ErrorMessages
@@ -43,6 +43,8 @@ import code.customer.{Customer, CustomerFaceImage, CustomerMessages}
 import code.model._
 import code.products.Products
 import code.util.Helper._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -423,22 +425,28 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
         cc =>
-          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
-            for {
-              u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
-              (fromAccount, callContext) <- BankAccount(bankId, accountId, Some(cc)) ?~! {ErrorMessages.AccountNotFound}
-              _ <- tryo(assert(isValidCurrencyISOCode(fromAccount.currency)))?~!ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
-              _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
-              transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount, Some(cc))
-              transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
-            } yield {
-                val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypeCharges)
-                successJsonResponse(Extraction.decompose(json))
-              }
-          } else {
-            Full(errorJsonResponse(TransactionRequestsNotEnabled))
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.isEnabledTransactionRequests()
+            (bank, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            (fromAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
+            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              assert(isValidCurrencyISOCode(fromAccount.currency))
+            }
+            view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
+              u.hasViewAccess(view)
+            } //TODO why not callContext return
+            transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount, callContext)) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+            transactionRequestTypeCharges <- Future(Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypeCharges)
+            (json, HttpCode.`200`(callContext))
           }
       }
     }
@@ -686,7 +694,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
                 postedData.kyc_status,
                 postedData.last_ok_date,
                 None,
-                None) ?~! "Could not create customer"
+                None,
+                "",
+                "",
+                ""
+            ) ?~! "Could not create customer"
             _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, DateWithMsExampleObject, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = JSONFactory1_4_0.createCustomerJson(customer)

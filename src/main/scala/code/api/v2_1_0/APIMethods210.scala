@@ -710,7 +710,7 @@ trait APIMethods210 {
       case "roles" :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- extractCallContext(UserNotLoggedIn, cc)
+            _ <- authorizeEndpoint(UserNotLoggedIn, cc)
           }
           yield {
             // Format the data as V2.1.0 json
@@ -994,7 +994,7 @@ trait APIMethods210 {
       case "users" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- extractCallContext(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }
@@ -1334,7 +1334,10 @@ trait APIMethods210 {
               postedData.kyc_status,
               postedData.last_ok_date,
               Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
-              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount))) ?~! CreateConsumerError
+              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
+              "",
+              "",
+              "") ?~! CreateConsumerError
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             _ <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, new Date(), true) ?~! CreateUserCustomerLinksError
             _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(customer_user.name)

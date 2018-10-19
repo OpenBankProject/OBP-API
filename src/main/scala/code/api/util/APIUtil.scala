@@ -1948,7 +1948,7 @@ Returns a string showed to the developer
         case PER_HOUR   => c.perHourCallLimit.get
         case PER_DAY    => c.perDayCallLimit.get
         case PER_WEEK   => c.perWeekCallLimit.get
-        case PER_MONTH  => c.perDayCallLimit.get
+        case PER_MONTH  => c.perMonthCallLimit.get
         case PER_YEAR   => -1
       }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
@@ -1963,7 +1963,7 @@ Returns a string showed to the developer
         case PER_HOUR   => c.perHourCallLimit.get
         case PER_DAY    => c.perDayCallLimit.get
         case PER_WEEK   => c.perWeekCallLimit.get
-        case PER_MONTH  => c.perDayCallLimit.get
+        case PER_MONTH  => c.perMonthCallLimit.get
         case PER_YEAR   => -1
       }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
@@ -2020,7 +2020,7 @@ Returns a string showed to the developer
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def extractCallContext(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def authorizeEndpoint(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc) map {
       x => underCallLimits(x)
     } map {
@@ -2030,7 +2030,7 @@ Returns a string showed to the developer
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
-  def extractCallContext(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def authorizeEndpoint(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     getUserAndSessionContextFuture(cc)
   }
 

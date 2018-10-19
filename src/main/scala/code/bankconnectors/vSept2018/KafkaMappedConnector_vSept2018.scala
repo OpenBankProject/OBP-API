@@ -33,6 +33,7 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
+import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
 import code.bankconnectors.vMar2017._
 import code.branches.Branches.{BranchId, BranchT, Lobby}
 import code.common._
@@ -1655,7 +1656,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val res = future map {
           case (list, status) if (status.errorCode=="") =>
-            Full(list, callContext)
+            Full(JsonFactory_vJune2017.createObpCustomers(list), callContext)
           case (list, status) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:" + status.backendMessages)
           case (List(),status) =>
