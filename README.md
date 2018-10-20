@@ -120,6 +120,53 @@ The current workaround is to move the project directory onto a different partiti
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
+### Minimal notes on using Postgres with SSL:
+
+Postgres needs to be compiled with SSL support.
+
+Use openssl to create the files you need.
+
+For the steps, see: https://www.howtoforge.com/postgresql-ssl-certificates
+
+In short, edit postgresql.conf
+
+ssl = on
+ssl_cert_file = '/etc/YOUR-DIR/server.crt'
+ssl_key_file = '/etc/YOUR-DIR/server.key'
+
+And restart postgres.
+
+Now, this should enable SSL (on the same port that Postgres normally listens on) - but it doesn't force it.
+To force SSL, edit pg_hba.conf replacing the host entries with hostssl
+
+Now in OBP-API Props, edit your db.url and add &ssl=true
+ e.g.
+ db.url=jdbc:postgresql://localhost:5432/my_obp_database?user=my_obp_user&password=the_password&ssl=true
+
+Note: Your Java environment may need to be setup correctly to use SSL
+
+Restart OBP-API, if you get an error, check your Java environment can connect to the host over SSL.
+
+Note you can change the log level in /src/main/resources/default.logback.xml (try TRACE or DEBUG)
+
+There is a gist / tool which is useful for this. Search the web for SSLPoke. Note this is an external repository.
+
+e.g. https://gist.github.com/4ndrej/4547029
+or
+git clone https://github.com/MichalHecko/SSLPoke.git .
+
+gradle jar
+cd ./build/libs/
+
+java -jar SSLPoke-1.0.jar www.github.com 443
+Successfully connected
+
+java -jar SSLPoke-1.0.jar YOUR-POSTGRES-DATABASE-HOST PORT
+
+- The above section is work in progress. -
+
+
+
 ## Sandbox data
 
 To populate the OBP database with sandbox data:
