@@ -117,6 +117,8 @@ object RateLimitUtil extends MdcLoggable {
             logger.warn("Redis is NOT available")
             (-1, -1)
           case (true, -1)  => // Limit is not set for the period
+            val key = createUniqueKey(consumerKey, period)
+            jedis.del(key) // Delete the key in accordance to SQL database state. I.e. limit = -1 => delete the key from Redis.
             (-1, -1)
           case _ => // Redis is available and limit is set
             val key = createUniqueKey(consumerKey, period)
