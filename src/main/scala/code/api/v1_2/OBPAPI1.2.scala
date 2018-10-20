@@ -124,7 +124,7 @@
 //          val bankJSON = JSONFactory.createBankJSON(bank)
 //          Extraction.decompose(bankJSON)
 //        }
-//        for(bank <- Bank(bankId))
+//        for((bank, callContext) <- Bank(bankId, Some(cc)))
 //          yield successJsonResponse(bankToJson(bank))
 //    }
 //  })
@@ -139,7 +139,7 @@
 //    case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
 //      cc =>
 //        for{
-//         bank <- Bank(bankId)
+//         (bank, callContext) <- Bank(bankId, Some(cc))
 //         availableAccounts <- bank.accountv12AndBelow(user)
 //        } yield successJsonResponse(bankAccountsListToJson(availableAccounts, user))
 //    }
@@ -151,7 +151,7 @@
 //      cc =>
 //        for {
 //          u <- user ?~ "user not found"
-//          bank <- Bank(bankId)
+//          (bank, callContext) <- Bank(bankId, Some(cc))
 //        } yield {
 //          val availableAccounts = bank.PrivateAccounts(u)
 //          successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
@@ -164,7 +164,7 @@
 //    case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
 //      cc =>
 //        for {
-//          bank <- Bank(bankId)
+//          (bank, callContext) <- Bank(bankId, Some(cc))
 //        } yield {
 //          val publicAccountsJson = bankAccountsListToJson(bank.publicAccounts, Empty)
 //          successJsonResponse(publicAccountsJson)

@@ -75,9 +75,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   val cachedCounterparty    = TTLCache[KafkaInboundCounterparty](cacheTTL)
   val cachedTransactionRequestTypeCharge = TTLCache[KafkaInboundTransactionRequestTypeCharge](cacheTTL)
 
-  override def getAdapterInfo: Box[InboundAdapterInfoInternal] = Empty
-
-
   //
   // "Versioning" of the messages sent by this or similar connector might work like this:
   // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
@@ -115,7 +112,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[KafkaInboundAccount] = getBanks.openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
+    val accounts: List[KafkaInboundAccount] = getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -161,7 +158,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
 
   //gets banks handled by this connector
-  override def getBanks(): Box[List[Bank]] = {
+  override def getBanks(callContext: Option[CallContext]) = {
     val req = Map(
       "north" -> "getBanks",
       "version" -> formatVersion,
@@ -188,7 +185,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     // Return list of results
 
     logger.debug(s"Kafka getBanks says res is $res")
-    Full(res)
+    Full(res, callContext)
   }
 
   // Gets current challenge level for transaction request
@@ -254,7 +251,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     Full(chargeValue)
   }
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
     // Create argument list
     val req = Map(
       "north" -> "createChallenge",
@@ -271,7 +268,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => Full(x.challengeId)
+      case Some(x)  => Full(x.challengeId, callContext)
       case _        => Empty
     }
   }
@@ -297,14 +294,14 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets bank identified by bankId
-  override def getBank(id: BankId): Box[Bank] = {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = {
     // Create argument list
     val req = Map(
       "north" -> "getBank",
       "version" -> formatVersion,
       "name" -> "get",
       "target" -> "bank",
-      "bankId" -> id.toString,
+      "bankId" -> bankId.toString,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername
       )
@@ -312,7 +309,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundBank])
     }
     // Return result
-    Full(new KafkaBank(r))
+    Full(new KafkaBank(r), callContext)
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
@@ -476,7 +473,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
 
     for {
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
@@ -500,10 +497,10 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Get one counterparty by the Counterparty Id
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext] = None): Box[CounterpartyTrait] = {
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = {
 
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
-      Counterparties.counterparties.vend.getCounterparty(counterpartyId.value)
+      Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty =>(counterparty, callContext))
     } else {
       val req = Map(
         "north" -> "getCounterpartyByCounterpartyId",
@@ -517,7 +514,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       val r = {
         cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
       }
-      Full(new KafkaCounterparty(r))
+      Full(new KafkaCounterparty(r), callContext)
     }
   }
 
@@ -546,11 +543,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
       Full(new KafkaCounterparty(r))
     }
-  }
-
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[List[CounterpartyTrait]] = {
-    //note: kafka mode just used the mapper data
-    LocalMappedConnector.getCounterparties(thisBankId, thisAccountId, viewId)
   }
 
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
@@ -812,7 +804,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   ): Box[BankAccount] = {
 
     for {
-      bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
@@ -875,7 +867,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
     } yield {
       //acc.balance = newBalance
       setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -984,7 +976,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      bank <- getBank(bankId)
+      (bank, _)<- getBank(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)

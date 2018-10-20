@@ -3,6 +3,7 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.CallContext
 import code.bankconnectors.Connector
 import code.model.{PhysicalCard, _}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
@@ -54,7 +55,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     implicit override val nameOfConnector = "MockedCardConnector"
 
-    override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
+    override def getBank(bankId : BankId, callContext: Option[CallContext])  = Full(bank, callContext)
   
     //these methods are required in this test, there is no need to extends connector.
     override def getPhysicalCards(user : User) = {

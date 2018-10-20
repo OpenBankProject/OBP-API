@@ -557,29 +557,4 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     }
   }
   
-  feature("test APIUtil.updateCallContextSessionId method") 
-  {
-    scenario("update the CallContext Session Id") 
-    {
-
-      val payload = PayloadOfJwtJSON(
-        login_user_name = "",
-        is_first = true,
-        app_id = "",
-        app_name = "",
-        time_stamp = "",
-        cbs_token = None,
-        cbs_id = "",
-        session_id = None
-      )
-      
-      val callContext = CallContext(gatewayLoginRequestPayload = Some(payload)) 
-      
-      val callContextUpdated = updateCallContextSessionId(Some(callContext))
-      callContextUpdated.get.gatewayLoginRequestPayload.get.session_id should not be ("")
-      callContextUpdated.get.gatewayLoginRequestPayload.get.login_user_name should be ("")
-      callContextUpdated.get.gatewayLoginRequestPayload.get.is_first should be (true)
-    }
-    
-  }
 }

@@ -73,7 +73,7 @@ trait APIMethods130 {
         cc => {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             cards <- Connector.connector.vend.getPhysicalCardsForBank(bank, u)
           } yield {
              val cardsJson = JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)

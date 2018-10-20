@@ -206,7 +206,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             permission <- Future { account permission(u, provider, providerId) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, callContext.map(_.toLight)))
@@ -501,7 +501,7 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  ) {
                canUseFirehose(u)
             }
-            bank <- NewStyle.function.getBank(bankId, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableBankIdAccountIdList <- Future {Views.views.vend.getAllFirehoseAccounts(bank.bankId, u) }
             moderatedAccounts = for {
               //Here is a new for-loop to get the moderated accouts for the firehose user, according to the viewId.
@@ -963,11 +963,11 @@ trait APIMethods300 {
           cc =>
             for {
               _ <- NewStyle.function.getBank(bankId, Some(cc))
-              ai: InboundAdapterInfoInternal <- Future(Connector.connector.vend.getAdapterInfo()) map {
+              (ai, cc) <- Future(Connector.connector.vend.getAdapterInfo(Some(cc))) map {
                 unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
               }
             } yield {
-              (createAdapterInfoJson(ai), Some(cc))
+              (createAdapterInfoJson(ai), cc)
             }
       }
     }
@@ -1012,7 +1012,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
@@ -1069,7 +1069,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            bank <- Bank(bankId)?~! BankNotFound
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
@@ -1122,8 +1122,8 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetBranch(getBranchesIsPublic, user)
             }
-            _ <- NewStyle.function.getBank(bankId, callContext)
-            branch <- NewStyle.function.getBranch(bankId, branchId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (branch, callContext) <- NewStyle.function.getBranch(bankId, branchId, callContext)
           } yield {
             (JSONFactory300.createBranchJsonV300(branch), HttpCode.`200`(callContext))
           }
@@ -1195,19 +1195,21 @@ trait APIMethods300 {
                 case _ => true
               }
             }
-            _ <- NewStyle.function.getBank(bankId, callContext)
-            branches <- Connector.connector.vend.getBranchesFuture(bankId) map {
-              case Full(List()) | Empty =>
+            (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
+            (branches, callContext) <- Connector.connector.vend.getBranchesFuture(bankId, callContext) map {
+              case Full((List(), _)) | Empty =>
                 fullBoxOrException(Empty ?~! BranchesNotFound)
-              case Full(list) =>
+              case Full((list, callContext)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
                 else Full(branchesWithLicense)
             } map { unboxFull(_) } map {
+              branches =>
               // Before we slice we need to sort in order to keep consistent results
-              _.sortWith(_.branchId.value < _.branchId.value)
+                (branches.sortWith(_.branchId.value < _.branchId.value)
               // Slice the result in next way: from=offset and until=offset + limit
                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+              , callContext)
             }
           } yield {
             (JSONFactory300.createBranchesJson(branches), HttpCode.`200`(callContext))
@@ -1248,8 +1250,8 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
               canGetAtm(getAtmsIsPublic, user)
             }
-            _ <- NewStyle.function.getBank(bankId, callContext)
-            atm <- NewStyle.function.getAtm(bankId,atmId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (atm, callContext) <- NewStyle.function.getAtm(bankId,atmId, callContext)
           } yield {
             (JSONFactory300.createAtmJsonV300(atm), HttpCode.`200`(callContext))
           }
@@ -1314,19 +1316,21 @@ trait APIMethods300 {
                 case _ => true
               }
             }
-            _ <- NewStyle.function.getBank(bankId, callContext)
-            atms <- Connector.connector.vend.getAtmsFuture(bankId) map {
-              case Full(List()) | Empty =>
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (atms, callContext) <- Connector.connector.vend.getAtmsFuture(bankId, callContext) map {
+              case Full((List(),_)) | Empty =>
                 fullBoxOrException(Empty ?~! atmsNotFound)
-              case Full(list) =>
+              case Full((list, _)) =>
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
                 else Full(branchesWithLicense)
             } map { unboxFull(_) } map {
-              // Before we slice we need to sort in order to keep consistent results
-              _.sortWith(_.atmId.value < _.atmId.value)
+              branch =>
+                // Before we slice we need to sort in order to keep consistent results
+                (branch.sortWith(_.atmId.value < _.atmId.value)
                 // Slice the result in next way: from=offset and until=offset + limit
                 .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+                ,callContext)
             }
           } yield {
             (JSONFactory300.createAtmsJsonV300(atms), HttpCode.`200`(callContext))
@@ -1419,12 +1423,12 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
-            (customers,callContext1) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
+            (customers,callContext) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
             // Create the JSON to return. We also return the callContext
-            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext1))
+            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1487,13 +1491,13 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            (accounts, callContext1) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
+            ((accounts, callContext)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext1))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1528,7 +1532,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.getBank(bankId, callContext)
+             (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
             bankAccountIds <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
           } yield {
             (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), HttpCode.`200`(callContext))
@@ -1663,9 +1667,8 @@ trait APIMethods300 {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementRequestJSON "
                 x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
-              _ <- Future { if (postedData.bank_id == "") Full() else Bank(BankId(postedData.bank_id)) } map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(BankNotFound, 400, callContext.map(_.toLight)))
-              }
+              _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(bankId, callContext)}
+              
               _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")) {
                 availableRoles.exists(_ == postedData.role_name)
               }
@@ -1938,7 +1941,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
             accounts <- Connector.connector.vend.getCoreBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
@@ -2106,7 +2109,7 @@ trait APIMethods300 {
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements)
 
             _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
-              postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id)).isEmpty == false
+              postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
             }
 
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
@@ -2225,9 +2228,9 @@ trait APIMethods300 {
       case "banks" :: Nil JsonGet _ => {
         cc =>
           for {
-            banks <- NewStyle.function.getBanks(Some(cc))
+            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
           } yield 
-            (JSONFactory300.createBanksJson(banks), HttpCode.`200`(cc))
+            (JSONFactory300.createBanksJson(banks), HttpCode.`200`(callContext))
       }
     }
   
@@ -2256,9 +2259,9 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
         cc =>
           for {
-            bank <- NewStyle.function.getBank(bankId, Some(cc))
+            (bank, callContext) <- NewStyle.function.getBank(bankId, Some(cc))
           } yield
-            (JSONFactory.createBankJSON(bank), HttpCode.`200`(cc))
+            (JSONFactory.createBankJSON(bank), HttpCode.`200`(callContext))
       }
     }
 

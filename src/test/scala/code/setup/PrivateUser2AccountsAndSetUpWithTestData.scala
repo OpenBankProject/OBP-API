@@ -19,7 +19,7 @@ trait PrivateUser2AccountsAndSetUpWithTestData {
    */
   def accountTestsSpecificDBSetup() {
 
-    val banks =  Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val banks =  Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 
     def generateAccounts(owner: User) = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {

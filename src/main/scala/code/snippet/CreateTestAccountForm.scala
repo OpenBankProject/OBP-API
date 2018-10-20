@@ -34,7 +34,7 @@ object CreateTestAccountForm{
       }
     }
 
-    val banks = Connector.connector.vend.getBanks.openOrThrowException(attemptedToOpenAnEmptyBox)
+    val banks = Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
     val bankOptions = banks.map{b =>
       val id = b.bankId.value
       (id, id)
@@ -85,7 +85,7 @@ object CreateTestAccountForm{
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
         currentAuthUser <- AuthUser.currentUser ?~! "You need to be logged in to create an account"
         user <- Users.users.vend.getResourceUserByResourceUserId(currentAuthUser.user.get) ?~ "Server error: could not identify user"
-        bank <- Bank(bankId) ?~ s"Bank $bankId not found"
+        (bank, callContext) <- Bank(bankId, None) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
         bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, user.name,
