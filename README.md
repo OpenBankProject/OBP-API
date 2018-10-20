@@ -480,7 +480,7 @@ Next types are supported:
 If you exced rate limit per minute for instance you will get the response:
 ```json
 {
-    "error": "OBP-10018: Too Many Requests.We only allow 3 requests per minute to this Web site per logged in user."
+    "error": "OBP-10018: Too Many Requests.We only allow 3 requests per minute for this Consumer."
 }
 ```
 and response headers:
