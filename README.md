@@ -120,7 +120,7 @@ The current workaround is to move the project directory onto a different partiti
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
-### Minimal notes on using Postgres with SSL:
+### Minimal notes on using Postgres with SSL (work in progress):
 
 Postgres needs to be compiled with SSL support.
 
@@ -162,6 +162,17 @@ java -jar SSLPoke-1.0.jar www.github.com 443
 Successfully connected
 
 java -jar SSLPoke-1.0.jar YOUR-POSTGRES-DATABASE-HOST PORT
+
+You can add switches e.g. for debugging.
+java -jar -Dhttps.protocols=TLSv1.1,TLSv1.2 -Djavax.net.debug=all SSLPoke-1.0.jar localhost 5432
+
+
+To import a certificate:
+keytool -import -storepass changeit -noprompt -alias localhost_postgres_cert -keystore /Library/Java/JavaVirtualMachines/jdk1.8.0_73.jdk/Contents/Home/jre/lib/security/cacerts -trustcacerts -file /etc/postgres_ssl_certs/server/server.crt
+
+
+To get certificate from the server / get further debug information:
+openssl s_client -connect ip:port
 
 - The above section is work in progress. -
 
