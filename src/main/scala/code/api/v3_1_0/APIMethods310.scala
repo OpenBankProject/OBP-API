@@ -7,7 +7,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.v1_2_1.JSONFactory
+import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
@@ -1215,6 +1215,43 @@ trait APIMethods310 {
             }
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getRateLimitingInfo,
+      implementedInApiVersion,
+      "getRateLimitingInfo",
+      "GET",
+      "/rate-limiting",
+      "Get Rate Limiting Info",
+      s"""Get basic information about the Rate Limiting.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      adapterInfoJsonV300,
+      List(UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagApi, apiTagNewStyle))
+
+
+    lazy val getRateLimitingInfo: OBPEndpoint = {
+      case "rate-limiting" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            rateLimiting <- NewStyle.function.tryons("", 400, Some(cc)) {
+              val useConsumerLimits = RateLimitUtil.useConsumerLimits
+              val isRedisAvailable = RateLimitUtil.isRedisAvailable()
+              val isActive = if(useConsumerLimits == true && isRedisAvailable == true) true else false
+              RateLimiting(useConsumerLimits, "REDIS", isRedisAvailable, isActive)
+            }
+          } yield {
+            (rateLimiting, HttpCode.`200`(cc))
           }
       }
     }

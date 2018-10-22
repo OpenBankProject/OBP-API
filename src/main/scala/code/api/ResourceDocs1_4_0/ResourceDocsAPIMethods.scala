@@ -643,7 +643,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "http://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy, Akka(APIUtil.akkaSanityCheck()), None)
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy, Akka(APIUtil.akkaSanityCheck()))
             Extraction.decompose(apiInfoJSON)
           }
 

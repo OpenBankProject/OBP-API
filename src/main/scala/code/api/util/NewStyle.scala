@@ -11,12 +11,11 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPQueryParam}
-import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.Counterparties
 import code.model._
 import code.util.Helper
 import code.views.Views
@@ -100,7 +99,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getAccountWebhooks), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
