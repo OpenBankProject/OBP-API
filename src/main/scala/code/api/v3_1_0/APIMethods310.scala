@@ -525,8 +525,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      callLimitJson,
-      callLimitJson,
+      callLimitPostJson,
+      callLimitPostJson,
       List(
         UserNotLoggedIn,
         InvalidJsonFormat,
@@ -546,8 +546,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanSetCallLimits)("", u.userId, canSetCallLimits)
-            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitJson ", 400, callContext) {
-              json.extract[CallLimitJson]
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJson ", 400, callContext) {
+              json.extract[CallLimitPostJson]
             }
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong
@@ -563,7 +563,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, UpdateConsumerError, 400)
             }
           } yield {
-            (createCallLimitJson(updatedConsumer), HttpCode.`200`(callContext))
+            (createCallLimitJson(updatedConsumer, Nil), HttpCode.`200`(callContext))
           }
       }
     }
@@ -580,7 +580,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      callLimitJson,
+      emptyObjectJson,
       callLimitJson,
       List(
         UserNotLoggedIn,
@@ -605,8 +605,9 @@ trait APIMethods310 {
               consumerId.toLong
             }
             consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
+            rateLimit <- Future(RateLimitUtil.consumerRateLimitState(consumer.key.get).toList)
           } yield {
-            (createCallLimitJson(consumer), HttpCode.`200`(callContext))
+            (createCallLimitJson(consumer, rateLimit), HttpCode.`200`(callContext))
           }
       }
     }

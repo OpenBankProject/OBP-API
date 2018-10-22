@@ -2875,12 +2875,20 @@ object SwaggerDefinitionsJSON {
     last_failure_date = DateWithMsExampleObject
   )
 
-  val callLimitJson = CallLimitJson(
+  val callLimitPostJson = CallLimitPostJson(
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
     per_day_call_limit ="-1",
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
+  )
+  val callLimitJson = CallLimitJson(
+    per_minute_call_limit = "-1",
+    per_hour_call_limit = "-1",
+    per_day_call_limit ="-1",
+    per_week_call_limit = "-1",
+    per_month_call_limit = "-1",
+    None
   )
 
   val accountWebhookPostJson = AccountWebhookPostJson(
