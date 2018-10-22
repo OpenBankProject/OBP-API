@@ -1255,6 +1255,46 @@ trait APIMethods310 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomerByCustomerId,
+      implementedInApiVersion,
+      "getCustomerByCustomerId",
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID",
+      "Get Customer specified by CUSTOMER_ID",
+      s"""Gets the Customers specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      emptyObjectJson,
+      customerJsonV300,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val getCustomerByCustomerId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomer)(bankId.value, u.userId, canGetCustomer)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+          } yield {
+            (JSONFactory300.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
     
   }
 }

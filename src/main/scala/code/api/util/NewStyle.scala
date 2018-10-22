@@ -101,7 +101,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createCustomer), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -179,6 +180,11 @@ object NewStyle {
     def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
       Connector.connector.vend.getCustomersFuture(bankId, callContext, queryParams) map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
+    def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): Future[(Customer, Option[CallContext])] = {
+      Connector.connector.vend.getCustomerByCustomerIdFuture(customerId, callContext) map {
+        unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId, 400)
       }
     }
 

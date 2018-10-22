@@ -61,6 +61,12 @@ object MappedCustomerProvider extends CustomerProvider {
     getCustomerByCustomerId(customerId)
   }
 
+  override def getCustomerByCustomerIdFuture(customerId: String): Future[Box[Customer]]= {
+    Future {
+      getCustomerByCustomerId(customerId)
+    }
+  }
+
   override def getCustomerByCustomerId(customerId: String): Box[Customer] = {
     MappedCustomer.find(
       By(MappedCustomer.mCustomerId, customerId)
