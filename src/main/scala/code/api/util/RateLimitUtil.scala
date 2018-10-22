@@ -18,8 +18,8 @@ object RateLimitPeriod extends Enumeration {
       case PER_HOUR   => 60 * 60
       case PER_DAY    => 60 * 60 * 24
       case PER_WEEK   => 60 * 60 * 24 * 7
-      case PER_MONTH  => 60 * 60 * 24 * 7 * 30
-      case PER_YEAR   => 60 * 60 * 24 * 7 * 365
+      case PER_MONTH  => 60 * 60 * 24 * 30
+      case PER_YEAR   => 60 * 60 * 24 * 365
     }
   }
 
