@@ -120,7 +120,7 @@ The current workaround is to move the project directory onto a different partiti
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
-### Minimal notes on using Postgres with SSL (work in progress):
+### Notes on using Postgres with SSL:
 
 Postgres needs to be compiled with SSL support.
 
@@ -131,7 +131,9 @@ For the steps, see: https://www.howtoforge.com/postgresql-ssl-certificates
 In short, edit postgresql.conf
 
 ssl = on
+
 ssl_cert_file = '/etc/YOUR-DIR/server.crt'
+
 ssl_key_file = '/etc/YOUR-DIR/server.key'
 
 And restart postgres.
@@ -140,7 +142,9 @@ Now, this should enable SSL (on the same port that Postgres normally listens on)
 To force SSL, edit pg_hba.conf replacing the host entries with hostssl
 
 Now in OBP-API Props, edit your db.url and add &ssl=true
+
  e.g.
+
  db.url=jdbc:postgresql://localhost:5432/my_obp_database?user=my_obp_user&password=the_password&ssl=true
 
 Note: Your Java environment may need to be setup correctly to use SSL
@@ -152,7 +156,9 @@ Note you can change the log level in /src/main/resources/default.logback.xml (tr
 There is a gist / tool which is useful for this. Search the web for SSLPoke. Note this is an external repository.
 
 e.g. https://gist.github.com/4ndrej/4547029
+
 or
+
 git clone https://github.com/MichalHecko/SSLPoke.git .
 
 gradle jar
@@ -174,7 +180,7 @@ keytool -import -storepass changeit -noprompt -alias localhost_postgres_cert -ke
 To get certificate from the server / get further debug information:
 openssl s_client -connect ip:port
 
-- The above section is work in progress. -
+The above section is work in progress.
 
 
 
