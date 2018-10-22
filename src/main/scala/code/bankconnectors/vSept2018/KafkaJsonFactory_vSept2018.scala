@@ -165,9 +165,15 @@ case class AuthInfo(
   cbsToken: String = "", 
   isFirst: Boolean = true, 
   correlationId: String = "",
+  linkedCustomers: List[BasicCustomer] = Nil,
   authViews: List[AuthView] = Nil
 )
 
+case class BasicCustomer(
+  customerId: String,
+  customerNumber: String,
+  legalName: String,
+)
 
 case class InboundAccountSept2018(
   errorCode: String,

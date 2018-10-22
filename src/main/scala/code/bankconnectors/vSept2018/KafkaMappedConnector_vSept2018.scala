@@ -101,6 +101,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       correlationId <- Full(cc.correlationId)
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- Full(permission.views)
+      linkedCustomers <- Customer.customerProvider.vend.getCustomersByUserId(user.userId)
       authViews<- Full(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
