@@ -18,6 +18,9 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
   def createCustomerJson(customerNumber: String) = {
     CreateCustomerJson(
+      title = "The title",
+      branchId = "The branchId",
+      nameSuffix = "The nameSuffix",
       user_id = resourceUser1.userId,
       customer_number = customerNumber,
       legal_name = "Someone",

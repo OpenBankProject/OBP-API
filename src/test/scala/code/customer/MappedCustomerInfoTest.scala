@@ -21,6 +21,9 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
 
   def createCustomer(bankId: BankId, resourceUser: ResourceUser, nmb: String, user: Some[(Consumer, Token)]) = {
     val customerPostJSON1 = CreateCustomerJson(
+                                              title = "The title",
+                                              branchId = "The branchId",
+                                              nameSuffix = "The nameSuffix",
                                               user_id = resourceUser.userId,
                                               customer_number = nmb,
                                               legal_name = "Someone",

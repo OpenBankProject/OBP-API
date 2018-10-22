@@ -42,6 +42,9 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       //first add a customer to send message to
       var request = (v1_4Request / "banks" / testBankId1.value / "customer").POST <@ user1
       val customerJson = CreateCustomerJson(
+                                            title = "Title",
+                                            branchId = "The branchId",
+                                            nameSuffix = "The nameSuffix",
                                             user_id = resourceUser1.userId,
                                             customer_number = mockCustomerNumber,
                                             legal_name = "Someone",

@@ -1745,6 +1745,9 @@ object SwaggerDefinitionsJSON {
   )
 
   val createCustomerJson = CreateCustomerJson(
+    title = "String",
+    branchId = "String",
+    nameSuffix = "String",
     user_id = "String",
     customer_number = "String",
     legal_name = "String",
