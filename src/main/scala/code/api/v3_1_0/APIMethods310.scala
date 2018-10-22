@@ -1163,7 +1163,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagPerson),
+      List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
       Some(List(canCreateCustomer,canCreateUserCustomerLink,canCreateCustomerAtAnyBank,canCreateUserCustomerLinkAtAnyBank)))
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
