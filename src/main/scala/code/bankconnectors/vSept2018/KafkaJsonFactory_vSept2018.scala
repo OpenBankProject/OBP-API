@@ -424,6 +424,14 @@ object JsonFactory_vSept2018 {
     )
   }
   
+  def createBasicCustomerJson(customer : Customer) : BasicCustomer = {
+    BasicCustomer(
+      customerId = customer.customerId,
+      customerNumber = customer.number,
+      legalName = customer.legalName,
+    )
+  }
+  
   def createCustomersJson(customers : List[Customer]) : InternalBasicCustomers = {
     InternalBasicCustomers(customers.map(createCustomerJson))
   }
@@ -431,4 +439,9 @@ object JsonFactory_vSept2018 {
   def createUsersJson(users : List[User]) : InternalBasicUsers = {
     InternalBasicUsers(users.map(createUserJson))
   }
+  
+  def createBasicCustomerJson(customers : List[Customer]) : List[BasicCustomer] = {
+    customers.map(createBasicCustomerJson)
+  }
+  
 }
