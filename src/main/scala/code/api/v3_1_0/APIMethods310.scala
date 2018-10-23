@@ -1289,7 +1289,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomer)(bankId.value, u.userId, canGetCustomer)
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
           } yield {
-            (JSONFactory300.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
           }
       }
     }
