@@ -1,11 +1,11 @@
 package code.api.util
 
-import java.util.UUID
-
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.util.Helper.MdcLoggable
 import net.liftweb.util.Props
 import redis.clients.jedis.Jedis
+
+import scala.collection.immutable
 
 
 object RateLimitPeriod extends Enumeration {
@@ -18,8 +18,8 @@ object RateLimitPeriod extends Enumeration {
       case PER_HOUR   => 60 * 60
       case PER_DAY    => 60 * 60 * 24
       case PER_WEEK   => 60 * 60 * 24 * 7
-      case PER_MONTH  => 60 * 60 * 24 * 7 * 30
-      case PER_YEAR   => 60 * 60 * 24 * 7 * 365
+      case PER_MONTH  => 60 * 60 * 24 * 30
+      case PER_YEAR   => 60 * 60 * 24 * 365
     }
   }
 
@@ -117,6 +117,8 @@ object RateLimitUtil extends MdcLoggable {
             logger.warn("Redis is NOT available")
             (-1, -1)
           case (true, -1)  => // Limit is not set for the period
+            val key = createUniqueKey(consumerKey, period)
+            jedis.del(key) // Delete the key in accordance to SQL database state. I.e. limit = -1 => delete the key from Redis.
             (-1, -1)
           case _ => // Redis is available and limit is set
             val key = createUniqueKey(consumerKey, period)
@@ -149,6 +151,33 @@ object RateLimitUtil extends MdcLoggable {
         0
       case _ => // otherwise increment the counter
         ttl
+    }
+  }
+
+
+
+  def consumerRateLimitState(consumerKey: String): immutable.Seq[((Option[Long], Option[Long]), LimitCallPeriod)] = {
+
+    def getInfo(consumerKey: String, period: LimitCallPeriod): ((Option[Long], Option[Long]), LimitCallPeriod) = {
+      val key = createUniqueKey(consumerKey, period)
+      val ttl =  jedis.ttl(key).toLong
+      ttl match {
+        case -2 =>
+          ((None, None), period)
+        case _ =>
+          ((Some(jedis.get(key).toLong), Some(ttl)), period)
+      }
+    }
+
+    if(isRedisAvailable()) {
+      getInfo(consumerKey, RateLimitPeriod.PER_MINUTE) ::
+      getInfo(consumerKey, RateLimitPeriod.PER_HOUR) ::
+      getInfo(consumerKey, RateLimitPeriod.PER_DAY) ::
+      getInfo(consumerKey, RateLimitPeriod.PER_WEEK) ::
+      getInfo(consumerKey, RateLimitPeriod.PER_MONTH) ::
+        Nil
+    } else {
+      Nil
     }
   }
 

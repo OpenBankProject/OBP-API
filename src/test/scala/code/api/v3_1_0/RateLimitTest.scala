@@ -50,14 +50,14 @@ class RateLimitTest extends V310ServerSetup {
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.callsLimit))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCallsLimit))
 
-  val callLimitJson1 = CallLimitJson(
+  val callLimitJson1 = CallLimitPostJson(
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
     per_day_call_limit ="-1",
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
   )
-  val callLimitJson2 = CallLimitJson(
+  val callLimitJson2 = CallLimitPostJson(
     per_minute_call_limit = "1",
     per_hour_call_limit = "-1",
     per_day_call_limit ="-1",

@@ -30,7 +30,8 @@ import java.lang
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil
+import code.api.util.RateLimitPeriod.LimitCallPeriod
+import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson}
 import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
@@ -128,13 +129,29 @@ case class BadLoginStatusJson(
   last_failure_date : Date
 )
 
-case class CallLimitJson(
+case class CallLimitPostJson(
                           per_minute_call_limit : String,
                           per_hour_call_limit : String,
                           per_day_call_limit : String,
                           per_week_call_limit : String,
                           per_month_call_limit : String
                         )
+case class RateLimit(calls_made: Option[Long], reset_in_seconds: Option[Long])
+case class RedisCallLimitJson(
+                          per_minute : Option[RateLimit],
+                          per_hour :  Option[RateLimit],
+                          per_day :  Option[RateLimit],
+                          per_week:  Option[RateLimit],
+                          per_month :  Option[RateLimit]
+                        )
+case class CallLimitJson(
+                          per_minute_call_limit : String,
+                          per_hour_call_limit : String,
+                          per_day_call_limit : String,
+                          per_week_call_limit : String,
+                          per_month_call_limit : String,
+                          current_state: Option[RedisCallLimitJson]
+                         )
 case class CheckFundsAvailableJson(answer: String,
                                    date: Date,
                                    available_funds_request_id: String)
@@ -220,9 +237,9 @@ case class CustomerJsonV310(
   nameSuffix: String
 )
 
-case class PostCustomerResponseJsonV310(
-                                         messages: List[String]
-                                       )
+case class PostCustomerResponseJsonV310(messages: List[String])
+
+case class PostCustomerNumberJsonV310(customer_number: String)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -251,14 +268,41 @@ object JSONFactory310{
   def createBadLoginStatusJson(badLoginStatus: BadLoginAttempt) : BadLoginStatusJson = {
     BadLoginStatusJson(badLoginStatus.username,badLoginStatus.badAttemptsSinceLastSuccessOrReset, badLoginStatus.lastFailureDate)
   }
-  def createCallLimitJson(consumer: Consumer) : CallLimitJson = {
+  def createCallLimitJson(consumer: Consumer, rateLimits: List[((Option[Long], Option[Long]), LimitCallPeriod)]) : CallLimitJson = {
+    val redisRateLimit = rateLimits match {
+      case Nil => None
+      case _   =>
+        def getInfo(period: RateLimitPeriod.Value): Option[RateLimit] = {
+          rateLimits.filter(_._2 == period) match {
+            case x :: Nil =>
+              x._1 match {
+                case (Some(x), Some(y)) => Some(RateLimit(Some(x), Some(y)))
+                case _                  => None
+
+              }
+            case _ => None
+          }
+        }
+        Some(
+          RedisCallLimitJson(
+            getInfo(RateLimitPeriod.PER_MINUTE),
+            getInfo(RateLimitPeriod.PER_HOUR),
+            getInfo(RateLimitPeriod.PER_DAY),
+            getInfo(RateLimitPeriod.PER_WEEK),
+            getInfo(RateLimitPeriod.PER_MONTH)
+          )
+        )
+    }
+
     CallLimitJson(
       consumer.perMinuteCallLimit.get.toString,
       consumer.perHourCallLimit.get.toString,
       consumer.perDayCallLimit.get.toString,
       consumer.perWeekCallLimit.get.toString,
-      consumer.perMonthCallLimit.get.toString
+      consumer.perMonthCallLimit.get.toString,
+      redisRateLimit
     )
+
   }
   def createCheckFundsAvailableJson(fundsAvailable : String, availableFundsRequestId: String) : CheckFundsAvailableJson = {
     CheckFundsAvailableJson(fundsAvailable,new Date(), availableFundsRequestId)

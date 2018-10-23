@@ -444,7 +444,7 @@ object SwaggerDefinitionsJSON {
     remote_data_secret_matched = Option(true)
   )
 
-  val rateLimiting = RateLimiting(true, true, true)
+  val rateLimiting = RateLimiting(true, "REDIS", true, true)
   
   val apiInfoJSON = APIInfoJSON(
     version = "String",
@@ -452,8 +452,7 @@ object SwaggerDefinitionsJSON {
     git_commit = "String",
     connector = "String",
     hosted_by = hostedBy,
-    akka = akka,
-    rate_limiting = Option(rateLimiting)
+    akka = akka
   )
 
   /*  val aggregateMetricsJSON = AggregateMetricJSON(
@@ -1979,6 +1978,8 @@ object SwaggerDefinitionsJSON {
     nameSuffix = "Sr"
   )
 
+  val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = "123")
+
 
   val transactionRequestWithChargeJSON210 = TransactionRequestWithChargeJSON210(
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",
@@ -2875,12 +2876,20 @@ object SwaggerDefinitionsJSON {
     last_failure_date = DateWithMsExampleObject
   )
 
-  val callLimitJson = CallLimitJson(
+  val callLimitPostJson = CallLimitPostJson(
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
     per_day_call_limit ="-1",
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
+  )
+  val callLimitJson = CallLimitJson(
+    per_minute_call_limit = "-1",
+    per_hour_call_limit = "-1",
+    per_day_call_limit ="-1",
+    per_week_call_limit = "-1",
+    per_month_call_limit = "-1",
+    None
   )
 
   val accountWebhookPostJson = AccountWebhookPostJson(

@@ -7,7 +7,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.v1_2_1.JSONFactory
+import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
@@ -525,8 +525,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      callLimitJson,
-      callLimitJson,
+      callLimitPostJson,
+      callLimitPostJson,
       List(
         UserNotLoggedIn,
         InvalidJsonFormat,
@@ -546,8 +546,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanSetCallLimits)("", u.userId, canSetCallLimits)
-            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitJson ", 400, callContext) {
-              json.extract[CallLimitJson]
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJson ", 400, callContext) {
+              json.extract[CallLimitPostJson]
             }
             consumerIdToLong <- NewStyle.function.tryons(s"$InvalidConsumerId", 400, callContext) {
               consumerId.toLong
@@ -563,7 +563,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, UpdateConsumerError, 400)
             }
           } yield {
-            (createCallLimitJson(updatedConsumer), HttpCode.`200`(callContext))
+            (createCallLimitJson(updatedConsumer, Nil), HttpCode.`200`(callContext))
           }
       }
     }
@@ -580,7 +580,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      callLimitJson,
+      emptyObjectJson,
       callLimitJson,
       List(
         UserNotLoggedIn,
@@ -605,8 +605,9 @@ trait APIMethods310 {
               consumerId.toLong
             }
             consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
+            rateLimit <- Future(RateLimitUtil.consumerRateLimitState(consumer.key.get).toList)
           } yield {
-            (createCallLimitJson(consumer), HttpCode.`200`(callContext))
+            (createCallLimitJson(consumer, rateLimit), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1162,7 +1163,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagPerson),
+      List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
       Some(List(canCreateCustomer,canCreateUserCustomerLink,canCreateCustomerAtAnyBank,canCreateUserCustomerLinkAtAnyBank)))
     lazy val createCustomer : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
@@ -1217,6 +1218,124 @@ trait APIMethods310 {
           }
       }
     }
+
+
+
+    resourceDocs += ResourceDoc(
+      getRateLimitingInfo,
+      implementedInApiVersion,
+      "getRateLimitingInfo",
+      "GET",
+      "/rate-limiting",
+      "Get Rate Limiting Info",
+      s"""Get basic information about the Rate Limiting.
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      adapterInfoJsonV300,
+      List(UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagApi, apiTagNewStyle))
+
+
+    lazy val getRateLimitingInfo: OBPEndpoint = {
+      case "rate-limiting" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            rateLimiting <- NewStyle.function.tryons("", 400, Some(cc)) {
+              val useConsumerLimits = RateLimitUtil.useConsumerLimits
+              val isRedisAvailable = RateLimitUtil.isRedisAvailable()
+              val isActive = if(useConsumerLimits == true && isRedisAvailable == true) true else false
+              RateLimiting(useConsumerLimits, "REDIS", isRedisAvailable, isActive)
+            }
+          } yield {
+            (rateLimiting, HttpCode.`200`(cc))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomerByCustomerId,
+      implementedInApiVersion,
+      "getCustomerByCustomerId",
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID",
+      "Get Customer specified by CUSTOMER_ID",
+      s"""Gets the Customers specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      emptyObjectJson,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val getCustomerByCustomerId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomer)(bankId.value, u.userId, canGetCustomer)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomerByCustomerNumber,
+      implementedInApiVersion,
+      "getCustomerByCustomerNumber",
+      "POST",
+      "/banks/BANK_ID/customers/customer-number",
+      "Get Customer specified by CUSTOMER_NUMBER",
+      s"""Gets the Customers specified by CUSTOMER_NUMBER.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      postCustomerNumberJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val getCustomerByCustomerNumber : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomer)(bankId.value, u.userId, canGetCustomer)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerNumberJsonV310 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerNumberJsonV310]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     
   }
 }

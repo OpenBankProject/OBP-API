@@ -25,6 +25,9 @@ object ApiRole {
   case class CanSearchMetrics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSearchMetrics = CanSearchMetrics()
 
+  case class CanGetCustomer(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomer = CanGetCustomer()
+
   case class CanCreateCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomer = CanCreateCustomer()
 
@@ -194,6 +197,7 @@ object ApiRole {
       canSearchWarehouse ::
       canSearchWarehouseStatistics ::
       canSearchMetrics ::
+      canGetCustomer ::
       canCreateCustomer ::
       canCreateCustomerAtAnyBank ::
       canCreateUserCustomerLink ::

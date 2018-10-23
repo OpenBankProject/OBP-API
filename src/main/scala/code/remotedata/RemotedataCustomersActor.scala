@@ -36,6 +36,10 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug("getCustomersByUserIdFuture(" + userId + ")")
       sender ! (mapper.getCustomersByUserIdBoxed(userId))
 
+    case cc.getCustomerByCustomerIdFuture(customerId: String) =>
+      logger.debug("getCustomerByCustomerIdFuture(" + customerId + ")")
+      sender ! (mapper.getCustomerByCustomerId(customerId))
+
     case cc.getCustomerByCustomerId(customerId: String) =>
       logger.debug("getCustomerByCustomerId(" + customerId + ")")
       sender ! extractResult(mapper.getCustomerByCustomerId(customerId))
@@ -47,6 +51,10 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
     case cc.getCustomerByCustomerNumber(customerNumber: String, bankId: BankId) =>
       logger.debug("getCustomerByCustomerNumber(" + customerNumber + ", " + bankId + ")")
       sender ! extractResult(mapper.getCustomerByCustomerNumber(customerNumber, bankId))
+
+    case cc.getCustomerByCustomerNumberFuture(customerNumber: String, bankId: BankId) =>
+      logger.debug("getCustomerByCustomerNumberFuture(" + customerNumber + ", " + bankId + ")")
+      sender ! (mapper.getCustomerByCustomerNumber(customerNumber, bankId))
 
     case cc.getUser(bankId: BankId, customerNumber: String) =>
       logger.debug("getUser(" + bankId + ", " + customerNumber + ")")

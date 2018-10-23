@@ -304,6 +304,9 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getTransactionByIdForBankAccount ::
                           Implementations3_1_0.getTransactionRequests ::
                           Implementations3_1_0.createCustomer ::
+                          Implementations3_1_0.getRateLimitingInfo ::
+                          Implementations3_1_0.getCustomerByCustomerId ::
+                          Implementations3_1_0.getCustomerByCustomerNumber ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

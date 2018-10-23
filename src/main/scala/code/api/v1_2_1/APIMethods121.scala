@@ -92,13 +92,9 @@ trait APIMethods121 {
       val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
 
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-      val useConsumerLimits = RateLimitUtil.useConsumerLimits
-      val isRedisAvailable = RateLimitUtil.isRedisAvailable()
-      val isActive = if(useConsumerLimits == true && isRedisAvailable == true) true else false
-      val rateLimiting = RateLimiting(useConsumerLimits, isRedisAvailable, isActive)
 
       val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
-      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()), Some(rateLimiting))
+      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails
