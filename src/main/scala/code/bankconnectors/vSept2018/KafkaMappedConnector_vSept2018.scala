@@ -101,6 +101,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       correlationId <- Full(cc.correlationId)
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- Full(permission.views)
+      linkedCustomers <- Customer.customerProvider.vend.getCustomersByUserId(user.userId)
       authViews<- Full(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
@@ -522,7 +523,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetAccounts(
         authInfoExample,
-        true,
         InternalBasicCustomers(customers =List(internalBasicCustomer)))
     ),
     exampleInboundMessage = decompose(
@@ -546,7 +546,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       
         val box = for {
           authInfo <- getAuthInfoFirstCbsCall(username, callContext)
-          req = OutboundGetAccounts(authInfo, true, internalCustomers)
+          req = OutboundGetAccounts(authInfo, internalCustomers)
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
@@ -589,7 +589,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
         val req = OutboundGetAccounts(
           getAuthInfoFirstCbsCall(username, callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
-          true,
           internalCustomers
         )
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
@@ -1042,14 +1041,14 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 accountId = "String",
                 amount = "String",
                 bankId = "String",
-                completedDate = "String",
+                completedDate = "2018-10-19T21:17:03Z",
                 counterpartyId = "String",
                 counterpartyName = "String",
                 currency = "String",
                 description = "String",
                 newBalanceAmount = "String",
                 newBalanceCurrency = "String",
-                postedDate = "String",
+                postedDate = "2018-10-19T21:17:03Z",
                 `type` = "String",
                 userId = "String"
               )))
