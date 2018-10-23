@@ -1271,7 +1271,7 @@ trait APIMethods310 {
          |
         |""",
       emptyObjectJson,
-      customerJsonV300,
+      customerJsonV310,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1294,6 +1294,47 @@ trait APIMethods310 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      getCustomerByCustomerNumber,
+      implementedInApiVersion,
+      "getCustomerByCustomerNumber",
+      "POST",
+      "/banks/BANK_ID/customers/customer-number",
+      "Get Customer specified by CUSTOMER_NUMBER",
+      s"""Gets the Customers specified by CUSTOMER_NUMBER.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      postCustomerNumberJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val getCustomerByCustomerNumber : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomer)(bankId.value, u.userId, canGetCustomer)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerNumberJsonV310 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerNumberJsonV310]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     
   }

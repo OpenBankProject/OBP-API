@@ -101,6 +101,9 @@ object MappedCustomerProvider extends CustomerProvider {
       By(MappedCustomer.mBank, bankId.value)
     )
   }
+  override def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId): Future[Box[Customer]] = {
+    Future(getCustomerByCustomerNumber(customerNumber, bankId))
+  }
 
   override def getUser(bankId: BankId, customerNumber: String): Box[User] = {
     getCustomerByCustomerNumber(customerNumber, bankId).flatMap{

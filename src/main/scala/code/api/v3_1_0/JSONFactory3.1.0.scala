@@ -237,9 +237,9 @@ case class CustomerJsonV310(
   nameSuffix: String
 )
 
-case class PostCustomerResponseJsonV310(
-                                         messages: List[String]
-                                       )
+case class PostCustomerResponseJsonV310(messages: List[String])
+
+case class PostCustomerNumberJsonV310(customer_number: String)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =

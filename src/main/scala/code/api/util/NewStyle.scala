@@ -102,7 +102,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createCustomer), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -185,6 +186,11 @@ object NewStyle {
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): Future[(Customer, Option[CallContext])] = {
       Connector.connector.vend.getCustomerByCustomerIdFuture(customerId, callContext) map {
         unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId, 400)
+      }
+    }
+    def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): Future[(Customer, Option[CallContext])] = {
+      Connector.connector.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId, callContext) map {
+        unboxFullOrFail(_, callContext, CustomerNotFound, 400)
       }
     }
 

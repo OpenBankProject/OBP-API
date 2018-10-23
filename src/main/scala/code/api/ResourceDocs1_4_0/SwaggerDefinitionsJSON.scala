@@ -1978,6 +1978,8 @@ object SwaggerDefinitionsJSON {
     nameSuffix = "Sr"
   )
 
+  val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = "123")
+
 
   val transactionRequestWithChargeJSON210 = TransactionRequestWithChargeJSON210(
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",

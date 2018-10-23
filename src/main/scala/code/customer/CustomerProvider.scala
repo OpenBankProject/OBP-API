@@ -42,6 +42,8 @@ trait CustomerProvider {
 
   def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId): Box[Customer]
 
+  def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId): Future[Box[Customer]]
+
   def getUser(bankId : BankId, customerNumber : String) : Box[User]
 
   def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean
@@ -82,6 +84,7 @@ class RemotedataCustomerProviderCaseClasses {
   case class getCustomerByCustomerIdFuture(customerId: String)
   case class getBankIdByCustomerId(customerId: String)
   case class getCustomerByCustomerNumber(customerNumber: String, bankId : BankId)
+  case class getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId)
   case class getUser(bankId : BankId, customerNumber : String)
   case class checkCustomerNumberAvailable(bankId : BankId, customerNumber : String)
   case class addCustomer(bankId: BankId,
