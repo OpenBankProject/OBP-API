@@ -1181,17 +1181,8 @@ trait APIMethods310 {
               json.extract[PostCustomerJsonV310]
             }
   
-            customerIsExisted <- Connector.connector.vend.checkCustomerNumberAvailableFuture(bankId, postedData.customer_number) map {
-              unboxFullOrFail(_, callContext, CheckCustomerError, 400)
-            }
-  
-            _ <- Helper.booleanToFuture( s"${CustomerNumberAlreadyExists
-              .replace("BANK_ID",s"BANK_ID(${bankId.value})")
-              .replace("CUSTOMER_NUMBER", s"CUSTOMER_NUMBER(${postedData.customer_number})")}") {customerIsExisted == true}
-  
             customer <- Connector.connector.vend.createCustomerFuture(
               bankId,
-              postedData.customer_number,
               postedData.legal_name,
               postedData.mobile_phone_number,
               postedData.email,
