@@ -194,7 +194,6 @@ case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elasti
 
 
 case class PostCustomerJsonV310(
-  customer_number: String,
   legal_name: String,
   mobile_phone_number: String,
   email: String,

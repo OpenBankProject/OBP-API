@@ -1726,7 +1726,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override def createCustomerFuture(
                                bankId: BankId,
-                               number: String,
                                legalName: String,
                                mobileNumber: String,
                                email: String,
@@ -1748,7 +1747,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                nameSuffix: String): Future[Box[Customer]] = Future{
     Customer.customerProvider.vend.addCustomer(
       bankId,
-      number,
+      UUID.randomUUID().toString,
       legalName,
       mobileNumber,
       email,
