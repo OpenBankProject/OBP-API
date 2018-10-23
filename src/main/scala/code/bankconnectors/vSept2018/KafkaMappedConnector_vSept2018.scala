@@ -101,7 +101,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       correlationId <- Full(cc.correlationId)
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- Full(permission.views)
-      linkedCustomers <- Customer.customerProvider.vend.getCustomersByUserId(user.userId)
+      linkedCustomers <- Full(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
       authViews<- Full(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
@@ -118,7 +119,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           AuthView(viewBasic, accountBasic)
       )
     } yield{
-      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, authViews)
+      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, likedCustomersBasic, authViews)
     }
   
   val viewBasic = ViewBasic("owner","Owner", "This is the owner view")
@@ -144,12 +145,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   )
   val authView = AuthView(viewBasic, accountBasic)
   val authViews = List(authView)
+  val basicCustomer = BasicCustomer("customerId","customerNumber","legalName")
+  val basicCustomers = List(basicCustomer)
   val authInfoExample = AuthInfo(
     userId = "userId", 
     username = "username",
     cbsToken = "cbsToken", 
     isFirst = true,
     correlationId = "correlationId", 
+    basicCustomers,
     authViews
   )
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
