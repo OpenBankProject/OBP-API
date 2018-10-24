@@ -50,6 +50,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
+import code.customer.internalMapping.MappedCustomerIDMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
@@ -572,6 +573,7 @@ object ToSchemify {
     MappedFXRate,
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
-    MappedAccountWebhook
+    MappedAccountWebhook,
+    MappedCustomerIDMapping
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
