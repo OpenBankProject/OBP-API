@@ -210,11 +210,6 @@
       <version>2.21</version>
     </dependency>
     <dependency>
-      <groupId>com.rabbitmq</groupId>
-      <artifactId>amqp-client</artifactId>
-      <version>3.6.1</version>
-    </dependency>
-    <dependency>
       <groupId>net.liftmodules</groupId>
       <artifactId>amqp_3.1_${scala.version}</artifactId>
       <version>1.5.0</version>
