@@ -11,7 +11,7 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310, PostCustomerResponseJsonV310}
+import code.api.v3_1_0._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
@@ -1384,6 +1384,10 @@ trait Connector extends MdcLoggable{
   def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
 
   def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
+
+  def postTaxResidence(customerId : String, tr : List[TaxResidence], callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!")}
+
+  def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!")}
 
   def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersFuture in Connector!")}
 

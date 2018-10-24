@@ -190,6 +190,12 @@ object ApiRole {
   case class CanGetWebhooks(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetWebhooks = CanGetWebhooks()
 
+  case class CanGetTaxResidence(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetTaxResidence = CanGetTaxResidence()
+
+  case class CanAddTaxResidence(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddTaxResidence = CanAddTaxResidence()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -252,6 +258,8 @@ object ApiRole {
       canCreateWebhook ::
       canGetWebhooks ::
       canUpdateWebhook ::
+      canGetTaxResidence ::
+      canAddTaxResidence ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

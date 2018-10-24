@@ -240,6 +240,10 @@ case class PostCustomerResponseJsonV310(messages: List[String])
 
 case class PostCustomerNumberJsonV310(customer_number: String)
 
+case class TaxResidence(domain: String, tax_number: String)
+case class PostTaxResidenceJsonV310(tax_residence: List[TaxResidence])
+case class TaxResidenceJsonV310(tax_residence: List[TaxResidence])
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -391,6 +395,8 @@ object JSONFactory310{
       nameSuffix = cInfo.nameSuffix
     )
   }
+
+  def createTaxResidence(tr: List[TaxResidence]) = TaxResidenceJsonV310(tr)
 
 
 }
