@@ -1979,6 +1979,10 @@ object SwaggerDefinitionsJSON {
 
   val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = "123")
 
+  val taxResidenceV310 = TaxResidence(domain = "Enter some domain", tax_number = "Enter some number")
+  val postTaxResidenceJsonV310 = PostTaxResidenceJsonV310(tax_residence = List(taxResidenceV310))
+  val taxResidenceJsonV310 = TaxResidenceJsonV310(tax_residence = List(taxResidenceV310))
+
 
   val transactionRequestWithChargeJSON210 = TransactionRequestWithChargeJSON210(
     id = "4050046c-63b3-4868-8a22-14b4181d33a6",

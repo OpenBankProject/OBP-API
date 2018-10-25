@@ -9,6 +9,7 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.TaxResidence
 import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.BranchId
@@ -103,7 +104,9 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createCustomer), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.taxResidence), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -191,6 +194,17 @@ object NewStyle {
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): Future[(Customer, Option[CallContext])] = {
       Connector.connector.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId, callContext) map {
         unboxFullOrFail(_, callContext, CustomerNotFound, 400)
+      }
+    }
+
+    def postTaxResidence(customerId : String, tr : List[TaxResidence], callContext: Option[CallContext]): Future[(List[TaxResidence], Option[CallContext])] = {
+      Connector.connector.vend.postTaxResidence(customerId, tr, callContext) map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+      }
+    }
+    def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(List[TaxResidence], Option[CallContext])] = {
+      Connector.connector.vend.getTaxResidence(customerId, callContext) map {
+        unboxFullOrFail(_, callContext, "Cannot find tax residence via CUSTOMER_ID: " + customerId, 400)
       }
     }
 
