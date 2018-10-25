@@ -1796,9 +1796,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     TaxResidence.taxResidence.vend.getTaxResidence(customerId) map {
       (_, callContext)
     }
-
   override def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
     TaxResidence.taxResidence.vend.addTaxResidence(customerId, domain, taxNumber) map {
+      (_, callContext)
+    }
+  override def deleteTaxResidence(taxResidenceId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =
+    TaxResidence.taxResidence.vend.deleteTaxResidence(taxResidenceId) map {
       (_, callContext)
     }
 

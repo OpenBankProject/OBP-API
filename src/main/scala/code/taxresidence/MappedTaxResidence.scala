@@ -1,8 +1,9 @@
 package code.taxresidence
 
+import code.api.util.ErrorMessages
 import code.customer.MappedCustomer
 import code.util.MappedUUID
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -23,6 +24,16 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
   }
   override def addTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = {
     Future(addTaxResidenceRemote(customerId, domain, taxNumber))
+  }
+  def deleteTaxResidenceRemote(taxResidenceId: String): Box[Boolean] = {
+    MappedTaxResidence.find(By(MappedTaxResidence.mTaxResidenceId, taxResidenceId)) match {
+      case Full(t) => Full(t.delete_!)
+      case Empty   => Empty ?~! ErrorMessages.TaxResidenceIdNotFound
+      case _       => Full(false)
+    }
+  }
+  override def deleteTaxResidence(taxResidenceId: String): Future[Box[Boolean]] = {
+    Future(deleteTaxResidenceRemote(taxResidenceId))
   }
 }
 

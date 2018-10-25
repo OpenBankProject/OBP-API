@@ -19,4 +19,7 @@ object RemotedataTaxResidence extends ObpActorInit with TaxResidenceProvider {
   def addTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] =
     (actor ? cc.addTaxResidence(customerId, domain, taxNumber)).mapTo[Box[TaxResidence]]
 
+  def deleteTaxResidence(taxResidenceId: String): Future[Box[Boolean]] =
+    (actor ? cc.deleteTaxResidence(taxResidenceId)).mapTo[Box[Boolean]]
+
 }

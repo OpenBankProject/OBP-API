@@ -20,6 +20,10 @@ class RemotedataTaxResidenceActor extends Actor with ObpActorHelper with MdcLogg
       logger.debug("addTaxResidence(" + customerId + ", " + domain + ", " + taxNumber + ")")
       sender ! (mapper.addTaxResidenceRemote(customerId, domain, taxNumber))
 
+    case cc.deleteTaxResidence(taxResidenceId: String) =>
+      logger.debug("deleteTaxResidence(" + taxResidenceId + ")")
+      sender ! (mapper.deleteTaxResidenceRemote(taxResidenceId))
+
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }

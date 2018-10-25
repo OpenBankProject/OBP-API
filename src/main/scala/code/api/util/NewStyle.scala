@@ -107,7 +107,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.taxResidence), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -206,6 +207,11 @@ object NewStyle {
     def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(List[TaxResidence], Option[CallContext])] = {
       Connector.connector.vend.getTaxResidence(customerId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, "Cannot find tax residence via CUSTOMER_ID: " + customerId, 400), i._2)
+      }
+    }
+    def deleteTaxResidence(taxResienceId : String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])] = {
+      Connector.connector.vend.deleteTaxResidence(taxResienceId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
 
