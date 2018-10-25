@@ -25,6 +25,7 @@ import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
 import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
+import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
@@ -1385,7 +1386,7 @@ trait Connector extends MdcLoggable{
 
   def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
 
-  def postTaxResidence(customerId : String, tr : List[TaxResidence], callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!")}
+  def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[Box[(TaxResidence, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!")}
 
   def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!")}
 

@@ -1365,9 +1365,9 @@ trait APIMethods310 {
               json.extract[PostTaxResidenceJsonV310]
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
-            (taxResidence, callContext) <- NewStyle.function.postTaxResidence(customerId: String, postedData.tax_residence: List[TaxResidence], callContext)
+            (taxResidence, callContext) <- NewStyle.function.postTaxResidence(customerId, postedData.domain, postedData.tax_number, callContext)
           } yield {
-            (JSONFactory310.createTaxResidence(taxResidence), HttpCode.`200`(callContext))
+            (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`200`(callContext))
           }
       }
     }
