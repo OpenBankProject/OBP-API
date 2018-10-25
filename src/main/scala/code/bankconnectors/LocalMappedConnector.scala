@@ -1792,18 +1792,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersFuture(bankId, queryParams)
 
-  override def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] =
+  override def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] =
     TaxResidence.taxResidence.vend.getTaxResidence(customerId) map {
-      i => i.map(
-        tr => (tr, callContext)
-      )
+      (_, callContext)
     }
 
-  override def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[Box[(TaxResidence, Option[CallContext])]] =
+  override def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
     TaxResidence.taxResidence.vend.addTaxResidence(customerId, domain, taxNumber) map {
-      i => i.map(
-        customer => (customer, callContext)
-      )
+      (_, callContext)
     }
 
   override def getCheckbookOrdersFuture(

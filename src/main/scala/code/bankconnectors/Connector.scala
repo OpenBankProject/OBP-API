@@ -1382,13 +1382,13 @@ trait Connector extends MdcLoggable{
 
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
 
-  def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
+  def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerIdFuture in Connector!")}
 
-  def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
+  def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerNumberFuture in Connector!")}
 
-  def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[Box[(TaxResidence, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!")}
+  def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!"), callContext)}
 
-  def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!")}
+  def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!"), callContext)}
 
   def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersFuture in Connector!")}
 

@@ -200,12 +200,12 @@ object NewStyle {
 
     def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(TaxResidence, Option[CallContext])] = {
       Connector.connector.vend.postTaxResidence(customerId, domain, taxNumber, callContext) map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
     def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(List[TaxResidence], Option[CallContext])] = {
       Connector.connector.vend.getTaxResidence(customerId, callContext) map {
-        unboxFullOrFail(_, callContext, "Cannot find tax residence via CUSTOMER_ID: " + customerId, 400)
+        i => (unboxFullOrFail(i._1, callContext, "Cannot find tax residence via CUSTOMER_ID: " + customerId, 400), i._2)
       }
     }
 
