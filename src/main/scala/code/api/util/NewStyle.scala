@@ -206,7 +206,7 @@ object NewStyle {
     }
     def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(List[TaxResidence], Option[CallContext])] = {
       Connector.connector.vend.getTaxResidence(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, "Cannot find tax residence via CUSTOMER_ID: " + customerId, 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
     def deleteTaxResidence(taxResienceId : String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])] = {

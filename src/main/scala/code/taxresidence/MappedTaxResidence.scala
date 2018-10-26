@@ -3,8 +3,9 @@ package code.taxresidence
 import code.api.util.ErrorMessages
 import code.customer.MappedCustomer
 import code.util.MappedUUID
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -20,7 +21,16 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
   }
   def addTaxResidenceRemote(customerId: String, domain: String, taxNumber: String): Box[TaxResidence] = {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
-    id.map(customer => MappedTaxResidence.create.mCustomerId(customer.id.get).mDomain(domain).mTaxNumber(taxNumber).saveMe())
+    id match {
+      case Full(customer) =>
+        tryo(MappedTaxResidence.create.mCustomerId(customer.id.get).mDomain(domain).mTaxNumber(taxNumber).saveMe())
+      case Empty =>
+        Empty ?~! ErrorMessages.CustomerNotFoundByCustomerId
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
   }
   override def addTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = {
     Future(addTaxResidenceRemote(customerId, domain, taxNumber))

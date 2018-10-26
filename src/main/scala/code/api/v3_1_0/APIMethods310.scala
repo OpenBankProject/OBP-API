@@ -1335,8 +1335,8 @@ trait APIMethods310 {
       "taxResidence",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
-      "Post the Tax Residence of the Customer specified by a CUSTOMER_ID",
-      s"""Post the Tax Residence of the Customer specified by a CUSTOMER_ID.
+      "Add the Tax Residence of the Customer specified by a CUSTOMER_ID",
+      s"""Add the Tax Residence of the Customer specified by a CUSTOMER_ID.
          |
         |
         |${authenticationRequiredMessage(true)}
