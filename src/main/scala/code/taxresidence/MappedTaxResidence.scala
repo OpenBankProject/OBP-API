@@ -2,7 +2,7 @@ package code.taxresidence
 
 import code.api.util.ErrorMessages
 import code.customer.MappedCustomer
-import code.util.MappedUUID
+import code.util.{MappedUUID, MediumString}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -53,8 +53,8 @@ class MappedTaxResidence extends TaxResidence with LongKeyedMapper[MappedTaxResi
 
   object mCustomerId extends MappedLongForeignKey(this, MappedCustomer)
   object mTaxResidenceId extends MappedUUID(this)
-  object mDomain extends MappedString(this, 20)
-  object mTaxNumber extends MappedString(this, 50)
+  object mDomain extends MediumString(this)
+  object mTaxNumber extends MediumString(this)
 
   override def customerId: Long = mCustomerId.get
   override def taxResidenceId: String = mTaxResidenceId.get
