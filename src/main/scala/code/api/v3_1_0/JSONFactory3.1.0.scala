@@ -44,6 +44,7 @@ import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
 import code.customer.Customer
+import code.context.UserAuthContext
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,
@@ -240,6 +241,23 @@ case class PostCustomerResponseJsonV310(messages: List[String])
 
 case class PostCustomerNumberJsonV310(customer_number: String)
 
+case class PostUserAuthContextJson(
+  user_id: String,
+  key: String,
+  value: String
+)
+
+case class UserAuthContextJson(
+  id: String,
+  user_id: String,
+  key: String,
+  value: String
+)
+
+case class UserAuthContextsJson(
+  user_auth_contexts: List[UserAuthContextJson]
+)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -390,6 +408,19 @@ object JSONFactory310{
       branchId = cInfo.branchId,
       nameSuffix = cInfo.nameSuffix
     )
+  }
+  
+  def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJson = {
+    UserAuthContextJson(
+      userAuthContext.userAuthContextId,
+      userAuthContext.userId,
+      userAuthContext.key,
+      userAuthContext.value
+    )
+  }
+  
+  def createUserAuthContextsJson(userAuthContext: List[UserAuthContext]): UserAuthContextsJson = {
+    UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
   }
 
 

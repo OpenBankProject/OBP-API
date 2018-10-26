@@ -1327,6 +1327,81 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      createUserAuthContext,
+      implementedInApiVersion,
+      "createUserAuthContext",
+      "POST",
+      "/user/auth/context",
+      "Create UserAuthContext",
+      s"""Create UserAuthContext.
+        |${authenticationRequiredMessage(true)}
+        |""",
+      postUserAuthContextJson,
+      userAuthContextJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        CreateUserAuthContextError,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val createUserAuthContext : OBPEndpoint = {
+      case "user" ::"auth" ::"context" :: Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanModifyUserAuthContext)("", u.userId, canModifyUserAuthContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostUserAuthContextJson]
+            }
+            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(postedData.user_id, postedData.key, postedData.value, callContext)
+          } yield {
+            (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getUserAuthContexts,
+      implementedInApiVersion,
+      "getUserAuthContexts",
+      "GET",
+      "/user/auth/context/USER_ID",
+      "Get UserAuthContexts",
+      s"""Get all UserAuthContexts.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      emptyObjectJson,
+      userAuthContextsJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        CreateUserAuthContextError,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val getUserAuthContexts : OBPEndpoint = {
+      case "user" ::"auth" ::"context" :: userId ::  Nil  JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetUserAuthContext)("", u.userId, canGetUserAuthContext)
+            (userAuthContexts, callContext) <- NewStyle.function.getUserAuthContexts(userId, callContext)
+          } yield {
+            (JSONFactory310.createUserAuthContextsJson(userAuthContexts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
     
   }
 }

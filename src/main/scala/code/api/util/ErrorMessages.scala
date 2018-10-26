@@ -206,6 +206,11 @@ object ErrorMessages {
   val WebhookNotFound = "OBP-30050: Webhook not found. Please specify a valid value for account_webhook_id."
   val CreateCustomerError = "OBP-30051: Cannot create Customer"
   val CheckCustomerError = "OBP-30052: Cannot check Customer"
+  
+  val CreateUserAuthContextError = "OBP-30053: Could not insert the UserAuthContext"
+  val UpdateUserAuthContextError = "OBP-30054: Could not update the UserAuthContext"
+  val UpdateUserAuthContextNotFound = "OBP-30055: UserAuthContext not found. Please specify a valid value for USER_ID."
+  
 
 
   // Meetings
