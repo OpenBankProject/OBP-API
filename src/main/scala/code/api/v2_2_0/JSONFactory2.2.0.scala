@@ -826,7 +826,8 @@ object JSONFactory220{
                            )
 
   // Creates the json message docs
-  case class MessageDocsJson(messageDocs: List[MessageDocJson])
+  // changed key from messageDocs to message_docs 27 Oct 2018 whilst this version still DRAFT.
+  case class MessageDocsJson(message_docs: List[MessageDocJson])
 
   def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))

@@ -414,7 +414,7 @@ object SwaggerDefinitionsJSON {
     inboundAvroSchema = Some(defaultJValue)
   )
   
-  val messageDocsJson = MessageDocsJson(messageDocs = List(messageDocJson))
+  val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))
   
   //V121 - code.api.v1_2_1
   ///////////////////////////////////////////////////////////////////////////
