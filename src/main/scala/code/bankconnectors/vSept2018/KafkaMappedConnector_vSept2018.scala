@@ -66,7 +66,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   implicit override val nameOfConnector = KafkaMappedConnector_vSept2018.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
-  // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
+  // Use Case Classes (e.g. KafkaInbound... KafkaOutbound...) are defined below to describe the message structures.
   // Each connector has a separate file like this one.
   // Once the message format is STABLE, freeze the key/value pair names there. For now, new keys may be added but none modified.
   // If we want to add a new message format, create a new file e.g. March2017_messages.scala
