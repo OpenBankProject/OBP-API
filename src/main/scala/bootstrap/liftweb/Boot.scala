@@ -77,6 +77,7 @@ import code.remotedata.RemotedataActors
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
+import code.taxresidence.MappedTaxResidence
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionStatusScheduler
@@ -544,7 +545,8 @@ object ToSchemify {
     MappedExpectedChallengeAnswer,
     MappedEntitlementRequest,
     MappedScope,
-    MappedUserScope
+    MappedUserScope,
+    MappedTaxResidence
   )
 
   // The following tables are accessed directly via Mapper / JDBC
