@@ -1171,7 +1171,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
 
-            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles ) {
+            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank) {
               hasAtLeastOneEntitlement(bankId.value, u.userId,  canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil)
             }
 
