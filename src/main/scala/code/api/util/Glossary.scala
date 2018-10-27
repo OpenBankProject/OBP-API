@@ -1,17 +1,52 @@
 package code.api.util
 
 import code.api.util.APIUtil.{getObpApiRoot, getServerUrl, getOAuth2ServerUrl}
+import org.pegdown.PegDownProcessor
 
 import scala.collection.mutable.ArrayBuffer
 
+
+
+
+
 object Glossary {
 
+	val PegDownProcessorTimeout: Long = 1000*20
+	val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
+
     case class GlossaryItem(
-                            title: String,
-                            description: String
+															 title: String,
+															 description: String,
+															 htmlDescription: String,
+															 textDescription: String
                             )
 
 
+	object GlossaryItem {
+
+
+		// Constructs a GlossaryItem from just two parameters.
+		def apply(title: String, description: String): GlossaryItem = {
+
+		// Convert markdown to HTML
+		val htmlDescription: String = pegDownProcessor.markdownToHtml(description.stripMargin)
+
+		// Try and generate a plain text string (requires valid HTML)
+		val textDescription: String = try {
+			scala.xml.XML.loadString(htmlDescription).text
+		} catch {
+			// Fallback to the html
+			case _ => htmlDescription
+		}
+
+			new GlossaryItem(title,
+				description,
+				htmlDescription,
+				textDescription
+			)
+		}
+
+	}
 
 
 
