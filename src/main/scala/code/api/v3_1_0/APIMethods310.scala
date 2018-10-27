@@ -1402,6 +1402,129 @@ trait APIMethods310 {
       }
     }
     
+
+
+    resourceDocs += ResourceDoc(
+      taxResidence,
+      implementedInApiVersion,
+      "taxResidence",
+      "POST",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
+      "Add the Tax Residence of the Customer specified by a CUSTOMER_ID",
+      s"""Add the Tax Residence of the Customer specified by a CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      postTaxResidenceJsonV310,
+      taxResidenceJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val taxResidence : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax_residence" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanAddTaxResidence)(bankId.value, u.userId, canAddTaxResidence)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostTaxResidenceJsonV310 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostTaxResidenceJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (taxResidence, callContext) <- NewStyle.function.postTaxResidence(customerId, postedData.domain, postedData.tax_number, callContext)
+          } yield {
+            (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getTaxResidence,
+      implementedInApiVersion,
+      "getTaxResidence",
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
+      "Get the Tax Residence of the Customer specified by  CUSTOMER_ID",
+      s"""Get the Tax Residence of the Customer specified by a CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      emptyObjectJson,
+      taxResidenceJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val getTaxResidence : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax_residence" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetTaxResidence)(bankId.value, u.userId, canGetTaxResidence)
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (taxResidence, callContext) <- NewStyle.function.getTaxResidence(customerId, callContext)
+          } yield {
+            (JSONFactory310.createTaxResidence(taxResidence), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteTaxResidence,
+      implementedInApiVersion,
+      "deleteTaxResidence",
+      "DELETE",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residencies/TAX_RESIDENCE_ID",
+      "Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID",
+      s"""Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val deleteTaxResidence : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax_residencies" :: taxResidenceId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanDeleteTaxResidence)(bankId.value, u.userId, canDeleteTaxResidence)
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (taxResidence, callContext) <- NewStyle.function.deleteTaxResidence(taxResidenceId, callContext)
+          } yield {
+            (Full(taxResidence), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     
   }
 }

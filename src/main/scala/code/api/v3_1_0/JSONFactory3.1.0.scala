@@ -45,6 +45,7 @@ import net.liftweb.common.{Box, Full}
 import scala.collection.immutable.List
 import code.customer.Customer
 import code.context.UserAuthContext
+import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,
@@ -258,6 +259,10 @@ case class UserAuthContextsJson(
   user_auth_contexts: List[UserAuthContextJson]
 )
 
+case class TaxResidenceV310(domain: String, tax_number: String, tax_residence_id: String)
+case class PostTaxResidenceJsonV310(domain: String, tax_number: String)
+case class TaxResidenceJsonV310(tax_residence: List[TaxResidenceV310])
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -377,7 +382,7 @@ object JSONFactory310{
   def createAccountWebhooksJson(whs: List[AccountWebhook]) = {
     AccountWebhooksJson(whs.map(createAccountWebhookJson(_)))
   }
-  
+
   def getConfigInfoJSON(): ConfigurationJsonV310 = {
     val configurationJson: ConfigurationJSON = JSONFactory220.getConfigInfoJSON()
     val defaultBankId= APIUtil.defaultBankId
@@ -422,6 +427,17 @@ object JSONFactory310{
   def createUserAuthContextsJson(userAuthContext: List[UserAuthContext]): UserAuthContextsJson = {
     UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
   }
+
+  def createTaxResidence(tr: List[TaxResidence]) = TaxResidenceJsonV310(
+    tr.map(
+      i =>
+        TaxResidenceV310(
+          domain = i.domain,
+          tax_number = i.taxNumber,
+          tax_residence_id = i.taxResidenceId
+        )
+    )
+  )
 
 
 }

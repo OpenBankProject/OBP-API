@@ -9,6 +9,7 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_1_0.TaxResidenceV310
 import code.atms.Atms.AtmId
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.BranchId
@@ -19,6 +20,7 @@ import code.context.UserAuthContext
 import code.entitlement.Entitlement
 import code.metadata.counterparties.Counterparties
 import code.model._
+import code.taxresidence.TaxResidence
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -105,7 +107,10 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createCustomer), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.taxResidence), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -193,6 +198,22 @@ object NewStyle {
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): Future[(Customer, Option[CallContext])] = {
       Connector.connector.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId, callContext) map {
         unboxFullOrFail(_, callContext, CustomerNotFound, 400)
+      }
+    }
+
+    def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(TaxResidence, Option[CallContext])] = {
+      Connector.connector.vend.postTaxResidence(customerId, domain, taxNumber, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(List[TaxResidence], Option[CallContext])] = {
+      Connector.connector.vend.getTaxResidence(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    def deleteTaxResidence(taxResienceId : String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])] = {
+      Connector.connector.vend.deleteTaxResidence(taxResienceId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
 
