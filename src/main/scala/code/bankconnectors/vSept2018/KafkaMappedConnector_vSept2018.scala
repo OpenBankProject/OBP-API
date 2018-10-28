@@ -66,7 +66,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   implicit override val nameOfConnector = KafkaMappedConnector_vSept2018.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
-  // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
+  // Use Case Classes (e.g. KafkaInbound... KafkaOutbound...) are defined below to describe the message structures.
   // Each connector has a separate file like this one.
   // Once the message format is STABLE, freeze the key/value pair names there. For now, new keys may be added but none modified.
   // If we want to add a new message format, create a new file e.g. March2017_messages.scala
@@ -693,7 +693,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundCheckBankAccountExists(
         authInfoExample,
-        bankIdExample.verbose,
+        bankIdExample.valueAndDescription,
         "accountId"
       )
     ),
@@ -701,7 +701,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       InboundCheckBankAccountExists(
         authInfoExample,
         statusExample,
-        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = bankIdExample.verbose, branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
+        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = bankIdExample.valueAndDescription, branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
     )
   )
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext])= saveConnectorMetric {
@@ -755,8 +755,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetAccountbyAccountID(
         authInfoExample,
-        "bankId",
-        "accountId"
+        bankIdExample.valueAndDescription,
+        accountIdExample.valueAndDescription
       )
     ),
     exampleInboundMessage = decompose(

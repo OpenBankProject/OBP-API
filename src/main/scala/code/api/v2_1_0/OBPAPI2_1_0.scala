@@ -48,7 +48,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v2_1_0 //"2.1.0"
 
-  val versionStatus = "DRAFT"
+  val versionStatus = "STABLE"
 
   // Get disabled API versions from props
   val disabledVersions = APIUtil.getDisabledVersions

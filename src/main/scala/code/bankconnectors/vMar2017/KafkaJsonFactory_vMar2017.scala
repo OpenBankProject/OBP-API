@@ -615,43 +615,9 @@ case class InboundChargeLevel(
   amount: String
 )extends InboundMessageBase
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-case class MessageDocJson(
-                           process: String, // Should be unique
-                           message_format: String,
-                           outbound_topic: Option[String] = None,
-                           inbound_topic: Option[String] = None,
-                           description: String,
-                           example_outbound_message: JValue,
-                           example_inbound_message: JValue,
-                           outboundAvroSchema: Option[JValue] = None,
-                           inboundAvroSchema: Option[JValue] = None
-)
-
-// Creates the json resource_docs
-case class MessageDocsJson(messageDocs: List[MessageDocJson])
 
 object JsonFactory_vMar2017 {
-
-  def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
-    MessageDocsJson(messageDocsList.map(createMessageDocJson))
-  }
-
-  def createMessageDocJson(md: MessageDoc): MessageDocJson = {
-    MessageDocJson(
-      process = md.process,
-      message_format = md.messageFormat,
-      description = md.description,
-      outbound_topic = md.outboundTopic,
-      inbound_topic = md.inboundTopic,
-      example_outbound_message = md.exampleOutboundMessage,
-      example_inbound_message = md.exampleInboundMessage,
-      inboundAvroSchema = md.inboundAvroSchema,
-      outboundAvroSchema = md.outboundAvroSchema
-    )
-  }
-  
+  // moved to Json factory v2.0.0
 }
 
 
