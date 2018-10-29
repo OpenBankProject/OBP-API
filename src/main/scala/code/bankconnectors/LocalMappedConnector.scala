@@ -9,7 +9,7 @@ import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310}
+import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310, TaxResidenceV310}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vJune2017.InboundAccountJune2017
@@ -30,6 +30,8 @@ import code.model.dataAccess._
 import code.model.{TransactionRequestType, _}
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
+import code.taxresidence
+import code.taxresidence.TaxResidence
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests._
@@ -1794,7 +1796,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersFuture(bankId, queryParams)
-  
+
+  override def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] =
+    TaxResidence.taxResidence.vend.getTaxResidence(customerId) map {
+      (_, callContext)
+    }
+  override def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
+    TaxResidence.taxResidence.vend.addTaxResidence(customerId, domain, taxNumber) map {
+      (_, callContext)
+    }
+  override def deleteTaxResidence(taxResidenceId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =
+    TaxResidence.taxResidence.vend.deleteTaxResidence(taxResidenceId) map {
+      (_, callContext)
+    }
+
   override def getCheckbookOrdersFuture(
     bankId: String, 
     accountId: String, 

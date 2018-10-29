@@ -247,6 +247,8 @@ object ErrorMessages {
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
 
+  val TaxResidenceIdNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
+
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
   val BranchesNotFound = "OBP-32002: No branches available."

@@ -25,6 +25,7 @@ import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
 import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.products.Products.{Product, ProductCode}
+import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
@@ -1384,13 +1385,15 @@ trait Connector extends MdcLoggable{
 
   def getCustomerByCustomerId(customerId: String, callContext: Option[CallContext]): Box[(Customer,Option[CallContext])]= Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")
   
-  def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
+  def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerIdFuture in Connector!")}
 
-  def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
+  def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerNumberFuture in Connector!")}
 
-  def postTaxResidence(customerId : String, tr : List[TaxResidence], callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!")}
+  def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!"), callContext)}
 
-  def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[Box[(List[TaxResidence], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!")}
+  def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!"), callContext)}
+
+  def deleteTaxResidence(taxResourceId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"deleteTaxResidence in Connector!"), callContext)}
 
   def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersFuture in Connector!")}
 

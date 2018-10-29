@@ -45,7 +45,7 @@ import scala.collection.immutable.Nil
 object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with MdcLoggable {
 
   val version : ApiVersion = ApiVersion.v2_2_0 //  "2.2.0"
-  val versionStatus = "DRAFT"
+  val versionStatus = "STABLE"
 
   // Get disabled API versions from props
   val disabledVersions = APIUtil.getDisabledVersions

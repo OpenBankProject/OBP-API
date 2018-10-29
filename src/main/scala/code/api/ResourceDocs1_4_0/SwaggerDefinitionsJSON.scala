@@ -2,6 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
+import code.api.v2_2_0.JSONFactory220.{MessageDocsJson, MessageDocJson}
 import code.api.{Constant, v3_1_0}
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -15,7 +16,6 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
 import code.api.v3_1_0.{BadLoginStatusJson, _}
-import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import code.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
@@ -401,10 +401,7 @@ object SwaggerDefinitionsJSON {
     is_beneficiary= true
   )
   
-  // from code.bankconnectors, not from normal version Factory
-  ///////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////
-  
+
   val messageDocJson = MessageDocJson(
     process = "getAccounts",
     message_format = "KafkaV2017",
@@ -417,7 +414,7 @@ object SwaggerDefinitionsJSON {
     inboundAvroSchema = Some(defaultJValue)
   )
   
-  val messageDocsJson = MessageDocsJson(messageDocs = List(messageDocJson))
+  val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))
   
   //V121 - code.api.v1_2_1
   ///////////////////////////////////////////////////////////////////////////
@@ -1979,8 +1976,8 @@ object SwaggerDefinitionsJSON {
 
   val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = "123")
 
-  val taxResidenceV310 = TaxResidence(domain = "Enter some domain", tax_number = "Enter some number")
-  val postTaxResidenceJsonV310 = PostTaxResidenceJsonV310(tax_residence = List(taxResidenceV310))
+  val taxResidenceV310 = TaxResidenceV310(domain = "Enter some domain", tax_number = "Enter some number", tax_residence_id = "902ba3bb-dedd-45e7-9319-2fd3f2cd98a1")
+  val postTaxResidenceJsonV310 = PostTaxResidenceJsonV310(domain = "Enter some domain", tax_number = "Enter some number")
   val taxResidenceJsonV310 = TaxResidenceJsonV310(tax_residence = List(taxResidenceV310))
 
 

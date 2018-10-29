@@ -67,7 +67,6 @@ class TransactionTest extends V310ServerSetup {
       val bankAccount = randomPrivateAccount(bankId)
       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
-      org.scalameta.logger.elem(transaction)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transactions" / transaction.id / "transaction").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
