@@ -312,6 +312,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.deleteTaxResidence ::
                           Implementations3_1_0.addCustomerAddress ::
                           Implementations3_1_0.getCustomerAddresses ::
+                          Implementations3_1_0.deleteCustomerAddress ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

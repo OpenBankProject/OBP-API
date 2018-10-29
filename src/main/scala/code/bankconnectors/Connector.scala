@@ -1399,6 +1399,7 @@ trait Connector extends MdcLoggable{
                          countryCode: String,
                          status: String,
                          callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"addCustomerAddress in Connector!"), callContext)}
+  def deleteCustomerAddress(customerAddressd : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"deleteCustomerAddress in Connector!"), callContext)}
 
   def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!"), callContext)}
 

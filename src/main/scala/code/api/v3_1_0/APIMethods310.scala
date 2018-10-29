@@ -1547,6 +1547,45 @@ trait APIMethods310 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      deleteCustomerAddress,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAddress),
+      "DELETE",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/addresses/CUSTOMER_ADDRESS_ID",
+      "Delete the Address of the Customer specified by a CUSTOMER_ADDRESS_ID",
+      s"""Delete the Address of the Customer specified by a CUSTOMER_ADDRESS_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val deleteCustomerAddress : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "addresses" :: customerAddressId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateCustomer)(bankId.value, u.userId, canCreateCustomer)
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (address, callContext) <- NewStyle.function.deleteCustomerAddress(customerAddressId, callContext)
+          } yield {
+            (Full(address), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     
   }
 }

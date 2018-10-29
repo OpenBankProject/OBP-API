@@ -111,7 +111,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.addCustomerAddress), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -234,6 +235,12 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
+    def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])] = {
+      Connector.connector.vend.deleteCustomerAddress(customerAddressId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+
     def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(TaxResidence, Option[CallContext])] = {
       Connector.connector.vend.postTaxResidence(customerId, domain, taxNumber, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
