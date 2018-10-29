@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -1385,6 +1386,18 @@ trait Connector extends MdcLoggable{
   def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerIdFuture in Connector!")}
 
   def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerNumberFuture in Connector!")}
+
+  def addCustomerAddress(customerId: String,
+                         line1: String,
+                         line2: String,
+                         line3: String,
+                         city: String,
+                         county: String,
+                         state: String,
+                         postcode: String,
+                         countryCode: String,
+                         status: String,
+                         callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"addCustomerAddress in Connector!"), callContext)}
 
   def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!"), callContext)}
 

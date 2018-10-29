@@ -1450,6 +1450,63 @@ trait APIMethods310 {
       }
     }
 
+
+
+
+    resourceDocs += ResourceDoc(
+      addCustomerAddress,
+      implementedInApiVersion,
+      "addCustomerAddress",
+      "POST",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/address",
+      "Add the Address of the Customer specified by a CUSTOMER_ID",
+      s"""Add the Address of the Customer specified by a CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      postCustomerAddressJsonV310,
+      customerAddressJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val addCustomerAddress : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateCustomer)(bankId.value, u.userId, canCreateCustomer)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerAddressJsonV310 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerAddressJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (address, callContext) <- NewStyle.function.addCustomerAddress(
+              customerId: String,
+              postedData.line_1,
+              postedData.line_2,
+              postedData.line_3,
+              postedData.city,
+              postedData.county,
+              postedData.state,
+              postedData.postcode,
+              postedData.country_code,
+              postedData.state,
+              callContext)
+          } yield {
+            (JSONFactory310.createAddress(address), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     
   }
 }

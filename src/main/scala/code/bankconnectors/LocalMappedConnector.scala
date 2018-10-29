@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 
+import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
@@ -1791,6 +1792,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersFuture(bankId, queryParams)
+
+  override def addCustomerAddress(customerId: String,
+                                 line1: String,
+                                 line2: String,
+                                 line3: String,
+                                 city: String,
+                                 county: String,
+                                 state: String,
+                                 postcode: String,
+                                 countryCode: String,
+                                 status: String,
+                                 callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] =
+    CustomerAddress.address.vend.addAddress(
+      customerId,
+      line1,
+      line2,
+      line3,
+      city,
+      county,
+      state,
+      postcode,
+      countryCode,
+      status) map {
+      (_, callContext)
+    }
 
   override def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] =
     TaxResidence.taxResidence.vend.getTaxResidence(customerId) map {

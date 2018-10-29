@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.customeraddress.CustomerAddress
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
@@ -108,7 +109,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.taxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.addCustomerAddress), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -199,6 +201,32 @@ object NewStyle {
       }
     }
 
+    def addCustomerAddress(customerId: String,
+                          line1: String,
+                          line2: String,
+                          line3: String,
+                          city: String,
+                          county: String,
+                          state: String,
+                          postcode: String,
+                          countryCode: String,
+                          status: String,
+                          callContext: Option[CallContext]): Future[(CustomerAddress, Option[CallContext])] = {
+      Connector.connector.vend.addCustomerAddress(
+        customerId,
+        line1,
+        line2,
+        line3,
+        city,
+        county,
+        state,
+        postcode,
+        countryCode,
+        status,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
     def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(TaxResidence, Option[CallContext])] = {
       Connector.connector.vend.postTaxResidence(customerId, domain, taxNumber, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
