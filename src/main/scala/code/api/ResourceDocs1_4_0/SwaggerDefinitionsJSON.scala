@@ -1332,6 +1332,8 @@ object SwaggerDefinitionsJSON {
     status = "OK",
     insert_date = DateWithDayExampleObject
   )
+  val customerAddressesJsonV310 = CustomerAddressesJsonV310(List(customerAddressJsonV310))
+
   val postCustomerAddressJsonV310 = PostCustomerAddressJsonV310(
     customer_id = "36f8a9e6-c2b1-407a-8bd0-421b7119307e",
     line_1 = "No 1 the Road",

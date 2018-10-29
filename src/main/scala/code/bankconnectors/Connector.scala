@@ -1387,6 +1387,7 @@ trait Connector extends MdcLoggable{
 
   def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerNumberFuture in Connector!")}
 
+  def getCustomerAddress(customerId : String, callContext: Option[CallContext]): Future[(Box[List[CustomerAddress]], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"getCustomerAddress in Connector!"), callContext)}
   def addCustomerAddress(customerId: String,
                          line1: String,
                          line2: String,

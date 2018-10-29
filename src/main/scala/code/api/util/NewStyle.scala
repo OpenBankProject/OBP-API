@@ -110,7 +110,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.taxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.addCustomerAddress), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.addCustomerAddress), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -201,6 +202,12 @@ object NewStyle {
       }
     }
 
+
+    def getCustomerAddress(customerId : String, callContext: Option[CallContext]): Future[(List[CustomerAddress], Option[CallContext])] = {
+      Connector.connector.vend.getCustomerAddress(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
     def addCustomerAddress(customerId: String,
                           line1: String,
                           line2: String,

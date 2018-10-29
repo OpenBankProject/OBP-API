@@ -277,6 +277,7 @@ case class CustomerAddressJsonV310(
                             status: String,
                             insert_date: Date
                           )
+case class CustomerAddressesJsonV310(addresses: List[CustomerAddressJsonV310])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -440,7 +441,7 @@ object JSONFactory310{
         )
     )
   )
-  def createAddress(address: CustomerAddress) =
+  def createAddress(address: CustomerAddress): CustomerAddressJsonV310 =
     CustomerAddressJsonV310(
       customer_address_id = address.customerAddressId,
       customer_id = address.customerId,
@@ -455,6 +456,9 @@ object JSONFactory310{
       status = address.status,
       insert_date = address.insertDate
     )
+
+  def createAddresses(addresses: List[CustomerAddress]): CustomerAddressesJsonV310 =
+    CustomerAddressesJsonV310(addresses.map(createAddress(_)))
 
 
 }

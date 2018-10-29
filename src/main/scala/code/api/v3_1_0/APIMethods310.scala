@@ -21,6 +21,7 @@ import code.model._
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -1456,7 +1457,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       addCustomerAddress,
       implementedInApiVersion,
-      "addCustomerAddress",
+      nameOf(addCustomerAddress),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/address",
       "Add the Address of the Customer specified by a CUSTOMER_ID",
@@ -1503,6 +1504,45 @@ trait APIMethods310 {
               callContext)
           } yield {
             (JSONFactory310.createAddress(address), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomerAddresses,
+      implementedInApiVersion,
+      nameOf(getCustomerAddresses),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/address",
+      "Get the Addresses of the Customer specified by CUSTOMER_ID",
+      s"""Get the Addresses of the Customer specified by a CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      emptyObjectJson,
+      customerAddressesJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val getCustomerAddresses : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomer)(bankId.value, u.userId, canGetCustomer)
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customers, callContext) <- NewStyle.function.getCustomerAddress(customerId, callContext)
+          } yield {
+            (JSONFactory310.createAddresses(customers), HttpCode.`200`(callContext))
           }
       }
     }
