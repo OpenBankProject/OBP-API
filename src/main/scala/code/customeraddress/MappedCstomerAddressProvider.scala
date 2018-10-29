@@ -80,7 +80,7 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
   def deleteAddressRemote(customerAddressId: String): Box[Boolean] = {
     MappedCustomerAddress.find(By(MappedCustomerAddress.mCustomerAddressId, customerAddressId)) match {
       case Full(t) => Full(t.delete_!)
-      case Empty   => Empty ?~! ErrorMessages.CustomerAddressIdNotFound
+      case Empty   => Empty ?~! ErrorMessages.CustomerAddressNotFound
       case _       => Full(false)
     }
   }

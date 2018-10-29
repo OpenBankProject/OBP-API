@@ -38,7 +38,7 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
   def deleteTaxResidenceRemote(taxResidenceId: String): Box[Boolean] = {
     MappedTaxResidence.find(By(MappedTaxResidence.mTaxResidenceId, taxResidenceId)) match {
       case Full(t) => Full(t.delete_!)
-      case Empty   => Empty ?~! ErrorMessages.TaxResidenceIdNotFound
+      case Empty   => Empty ?~! ErrorMessages.TaxResidenceNotFound
       case _       => Full(false)
     }
   }
