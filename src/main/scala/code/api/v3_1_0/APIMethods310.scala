@@ -45,7 +45,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getCheckbookOrders,
       implementedInApiVersion,
-      "getCheckbookOrders",
+      nameOf(getCheckbookOrders),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "get Checkbook orders",
@@ -85,7 +85,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getStatusOfCreditCardOrder,
       implementedInApiVersion,
-      "getStatusOfCreditCardOrder",
+      nameOf(getStatusOfCreditCardOrder),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/credit_cards/orders",
       "Get status of Credit Card order ",
@@ -129,7 +129,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       createCreditLimitRequest,
       implementedInApiVersion,
-      "createCreditLimitRequest",
+      nameOf(createCreditLimitRequest),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
       "Create Credit Limit Order Request",
@@ -155,7 +155,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getCreditLimitRequests,
       implementedInApiVersion,
-      "getCreditLimitRequests",
+      nameOf(getCreditLimitRequests),
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
       "Get Credit Limit Order Requests ",
@@ -181,7 +181,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getCreditLimitRequestByRequestId,
       implementedInApiVersion,
-      "getCreditLimitRequestByRequestId",
+      nameOf(getCreditLimitRequestByRequestId),
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests/REQUEST_ID",
       "Get Credit Limit Order Request By Request Id",
@@ -207,7 +207,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getTopAPIs,
       implementedInApiVersion,
-      "getTopAPIs",
+      nameOf(getTopAPIs),
       "GET",
       "/management/metrics/top-apis",
       "get top apis",
@@ -294,7 +294,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getMetricsTopConsumers,
       implementedInApiVersion,
-      "getMetricsTopConsumers",
+      nameOf(getMetricsTopConsumers),
       "GET",
       "/management/metrics/top-consumers",
       "get metrics top consumers",
@@ -394,7 +394,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getFirehoseCustomers,
       implementedInApiVersion,
-      "getFirehoseCustomers",
+      nameOf(getFirehoseCustomers),
       "GET",
       "/banks/BANK_ID/firehose/customers",
       "Get Firehose Customers",
@@ -448,7 +448,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getBadLoginStatus,
       implementedInApiVersion,
-      "getBadLoginStatus",
+      nameOf(getBadLoginStatus),
       "GET",
       "/users/USERNAME/lock-status",
       "Get User Lock Status",
@@ -482,7 +482,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       unlockUser,
       implementedInApiVersion,
-      "unlockUser",
+      nameOf(unlockUser),
       "PUT",
       "/users/USERNAME/lock-status",
       "Unlock the user",
@@ -517,7 +517,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       callsLimit,
       implementedInApiVersion,
-      "callsLimit",
+      nameOf(callsLimit),
       "PUT",
       "/management/consumers/CONSUMER_ID/consumer/calls_limit",
       "Set Calls' Limit for a Consumer",
@@ -572,7 +572,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getCallsLimit,
       implementedInApiVersion,
-      "getCallsLimit",
+      nameOf(getCallsLimit),
       "GET",
       "/management/consumers/CONSUMER_ID/consumer/calls_limit",
       "Get Calls' Limit for a Consumer",
@@ -619,7 +619,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       checkFundsAvailable,
       implementedInApiVersion,
-      "checkFundsAvailable",
+      nameOf(checkFundsAvailable),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/funds-available",
       "Check available funds",
@@ -692,7 +692,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getConsumer,
       implementedInApiVersion,
-      "getConsumer",
+      nameOf(getConsumer),
       "GET",
       "/management/consumers/CONSUMER_ID",
       "Get Consumer",
@@ -730,7 +730,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getConsumersForCurrentUser,
       implementedInApiVersion,
-      "getConsumersForCurrentUser",
+      nameOf(getConsumersForCurrentUser),
       "GET",
       "/management/users/current/consumers",
       "Get Consumers (logged in User)",
@@ -765,7 +765,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getConsumers,
       implementedInApiVersion,
-      "getConsumers",
+      nameOf(getConsumers),
       "GET",
       "/management/consumers",
       "Get Consumers",
@@ -812,7 +812,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       createAccountWebhook,
       implementedInApiVersion,
-      "createAccountWebhook",
+      nameOf(createAccountWebhook),
       "POST",
       "/banks/BANK_ID/account-web-hooks",
       "Create an Account Webhook",
@@ -868,7 +868,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       enableDisableAccountWebhook,
       implementedInApiVersion,
-      "enableDisableAccountWebhook",
+      nameOf(enableDisableAccountWebhook),
       "PUT",
       "/banks/BANK_ID/account-web-hooks",
       "Update an Account Webhook",
@@ -919,7 +919,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getAccountWebhooks,
       implementedInApiVersion,
-      "getAccountWebhooks",
+      nameOf(getAccountWebhooks),
       "GET",
       "/management/banks/BANK_ID/account-web-hooks",
       "Get Account Webhooks",
@@ -968,7 +968,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       config,
       implementedInApiVersion,
-      "config",
+      nameOf(config),
       "GET",
       "/config",
       "Get API Configuration",
@@ -1004,7 +1004,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getAdapterInfo,
       implementedInApiVersion,
-      "getAdapterInfo",
+      nameOf(getAdapterInfo),
       "GET",
       "/adapter",
       "Get Adapter Info (general)",
@@ -1035,7 +1035,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getTransactionByIdForBankAccount,
       implementedInApiVersion,
-      "getTransactionByIdForBankAccount",
+      nameOf(getTransactionByIdForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get Transaction by Id.",
@@ -1074,7 +1074,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getTransactionRequests,
       implementedInApiVersion,
-      "getTransactionRequests",
+      nameOf(getTransactionRequests),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get Transaction Requests." ,
@@ -1141,7 +1141,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       createCustomer,
       implementedInApiVersion,
-      "createCustomer",
+      nameOf(createCustomer),
       "POST",
       "/banks/BANK_ID/customers",
       "Create Customer.",
@@ -1216,7 +1216,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getRateLimitingInfo,
       implementedInApiVersion,
-      "getRateLimitingInfo",
+      nameOf(getRateLimitingInfo),
       "GET",
       "/rate-limiting",
       "Get Rate Limiting Info",
@@ -1252,7 +1252,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getCustomerByCustomerId,
       implementedInApiVersion,
-      "getCustomerByCustomerId",
+      nameOf(getCustomerByCustomerId),
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID",
       "Get Customer specified by CUSTOMER_ID",
@@ -1290,7 +1290,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getCustomerByCustomerNumber,
       implementedInApiVersion,
-      "getCustomerByCustomerNumber",
+      nameOf(getCustomerByCustomerNumber),
       "POST",
       "/banks/BANK_ID/customers/customer-number",
       "Get Customer specified by CUSTOMER_NUMBER",
@@ -1333,7 +1333,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       taxResidence,
       implementedInApiVersion,
-      "taxResidence",
+      nameOf(taxResidence),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
       "Add the Tax Residence of the Customer specified by a CUSTOMER_ID",
@@ -1377,7 +1377,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getTaxResidence,
       implementedInApiVersion,
-      "getTaxResidence",
+      nameOf(getTaxResidence),
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
       "Get the Tax Residence of the Customer specified by  CUSTOMER_ID",
@@ -1416,7 +1416,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       deleteTaxResidence,
       implementedInApiVersion,
-      "deleteTaxResidence",
+      nameOf(deleteTaxResidence),
       "DELETE",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residencies/TAX_RESIDENCE_ID",
       "Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID",
