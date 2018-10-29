@@ -176,7 +176,7 @@ class TaxResidenceTest extends V310ServerSetup {
   }
 
 
-  feature("Delete the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Authorized access") {
+  feature("Delete the Tax Residence of the Customer specified by CUSTOMER_ID and TAX_RESIDENCE_ID v3.1.0 - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canDeleteTaxResidence, ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canDeleteTaxResidence)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residencies" / "TAX_RESIDENCE_ID").DELETE <@(user1)
