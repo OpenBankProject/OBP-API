@@ -266,7 +266,6 @@ case class TaxResidenceJsonV310(tax_residence: List[TaxResidenceV310])
 
 
 case class PostCustomerAddressJsonV310(
-                                customer_id: String,
                                 line_1: String,
                                 line_2: String,
                                 line_3: String,

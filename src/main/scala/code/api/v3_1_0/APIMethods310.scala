@@ -1568,7 +1568,7 @@ trait APIMethods310 {
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (address, callContext) <- NewStyle.function.createCustomerAddress(
-              customerId: String,
+              customerId,
               postedData.line_1,
               postedData.line_2,
               postedData.line_3,
