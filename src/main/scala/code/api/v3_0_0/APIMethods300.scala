@@ -59,7 +59,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getViewsForBankAccount,
       implementedInApiVersion,
-      "getViewsForBankAccount",
+      nameOf(getViewsForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account.",
@@ -123,7 +123,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       createViewForBankAccount,
       implementedInApiVersion,
-      "createViewForBankAccount",
+      nameOf(createViewForBankAccount),
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Create View.",
@@ -184,7 +184,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getPermissionForUserForBankAccount,
       implementedInApiVersion,
-      "getPermissionForUserForBankAccount",
+      nameOf(getPermissionForUserForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
       "Get Account access for User.",
@@ -220,7 +220,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       updateViewForBankAccount,
       implementedInApiVersion,
-      "updateViewForBankAccount",
+      nameOf(updateViewForBankAccount),
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Update View.",
@@ -280,7 +280,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getPrivateAccountById,
       implementedInApiVersion,
-      "getPrivateAccountById",
+      nameOf(getPrivateAccountById),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
@@ -330,7 +330,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getPublicAccountById,
       implementedInApiVersion,
-      "getPublicAccountById",
+      nameOf(getPublicAccountById),
       "GET",
       "/banks/BANK_ID/public/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Public Account by Id",
@@ -377,7 +377,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getCoreAccountById,
       implementedInApiVersion,
-      "getCoreAccountById",
+      nameOf(getCoreAccountById),
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
@@ -427,7 +427,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       corePrivateAccountsAllBanks,
       implementedInApiVersion,
-      "corePrivateAccountsAllBanks",
+      nameOf(corePrivateAccountsAllBanks),
       "GET",
       "/my/accounts",
       "Get Accounts at all Banks (private)",
@@ -465,7 +465,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getFirehoseAccountsAtOneBank,
       implementedInApiVersion,
-      "getFirehoseAccountsAtOneBank",
+      nameOf(getFirehoseAccountsAtOneBank),
       "GET",
       "/banks/BANK_ID/firehose/accounts/views/VIEW_ID",
       "Get Firehose Accounts at Bank",
@@ -525,7 +525,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getFirehoseTransactionsForBankAccount,
       implementedInApiVersion,
-      "getFirehoseTransactionsForBankAccount",
+      nameOf(getFirehoseTransactionsForBankAccount),
       "GET",
       "/banks/BANK_ID/firehose/accounts/ACCOUNT_ID/views/VIEW_ID/transactions",
       "Get Firehose Transactions for Account",
@@ -577,7 +577,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getCoreTransactionsForBankAccount,
       implementedInApiVersion,
-      "getCoreTransactionsForBankAccount",
+      nameOf(getCoreTransactionsForBankAccount),
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
       "Get Transactions for Account (Core)",
@@ -636,7 +636,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getTransactionsForBankAccount,
       implementedInApiVersion,
-      "getTransactionsForBankAccount",
+      nameOf(getTransactionsForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
@@ -697,7 +697,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       dataWarehouseSearch,
       implementedInApiVersion,
-      "dataWarehouseSearch",
+      nameOf(dataWarehouseSearch),
       "POST",
       "/search/warehouse/INDEX",
       "Data Warehouse Search",
@@ -764,7 +764,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       dataWarehouseStatistics,
       implementedInApiVersion,
-      "dataWarehouseStatistics",
+      nameOf(dataWarehouseStatistics),
       "POST",
       "/search/warehouse/statistics/INDEX/FIELD",
       "Data Warehouse Statistics",
@@ -832,7 +832,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getUser,
       implementedInApiVersion,
-      "getUser",
+      nameOf(getUser),
       "GET",
       "/users/email/EMAIL/terminator",
       "Get Users by Email Address",
@@ -866,7 +866,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getUserByUserId,
       implementedInApiVersion,
-      "getUserByUserId",
+      nameOf(getUserByUserId),
       "GET",
       "/users/user_id/USER_ID",
       "Get User by USER_ID",
@@ -903,7 +903,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getUserByUsername,
       implementedInApiVersion,
-      "getUserByUsername",
+      nameOf(getUserByUsername),
       "GET",
       "/users/username/USERNAME",
       "Get User by USERNAME",
@@ -942,7 +942,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAdapter,
       implementedInApiVersion,
-      "getAdapter",
+      nameOf(getAdapter),
       "GET",
       "/banks/BANK_ID/adapter",
       "Get Adapter Info",
@@ -984,7 +984,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       createBranch,
       implementedInApiVersion,
-      "createBranch",
+      nameOf(createBranch),
       "POST",
       "/banks/BANK_ID/branches",
       "Create Branch",
@@ -1039,7 +1039,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       createAtm,
       implementedInApiVersion,
-      "createAtm",
+      nameOf(createAtm),
       "POST",
       "/banks/BANK_ID/atms",
       "Create ATM",
@@ -1092,7 +1092,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getBranch,
       implementedInApiVersion,
-      "getBranch",
+      nameOf(getBranch),
       "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
       "Get Branch",
@@ -1134,7 +1134,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getBranches,
       implementedInApiVersion,
-      "getBranches",
+      nameOf(getBranches),
       "GET",
       "/banks/BANK_ID/branches",
       "Get Branches for a Bank",
@@ -1223,7 +1223,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAtm,
       implementedInApiVersion,
-      "getAtm",
+      nameOf(getAtm),
       "GET",
       "/banks/BANK_ID/atms/ATM_ID",
       "Get Bank ATM",
@@ -1261,7 +1261,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAtms,
       implementedInApiVersion,
-      "getAtms",
+      nameOf(getAtms),
       "GET",
       "/banks/BANK_ID/atms",
       "Get Bank ATMS",
@@ -1342,7 +1342,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getUsers,
       implementedInApiVersion,
-      "getUsers",
+      nameOf(getUsers),
       "GET",
       "/users",
       "Get all Users",
@@ -1388,7 +1388,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getCustomersForUser,
       implementedInApiVersion,
-      "getCustomersForUser",
+      nameOf(getCustomersForUser),
       "GET",
       "/users/current/customers",
       "Get Customers for Current User",
@@ -1467,7 +1467,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       privateAccountsAtOneBank,
       implementedInApiVersion,
-      "privateAccountsAtOneBank",
+      nameOf(privateAccountsAtOneBank),
       "GET",
       "/banks/BANK_ID/accounts/private",
       "Get Accounts at Bank (Minimal).",
@@ -1505,7 +1505,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getPrivateAccountIdsbyBankId,
       implementedInApiVersion,
-      "getPrivateAccountIdsbyBankId",
+      nameOf(getPrivateAccountIdsbyBankId),
       "GET",
       "/banks/BANK_ID/accounts/account_ids/private",
       "Get Accounts at Bank (IDs only).",
@@ -1543,7 +1543,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getOtherAccountsForBankAccount,
       implementedInApiVersion,
-      "getOtherAccountsForBankAccount",
+      nameOf(getOtherAccountsForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
       "Get Other Accounts of one Account.",
@@ -1583,7 +1583,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getOtherAccountByIdForBankAccount,
       implementedInApiVersion,
-      "getOtherAccountByIdForBankAccount",
+      nameOf(getOtherAccountByIdForBankAccount),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get Other Account by Id.",
@@ -1623,7 +1623,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       addEntitlementRequest,
       implementedInApiVersion,
-      "addEntitlementRequest",
+      nameOf(addEntitlementRequest),
       "POST",
       "/entitlement-requests",
       "Add Entitlement Request for a Logged User.",
@@ -1691,7 +1691,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAllEntitlementRequests,
       implementedInApiVersion,
-      "getAllEntitlementRequests",
+      nameOf(getAllEntitlementRequests),
       "GET",
       "/entitlement-requests",
       "Get all Entitlement Requests",
@@ -1733,7 +1733,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getEntitlementRequests,
       implementedInApiVersion,
-      "getEntitlementRequests",
+      nameOf(getEntitlementRequests),
       "GET",
       "/users/USER_ID/entitlement-requests",
       "Get Entitlement Requests for a User.",
@@ -1776,7 +1776,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getEntitlementRequestsForCurrentUser,
       implementedInApiVersion,
-      "getEntitlementRequestsForCurrentUser",
+      nameOf(getEntitlementRequestsForCurrentUser),
       "GET",
       "/my/entitlement-requests",
       "Get Entitlement Requests for the current User.",
@@ -1816,7 +1816,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       deleteEntitlementRequest,
       implementedInApiVersion,
-      "deleteEntitlementRequest",
+      nameOf(deleteEntitlementRequest),
       "DELETE",
       "/entitlement-requests/ENTITLEMENT_REQUEST_ID",
       "Delete Entitlement Request",
@@ -1857,7 +1857,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getEntitlementsForCurrentUser,
       implementedInApiVersion,
-      "getEntitlementsForCurrentUser",
+      nameOf(getEntitlementsForCurrentUser),
       "GET",
       "/my/entitlements",
       "Get Entitlements for the current User.",
@@ -1918,7 +1918,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAccountsHeld,
       implementedInApiVersion,
-      "getAccountsHeld",
+      nameOf(getAccountsHeld),
       "GET",
       "/banks/BANK_ID/accounts-held",
       "Get Accounts Held",
@@ -1956,7 +1956,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getAggregateMetrics,
       implementedInApiVersion,
-      "getAggregateMetrics",
+      nameOf(getAggregateMetrics),
       "GET",
       "/management/aggregate-metrics",
       "Get Aggregate Metrics",
@@ -2044,7 +2044,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       addScope,
       implementedInApiVersion,
-      "addScope",
+      nameOf(addScope),
       "POST",
       "/consumers/CONSUMER_ID/scopes",
       "Add Scope for a Consumer.",
@@ -2127,7 +2127,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       deleteScope,
       implementedInApiVersion,
-      "deleteScope",
+      nameOf(deleteScope),
       "DELETE",
       "/consumers/CONSUMER_ID/scope/SCOPE_ID",
       "Delete Consumer Scope",
@@ -2170,7 +2170,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getScopes,
       implementedInApiVersion,
-      "getScopes",
+      nameOf(getScopes),
       "GET",
       "/consumers/CONSUMER_ID/scopes",
       "Get Scopes for Consumer",
@@ -2206,7 +2206,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       getBanks,
       implementedInApiVersion,
-      "getBanks",
+      nameOf(getBanks),
       "GET",
       "/banks",
       "Get Banks",
@@ -2237,7 +2237,7 @@ trait APIMethods300 {
     resourceDocs += ResourceDoc(
       bankById,
       implementedInApiVersion,
-      "bankById",
+      nameOf(bankById),
       "GET",
       "/banks/BANK_ID",
       "Get Bank",

@@ -1412,7 +1412,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createTaxResidence),
       "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/tax-residence",
       "Add the Tax Residence of the Customer specified by a CUSTOMER_ID",
       s"""Add the Tax Residence of the Customer specified by a CUSTOMER_ID.
          |
@@ -1432,7 +1432,7 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagNewStyle))
 
     lazy val createTaxResidence : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax_residence" ::  Nil JsonPost  json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax-residence" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -1456,7 +1456,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getTaxResidence),
       "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/tax-residence",
       "Get the Tax Residence of the Customer specified by  CUSTOMER_ID",
       s"""Get the Tax Residence of the Customer specified by a CUSTOMER_ID.
          |
@@ -1475,7 +1475,7 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagNewStyle))
 
     lazy val getTaxResidence : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax_residence" ::  Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax-residence" ::  Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)

@@ -347,6 +347,8 @@ object MapperViews extends Views with MdcLoggable {
     getExistingView(bankId, accountId, "Owner") match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
   
@@ -354,6 +356,8 @@ object MapperViews extends Views with MdcLoggable {
     getExistingView(bankId, accountId, "Firehose") match {
       case Empty => createDefaultFirehoseView(bankId, accountId, description)
       case Full(v) => Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
 
@@ -368,6 +372,8 @@ object MapperViews extends Views with MdcLoggable {
     getExistingView(bankId, accountId, "Public") match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
 
@@ -375,6 +381,8 @@ object MapperViews extends Views with MdcLoggable {
     getExistingView(bankId, accountId, "Accountant") match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
 
@@ -382,6 +390,8 @@ object MapperViews extends Views with MdcLoggable {
     getExistingView(bankId, accountId, "Auditor") match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
 

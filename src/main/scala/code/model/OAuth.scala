@@ -288,6 +288,8 @@ object MappedConsumersProvider extends ConsumersProvider {
 
     Consumer.find(By(Consumer.consumerId, consumerId.getOrElse(Helpers.randomString(40)))) match {
       case Full(c) => Full(c)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
       case Empty =>
         tryo {
           val c = Consumer.create

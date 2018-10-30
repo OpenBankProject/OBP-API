@@ -2,7 +2,7 @@ package code.customer.internalMapping
 
 import code.model.{BankId, CustomerId}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common._
 import net.liftweb.mapper.By
 
 
@@ -38,6 +38,8 @@ object MappedCustomerIDMappingProvider extends CustomerIDMappingProvider with Md
         logger.debug(s"getOrCreateCustomerId--> create mappedCustomerIDMapping : $mappedCustomerIDMapping")
         Full(mappedCustomerIDMapping)
       }
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
   

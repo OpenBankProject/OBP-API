@@ -58,6 +58,8 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
         )
         Full(holder)
       }
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
       
   }
