@@ -19,7 +19,7 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
   override def getTaxResidence(customerId: String): Future[Box[List[TaxResidence]]] = {
     Future(getTaxResidenceRemote(customerId))
   }
-  def addTaxResidenceRemote(customerId: String, domain: String, taxNumber: String): Box[TaxResidence] = {
+  def createTaxResidenceRemote(customerId: String, domain: String, taxNumber: String): Box[TaxResidence] = {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
     id match {
       case Full(customer) =>
@@ -33,7 +33,7 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
     }
   }
   override def createTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = {
-    Future(addTaxResidenceRemote(customerId, domain, taxNumber))
+    Future(createTaxResidenceRemote(customerId, domain, taxNumber))
   }
   def deleteTaxResidenceRemote(taxResidenceId: String): Box[Boolean] = {
     MappedTaxResidence.find(By(MappedTaxResidence.mTaxResidenceId, taxResidenceId)) match {
