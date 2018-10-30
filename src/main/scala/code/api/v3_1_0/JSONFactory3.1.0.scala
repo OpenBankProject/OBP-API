@@ -46,6 +46,7 @@ import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
 import code.customer.Customer
+import code.context.UserAuthContext
 import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
@@ -243,6 +244,22 @@ case class PostCustomerResponseJsonV310(messages: List[String])
 
 case class PostCustomerNumberJsonV310(customer_number: String)
 
+case class PostUserAuthContextJson(
+  key: String,
+  value: String
+)
+
+case class UserAuthContextJson(
+  id: String,
+  user_id: String,
+  key: String,
+  value: String
+)
+
+case class UserAuthContextsJson(
+  user_auth_contexts: List[UserAuthContextJson]
+)
+
 case class TaxResidenceV310(domain: String, tax_number: String, tax_residence_id: String)
 case class PostTaxResidenceJsonV310(domain: String, tax_number: String)
 case class TaxResidenceJsonV310(tax_residence: List[TaxResidenceV310])
@@ -429,6 +446,19 @@ object JSONFactory310{
       branchId = cInfo.branchId,
       nameSuffix = cInfo.nameSuffix
     )
+  }
+  
+  def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJson = {
+    UserAuthContextJson(
+      userAuthContext.userAuthContextId,
+      userAuthContext.userId,
+      userAuthContext.key,
+      userAuthContext.value
+    )
+  }
+  
+  def createUserAuthContextsJson(userAuthContext: List[UserAuthContext]): UserAuthContextsJson = {
+    UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
   }
 
   def createTaxResidence(tr: List[TaxResidence]) = TaxResidenceJsonV310(
