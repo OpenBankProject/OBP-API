@@ -20,7 +20,7 @@ object TaxResidence extends SimpleInjector {
 
 trait TaxResidenceProvider {
   def getTaxResidence(customerId: String): Future[Box[List[TaxResidence]]]
-  def addTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]]
+  def createTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]]
   def deleteTaxResidence(taxResidenceId: String): Future[Box[Boolean]]
 }
 
@@ -34,7 +34,7 @@ trait TaxResidence {
 
 class RemotedataTaxResidenceCaseClasses {
   case class getTaxResidence(customerId: String)
-  case class addTaxResidence(customerId: String, domain: String, taxNumber: String)
+  case class createTaxResidence(customerId: String, domain: String, taxNumber: String)
   case class deleteTaxResidence(taxResidenceId: String)
 }
 
