@@ -305,6 +305,18 @@ object NewStyle {
         unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
       }
     }
+    
+    def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(List[UserAuthContext], Option[CallContext])] = {
+      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId, callContext) map {
+        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+      }
+    }
+    
+    def findByUserId(userId: String, callContext: Option[CallContext]): Future[(User, Option[CallContext])] = {
+      Future { User.findByUserId(userId).map(user =>(user, callContext))} map {
+        unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 400)
+      }
+    }
 
   }
 

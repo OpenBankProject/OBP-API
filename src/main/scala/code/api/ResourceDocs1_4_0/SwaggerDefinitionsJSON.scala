@@ -2920,7 +2920,6 @@ object SwaggerDefinitionsJSON {
   val accountWebhooksJson = AccountWebhooksJson(List(accountWebhookJson))
   
   val postUserAuthContextJson = PostUserAuthContextJson(
-    user_id = "qieuriopwoir987203984729384ipeiu",
     key = "CUSTOMER_NUMBER",
     value = "78987432"
   )

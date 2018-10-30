@@ -1332,7 +1332,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "createUserAuthContext",
       "POST",
-      "/user/auth/context",
+      "/users/USER_ID/auth-context",
       "Create UserAuthContext",
       s"""Create UserAuthContext.
         |${authenticationRequiredMessage(true)}
@@ -1349,7 +1349,7 @@ trait APIMethods310 {
       List(apiTagUser, apiTagNewStyle))
 
     lazy val createUserAuthContext : OBPEndpoint = {
-      case "user" ::"auth" ::"context" :: Nil JsonPost  json -> _ => {
+      case "user" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -1358,7 +1358,8 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
-            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(postedData.user_id, postedData.key, postedData.value, callContext)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
           }
@@ -1370,7 +1371,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "getUserAuthContexts",
       "GET",
-      "/user/auth/context/USER_ID",
+      "/users/USER_ID/auth-context",
       "Get UserAuthContexts",
       s"""Get all UserAuthContexts.
          |
@@ -1390,11 +1391,12 @@ trait APIMethods310 {
       List(apiTagUser, apiTagNewStyle))
 
     lazy val getUserAuthContexts : OBPEndpoint = {
-      case "user" ::"auth" ::"context" :: userId ::  Nil  JsonGet _ => {
+      case "user" :: userId :: "auth-context" ::  Nil  JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetUserAuthContext)("", u.userId, canGetUserAuthContext)
+            (userAuthContext, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContexts, callContext) <- NewStyle.function.getUserAuthContexts(userId, callContext)
           } yield {
             (JSONFactory310.createUserAuthContextsJson(userAuthContexts), HttpCode.`200`(callContext))

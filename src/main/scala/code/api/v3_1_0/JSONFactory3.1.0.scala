@@ -243,7 +243,6 @@ case class PostCustomerResponseJsonV310(messages: List[String])
 case class PostCustomerNumberJsonV310(customer_number: String)
 
 case class PostUserAuthContextJson(
-  user_id: String,
   key: String,
   value: String
 )
