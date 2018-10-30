@@ -512,15 +512,15 @@ object JSONFactory200{
 
 
   def createUserJSONfromAuthUser(user : AuthUser) : UserJsonV200 = {
-    val (userId, entitlements) = Users.users.vend.getUserByResourceUserId(user.user.get) match {
-      case Full(u) => (u.userId, u.assignedEntitlements)
-      case _       => ("", List())
+    val (userId, provider, providerId,  entitlements) = Users.users.vend.getUserByResourceUserId(user.user.get) match {
+      case Full(u) => (u.userId,u.provider,u.idGivenByProvider, u.assignedEntitlements)
+      case _       => ("","","", List())
     }
     new UserJsonV200(user_id = userId,
       email = user.email.get,
       username = stringOrNull(user.username.get),
-      provider_id = stringOrNull(user.provider.get),
-      provider = stringOrNull(user.provider.get),
+      provider_id = stringOrNull(providerId),
+      provider = stringOrNull(provider),
       entitlements = createEntitlementJSONs(entitlements)
     )
   }
