@@ -540,7 +540,7 @@ trait OBPDataImport extends MdcLoggable {
 
       val us = Users.users.vend.getAllUsers() match {
         case Full(userList) => userList
-        case Empty => List()
+        case _ => List()
       }
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {

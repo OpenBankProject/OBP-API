@@ -174,14 +174,14 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
     Users.users.vend.getUserByEmail(userEmail) match {
       case Full(userList) => userList
-      case Empty => List()
+      case _ => List()
     }
   }
 
   def getResourceUsers(): List[ResourceUser] = {
     Users.users.vend.getAllUsers match {
       case Full(userList) => userList
-      case Empty => List()
+      case _ => List()
     }
   }
 
