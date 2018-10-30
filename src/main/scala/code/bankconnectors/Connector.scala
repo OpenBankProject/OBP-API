@@ -172,6 +172,7 @@ trait Connector extends MdcLoggable{
   val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
   val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
   val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
+  val createCustomerFutureTTL = getSecondsCache("createCustomerFuture")
   val branchesTTL = getSecondsCache("getBranches") 
   val branchTTL = getSecondsCache("getBranch")
   val atmsTTL = getSecondsCache("getAtms")
@@ -1383,6 +1384,8 @@ trait Connector extends MdcLoggable{
 
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")}
 
+  def getCustomerByCustomerId(customerId: String, callContext: Option[CallContext]): Box[(Customer,Option[CallContext])]= Failure(NotImplemented + currentMethodName+"getCustomersByUserIdFuture in Connector!")
+  
   def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerIdFuture in Connector!")}
 
   def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerNumberFuture in Connector!")}

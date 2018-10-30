@@ -1,6 +1,6 @@
 package code.customer.internalMapping
 
-import code.model.BankId
+import code.model.{BankId, CustomerId}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -15,6 +15,8 @@ object CustomerIDMappingProvider extends SimpleInjector {
 
 trait CustomerIDMappingProvider {
   
-  def getOrCreateCustomerId(bankId: BankId, customerNumber: String): Box[CustomerIDMapping]
+  def getOrCreateCustomerIDMapping(bankId: BankId, customerNumber: String): Box[CustomerIDMapping]
+  
+  def getCustomerIDMapping(customerId: CustomerId): Box[CustomerIDMapping]
   
 }
