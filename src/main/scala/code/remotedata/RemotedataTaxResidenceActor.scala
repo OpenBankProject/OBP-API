@@ -16,7 +16,7 @@ class RemotedataTaxResidenceActor extends Actor with ObpActorHelper with MdcLogg
       logger.debug("getTaxResidence(" + customerId + ")")
       sender ! (mapper.getTaxResidenceRemote(customerId))
 
-    case cc.addTaxResidence(customerId: String, domain: String, taxNumber: String) =>
+    case cc.createTaxResidence(customerId: String, domain: String, taxNumber: String) =>
       logger.debug("addTaxResidence(" + customerId + ", " + domain + ", " + taxNumber + ")")
       sender ! (mapper.addTaxResidenceRemote(customerId, domain, taxNumber))
 

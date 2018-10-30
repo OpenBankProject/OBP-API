@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 
+import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
@@ -1797,12 +1798,45 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersFuture(bankId, queryParams)
 
+  override def getCustomerAddress(customerId : String, callContext: Option[CallContext]): Future[(Box[List[CustomerAddress]], Option[CallContext])] =
+    CustomerAddress.address.vend.getAddress(customerId) map {
+      (_, callContext)
+    }
+  override def createCustomerAddress(customerId: String,
+                                     line1: String,
+                                     line2: String,
+                                     line3: String,
+                                     city: String,
+                                     county: String,
+                                     state: String,
+                                     postcode: String,
+                                     countryCode: String,
+                                     status: String,
+                                     callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] =
+    CustomerAddress.address.vend.createAddress(
+      customerId,
+      line1,
+      line2,
+      line3,
+      city,
+      county,
+      state,
+      postcode,
+      countryCode,
+      status) map {
+      (_, callContext)
+    }
+  override def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =
+    CustomerAddress.address.vend.deleteAddress(customerAddressId) map {
+      (_, callContext)
+    }
+
   override def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] =
     TaxResidence.taxResidence.vend.getTaxResidence(customerId) map {
       (_, callContext)
     }
-  override def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
-    TaxResidence.taxResidence.vend.addTaxResidence(customerId, domain, taxNumber) map {
+  override def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
+    TaxResidence.taxResidence.vend.createTaxResidence(customerId, domain, taxNumber) map {
       (_, callContext)
     }
   override def deleteTaxResidence(taxResidenceId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =

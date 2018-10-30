@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.customeraddress.CustomerAddress
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
@@ -106,9 +107,12 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.taxResidence), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createTaxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createCustomerAddress), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -199,8 +203,46 @@ object NewStyle {
       }
     }
 
-    def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(TaxResidence, Option[CallContext])] = {
-      Connector.connector.vend.postTaxResidence(customerId, domain, taxNumber, callContext) map {
+
+    def getCustomerAddress(customerId : String, callContext: Option[CallContext]): Future[(List[CustomerAddress], Option[CallContext])] = {
+      Connector.connector.vend.getCustomerAddress(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    def createCustomerAddress(customerId: String,
+                              line1: String,
+                              line2: String,
+                              line3: String,
+                              city: String,
+                              county: String,
+                              state: String,
+                              postcode: String,
+                              countryCode: String,
+                              status: String,
+                              callContext: Option[CallContext]): Future[(CustomerAddress, Option[CallContext])] = {
+      Connector.connector.vend.createCustomerAddress(
+        customerId,
+        line1,
+        line2,
+        line3,
+        city,
+        county,
+        state,
+        postcode,
+        countryCode,
+        status,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])] = {
+      Connector.connector.vend.deleteCustomerAddress(customerAddressId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+
+    def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(TaxResidence, Option[CallContext])] = {
+      Connector.connector.vend.createTaxResidence(customerId, domain, taxNumber, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
