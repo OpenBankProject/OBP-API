@@ -307,6 +307,8 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getRateLimitingInfo ::
                           Implementations3_1_0.getCustomerByCustomerId ::
                           Implementations3_1_0.getCustomerByCustomerNumber ::
+                          Implementations3_1_0.createUserAuthContext ::
+                          Implementations3_1_0.getUserAuthContexts ::
                           Implementations3_1_0.createTaxResidence ::
                           Implementations3_1_0.getTaxResidence ::
                           Implementations3_1_0.deleteTaxResidence ::

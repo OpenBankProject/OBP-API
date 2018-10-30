@@ -2946,6 +2946,22 @@ object SwaggerDefinitionsJSON {
   )
 
   val accountWebhooksJson = AccountWebhooksJson(List(accountWebhookJson))
+  
+  val postUserAuthContextJson = PostUserAuthContextJson(
+    key = "CUSTOMER_NUMBER",
+    value = "78987432"
+  )
+  
+  val userAuthContextJson = UserAuthContextJson(
+    id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    user_id = "qieuriopwoir987203984729384ipeiu",
+    key = "CUSTOMER_NUMBER",
+    value = "78987432"
+  )
+  
+  val userAuthContextsJson = UserAuthContextsJson(
+    user_auth_contexts = List(userAuthContextJson)
+  )
 
   //The common error or success format.
   //Just some helper format to use in Json 

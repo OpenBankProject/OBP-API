@@ -190,6 +190,15 @@ object ApiRole {
   case class CanGetWebhooks(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetWebhooks = CanGetWebhooks()
 
+  case class CanUpdateUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateUserAuthContext = CanUpdateUserAuthContext()
+
+  case class CanGetUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetUserAuthContext = CanGetUserAuthContext()
+  
+  case class CanDeleteUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteUserAuthContext = CanDeleteUserAuthContext()
+  
   case class CanGetTaxResidence(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTaxResidence = CanGetTaxResidence()
 
@@ -261,6 +270,9 @@ object ApiRole {
       canCreateWebhook ::
       canGetWebhooks ::
       canUpdateWebhook ::
+      canUpdateUserAuthContext ::
+      canGetUserAuthContext ::
+      canDeleteUserAuthContext ::
       canGetTaxResidence ::
       canCreateTaxResidence ::
       canDeleteTaxResidence ::

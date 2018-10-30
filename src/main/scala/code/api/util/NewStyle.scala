@@ -16,6 +16,8 @@ import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.customer.Customer
+import code.context.UserAuthContextProvider
+import code.context.UserAuthContext
 import code.entitlement.Entitlement
 import code.metadata.counterparties.Counterparties
 import code.model._
@@ -331,6 +333,30 @@ object NewStyle {
     def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg) {
         code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
+      }
+    }
+    
+    def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): Future[(UserAuthContext, Option[CallContext])] = {
+      UserAuthContextProvider.userAuthContextProvider.vend.createUserAuthContext(userId, key, value, callContext) map {
+        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+      }
+    }
+    
+    def getUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(List[UserAuthContext], Option[CallContext])] = {
+      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId, callContext) map {
+        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+      }
+    }
+    
+    def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(List[UserAuthContext], Option[CallContext])] = {
+      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId, callContext) map {
+        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+      }
+    }
+    
+    def findByUserId(userId: String, callContext: Option[CallContext]): Future[(User, Option[CallContext])] = {
+      Future { User.findByUserId(userId).map(user =>(user, callContext))} map {
+        unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 400)
       }
     }
 
