@@ -1255,8 +1255,8 @@ trait APIMethods310 {
       nameOf(getCustomerByCustomerId),
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID",
-      "Get Customer specified by CUSTOMER_ID",
-      s"""Gets the Customers specified by CUSTOMER_ID.
+      "Get Customer by CUSTOMER_ID",
+      s"""Gets the Customer specified by CUSTOMER_ID.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1293,8 +1293,8 @@ trait APIMethods310 {
       nameOf(getCustomerByCustomerNumber),
       "POST",
       "/banks/BANK_ID/customers/customer-number",
-      "Get Customer specified by CUSTOMER_NUMBER",
-      s"""Gets the Customers specified by CUSTOMER_NUMBER.
+      "Get Customer by CUSTOMER_NUMBER",
+      s"""Gets the Customer specified by CUSTOMER_NUMBER.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1413,8 +1413,8 @@ trait APIMethods310 {
       nameOf(createTaxResidence),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax-residence",
-      "Add the Tax Residence of the Customer specified by a CUSTOMER_ID",
-      s"""Add the Tax Residence of the Customer specified by a CUSTOMER_ID.
+      "Add Tax Residence to Customer",
+      s"""Add a Tax Residence to the Customer specified by CUSTOMER_ID.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1457,8 +1457,8 @@ trait APIMethods310 {
       nameOf(getTaxResidence),
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax-residence",
-      "Get the Tax Residence of the Customer specified by  CUSTOMER_ID",
-      s"""Get the Tax Residence of the Customer specified by a CUSTOMER_ID.
+      "Get Tax Residences of Customer",
+      s"""Get the Tax Residences of the Customer specified by CUSTOMER_ID.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1496,8 +1496,8 @@ trait APIMethods310 {
       nameOf(deleteTaxResidence),
       "DELETE",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residencies/TAX_RESIDENCE_ID",
-      "Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID",
-      s"""Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID.
+      "Delete Tax Residence",
+      s"""Delete a Tax Residence of the Customer specified by TAX_RESIDENCE_ID.
          |
          |
          |${authenticationRequiredMessage(true)}
@@ -1537,8 +1537,8 @@ trait APIMethods310 {
       nameOf(createCustomerAddress),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/address",
-      "Add the Address of the Customer specified by a CUSTOMER_ID",
-      s"""Add the Address of the Customer specified by a CUSTOMER_ID.
+      "Add Address to Customer",
+      s"""Add an Address to the Customer specified by CUSTOMER_ID.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1592,8 +1592,8 @@ trait APIMethods310 {
       nameOf(getCustomerAddresses),
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/address",
-      "Get the Addresses of the Customer specified by CUSTOMER_ID",
-      s"""Get the Addresses of the Customer specified by a CUSTOMER_ID.
+      "Get Customer Addresses",
+      s"""Get the Addresses of the Customer specified by CUSTOMER_ID.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1631,8 +1631,8 @@ trait APIMethods310 {
       nameOf(deleteCustomerAddress),
       "DELETE",
       "/banks/BANK_ID/customers/CUSTOMER_ID/addresses/CUSTOMER_ADDRESS_ID",
-      "Delete the Address of the Customer specified by a CUSTOMER_ADDRESS_ID",
-      s"""Delete the Address of the Customer specified by a CUSTOMER_ADDRESS_ID.
+      "Delete Customer Address",
+      s"""Delete an Address of the Customer specified by CUSTOMER_ADDRESS_ID.
          |
          |
          |${authenticationRequiredMessage(true)}
