@@ -36,10 +36,12 @@ import java.util.Date
 
 import code.actorsystem.ObpActorConfig
 import code.api.util.APIUtil
+import code.api.util.APIUtil.MessageDoc
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.atms.Atms.{Atm, AtmId, AtmT}
+import net.liftweb.json.JsonAST.JValue
 import code.branches.Branches._
 import code.common.{Address, Location, Meta}
 import code.customer.Customer
@@ -51,9 +53,9 @@ import code.model.{CounterpartyMetadata, _}
 import code.products.Products.Product
 import code.users.Users
 import net.liftweb.common.{Box, Full}
-//import net.liftweb.common.Box
-//import net.liftweb.json.Extraction
-//import net.liftweb.json.JsonAST.JValue
+
+import scala.collection.immutable.List
+
 
 
 case class ViewsJSONV220(
@@ -807,5 +809,45 @@ object JSONFactory220{
 
     ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache)
   }
+
+
+
+
+  case class MessageDocJson(
+                             process: String, // Should be unique
+                             message_format: String,
+                             outbound_topic: Option[String] = None,
+                             inbound_topic: Option[String] = None,
+                             description: String,
+                             example_outbound_message: JValue,
+                             example_inbound_message: JValue,
+                             outboundAvroSchema: Option[JValue] = None,
+                             inboundAvroSchema: Option[JValue] = None
+                           )
+
+  // Creates the json message docs
+  // changed key from messageDocs to message_docs 27 Oct 2018 whilst this version still DRAFT.
+  case class MessageDocsJson(message_docs: List[MessageDocJson])
+
+  def createMessageDocsJson(messageDocsList: List[MessageDoc]): MessageDocsJson = {
+    MessageDocsJson(messageDocsList.map(createMessageDocJson))
+  }
+
+  def createMessageDocJson(md: MessageDoc): MessageDocJson = {
+    MessageDocJson(
+      process = md.process,
+      message_format = md.messageFormat,
+      description = md.description,
+      outbound_topic = md.outboundTopic,
+      inbound_topic = md.inboundTopic,
+      example_outbound_message = md.exampleOutboundMessage,
+      example_inbound_message = md.exampleInboundMessage,
+      inboundAvroSchema = md.inboundAvroSchema,
+      outboundAvroSchema = md.outboundAvroSchema
+    )
+  }
+
+
+
   
 }

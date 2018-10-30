@@ -53,6 +53,7 @@ import code.crm.MappedCrmEvent
 import code.context.MappedUserAuthContext
 import code.customer.internalMapping.MappedCustomerIDMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.customeraddress.MappedCustomerAddress
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
@@ -547,7 +548,8 @@ object ToSchemify {
     MappedEntitlementRequest,
     MappedScope,
     MappedUserScope,
-    MappedTaxResidence
+    MappedTaxResidence,
+    MappedCustomerAddress
   )
 
   // The following tables are accessed directly via Mapper / JDBC

@@ -388,12 +388,12 @@ trait APIMethods220 {
       case "message-docs" :: connector :: Nil JsonGet _ => {
         cc => {
           for {
-            //afka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
+            //kafka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
             connectorVersion<- tryo(connector.split("_")(1))?~! s"$InvalidConnector Current CONNECTOR is $connector. It should be eg: kafka_vJune2017"
             connectorObject <- tryo{Connector.getObjectInstance(s"code.bankconnectors.$connectorVersion.KafkaMappedConnector_$connectorVersion")} ?~! s"$InvalidConnector Current CONNECTOR is $connector.It should be eg: kafka_vJune2017"
             messageDocs <- Full{connectorObject.messageDocs.toList} 
           } yield {
-            val json = JsonFactory_vMar2017.createMessageDocsJson(messageDocs)
+            val json = JSONFactory220.createMessageDocsJson(messageDocs)
             successJsonResponse(Extraction.decompose(json))
           }
         }

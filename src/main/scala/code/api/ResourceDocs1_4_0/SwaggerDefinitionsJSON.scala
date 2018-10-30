@@ -2,6 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
+import code.api.v2_2_0.JSONFactory220.{MessageDocsJson, MessageDocJson}
 import code.api.{Constant, v3_1_0}
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -15,7 +16,6 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
 import code.api.v3_1_0.{BadLoginStatusJson, _}
-import code.bankconnectors.vMar2017.{MessageDocJson, MessageDocsJson}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import code.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
@@ -35,36 +35,36 @@ import scala.collection.immutable.List
   *
   */
 object SwaggerDefinitionsJSON {
-  
-  
-  
+
+
+
   val license =  License(
     id = "id",
     name ="String"
   )
-  
+
   val routing = Routing(
     scheme ="String",
     address ="String"
   )
-  
+
   val branchId = BranchId(value = "String")
-  
+
   // from code.model, not from normal version JSON Factory
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.model._
-  
+
   val amountOfMoney = AmountOfMoney(
     currency = "EUR",
     amount = "100"
   )
-  
+
   val accountRouting =  AccountRouting(
     scheme = "accountNumber",
-    address = "123456" 
+    address = "123456"
   )
-  
+
   val coreAccount = CoreAccount(
     id ="123",
     label=" work",
@@ -72,15 +72,15 @@ object SwaggerDefinitionsJSON {
     accountType="330",
     accountRoutings= List(accountRouting)
   )
-  
-  
+
+
   val accountHeld = AccountHeld(
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     bankId = "gh.29.uk",
     number = "String",
     accountRoutings = List(accountRouting)
   )
-  
+
   val createViewJson = CreateViewJson(
     name = "_test",
     description = "This view is for family",
@@ -162,7 +162,7 @@ object SwaggerDefinitionsJSON {
       "can_query_available_funds"
     )
   )
-  
+
   val updateViewJSON = UpdateViewJSON(
     description = "this is for family",
     is_public = true,
@@ -178,56 +178,56 @@ object SwaggerDefinitionsJSON {
       "can_see_transaction_type",
       "can_see_transaction_currency",
       "can_see_transaction_start_date",
-      "can_see_transaction_finish_date", 
+      "can_see_transaction_finish_date",
       "can_see_transaction_balance",
       "can_see_comments",
-      "can_see_narrative", "can_see_tags", 
+      "can_see_narrative", "can_see_tags",
       "can_see_images",
       "can_see_bank_account_owners",
-      "can_see_bank_account_type", 
+      "can_see_bank_account_type",
       "can_see_bank_account_balance",
       "can_see_bank_account_currency",
-      "can_see_bank_account_label", 
+      "can_see_bank_account_label",
       "can_see_bank_account_national_identifier",
-      "can_see_bank_account_swift_bic", 
+      "can_see_bank_account_swift_bic",
       "can_see_bank_account_iban",
       "can_see_bank_account_number",
       "can_see_bank_account_bank_name",
       "can_see_other_account_national_identifier",
-      "can_see_other_account_swift_bic", 
+      "can_see_other_account_swift_bic",
       "can_see_other_account_iban",
-      "can_see_other_account_bank_name", 
+      "can_see_other_account_bank_name",
       "can_see_other_account_number",
-      "can_see_other_account_metadata", 
+      "can_see_other_account_metadata",
       "can_see_other_account_kind",
       "can_see_more_info",
-      "can_see_url", 
-      "can_see_image_url", 
+      "can_see_url",
+      "can_see_image_url",
       "can_see_open_corporates_url",
       "can_see_corporate_location",
-      "can_see_physical_location", 
+      "can_see_physical_location",
       "can_see_public_alias",
-      "can_see_private_alias", 
+      "can_see_private_alias",
       "can_add_more_info",
-      "can_add_url", 
-      "can_add_image_url", 
+      "can_add_url",
+      "can_add_image_url",
       "can_add_open_corporates_url",
       "can_add_corporate_location",
-      "can_add_physical_location", 
+      "can_add_physical_location",
       "can_add_public_alias",
       "can_add_private_alias",
-      "can_delete_corporate_location", 
+      "can_delete_corporate_location",
       "can_delete_physical_location",
       "can_edit_narrative",
-      "can_add_comment", 
-      "can_delete_comment", 
-      "can_add_tag", 
+      "can_add_comment",
+      "can_delete_comment",
+      "can_add_tag",
       "can_delete_tag",
       "can_add_image",
-      "can_delete_image", 
-      "can_add_where_tag", 
+      "can_delete_image",
+      "can_add_where_tag",
       "can_see_where_tag",
-      "can_delete_where_tag", 
+      "can_delete_where_tag",
       "can_create_counterparty",
       //V300 New
       "can_see_bank_routing_scheme",
@@ -242,25 +242,25 @@ object SwaggerDefinitionsJSON {
       "can_query_available_funds"
     )
   )
-  
+
   val transactionTypeId = TransactionTypeId(value = "123")
-  
+
   val bankId = BankId(value = "gh.uk.9j")
-  
+
   val transactionRequestId = TransactionRequestId(value = "123")
-  
+
   val counterpartyId = CounterpartyId(value = "123")
-  
+
   val accountId = AccountId(value = "123")
-  
+
   val viewId = ViewId(value = "owner")
-  
-  
+
+
   // from code.TransactionTypes.TransactionType, not from normal version Factory
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.TransactionTypes.TransactionType._
-  
+
   val transactionType = TransactionType(
     id = transactionTypeId,
     bankId = bankId,
@@ -269,33 +269,33 @@ object SwaggerDefinitionsJSON {
     description = "This is the sandbox mode, charging litter money.",
     charge = amountOfMoney
   )
-  
-  
+
+
   // code.transactionrequests.TransactionRequests
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.transactionrequests.TransactionRequests._
-  
+
   val transactionRequestCharge = TransactionRequestCharge(
     summary = "String",
     value = amountOfMoney
   )
-  
+
   val transactionRequestChallenge = TransactionRequestChallenge(
     id= "String",
     allowed_attempts= 4,
     challenge_type= "String"
   )
-  
+
   val transactionRequestAccount = TransactionRequestAccount(
     bank_id= "String",
     account_id= "String"
   )
-  
+
   val transactionRequestCounterpartyId = TransactionRequestCounterpartyId (counterparty_id = "String")
-  
+
   val transactionRequestIban =  TransactionRequestIban (iban = "String")
-  
+
   val transactionRequestBody = TransactionRequestBody(
     to = transactionRequestAccount,
     value= amountOfMoney,
@@ -340,7 +340,7 @@ object SwaggerDefinitionsJSON {
     currency = "EUR",
     amount = "10"
   )
-  
+
   val transactionRequestTransferToPhone = TransactionRequestTransferToPhone(
     value = amountOfMoneyJsonV121,
     description = "String",
@@ -364,7 +364,7 @@ object SwaggerDefinitionsJSON {
     future_date = "20181230",
     to = toAccountTransferToAccount
   )
-  
+
 
   val transactionRequestBodyAllTypes = TransactionRequestBodyAllTypes (
     to_sandbox_tan = Some(transactionRequestAccount),
@@ -374,9 +374,9 @@ object SwaggerDefinitionsJSON {
     to_transfer_to_atm = Some(transactionRequestTransferToAtm),
     to_transfer_to_account = Some(transactionRequestTransferToAccount),
     value = amountOfMoney,
-    description = "String" 
+    description = "String"
   )
-  
+
   val transactionRequest = TransactionRequest(
     id= transactionRequestId,
     `type`= "String",
@@ -400,11 +400,8 @@ object SwaggerDefinitionsJSON {
     other_bank_routing_address= "String",
     is_beneficiary= true
   )
-  
-  // from code.bankconnectors, not from normal version Factory
-  ///////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////
-  
+
+
   val messageDocJson = MessageDocJson(
     process = "getAccounts",
     message_format = "KafkaV2017",
@@ -416,24 +413,24 @@ object SwaggerDefinitionsJSON {
     outboundAvroSchema = Some(defaultJValue),
     inboundAvroSchema = Some(defaultJValue)
   )
-  
-  val messageDocsJson = MessageDocsJson(messageDocs = List(messageDocJson))
-  
+
+  val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))
+
   //V121 - code.api.v1_2_1
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
   import code.api.v1_2_1._
-  
+
   val makePaymentJson = MakePaymentJson(
     bank_id = "gh.29.uk",
     account_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     amount = "10"
   )
-  
+
   val transactionIdJson = TransactionIdJson(
     transaction_id = "123"
   )
-  
+
   val hostedBy = HostedBy(
     organisation = "String",
     email = "String",
@@ -445,7 +442,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val rateLimiting = RateLimiting(true, "REDIS", true, true)
-  
+
   val apiInfoJSON = APIInfoJSON(
     version = "String",
     version_status = "String",
@@ -461,11 +458,11 @@ object SwaggerDefinitionsJSON {
     minimum_duration = {"_1":["min"],"_2":[["0"]]},
     maximum_duration = {"_1":["max"],"_2":[["2847"]]}
   )*/
-  
+
   val errorMessage = ErrorMessage(
     error = "String"
   )
-  
+
   val postTransactionImageJSON = PostTransactionImageJSON(
     label = "String",
     URL = "String"
@@ -491,7 +488,7 @@ object SwaggerDefinitionsJSON {
   val openCorporateUrlJSON = OpenCorporateUrlJSON(
     open_corporates_URL = "String"
   )
-  
+
   val accountRoutingJsonV121 = AccountRoutingJsonV121(
     scheme = "AccountNumber",
     address = "4930396"
@@ -653,7 +650,7 @@ object SwaggerDefinitionsJSON {
       "can_see_other_account_routing_address"
     )
   )
-  
+
   val updateViewJsonV121 = UpdateViewJsonV121(
     description = "This view is for family",
     is_public = true,
@@ -1013,7 +1010,7 @@ object SwaggerDefinitionsJSON {
     value = amountOfMoney,
     description = "String"
   )
-  
+
   val transactionRequestJson = TransactionRequestJson(
     id = transactionRequestId,
     `type` = "String",
@@ -1038,7 +1035,7 @@ object SwaggerDefinitionsJSON {
     other_bank_routing_address = "String",
     is_beneficiary = true
   )
-  
+
   val customerFaceImageJson = CustomerFaceImageJson(
     url = "www.openbankproject",
     date = DateWithDayExampleObject
@@ -1193,7 +1190,7 @@ object SwaggerDefinitionsJSON {
     openingTime = "10:00",
     closingTime = "18:00"
   )
-  
+
   val address : Address = Address(
     line1 = "No 1 the Road",
     line2 = "The Place",
@@ -1233,21 +1230,21 @@ object SwaggerDefinitionsJSON {
     provider= " String",
     username= " String"
   )
-  
+
   val location : Location = Location (
     10.0,
     10.0,
     Some(DateWithDayExampleObject),
     Some(basicResourceUser))
-  
+
   val lobbyString = LobbyString (
     hours ="String "
   )
-  
+
   val driveUpString = DriveUpString (
     hours ="String "
   )
-  
+
   val branch: Branch = Branch(
     branchId = BranchId("branch-id-123"),
     bankId = BankId("bank-id-123"),
@@ -1267,8 +1264,8 @@ object SwaggerDefinitionsJSON {
     moreInfo = Some("short walk to the lake from here"),
     phoneNumber = Some("+381631954907")
   )
-  
-  
+
+
   val lobbyJsonV330 = LobbyJsonV330(
     monday = List(openingTimesV300),
     tuesday = List(openingTimesV300),
@@ -1278,7 +1275,7 @@ object SwaggerDefinitionsJSON {
     saturday =  List(openingTimesV300),
     sunday =  List(openingTimesV300)
   )
-  
+
   val driveUpJsonV330 = DriveUpJsonV330(
     monday = openingTimesV300,
     tuesday = openingTimesV300,
@@ -1306,8 +1303,8 @@ object SwaggerDefinitionsJSON {
 
   val atmsJson = AtmsJson(atms = List(atmJson))
 
- 
-  
+
+
   val addressJsonV300 = AddressJsonV300(
     line_1 = "No 1 the Road",
     line_2 = "The Place",
@@ -1318,6 +1315,37 @@ object SwaggerDefinitionsJSON {
     postcode = "13359",
     //ISO_3166-1_alpha-2
     country_code = "DE"
+  )
+
+  val customerAddressJsonV310 = CustomerAddressJsonV310(
+    customer_address_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    customer_id = "36f8a9e6-c2b1-407a-8bd0-421b7119307e",
+    line_1 = "No 1 the Road",
+    line_2 = "The Place",
+    line_3 = "The Hill",
+    city = "Berlin",
+    county = "",
+    state = "Brandenburg",
+    postcode = "13359",
+    //ISO_3166-1_alpha-2
+    country_code = "DE",
+    status = "OK",
+    insert_date = DateWithDayExampleObject
+  )
+  val customerAddressesJsonV310 = CustomerAddressesJsonV310(List(customerAddressJsonV310))
+
+  val postCustomerAddressJsonV310 = PostCustomerAddressJsonV310(
+    customer_id = "36f8a9e6-c2b1-407a-8bd0-421b7119307e",
+    line_1 = "No 1 the Road",
+    line_2 = "The Place",
+    line_3 = "The Hill",
+    city = "Berlin",
+    county = "",
+    state = "Brandenburg",
+    postcode = "13359",
+    //ISO_3166-1_alpha-2
+    country_code = "DE",
+    status = "OK"
   )
   
   val atmJsonV300 = AtmJsonV300(

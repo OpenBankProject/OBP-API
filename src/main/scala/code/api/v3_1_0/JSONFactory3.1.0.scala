@@ -29,6 +29,7 @@ package code.api.v3_1_0
 import java.lang
 import java.util.Date
 
+import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
@@ -36,6 +37,7 @@ import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson}
 import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
 import code.api.v2_2_0._
+import code.common.Address
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
@@ -262,6 +264,38 @@ case class TaxResidenceV310(domain: String, tax_number: String, tax_residence_id
 case class PostTaxResidenceJsonV310(domain: String, tax_number: String)
 case class TaxResidenceJsonV310(tax_residence: List[TaxResidenceV310])
 
+
+case class PostCustomerAddressJsonV310(
+                                customer_id: String,
+                                line_1: String,
+                                line_2: String,
+                                line_3: String,
+                                city: String,
+                                county: String,
+                                state: String,
+                                postcode: String,
+                                //ISO_3166-1_alpha-2
+                                country_code: String,
+                                status: String
+                              )
+
+case class CustomerAddressJsonV310(
+                            customer_address_id: String,
+                            customer_id: String,
+                            line_1: String,
+                            line_2: String,
+                            line_3: String,
+                            city: String,
+                            county: String,
+                            state: String,
+                            postcode: String,
+                            //ISO_3166-1_alpha-2
+                            country_code: String,
+                            status: String,
+                            insert_date: Date
+                          )
+case class CustomerAddressesJsonV310(addresses: List[CustomerAddressJsonV310])
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -437,6 +471,24 @@ object JSONFactory310{
         )
     )
   )
+  def createAddress(address: CustomerAddress): CustomerAddressJsonV310 =
+    CustomerAddressJsonV310(
+      customer_address_id = address.customerAddressId,
+      customer_id = address.customerId,
+      line_1 = address.line1,
+      line_2 = address.line2,
+      line_3 = address.line3,
+      city = address.city,
+      county = address.county,
+      state = address.state,
+      postcode = address.postcode,
+      country_code = address.countryCode,
+      status = address.status,
+      insert_date = address.insertDate
+    )
+
+  def createAddresses(addresses: List[CustomerAddress]): CustomerAddressesJsonV310 =
+    CustomerAddressesJsonV310(addresses.map(createAddress(_)))
 
 
 }

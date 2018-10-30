@@ -1,15 +1,15 @@
 package code.customer.internalMapping
 
-import code.model.BankId
+import code.model.{BankId, CustomerId}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.By
 
 
 object MappedCustomerIDMappingProvider extends CustomerIDMappingProvider with MdcLoggable
 {
   
-  override def getOrCreateCustomerId(
+  override def getOrCreateCustomerIDMapping(
     bankId: BankId,
     customerNumber: String
   ) =
@@ -39,6 +39,13 @@ object MappedCustomerIDMappingProvider extends CustomerIDMappingProvider with Md
         Full(mappedCustomerIDMapping)
       }
     }
+  }
+  
+  
+  override def getCustomerIDMapping(customerId: CustomerId) = {
+    MappedCustomerIDMapping.find(
+      By(MappedCustomerIDMapping.mCustomerId, customerId.value),
+    )
   }
 }
 
