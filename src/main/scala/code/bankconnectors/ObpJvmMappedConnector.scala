@@ -814,7 +814,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
-      case _ => false
+      // case _ => false
     }
 
     Full(commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
@@ -995,7 +995,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         val acc = getBankAccount(bankId, account.accountId)
         acc match {
           case a => true //a.lastUpdate = updateDate //TODO
-          case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
+          // case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
         }
     }
     Full(result.getOrElse(false))

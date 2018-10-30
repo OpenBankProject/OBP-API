@@ -1096,7 +1096,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       val response = process(req).extract[InboundTransactionRequestStatus]
       Full(new TransactionRequestStatus2(response))
     }catch {
-      case _ => Empty
+      case _ : Throwable => Empty
     }
 
     logger.info(s"Kafka getTransactionRequestStatusesImpl response: ${r.toString}")
@@ -1379,7 +1379,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
-      case _ => false
+      // case _ => false
     }
 
     Full(commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
@@ -1560,7 +1560,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         val acc = getBankAccount(bankId, account.accountId)
         acc match {
           case a => true //a.lastUpdate = updateDate //TODO
-          case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
+          // case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
         }
     }
     Full(result.getOrElse(false))

@@ -31,7 +31,7 @@ class June2017UnitTest extends FunSuite
   
   
     outboundGetTransactionRequests210 shouldBe a [OutboundGetTransactionRequests210]
-    internalGetTransactionRequests shouldBe a [List[TransactionRequest]]
+    internalGetTransactionRequests shouldBe a [List[_]]
     
   }
 
