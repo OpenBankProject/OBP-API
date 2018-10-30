@@ -58,7 +58,7 @@ class TaxResidenceTest extends V310ServerSetup {
   feature("Add the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").POST
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").POST
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 400")
       response310.code should equal(400)
@@ -69,7 +69,7 @@ class TaxResidenceTest extends V310ServerSetup {
   feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").GET
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
@@ -93,7 +93,7 @@ class TaxResidenceTest extends V310ServerSetup {
   feature("Add the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canCreateTaxResidence)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").POST <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 403")
       response310.code should equal(403)
@@ -103,7 +103,7 @@ class TaxResidenceTest extends V310ServerSetup {
     scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canCreateTaxResidence + " but with non existing CUSTOMER_ID")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").POST <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 400")
       response310.code should equal(400)
@@ -121,7 +121,7 @@ class TaxResidenceTest extends V310ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canCreateTaxResidence)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax_residence").POST <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax-residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 200")
       response310.code should equal(200)
@@ -130,7 +130,7 @@ class TaxResidenceTest extends V310ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canGetTaxResidence)
-      val requestGet310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax_residence").GET <@(user1)
+      val requestGet310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax-residence").GET <@(user1)
       val responseGet310 = makeGetRequest(requestGet310)
       Then("We should get a 200")
       responseGet310.code should equal(200)
@@ -155,7 +155,7 @@ class TaxResidenceTest extends V310ServerSetup {
   feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetTaxResidence)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").GET <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -165,7 +165,7 @@ class TaxResidenceTest extends V310ServerSetup {
     scenario("We will call the endpoint with the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canGetTaxResidence + " but with non existing CUSTOMER_ID")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").GET <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax-residence").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
