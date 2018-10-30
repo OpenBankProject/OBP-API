@@ -135,7 +135,6 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 200")
       responseGet310.code should equal(200)
       val taxResidenceGetJson = responseGet310.body.extract[TaxResidenceJsonV310]
-      org.scalameta.logger.elem(responseGet310.body)
 
       val createList = taxResidenceJson.tax_residence.map(_.tax_residence_id)
       val getList = taxResidenceGetJson.tax_residence.map(_.tax_residence_id)
