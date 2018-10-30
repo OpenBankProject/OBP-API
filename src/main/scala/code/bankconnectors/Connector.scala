@@ -64,18 +64,8 @@ Could consider a Map of ("resourceType" -> "provider") - this could tell us whic
 object Connector extends SimpleInjector {
 
   import scala.reflect.runtime.universe._
-  def getObjectInstance(clsName: String):Connector = {
-    val mirror = runtimeMirror(getClass.getClassLoader)
-    val module = mirror.staticModule(clsName)
-    mirror.reflectModule(module).instance.asInstanceOf[Connector]
-  }
-
-  val connector = new Inject(buildOne _) {}
-
-  def buildOne: Connector = {
-    val connectorProps = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-
-    connectorProps match {
+  def getConnectorInstance(connectorVersion: String):Connector = {
+    connectorVersion match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalRecordConnector
       case "obpjvm" => ObpJvmMappedConnector
@@ -84,8 +74,16 @@ object Connector extends SimpleInjector {
       case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
       case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
-      case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
+      case _ => throw new RuntimeException(s"Do not Support this connector version: $connectorVersion")
     }
+  }
+
+  val connector = new Inject(buildOne _) {}
+
+  def buildOne: Connector = {
+    val connectorProps = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed not set")
+    getConnectorInstance(connectorProps)
+    
   }
 
 }
