@@ -193,8 +193,8 @@ object ApiRole {
   case class CanGetTaxResidence(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTaxResidence = CanGetTaxResidence()
 
-  case class CanAddTaxResidence(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canAddTaxResidence = CanAddTaxResidence()
+  case class CanCreateTaxResidence(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateTaxResidence = CanCreateTaxResidence()
 
   case class CanDeleteTaxResidence(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteTaxResidence = CanDeleteTaxResidence()
@@ -262,7 +262,7 @@ object ApiRole {
       canGetWebhooks ::
       canUpdateWebhook ::
       canGetTaxResidence ::
-      canAddTaxResidence ::
+      canCreateTaxResidence ::
       canDeleteTaxResidence ::
       Nil
 

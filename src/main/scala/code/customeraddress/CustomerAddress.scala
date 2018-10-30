@@ -22,16 +22,16 @@ object CustomerAddress extends SimpleInjector {
 
 trait CustomerAddressProvider {
   def getAddress(customerId: String): Future[Box[List[CustomerAddress]]]
-  def addAddress(customerId: String,
-                 line1: String,
-                 line2: String,
-                 line3: String,
-                 city: String,
-                 county: String,
-                 state: String,
-                 postcode: String,
-                 countryCode: String,
-                 status: String
+  def createAddress(customerId: String,
+                    line1: String,
+                    line2: String,
+                    line3: String,
+                    city: String,
+                    county: String,
+                    state: String,
+                    postcode: String,
+                    countryCode: String,
+                    status: String
                 ): Future[Box[CustomerAddress]]
   def deleteAddress(customerAddressId: String): Future[Box[Boolean]]
 }
@@ -54,16 +54,16 @@ trait CustomerAddress {
 
 class RemotedataCustomerAddressCaseClasses {
   case class getAddress(customerId: String)
-  case class addAddress(customerId: String,
-                        line1: String,
-                        line2: String,
-                        line3: String,
-                        city: String,
-                        county: String,
-                        state: String,
-                        postcode: String,
-                        countryCode: String,
-                        status: String
+  case class createAddress(customerId: String,
+                           line1: String,
+                           line2: String,
+                           line3: String,
+                           city: String,
+                           county: String,
+                           state: String,
+                           postcode: String,
+                           countryCode: String,
+                           status: String
                        )
   case class deleteAddress(customerAddressId: String)
 }

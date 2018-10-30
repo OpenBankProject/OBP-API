@@ -32,7 +32,7 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
         Failure(ErrorMessages.UnknownError)
     }
   }
-  override def addTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = {
+  override def createTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = {
     Future(addTaxResidenceRemote(customerId, domain, taxNumber))
   }
   def deleteTaxResidenceRemote(taxResidenceId: String): Box[Boolean] = {

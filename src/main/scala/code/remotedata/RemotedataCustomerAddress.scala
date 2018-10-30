@@ -16,17 +16,17 @@ object RemotedataCustomerAddress extends ObpActorInit with CustomerAddressProvid
   def getAddress(customerId: String): Future[Box[List[CustomerAddress]]] =
     (actor ? cc.getAddress(customerId)).mapTo[Box[List[CustomerAddress]]]
 
-  def addAddress(customerId: String,
-                      line1: String,
-                      line2: String,
-                      line3: String,
-                      city: String,
-                      county: String,
-                      state: String,
-                      postcode: String,
-                      countryCode: String,
-                      status: String): Future[Box[CustomerAddress]] =
-    (actor ? cc.addAddress(customerId,
+  def createAddress(customerId: String,
+                    line1: String,
+                    line2: String,
+                    line3: String,
+                    city: String,
+                    county: String,
+                    state: String,
+                    postcode: String,
+                    countryCode: String,
+                    status: String): Future[Box[CustomerAddress]] =
+    (actor ? cc.createAddress(customerId,
       line1,
       line2,
       line3,

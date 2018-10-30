@@ -1331,9 +1331,9 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      taxResidence,
+      createTaxResidence,
       implementedInApiVersion,
-      nameOf(taxResidence),
+      nameOf(createTaxResidence),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/tax_residence",
       "Add the Tax Residence of the Customer specified by a CUSTOMER_ID",
@@ -1354,19 +1354,19 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle))
 
-    lazy val taxResidence : OBPEndpoint = {
+    lazy val createTaxResidence : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax_residence" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanAddTaxResidence)(bankId.value, u.userId, canAddTaxResidence)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateTaxResidence)(bankId.value, u.userId, canCreateTaxResidence)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostTaxResidenceJsonV310 "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostTaxResidenceJsonV310]
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
-            (taxResidence, callContext) <- NewStyle.function.postTaxResidence(customerId, postedData.domain, postedData.tax_number, callContext)
+            (taxResidence, callContext) <- NewStyle.function.createTaxResidence(customerId, postedData.domain, postedData.tax_number, callContext)
           } yield {
             (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`200`(callContext))
           }
@@ -1455,9 +1455,9 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      addCustomerAddress,
+      createCustomerAddress,
       implementedInApiVersion,
-      nameOf(addCustomerAddress),
+      nameOf(createCustomerAddress),
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/address",
       "Add the Address of the Customer specified by a CUSTOMER_ID",
@@ -1478,7 +1478,7 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle))
 
-    lazy val addCustomerAddress : OBPEndpoint = {
+    lazy val createCustomerAddress : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
@@ -1490,7 +1490,7 @@ trait APIMethods310 {
               json.extract[PostCustomerAddressJsonV310]
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
-            (address, callContext) <- NewStyle.function.addCustomerAddress(
+            (address, callContext) <- NewStyle.function.createCustomerAddress(
               customerId: String,
               postedData.line_1,
               postedData.line_2,

@@ -47,7 +47,7 @@ class TaxResidenceTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.taxResidence))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createTaxResidence))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getTaxResidence))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.deleteTaxResidence))
 
@@ -91,18 +91,18 @@ class TaxResidenceTest extends V310ServerSetup {
 
 
   feature("Add the Tax Residence of the Customer specified by a CUSTOMER_ID v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canAddTaxResidence, ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0 without a Role " + canAddTaxResidence)
+    scenario("We will call the endpoint without the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
+      When("We make a request v3.1.0 without a Role " + canCreateTaxResidence)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 403")
       response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanAddTaxResidence)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanAddTaxResidence)
+      And("error should be " + UserHasMissingRoles + CanCreateTaxResidence)
+      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCreateTaxResidence)
     }
-    scenario("We will call the endpoint with the proper Role " + canAddTaxResidence, ApiEndpoint1, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanAddTaxResidence.toString)
-      When("We make a request v3.1.0 with the Role " + canAddTaxResidence + " but with non existing CUSTOMER_ID")
+    scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
+      When("We make a request v3.1.0 with the Role " + canCreateTaxResidence + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "tax_residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 400")
@@ -110,7 +110,7 @@ class TaxResidenceTest extends V310ServerSetup {
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].error should startWith (CustomerNotFoundByCustomerId)
     }
-    scenario("We will call the endpoint with the proper Role " + canAddTaxResidence + " and an existing customer", ApiEndpoint1, VersionOfApi) {
+    scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence + " and an existing customer", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val requestCustomer310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
@@ -119,8 +119,8 @@ class TaxResidenceTest extends V310ServerSetup {
       responseCustomer310.code should equal(200)
       val customerJson = responseCustomer310.body.extract[CustomerJsonV310]
 
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanAddTaxResidence.toString)
-      When("We make a request v3.1.0 with the Role " + canAddTaxResidence)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
+      When("We make a request v3.1.0 with the Role " + canCreateTaxResidence)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax_residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
       Then("We should get a 200")

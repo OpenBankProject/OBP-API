@@ -1797,18 +1797,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     CustomerAddress.address.vend.getAddress(customerId) map {
       (_, callContext)
     }
-  override def addCustomerAddress(customerId: String,
-                                 line1: String,
-                                 line2: String,
-                                 line3: String,
-                                 city: String,
-                                 county: String,
-                                 state: String,
-                                 postcode: String,
-                                 countryCode: String,
-                                 status: String,
-                                 callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] =
-    CustomerAddress.address.vend.addAddress(
+  override def createCustomerAddress(customerId: String,
+                                     line1: String,
+                                     line2: String,
+                                     line3: String,
+                                     city: String,
+                                     county: String,
+                                     state: String,
+                                     postcode: String,
+                                     countryCode: String,
+                                     status: String,
+                                     callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] =
+    CustomerAddress.address.vend.createAddress(
       customerId,
       line1,
       line2,
@@ -1830,8 +1830,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     TaxResidence.taxResidence.vend.getTaxResidence(customerId) map {
       (_, callContext)
     }
-  override def postTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
-    TaxResidence.taxResidence.vend.addTaxResidence(customerId, domain, taxNumber) map {
+  override def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
+    TaxResidence.taxResidence.vend.createTaxResidence(customerId, domain, taxNumber) map {
       (_, callContext)
     }
   override def deleteTaxResidence(taxResidenceId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =

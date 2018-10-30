@@ -16,7 +16,7 @@ class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcL
       logger.debug("getAddress(" + customerId + ")")
       sender ! (mapper.getAddressRemote(customerId))
 
-    case cc.addAddress(customerId: String,
+    case cc.createAddress(customerId: String,
                       line1: String,
                       line2: String,
                       line3: String,
@@ -26,8 +26,8 @@ class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcL
                       postcode: String,
                       countryCode: String,
                       status: String) =>
-      logger.debug("addAddress(" + customerId + ", " + line1 + ", " + line2 + ")")
-      sender ! (mapper.addAddressRemote(customerId,
+      logger.debug("createAddress(" + customerId + ", " + line1 + ", " + line2 + ")")
+      sender ! (mapper.createAddressRemote(customerId,
                                         line1,
                                         line2,
                                         line3,

@@ -19,16 +19,16 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
   }
   override def getAddress(customerId: String) = Future(getAddressRemote(customerId))
 
-  def addAddressRemote(customerId: String,
-                       line1: String,
-                       line2: String,
-                       line3: String,
-                       city: String,
-                       county: String,
-                       state: String,
-                       postcode: String,
-                       countryCode: String,
-                       status: String): Box[CustomerAddress] = {
+  def createAddressRemote(customerId: String,
+                          line1: String,
+                          line2: String,
+                          line3: String,
+                          city: String,
+                          county: String,
+                          state: String,
+                          postcode: String,
+                          countryCode: String,
+                          status: String): Box[CustomerAddress] = {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
     id match {
       case Full(customer) =>
@@ -53,18 +53,18 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
         Failure(ErrorMessages.UnknownError)
     }
   }
-  override def addAddress( customerId: String,
-                  line1: String,
-                  line2: String,
-                  line3: String,
-                  city: String,
-                  county: String,
-                  state: String,
-                  postcode: String,
-                  countryCode: String,
-                  status: String
+  override def createAddress(customerId: String,
+                             line1: String,
+                             line2: String,
+                             line3: String,
+                             city: String,
+                             county: String,
+                             state: String,
+                             postcode: String,
+                             countryCode: String,
+                             status: String
                 ): Future[Box[CustomerAddress]] = Future(
-    addAddressRemote(
+    createAddressRemote(
       customerId,
       line1,
       line2,
