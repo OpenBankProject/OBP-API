@@ -163,7 +163,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
-    description = "getAdapterInfo from kafka ",
+    description = "Get's information about the active general (non bank specific) Adapter that is responding to messages sent by OBP.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAdapterInfo.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAdapterInfo.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -217,7 +217,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.User",
     messageFormat = messageFormat,
-    description = "getUser from kafka ",
+    description = "Gets the User as identified by the the credentials (username and password) supplied.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetUserByUsernamePassword.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetUserByUsernamePassword.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -289,7 +289,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Banks",
     messageFormat = messageFormat,
-    description = "getBanks",
+    description = "Gets the banks list on this OBP installation.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetBanks.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetBanks.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -403,7 +403,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Bank",
     messageFormat = messageFormat,
-    description = "getBank from kafka ",
+    description = "Get a specific Bank as specified by bankId",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetBank.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetBank.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -521,7 +521,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Accounts",
     messageFormat = messageFormat,
-    description = "getBankAccounts from kafka",
+    description = "Gets the list of accounts available to the User. This call sends authInfo including username.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccounts.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccounts.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -630,7 +630,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Account",
     messageFormat = messageFormat,
-    description = "getBankAccount from kafka",
+    description = "Get a single Account as specified by the bankId and accountId.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccountbyAccountID.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccountbyAccountID.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -687,7 +687,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
-    description = "checkBankAccountExists from kafka",
+    description = "Check a bank Account exists - as specified by bankId and accountId.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundCheckBankAccountExists.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundCheckBankAccountExists.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -749,7 +749,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.coreBankAccounts",
     messageFormat = messageFormat,
-    description = "getCoreBankAccounts from kafka",
+    description = "Get bank Accounts available to the User (without Metadata)",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccountbyAccountID.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccountbyAccountID.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -856,7 +856,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
-    description = "getTransactions from kafka",
+    description = "Get Transactions for an Account specified by bankId and accountId. Pagination is achieved with limit, fromDate and toDate.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetTransactions.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetTransactions.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -895,6 +895,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
+    // TODO What about offset?
     val req = OutboundGetTransactions(
       authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
       bankId = bankId.toString,
@@ -1028,7 +1029,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
-    description = "getTransaction from kafka ",
+    description = "Get a single Transaction specified by bankId, accountId and transactionId",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetTransaction.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetTransaction.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1108,7 +1109,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.create.Challenge",
     messageFormat = messageFormat,
-    description = "CreateChallenge from kafka ",
+    description = "Create a Security Challenge that may be used to complete a Transaction Request.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1177,7 +1178,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.create.Counterparty",
     messageFormat = messageFormat,
-    description = "createCounterparty from kafka ",
+    description = "Create Counterparty",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateCounterparty.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundCreateCounterparty.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1199,6 +1200,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           otherBranchRoutingScheme = "otherBranchRoutingScheme",
           otherBranchRoutingAddress = "otherBranchRoutingAddress",
           isBeneficiary = true,
+          // Why is this not a list as in inbound?
           bespoke = CounterpartyBespoke("key","value") ::Nil
         )
       )
@@ -1298,7 +1300,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.transactionRequests210",
     messageFormat = messageFormat,
-    description = "getTransactionRequests210 from kafka ",
+    description = "Get Transaction Requests",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetTransactionRequests210.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetTransactionRequests210.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1415,7 +1417,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.counterparties",
     messageFormat = messageFormat,
-    description = "getCounterparties from kafka ",
+    description = "Get Counterparties available to the View on the Account specified by thisBankId, thisAccountId and viewId.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterparties.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterparties.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1502,7 +1504,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyByCounterpartyId",
     messageFormat = messageFormat,
-    description = "getCounterpartyByCounterpartyId from kafka ",
+    description = "Get a Counterparty by its counterpartyId.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterpartyByCounterpartyId.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterpartyByCounterpartyId.getClass.getSimpleName).response),
     exampleOutboundMessage = Extraction.decompose(
@@ -1602,7 +1604,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.CustomersByUserIdBox",
     messageFormat = messageFormat,
-    description = "getCustomersByUserIdBox from kafka ",
+    description = "Get Customers represented by the User.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCustomersByUserId.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCustomersByUserId.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1678,7 +1680,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.getStatusOfCheckbookOrdersFuture",
     messageFormat = messageFormat,
-    description = "getStatusOfCheckbookOrdersFuture from kafka ",
+    description = "Get the status of CheckbookOrders for an Account.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCheckbookOrderStatus.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCheckbookOrderStatus.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1759,7 +1761,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.getStatusOfCreditCardOrderFuture",
     messageFormat = messageFormat,
-    description = "getStatusOfCreditCardOrderFuture from kafka ",
+    description = "Get the status of CreditCardOrders",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCreditCardOrderStatus.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCreditCardOrderStatus.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -1985,7 +1987,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Branches",
     messageFormat = messageFormat,
-    description = "getBranches",
+    description = "Get Branches fora Bank specified by bankId",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetBranches.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetBranches.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -2079,7 +2081,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Branch",
     messageFormat = messageFormat,
-    description = "getBranch",
+    description = "Get a Branch as specified by bankId and branchId",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetBranch.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetBranch.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -2176,7 +2178,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Atms",
     messageFormat = messageFormat,
-    description = "getAtms",
+    description = "Get ATMs for a bank specified by bankId",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAtms.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAtms.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
@@ -2276,7 +2278,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.Atm",
     messageFormat = messageFormat,
-    description = "getAtm",
+    description = "Get an ATM as specified by bankId and atmId.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAtm.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAtm.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
