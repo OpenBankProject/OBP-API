@@ -1066,7 +1066,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
-      case _ => false
+      // case _ => false
     }
 
     Full(commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&

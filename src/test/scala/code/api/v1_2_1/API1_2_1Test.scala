@@ -43,7 +43,6 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import _root_.net.liftweb.util.{Props, _}
-import code.api.ErrorMessage
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
 import org.scalatest.Tag
 

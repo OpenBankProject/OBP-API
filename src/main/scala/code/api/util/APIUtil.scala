@@ -1465,10 +1465,10 @@ Returns a string showed to the developer
   }
   def getGatewayLoginJwt(): Option[String] = {
     getGatewayResponseHeader() match {
-      case Nil =>
-        None
       case x :: Nil =>
         Some(x._2)
+      case _ =>
+        None
     }
   }
 
