@@ -375,7 +375,7 @@ trait APIMethods220 {
       """These message docs provide example messages sent by OBP to the (Kafka) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
         | Integrators can use these messages to build Adapters that provide core banking services to OBP.
         | 
-        | `CONNECTOR`: kafka_vJuneYellow2017, kafka_vJune2017 , kafka_vMar2017 or ... 
+        | `CONNECTOR`:kafka_vMar2017 , kafka_vJune2017, kafka_vSept2018 ... 
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
@@ -389,8 +389,7 @@ trait APIMethods220 {
         cc => {
           for {
             //kafka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
-            connectorVersion<- tryo(connector.split("_")(1))?~! s"$InvalidConnector Current CONNECTOR is $connector. It should be eg: kafka_vJune2017"
-            connectorObject <- tryo{Connector.getObjectInstance(s"code.bankconnectors.$connectorVersion.KafkaMappedConnector_$connectorVersion")} ?~! s"$InvalidConnector Current CONNECTOR is $connector.It should be eg: kafka_vJune2017"
+            connectorObject <- tryo{Connector.getConnectorInstance(connector)} ?~! s"$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vJune2017 ..."
             messageDocs <- Full{connectorObject.messageDocs.toList} 
           } yield {
             val json = JSONFactory220.createMessageDocsJson(messageDocs)
