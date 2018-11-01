@@ -1293,7 +1293,7 @@ trait Connector extends MdcLoggable{
     fromAccount: BankAccount,
     transReqId: TransactionRequestId,
     transactionRequestType: TransactionRequestType,
-    callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+    callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")}
   
   def makePaymentv300(
     initiator: User,
@@ -1303,7 +1303,7 @@ trait Connector extends MdcLoggable{
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     transactionRequestType: TransactionRequestType,
     chargePolicy: String, 
-    callContext: Option[CallContext] = None): Box[TransactionId] = Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")
+    callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")}
   
   def createTransactionRequestv300(
     initiator: User,
@@ -1315,7 +1315,7 @@ trait Connector extends MdcLoggable{
     transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
     detailsPlain: String,
     chargePolicy: String,
-    callContext: Option[CallContext] = None): Box[TransactionRequest] = Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")
+    callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]]  = Future{Failure(NotImplemented + currentMethodName+".Only some connectors need this method !")}
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

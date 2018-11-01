@@ -38,6 +38,7 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Await
 // Makes JValue assignment to Nil work
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -54,6 +55,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -608,7 +610,8 @@ trait APIMethods210 {
               // All Good, proceed with the Transaction creation...
               transactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
                 case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
-                  Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType, Some(cc))
+                  val responseF = Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType, Some(cc))
+                  Await.result(responseF, 1 second).map(_._1)
                 case _ =>
                   Connector.connector.vend.createTransactionAfterChallengev210(fromAccount, existingTransactionRequest, Some(cc))
               } 
