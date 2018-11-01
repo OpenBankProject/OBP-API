@@ -429,7 +429,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBank]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true))),
-    adapterImplementation = Some(AdapterImplementation("- Core", 3))
+    adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
   override def getBank(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
     /**
@@ -651,7 +651,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         authInfoExample,
         statusExample,
         Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))),
-      adapterImplementation = Some(AdapterImplementation("Accounts", 2))
+      adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
     /**
@@ -897,7 +897,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           postedDate = "String", 
           `type` = "String", 
           userId = "String")::Nil)),
-    adapterImplementation = Some(AdapterImplementation("Accounts", 1))
+    adapterImplementation = Some(AdapterImplementation("Accounts", 10))
   )
   // TODO Get rid on these param lookups and document.
   override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
@@ -1068,7 +1068,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 userId = "String"
               )))
     ),
-    adapterImplementation = Some(AdapterImplementation("Accounts", 1))
+    adapterImplementation = Some(AdapterImplementation("Accounts", 11))
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
@@ -1147,7 +1147,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     outboundAvroSchema = Some(parse(SchemaFor[OutboundCreateChallengeSept2018]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundCreateChallengeSept2018]().toString(true))),
-    adapterImplementation = Some(AdapterImplementation("Payments", 5))
+    adapterImplementation = Some(AdapterImplementation("Payments", 20))
   )
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
     
@@ -1243,7 +1243,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                           value = "String"
                         )))))
     ),
-    adapterImplementation = Some(AdapterImplementation("Payments", 1))
+    adapterImplementation = Some(AdapterImplementation("Payments", 5))
   )
   override def createCounterparty(
     name: String,
@@ -1365,7 +1365,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         )
       )
     ),
-    adapterImplementation = Some(AdapterImplementation("Payments", 1))
+    adapterImplementation = Some(AdapterImplementation("Payments", 10))
   )
   override def getTransactionRequests210(user : User, fromAccount : BankAccount, callContext: Option[CallContext] = None)  = saveConnectorMetric{
     /**
@@ -1467,7 +1467,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         ) :: Nil
     )
   ),
-    adapterImplementation = Some(AdapterImplementation("Payments", 1))
+    adapterImplementation = Some(AdapterImplementation("Payments", 0))
   )
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None) = saveConnectorMetric{
@@ -1646,7 +1646,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     outboundAvroSchema = None,
     inboundAvroSchema = None,
-    adapterImplementation = Some(AdapterImplementation("Accounts", -5))
+    adapterImplementation = Some(AdapterImplementation("Accounts", 0))
   )
 
   override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = saveConnectorMetric{
