@@ -36,7 +36,7 @@ object Glossary {
 			scala.xml.XML.loadString(htmlDescription).text
 		} catch {
 			// Fallback to the html
-			case _ => htmlDescription
+			case _ : Throwable => htmlDescription
 		}
 
 			new GlossaryItem(title,

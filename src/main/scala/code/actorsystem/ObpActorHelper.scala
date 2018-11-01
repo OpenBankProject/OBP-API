@@ -4,9 +4,11 @@ import code.api.APIFailure
 import net.liftweb.common._
 import net.liftweb.json.JsonAST.JValue
 
+import scala.reflect.ClassTag
+
 trait ObpActorHelper {
 
-  def extractResult[T](in: T) = {
+  def extractResult[T : ClassTag](in: T) = {
     in match {
         case pf: ParamFailure[_] =>
           pf.param match {

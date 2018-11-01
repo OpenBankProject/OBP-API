@@ -1,7 +1,6 @@
 package code.kafka
 
 import code.api.util.{APIUtil, ErrorMessages}
-import net.liftweb.util.Props
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 
 /**
@@ -12,8 +11,8 @@ trait KafkaConfig {
   val bootstrapServers = APIUtil.getPropsValue("kafka.bootstrap_hosts")openOr("localhost:9092")
   val groupId = APIUtil.getPropsValue("kafka.group.id").openOr("obp-api")
   val apiInstanceId = 
-    if (Props.mode == Props.RunModes.Test)
-      APIUtil.getPropsAsIntValue("api_instance_id").openOr("1")
+    if (APIUtil.isSandboxMode)
+      APIUtil.getPropsAsIntValue("api_instance_id").openOr("{api_instance_id}")
     else
       APIUtil.getPropsAsIntValue("api_instance_id").openOrThrowException(s"${ErrorMessages.MissingPropsValueAtThisInstance} api_instance_id") 
   val partitions = APIUtil.getPropsAsIntValue("kafka.partitions", 10)

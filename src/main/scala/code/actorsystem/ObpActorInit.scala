@@ -10,6 +10,7 @@ import net.liftweb.util.Props
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.reflect.ClassTag
 
 trait ObpActorInit extends MdcLoggable{
   // Default is 3 seconds, which should be more than enough for slower systems
@@ -21,7 +22,7 @@ trait ObpActorInit extends MdcLoggable{
   val TIMEOUT = (ACTOR_TIMEOUT seconds)
   implicit val timeout = Timeout(ACTOR_TIMEOUT * (1000 milliseconds))
 
-  def extractFuture[T](f: Future[Any]): T = {
+  def extractFuture[T : ClassTag](f: Future[Any]): T = {
     val r = f.map {
       case s: Set[T] => s
       case l: List[T] => l
@@ -31,7 +32,7 @@ trait ObpActorInit extends MdcLoggable{
     Await.result(r, TIMEOUT).asInstanceOf[T]
   }
 
-  def extractFutureToBox[T](f: Future[Any]): Box[T] = {
+  def extractFutureToBox[T : ClassTag](f: Future[Any]): Box[T] = {
     val r = f.map {
       case pf: ParamFailure[_] => Empty ~> pf
       case af: APIFailure => Empty ~> af
