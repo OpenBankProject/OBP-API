@@ -124,6 +124,9 @@ object NewStyle {
     def `200`(callContext: Option[CallContext])= {
       callContext.map(_.copy(httpCode = Some(200)))
     }
+    def `201`(callContext: Option[CallContext])= {
+      callContext.map(_.copy(httpCode = Some(201)))
+    }
     def `200`(callContext: CallContext)  = {
       Some(callContext.copy(httpCode = Some(200)))
     }
