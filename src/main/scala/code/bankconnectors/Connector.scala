@@ -19,6 +19,7 @@ import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.context.UserAuthContext
 import code.customer._
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
@@ -1422,4 +1423,18 @@ trait Connector extends MdcLoggable{
     accountId: String, 
     callContext: Option[CallContext]
   ): Future[Box[(List[CardObjectJson], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName)}
+
+  def createUserAuthContext(userId: String,
+                            key: String,
+                            value: String,
+                            callContext: Option[CallContext]): Future[(Box[UserAuthContext], Option[CallContext])] =
+    Future{(Failure(NotImplemented + currentMethodName+"createUserAuthContext in Connector!"), callContext)}
+  def deleteUserAuthContexts(userId: String,
+                             callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =
+    Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContexts in Connector!"), callContext)}
+  def getUserAuthContexts(userId : String,
+                          callContext: Option[CallContext]): Future[(Box[List[UserAuthContext]], Option[CallContext])] =
+    Future{(Failure(NotImplemented + currentMethodName+"getUserAuthContexts in Connector!"), callContext)}
+
+
 }

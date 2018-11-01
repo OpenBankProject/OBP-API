@@ -114,7 +114,9 @@ object NewStyle {
     (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createCustomerAddress), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createUserAuthContext), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -324,36 +326,36 @@ object NewStyle {
       } map { unboxFull(_) }
     }
 
+
     def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg) {
         code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
       }
     }
-
     def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg) {
         code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
       }
     }
-    
+
+
     def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): Future[(UserAuthContext, Option[CallContext])] = {
-      UserAuthContextProvider.userAuthContextProvider.vend.createUserAuthContext(userId, key, value, callContext) map {
-        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+      Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    
     def getUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(List[UserAuthContext], Option[CallContext])] = {
-      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId, callContext) map {
-        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+      Connector.connector.vend.getUserAuthContexts(userId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    
-    def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(List[UserAuthContext], Option[CallContext])] = {
-      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId, callContext) map {
-        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+    def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])]  = {
+      Connector.connector.vend.deleteUserAuthContexts(userId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    
+
+
     def findByUserId(userId: String, callContext: Option[CallContext]): Future[(User, Option[CallContext])] = {
       Future { User.findByUserId(userId).map(user =>(user, callContext))} map {
         unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 400)

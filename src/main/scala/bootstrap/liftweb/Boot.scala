@@ -549,7 +549,8 @@ object ToSchemify {
     MappedScope,
     MappedUserScope,
     MappedTaxResidence,
-    MappedCustomerAddress
+    MappedCustomerAddress,
+    MappedUserAuthContext
   )
 
   // The following tables are accessed directly via Mapper / JDBC
@@ -579,7 +580,6 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
-    MappedUserAuthContext,
     MappedCustomerIDMapping
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
