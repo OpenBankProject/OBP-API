@@ -475,7 +475,8 @@ object JSONFactory1_4_0 {
         case Some(f)                       => "\""  + key + """":""" +translateEntity(f,false)
         case null                          => "\""  + key + """":{"type":"null"}"""
         case f                             => "\""  + key + """":""" +translateEntity(f,false)
-        case _ => "unknown"
+        // TODO resolve the warning patterns after a variable pattern cannot match (SLS 8.1.1)
+        // case _ => "unknown"
       }
     }
     //Exclude all unrecognised fields and make part of fields definition

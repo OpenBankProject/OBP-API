@@ -186,7 +186,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       pipeToSender(sender, f)
 
     // This is for KafkaMappedConnector_JVMcompatible, KafkaMappedConnector_vMar2017 and KafkaMappedConnector, the request is Map[String, String]  
-    case request: Map[String, String] =>
+    case request: Map[_, _] =>
       logger.debug("kafka_request[Map[String, String]]: " + request)
       val orgSender = sender
       val f = for {

@@ -495,7 +495,8 @@ object SwaggerJSONFactory {
         case Some(f)                       => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
         case null                          => "unknown"
         case f                             => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case _ => "unknown"
+        // TODO resolve the warning patterns after a variable pattern cannot match (SLS 8.1.1)
+        // case _ => "unknown"
       }
     }
     //Exclude all unrecognised fields and make part of fields definition
