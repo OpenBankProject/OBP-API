@@ -1655,6 +1655,7 @@ Returns a string showed to the developer
 
 
   type OBPEndpoint = PartialFunction[Req, CallContext => Box[JsonResponse]]
+  type OBPReturnType[T] = Future[(T, Option[CallContext])]
 
 
   def getAllowedEndpoints (endpoints : List[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
