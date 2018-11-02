@@ -6,6 +6,7 @@ import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
@@ -23,6 +24,7 @@ import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.taxresidence.TaxResidence
+import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -365,6 +367,62 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 400)
       }
     }
+  
+    def createTransactionRequestv210(
+      u: User,
+      viewId: ViewId,
+      fromAccount: BankAccount,
+      toAccount: BankAccount,
+      transactionRequestType: TransactionRequestType,
+      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+      detailsPlain: String,
+      chargePolicy: String,
+      callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+    {
+      Connector.connector.vend.createTransactionRequestv210(
+        u: User,
+        viewId: ViewId,
+        fromAccount: BankAccount,
+        toAccount: BankAccount,
+        transactionRequestType: TransactionRequestType,
+        transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+        detailsPlain: String,
+        chargePolicy: String,
+        callContext: Option[CallContext]
+      ) map {
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400)
+      }
+    }
+    
+    def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): Future[(CounterpartyTrait, Option[CallContext])] = 
+    {
+      Future{Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext])} map {
+        unboxFullOrFail(_, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400)
+      }
+    }
+    
+    
+    def toBankAccount(counterparty: CounterpartyTrait, callContext: Option[CallContext]) : Future[BankAccount] =
+    {
+      Future{BankAccount.toBankAccount(counterparty)} map {
+        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+      }
+    }
+    
+    def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : Future[(CounterpartyTrait, Option[CallContext])] = 
+    {
+      Future{ Connector.connector.vend.getCounterpartyByIban(iban: String, callContext: Option[CallContext])} map {
+        unboxFullOrFail(
+          _, 
+          callContext, 
+          s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, " +
+            s"set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $iban ", 
+          400)
+      }
+    }
+    
+    
+    
 
   }
 

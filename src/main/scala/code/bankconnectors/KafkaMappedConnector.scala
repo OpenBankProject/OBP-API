@@ -57,6 +57,8 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Seq}
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable {
 
@@ -189,7 +191,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = {
     // Create argument list
     val req = Map(
       "north" -> "getChallengeThreshold",
@@ -208,12 +210,12 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => Full(AmountOfMoney(x.currency, x.limit))
+      case Some(x)  => Full((AmountOfMoney(x.currency, x.limit), callContext))
       case _ => {
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        Full(AmountOfMoney(currency,convertedLimit.toString()))
+        Full((AmountOfMoney(currency,convertedLimit.toString()), callContext))
       }
     }
   }
@@ -522,10 +524,10 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
 
 
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
+  override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =  {
 
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
-      Counterparties.counterparties.vend.getCounterpartyByIban(iban)
+      Counterparties.counterparties.vend.getCounterpartyByIban(iban).map(counterparty =>(counterparty, callContext))
     } else {
       val req = Map(
         "north" -> "getCounterpartyByIban",
@@ -541,7 +543,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
       val r = process(req).extract[KafkaInboundCounterparty]
 
-      Full(new KafkaCounterparty(r))
+      Full((KafkaCounterparty(r), callContext))
     }
   }
 

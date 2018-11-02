@@ -8,7 +8,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util.{APIUtil, CallContext, ErrorMessages, NewStyle}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
@@ -199,8 +199,9 @@ trait Connector extends MdcLoggable{
     transactionRequestType: String,
     currency: String,
     userId: String,
-    userName: String
-  ): Box[AmountOfMoney] =
+    userName: String,
+    callContext: Option[CallContext]
+  ): Box[(AmountOfMoney, Option[CallContext])] =
   LocalMappedConnector.getChallengeThreshold(
     bankId: String,
     accountId: String,
@@ -208,7 +209,8 @@ trait Connector extends MdcLoggable{
     transactionRequestType: String,
     currency: String,
     userId: String,
-    userName: String
+    userName: String,
+    callContext: Option[CallContext]
   )
 
   //Gets current charge level for transaction request
@@ -350,7 +352,7 @@ trait Connector extends MdcLoggable{
     * get Counterparty by iban (OtherAccountRoutingAddress field in MappedCounterparty table)
     * This is a helper method that assumes OtherAccountRoutingScheme=IBAN
     */
-  def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Failure(NotImplemented + currentMethodName)
+  def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : Box[(CounterpartyTrait, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
 
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
@@ -610,7 +612,8 @@ trait Connector extends MdcLoggable{
                                    transactionRequestType: TransactionRequestType,
                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                    detailsPlain: String,
-                                   chargePolicy: String): Box[TransactionRequest] = {
+                                   chargePolicy: String, 
+                                   callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]] = Future{
   
     // Set initial status
     def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal): Box[TransactionRequestStatus.Value] ={
@@ -647,7 +650,7 @@ trait Connector extends MdcLoggable{
 
     for{
      // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
-      challengeThreshold <- getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name) ?~! InvalidConnectorResponseForGetChallengeThreshold
+      (challengeThreshold,callContext) <- getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) ?~! InvalidConnectorResponseForGetChallengeThreshold
       challengeThresholdAmount <- tryo(BigDecimal(challengeThreshold.amount)) ?~! s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number"
       transactionRequestCommonBodyAmount <- tryo(BigDecimal(transactionRequestCommonBody.value.amount)) ?~! s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number"
       status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount) ?~! s"$GetStatusException"
@@ -707,7 +710,7 @@ trait Connector extends MdcLoggable{
       }
     }yield{
       logger.debug(newTransactionRequest)
-      newTransactionRequest
+      (newTransactionRequest, callContext)
     }
   }
 
@@ -974,7 +977,7 @@ trait Connector extends MdcLoggable{
         case SEPA  =>
           for{
             toCounterpartyIBan <- tryo{body.to_sepa.get.iban}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON"
-            toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+            (toCounterparty, callContext) <- Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan, callContext) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
             toAccount <- BankAccount.toBankAccount(toCounterparty)
             sepaBody <- Full(
               TransactionRequestBodySEPAJSON(
