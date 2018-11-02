@@ -35,14 +35,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   implicit override val nameOfConnector = LocalRecordConnector.getClass.getSimpleName
 
-  // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String) = {
-    val limit = BigDecimal("50")
-    val rate = fx.exchangeRate ("EUR", currency)
-    val convertedLimit = fx.convert(limit, rate)
-    Full(AmountOfMoney(currency,convertedLimit.toString()))
-  }
-  
   override def getChargeLevel(bankId: BankId,
                               accountId: AccountId,
                               viewId: ViewId,

@@ -72,7 +72,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
@@ -84,7 +84,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
     logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    Full(AmountOfMoney(currency, convertedThreshold.toString()))
+    Full((AmountOfMoney(currency, convertedThreshold.toString()), callContext))
   }
 
   /**
@@ -489,8 +489,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty => (counterparty, callContext))
   }
 
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] ={
-    Counterparties.counterparties.vend.getCounterpartyByIban(iban)
+  override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =  {
+    Counterparties.counterparties.vend.getCounterpartyByIban(iban).map(counterparty=>(counterparty, callContext))
   }
 
 

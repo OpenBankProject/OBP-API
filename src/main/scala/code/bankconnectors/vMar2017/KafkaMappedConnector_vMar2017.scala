@@ -61,6 +61,7 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.{Nil, Seq}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 
 
 trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
@@ -309,7 +310,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String): Box[AmountOfMoney] = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]) = {
     // Create argument list
     val req = OutboundChallengeThresholdBase(
       action = "obp.get.ChallengeThreshold",
@@ -326,12 +327,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => Full(AmountOfMoney(x.currency, x.limit))
+      case Some(x)  => Full((AmountOfMoney(x.currency, x.limit), callContext))
       case _ => {
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        Full(AmountOfMoney(currency,convertedLimit.toString()))
+        Full((AmountOfMoney(currency,convertedLimit.toString()), callContext))
       }
     }
   }
@@ -940,9 +941,9 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
 
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
+  override def getCounterpartyByIban(iban: String, callContext: Option[CallContext])= {
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
-      Counterparties.counterparties.vend.getCounterpartyByIban(iban)
+      Counterparties.counterparties.vend.getCounterpartyByIban(iban).map(counterparty =>(counterparty, callContext))
     } else {
       val req = OutboundCounterpartyByIbanBase(
         messageFormat = messageFormat,
@@ -953,7 +954,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         otherAccountRoutingScheme = "IBAN"
       )
       val r = process(req).extract[InboundCounterparty]
-      Full(CounterpartyTrait2(r))
+      Full((CounterpartyTrait2(r), callContext))
     }
   }
   
