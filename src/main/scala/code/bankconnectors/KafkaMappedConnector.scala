@@ -275,7 +275,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     }
   }
 
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = {
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) : (Box[Boolean], Option[CallContext]) = {
     // Create argument list
     val req = Map(
       "north" -> "validateChallengeAnswer",
@@ -290,8 +290,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     r match {
       // Check does the response data match the requested data
         //TODO, error handling, if return the error message, it is not a boolean.
-      case Some(x)  => Full(x.answer.toBoolean)
-      case _        => Empty
+      case Some(x)  => (Full(x.answer.toBoolean), callContext)
+      case _        => (Empty, callContext)
     }
   }
 
@@ -686,10 +686,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
-  }
-
-  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId): Box[TransactionRequest] = {
-    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
   /*

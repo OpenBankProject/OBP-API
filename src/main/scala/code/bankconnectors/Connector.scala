@@ -233,7 +233,7 @@ trait Connector extends MdcLoggable{
   // Initiate creating a challenge for transaction request and returns an id of the challenge
   def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) : Box[(String,Option[CallContext])] = Failure(NotImplemented + currentMethodName)
   // Validates an answer for a challenge and returns if the answer is correct or not
-  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = Full(true)
+  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): (Box[Boolean],Option[CallContext]) = (Full(true), callContext)
 
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
@@ -831,7 +831,7 @@ trait Connector extends MdcLoggable{
 
   protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
 
-  def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
+  def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Box[(TransactionRequest, Option[CallContext])] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId).map(transactionRequest =>(transactionRequest, callContext))
 
   final def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     for {
@@ -852,9 +852,9 @@ trait Connector extends MdcLoggable{
   //It is only used for V140 and V200, has been deprecated from V210.
   @deprecated
   def answerTransactionRequestChallenge(transReqId: TransactionRequestId, answer: String) : Box[Boolean] = {
-    val tr = getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+    val tr= getTransactionRequestImpl(transReqId, None) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
 
-    tr match {
+    tr.map(_._1) match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
           if (tr.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString) {
@@ -881,13 +881,13 @@ trait Connector extends MdcLoggable{
 
   def createTransactionAfterChallenge(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+      (tr, callContext)<- getTransactionRequestImpl(transReqId, None) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
       transId <- makePayment(initiator, BankIdAccountId(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
           BankIdAccountId (BankId(tr.body.to_sandbox_tan.get.bank_id), AccountId(tr.body.to_sandbox_tan.get.account_id)), BigDecimal (tr.body.value.amount), tr.body.description, TransactionRequestType(tr.`type`)) ?~! InvalidConnectorResponseForMakePayment
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.COMPLETED.toString)
       //get transaction request again now with updated values
-      tr <- getTransactionRequestImpl(transReqId)?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+      (tr, callContext) <- getTransactionRequestImpl(transReqId, None)?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
     } yield {
       tr
     }
@@ -914,8 +914,8 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext] = None) : Box[TransactionRequest] = {
-    for {
+  def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) : (Box[TransactionRequest],Option[CallContext])  = {
+    (for {
       
 //      details <- Full(transactionRequest.details)
       body <- Full(transactionRequest.body)
@@ -1023,11 +1023,11 @@ trait Connector extends MdcLoggable{
       didSaveTransId <- saveTransactionRequestTransaction(transactionRequestId, transactionId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString)
       //After `makePaymentv200` and update data for request, we get the new requqest from database again.
-      transactionReques <- Connector.connector.vend.getTransactionRequestImpl(transactionRequestId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transactionRequestId. Get updated transaction exeception."
+      (transactionReques, callContext) <- Connector.connector.vend.getTransactionRequestImpl(transactionRequestId, callContext) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transactionRequestId. Get updated transaction exeception."
 
     } yield {
       transactionReques
-    }
+    }, callContext)
   }
 
  

@@ -464,10 +464,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     )
   )
-  override def validateChallengeAnswer(
-    challengeId: String,
-    hashOfSuppliedAnswer: String
-  ): Box[Boolean] = {
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) = {
     // Create argument list
     val req = OutboundChallengeAnswerBase(
       messageFormat = messageFormat,
@@ -481,8 +478,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => Full(x.answer.toBoolean)
-      case _        => Empty
+      case Some(x)  => (Full(x.answer.toBoolean),callContext)
+      case _        => (Empty,callContext)
     }
   }
   
@@ -1283,11 +1280,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
-
-  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId): Box[TransactionRequest] = {
-    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
-  }
-
 
   /*
     Bank account creation

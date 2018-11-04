@@ -23,6 +23,7 @@ import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.taxresidence.TaxResidence
+import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper
 import code.views.Views
@@ -125,6 +126,9 @@ object NewStyle {
     }
     def `201`(callContext: Option[CallContext])= {
       callContext.map(_.copy(httpCode = Some(201)))
+    }
+    def `202`(callContext: Option[CallContext])= {
+      callContext.map(_.copy(httpCode = Some(202)))
     }
     def `200`(callContext: CallContext)  = {
       Some(callContext.copy(httpCode = Some(200)))
@@ -418,9 +422,48 @@ object NewStyle {
       }
     }
     
-    
+    def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+    {
+      Future{ Connector.connector.vend.getTransactionRequestImpl(transactionRequestId, callContext)} map {
+        unboxFullOrFail(_, callContext, s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId) ", 400)
+      }
+    }
     
 
+    def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, callContext: Option[CallContext]) : Future[Boolean] = 
+    {
+      Future{ ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer)} map {
+        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+      }
+    }
+    
+    def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])]  =
+     Future{Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext])._1} map {
+        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+      } map { (_, callContext)}
+    
+    def createTransactionAfterChallengev300(
+      initiator: User,
+      fromAccount: BankAccount,
+      transReqId: TransactionRequestId,
+      transactionRequestType: TransactionRequestType,
+      callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] = 
+    {
+      Connector.connector.vend.createTransactionAfterChallengev300(
+      initiator: User,
+      fromAccount: BankAccount,
+      transReqId: TransactionRequestId,
+      transactionRequestType: TransactionRequestType,
+      callContext: Option[CallContext]) map {
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400)
+      }
+      
+    }
+    
+    def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+      Future{Connector.connector.vend.createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext])._1} map {
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400)
+      } map { (_, callContext)}
   }
 
 }

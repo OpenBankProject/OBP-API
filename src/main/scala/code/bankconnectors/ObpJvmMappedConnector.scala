@@ -243,8 +243,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) =
     LocalMappedConnector.createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] =
-    LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String)
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) =
+    LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext)
 
   // Gets bank identified by bankId
   override def getBank(bankId: BankId, callContext: Option[CallContext]) = memoizeSync(getBankTTL millisecond) {
@@ -719,11 +719,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
   }
-
-  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
-    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
-  }
-
 
   /*
     Bank account creation
