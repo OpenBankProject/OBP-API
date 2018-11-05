@@ -166,13 +166,19 @@ case class AuthInfo(
   isFirst: Boolean = true, 
   correlationId: String = "",
   linkedCustomers: List[BasicCustomer] = Nil,
-  authViews: List[AuthView] = Nil
+  userAuthContexts: List[BasicUserAuthContext]= Nil,
+  authViews: List[AuthView] = Nil,
 )
 
 case class BasicCustomer(
   customerId: String,
   customerNumber: String,
   legalName: String,
+)
+
+case class BasicUserAuthContext(
+  key: String,
+  value: String
 )
 
 case class InboundAccountSept2018(
