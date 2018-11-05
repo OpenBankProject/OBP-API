@@ -58,8 +58,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import code.api.util.ExampleValue._
+import code.context.UserAuthContextProvider
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -103,6 +103,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       views <- Full(permission.views)
       linkedCustomers <- Full(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
+      userAuthContexts = Nil //TODO, need get the data from UserAuthContexts table
       authViews<- Full(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
@@ -119,7 +120,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           AuthView(viewBasic, accountBasic)
       )
     } yield{
-      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, likedCustomersBasic, authViews)
+      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, likedCustomersBasic, userAuthContexts, authViews)
     }
   
   val viewBasic = ViewBasic("owner","Owner", "This is the owner view")
@@ -147,6 +148,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   val authViews = List(authView)
   val basicCustomer = BasicCustomer("customerId","customerNumber","legalName")
   val basicCustomers = List(basicCustomer)
+  val basicUserAuthContext1 = BasicUserAuthContext("CUSTOMER_NUMBER","78987432")
+  val basicUserAuthContext2 = BasicUserAuthContext("TOKEN","qieuriopwoir987ASYDUFISUYDF678u")
+  val BasicUserAuthContexts = List(basicUserAuthContext1, basicUserAuthContext2)
   val authInfoExample = AuthInfo(
     userId = "userId", 
     username = "username",
@@ -154,6 +158,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     isFirst = true,
     correlationId = "correlationId", 
     basicCustomers,
+    BasicUserAuthContexts,
     authViews
   )
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
