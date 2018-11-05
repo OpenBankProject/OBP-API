@@ -43,7 +43,7 @@ import code.api._
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.enableVersionIfAllowed
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.api.util.{APIUtil, ApiVersion, ErrorMessages, Migration}
 import code.atms.MappedAtm
 import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -463,6 +463,8 @@ class Boot extends MdcLoggable {
       case _     =>
         logger.info("ADAPTER INFO - Unknown status.")
     }
+
+    Migration.database.generateAndPopulateMissingUUIDs()
 
   }
 

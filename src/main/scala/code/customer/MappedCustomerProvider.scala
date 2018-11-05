@@ -3,11 +3,14 @@ package code.customer
 import java.lang
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.bankconnectors._
 import code.model.{BankId, User}
 import code.usercustomerlinks.{MappedUserCustomerLink, MappedUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
+import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
+import com.github.dwickern.macros.NameOf
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.tryo
@@ -17,7 +20,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-object MappedCustomerProvider extends CustomerProvider {
+object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
 
   override def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedCustomer](value) }.headOption
@@ -177,6 +180,15 @@ object MappedCustomerProvider extends CustomerProvider {
   override def bulkDeleteCustomers(): Boolean = {
     MappedCustomer.bulkDelete_!!()
   }
+
+  override def populateMissingUUIDs(): Boolean = {
+    logger.warn("Executed script: " + NameOf.nameOf(populateMissingUUIDs))
+    for {
+      customer <- MappedCustomer.findAll(NullRef(MappedCustomer.mCustomerId))
+    } yield {
+      customer.mTitle(APIUtil.generateUUID()).save()
+    }
+  }.forall(_ == true)
 
 }
 
