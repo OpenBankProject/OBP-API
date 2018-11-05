@@ -309,7 +309,7 @@ class WebUI extends MdcLoggable{
 
     // Convert to a string
     val htmlString = htmlTry.map(_.mkString).getOrElse("")
-    logger.info("something: " + htmlString)
+    logger.info("htmlString: " + htmlString)
 
     // Create an HTML object
     val html = XML.loadString(htmlString)
