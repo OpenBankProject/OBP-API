@@ -468,7 +468,7 @@ class Boot extends MdcLoggable {
         logger.info("ADAPTER INFO - Unknown status.")
     }
 
-    Migration.database.generateAndPopulateMissingUUIDs()
+    Migration.database.generateAndPopulateMissingCustomerUUIDs()
 
   }
 

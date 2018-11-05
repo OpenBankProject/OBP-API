@@ -13,7 +13,7 @@ object Migration {
   
   object database {
     
-    def generateAndPopulateMissingUUIDs(): Boolean = executeScript {
+    def generateAndPopulateMissingCustomerUUIDs(): Boolean = executeScript {
       Customer.customerProvider.vend.populateMissingUUIDs()
     }
     
