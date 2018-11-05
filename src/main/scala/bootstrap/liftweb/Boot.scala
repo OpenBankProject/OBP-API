@@ -345,6 +345,10 @@ class Boot extends MdcLoggable {
       logger.info("writeConnectorMetrics is false. We will NOT write connector metrics")
     }
 
+
+    logger.info (s"props_identifier is : ${APIUtil.getPropsValue("props_identifier", "NONE-SET")}")
+
+
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
