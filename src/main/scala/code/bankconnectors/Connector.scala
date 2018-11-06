@@ -1303,7 +1303,7 @@ trait Connector extends MdcLoggable{
     fromAccount: BankAccount,
     transReqId: TransactionRequestId,
     transactionRequestType: TransactionRequestType,
-    callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName +".Only some connectors need this method !")}
+    callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = Future{(Failure(NotImplemented + currentMethodName +".Only some connectors need this method !"), callContext)}
   
   def makePaymentv300(
     initiator: User,

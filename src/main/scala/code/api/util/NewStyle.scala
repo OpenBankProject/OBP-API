@@ -454,15 +454,16 @@ object NewStyle {
       fromAccount: BankAccount,
       transReqId: TransactionRequestId,
       transactionRequestType: TransactionRequestType,
-      callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] = 
+      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
     {
       Connector.connector.vend.createTransactionAfterChallengev300(
-      initiator: User,
-      fromAccount: BankAccount,
-      transReqId: TransactionRequestId,
-      transactionRequestType: TransactionRequestType,
-      callContext: Option[CallContext]) map {
-        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400)
+        initiator: User,
+        fromAccount: BankAccount,
+        transReqId: TransactionRequestId,
+        transactionRequestType: TransactionRequestType,
+        callContext: Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400), i._2)
       }
       
     }
