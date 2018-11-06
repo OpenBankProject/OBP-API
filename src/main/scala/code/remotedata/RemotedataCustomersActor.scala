@@ -110,6 +110,10 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug("bulkDeleteCustomers()")
       sender ! extractResult(mapper.bulkDeleteCustomers())
 
+    case cc.populateMissingUUIDs() =>
+      logger.debug("populateMissingUUIDs()")
+      sender ! extractResult(mapper.populateMissingUUIDs())
+
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }

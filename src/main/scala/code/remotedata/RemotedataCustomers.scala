@@ -94,5 +94,8 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
   def bulkDeleteCustomers(): Boolean =
     extractFuture(actor ? cc.bulkDeleteCustomers())
 
+  def populateMissingUUIDs(): Boolean =
+    extractFuture(actor ? cc.populateMissingUUIDs())
+
 
 }

@@ -6,7 +6,7 @@ import java.util.{Date, UUID}
 import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
-import code.api.util.APIUtil.{saveConnectorMetric, stringOrNull}
+import code.api.util.APIUtil.{OBPReturnType, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
@@ -18,6 +18,7 @@ import code.branches.Branches._
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
 import code.common.OpeningTimes
+import code.context.{UserAuthContext, UserAuthContextProvider}
 import code.customer._
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
@@ -1638,7 +1639,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(transactionRequestTypeCharge)
   }
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None) = {
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])] = {
     Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId).map(counterparties =>(counterparties, callContext))
   }
 
@@ -1798,7 +1799,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     Customer.customerProvider.vend.getCustomersFuture(bankId, queryParams)
 
-  override def getCustomerAddress(customerId : String, callContext: Option[CallContext]): Future[(Box[List[CustomerAddress]], Option[CallContext])] =
+  override def getCustomerAddress(customerId : String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAddress]]] =
     CustomerAddress.address.vend.getAddress(customerId) map {
       (_, callContext)
     }
@@ -1812,7 +1813,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      postcode: String,
                                      countryCode: String,
                                      status: String,
-                                     callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] =
+                                     callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] =
     CustomerAddress.address.vend.createAddress(
       customerId,
       line1,
@@ -1826,20 +1827,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       status) map {
       (_, callContext)
     }
-  override def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =
+  override def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
     CustomerAddress.address.vend.deleteAddress(customerAddressId) map {
       (_, callContext)
     }
 
-  override def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] =
+  override def getTaxResidence(customerId : String, callContext: Option[CallContext]): OBPReturnType[Box[List[TaxResidence]]] =
     TaxResidence.taxResidence.vend.getTaxResidence(customerId) map {
       (_, callContext)
     }
-  override def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] =
+  override def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] =
     TaxResidence.taxResidence.vend.createTaxResidence(customerId, domain, taxNumber) map {
       (_, callContext)
     }
-  override def deleteTaxResidence(taxResidenceId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] =
+  override def deleteTaxResidence(taxResidenceId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
     TaxResidence.taxResidence.vend.deleteTaxResidence(taxResidenceId) map {
       (_, callContext)
     }
@@ -1861,5 +1862,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   {
     Full(List(SwaggerDefinitionsJSON.cardObjectJson), callContext)
   }
+
+
+  override def createUserAuthContext(userId: String,
+                                     key: String,
+                                     value: String,
+                                     callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] =
+    UserAuthContextProvider.userAuthContextProvider.vend.createUserAuthContext(userId, key, value) map {
+      (_, callContext)
+    }
+  override def getUserAuthContexts(userId : String,
+                                   callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] =
+    UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId) map {
+      (_, callContext)
+    }
   
 }

@@ -511,3 +511,9 @@ featured_apis=elasticSearchWarehouseV300
 # redis_address=127.0.0.1
 # redis_port=6379
 # -----------------------------------------------------
+
+# -- Migration Scripts --------------------------
+# Define execution of migration scripts
+# In case isn't defined default value is "false"
+# migration_scripts.execute=false
+# -----------------------------------------------

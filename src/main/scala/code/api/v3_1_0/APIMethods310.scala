@@ -1331,7 +1331,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       createUserAuthContext,
       implementedInApiVersion,
-      "createUserAuthContext",
+      nameOf(createUserAuthContext),
       "POST",
       "/users/USER_ID/auth-context",
       "Create UserAuthContext",
@@ -1350,7 +1350,7 @@ trait APIMethods310 {
       List(apiTagUser, apiTagNewStyle))
 
     lazy val createUserAuthContext : OBPEndpoint = {
-      case "user" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
+      case "users" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -1370,7 +1370,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getUserAuthContexts,
       implementedInApiVersion,
-      "getUserAuthContexts",
+      nameOf(getUserAuthContexts),
       "GET",
       "/users/USER_ID/auth-context",
       "Get UserAuthContexts",
@@ -1392,12 +1392,12 @@ trait APIMethods310 {
       List(apiTagUser, apiTagNewStyle))
 
     lazy val getUserAuthContexts : OBPEndpoint = {
-      case "user" :: userId :: "auth-context" ::  Nil  JsonGet _ => {
+      case "users" :: userId :: "auth-context" ::  Nil  JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetUserAuthContext)("", u.userId, canGetUserAuthContext)
-            (userAuthContext, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContexts, callContext) <- NewStyle.function.getUserAuthContexts(userId, callContext)
           } yield {
             (JSONFactory310.createUserAuthContextsJson(userAuthContexts), HttpCode.`200`(callContext))

@@ -19,6 +19,7 @@ import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.context.UserAuthContext
 import code.customer._
 import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
@@ -1386,9 +1387,12 @@ trait Connector extends MdcLoggable{
   
   def getCustomerByCustomerIdFuture(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerIdFuture in Connector!")}
 
-  def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerNumberFuture in Connector!")}
+  def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = 
+    Future{Failure(NotImplemented + currentMethodName+"getCustomerByCustomerNumberFuture in Connector!")}
 
-  def getCustomerAddress(customerId : String, callContext: Option[CallContext]): Future[(Box[List[CustomerAddress]], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"getCustomerAddress in Connector!"), callContext)}
+  def getCustomerAddress(customerId : String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAddress]]] = 
+    Future{(Failure(NotImplemented + currentMethodName+"getCustomerAddress in Connector!"), callContext)}
+  
   def createCustomerAddress(customerId: String,
                             line1: String,
                             line2: String,
@@ -1399,14 +1403,14 @@ trait Connector extends MdcLoggable{
                             postcode: String,
                             countryCode: String,
                             status: String,
-                            callContext: Option[CallContext]): Future[(Box[CustomerAddress], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"createCustomerAddress in Connector!"), callContext)}
-  def deleteCustomerAddress(customerAddressd : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"deleteCustomerAddress in Connector!"), callContext)}
+                            callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = Future{(Failure(NotImplemented + currentMethodName+"createCustomerAddress in Connector!"), callContext)}
+  def deleteCustomerAddress(customerAddressd : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName+"deleteCustomerAddress in Connector!"), callContext)}
 
-  def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(Box[TaxResidence], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!"), callContext)}
+  def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] = Future{(Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!"), callContext)}
 
-  def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(Box[List[TaxResidence]], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!"), callContext)}
+  def getTaxResidence(customerId : String, callContext: Option[CallContext]): OBPReturnType[Box[List[TaxResidence]]] = Future{(Failure(NotImplemented + currentMethodName+"getTaxResidence in Connector!"), callContext)}
 
-  def deleteTaxResidence(taxResourceId : String, callContext: Option[CallContext]): Future[(Box[Boolean], Option[CallContext])] = Future{(Failure(NotImplemented + currentMethodName+"deleteTaxResidence in Connector!"), callContext)}
+  def deleteTaxResidence(taxResourceId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName+"deleteTaxResidence in Connector!"), callContext)}
 
   def getCustomersFuture(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future{Failure(NotImplemented + currentMethodName+"getCustomersFuture in Connector!")}
 
@@ -1422,4 +1426,18 @@ trait Connector extends MdcLoggable{
     accountId: String, 
     callContext: Option[CallContext]
   ): Future[Box[(List[CardObjectJson], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName)}
+
+  def createUserAuthContext(userId: String,
+                            key: String,
+                            value: String,
+                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] =
+    Future{(Failure(NotImplemented + currentMethodName+"createUserAuthContext in Connector!"), callContext)}
+  def deleteUserAuthContexts(userId: String,
+                             callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContexts in Connector!"), callContext)}
+  def getUserAuthContexts(userId : String,
+                          callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] =
+    Future{(Failure(NotImplemented + currentMethodName+"getUserAuthContexts in Connector!"), callContext)}
+
+
 }

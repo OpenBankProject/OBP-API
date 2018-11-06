@@ -72,7 +72,7 @@ trait CustomerProvider {
                  ): Box[Customer]
 
   def bulkDeleteCustomers(): Boolean
-
+  def populateMissingUUIDs(): Boolean
 }
 
 class RemotedataCustomerProviderCaseClasses {
@@ -108,6 +108,7 @@ class RemotedataCustomerProviderCaseClasses {
                          nameSuffix: String
                         )
   case class bulkDeleteCustomers()
+  case class populateMissingUUIDs()
 
 }
 
