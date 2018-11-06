@@ -1071,17 +1071,22 @@ object APIUtil extends MdcLoggable {
 
   // Used to document the KafkaMessage calls
   case class MessageDoc(
-    process: String,
-    messageFormat: String,
-    description: String,
-    outboundTopic: Option[String] = None,
-    inboundTopic: Option[String] = None,
-    exampleOutboundMessage: JValue,
-    exampleInboundMessage: JValue,
-    outboundAvroSchema: Option[JValue] = None,
-    inboundAvroSchema: Option[JValue] = None,
-    relaventGlossaryItems: List[GlossaryItem] = List()
+                         process: String,
+                         messageFormat: String,
+                         description: String,
+                         outboundTopic: Option[String] = None,
+                         inboundTopic: Option[String] = None,
+                         exampleOutboundMessage: JValue,
+                         exampleInboundMessage: JValue,
+                         outboundAvroSchema: Option[JValue] = None,
+                         inboundAvroSchema: Option[JValue] = None,
+                         adapterImplementation : Option[AdapterImplementation] = None
   )
+
+  case class AdapterImplementation(
+                                    group: String,
+                                    suggestedOrder : Integer
+                           )
 
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
   case class ApiRelation(

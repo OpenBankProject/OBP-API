@@ -2,7 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
-import code.api.v2_2_0.JSONFactory220.{MessageDocsJson, MessageDocJson}
+import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocsJson, MessageDocJson}
 import code.api.{Constant, v3_1_0}
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -411,7 +411,8 @@ object SwaggerDefinitionsJSON {
     example_outbound_message = defaultJValue,
     example_inbound_message = defaultJValue,
     outboundAvroSchema = Some(defaultJValue),
-    inboundAvroSchema = Some(defaultJValue)
+    inboundAvroSchema = Some(defaultJValue),
+    adapter_implementation = AdapterImplementationJson("CORE",3)
   )
 
   val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))

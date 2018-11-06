@@ -116,7 +116,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       excludeAppNames.toSeq.flatten
     ).flatten
   }
-  
+
+  // TODO Cache this as long as fromDate and toDate are in the past (before now)
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     val optionalParams = getQueryParams(queryParams)
     MappedMetric.findAll(optionalParams: _*)
@@ -156,7 +157,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       stmt.setString(startLine+i, excludeFiledValues.toList(i))
     }
   }
-  
+
+
+
+  // TODO Cache this as long as fromDate and toDate are in the past (before now)
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam]): Box[List[AggregateMetrics]] = {
     
     val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
@@ -254,7 +258,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   override def bulkDeleteMetrics(): Boolean = {
     MappedMetric.bulkDelete_!!()
   }
-  
+
+  // TODO Cache this as long as fromDate and toDate are in the past (before now)
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{
     val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
     val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -347,7 +352,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       topApis
     }
   }
-  
+
+  // TODO Cache this as long as fromDate and toDate are in the past (before now)
   override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future{
     val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
     val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption

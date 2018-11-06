@@ -36,7 +36,7 @@ import java.util.Date
 
 import code.actorsystem.ObpActorConfig
 import code.api.util.APIUtil
-import code.api.util.APIUtil.MessageDoc
+import code.api.util.APIUtil.{AdapterImplementation, MessageDoc}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
@@ -821,9 +821,17 @@ object JSONFactory220{
                              description: String,
                              example_outbound_message: JValue,
                              example_inbound_message: JValue,
+                             // TODO in next API version change these two fields to snake_case
                              outboundAvroSchema: Option[JValue] = None,
-                             inboundAvroSchema: Option[JValue] = None
+                             inboundAvroSchema: Option[JValue] = None,
+                             adapter_implementation : AdapterImplementationJson
                            )
+
+  case class AdapterImplementationJson(
+                                        group: String,
+                                        suggested_order: Integer
+                           )
+
 
   // Creates the json message docs
   // changed key from messageDocs to message_docs 27 Oct 2018 whilst this version still DRAFT.
@@ -842,8 +850,14 @@ object JSONFactory220{
       inbound_topic = md.inboundTopic,
       example_outbound_message = md.exampleOutboundMessage,
       example_inbound_message = md.exampleInboundMessage,
+      // TODO In next version of this endpoint, change these two fields to snake_case
       inboundAvroSchema = md.inboundAvroSchema,
-      outboundAvroSchema = md.outboundAvroSchema
+      outboundAvroSchema = md.outboundAvroSchema,
+      //////////////////////////////////////////
+      adapter_implementation = AdapterImplementationJson(
+                            md.adapterImplementation.map(_.group).getOrElse(""),
+                            md.adapterImplementation.map(_.suggestedOrder).getOrElse(100)
+      )
     )
   }
 
