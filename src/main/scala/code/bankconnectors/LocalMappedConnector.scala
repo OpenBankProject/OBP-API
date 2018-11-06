@@ -1876,5 +1876,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId) map {
       (_, callContext)
     }
-  
+
+  override def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    UserAuthContextProvider.userAuthContextProvider.vend.deleteUserAuthContexts(userId) map{
+      (_, callContext)
+    }
+
+  override def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    UserAuthContextProvider.userAuthContextProvider.vend.deleteUserAuthContextById(userAuthContextId) map{
+      (_, callContext)
+    }
 }

@@ -356,6 +356,12 @@ object NewStyle {
       }
     }
 
+    def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+
 
     def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
       Future { User.findByUserId(userId).map(user =>(user, callContext))} map {

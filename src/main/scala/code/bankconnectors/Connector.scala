@@ -1435,6 +1435,11 @@ trait Connector extends MdcLoggable{
   def deleteUserAuthContexts(userId: String,
                              callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
     Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContexts in Connector!"), callContext)}
+
+  def deleteUserAuthContextById(userAuthContextId: String,
+                             callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContextById in Connector!"), callContext)}
+
   def getUserAuthContexts(userId : String,
                           callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] =
     Future{(Failure(NotImplemented + currentMethodName+"getUserAuthContexts in Connector!"), callContext)}

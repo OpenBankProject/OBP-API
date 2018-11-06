@@ -22,11 +22,15 @@ object UserAuthContextProvider extends SimpleInjector {
 trait UserAuthContextProvider {
   def createUserAuthContext(userId: String, key: String, value: String): Future[Box[UserAuthContext]]
   def getUserAuthContexts(userId: String): Future[Box[List[UserAuthContext]]]
+  def deleteUserAuthContexts(userId: String): Future[Box[Boolean]]
+  def deleteUserAuthContextById(userAuthContextId: String): Future[Box[Boolean]]
 }
 
 class RemotedataUserAuthContextCaseClasses {
   case class createUserAuthContext(userId: String, key: String, value: String)
   case class getUserAuthContexts(userId: String)
+  case class deleteUserAuthContexts(userId: String)
+  case class deleteUserAuthContextById(userAuthContextId: String)
 }
 
 object RemotedataUserAuthContextCaseClasses extends RemotedataUserAuthContextCaseClasses
