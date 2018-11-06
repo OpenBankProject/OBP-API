@@ -234,7 +234,7 @@ trait Connector extends MdcLoggable{
   // Initiate creating a challenge for transaction request and returns an id of the challenge
   def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext] = None) : Box[(String,Option[CallContext])] = Failure(NotImplemented + currentMethodName)
   // Validates an answer for a challenge and returns if the answer is correct or not
-  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): (Box[Boolean],Option[CallContext]) = (Full(true), callContext)
+  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
 
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = Failure(NotImplemented + currentMethodName)

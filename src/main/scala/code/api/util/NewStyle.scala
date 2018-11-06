@@ -444,10 +444,10 @@ object NewStyle {
       }
     }
     
-    def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])]  =
-     Future{Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext])._1} map {
-        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
-      } map { (_, callContext)}
+    def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+     Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
+       (unboxFullOrFail(i._1, callContext, s"$UnknownError ", 400), i._2)
+      } 
     
     def createTransactionAfterChallengev300(
       initiator: User,

@@ -275,7 +275,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     }
   }
 
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) : (Box[Boolean], Option[CallContext]) = {
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext])  = Future{
     // Create argument list
     val req = Map(
       "north" -> "validateChallengeAnswer",
