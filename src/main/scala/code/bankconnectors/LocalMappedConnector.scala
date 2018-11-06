@@ -493,7 +493,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =  {
-    Counterparties.counterparties.vend.getCounterpartyByIban(iban).map(counterparty=>(counterparty, callContext))
+    Future (Counterparties.counterparties.vend.getCounterpartyByIban(iban), callContext)
   }
 
 

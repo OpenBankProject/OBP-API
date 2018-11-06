@@ -43,10 +43,10 @@ import net.liftweb.util.{BCrypt, Props, SimpleInjector}
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.math.BigInt
 import scala.util.Random
-
+import scala.concurrent.duration._
 
 /*
 So we can switch between different sources of resources e.g.
@@ -352,7 +352,7 @@ trait Connector extends MdcLoggable{
     * get Counterparty by iban (OtherAccountRoutingAddress field in MappedCounterparty table)
     * This is a helper method that assumes OtherAccountRoutingScheme=IBAN
     */
-  def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : Box[(CounterpartyTrait, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
+  def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : OBPReturnType[Box[CounterpartyTrait]] = Future {(Failure(NotImplemented + currentMethodName), callContext)}
 
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
@@ -977,7 +977,13 @@ trait Connector extends MdcLoggable{
         case SEPA  =>
           for{
             toCounterpartyIBan <- tryo{body.to_sepa.get.iban}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON"
-            (toCounterparty, callContext) <- Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan, callContext) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+            //TODO-Hongwei, --in process, need to be fixed one by one -error handling
+            toCounterpartyBox = {
+              val futureCounterparty: Future[(Box[CounterpartyTrait], Option[CallContext])]= Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan, callContext)
+              val counterpartTuple = Await.result(futureCounterparty, 10 seconds)
+              counterpartTuple._1
+            }
+            toCounterparty <- toCounterpartyBox ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
             toAccount <- BankAccount.toBankAccount(toCounterparty)
             sepaBody <- Full(
               TransactionRequestBodySEPAJSON(

@@ -524,10 +524,10 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
 
 
-  override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =  {
+  override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) = Future {
 
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
-      Counterparties.counterparties.vend.getCounterpartyByIban(iban).map(counterparty =>(counterparty, callContext))
+      (Counterparties.counterparties.vend.getCounterpartyByIban(iban), callContext)
     } else {
       val req = Map(
         "north" -> "getCounterpartyByIban",
@@ -543,7 +543,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
       val r = process(req).extract[KafkaInboundCounterparty]
 
-      Full((KafkaCounterparty(r), callContext))
+      (tryo{KafkaCounterparty(r)}, callContext)
     }
   }
 

@@ -413,15 +413,17 @@ object NewStyle {
       }
     }
     
-    def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : Future[(CounterpartyTrait, Option[CallContext])] = 
+    def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : OBPReturnType[CounterpartyTrait] = 
     {
-      Future{ Connector.connector.vend.getCounterpartyByIban(iban: String, callContext: Option[CallContext])} map {
-        unboxFullOrFail(
-          _, 
+      Connector.connector.vend.getCounterpartyByIban(iban: String, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(
+          i._1, 
           callContext, 
           s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, " +
             s"set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $iban ", 
-          400)
+          400),
+          i._2)
+        
       }
     }
     
