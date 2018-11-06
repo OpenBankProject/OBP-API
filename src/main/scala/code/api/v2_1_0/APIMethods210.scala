@@ -668,9 +668,9 @@ trait APIMethods210 {
               // All Good, proceed with the Transaction creation...
               (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
                 case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
-                   NewStyle.function.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType, callContext)
+                   NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
                 case _ =>
-                   NewStyle.function.createTransactionAfterChallengev210(fromAccount, existingTransactionRequest, callContext)
+                   NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
               } 
             } yield {
               

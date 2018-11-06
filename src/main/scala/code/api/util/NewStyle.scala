@@ -449,7 +449,7 @@ object NewStyle {
        (unboxFullOrFail(i._1, callContext, s"$UnknownError ", 400), i._2)
       } 
     
-    def createTransactionAfterChallengev300(
+    def createTransactionAfterChallengeV300(
       initiator: User,
       fromAccount: BankAccount,
       transReqId: TransactionRequestId,
@@ -468,7 +468,7 @@ object NewStyle {
       
     }
     
-    def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+    def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
       Future{Connector.connector.vend.createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext])._1} map {
         unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400)
       } map { (_, callContext)}
