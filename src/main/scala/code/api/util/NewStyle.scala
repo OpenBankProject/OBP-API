@@ -427,8 +427,9 @@ object NewStyle {
       }
     }
     
-    def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+    def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
     {
+      //Note: this method is not over kafka yet, so use Future here.
       Future{ Connector.connector.vend.getTransactionRequestImpl(transactionRequestId, callContext)} map {
         unboxFullOrFail(_, callContext, s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId) ", 400)
       }
@@ -437,6 +438,7 @@ object NewStyle {
 
     def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, callContext: Option[CallContext]) : Future[Boolean] = 
     {
+      //Note: this method is not over kafka yet, so use Future here.
       Future{ ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer)} map {
         unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
       }
