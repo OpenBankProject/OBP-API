@@ -126,7 +126,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   val viewBasic = ViewBasic("owner","Owner", "This is the owner view")
   
   val internalBasicCustomer = InternalBasicCustomer(
-    bankId = "bankId",
+    bankId = bankIdExample.value,
     customerId = "customerId",
     customerNumber = "customerNumber",
     legalName = "legalName",
@@ -310,7 +310,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           errorCode = errorCodeExample,
           inboundStatusMessagesExample),
         InboundBank(
-          bankId = "gh.29.uk",
+          bankId = bankIdExample.value,
           name = "sushan",
           logo = "TESOBE",
           url = "https://tesobe.com/"
@@ -425,7 +425,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           errorCodeExample,
           inboundStatusMessagesExample),
         InboundBank(
-          bankId = "gh.29.uk",
+          bankId = bankIdExample.value,
           name = "sushan",
           logo = "TESOBE",
           url = "https://tesobe.com/"
@@ -540,7 +540,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         InternalBasicCustomers(customers =List(internalBasicCustomer)))
     ),
     exampleInboundMessage = decompose(
-      InboundGetAccounts(authInfoExample, statusExample, InboundAccountSept2018("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
+      InboundGetAccounts(authInfoExample, statusExample, InboundAccountSept2018("", cbsToken ="cbsToken", bankId = bankIdExample.value, branchId = "222", accountId = accountIdExample.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
@@ -655,7 +655,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       InboundGetAccountbyAccountID(
         authInfoExample,
         statusExample,
-        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))),
+        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = bankIdExample.value, branchId = "222", accountId = accountIdExample.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))),
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
@@ -713,7 +713,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       InboundCheckBankAccountExists(
         authInfoExample,
         statusExample,
-        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = bankIdExample.valueAndDescription, branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
+        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = bankIdExample.value, branchId = "222", accountId = accountIdExample.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))
     ),
   adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
@@ -776,7 +776,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       InboundGetAccountbyAccountID(
         authInfoExample,
         statusExample, 
-        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))),
+        Some(InboundAccountSept2018("", cbsToken = "cbsToken", bankId = bankIdExample.value, branchId = "222", accountId = accountIdExample.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil)))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
   override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
@@ -876,8 +876,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetTransactions(
         authInfo = authInfoExample,
-        bankId = "bankId",
-        accountId = "accountId",
+        bankId = bankIdExample.value,
+        accountId = accountIdExample.value,
         limit =100,
         fromDate="DateWithSecondsExampleObject",
         toDate="DateWithSecondsExampleObject"
@@ -889,9 +889,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         statusExample,
         InternalTransaction_vSept2018(
           transactionId = "String",
-          accountId = "String",
+          accountId = accountIdExample.value,
           amount = "String",
-          bankId = "String",
+          bankId = bankIdExample.value,
           completedDate = "String", 
           counterpartyId = "String", 
           counterpartyName = "String", 
@@ -1058,9 +1058,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleInboundMessage = decompose(
       InboundGetTransaction(authInfoExample, statusExample, Some(InternalTransaction_vSept2018(
                 transactionId = "String",
-                accountId = "String",
+                accountId = accountIdExample.value,
                 amount = "String",
-                bankId = "String",
+                bankId = bankIdExample.value,
                 completedDate = "2018-10-19T21:17:03Z",
                 counterpartyId = "String",
                 counterpartyName = "String",
@@ -1132,8 +1132,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       OutboundChallengeBase(
         action = "obp.create.Challenge",
         messageFormat = messageFormat,
-        bankId = "gh.29.uk",
-        accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+        bankId = bankIdExample.value,
+        accountId = accountIdExample.value,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         transactionRequestType = "SANDBOX_TAN",
@@ -1632,7 +1632,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         authInfoExample,
         statusExample,
         InternalCustomer(
-          customerId = "String", bankId = "String", number = "String",
+          customerId = "String", bankId = bankIdExample.value, number = "String",
           legalName = "String", mobileNumber = "String", email = "String",
           faceImage = CustomerFaceImage(date = DateWithSecondsExampleObject, url = "String"),
           dateOfBirth = DateWithSecondsExampleObject, relationshipStatus = "String",
@@ -1702,7 +1702,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetCheckbookOrderStatus(
         authInfoExample,
-        bankId = "bankId", 
+        bankId = bankIdExample.value,
         accountId ="accountId", 
         originatorApplication ="String", 
         originatorStationIP = "String", 
@@ -1784,7 +1784,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     exampleOutboundMessage = decompose(
       OutboundGetCreditCardOrderStatus(
         authInfoExample,
-        bankId = "bankId", 
+        bankId = bankIdExample.value,
         accountId ="accountId", 
         originatorApplication = "String", 
         originatorStationIP = "String", 
@@ -2018,7 +2018,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         inboundStatusMessagesExample),
         InboundBranchVSept2018(
           branchId = BranchId(""),
-          bankId = BankId(""),
+          bankId = BankId(bankIdExample.value),
           name = "",
           address =  Address(line1 = "",
             line2 = "",
@@ -2113,7 +2113,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           inboundStatusMessagesExample),
         Some(InboundBranchVSept2018(
           branchId = BranchId(""),
-          bankId = BankId(""),
+          bankId = BankId(bankIdExample.value),
           name = "",
           address =  Address(line1 = "",
             line2 = "",
@@ -2210,7 +2210,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         Status(errorCodeExample, inboundStatusMessagesExample),
         InboundAtmSept2018(
           atmId = AtmId("333"),
-          bankId = BankId("10"),
+          bankId = BankId(bankIdExample.value),
           name = "",
           address =  Address(line1 = "",
             line2 = "",
@@ -2311,7 +2311,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         Status(errorCodeExample, inboundStatusMessagesExample),
         Some(InboundAtmSept2018(
           atmId = AtmId("333"),
-          bankId = BankId("10"),
+          bankId = BankId(bankIdExample.value),
           name = "",
           address =  Address(line1 = "",
             line2 = "",
