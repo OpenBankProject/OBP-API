@@ -48,6 +48,7 @@ import scalacache.guava._
 import scalacache.memoization._
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
@@ -206,7 +207,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = Future{
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId)
@@ -221,30 +222,15 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
     response.data().map(d => new ChallengeThresholdReader(d)) match {
       // Check does the response data match the requested data
-      case c:ChallengeThresholdReader => Full((AmountOfMoney(c.currency, c.amount), callContext))
+      case c:ChallengeThresholdReader => (Full(AmountOfMoney(c.currency, c.amount)), callContext)
       case _ =>
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        Full((AmountOfMoney(currency, convertedLimit.toString()), callContext))
+        (Full(AmountOfMoney(currency, convertedLimit.toString())), callContext)
     }
 
   }
-
-  override def getChargeLevel(bankId: BankId,
-                              accountId: AccountId,
-                              viewId: ViewId,
-                              userId: String,
-                              userName: String,
-                              transactionRequestType: String,
-                              currency: String): Box[AmountOfMoney] = {
-    LocalMappedConnector.getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String,
-                                        transactionRequestType: String, currency: String)
-  }
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) =
-    LocalMappedConnector.createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) =
-    LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext)
 
   // Gets bank identified by bankId
   override def getBank(bankId: BankId, callContext: Option[CallContext]) = memoizeSync(getBankTTL millisecond) {

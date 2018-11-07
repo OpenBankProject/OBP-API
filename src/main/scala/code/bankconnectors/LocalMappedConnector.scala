@@ -73,7 +73,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = Future {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
@@ -85,7 +85,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
     logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    Full((AmountOfMoney(currency, convertedThreshold.toString()), callContext))
+    (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
   }
 
   /**
@@ -97,7 +97,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 5. Send the challenge over an separate communication channel.
     */
   // Now, move this method to `code.transactionChallenge.MappedExpectedChallengeAnswerProvider.validateChallengeAnswerInOBPSide`
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = Future {
 //    val challengeId = UUID.randomUUID().toString
 //    val challenge = StringHelpers.randomString(6)
 //    // Random string. For instance: EONXOA
@@ -108,7 +108,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 //    // TODO Send challenge to the user over an separate communication channel
 //    //Return id of challenge
 //    Full(challengeId)
-    Full("123", callContext)
+    (Full("123"), callContext)
   }
 
   /**
@@ -134,7 +134,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               userId: String,
                               userName: String,
                               transactionRequestType: String,
-                              currency: String): Box[AmountOfMoney] = {
+                              currency: String,
+                              callContext:Option[CallContext]) = Future {
     val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
     val chargeLevel = BigDecimal(APIUtil.getPropsValue(propertyName, "0.0001"))
     logger.debug(s"transactionRequests_charge_level is $chargeLevel")
@@ -146,7 +147,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     //    val convertedThreshold = fx.convert(chargeLevel, rate)
     //    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
 
-    Full(AmountOfMoney(currency, chargeLevel.toString))
+    (Full(AmountOfMoney(currency, chargeLevel.toString)),callContext)
   }
 
   //gets a particular bank handled by this connector

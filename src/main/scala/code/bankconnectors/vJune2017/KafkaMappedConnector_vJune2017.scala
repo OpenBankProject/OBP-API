@@ -1068,41 +1068,42 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   )
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
     
-    val box = for {
-      authInfo <- getAuthInfo(callContext)
-      req = OutboundCreateChallengeJune2017(
-        authInfo = authInfo, 
-        bankId = bankId.value,
-        accountId = accountId.value,
-        userId = userId,
-        username = AuthUser.getCurrentUserUsername,
-        transactionRequestType = transactionRequestType.value,
-        transactionRequestId = transactionRequestId
-      )
-      _ <- Full(logger.debug(s"Kafka createChallenge Req says:  is: $req"))
-      kafkaMessage <- processToBox[OutboundCreateChallengeJune2017](req)
-      inboundCreateChallengeJune2017 <- tryo{kafkaMessage.extract[InboundCreateChallengeJune2017]} ?~! s"$InboundCreateChallengeJune2017 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-      (authInfo, internalCreateChallengeJune2017) <- Full(inboundCreateChallengeJune2017.authInfo, inboundCreateChallengeJune2017.data)
-    } yield{
-      (authInfo, internalCreateChallengeJune2017)
-    }
-    logger.debug(s"Kafka createChallenge Res says:  is: $Box")
+    val authInfo = getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val req = OutboundCreateChallengeJune2017(
+      authInfo = authInfo, 
+      bankId = bankId.value,
+      accountId = accountId.value,
+      userId = userId,
+      username = AuthUser.getCurrentUserUsername,
+      transactionRequestType = transactionRequestType.value,
+      transactionRequestId = transactionRequestId
+    )
     
-    val res = box match {
+    logger.debug(s"Kafka createChallenge Req says:  is: $req")
+    
+    val future = for {
+     res <- processToFuture[OutboundCreateChallengeJune2017](req) map {
+       f =>
+         try {
+           f.extract[InboundCreateChallengeJune2017]
+         } catch {
+           case e: Exception => throw new MappingException(s"$InboundCreateChallengeJune2017 extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+         }
+       } map { x => (x.authInfo, x.data) }
+    } yield {
+     Full(res)
+    }
+    
+    val res = future map {
       case Full((authInfo,x)) if (x.errorCode=="")  =>
         val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
-        Full((x.answer, callContextUpdated))
+        (Full(x.answer), callContextUpdated)
       case Full((authInfo, x)) if (x.errorCode!="") =>
-        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
-      case Empty =>
-        Failure(ErrorMessages.ConnectorEmptyResponse)
-      case Failure(msg, e, c) =>
-        Failure(msg, e, c)
+        (Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages), callContext)
       case _ =>
-        Failure(ErrorMessages.UnknownError)
+        (Failure(ErrorMessages.UnknownError), callContext)
     }
     res
-    
   }
   
   messageDocs += MessageDoc(

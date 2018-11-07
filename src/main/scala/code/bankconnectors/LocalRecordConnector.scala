@@ -35,17 +35,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   implicit override val nameOfConnector = LocalRecordConnector.getClass.getSimpleName
 
-  override def getChargeLevel(bankId: BankId,
-                              accountId: AccountId,
-                              viewId: ViewId,
-                              userId: String,
-                              userName: String,
-                              transactionRequestType: String,
-                              currency: String): Box[AmountOfMoney] = {
-    LocalMappedConnector.getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String,
-                                        transactionRequestType: String, currency: String)
-  }
-
   override def getBank(bankId : BankId, callContext: Option[CallContext]) =
     getHostedBank(bankId).map(bank =>(bank, callContext))
 
