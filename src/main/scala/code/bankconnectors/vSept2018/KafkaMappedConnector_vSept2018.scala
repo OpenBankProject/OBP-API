@@ -897,7 +897,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           postedDate = "String", 
           `type` = "String", 
           userId = "String")::Nil)),
-    adapterImplementation = Some(AdapterImplementation("Accounts", 10))
+    adapterImplementation = Some(AdapterImplementation("Transactions", 10))
   )
   // TODO Get rid on these param lookups and document.
   override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
@@ -1068,7 +1068,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 userId = "String"
               )))
     ),
-    adapterImplementation = Some(AdapterImplementation("Accounts", 11))
+    adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
