@@ -62,11 +62,16 @@ object ExampleValue {
 
 
 
+  val bankRoutingSchemeExample = ConnectorField("BIC", "The scheme that the bankRoutingAddress is an example of.")
+  val bankRoutingAddressExample = ConnectorField("GENODEM1GLS", "An identifier that conforms to bankRoutingScheme")
 
+  val branchRoutingSchemeExample = ConnectorField("BRANCH-CODE", "The scheme that the branchRoutingAddress is an example of.")
+  val branchRoutingAddressExample = ConnectorField("DERBY6", "An identifier that conforms to branchRoutingScheme")
 
+  val accountRoutingSchemeExample = ConnectorField("IBAN", "The scheme that the accountRoutingAddress is an example of.")
+  val accountRoutingAddressExample = ConnectorField("DE91 1000 0000 0123 4567 89", "An identifier that conforms to accountRoutingScheme")
 
-
-
+  val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 
 
 }
