@@ -117,7 +117,9 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createUserAuthContext), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteUserAuthContextById), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
