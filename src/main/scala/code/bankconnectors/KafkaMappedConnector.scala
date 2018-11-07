@@ -499,10 +499,10 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Get one counterparty by the Counterparty Id
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = {
+  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
 
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
-      Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty =>(counterparty, callContext))
+      (Counterparties.counterparties.vend.getCounterparty(counterpartyId.value), callContext)
     } else {
       val req = Map(
         "north" -> "getCounterpartyByCounterpartyId",
@@ -516,7 +516,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       val r = {
         cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
       }
-      Full(new KafkaCounterparty(r), callContext)
+      (tryo(new KafkaCounterparty(r)), callContext)
     }
   }
 

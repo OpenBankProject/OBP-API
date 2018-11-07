@@ -298,7 +298,14 @@ trait Connector extends MdcLoggable{
     getBankAccount(bankId, accountId, None).map(_._1)
   }
 
+  //This one just added the callContext in parameters.
   def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
+
+  //This one return the Future.
+  def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future 
+  {(getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]).map(i =>(i._1)),
+    getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]).map(i =>(i._2)).openOrThrowException(attemptedToOpenAnEmptyBox))
+  }
 
   def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
 
@@ -344,10 +351,13 @@ trait Connector extends MdcLoggable{
 
   def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]= Failure(NotImplemented + currentMethodName)
 
-  def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
+  def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]]= Future{(Failure(NotImplemented + currentMethodName), callContext)}
 
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
+  def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  
   /**
     * get Counterparty by iban (OtherAccountRoutingAddress field in MappedCounterparty table)
     * This is a helper method that assumes OtherAccountRoutingScheme=IBAN
@@ -448,6 +458,23 @@ trait Connector extends MdcLoggable{
     for {
       transactionId <- makePaymentImpl(fromAccount, toAccount, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy) ?~! InvalidConnectorResponseForMakePayment
     } yield transactionId
+  }
+  
+  def makePaymentv210(fromAccount: BankAccount,
+                      toAccount: BankAccount,
+                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                      amount: BigDecimal,
+                      description: String,
+                      transactionRequestType: TransactionRequestType,
+                      chargePolicy: String, 
+                      callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= Future{
+     (makePaymentv200(fromAccount: BankAccount,
+                      toAccount: BankAccount,
+                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                      amount: BigDecimal,
+                      description: String,
+                      transactionRequestType: TransactionRequestType,
+                      chargePolicy: String), callContext)
   }
 
 
@@ -915,126 +942,123 @@ trait Connector extends MdcLoggable{
     }
   }
 
-  def createTransactionAfterChallengev210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) : (Box[TransactionRequest],Option[CallContext])  = {
-    (for {
-      
-//      details <- Full(transactionRequest.details)
-      body <- Full(transactionRequest.body)
+  def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) : OBPReturnType[Box[TransactionRequest]] = {
+    for {
+      body <- Future (transactionRequest.body)
     
       transactionRequestType = transactionRequest.`type`
       transactionRequestId=transactionRequest.id
-      transactionId  <- TransactionRequestTypes.withName(transactionRequestType) match {
+      (transactionId, callContext) <- TransactionRequestTypes.withName(transactionRequestType) match {
         case SANDBOX_TAN =>
           for{
-            toBankId <- tryo{(BankId(body.to_sandbox_tan.get.bank_id))} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON "
-            toAccountId <- tryo{(AccountId(body.to_sandbox_tan.get.account_id))} ?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON "
-            toAccount <- Connector.connector.vend.getBankAccount(toBankId,toAccountId)
-            sandboxBody <- Full(
-              TransactionRequestBodySandBoxTanJSON(
+            toSandboxTan <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON ", 400, callContext){
+              body.to_sandbox_tan.get
+            }
+            toBankId = BankId(toSandboxTan.bank_id)
+            toAccountId = AccountId(toSandboxTan.account_id)
+            (toAccount, callContext) <- NewStyle.function.getBankAccount(toBankId,toAccountId, callContext)
+            sandboxBody = TransactionRequestBodySandBoxTanJSON(
               to = TransactionRequestAccountJsonV140(toBankId.value, toAccountId.value),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
-              description = body.description
-              )
-            )
-            transactionId <- makePaymentv200(
+              description = body.description)
+            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
               transactionRequestCommonBody=sandboxBody,
               BigDecimal(sandboxBody.value.amount),
               sandboxBody.description,
               TransactionRequestType(transactionRequestType),
-              transactionRequest.charge_policy
-            ) ?~! InvalidConnectorResponseForMakePayment
+              transactionRequest.charge_policy,
+              callContext
+            ) 
           }yield{
-            transactionId
+            (transactionId, callContext)
           }
         case COUNTERPARTY   =>
           for{
-           counterpartyId <- tryo{CounterpartyId(body.to_counterparty.get.counterparty_id)}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON"
-           (toCounterparty,callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId, callContext) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-           toAccount <- BankAccount.toBankAccount(toCounterparty)
-           counterpartyBody <- Full(
-             TransactionRequestBodyCounterpartyJSON(
+            bodyToCounterparty <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext){
+             body.to_counterparty.get
+            }
+            counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
+            (toCounterparty,callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext) 
+            toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+            counterpartyBody = TransactionRequestBodyCounterpartyJSON(
                to = CounterpartyIdJson(counterpartyId.value), 
                value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount), 
                description = body.description,
-               charge_policy = transactionRequest.charge_policy
-             )
-            )
-            
-           transactionId <- makePaymentv200(
+               charge_policy = transactionRequest.charge_policy)
+  
+            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
              fromAccount,
              toAccount,
              transactionRequestCommonBody=counterpartyBody,
              BigDecimal(counterpartyBody.value.amount),
              counterpartyBody.description,
              TransactionRequestType(transactionRequestType),
-             transactionRequest.charge_policy
-           ) ?~! InvalidConnectorResponseForMakePayment
+             transactionRequest.charge_policy,
+             callContext
+           )  
           }yield{
-            transactionId
+            (transactionId, callContext)
           }
         case SEPA  =>
           for{
-            toCounterpartyIBan <- tryo{body.to_sepa.get.iban}?~! s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON"
-            //TODO-Hongwei, --in process, need to be fixed one by one -error handling
-            toCounterpartyBox = {
-              val futureCounterparty: Future[(Box[CounterpartyTrait], Option[CallContext])]= Connector.connector.vend.getCounterpartyByIban(toCounterpartyIBan, callContext)
-              val counterpartTuple = Await.result(futureCounterparty, 10 seconds)
-              counterpartTuple._1
+            bodyToCounterpartyIBan <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySEPAJSON", 400, callContext){
+             body.to_sepa.get
             }
-            toCounterparty <- toCounterpartyBox ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-            toAccount <- BankAccount.toBankAccount(toCounterparty)
-            sepaBody <- Full(
-              TransactionRequestBodySEPAJSON(
-                to = IbanJson(toCounterpartyIBan),
-                value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
-                description = body.description,
-                charge_policy = transactionRequest.charge_policy
-              )
+            toCounterpartyIBan =bodyToCounterpartyIBan.iban
+            (toCounterparty, callContext)<- NewStyle.function.getCounterpartyByIban(toCounterpartyIBan, callContext)
+            toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+            sepaBody = TransactionRequestBodySEPAJSON(
+              to = IbanJson(toCounterpartyIBan),
+              value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
+              description = body.description,
+              charge_policy = transactionRequest.charge_policy
             )
-            transactionId <- makePaymentv200(
+            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,
               transactionRequestCommonBody=sepaBody,
               BigDecimal(sepaBody.value.amount),
               sepaBody.description,
               TransactionRequestType(transactionRequestType),
-              transactionRequest.charge_policy
-            ) ?~! InvalidConnectorResponseForMakePayment
+              transactionRequest.charge_policy,
+              callContext
+            ) 
           }yield{
-            transactionId
+            (transactionId, callContext)
           }  
         case FREE_FORM => for{
-          freeformBody <- Full(
+          freeformBody <- Future(
             TransactionRequestBodyFreeFormJSON(
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
               description = body.description
             )
           )
-          transactionId <- makePaymentv200(
+          (transactionId,callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             fromAccount,
             transactionRequestCommonBody=freeformBody,
             BigDecimal(freeformBody.value.amount),
             freeformBody.description,
             TransactionRequestType(transactionRequestType),
-            transactionRequest.charge_policy
-          ) ?~! InvalidConnectorResponseForMakePayment
+            transactionRequest.charge_policy,
+            callContext
+          ) 
         }yield{
-          transactionId
+          (transactionId,callContext)
         }
-        case transactionRequestType => Failure(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")
+        case transactionRequestType => Future((throw new Exception(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")), callContext)
       }
 
-      didSaveTransId <- saveTransactionRequestTransaction(transactionRequestId, transactionId)
-      didSaveStatus <- saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString)
+      didSaveTransId <- Future{saveTransactionRequestTransaction(transactionRequestId, transactionId).openOrThrowException(attemptedToOpenAnEmptyBox)}
+      didSaveStatus <- Future{saveTransactionRequestStatusImpl(transactionRequestId, TransactionRequestStatus.COMPLETED.toString).openOrThrowException(attemptedToOpenAnEmptyBox)}
       //After `makePaymentv200` and update data for request, we get the new requqest from database again.
-      (transactionReques, callContext) <- Connector.connector.vend.getTransactionRequestImpl(transactionRequestId, callContext) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transactionRequestId. Get updated transaction exeception."
+      (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext) 
 
     } yield {
-      transactionReques
-    }, callContext)
+      (Full(transactionRequest), callContext)
+    }
   }
 
  

@@ -485,11 +485,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext])= {
-    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
+    getCounterpartyByCounterpartyIdFuture(CounterpartyId(counterpartyId), callContext)
   }
   
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty => (counterparty, callContext))
+  }
+  
+  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
+    (Counterparties.counterparties.vend.getCounterparty(counterpartyId.value),callContext)
   }
 
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =  {
