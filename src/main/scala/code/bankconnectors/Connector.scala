@@ -305,8 +305,9 @@ trait Connector extends MdcLoggable{
 
   //This one return the Future.
   def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future 
-  {(getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]).map(i =>(i._1)),
-    getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]).map(i =>(i._2)).openOrThrowException(attemptedToOpenAnEmptyBox))
+  {
+    val accountAndCallcontext = getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])
+    (accountAndCallcontext.map(_._1), accountAndCallcontext.map(_._2).openOrThrowException(attemptedToOpenAnEmptyBox))
   }
 
   def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(NotImplemented + currentMethodName)}
