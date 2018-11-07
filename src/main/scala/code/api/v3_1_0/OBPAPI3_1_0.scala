@@ -309,6 +309,8 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getCustomerByCustomerNumber ::
                           Implementations3_1_0.createUserAuthContext ::
                           Implementations3_1_0.getUserAuthContexts ::
+                          Implementations3_1_0.deleteUserAuthContexts::
+                          Implementations3_1_0.deleteUserAuthContextById::
                           Implementations3_1_0.createTaxResidence ::
                           Implementations3_1_0.getTaxResidence ::
                           Implementations3_1_0.deleteTaxResidence ::

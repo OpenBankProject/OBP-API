@@ -372,43 +372,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     }
   }("updateUserAccountViews")
 
-  // Gets current challenge level for transaction request
-  // TODO, not implement in Adapter, just fake the response 
-  override def getChallengeThreshold (
-    bankId: String,
-    accountId: String,
-    viewId: String,
-    transactionRequestType: String,
-    currency: String,
-    userId: String,
-    userName: String
-  ): Box[AmountOfMoney] =  saveConnectorMetric {
-    // Create argument list
-//    val req = Map(
-//      "version" -> formatVersion,
-//      "name" -> "get",
-//      "target" -> "challengeThreshold",
-//      "accountId" -> accountId,
-//      "currency" -> currency,
-//      "transactionRequestType" -> transactionRequestType,
-//      "userId" -> userId
-//      )
-//    
-
-//    val r: Option[KafkaInboundChallengeLevel] = process(req).extractOpt[KafkaInboundChallengeLevel]
-//    // Return result
-//    r match {
-//      // Check does the response data match the requested data
-//      case Some(x)  => AmountOfMoney(x.currency, x.limit)
-//      case _ => {
-        val limit = BigDecimal("1000")
-        val rate = fx.exchangeRate ("XAF", currency)
-        val convertedLimit = fx.convert(limit, rate)
-        Full(AmountOfMoney(currency,convertedLimit.toString()))
-//      }
-//    }
-  }("getChallengeThreshold")
-  
   //TODO, not implement in Adapter, just fake the response 
   override def getChargeLevel(
     bankId: BankId,
@@ -438,14 +401,9 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     }("createChallenge")
   
   //TODO, not implement in Adapter, just fake the response 
-  override def validateChallengeAnswer(
-    challengeId: String,
-    hashOfSuppliedAnswer: String
-  ): Box[Boolean] = saveConnectorMetric {
-    LocalMappedConnector.validateChallengeAnswer(
-      challengeId: String,
-      hashOfSuppliedAnswer: String
-    )
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) = saveConnectorMetric 
+  {
+    LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext)
   }("validateChallengeAnswer")
 
   // Gets transaction identified by bankid, accountid and transactionId
@@ -760,8 +718,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }
 
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
-    LocalMappedConnector.getCounterpartyByIban(iban: String)
+  override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =
+    LocalMappedConnector.getCounterpartyByIban(iban: String, callContext)
   
   override def createOrUpdatePhysicalCard(bankCardNumber: String,
                       nameOnCard: String,
@@ -968,10 +926,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 
   override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
-  }
-
-  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId): Box[TransactionRequest] = {
-    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
   /*

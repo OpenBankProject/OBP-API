@@ -389,7 +389,7 @@ trait APIMethods220 {
         cc => {
           for {
             //kafka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
-            connectorObject <- tryo{Connector.getConnectorInstance(connector)} ?~! s"$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vJune2017 ..."
+            connectorObject <- tryo{Connector.getConnectorInstance(connector)} ?~! s"$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vSept2018..."
             messageDocs <- Full{connectorObject.messageDocs.toList} 
           } yield {
             val json = JSONFactory220.createMessageDocsJson(messageDocs)

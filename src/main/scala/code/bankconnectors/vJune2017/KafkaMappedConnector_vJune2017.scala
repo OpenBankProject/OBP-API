@@ -1450,7 +1450,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     )
   )
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = saveConnectorMetric{
+  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1460,32 +1460,31 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(counterpartyByCounterpartyIdTTL second) {
-        val box = for {
-          authInfo <- getAuthInfo(callContext)
-          req = OutboundGetCounterpartyByCounterpartyId(authInfo, OutboundGetCounterpartyById(counterpartyId.value))
-          _ <- Full(logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req"))
-          kafkaMessage <- processToBox[OutboundGetCounterpartyByCounterpartyId](req)
-          inboundGetCustomersByUserIdFuture <- tryo {
-            kafkaMessage.extract[InboundGetCounterparty]
-          } ?~! s"$InboundGetCustomersByUserId extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (authInfo, internalCustomer, status) <- Full(inboundGetCustomersByUserIdFuture.authInfo, inboundGetCustomersByUserIdFuture.data, inboundGetCustomersByUserIdFuture.status)
-        } yield {
-          (authInfo, internalCustomer, status)
-        }
-        logger.debug(s"Kafka getCounterpartyByCounterpartyId Res says: is: $box")
+        val req = OutboundGetCounterpartyByCounterpartyId(getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox), OutboundGetCounterpartyById(counterpartyId.value))
+        logger.debug(s"Kafka getCounterpartyByCounterpartyId Req says: is: $req")
+        
+       val future = for {
+         res <- processToFuture[OutboundGetCounterpartyByCounterpartyId](req) map {
+           f =>
+             try {
+               f.extract[InboundGetCounterparty]
+             } catch {
+               case e: Exception => throw new MappingException(s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+             }
+         } map { x => (x.authInfo, x.data, x.status) }
+       } yield {
+         Full(res)
+       }
+       logger.debug(s"Kafka getCounterpartyByCounterpartyId Res says: is: $future")
 
-        val res = box match {
+        val res = future map {
           case Full((authInfo, Some(data), status)) if (status.errorCode == "") =>
             val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
-            Full((data,callContextUpdated))
+            (Full(data), callContextUpdated)
           case Full((authInfo, data, status)) if (status.errorCode != "") =>
-            Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
+            (Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages), callContext)
           case _ =>
-            Failure(ErrorMessages.UnknownError)
+            (Failure(ErrorMessages.UnknownError), callContext)
         }
         res
       }
@@ -1503,30 +1502,32 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(counterpartyTrait second){
-        val box = for {
-          authInfo <- getAuthInfo(callContext)
-          req = OutboundGetCounterparty(authInfo, thisBankId.value, thisAccountId.value, couterpartyId)
-          _ <- Full(logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req"))
-          kafkaMessage <- processToBox[OutboundGetCounterparty](req)
-          inboundGetCounterparty <- tryo{kafkaMessage.extract[InboundGetCounterparty]} ?~! s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-          (authInfo, data, status) <- Full(inboundGetCounterparty.authInfo, inboundGetCounterparty.data, inboundGetCounterparty.status)
-        } yield{
-          (authInfo, data, status)
-        }
-        logger.debug(s"Kafka getCounterpartyTrait Res says: is: $box")
+         
+        val req = OutboundGetCounterparty(getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox), thisBankId.value, thisAccountId.value, couterpartyId)
+        logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req")
 
-        val res = box match {
+        val future = for {
+         res <- processToFuture[OutboundGetCounterparty](req) map {
+           f =>
+             try {
+               f.extract[InboundGetCounterparty]
+             } catch {
+               case e: Exception => throw new MappingException(s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+             }
+         } map { x => (x.authInfo, x.data, x.status) }
+       } yield {
+         Full(res)
+       }
+       logger.debug(s"Kafka getCounterpartyTrait Res says: is: $future")
+        
+        val res = future map {
           case Full((authInfo, Some(data), status)) if (status.errorCode=="")  =>
             val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
-            Full((data, callContextUpdated))
+            (Full(data), callContextUpdated)
           case Full((authInfo, data, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
+            (Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages), callContext)
           case _ =>
-            Failure(ErrorMessages.UnknownError)
+            (Failure(ErrorMessages.UnknownError), callContext)
         }
         res
       }

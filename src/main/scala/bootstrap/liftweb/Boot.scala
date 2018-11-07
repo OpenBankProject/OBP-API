@@ -43,7 +43,7 @@ import code.api._
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.enableVersionIfAllowed
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.api.util.{APIUtil, ApiVersion, ErrorMessages, Migration}
 import code.atms.MappedAtm
 import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -468,6 +468,8 @@ class Boot extends MdcLoggable {
         logger.info("ADAPTER INFO - Unknown status.")
     }
 
+    Migration.database.generateAndPopulateMissingCustomerUUIDs()
+
   }
 
   def schemifyAll() = {
@@ -553,7 +555,8 @@ object ToSchemify {
     MappedScope,
     MappedUserScope,
     MappedTaxResidence,
-    MappedCustomerAddress
+    MappedCustomerAddress,
+    MappedUserAuthContext
   )
 
   // The following tables are accessed directly via Mapper / JDBC
@@ -583,7 +586,6 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
-    MappedUserAuthContext,
     MappedCustomerIDMapping
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

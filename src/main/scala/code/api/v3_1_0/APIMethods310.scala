@@ -1331,7 +1331,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       createUserAuthContext,
       implementedInApiVersion,
-      "createUserAuthContext",
+      nameOf(createUserAuthContext),
       "POST",
       "/users/USER_ID/auth-context",
       "Create UserAuthContext",
@@ -1350,11 +1350,11 @@ trait APIMethods310 {
       List(apiTagUser, apiTagNewStyle))
 
     lazy val createUserAuthContext : OBPEndpoint = {
-      case "user" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
+      case "users" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateUserAuthContext)("", u.userId, canUpdateUserAuthContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateUserAuthContext)("", u.userId, canCreateUserAuthContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
@@ -1370,7 +1370,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getUserAuthContexts,
       implementedInApiVersion,
-      "getUserAuthContexts",
+      nameOf(getUserAuthContexts),
       "GET",
       "/users/USER_ID/auth-context",
       "Get UserAuthContexts",
@@ -1392,20 +1392,94 @@ trait APIMethods310 {
       List(apiTagUser, apiTagNewStyle))
 
     lazy val getUserAuthContexts : OBPEndpoint = {
-      case "user" :: userId :: "auth-context" ::  Nil  JsonGet _ => {
+      case "users" :: userId :: "auth-context" ::  Nil  JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetUserAuthContext)("", u.userId, canGetUserAuthContext)
-            (userAuthContext, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContexts, callContext) <- NewStyle.function.getUserAuthContexts(userId, callContext)
           } yield {
             (JSONFactory310.createUserAuthContextsJson(userAuthContexts), HttpCode.`200`(callContext))
           }
       }
     }
-    
 
+
+    resourceDocs += ResourceDoc(
+      deleteUserAuthContexts,
+      implementedInApiVersion,
+      nameOf(deleteUserAuthContexts),
+      "DELETE",
+      "/users/USER_ID/auth-context",
+      "Delete User's all AuthContext",
+      s"""Delete all AuthContext of a User specified by USER_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val deleteUserAuthContexts : OBPEndpoint = {
+      case "users" :: userId :: "auth-context" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanDeleteUserAuthContext)("", u.userId, canDeleteUserAuthContext)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.deleteUserAuthContexts(userId, callContext)
+          } yield {
+            (Full(userAuthContext), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      deleteUserAuthContextById,
+      implementedInApiVersion,
+      nameOf(deleteUserAuthContextById),
+      "DELETE",
+      "/users/USER_ID/auth-context/USER_AUTH_CONTEXT_ID",
+      "Delete User AuthContext",
+      s"""Delete a User AuthContext of the User specified by USER_AUTH_CONTEXT_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val deleteUserAuthContextById : OBPEndpoint = {
+      case "users" :: userId :: "auth-context" :: userAuthContextId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanDeleteUserAuthContext)("", u.userId, canDeleteUserAuthContext)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.deleteUserAuthContextById(userAuthContextId, callContext)
+          } yield {
+            (Full(userAuthContext), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       createTaxResidence,

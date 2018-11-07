@@ -210,8 +210,7 @@ object ErrorMessages {
   val CreateUserAuthContextError = "OBP-30053: Could not insert the UserAuthContext"
   val UpdateUserAuthContextError = "OBP-30054: Could not update the UserAuthContext"
   val UpdateUserAuthContextNotFound = "OBP-30055: UserAuthContext not found. Please specify a valid value for USER_ID."
-  
-
+  val DeleteUserAuthContextNotFound = "OBP-30056: UserAuthContext not found by USER_AUTH_CONTEXT_ID."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -317,6 +316,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForMakePaymentv200 = "OBP-50210: Connector did not return the set of transaction id we requested."
   val InvalidConnectorResponseForGetCheckbookOrdersFuture = "OBP-50211: Connector did not return the set of check book."
   val InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture = "OBP-50212: Connector did not return the set of status of credit card."
+  val InvalidConnectorResponseForCreateTransactionAfterChallengev300 = "OBP-50213: Connector did not return the set of transaction"
 
 
   // Adapter Exceptions (OBP-6XXXX)

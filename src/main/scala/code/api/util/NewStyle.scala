@@ -1,27 +1,31 @@
 package code.api.util
 
-import code.customeraddress.CustomerAddress
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.api.v3_1_0.TaxResidenceV310
+import code.atms.Atms
 import code.atms.Atms.AtmId
+import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, OBPQueryParam}
+import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
-import code.customer.Customer
-import code.context.UserAuthContextProvider
 import code.context.UserAuthContext
+import code.customer.Customer
+import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.taxresidence.TaxResidence
+import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -114,12 +118,22 @@ object NewStyle {
     (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createCustomerAddress), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createUserAuthContext), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteUserAuthContextById), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
     def `200`(callContext: Option[CallContext])= {
       callContext.map(_.copy(httpCode = Some(200)))
+    }
+    def `201`(callContext: Option[CallContext])= {
+      callContext.map(_.copy(httpCode = Some(201)))
+    }
+    def `202`(callContext: Option[CallContext])= {
+      callContext.map(_.copy(httpCode = Some(202)))
     }
     def `200`(callContext: CallContext)  = {
       Some(callContext.copy(httpCode = Some(200)))
@@ -130,20 +144,20 @@ object NewStyle {
   object function {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]) = {
+    def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[Branches.BranchT] = {
       Connector.connector.vend.getBranchFuture(bankId, branchId, callContext) map {
         val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
         x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
-    def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]) = {
+    def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]): OBPReturnType[Atms.AtmT] = {
       Connector.connector.vend.getAtmFuture(bankId, atmId, callContext) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
-    def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[(Bank, Option[CallContext])] = {
+    def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
       Connector.connector.vend.getBankFuture(bankId, callContext) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 400)
       }
@@ -154,13 +168,13 @@ object NewStyle {
       }
     }
 
-    def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] = {
-      Future { BankAccount(bankId, accountId, callContext) } map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+    def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
+      Connector.connector.vend.getBankAccountFuture(bankId, accountId, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400 ), i._2)
+      }
     }
 
-    def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Future[(BankAccount, Option[CallContext])] = {
+    def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
       }
@@ -184,7 +198,7 @@ object NewStyle {
       }
     }
 
-    def getConsumerByPrimaryId(id: Long, callContext: Option[CallContext]): Future[Consumer]= {
+    def getConsumerByPrimaryId(id: Long, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByPrimaryIdFuture(id) map {
         unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
       }
@@ -194,19 +208,19 @@ object NewStyle {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
     }
-    def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): Future[(Customer, Option[CallContext])] = {
+    def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerIdFuture(customerId, callContext) map {
         unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId, 400)
       }
     }
-    def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): Future[(Customer, Option[CallContext])] = {
+    def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId, callContext) map {
         unboxFullOrFail(_, callContext, CustomerNotFound, 400)
       }
     }
 
 
-    def getCustomerAddress(customerId : String, callContext: Option[CallContext]): Future[(List[CustomerAddress], Option[CallContext])] = {
+    def getCustomerAddress(customerId : String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAddress]] = {
       Connector.connector.vend.getCustomerAddress(customerId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
@@ -221,7 +235,7 @@ object NewStyle {
                               postcode: String,
                               countryCode: String,
                               status: String,
-                              callContext: Option[CallContext]): Future[(CustomerAddress, Option[CallContext])] = {
+                              callContext: Option[CallContext]): OBPReturnType[CustomerAddress] = {
       Connector.connector.vend.createCustomerAddress(
         customerId,
         line1,
@@ -237,29 +251,29 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])] = {
+    def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteCustomerAddress(customerAddressId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
 
-    def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): Future[(TaxResidence, Option[CallContext])] = {
+    def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[TaxResidence] = {
       Connector.connector.vend.createTaxResidence(customerId, domain, taxNumber, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    def getTaxResidence(customerId : String, callContext: Option[CallContext]): Future[(List[TaxResidence], Option[CallContext])] = {
+    def getTaxResidence(customerId : String, callContext: Option[CallContext]): OBPReturnType[List[TaxResidence]] = {
       Connector.connector.vend.getTaxResidence(customerId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    def deleteTaxResidence(taxResienceId : String, callContext: Option[CallContext]): Future[(Boolean, Option[CallContext])] = {
+    def deleteTaxResidence(taxResienceId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteTaxResidence(taxResienceId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
 
-    def getAdapterInfo(callContext: Option[CallContext]) = {
+    def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
       Future {
         Connector.connector.vend.getAdapterInfo(callContext)
       } map {
@@ -273,7 +287,7 @@ object NewStyle {
       }
     }
 
-    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]) = {
+    def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): OBPReturnType[List[CounterpartyTrait]] = {
       Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext)) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
@@ -285,10 +299,10 @@ object NewStyle {
       } map { unboxFull(_) }
     }
 
-    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]) = {
-      Future(Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext)) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
+      Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i=>
+        (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      } 
     }
 
 
@@ -324,42 +338,172 @@ object NewStyle {
       } map { unboxFull(_) }
     }
 
+
     def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg) {
         code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
       }
     }
-
     def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg) {
         code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
       }
     }
-    
-    def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): Future[(UserAuthContext, Option[CallContext])] = {
-      UserAuthContextProvider.userAuthContextProvider.vend.createUserAuthContext(userId, key, value, callContext) map {
-        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+
+
+    def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
+      Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    
-    def getUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(List[UserAuthContext], Option[CallContext])] = {
-      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId, callContext) map {
-        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+    def getUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAuthContext]] = {
+      Connector.connector.vend.getUserAuthContexts(userId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    
-    def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): Future[(List[UserAuthContext], Option[CallContext])] = {
-      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContexts(userId, callContext) map {
-        unboxFullOrFail(_, callContext, CreateUserAuthContextError, 400)
+    def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteUserAuthContexts(userId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-    
-    def findByUserId(userId: String, callContext: Option[CallContext]): Future[(User, Option[CallContext])] = {
+
+    def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+
+
+    def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
       Future { User.findByUserId(userId).map(user =>(user, callContext))} map {
         unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 400)
       }
     }
+  
+    def createTransactionRequestv210(
+      u: User,
+      viewId: ViewId,
+      fromAccount: BankAccount,
+      toAccount: BankAccount,
+      transactionRequestType: TransactionRequestType,
+      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+      detailsPlain: String,
+      chargePolicy: String,
+      callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+    {
+      Connector.connector.vend.createTransactionRequestv210(
+        u: User,
+        viewId: ViewId,
+        fromAccount: BankAccount,
+        toAccount: BankAccount,
+        transactionRequestType: TransactionRequestType,
+        transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+        detailsPlain: String,
+        chargePolicy: String,
+        callContext: Option[CallContext]
+      ) map {
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400)
+      }
+    }
+    
+    def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    {
+      Connector.connector.vend.getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+          i._2)
+      }
+    }
+    
+    
+    def toBankAccount(counterparty: CounterpartyTrait, callContext: Option[CallContext]) : Future[BankAccount] =
+    {
+      Future{BankAccount.toBankAccount(counterparty)} map {
+        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+      }
+    }
+    
+    def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : OBPReturnType[CounterpartyTrait] = 
+    {
+      Connector.connector.vend.getCounterpartyByIban(iban: String, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(
+          i._1, 
+          callContext, 
+          s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, " +
+            s"set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $iban ", 
+          400),
+          i._2)
+        
+      }
+    }
+    
+    def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
+    {
+      //Note: this method is not over kafka yet, so use Future here.
+      Future{ Connector.connector.vend.getTransactionRequestImpl(transactionRequestId, callContext)} map {
+        unboxFullOrFail(_, callContext, s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId) ", 400)
+      }
+    }
+    
 
+    def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, callContext: Option[CallContext]) : Future[Boolean] = 
+    {
+      //Note: this method is not over kafka yet, so use Future here.
+      Future{ ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer)} map {
+        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+      }
+    }
+    
+    def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+     Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
+       (unboxFullOrFail(i._1, callContext, s"$UnknownError ", 400), i._2)
+      } 
+    
+    def createTransactionAfterChallengeV300(
+      initiator: User,
+      fromAccount: BankAccount,
+      transReqId: TransactionRequestId,
+      transactionRequestType: TransactionRequestType,
+      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
+    {
+      Connector.connector.vend.createTransactionAfterChallengev300(
+        initiator: User,
+        fromAccount: BankAccount,
+        transReqId: TransactionRequestId,
+        transactionRequestType: TransactionRequestType,
+        callContext: Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400), i._2)
+      }
+      
+    }
+    
+    def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
+      Connector.connector.vend.createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400), i._2)
+      } 
+    
+    def makePaymentv210(fromAccount: BankAccount,
+                      toAccount: BankAccount,
+                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                      amount: BigDecimal,
+                      description: String,
+                      transactionRequestType: TransactionRequestType,
+                      chargePolicy: String, 
+                      callContext: Option[CallContext]): OBPReturnType[TransactionId]=
+      Future{Connector.connector.vend.makePaymentv200(
+        fromAccount: BankAccount,
+        toAccount: BankAccount,
+        transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+        amount: BigDecimal,
+        description: String,
+        transactionRequestType: TransactionRequestType,
+        chargePolicy: String
+      )} map { i => 
+        (unboxFullOrFail(i, callContext, s"$InvalidConnectorResponseForMakePayment ",400), callContext)
+      }
+    
+    
+        
   }
 
 }
