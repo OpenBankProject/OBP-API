@@ -250,7 +250,7 @@ case class PostUserAuthContextJson(
 )
 
 case class UserAuthContextJson(
-  id: String,
+  user_auth_context_id: String,
   user_id: String,
   key: String,
   value: String
@@ -449,10 +449,10 @@ object JSONFactory310{
   
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJson = {
     UserAuthContextJson(
-      userAuthContext.userAuthContextId,
-      userAuthContext.userId,
-      userAuthContext.key,
-      userAuthContext.value
+      user_auth_context_id= userAuthContext.userAuthContextId,
+      user_id = userAuthContext.userId,
+      key = userAuthContext.key,
+      value = userAuthContext.value
     )
   }
   

@@ -120,7 +120,9 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createUserAuthContext), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteUserAuthContextById), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -361,6 +363,12 @@ object NewStyle {
     }
     def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteUserAuthContexts(userId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+
+    def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
