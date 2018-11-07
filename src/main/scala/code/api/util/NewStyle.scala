@@ -490,62 +490,17 @@ object NewStyle {
                       transactionRequestType: TransactionRequestType,
                       chargePolicy: String, 
                       callContext: Option[CallContext]): OBPReturnType[TransactionId]=
-      Future{Connector.connector.vend.makePaymentv200(
+      Connector.connector.vend.makePaymentv210(
         fromAccount: BankAccount,
         toAccount: BankAccount,
         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
         amount: BigDecimal,
         description: String,
         transactionRequestType: TransactionRequestType,
-        chargePolicy: String
-      )} map { i => 
-        (unboxFullOrFail(i, callContext, s"$InvalidConnectorResponseForMakePayment ",400), callContext)
-      }
-    
-    def getChallengeThreshold(
-      bankId: String,
-      accountId: String,
-      viewId: String,
-      transactionRequestType: String,
-      currency: String,
-      userId: String,
-      userName: String,
-      callContext: Option[CallContext]
-    ): OBPReturnType[AmountOfMoney] =
-      Connector.connector.vend.getChallengeThreshold(
-        bankId: String,
-        accountId: String,
-        viewId: String,
-        transactionRequestType: String,
-        currency: String,
-        userId: String,
-        userName: String,
+        chargePolicy: String, 
         callContext: Option[CallContext]
-      ) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
-      } 
-    
-    def getChargeLevel(
-      bankId: BankId,
-      accountId: AccountId,
-      viewId: ViewId,
-      userId: String,
-      userName: String,
-      transactionRequestType: String,
-      currency: String,
-      callContext:Option[CallContext]
-    ): OBPReturnType[AmountOfMoney] =
-      Connector.connector.vend.getChargeLevel(
-        bankId: BankId,
-        accountId: AccountId,
-        viewId: ViewId,
-        userId: String,
-        userName: String,
-        transactionRequestType: String,
-        currency: String,
-        callContext:Option[CallContext]
-      ) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+      ) map { i => 
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
         
   }

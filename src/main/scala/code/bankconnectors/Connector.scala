@@ -462,6 +462,7 @@ trait Connector extends MdcLoggable{
     } yield transactionId
   }
   
+  //Note: introduce v210 here, is for kafka connectors, use callContext and return Future.  
   def makePaymentv210(fromAccount: BankAccount,
                       toAccount: BankAccount,
                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
@@ -469,15 +470,7 @@ trait Connector extends MdcLoggable{
                       description: String,
                       transactionRequestType: TransactionRequestType,
                       chargePolicy: String, 
-                      callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= Future{
-     (makePaymentv200(fromAccount: BankAccount,
-                      toAccount: BankAccount,
-                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-                      amount: BigDecimal,
-                      description: String,
-                      transactionRequestType: TransactionRequestType,
-                      chargePolicy: String), callContext)
-  }
+                      callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= Future{(Failure(NotImplemented + currentMethodName), callContext)}
 
 
   protected def makePaymentImpl(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(NotImplemented + currentMethodName)
@@ -677,13 +670,18 @@ trait Connector extends MdcLoggable{
 
     for{
      // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
-      (challengeThreshold, callContext) <- NewStyle.function.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext)
+      (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
+      } 
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)}
       transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
         BigDecimal(transactionRequestCommonBody.value.amount)}
       status <- getStatus(challengeThresholdAmount,transactionRequestCommonBodyAmount)
-      (chargeLevel, callContext) <- NewStyle.function.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext)
+      (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
+      }
+      
       chargeLevelAmount <- NewStyle.function.tryons( s"$InvalidNumber chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !", 400, callContext) {
         BigDecimal(chargeLevel.amount)}
       chargeValue <- getChargeValue(chargeLevelAmount,transactionRequestCommonBodyAmount)
@@ -716,7 +714,7 @@ trait Connector extends MdcLoggable{
             transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
   
           } yield {
-            logger.debug(s"createTransactionRequestv300.createdTransactionId return: $transactionRequest")
+            logger.debug(s"createTransactionRequestv210.createdTransactionId return: $transactionRequest")
             (transactionRequest, callContext)
           }
         case TransactionRequestStatus.INITIATED =>

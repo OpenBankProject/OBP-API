@@ -8,7 +8,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util.{APIUtil, CallContext, ErrorMessages, NewStyle}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310, TaxResidenceV310}
 import code.atms.Atms.{AtmId, AtmT}
@@ -634,6 +634,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        _sentTransactionId <- saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)
     } yield{
       sentTransactionId
+    }
+  }
+  
+  override def makePaymentv210(fromAccount: BankAccount,
+                      toAccount: BankAccount,
+                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                      amount: BigDecimal,
+                      description: String,
+                      transactionRequestType: TransactionRequestType,
+                      chargePolicy: String, 
+                      callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= {
+    for{
+       rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported.", 400, callContext) {
+          fx.exchangeRate(fromAccount.currency, toAccount.currency)}
+       fromTransAmt = -amount//from fromAccount balance should decrease
+       toTransAmt = fx.convert(amount, rate)
+       sentTransactionId <- Future{saveTransaction(fromAccount, toAccount,transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)}
+       _sentTransactionId <- Future{saveTransaction(toAccount, fromAccount,transactionRequestCommonBody, toTransAmt, description, transactionRequestType, chargePolicy)}
+    } yield{
+      (sentTransactionId, callContext)
     }
   }
 
