@@ -7,7 +7,7 @@ import code.api.util
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.TransactionDisabled
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util.{APIUtil, ApiRole, NewStyle}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -35,9 +35,11 @@ import code.util.Helper.booleanToBox
 import code.views.Views
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Await
 // Makes JValue assignment to Nil work
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -54,6 +56,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -402,112 +405,158 @@ trait APIMethods210 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            _ <- booleanToBox(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) ?~ TransactionDisabled
-            u <- cc.user ?~ UserNotLoggedIn
-            _ <- tryo(assert(isValidID(accountId.value))) ?~! InvalidAccountIdFormat
-            _ <- tryo(assert(isValidID(bankId.value))) ?~! InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
-            fromAccount <- BankAccount(bankId, accountId) ?~! {AccountNotFound}
-            _ <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
-            isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
-              hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
-            _ <- tryo(assert(APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
-              s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'"
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.isEnabledTransactionRequests()
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext) 
+            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext) 
+            _ <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext) 
+            
+            _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
+              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
+              hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
+            }
+            
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
+              Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
+            }
 
-            // Check the input JSON format, here is just check the common parts of all four tpyes
-            transDetailsJson <- tryo {json.extract[TransactionRequestBodyCommonJSON]} ?~! InvalidJsonFormat
-            isValidAmountNumber <- tryo(BigDecimal(transDetailsJson.value.amount)) ?~! InvalidNumber
-            _ <- booleanToBox(isValidAmountNumber > BigDecimal("0"), NotPositiveAmount)
-            _ <- tryo(assert(isValidCurrencyISOCode(transDetailsJson.value.currency))) ?~! InvalidISOCurrencyCode
-
+            // Check the input JSON format, here is just check the common parts of all four types
+            transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $TransactionRequestBodyCommonJSON ", 400, callContext) {
+              json.extract[TransactionRequestBodyCommonJSON]
+            }
+            
+            isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.value.amount} ", 400, callContext) {
+              BigDecimal(transDetailsJson.value.amount)
+            }
+            
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'") {
+              isValidAmountNumber > BigDecimal("0")
+            }
+            
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+              isValidCurrencyISOCode(transDetailsJson.value.currency)
+            }
+            
             // Prevent default value for transaction request type (at least).
-            _ <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${InvalidTransactionRequestCurrency} " +
-              s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
-            _ <- Full(AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount))
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+              isValidCurrencyISOCode(transDetailsJson.value.currency)
+            }
+            
+            // Prevent default value for transaction request type (at least).
+            _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}") {
+              transDetailsJson.value.currency == fromAccount.currency
+            }
+            
+            
+            amountOfMoneyJSON = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
 
-            createdTransactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+            (createdTransactionRequest,callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
               case SANDBOX_TAN => {
                 for {
-                  transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! s"${InvalidJsonFormat}, it should be SANDBOX_TAN input format"
-                  toBankId <- Full(BankId(transactionRequestBodySandboxTan.to.bank_id))
-                  toAccountId <- Full(AccountId(transactionRequestBodySandboxTan.to.account_id))
-                  toAccount <- BankAccount(toBankId, toAccountId) ?~! {CounterpartyNotFound}
-                  transDetailsSerialized <- tryo {write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SANDBOX_TAN json format", 400, callContext) {
+                    json.extract[TransactionRequestBodySandBoxTanJSON]
+                  }
+                  
+                  toBankId = BankId(transactionRequestBodySandboxTan.to.bank_id)
+                  toAccountId = AccountId(transactionRequestBodySandboxTan.to.account_id)
+                  (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext) 
+                  
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
+                  
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
                                                                                                      toAccount,
                                                                                                      transactionRequestType,
                                                                                                      transactionRequestBodySandboxTan,
                                                                                                      transDetailsSerialized,
-                                                                                                     sharedChargePolicy.toString) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
-                } yield createdTransactionRequest
+                                                                                                     sharedChargePolicy.toString,
+                                                                                                     callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
+                } yield (createdTransactionRequest, callContext)
               }
               case COUNTERPARTY => {
                 for {
                   //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
-                  transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! s"${InvalidJsonFormat}, it should be COUNTERPARTY input format"
-                  toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
-                  (toCounterparty, callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), Some(cc)) ?~! {CounterpartyNotFoundByCounterpartyId}
-                  toAccount <- BankAccount.toBankAccount(toCounterparty)
-                  // Check we can send money to it.
-                  _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
+                  transactionRequestBodyCounterparty <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $COUNTERPARTY json format", 400, callContext) {
+                    json.extract[TransactionRequestBodyCounterpartyJSON]
+                  }
+                  toCounterpartyId = transactionRequestBodyCounterparty.to.counterparty_id
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+                  toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext) 
+                  // Check we can send money to it. 
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                    toCounterparty.isBeneficiary == true
+                  }
                   chargePolicy = transactionRequestBodyCounterparty.charge_policy
-                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy)))) ?~! InvalidChargePolicy
-                  transDetailsSerialized <- tryo {write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
+                    ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
+                  }
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))}
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
                                                                                                      toAccount,
                                                                                                      transactionRequestType,
                                                                                                      transactionRequestBodyCounterparty,
                                                                                                      transDetailsSerialized,
-                                                                                                     chargePolicy)
-                } yield createdTransactionRequest
+                                                                                                     chargePolicy,
+                                                                                                     callContext)
+                } yield (createdTransactionRequest, callContext)
 
               }
               case SEPA => {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
-                  transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! s"${InvalidJsonFormat}, it should be SEPA input format"
-                  toIban <- Full(transDetailsSEPAJson.to.iban)
-                  toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $toIban "
-                  toAccount <- BankAccount.toBankAccount(toCounterparty)
-                  _ <- booleanToBox(toCounterparty.isBeneficiary == true, CounterpartyBeneficiaryPermit)
+                  transDetailsSEPAJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SEPA json format", 400, callContext) {
+                    json.extract[TransactionRequestBodySEPAJSON]
+                  }
+                  toIban = transDetailsSEPAJson.to.iban
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, callContext)
+                  toAccount <- NewStyle.function.toBankAccount(toCounterparty, callContext)
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                    toCounterparty.isBeneficiary == true
+                  }
                   chargePolicy = transDetailsSEPAJson.charge_policy
-                  _ <-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {InvalidChargePolicy}
-                  transDetailsSerialized <- tryo {write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
+                    ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
+                  }
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))}
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
                                                                                                      toAccount,
                                                                                                      transactionRequestType,
                                                                                                      transDetailsSEPAJson,
                                                                                                      transDetailsSerialized,
-                                                                                                     chargePolicy)
-                } yield createdTransactionRequest
+                                                                                                     chargePolicy,
+                                                                                                     callContext)
+                } yield (createdTransactionRequest, callContext)
               }
               case FREE_FORM => {
                 for {
-                  transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON]) ?~! s"${InvalidJsonFormat}, it should be FREE_FORM input format"
+                  transactionRequestBodyFreeForm <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $FREE_FORM json format", 400, callContext) {
+                    json.extract[TransactionRequestBodyFreeFormJSON]
+                  }
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                  transactionRequestAccountJSON <- Full(TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value)) 
-                  transDetailsSerialized <- tryo {write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))}
-                  createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                  transactionRequestAccountJSON = TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value) 
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))}
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
                                                                                                      fromAccount,
                                                                                                      transactionRequestType,
                                                                                                      transactionRequestBodyFreeForm,
                                                                                                      transDetailsSerialized,
-                                                                                                     sharedChargePolicy.toString)
+                                                                                                     sharedChargePolicy.toString,
+                                                                                                     callContext)
                 } yield
-                  createdTransactionRequest
+                  (createdTransactionRequest, callContext)
               }
             }
           } yield {
-            val json = JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest)
-            createdJsonResponse(Extraction.decompose(json))
+            (JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest), HttpCode.`201`(callContext))
           }
       }
     }
@@ -556,70 +605,77 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
-          if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               // Check we have a User
-              u: User <- cc.user ?~ UserNotLoggedIn
-
-              // Check format of bankId supplied in URL
-              _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-
-              // Check format of accountId supplied in URL
-              _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
-
-              // Check the Posted JSON is valid
-              challengeAnswerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {InvalidJsonFormat}
-
-              // Check Bank exists on this server
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
-
-              // Check Account exists on this server
-              (fromAccount, callContext) <-Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc)) ?~! {BankAccountNotFound}
-
-              // Check User has access to the View
-              view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
-              isOwnerOrHasEntitlement <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
-
+              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+              _ <- NewStyle.function.isEnabledTransactionRequests()
+              _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
+              _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+              challengeAnswerJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChallengeAnswerJSON ", 400, callContext) {
+                json.extract[ChallengeAnswerJSON]
+              }
+                
+              (_, callContext) <- NewStyle.function.getBank(bankId, callContext) 
+              (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext) 
+              _ <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext) 
+              
+              _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
+                u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
+                hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
+              }
+              
               // Check transReqId is valid
-              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${InvalidTransactionRequestId} : $transReqId"
+              (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, callContext)
 
               // Check the Transaction Request is still INITIATED
-              _ <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),TransactionRequestStatusNotInitiated)
-
+              _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated) {
+                existingTransactionRequest.status.equals("INITIATED")
+              }
+              
               // Check the input transactionRequestType is the same as when the user created the TransactionRequest
-              existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
-              _ <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
-
+              existingTransactionRequestType = existingTransactionRequest.`type`
+              _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${existingTransactionRequest.`type`}) ") {
+                existingTransactionRequestType.equals(transactionRequestType.value)
+              }
+              
               // Check the challengeId is valid for this existingTransactionRequest
-              _ <- booleanToBox(existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id),{InvalidTransactionRequesChallengeId})
-            
+              _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
+                existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+              }
+              
               //Check the allowed attemps, Note: not support yet, the default value is 3
-              _ <- booleanToBox((existingTransactionRequest.challenge.allowed_attempts > 0),AllowedAttemptsUsedUp)
+              _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
+                existingTransactionRequest.challenge.allowed_attempts > 0
+              }
 
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
-              _ <- booleanToBox((existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString),AllowedAttemptsUsedUp)
+              _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
+                existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString
+              }
             
-              challengeAnswerOBP <- ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer)
-              _ <- booleanToBox((challengeAnswerOBP == true),InvalidChallengeAnswer)
-
-              challengeAnswerKafka <- Connector.connector.vend.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer)
-              _ <- booleanToBox((challengeAnswerKafka == true),InvalidChallengeAnswer)
+              challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+              
+              _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
+                challengeAnswerOBP == true
+              }
+              
+              (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+              
+              _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
+                (challengeAnswerKafka == true)
+              }
 
               // All Good, proceed with the Transaction creation...
-              transactionRequest <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+              (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
                 case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
-                  Connector.connector.vend.createTransactionAfterChallengev300(u, fromAccount, transReqId, transactionRequestType, Some(cc))
+                   NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
                 case _ =>
-                  Connector.connector.vend.createTransactionAfterChallengev210(fromAccount, existingTransactionRequest, Some(cc))
+                   NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
               } 
             } yield {
-              val json = JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest)
-              val successJson = Extraction.decompose(json)
-              successJsonResponse(successJson, 202)
+              
+              (JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest), HttpCode.`202`(callContext))
             }
-          } else {
-            Full(errorJsonResponse(TransactionDisabled))
-          }
       }
     }
 

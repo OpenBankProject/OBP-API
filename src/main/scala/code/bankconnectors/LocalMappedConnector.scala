@@ -73,7 +73,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): Box[AmountOfMoney] = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
@@ -85,7 +85,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val rate = fx.exchangeRate(thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
     logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    Full(AmountOfMoney(currency, convertedThreshold.toString()))
+    Full((AmountOfMoney(currency, convertedThreshold.toString()), callContext))
   }
 
   /**
@@ -118,12 +118,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     * 3. Compare the hash of the given answer with the hash from the database. If they match, the answer is correct. Otherwise, the answer is incorrect.
     */
   // TODO Extend database model in order to get users salt and hash it
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = {
-    for {
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) = Future{
+    val answer = for {
       nonEmpty <- booleanToBox(hashOfSuppliedAnswer.nonEmpty) ?~ "Need a non-empty answer"
       answerToNumber <- tryo(BigInt(hashOfSuppliedAnswer)) ?~! "Need a numeric TAN"
       positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
     } yield true
+    
+    (answer, callContext)
   }
 
   override def getChargeLevel(bankId: BankId,
@@ -483,15 +485,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext])= {
-    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
+    getCounterpartyByCounterpartyIdFuture(CounterpartyId(counterpartyId), callContext)
   }
   
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty => (counterparty, callContext))
   }
+  
+  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
+    (Counterparties.counterparties.vend.getCounterparty(counterpartyId.value),callContext)
+  }
 
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] ={
-    Counterparties.counterparties.vend.getCounterpartyByIban(iban)
+  override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =  {
+    Future (Counterparties.counterparties.vend.getCounterpartyByIban(iban), callContext)
   }
 
 
@@ -742,11 +748,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequests(fromAccount.bankId, fromAccount.accountId)
-  }
-
-  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
-    // TODO need to pass a status variable so we can return say only INITIATED
-    TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId)
   }
 
   /*

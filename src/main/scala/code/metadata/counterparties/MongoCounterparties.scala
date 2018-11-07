@@ -2,6 +2,7 @@ package code.metadata.counterparties
 
 import java.util.Date
 
+import code.api.util.CallContext
 import code.model._
 import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder

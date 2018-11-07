@@ -4,7 +4,7 @@ import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 
 import code.api.cache.Caching
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext}
 import code.api.util.APIUtil.getSecondsCache
 import code.model._
 import code.model.dataAccess.ResourceUser
@@ -125,7 +125,7 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   }
   
   //TODO, here has a problem, MappedCounterparty has no unique constrain on IBan. But we get Counterparty By Iban. For now, we do not support update Counterpary endpoint. Here we only return the latest record.
-  override def getCounterpartyByIban(iban : String): Box[CounterpartyTrait] = {
+  override def getCounterpartyByIban(iban : String)= {
     MappedCounterparty.find(
       By(MappedCounterparty.mOtherAccountSecondaryRoutingAddress, iban),
       OrderBy(MappedCounterparty.id, Descending) //Always use the latest record. 

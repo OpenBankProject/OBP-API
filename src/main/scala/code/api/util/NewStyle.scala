@@ -6,6 +6,7 @@ import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
@@ -23,6 +24,8 @@ import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.taxresidence.TaxResidence
+import code.transactionChallenge.ExpectedChallengeAnswer
+import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -124,6 +127,12 @@ object NewStyle {
     def `200`(callContext: Option[CallContext])= {
       callContext.map(_.copy(httpCode = Some(200)))
     }
+    def `201`(callContext: Option[CallContext])= {
+      callContext.map(_.copy(httpCode = Some(201)))
+    }
+    def `202`(callContext: Option[CallContext])= {
+      callContext.map(_.copy(httpCode = Some(202)))
+    }
     def `200`(callContext: CallContext)  = {
       Some(callContext.copy(httpCode = Some(200)))
     }
@@ -158,9 +167,9 @@ object NewStyle {
     }
 
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
-      Future { BankAccount(bankId, accountId, callContext) } map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(BankAccountNotFound, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+      Connector.connector.vend.getBankAccountFuture(bankId, accountId, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400 ), i._2)
+      }
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
@@ -289,9 +298,9 @@ object NewStyle {
     }
 
     def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
-      Future(Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext)) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+      Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i=>
+        (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      } 
     }
 
 
@@ -362,7 +371,131 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 400)
       }
     }
+  
+    def createTransactionRequestv210(
+      u: User,
+      viewId: ViewId,
+      fromAccount: BankAccount,
+      toAccount: BankAccount,
+      transactionRequestType: TransactionRequestType,
+      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+      detailsPlain: String,
+      chargePolicy: String,
+      callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+    {
+      Connector.connector.vend.createTransactionRequestv210(
+        u: User,
+        viewId: ViewId,
+        fromAccount: BankAccount,
+        toAccount: BankAccount,
+        transactionRequestType: TransactionRequestType,
+        transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+        detailsPlain: String,
+        chargePolicy: String,
+        callContext: Option[CallContext]
+      ) map {
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400)
+      }
+    }
+    
+    def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    {
+      Connector.connector.vend.getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+          i._2)
+      }
+    }
+    
+    
+    def toBankAccount(counterparty: CounterpartyTrait, callContext: Option[CallContext]) : Future[BankAccount] =
+    {
+      Future{BankAccount.toBankAccount(counterparty)} map {
+        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+      }
+    }
+    
+    def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : OBPReturnType[CounterpartyTrait] = 
+    {
+      Connector.connector.vend.getCounterpartyByIban(iban: String, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(
+          i._1, 
+          callContext, 
+          s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, " +
+            s"set the proper IBan value to `other_account_secondary_routing_address`. Current Iban = $iban ", 
+          400),
+          i._2)
+        
+      }
+    }
+    
+    def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
+    {
+      //Note: this method is not over kafka yet, so use Future here.
+      Future{ Connector.connector.vend.getTransactionRequestImpl(transactionRequestId, callContext)} map {
+        unboxFullOrFail(_, callContext, s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId) ", 400)
+      }
+    }
+    
 
+    def validateChallengeAnswerInOBPSide(challengeId: String, challengeAnswer: String, callContext: Option[CallContext]) : Future[Boolean] = 
+    {
+      //Note: this method is not over kafka yet, so use Future here.
+      Future{ ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer)} map {
+        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+      }
+    }
+    
+    def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+     Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
+       (unboxFullOrFail(i._1, callContext, s"$UnknownError ", 400), i._2)
+      } 
+    
+    def createTransactionAfterChallengeV300(
+      initiator: User,
+      fromAccount: BankAccount,
+      transReqId: TransactionRequestId,
+      transactionRequestType: TransactionRequestType,
+      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
+    {
+      Connector.connector.vend.createTransactionAfterChallengev300(
+        initiator: User,
+        fromAccount: BankAccount,
+        transReqId: TransactionRequestId,
+        transactionRequestType: TransactionRequestType,
+        callContext: Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400), i._2)
+      }
+      
+    }
+    
+    def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
+      Connector.connector.vend.createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionAfterChallengev300 ", 400), i._2)
+      } 
+    
+    def makePaymentv210(fromAccount: BankAccount,
+                      toAccount: BankAccount,
+                      transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                      amount: BigDecimal,
+                      description: String,
+                      transactionRequestType: TransactionRequestType,
+                      chargePolicy: String, 
+                      callContext: Option[CallContext]): OBPReturnType[TransactionId]=
+      Future{Connector.connector.vend.makePaymentv200(
+        fromAccount: BankAccount,
+        toAccount: BankAccount,
+        transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+        amount: BigDecimal,
+        description: String,
+        transactionRequestType: TransactionRequestType,
+        chargePolicy: String
+      )} map { i => 
+        (unboxFullOrFail(i, callContext, s"$InvalidConnectorResponseForMakePayment ",400), callContext)
+      }
+    
+    
+        
   }
 
 }
