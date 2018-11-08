@@ -180,6 +180,11 @@ object NewStyle {
       }
     }
 
+    def moderatedBankAccount(account: BankAccount, view: View, user: Box[User]) = Future {
+      account.moderatedBankAccount(view, user)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) }
+
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is $viewId", 400)

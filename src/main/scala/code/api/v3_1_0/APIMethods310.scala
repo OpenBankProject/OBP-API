@@ -669,9 +669,7 @@ trait APIMethods310 {
               val currencyCode = httpParams.filter(_.name == currency).map(_.values.head).head
               isValidCurrencyISOCode(currencyCode)
             }
-            _ <- Future {account.moderatedBankAccount(view, Full(u)) } map {
-              fullBoxOrException(_)
-            } map { unboxFull(_) }
+            _ <- NewStyle.function.moderatedBankAccount(account, view, Full(u))
           } yield {
             val ccy = httpParams.filter(_.name == currency).map(_.values.head).head
             val fundsAvailable =  (view.canQueryAvailableFunds, account.balance, account.currency) match {
