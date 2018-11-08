@@ -24,6 +24,15 @@ object Glossary {
 															 textDescription: String
                             )
 
+		def makeGlossaryItem (title: String, connectorField: ConnectorField) : GlossaryItem = {
+			GlossaryItem(
+				title = title,
+				description = s"""
+																						|${connectorField.description}
+																						|
+																						|Example value: ${connectorField.value}
+				""")
+		}
 
 	object GlossaryItem {
 
@@ -53,7 +62,10 @@ object Glossary {
 
 
 
+
     val glossaryItems = ArrayBuffer[GlossaryItem]()
+
+	// NOTE! Some glossary items are defined in ExampleValue.scala
 
 	  glossaryItems += GlossaryItem(
 		title = "Account",
@@ -1002,15 +1014,9 @@ else {
 
 
 
-	glossaryItems += GlossaryItem(
-		title = "correlation_id",
-		description =
-				s"""
-				|${correlationIdExample.description}
-				|
-				|Example value: ${correlationIdExample.value}
-      """)
 
+
+	// NOTE! Some glossary items are generated in ExampleValue.scala
 
 
 }
