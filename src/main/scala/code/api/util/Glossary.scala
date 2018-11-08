@@ -6,6 +6,9 @@ import org.pegdown.PegDownProcessor
 import scala.collection.mutable.ArrayBuffer
 
 
+import code.api.util.ExampleValue._
+
+
 
 
 
@@ -65,13 +68,16 @@ object Glossary {
 	  glossaryItems += GlossaryItem(
 		title = "Account.account_id",
 		description =
-		"""
+		s"""
 		  |An identifier for the account that MUST NOT leak the account number or other identifier nomrally used by the customer or bank staff.
 		  |It SHOULD be a UUID. It MUST be unique in combination with the BANK_ID. ACCOUNT_ID is used in many URLS so it should be considered public.
 		  |(We do NOT use account number in URLs since URLs are cached and logged all over the internet.)
 		  |In local / sandbox mode, ACCOUNT_ID is generated as a UUID and stored in the database.
 		  |In non sandbox modes (Kafka etc.), ACCOUNT_ID is mapped to core banking account numbers / identifiers at the South Side Adapter level.
 		  |ACCOUNT_ID is used to link Metadata and Views so it must be persistant and known to the North Side (OBP-API).
+			|
+			| Example value: ${accountIdExample.value}
+			|
 		""")
 
 	  glossaryItems += GlossaryItem(
@@ -96,6 +102,9 @@ object Glossary {
 		  |In sandbox mode it typically has the form: "financialinstitutuion.sequencennumber.region.language". e.g. "bnpp-irb.01.it.it"
 			|
 			|For production, it's value could be the BIC of the institution.
+			|
+			|
+			|Example value: ${bankIdExample.value}
 		 """)
 
 	  glossaryItems += GlossaryItem(
@@ -118,9 +127,10 @@ object Glossary {
 	  glossaryItems += GlossaryItem(
 		title = "Customer.customer_id",
 		description =
-		  """
+		  s"""
 			|The identifier that MUST NOT leak the customer number or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique in combination with BANK_ID.
 			|
+			|Example value: ${customerIdExample.value}
 		  """)
 
 	  glossaryItems += GlossaryItem(
@@ -152,8 +162,10 @@ object Glossary {
 	  glossaryItems += GlossaryItem(
 		title = "User.user_id",
 		description =
-		  """
+		  s"""
 			|An identifier that MUST NOT leak the user name or other identifier nomrally used by the customer or bank staff. It SHOULD be a UUID and MUST be unique on the OBP instance.
+			|
+			| Example value: ${userIdExample.value}
 		  """)
 
 	  glossaryItems += GlossaryItem(
@@ -987,6 +999,18 @@ else {
 						 |OAuth 2 is not enabled for this OBP API instance.
 			""")
 	}
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "correlation_id",
+		description =
+				s"""
+				|${correlationIdExample.description}
+				|
+				|Example value: ${correlationIdExample.value}
+      """)
+
 
 
 }

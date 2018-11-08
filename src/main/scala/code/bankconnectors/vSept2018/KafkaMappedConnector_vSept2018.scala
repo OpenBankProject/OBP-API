@@ -162,7 +162,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     authViewsExample
   )
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
-  val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
+  val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: Something went wrong."
   val statusExample = Status(errorCodeExample, inboundStatusMessagesExample)
 
 

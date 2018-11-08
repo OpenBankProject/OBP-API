@@ -1,7 +1,7 @@
 package code.api.util
 
 
-import code.api.util.Glossary.glossaryItems
+import code.api.util.Glossary.{GlossaryItem, glossaryItems}
 
 object ExampleValue {
 
@@ -15,7 +15,7 @@ object ExampleValue {
 
   val bankIdGlossary = glossaryItems.find(_.title == "Bank.bank_id").map(_.textDescription)
 
-  val bankIdExample = ConnectorField("gh.76.de", s"A string that MUST uniquely identify the bank on this OBP instance. It COULD be a UUID but is generally a short string that easily identifies the bank / brand it represents.")
+  val bankIdExample = ConnectorField("GENODEM1GLS", s"A string that MUST uniquely identify the bank on this OBP instance. It COULD be a UUID but is generally a short string that easily identifies the bank / brand it represents.")
 
   val accountIdExample = ConnectorField("8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0", s"A string that, in combination with the bankId MUST uniquely identify the account on this OBP instance. SHOULD be a UUID. MUST NOT be able to guess accountNumber from accountID. OBP-API or Adapter keeps a mapping between accountId and accountNumber. AccountId is a non reversible hash of the human readable account number.")
 
@@ -62,14 +62,75 @@ object ExampleValue {
 
 
 
-  val bankRoutingSchemeExample = ConnectorField("BIC", "The scheme that the bankRoutingAddress is an example of.")
-  val bankRoutingAddressExample = ConnectorField("GENODEM1GLS", "An identifier that conforms to bankRoutingScheme")
+  val bankRoutingSchemeExample = ConnectorField("BIC", "The scheme that the bank_routing_address / bankRoutingAddress is an example of.")
+  glossaryItems += GlossaryItem(
+    title = "Bank.bank_routing_scheme",
+    description =
+      s"""
+         				|${bankRoutingSchemeExample.description}
+         				|
+         				|Example value: ${bankRoutingSchemeExample.value}
+      """)
 
-  val branchRoutingSchemeExample = ConnectorField("BRANCH-CODE", "The scheme that the branchRoutingAddress is an example of.")
-  val branchRoutingAddressExample = ConnectorField("DERBY6", "An identifier that conforms to branchRoutingScheme")
 
-  val accountRoutingSchemeExample = ConnectorField("IBAN", "The scheme that the accountRoutingAddress is an example of.")
-  val accountRoutingAddressExample = ConnectorField("DE91 1000 0000 0123 4567 89", "An identifier that conforms to accountRoutingScheme")
+  val bankRoutingAddressExample = ConnectorField("GENODEM1GLS", "An identifier that conforms to bank_routing_scheme / bankRoutingScheme")
+  glossaryItems += GlossaryItem(
+    title = "Bank.bank_routing_address",
+    description =
+      s"""
+         				|${bankRoutingAddressExample.description}
+         				|
+         				|Example value: ${bankRoutingAddressExample.value}
+      """)
+
+
+
+  val branchRoutingSchemeExample = ConnectorField("BRANCH-CODE", "The scheme that the branch_routing_address / branchRoutingAddress is an example of.")
+  glossaryItems += GlossaryItem(
+    title = "Branch.branch_routing_scheme",
+    description =
+      s"""
+         				|${branchRoutingSchemeExample.description}
+         				|
+         				|Example value: ${branchRoutingSchemeExample.value}
+      """)
+
+
+
+  val branchRoutingAddressExample = ConnectorField("DERBY6", "An address that conforms to branch_routing_scheme / branchRoutingScheme")
+  glossaryItems += GlossaryItem(
+    title = "Branch.branch_routing_address",
+    description =
+      s"""
+         				|${branchRoutingAddressExample.description}
+         				|
+         				|Example value: ${bankRoutingAddressExample.value}
+      """)
+
+
+
+  val accountRoutingSchemeExample = ConnectorField("IBAN", "The scheme that the account_routing_address / accountRoutingAddress is an example of.")
+  glossaryItems += GlossaryItem(
+    title = "Account.account_routing_scheme",
+    description =
+      s"""
+         				|${accountRoutingSchemeExample.description}
+         				|
+         				|Example value: ${accountRoutingSchemeExample.value}
+      """)
+
+
+  val accountRoutingAddressExample = ConnectorField("DE91 1000 0000 0123 4567 89", "An identifier that conforms to account_routing_scheme / accountRoutingScheme")
+
+  glossaryItems += GlossaryItem(
+    title = "Account.account_routing_address",
+    description =
+      s"""
+         				|${accountRoutingAddressExample.description}
+         				|
+         				|Example value: ${accountRoutingAddressExample.value}
+      """)
+
 
   val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 
