@@ -372,40 +372,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     }
   }("updateUserAccountViews")
 
-  //TODO, not implement in Adapter, just fake the response 
-  override def getChargeLevel(
-    bankId: BankId,
-    accountId: AccountId,
-    viewId: ViewId,
-    userId: String,
-    userName: String,
-    transactionRequestType: String,
-    currency: String
-  ): Box[AmountOfMoney] = saveConnectorMetric {
-    
-    LocalMappedConnector.getChargeLevel(
-      bankId: BankId,
-      accountId: AccountId,
-      viewId: ViewId,
-      userId: String,
-      userName: String,
-      transactionRequestType: String,
-      currency: String
-    )
-  }("getChargeLevel")
-  
-  //TODO, not implement in Adapter, just fake the response 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = saveConnectorMetric{
-    LocalMappedConnector
-      .createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)
-    }("createChallenge")
-  
-  //TODO, not implement in Adapter, just fake the response 
-  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) = saveConnectorMetric 
-  {
-    LocalMappedConnector.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext)
-  }("validateChallengeAnswer")
-
   // Gets transaction identified by bankid, accountid and transactionId
   override def getTransaction(
                                bankId: BankId,

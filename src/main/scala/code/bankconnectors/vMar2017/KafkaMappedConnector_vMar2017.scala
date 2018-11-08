@@ -310,7 +310,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]) = Future{
     // Create argument list
     val req = OutboundChallengeThresholdBase(
       action = "obp.get.ChallengeThreshold",
@@ -327,12 +327,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => Full((AmountOfMoney(x.currency, x.limit), callContext))
+      case Some(x)  => (Full(AmountOfMoney(x.currency, x.limit)), callContext)
       case _ => {
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        Full((AmountOfMoney(currency,convertedLimit.toString()), callContext))
+        (Full(AmountOfMoney(currency,convertedLimit.toString())), callContext)
       }
     }
   }
@@ -369,8 +369,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     userId: String,
     username: String,
     transactionRequestType: String,
-    currency: String
-  ): Box[AmountOfMoney] = {
+    currency: String,
+    callContext:Option[CallContext]) = Future {
     // Create argument list
     val req = OutboundChargeLevelBase(
       action = "obp.get.ChargeLevel",
@@ -393,7 +393,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         AmountOfMoney("EUR", "0.0001")
       }
     }
-    Full(chargeValue)
+    (Full(chargeValue), callContext)
   }
   
   messageDocs += MessageDoc(
@@ -420,7 +420,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
 
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = Future {
     // Create argument list
     val req = OutboundChallengeBase(
       messageFormat = messageFormat,
@@ -438,8 +438,8 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x) => Full((x.challengeId, callContext))
-      case _ => Empty
+      case Some(x) => (Full(x.challengeId), callContext)
+      case _ => (Empty, callContext)
     }
   }
   

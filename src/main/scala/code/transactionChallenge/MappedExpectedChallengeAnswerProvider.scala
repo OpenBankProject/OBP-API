@@ -3,6 +3,7 @@ package code.transactionChallenge
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.BCrypt
+import net.liftweb.util.Helpers.tryo
 
 object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProvider {
   
@@ -11,7 +12,7 @@ object MappedExpectedChallengeAnswerProvider extends ExpectedChallengeAnswerProv
     salt: String,
     expectedAnswer: String
   ): Box[ExpectedChallengeAnswer] = 
-    Full(
+    tryo (
       MappedExpectedChallengeAnswer
         .create
         .mChallengeId(challengeId)

@@ -25,6 +25,7 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric, _}
@@ -33,7 +34,7 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
+import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017, KafkaMappedConnector_vJune2017}
 import code.bankconnectors.vMar2017._
 import code.branches.Branches.{BranchId, BranchT, Lobby}
 import code.common._
@@ -52,6 +53,7 @@ import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers.tryo
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -1182,41 +1184,41 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Payments", 20))
   )
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]) = {
+    val authInfo = getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val req = OutboundCreateChallengeSept2018(
+      authInfo = authInfo, 
+      bankId = bankId.value,
+      accountId = accountId.value,
+      userId = userId,
+      username = AuthUser.getCurrentUserUsername,
+      transactionRequestType = transactionRequestType.value,
+      transactionRequestId = transactionRequestId
+    )
     
-    val box = for {
-      authInfo <- getAuthInfo(callContext)
-      req = OutboundCreateChallengeSept2018(
-        authInfo = authInfo, 
-        bankId = bankId.value,
-        accountId = accountId.value,
-        userId = userId,
-        username = AuthUser.getCurrentUserUsername,
-        transactionRequestType = transactionRequestType.value,
-        transactionRequestId = transactionRequestId
-      )
-      _ <- Full(logger.debug(s"Kafka createChallenge Req says:  is: $req"))
-      kafkaMessage <- processToBox[OutboundCreateChallengeSept2018](req)
-      inboundCreateChallengeSept2018 <- tryo{kafkaMessage.extract[InboundCreateChallengeSept2018]} ?~! s"$InboundCreateChallengeSept2018 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-      internalCreateChallengeSept2018 <- Full(inboundCreateChallengeSept2018.data)
-    } yield{
-      internalCreateChallengeSept2018
+    logger.debug(s"Kafka createChallenge Req says:  is: $req")
+    
+    val future = for {
+     res <- processToFuture[OutboundCreateChallengeSept2018](req) map {
+       f =>
+         try {
+           f.extract[InboundCreateChallengeSept2018]
+         } catch {
+           case e: Exception => throw new MappingException(s"$InboundCreateChallengeSept2018 extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+         }
+       } map { x => (x.authInfo, x.data) }
+    } yield {
+     Full(res)
     }
-    logger.debug(s"Kafka createChallenge Res says:  is: $Box")
     
-    val res = box match {
-      case Full(x) if (x.errorCode=="")  =>
-        Full((x.answer, callContext))
-      case Full(x) if (x.errorCode!="") =>
-        Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages)
-      case Empty =>
-        Failure(ErrorMessages.ConnectorEmptyResponse)
-      case Failure(msg, e, c) =>
-        Failure(msg, e, c)
+    val res = future map {
+      case Full((authInfo,x)) if (x.errorCode=="")  =>
+        (Full(x.answer), callContext)
+      case Full((authInfo, x)) if (x.errorCode!="") =>
+        (Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages), callContext)
       case _ =>
-        Failure(ErrorMessages.UnknownError)
+        (Failure(ErrorMessages.UnknownError), callContext)
     }
     res
-    
   }
   
   messageDocs += MessageDoc(
