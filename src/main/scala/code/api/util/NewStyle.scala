@@ -126,16 +126,16 @@ object NewStyle {
   )
 
   object HttpCode {
-    def `200`(callContext: Option[CallContext])= {
+    def `200`(callContext: Option[CallContext]): Option[CallContext] = {
       callContext.map(_.copy(httpCode = Some(200)))
     }
-    def `201`(callContext: Option[CallContext])= {
+    def `201`(callContext: Option[CallContext]): Option[CallContext] = {
       callContext.map(_.copy(httpCode = Some(201)))
     }
-    def `202`(callContext: Option[CallContext])= {
+    def `202`(callContext: Option[CallContext]): Option[CallContext] = {
       callContext.map(_.copy(httpCode = Some(202)))
     }
-    def `200`(callContext: CallContext)  = {
+    def `200`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(200)))
     }
   }
@@ -162,7 +162,7 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 400)
       }
     }
-    def getBanks(callContext: Option[CallContext]) : Future[(List[Bank], Option[CallContext])] = {
+    def getBanks(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
       Connector.connector.vend.getBanksFuture(callContext: Option[CallContext]) map {
         unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
       }
@@ -311,7 +311,7 @@ object NewStyle {
     }
 
 
-    def isEnabledTransactionRequests() = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
+    def isEnabledTransactionRequests(): Future[Box[Unit]] = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
       * Wraps a Future("try") block around the function f and
@@ -394,7 +394,7 @@ object NewStyle {
       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
       detailsPlain: String,
       chargePolicy: String,
-      callContext: Option[CallContext]): Future[(TransactionRequest, Option[CallContext])] =
+      callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv210(
         u: User,

@@ -1841,7 +1841,7 @@ Returns a string showed to the developer
     * The only difference is that this function use Akka's Future in non-blocking way i.e. without using Await.result
     * @return A Tuple of an User wrapped into a Future and optional session context data
     */
-  def getUserAndSessionContextFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
     val s = S
     val spelling = getSpellingParam()
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
@@ -2027,7 +2027,7 @@ Returns a string showed to the developer
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def authorizeEndpoint(emptyUserErrorMsg: String, cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def authorizeEndpoint(emptyUserErrorMsg: String, cc: CallContext): OBPReturnType[Box[User]] = {
     getUserAndSessionContextFuture(cc) map {
       x => underCallLimits(x)
     } map {
@@ -2037,11 +2037,11 @@ Returns a string showed to the developer
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
-  def authorizeEndpoint(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def authorizeEndpoint(cc: CallContext): OBPReturnType[Box[User]] = {
     getUserAndSessionContextFuture(cc)
   }
 
-  def filterMessage(obj: Failure) = {
+  def filterMessage(obj: Failure): String = {
     logger.debug("Failure: " + obj)
 
     def messageIsNotNull(x: Failure, obj: Failure) = {
