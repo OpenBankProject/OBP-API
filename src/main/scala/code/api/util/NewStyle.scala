@@ -406,8 +406,8 @@ object NewStyle {
         detailsPlain: String,
         chargePolicy: String,
         callContext: Option[CallContext]
-      ) map {
-        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400)
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
       }
     }
     
@@ -495,19 +495,18 @@ object NewStyle {
                       transactionRequestType: TransactionRequestType,
                       chargePolicy: String, 
                       callContext: Option[CallContext]): OBPReturnType[TransactionId]=
-      Future{Connector.connector.vend.makePaymentv200(
+      Connector.connector.vend.makePaymentv210(
         fromAccount: BankAccount,
         toAccount: BankAccount,
         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
         amount: BigDecimal,
         description: String,
         transactionRequestType: TransactionRequestType,
-        chargePolicy: String
-      )} map { i => 
-        (unboxFullOrFail(i, callContext, s"$InvalidConnectorResponseForMakePayment ",400), callContext)
+        chargePolicy: String, 
+        callContext: Option[CallContext]
+      ) map { i => 
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
-    
-    
         
   }
 
