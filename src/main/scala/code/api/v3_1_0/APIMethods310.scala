@@ -15,6 +15,7 @@ import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.{Connector, OBPBankId}
 import code.consumer.Consumers
 import code.customer.{CreditLimit, CreditRating, CustomerFaceImage}
+import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
@@ -1601,7 +1602,49 @@ trait APIMethods310 {
           }
       }
     }
+    resourceDocs += ResourceDoc(
+      getAllEntitlements,
+      implementedInApiVersion,
+      nameOf(getAllEntitlements),
+      "GET",
+      "/entitlements",
+      "Get all Entitlements",
+      s"""
+        |
+        |Login is required.
+        |
+        |Possible filter on the role field:
+        |
+        |eg: /entitlements?role=${canGetCustomer.toString}
+        |
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      entitlementJSONs,
+      List(UserNotLoggedIn, UserNotSuperAdmin, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
+
+    lazy val getAllEntitlements: OBPEndpoint = {
+      case "entitlements" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
+              isSuperAdmin(u.userId)
+            }
+            roleName <- Future(APIUtil.getHttpRequestUrlParam(cc.url, "role"))
+
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByRoleFuture(roleName) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            (JSONFactory310.createEntitlementJsonsV310(entitlements), callContext)
+          }
+      }
+    }
 
 
 
