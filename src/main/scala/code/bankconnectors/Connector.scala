@@ -17,11 +17,12 @@ import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
-import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
+import code.bankconnectors.vSept2018.{KafkaMappedConnector_vSept2018}
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.context.UserAuthContext
 import code.customer._
 import code.fx.FXRate
+import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
@@ -38,7 +39,7 @@ import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.{BCrypt, Props, SimpleInjector}
+import net.liftweb.util.{BCrypt, Helpers, Props, SimpleInjector}
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
@@ -149,6 +150,11 @@ trait InboundAccountCommon{
   def accountRoutingScheme:String
   def accountRoutingAddress:String
 }
+case class ObpApiLoopback(
+  connectorVersion: String, 
+  gitCommit: String, 
+  durationTime: String
+) extends TopicTrait
 
 trait Connector extends MdcLoggable{
 
@@ -184,6 +190,30 @@ trait Connector extends MdcLoggable{
     * @return
     */
   private def currentMethodName() : String = Thread.currentThread.getStackTrace()(2).getMethodName
+  
+  //This method is used for testing API<-->Kafka connection. not need sent it to Adapter.
+  def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[Box[ObpApiLoopback]] = 
+  {
+    for{
+      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed not set")}
+      startTime <- Future{Helpers.now}
+      req <- Future{ObpApiLoopback(connectorVersion, gitCommit, "")}
+      obpApiLoopback <- connectorVersion.contains("kafka") match {
+        case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
+        case true =>  
+          for{
+            res <- KafkaMappedConnector_vSept2018.processToFuture[ObpApiLoopback](req)
+            endTime <- Future{Helpers.now}
+            durationTime <- Future{endTime.getTime - startTime.getTime}
+            obpApiLoopback<- Future{res.extract[ObpApiLoopback]}
+          } yield {
+            obpApiLoopback.copy(durationTime = durationTime.toString)
+          }
+      }
+    } yield {
+      (Full(obpApiLoopback), callContext)
+    }
+  }
   
   def getAdapterInfo(callContext: Option[CallContext]) : Box[(InboundAdapterInfoInternal, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
 
