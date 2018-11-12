@@ -1,21 +1,21 @@
 package code.bankconnectors.vSept2018
 
-import java.lang
 import java.util.Date
 import code.api.util.APIUtil
 import code.api.util.APIUtil.InboundMessageBase
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v3_1_0.CheckbookOrdersJson
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.InternalCustomer
+import code.bankconnectors.vJune2017.{InternalCustomer}
 import code.bankconnectors.vMar2017._
 import code.branches.Branches._
 import code.common.{Address, Location, Meta, Routing}
-import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
+import code.customer.{Customer}
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AmountOfMoney => _, _}
+import code.model._
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
@@ -39,6 +39,38 @@ case class OutboundGetBranches(authInfo: AuthInfo,bankId: String) extends TopicT
 case class OutboundGetBranch(authInfo: AuthInfo, bankId: String, branchId: String)extends TopicTrait
 case class OutboundGetAtms(authInfo: AuthInfo,bankId: String) extends TopicTrait
 case class OutboundGetAtm(authInfo: AuthInfo,bankId: String, atmId: String) extends TopicTrait
+case class OutboundGetChallengeThreshold(
+  authInfo: AuthInfo,
+  bankId: String,
+  accountId: String,
+  viewId: String,
+  transactionRequestType: String,
+  currency: String,
+  userId: String,
+  userName: String
+) extends TopicTrait
+case class OutboundCreateTransaction(
+  authInfo: AuthInfo,
+  
+  // fromAccount
+  fromAccountBankId : String,
+  fromAccountId : String,
+  
+  // transaction details
+  transactionRequestType: String,
+  transactionChargePolicy: String,
+  transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+  
+  // toAccount or toCounterparty
+  toCounterpartyId: String,
+  toCounterpartyName: String,
+  toCounterpartyCurrency: String,
+  toCounterpartyRoutingAddress: String,
+  toCounterpartyRoutingScheme: String,
+  toCounterpartyBankRoutingAddress: String,
+  toCounterpartyBankRoutingScheme: String
+
+) extends TopicTrait
 
 case class OutboundCreateChallengeSept2018(
   authInfo: AuthInfo,
@@ -122,6 +154,7 @@ case class InboundGetAtms(authInfo: AuthInfo, status: Status, data: List[Inbound
 case class InboundGetAtm(authInfo: AuthInfo, status: Status, data: Option[InboundAtmSept2018])
 case class InboundGetChecksOrderStatus(authInfo: AuthInfo, status: Status, data: CheckbookOrdersJson)
 case class InboundGetCreditCardOrderStatus(authInfo: AuthInfo, status: Status, data: List[InboundCardDetails])
+case class InboundGetChallengeThreshold(authInfo: AuthInfo, status: Status, data: AmountOfMoney)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -410,6 +443,13 @@ case class InboundCardDetails(
   statusDate: String,
   branch: String
 )
+
+case class InternalTransactionId(
+  errorCode: String,
+  backendMessages: List[InboundStatusMessage],
+  id : String
+)
+case class InboundCreateTransactionId(authInfo: AuthInfo, data: InternalTransactionId)
 
 object JsonFactory_vSept2018 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
