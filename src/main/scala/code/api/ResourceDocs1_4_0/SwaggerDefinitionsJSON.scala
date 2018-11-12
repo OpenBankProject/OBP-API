@@ -2,7 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
-import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocsJson, MessageDocJson}
+import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.{Constant, v3_1_0}
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
@@ -15,7 +15,7 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
-import code.api.v3_1_0.{BadLoginStatusJson, _}
+import code.api.v3_1_0.{BadLoginStatusJson, ObpApiLoopbackJson, _}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import code.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
@@ -2962,6 +2962,8 @@ object SwaggerDefinitionsJSON {
   val userAuthContextsJson = UserAuthContextsJson(
     user_auth_contexts = List(userAuthContextJson)
   )
+  
+  val obpApiLoopbackJson = ObpApiLoopbackJson("kafka_vSept2018","f0acd4be14cdcb94be3433ec95c1ad65228812a0","10 ms")
 
   //The common error or success format.
   //Just some helper format to use in Json 

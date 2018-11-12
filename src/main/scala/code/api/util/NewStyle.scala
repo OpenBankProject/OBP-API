@@ -13,7 +13,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.bankconnectors.{Connector, OBPQueryParam}
+import code.bankconnectors.{Connector, OBPQueryParam, ObpApiLoopback}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
@@ -122,7 +122,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createUserAuthContext), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteUserAuthContextById), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getObpApiLoopback), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -507,6 +508,12 @@ object NewStyle {
       ) map { i => 
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
+    
+    def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[ObpApiLoopback] = {
+      Connector.connector.vend.getObpApiLoopback(callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
         
   }
 

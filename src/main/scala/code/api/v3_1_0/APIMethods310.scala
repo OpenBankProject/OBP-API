@@ -1777,6 +1777,37 @@ trait APIMethods310 {
           }
       }
     }
+    
+    resourceDocs += ResourceDoc(
+      getObpApiLoopback,
+      implementedInApiVersion,
+      nameOf(getObpApiLoopback),
+      "GET",
+      "/loopback",
+      "Get API Loopback",
+      s"""Get the status of kafka. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      obpApiLoopbackJson,
+      List(
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi, apiTagNewStyle))
+
+    lazy val getObpApiLoopback : OBPEndpoint = {
+      case "loopback" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (obpApiLoopback, callContext) <- NewStyle.function.getObpApiLoopback(Some(cc))
+          } yield {
+            (createObpApiLoopbackJson(obpApiLoopback), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     
   }

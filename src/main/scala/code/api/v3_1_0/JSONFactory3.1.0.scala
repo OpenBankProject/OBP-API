@@ -37,6 +37,7 @@ import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson}
 import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
 import code.api.v2_2_0._
+import code.bankconnectors.ObpApiLoopback
 import code.common.Address
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
@@ -298,6 +299,11 @@ case class CustomerAddressJsonV310(
                             insert_date: Date
                           )
 case class CustomerAddressesJsonV310(addresses: List[CustomerAddressJsonV310])
+case class ObpApiLoopbackJson(
+  connector_version: String,
+  git_commit: String,
+  duration_time: String
+)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -493,6 +499,12 @@ object JSONFactory310{
   def createAddresses(addresses: List[CustomerAddress]): CustomerAddressesJsonV310 =
     CustomerAddressesJsonV310(addresses.map(createAddress(_)))
 
+  def createObpApiLoopbackJson(obpApiLoopback: ObpApiLoopback): ObpApiLoopbackJson =
+    ObpApiLoopbackJson(
+      obpApiLoopback.connectorVersion,
+      obpApiLoopback.gitCommit,
+      s"${obpApiLoopback.durationTime} ms"
+    )
 
   def createEntitlementJsonsV310(tr: List[Entitlement]) = {
     val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {

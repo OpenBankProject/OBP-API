@@ -24,23 +24,23 @@ Berlin 13359, Germany
 */
 
 import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.UUID.randomUUID
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
-import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric, _}
+import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages}
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson}
-import code.atms.Atms.{AtmId, AtmT}
+import code.api.v3_1_0.CardObjectJson
+import code.atms.Atms.AtmId
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017, KafkaMappedConnector_vJune2017}
+import code.bankconnectors.vJune2017.OutboundGetAtm
+import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
 import code.bankconnectors.vMar2017._
-import code.branches.Branches.{BranchId, BranchT, Lobby}
+import code.branches.Branches.{BranchId, Lobby}
 import code.common._
 import code.customer._
 import code.kafka.{KafkaHelper, Topics}
-import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests._
@@ -52,8 +52,7 @@ import net.liftweb.common.{Box, _}
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
-import net.liftweb.util.Helpers.tryo
-
+import net.liftweb.util.Helpers.{now, tryo}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -61,7 +60,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import code.api.util.ExampleValue._
-import code.context.UserAuthContextProvider
+import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -2425,6 +2424,112 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getAtmFuture")
 
+  override def getChallengeThreshold(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    transactionRequestType: String,
+    currency: String,
+    userId: String,
+    userName: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[AmountOfMoney]] = saveConnectorMetric {
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmTTL second){
+        val authInfo = getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
+        val req = OutboundGetChallengeThreshold(authInfo, bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
+        logger.debug(s"Kafka getChallengeThresholdFuture Req is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetChallengeThreshold](req) map {
+            f =>
+              try {
+                f.extract[InboundGetChallengeThreshold]
+              } catch {
+                case e: Exception => throw new MappingException(s"$InboundGetAtm extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+              }
+          } map {
+            d => (d.data, d.status)
+          }
+        } yield {
+          res
+        }
+
+        logger.debug(s"Kafka getAtmFuture Res says:  is: $future")
+        future map {
+          case (amountOfMoney, status) if (status.errorCode=="") =>
+            (Full(amountOfMoney), callContext)
+          case (_, status) if (status.errorCode!="") =>
+            (Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages), callContext)
+          case _ =>
+            (Failure(ErrorMessages.UnknownError), callContext)
+        }
+      }
+    }
+  }("getChallengeThreshold")
+  
+  
+  override def makePaymentv210(
+    fromAccount: BankAccount,
+    toAccount: BankAccount,
+    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+    amount: BigDecimal,
+    description: String,
+    transactionRequestType: TransactionRequestType,
+    chargePolicy: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TransactionId]]= {
+    
+    val req = OutboundCreateTransaction(
+      authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
+      
+      // fromAccount
+      fromAccountId = fromAccount.accountId.value,
+      fromAccountBankId = fromAccount.bankId.value,
+      
+      // transaction details
+      transactionRequestType = transactionRequestType.value,
+      transactionChargePolicy = chargePolicy,
+      transactionRequestCommonBody = transactionRequestCommonBody,
+      
+      // toAccount or toCounterparty
+      toCounterpartyId = toAccount.accountId.value,
+      toCounterpartyName = toAccount.name,
+      toCounterpartyCurrency = toAccount.currency,
+      toCounterpartyRoutingAddress = toAccount.accountId.value,
+      toCounterpartyRoutingScheme = "OBP",
+      toCounterpartyBankRoutingAddress = toAccount.bankId.value,
+      toCounterpartyBankRoutingScheme = "OBP"
+    )
+    
+    // Since result is single account, we need only first list entry
+    val future = for {
+      res <- processToFuture[OutboundCreateTransaction](req) map {
+        f =>
+          try {
+            f.extract[InboundCreateTransactionId]
+          } catch {
+            case e: Exception => throw new MappingException(s"INTERNAL-$UnknownError $InboundCreateTransactionId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+          }
+      } map {
+        (x => (x.authInfo, x.data))
+      }
+    } yield {
+      Full(res)
+    }
+    
+    val res = future map {
+      case Full((authInfo, data )) if (data.errorCode=="") =>
+        (Full(TransactionId(data.id)), callContext)
+      case Full((authInfo, data )) if (data.errorCode!="") =>
+        (Failure("INTERNAL-OBP-ADAPTER-xxx:"+ data.errorCode+". + CoreBank-Error:"+ data.backendMessages), callContext)
+      case _ =>
+        (Failure(ErrorMessages.UnknownError), callContext)
+    }
+    
+    res
+  }
 
 }
 
