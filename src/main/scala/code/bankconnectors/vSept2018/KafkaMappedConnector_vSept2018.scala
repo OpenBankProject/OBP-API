@@ -1019,16 +1019,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case Full((data, status)) if (!data.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)) =>
               Failure(InvalidConnectorResponseForGetTransactions)
             case Full((data, status)) if (status.errorCode == "") =>
-              val bankAccountAndCallContetxt = checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext)
-
-              val res = for {
-                internalTransaction <- data
-                thisBankAccount <- bankAccountAndCallContetxt.map(_._1) ?~! ErrorMessages.BankAccountNotFound
-                transaction <- createInMemoryTransactionCore(thisBankAccount, internalTransaction)
+              for{
+                (thisBankAccount, callContext) <- checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
+                transaction <- createInMemoryTransactionsCore(thisBankAccount, data)
               } yield {
-                transaction
+                (transaction, callContext)
               }
-              Full(res, bankAccountAndCallContetxt.map(_._2).openOrThrowException(attemptedToOpenAnEmptyBox))
             case Empty =>
               Failure(ErrorMessages.ConnectorEmptyResponse)
             case Failure(msg, e, c) =>
@@ -1919,6 +1915,18 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }
 
+  def createInMemoryTransactionsCore(bankAccount: BankAccount,internalTransactions: List[InternalTransaction_vSept2018]): Box[List[TransactionCore]] = {
+    //first loop all the items in the list, and return all the boxed back. it may contains the Full, Failure, Empty. 
+    val transactionCoresBoxes: List[Box[TransactionCore]] = internalTransactions.map(createInMemoryTransactionCore(bankAccount, _))
+    
+    //check the Failure in the List, if it contains any Failure, than throw the Failure back, it is 0. Then run the 
+    transactionCoresBoxes.filter(_.isInstanceOf[Failure]).length match {
+      case 0 =>
+        tryo {transactionCoresBoxes.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))}
+      case _ => 
+        transactionCoresBoxes.filter(_.isInstanceOf[Failure]).head.asInstanceOf[Failure]
+    }
+  }
   def createInMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction_vSept2018): Box[TransactionCore] = {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"

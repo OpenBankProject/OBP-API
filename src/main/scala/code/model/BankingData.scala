@@ -541,8 +541,8 @@ trait BankAccount extends MdcLoggable {
   final def getModeratedTransactionsCore(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[(List[ModeratedTransactionCore], Option[CallContext])] = {
     if(APIUtil.hasAccess(view, user)) {
       for {
-        (transactions, callContext) <- Connector.connector.vend.getTransactionsCore(bankId, accountId, callContext, queryParams: _*)
-        moderated <- view.moderateTransactionsWithSameAccountCore(transactions) ?~! "Server error"
+        (transactions, callContext) <- Connector.connector.vend.getTransactionsCore(bankId, accountId, callContext, queryParams: _*) ?~! InvalidConnectorResponseForGetTransactions
+        moderated <- view.moderateTransactionsWithSameAccountCore(transactions) ?~! UnknownError
       } yield (moderated, callContext)
     }
     else viewNotAllowed(view)
