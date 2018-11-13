@@ -34,7 +34,6 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v3_1_0.CardObjectJson
 import code.atms.Atms.AtmId
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.OutboundGetAtm
 import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
 import code.bankconnectors.vMar2017._
 import code.branches.Branches.{BranchId, Lobby}
@@ -2513,17 +2512,17 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case e: Exception => throw new MappingException(s"INTERNAL-$UnknownError $InboundCreateTransactionId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
           }
       } map {
-        (x => (x.authInfo, x.data))
+        (x => (x.authInfo, x.status,  x.data))
       }
     } yield {
       Full(res)
     }
     
     val res = future map {
-      case Full((authInfo, data )) if (data.errorCode=="") =>
+      case Full((authInfo, status,  data )) if (status.errorCode=="") =>
         (Full(TransactionId(data.id)), callContext)
-      case Full((authInfo, data )) if (data.errorCode!="") =>
-        (Failure("INTERNAL-OBP-ADAPTER-xxx:"+ data.errorCode+". + CoreBank-Error:"+ data.backendMessages), callContext)
+      case Full((authInfo, status,  data )) if (status.errorCode!="") =>
+        (Failure("INTERNAL-OBP-ADAPTER-xxx:"+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages), callContext)
       case _ =>
         (Failure(ErrorMessages.UnknownError), callContext)
     }
