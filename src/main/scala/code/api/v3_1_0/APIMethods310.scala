@@ -211,8 +211,8 @@ trait APIMethods310 {
       nameOf(getTopAPIs),
       "GET",
       "/management/metrics/top-apis",
-      "get top apis",
-      s"""Returns get top apis. eg. total count, response time (in ms), etc.
+      "Get Top APIs",
+      s"""Get metrics abou the most popular APIs. e.g.: total count, response time (in ms), etc.
         |
         |Should be able to filter on the following fields
         |
@@ -298,12 +298,12 @@ trait APIMethods310 {
       nameOf(getMetricsTopConsumers),
       "GET",
       "/management/metrics/top-consumers",
-      "get metrics top consumers",
-      s"""get metrics top consumers on api usage eg. total count, consumer_id and app_name.
+      "Get Top Consumers",
+      s"""Get metrics about the top consumers of the API usage e.g. total count, consumer_id and app_name.
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
+        |e.g.: /management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=2017-05-22T01:02:03.000Z&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
@@ -521,9 +521,16 @@ trait APIMethods310 {
       nameOf(callsLimit),
       "PUT",
       "/management/consumers/CONSUMER_ID/consumer/calls_limit",
-      "Set Calls' Limit for a Consumer",
+      "Set Calls Limit for a Consumer",
       s"""
-         |Set calls' limit per Consumer.
+         |Set the API call limits for a Consumer:
+         |
+         |Per Minute
+         |Per Hour
+         |Per Week
+         |Per Month
+         |
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
@@ -541,6 +548,9 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
+
+
+    // TODO change URL to /../call-limits
 
     lazy val callsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonPut json -> _ => {
@@ -973,11 +983,10 @@ trait APIMethods310 {
       "Get API Configuration",
       """Returns information about:
         |
-        |* API Config
-        |* Default bank id
-        |* Akka ports
-        |* Elastic search ports
-        |* Cached function """,
+        |* The default bank_id
+        |* Akka configuration
+        |* Elastic Search configuration
+        |* Cached functions """,
       emptyObjectJson,
       configurationJSON,
       List(
@@ -1219,7 +1228,11 @@ trait APIMethods310 {
       "GET",
       "/rate-limiting",
       "Get Rate Limiting Info",
-      s"""Get basic information about the Rate Limiting.
+      s"""Get information about the Rate Limiting setup on this OBP Instance such as:
+         |
+         |Is rate limiting enabled and active?
+         |What backend is used to keep track of the API calls (e.g. REDIS).
+         |
          |
         |${authenticationRequiredMessage(true)}
          |
@@ -1783,9 +1796,16 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getObpApiLoopback),
       "GET",
-      "/loopback",
-      "Get API Loopback",
-      s"""Get the status of kafka. 
+      "/connector/loopback",
+      "Get Connector Status (Loopback)",
+      s"""This endpoint makes a call to the Connector to check the backend transport (e.g. Kafka) is reachable.
+         |
+         |Currently this is only implmented for Kafka based connectors.
+         |
+         |For Kafka based connectors, this endpoint writes a message to Kafka and reads it again.
+         |
+         |In the future, this endpoint may also return information about database connections etc.
+         |
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -1799,7 +1819,7 @@ trait APIMethods310 {
       List(apiTagApi, apiTagNewStyle))
 
     lazy val getObpApiLoopback : OBPEndpoint = {
-      case "loopback" :: Nil JsonGet _ => {
+      case "connector" :: "loopback" :: Nil JsonGet _ => {
         cc =>
           for {
             (obpApiLoopback, callContext) <- NewStyle.function.getObpApiLoopback(Some(cc))
