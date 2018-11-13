@@ -580,15 +580,18 @@ trait APIMethods310 {
       }
     }
 
+
+
+    // TODO Change endpoint to ../call-limits
     resourceDocs += ResourceDoc(
       getCallsLimit,
       implementedInApiVersion,
       nameOf(getCallsLimit),
       "GET",
       "/management/consumers/CONSUMER_ID/consumer/calls_limit",
-      "Get Calls' Limit for a Consumer",
+      "Get Call Limits for a Consumer",
       s"""
-         |Get calls' limit per Consumer.
+         |Get Calls limits per Consumer.
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
@@ -607,6 +610,9 @@ trait APIMethods310 {
       List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
 
+
+
+    // TODO Change endpoint to ../call-limits
     lazy val getCallsLimit : OBPEndpoint = {
       case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonGet _ => {
         cc =>
