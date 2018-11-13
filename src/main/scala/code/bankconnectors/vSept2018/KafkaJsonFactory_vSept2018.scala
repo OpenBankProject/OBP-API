@@ -7,11 +7,12 @@ import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v3_1_0.CheckbookOrdersJson
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.{InternalCustomer}
+import code.bankconnectors.vJune2017.InternalCustomer
 import code.bankconnectors.vMar2017._
 import code.branches.Branches._
 import code.common.{Address, Location, Meta, Routing}
-import code.customer.{Customer}
+import code.context.UserAuthContext
+import code.customer.Customer
 import code.kafka.Topics._
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
@@ -478,6 +479,13 @@ object JsonFactory_vSept2018 {
     )
   }
   
+  def createBasicUserAuthContext(userAuthContest : UserAuthContext) : BasicUserAuthContext = {
+    BasicUserAuthContext(
+      key = userAuthContest.key,
+      value = userAuthContest.value
+    )
+  }
+  
   def createCustomersJson(customers : List[Customer]) : InternalBasicCustomers = {
     InternalBasicCustomers(customers.map(createCustomerJson))
   }
@@ -488,6 +496,11 @@ object JsonFactory_vSept2018 {
   
   def createBasicCustomerJson(customers : List[Customer]) : List[BasicCustomer] = {
     customers.map(createBasicCustomerJson)
+  }
+  
+  
+  def createBasicUserAuthContextJson(userAuthContexts : List[UserAuthContext]) : List[BasicUserAuthContext] = {
+    userAuthContexts.map(createBasicUserAuthContext)
   }
   
 }

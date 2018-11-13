@@ -77,9 +77,11 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
   import scala.collection.JavaConversions._
 
   val consumer = new KafkaConsumer[K, V](consumerProperties(brokers, group, keyDeserealizer, valueDeserealizer))
-  consumer.subscribe(listOfTopics.map(t => s"to.${clientId}.caseclass.$t"))
   //The following topic is for loopback, only for testing api <--> kafka
-  consumer.subscribe(s"from.${clientId}.to.adapter.mf.caseclass.ObpApiLoopback"::Nil)
+  val apiLoopbackTopic = s"from.${clientId}.to.adapter.mf.caseclass.ObpApiLoopback"
+  val allTopicsOverAdapter= listOfTopics.map(t => s"to.${clientId}.caseclass.$t")
+  val allTopicsApiListening: List[String] = allTopicsOverAdapter:+ apiLoopbackTopic
+  consumer.subscribe(allTopicsApiListening)
 
   var completed = false
   var started = false

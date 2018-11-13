@@ -20,8 +20,12 @@ class RemotedataUserAuthContextActor extends Actor with ObpActorHelper with MdcL
 
     case cc.getUserAuthContexts(userId: String) =>
       logger.debug("getUserAuthContexts(" + userId + ")")
-      sender ! (mapper.getUserAuthContextsAkka(userId))
-
+      sender ! (mapper.getUserAuthContextsBox(userId))
+      
+    case cc.getUserAuthContextsBox(userId: String) =>
+      logger.debug("getUserAuthContextsBox(" + userId + ")")
+      sender ! (mapper.getUserAuthContextsBox(userId))
+      
     case cc.deleteUserAuthContexts(userId: String) =>
       logger.debug(msg=s"deleteUserAuthContexts(${userId})")
       sender ! (mapper.deleteUserAuthContextsAkka(userId))

@@ -24,7 +24,6 @@ Berlin 13359, Germany
 */
 
 import java.text.SimpleDateFormat
-import java.util.Locale
 import java.util.UUID.randomUUID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -61,6 +60,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import code.api.util.ExampleValue._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.context.UserAuthContextProvider
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -79,17 +79,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   override val messageDocs = ArrayBuffer[MessageDoc]()
   val emptyObjectJson: JValue = decompose(Nil)
   
-  //This is special method, it is only used for the first cbs call. cbsToken can be empty here.
-  def getAuthInfoFirstCbsCall (username: String, callContext: Option[CallContext]): Box[AuthInfo]=
-    for{
-      cc <- tryo {callContext.get} ?~! NoCallContext
-      gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload
-      isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
-      correlationId <- Full(cc.correlationId)
-    } yield{
-      AuthInfo("",username, "", isFirst, correlationId)
-    }
-  
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
     for{
       cc <- tryo {callContext.get} ?~! NoCallContext
@@ -104,7 +93,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       views <- Full(permission.views)
       linkedCustomers <- Full(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
-      userAuthContexts = Nil //TODO, need get the data from UserAuthContexts table
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
+      basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
       authViews<- Full(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
@@ -121,7 +111,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           AuthView(viewBasic, accountBasic)
       )
     } yield{
-      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, likedCustomersBasic, userAuthContexts, authViews)
+      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, likedCustomersBasic, basicUserAuthContexts, authViews)
     }
   
   val viewBasicExample = ViewBasic("owner","Owner", "This is the owner view")
@@ -588,7 +578,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
       
         val box = for {
-          authInfo <- getAuthInfoFirstCbsCall(username, callContext)
+          authInfo <- getAuthInfo(callContext)
           req = OutboundGetAccounts(authInfo, internalCustomers)
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -631,7 +621,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
         val req = OutboundGetAccounts(
-          getAuthInfoFirstCbsCall(username, callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
+          getAuthInfo(callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
           internalCustomers
         )
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
