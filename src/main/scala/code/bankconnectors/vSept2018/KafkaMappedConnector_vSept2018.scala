@@ -59,7 +59,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import code.api.util.ExampleValue._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
 import code.context.UserAuthContextProvider
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
@@ -2442,6 +2443,32 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getAtmFuture")
 
+  messageDocs += MessageDoc(
+    process = "obp.get.getChallengeThreshold",
+    messageFormat = messageFormat,
+    description = "Get Challenge Threshold",
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetChallengeThreshold.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetChallengeThreshold.getClass.getSimpleName).response),
+    exampleOutboundMessage = decompose(OutboundGetChallengeThreshold(
+      authInfoExample,
+      bankId = bankIdExample.value,
+      accountId = accountIdExample.value,
+      viewId = "owner",
+      transactionRequestType = "SEPA",
+      currency ="EUR",
+      userId = userIdExample.value,
+      userName =usernameExample.value
+      )),
+    exampleInboundMessage = decompose(
+      InboundGetChallengeThreshold(
+          authInfoExample, 
+          Status(errorCodeExample, inboundStatusMessagesExample), 
+          AmountOfMoney("EUR","1000")
+        )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Open Data", 1))
+  )
+  
   override def getChallengeThreshold(
     bankId: String,
     accountId: String,
@@ -2487,7 +2514,41 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getChallengeThreshold")
   
-  
+  messageDocs += MessageDoc(
+    process = "obp.get.makePaymentv210",
+    messageFormat = messageFormat,
+    description = "make payments.",
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).response),
+    exampleOutboundMessage = decompose(
+      OutboundCreateTransaction(
+        authInfo: AuthInfo,
+        // fromAccount
+        fromAccountBankId =bankIdExample.value,
+        fromAccountId =accountIdExample.value,
+        
+        // transaction details
+        transactionRequestType ="SEPA",
+        transactionChargePolicy ="SHARE",
+        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("EUR","1000"),"for work"),
+        
+        // toAccount or toCounterparty
+        toCounterpartyId = "",
+        toCounterpartyName = "",
+        toCounterpartyCurrency = "",
+        toCounterpartyRoutingAddress = "",
+        toCounterpartyRoutingScheme = "",
+        toCounterpartyBankRoutingAddress = "",
+        toCounterpartyBankRoutingScheme = "")),
+    exampleInboundMessage = decompose(
+      InboundCreateTransactionId(
+        authInfoExample,
+        Status(errorCodeExample, inboundStatusMessagesExample),
+        InternalTransactionId("")
+      )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Open Data", 1))
+  )
   override def makePaymentv210(
     fromAccount: BankAccount,
     toAccount: BankAccount,
