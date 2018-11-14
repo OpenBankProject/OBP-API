@@ -1352,8 +1352,8 @@ trait APIMethods310 {
       nameOf(createUserAuthContext),
       "POST",
       "/users/USER_ID/auth-context",
-      "Create UserAuthContext",
-      s"""Create UserAuthContext.
+      "Create User Auth Context",
+      s"""Create User Auth Context.
         |${authenticationRequiredMessage(true)}
         |""",
       postUserAuthContextJson,
@@ -1391,8 +1391,8 @@ trait APIMethods310 {
       nameOf(getUserAuthContexts),
       "GET",
       "/users/USER_ID/auth-context",
-      "Get UserAuthContexts",
-      s"""Get all UserAuthContexts.
+      "Get User Auth Contexts",
+      s"""Get User Auth Contexts for a User.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1430,8 +1430,8 @@ trait APIMethods310 {
       nameOf(deleteUserAuthContexts),
       "DELETE",
       "/users/USER_ID/auth-context",
-      "Delete User's all AuthContext",
-      s"""Delete all AuthContext of a User specified by USER_ID.
+      "Delete User's Auth Contexts",
+      s"""Delete the Auth Contexts of a User specified by USER_ID.
          |
          |
          |${authenticationRequiredMessage(true)}
