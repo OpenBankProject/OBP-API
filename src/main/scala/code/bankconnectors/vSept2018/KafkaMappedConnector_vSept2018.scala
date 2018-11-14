@@ -25,6 +25,7 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
+import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
@@ -94,14 +95,22 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     for{
       cc <- tryo {callContext.get} ?~! NoCallContext
       user <- cc.user
-      username <- Full(user.name)
+      username <- tryo(user.name)
       currentResourceUserId <- Some(user.userId)
-      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload
+      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload orElse (
+        Some(PayloadOfJwtJSON(login_user_name = "",
+                         is_first = false,
+                         app_id = "",
+                         app_name = "",
+                         time_stamp = "",
+                         cbs_token = Some(""),
+                         cbs_id = "",
+                         session_id = Some(""))))
       cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
-      isFirst <- Full(gatewayLoginPayLoad.is_first)
-      correlationId <- Full(cc.correlationId)
+      isFirst <- tryo(gatewayLoginPayLoad.is_first)
+      correlationId <- tryo(cc.correlationId)
       permission <- Views.views.vend.getPermissionForUser(user)
-      views <- Full(permission.views)
+      views <- tryo(permission.views)
       linkedCustomers <- Full(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
