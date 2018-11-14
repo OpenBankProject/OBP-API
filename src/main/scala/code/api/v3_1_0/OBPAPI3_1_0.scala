@@ -160,7 +160,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.deleteEntitlement ::
                           Implementations2_0_0.elasticSearchMetrics ::
                           //Implementations2_0_0.elasticSearchWarehouse ::
-                          Implementations2_0_0.getAllEntitlements ::
+                          // Implementations2_0_0.getAllEntitlements ::
                           //now in V300 Implementations2_0_0.getCoreAccountById ::
                           //now in V300 Implementations2_0_0.getCoreTransactionsForBankAccount ::
                           // Implementations2_0_0.getCurrentUser ::
@@ -314,6 +314,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.createTaxResidence ::
                           Implementations3_1_0.getTaxResidence ::
                           Implementations3_1_0.deleteTaxResidence ::
+                          Implementations3_1_0.getAllEntitlements ::
                           Implementations3_1_0.createCustomerAddress ::
                           Implementations3_1_0.getCustomerAddresses ::
                           Implementations3_1_0.deleteCustomerAddress ::

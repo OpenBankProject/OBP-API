@@ -30,8 +30,14 @@ object RemotedataEntitlements extends ObpActorInit with EntitlementProvider {
   def getEntitlements() : Box[List[Entitlement]] =
     extractFutureToBox(actor ? cc.getEntitlements())
 
+  def getEntitlementsByRole(roleName: String): Box[List[Entitlement]] =
+    extractFutureToBox(actor ? cc.getEntitlementsByRole(roleName))
+
   def getEntitlementsFuture() : Future[Box[List[Entitlement]]] =
     (actor ? cc.getEntitlementsFuture()).mapTo[Box[List[Entitlement]]]
+
+  def getEntitlementsByRoleFuture(roleName: String) : Future[Box[List[Entitlement]]] =
+    (actor ? cc.getEntitlementsByRoleFuture(roleName)).mapTo[Box[List[Entitlement]]]
 
   def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement] =
     extractFutureToBox(actor ? cc.addEntitlement(bankId, userId, roleName))

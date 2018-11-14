@@ -48,6 +48,7 @@ import net.liftweb.common.{Box, Full}
 import scala.collection.immutable.List
 import code.customer.Customer
 import code.context.UserAuthContext
+import code.entitlement.Entitlement
 import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
@@ -264,6 +265,9 @@ case class UserAuthContextsJson(
 case class TaxResidenceV310(domain: String, tax_number: String, tax_residence_id: String)
 case class PostTaxResidenceJsonV310(domain: String, tax_number: String)
 case class TaxResidenceJsonV310(tax_residence: List[TaxResidenceV310])
+
+case class EntitlementJsonV310(entitlement_id: String, role_name: String, bank_id: String, user_id: String, username: String)
+case class EntitlementJSonsV310(list: List[EntitlementJsonV310])
 
 
 case class PostCustomerAddressJsonV310(
@@ -501,5 +505,23 @@ object JSONFactory310{
       obpApiLoopback.gitCommit,
       s"${obpApiLoopback.durationTime} ms"
     )
+
+  def createEntitlementJsonsV310(tr: List[Entitlement]) = {
+    val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {
+     userId => (userId, User.findByUserId(userId).map(_.name))
+    } toMap;
+
+    EntitlementJSonsV310(
+      tr.map(e =>
+        EntitlementJsonV310(
+          entitlement_id = e.entitlementId,
+          role_name = e.roleName,
+          bank_id = e.bankId,
+          user_id = e.userId,
+          username = idToUser(e.userId).openOrThrowException("not user exists for userId: " + e.userId)
+        )
+      )
+    )
+  }
 
 }

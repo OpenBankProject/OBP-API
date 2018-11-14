@@ -308,22 +308,17 @@ trait APIMethods300 {
     lazy val getPrivateAccountById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-              (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-              _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-                (u.hasViewAccess(view))
-              }
-            } yield {
-              for {
-                moderatedAccount <- account.moderatedBankAccount(view, Full(u))
-              } yield {
-                (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
-              }
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
+              (u.hasViewAccess(view))
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u))
+          } yield {
+            (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
+          }
       }
     }
 
@@ -364,9 +359,7 @@ trait APIMethods300 {
           for {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            moderatedAccount <- Future {account.moderatedBankAccount(view, Empty) } map {
-              x => fullBoxOrException(x)
-            } map { unboxFull(_) }
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Empty)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
           }
@@ -406,21 +399,16 @@ trait APIMethods300 {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-            (Full(u), callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
-            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            // Assume owner view was requested
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewAccess(view))}
-          } yield {
-            for {
-              moderatedAccount <- account.moderatedBankAccount(view, Full(u))
-            } yield {
-              (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
-            }
-          }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+          for {
+          (Full(u), callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
+          (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+          // Assume owner view was requested
+          view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
+          _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewAccess(view))}
+          moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u))
+        } yield {
+            (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
+        }
       }
     }
 

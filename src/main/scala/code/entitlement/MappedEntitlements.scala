@@ -7,6 +7,7 @@ import net.liftweb.mapper._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.tools.scalap.scalax.util.StringUtil
 
 object MappedEntitlementsProvider extends EntitlementProvider {
   override def getEntitlement(bankId: String, userId: String, roleName: String): Box[MappedEntitlement] = {
@@ -43,9 +44,24 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     Some(MappedEntitlement.findAll(OrderBy(MappedEntitlement.updatedAt, Descending)))
   }
 
+  override def getEntitlementsByRole(roleName: String): Box[List[MappedEntitlement]] = {
+    // Return a Box so we can handle errors later.
+    Some(MappedEntitlement.findAll(By(MappedEntitlement.mRoleName, roleName),OrderBy(MappedEntitlement.updatedAt, Descending)))
+  }
+
   override def getEntitlementsFuture(): Future[Box[List[Entitlement]]] = {
     Future {
       getEntitlements()
+    }
+  }
+
+  override def getEntitlementsByRoleFuture(roleName: String): Future[Box[List[Entitlement]]] = {
+    Future {
+      if(roleName == null || roleName.isEmpty){
+        getEntitlements()
+      } else {
+        getEntitlementsByRole(roleName)
+      }
     }
   }
 
