@@ -180,7 +180,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     accountNumber = accountNumberExample.value,
     accountType = accountTypeExample.value,
     balanceAmount = balanceAmountExample.value,
-    balanceCurrency = balanceCurrencyExample.value,
+    balanceCurrency = currencyExample.value,
     owners = owner1Example.value :: owner1Example.value :: Nil,
     viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
     bankRoutingScheme = bankRoutingSchemeExample.value,
@@ -896,7 +896,26 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getCoreBankAccountsFuture")
-  
+
+
+  val exampleInternalTransactionSept2018 = InternalTransaction_vSept2018(
+    transactionId = transactionIdExample.value,
+    accountId = accountIdExample.value,
+    amount = transactionAmountExample.value,
+    bankId = bankIdExample.value,
+    completedDate = transactionCompletedDateExample.value,
+    counterpartyId = counterpartyIdExample.value,
+    counterpartyName = counterpartyNameExample.value,
+    currency = currencyExample.value,
+    description = transactionDescriptionExample.value,
+    newBalanceAmount = balanceAmountExample.value,
+    newBalanceCurrency = currencyExample.value,
+    postedDate = transactionPostedDateExample.value,
+    `type` = transactionTypeExample.value,
+    userId = userIdExample.value)
+
+
+
   messageDocs += MessageDoc(
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
@@ -917,21 +936,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       InboundGetTransactions(
         authInfoExample,
         statusExample,
-        InternalTransaction_vSept2018(
-          transactionId = "String",
-          accountId = accountIdExample.value,
-          amount = "String",
-          bankId = bankIdExample.value,
-          completedDate = "String", 
-          counterpartyId = "String", 
-          counterpartyName = "String", 
-          currency = "String", 
-          description = "String", 
-          newBalanceAmount = "String",
-          newBalanceCurrency = "String", 
-          postedDate = "String", 
-          `type` = "String", 
-          userId = usernameExample.value)::Nil)),
+        exampleInternalTransactionSept2018::Nil)),
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
   )
   // TODO Get rid on these param lookups and document.
@@ -1086,22 +1091,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundGetTransaction(authInfoExample, statusExample, Some(InternalTransaction_vSept2018(
-                transactionId = "String",
-                accountId = accountIdExample.value,
-                amount = "String",
-                bankId = bankIdExample.value,
-                completedDate = "2018-10-19T21:17:03Z",
-                counterpartyId = "String",
-                counterpartyName = "String",
-                currency = "String",
-                description = "String",
-                newBalanceAmount = "String",
-                newBalanceCurrency = "String",
-                postedDate = "2018-10-19T21:17:03Z",
-                `type` = "String",
-                userId = userIdExample.value
-              )))
+      InboundGetTransaction(authInfoExample, statusExample, Some(exampleInternalTransactionSept2018))
     ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
