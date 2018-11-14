@@ -62,6 +62,7 @@ import code.api.util.ExampleValue._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
 import code.context.UserAuthContextProvider
+import code.users.Users
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -85,11 +86,30 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   def getAuthInfoFirstCbsCall (username: String, callContext: Option[CallContext]): Box[AuthInfo]=
     for{
       cc <- tryo {callContext.get} ?~! NoCallContext
-      gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload
+      gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload orElse (
+        Some(PayloadOfJwtJSON(login_user_name = "",
+                         is_first = false,
+                         app_id = "",
+                         app_name = "",
+                         time_stamp = "",
+                         cbs_token = Some(""),
+                         cbs_id = "",
+                         session_id = Some(""))))
       isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
       correlationId <- Full(cc.correlationId)
+      //Here, need separate the GatewayLogin and other Types, because of for Gatewaylogin, there is no user here. Others, need sign up user in OBP side. 
+      basicUserAuthContexts <- cc.gatewayLoginRequestPayload match {
+        case None => 
+          for{
+            user <- Users.users.vend.getUserByUserName(username)
+            userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+            basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
+          } yield
+            basicUserAuthContexts
+        case _ => Full(Nil)
+      }
     } yield{
-      AuthInfo("",username, "", isFirst, correlationId)
+      AuthInfo("",username, "", isFirst, correlationId, Nil, basicUserAuthContexts, Nil)
     }
   
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
@@ -112,7 +132,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       correlationId <- tryo(cc.correlationId)
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
-      linkedCustomers <- Full(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
       basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
@@ -2608,6 +2628,20 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
     
     res
+  }
+  
+  //This is not a independent kafka method, it call the internal method `getCoreBankAccountsFuture`, so there is no message doc here.
+  override def getCoreBankAccountsHeldFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
+    for{
+      (accounts, callContext) <- getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)}
+    } yield {
+      tryo{accounts.map(account =>AccountHeld(
+                 account.id,
+                 account.bankId,
+                 "",
+                 account.accountRoutings))}
+    }
   }
 
 }

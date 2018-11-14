@@ -31,12 +31,10 @@ Berlin 13359, Germany
   */
 package code.model.dataAccess
 
-import java.util.UUID
 import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.GatewayLogin.gateway
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundAccountCommon, InboundUser}
 import net.liftweb.common._
@@ -812,7 +810,7 @@ import net.liftweb.util.Helpers._
        user <- getUserFromConnector(name, password)
        //u <- user.user.foreign  // this will be issue when the resource user is in remote side
        u <- Users.users.vend.getUserByUserName(name)
-       v <- Full (updateUserAccountViews(u))
+       v <- Full (updateUserAccountViews(u, None))
       } yield {
         user
       }
@@ -827,7 +825,7 @@ import net.liftweb.util.Helpers._
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        u <- Users.users.vend.getUserByUserName(username)
-       v <- Full (updateUserAccountViews(u))
+       v <- Full (updateUserAccountViews(u, None))
       } yield v
     }
   }
@@ -837,9 +835,9 @@ import net.liftweb.util.Helpers._
     * update the views, accountHolders for OBP side when sign up new remote user
     * 
     */
-  def updateUserAccountViews(user: User): Unit = {
+  def updateUserAccountViews(user: User, callContext: Option[CallContext]): Unit = {
     //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccounts(user.name, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val accounts = Connector.connector.vend.getBankAccounts(user.name, callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
     updateUserAccountViews(user, accounts._1)

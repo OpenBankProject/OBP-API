@@ -1388,7 +1388,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
             //Note: this is tricky here, this endpoint has the side effects.
-            _ <- if (APIUtil.isSandboxMode) Future{} else Future(AuthUser.updateUserAccountViews(u))
+            _ <- if (APIUtil.isSandboxMode) Future{} else Future(AuthUser.updateUserAccountViews(u, callContext))
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
           }
