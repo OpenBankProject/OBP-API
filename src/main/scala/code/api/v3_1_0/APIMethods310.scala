@@ -19,6 +19,7 @@ import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
+import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
@@ -1354,6 +1355,13 @@ trait APIMethods310 {
       "/users/USER_ID/auth-context",
       "Create UserAuthContext",
       s"""Create UserAuthContext.
+        |This endpoint is important for kafka connector.
+        |Before you call this endpoint, you need know some back specific details,
+        |eg: customer_number, customer_id, token ....
+        |You can link these real bank info to one obp user.
+        |And you can get the accounts, transactions for that user.
+        |When you call this endpoint in kafka connector, it will call the bank accounts from CBS, 
+        |and create the views/accountHolders for that accounts in the backend.
         |${authenticationRequiredMessage(true)}
         |""",
       postUserAuthContextJson,
@@ -1379,6 +1387,8 @@ trait APIMethods310 {
             }
             (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
+            //Note: this is tricky here, this endpoint has the side effects.
+            _ <- if (APIUtil.isSandboxMode) Future{} else Future(AuthUser.updateUserAccountViews(u))
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
           }
