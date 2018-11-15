@@ -29,7 +29,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -601,22 +601,20 @@ trait APIMethods300 {
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-              (user, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
-              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              // Assume owner view was requested
-              view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-            } yield {
-              for {
-                //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)
-              } yield {
-                (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
-              }
+          for {
+            (user, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
+            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            // Assume owner view was requested
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
+              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+            (transactionsCore, callContext) <- Future { bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)} map {
+              unboxFullOrFail(_, callContext, UnknownError, 400)
+            }
+          } yield {
+            (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
+          }
       }
     }
 

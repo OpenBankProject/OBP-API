@@ -19,6 +19,7 @@ import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
+import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
@@ -1379,6 +1380,8 @@ trait APIMethods310 {
             }
             (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
+            //Note: this is tricky here, this endpoint has the side effects.
+            _ <- if (APIUtil.isSandboxMode) Future{} else Future(AuthUser.updateUserAccountViews(u, callContext))
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
           }

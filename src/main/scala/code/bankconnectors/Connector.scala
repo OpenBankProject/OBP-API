@@ -1498,22 +1498,32 @@ trait Connector extends MdcLoggable{
     callContext: Option[CallContext]
   ): Future[Box[(List[CardObjectJson], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName)}
 
+  //This method is normally used in obp side, so it has the default mapped implementation  
   def createUserAuthContext(userId: String,
                             key: String,
                             value: String,
                             callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] =
-    Future{(Failure(NotImplemented + currentMethodName+"createUserAuthContext in Connector!"), callContext)}
+  LocalMappedConnector.createUserAuthContext(userId: String,
+                            key: String,
+                            value: String,
+                            callContext: Option[CallContext])
+   
+  //This method is normally used in obp side, so it has the default mapped implementation   
   def deleteUserAuthContexts(userId: String,
                              callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
-    Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContexts in Connector!"), callContext)}
-
+    LocalMappedConnector.deleteUserAuthContexts(userId: String,
+                             callContext: Option[CallContext])
+  
+  //This method is normally used in obp side, so it has the default mapped implementation  
   def deleteUserAuthContextById(userAuthContextId: String,
                              callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
-    Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContextById in Connector!"), callContext)}
-
+    LocalMappedConnector.deleteUserAuthContextById(userAuthContextId: String,
+                             callContext: Option[CallContext])
+  //This method is normally used in obp side, so it has the default mapped implementation  
   def getUserAuthContexts(userId : String,
                           callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] =
-    Future{(Failure(NotImplemented + currentMethodName+"getUserAuthContexts in Connector!"), callContext)}
+    LocalMappedConnector.getUserAuthContexts(userId : String,
+                          callContext: Option[CallContext])
 
 
 }
