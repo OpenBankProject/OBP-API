@@ -165,14 +165,8 @@ trait APIMethods121 {
             val banks = new BanksJSON(banksJSON)
             Extraction.decompose(banks)
           }
-          for((banks, callContext)<- Connector.connector.vend.getBanks(Some(cc))) 
-            yield{
-
-          val r = new Random()
-          Thread.sleep(1000 * (r.nextInt(3) + 2))
-          successJsonResponse(banksToJson(banks))
-
-            }
+          for((banks, callContext)<- Connector.connector.vend.getBanks(Some(cc)))
+            yield(successJsonResponse(banksToJson(banks)))
       }
     }
 
