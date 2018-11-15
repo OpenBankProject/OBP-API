@@ -25,6 +25,7 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
+import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
@@ -33,7 +34,6 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.api.v3_1_0.CardObjectJson
 import code.atms.Atms.AtmId
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.OutboundGetAtm
 import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
 import code.bankconnectors.vMar2017._
 import code.branches.Branches.{BranchId, Lobby}
@@ -59,8 +59,10 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import code.api.util.ExampleValue._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
+import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
 import code.context.UserAuthContextProvider
+import code.users.Users
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -84,26 +86,53 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   def getAuthInfoFirstCbsCall (username: String, callContext: Option[CallContext]): Box[AuthInfo]=
     for{
       cc <- tryo {callContext.get} ?~! NoCallContext
-      gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload
+      gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload orElse (
+        Some(PayloadOfJwtJSON(login_user_name = "",
+                         is_first = false,
+                         app_id = "",
+                         app_name = "",
+                         time_stamp = "",
+                         cbs_token = Some(""),
+                         cbs_id = "",
+                         session_id = Some(""))))
       isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
       correlationId <- Full(cc.correlationId)
+      //Here, need separate the GatewayLogin and other Types, because of for Gatewaylogin, there is no user here. Others, need sign up user in OBP side. 
+      basicUserAuthContexts <- cc.gatewayLoginRequestPayload match {
+        case None => 
+          for{
+            user <- Users.users.vend.getUserByUserName(username)
+            userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+            basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
+          } yield
+            basicUserAuthContexts
+        case _ => Full(Nil)
+      }
     } yield{
-      AuthInfo("",username, "", isFirst, correlationId)
+      AuthInfo("",username, "", isFirst, correlationId, Nil, basicUserAuthContexts, Nil)
     }
   
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
     for{
       cc <- tryo {callContext.get} ?~! NoCallContext
       user <- cc.user
-      username <- Full(user.name)
+      username <- tryo(user.name)
       currentResourceUserId <- Some(user.userId)
-      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload
+      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload orElse (
+        Some(PayloadOfJwtJSON(login_user_name = "",
+                         is_first = false,
+                         app_id = "",
+                         app_name = "",
+                         time_stamp = "",
+                         cbs_token = Some(""),
+                         cbs_id = "",
+                         session_id = Some(""))))
       cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
-      isFirst <- Full(gatewayLoginPayLoad.is_first)
-      correlationId <- Full(cc.correlationId)
+      isFirst <- tryo(gatewayLoginPayLoad.is_first)
+      correlationId <- tryo(cc.correlationId)
       permission <- Views.views.vend.getPermissionForUser(user)
-      views <- Full(permission.views)
-      linkedCustomers <- Full(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      views <- tryo(permission.views)
+      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
       basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
@@ -1052,16 +1081,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case Full((data, status)) if (!data.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)) =>
               Failure(InvalidConnectorResponseForGetTransactions)
             case Full((data, status)) if (status.errorCode == "") =>
-              val bankAccountAndCallContetxt = checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext)
-
-              val res = for {
-                internalTransaction <- data
-                thisBankAccount <- bankAccountAndCallContetxt.map(_._1) ?~! ErrorMessages.BankAccountNotFound
-                transaction <- createInMemoryTransactionCore(thisBankAccount, internalTransaction)
+              for{
+                (thisBankAccount, callContext) <- checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
+                transaction <- createInMemoryTransactionsCore(thisBankAccount, data)
               } yield {
-                transaction
+                (transaction, callContext)
               }
-              Full(res, bankAccountAndCallContetxt.map(_._2).openOrThrowException(attemptedToOpenAnEmptyBox))
             case Empty =>
               Failure(ErrorMessages.ConnectorEmptyResponse)
             case Failure(msg, e, c) =>
@@ -1937,6 +1962,18 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }
 
+  def createInMemoryTransactionsCore(bankAccount: BankAccount,internalTransactions: List[InternalTransaction_vSept2018]): Box[List[TransactionCore]] = {
+    //first loop all the items in the list, and return all the boxed back. it may contains the Full, Failure, Empty. 
+    val transactionCoresBoxes: List[Box[TransactionCore]] = internalTransactions.map(createInMemoryTransactionCore(bankAccount, _))
+    
+    //check the Failure in the List, if it contains any Failure, than throw the Failure back, it is 0. Then run the 
+    transactionCoresBoxes.filter(_.isInstanceOf[Failure]).length match {
+      case 0 =>
+        tryo {transactionCoresBoxes.filter(_.isDefined).map(_.openOrThrowException(attemptedToOpenAnEmptyBox))}
+      case _ => 
+        transactionCoresBoxes.filter(_.isInstanceOf[Failure]).head.asInstanceOf[Failure]
+    }
+  }
   def createInMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction_vSept2018): Box[TransactionCore] = {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2416,6 +2453,32 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getAtmFuture")
 
+  messageDocs += MessageDoc(
+    process = "obp.get.getChallengeThreshold",
+    messageFormat = messageFormat,
+    description = "Get Challenge Threshold",
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetChallengeThreshold.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetChallengeThreshold.getClass.getSimpleName).response),
+    exampleOutboundMessage = decompose(OutboundGetChallengeThreshold(
+      authInfoExample,
+      bankId = bankIdExample.value,
+      accountId = accountIdExample.value,
+      viewId = "owner",
+      transactionRequestType = "SEPA",
+      currency ="EUR",
+      userId = userIdExample.value,
+      userName =usernameExample.value
+      )),
+    exampleInboundMessage = decompose(
+      InboundGetChallengeThreshold(
+          authInfoExample, 
+          Status(errorCodeExample, inboundStatusMessagesExample), 
+          AmountOfMoney("EUR","1000")
+        )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Open Data", 1))
+  )
+  
   override def getChallengeThreshold(
     bankId: String,
     accountId: String,
@@ -2461,7 +2524,41 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getChallengeThreshold")
   
-  
+  messageDocs += MessageDoc(
+    process = "obp.get.makePaymentv210",
+    messageFormat = messageFormat,
+    description = "make payments.",
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).response),
+    exampleOutboundMessage = decompose(
+      OutboundCreateTransaction(
+        authInfoExample,
+        // fromAccount
+        fromAccountBankId =bankIdExample.value,
+        fromAccountId =accountIdExample.value,
+        
+        // transaction details
+        transactionRequestType ="SEPA",
+        transactionChargePolicy ="SHARE",
+        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("EUR","1000"),"for work"),
+        
+        // toAccount or toCounterparty
+        toCounterpartyId = counterpartyIdExample.value,
+        toCounterpartyName = "Tesobe",
+        toCounterpartyCurrency = "EUR",
+        toCounterpartyRoutingAddress = accountRoutingAddressExample.value,
+        toCounterpartyRoutingScheme = accountRoutingSchemeExample.value,
+        toCounterpartyBankRoutingAddress = bankRoutingSchemeExample.value,
+        toCounterpartyBankRoutingScheme = bankRoutingAddressExample.value)),
+    exampleInboundMessage = decompose(
+      InboundCreateTransactionId(
+        authInfoExample,
+        Status(errorCodeExample, inboundStatusMessagesExample),
+        InternalTransactionId(transactionIdExample.value)
+      )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Open Data", 1))
+  )
   override def makePaymentv210(
     fromAccount: BankAccount,
     toAccount: BankAccount,
@@ -2505,22 +2602,36 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case e: Exception => throw new MappingException(s"INTERNAL-$UnknownError $InboundCreateTransactionId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
           }
       } map {
-        (x => (x.authInfo, x.data))
+        (x => (x.authInfo, x.status,  x.data))
       }
     } yield {
       Full(res)
     }
     
     val res = future map {
-      case Full((authInfo, data )) if (data.errorCode=="") =>
+      case Full((authInfo, status,  data )) if (status.errorCode=="") =>
         (Full(TransactionId(data.id)), callContext)
-      case Full((authInfo, data )) if (data.errorCode!="") =>
-        (Failure("INTERNAL-OBP-ADAPTER-xxx:"+ data.errorCode+". + CoreBank-Error:"+ data.backendMessages), callContext)
+      case Full((authInfo, status,  data )) if (status.errorCode!="") =>
+        (Failure("INTERNAL-OBP-ADAPTER-xxx:"+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages), callContext)
       case _ =>
         (Failure(ErrorMessages.UnknownError), callContext)
     }
     
     res
+  }
+  
+  //This is not a independent kafka method, it call the internal method `getCoreBankAccountsFuture`, so there is no message doc here.
+  override def getCoreBankAccountsHeldFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
+    for{
+      (accounts, callContext) <- getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) map {
+        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)}
+    } yield {
+      tryo{accounts.map(account =>AccountHeld(
+                 account.id,
+                 account.bankId,
+                 "",
+                 account.accountRoutings))}
+    }
   }
 
 }

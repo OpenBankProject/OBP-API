@@ -34,7 +34,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
     scenario("we fack the output from getBankAccounts(), and check the functions there") {
 
       When("We call the method use resourceUser1")
-      AuthUser.updateUserAccountViews(resourceUser1)
+      AuthUser.updateUserAccountViews(resourceUser1, None)
 
       Then("We check the accountHolders")
       var accountholder1 = MapperAccountHolders.getAccountHolders(bankIdAccountId.bankId, bankIdAccountId.accountId)

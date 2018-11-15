@@ -446,11 +446,9 @@ case class InboundCardDetails(
 )
 
 case class InternalTransactionId(
-  errorCode: String,
-  backendMessages: List[InboundStatusMessage],
   id : String
 )
-case class InboundCreateTransactionId(authInfo: AuthInfo, data: InternalTransactionId)
+case class InboundCreateTransactionId(authInfo: AuthInfo, status: Status, data: InternalTransactionId)
 
 object JsonFactory_vSept2018 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
