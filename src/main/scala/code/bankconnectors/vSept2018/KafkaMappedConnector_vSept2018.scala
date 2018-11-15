@@ -2476,7 +2476,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           AmountOfMoney("EUR","1000")
         )
     ),
-    adapterImplementation = Some(AdapterImplementation("Open Data", 1))
+    adapterImplementation = Some(AdapterImplementation("Payments", 1))
   )
   
   override def getChallengeThreshold(
@@ -2557,7 +2557,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         InternalTransactionId(transactionIdExample.value)
       )
     ),
-    adapterImplementation = Some(AdapterImplementation("Open Data", 1))
+    adapterImplementation = Some(AdapterImplementation("Payments", 1))
   )
   override def makePaymentv210(
     fromAccount: BankAccount,
