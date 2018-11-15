@@ -2605,6 +2605,12 @@ object SwaggerDefinitionsJSON {
     git_commit = "String",
     date = "2013-01-21T23:08:00Z"
   )
+  val rateLimitingInfoV310 = RateLimitingInfoV310(
+    enabled = true,
+    technology = "REDIS",
+    service_available = true,
+    is_active = true
+  )
   
   val thisAccountJsonV300 = ThisAccountJsonV300(
     id ="String",
