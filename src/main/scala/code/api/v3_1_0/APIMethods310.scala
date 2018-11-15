@@ -1353,15 +1353,8 @@ trait APIMethods310 {
       nameOf(createUserAuthContext),
       "POST",
       "/users/USER_ID/auth-context",
-      "Create UserAuthContext",
-      s"""Create UserAuthContext.
-        |This endpoint is important for kafka connector.
-        |Before you call this endpoint, you need know some back specific details,
-        |eg: customer_number, customer_id, token ....
-        |You can link these real bank info to one obp user.
-        |And you can get the accounts, transactions for that user.
-        |When you call this endpoint in kafka connector, it will call the bank accounts from CBS, 
-        |and create the views/accountHolders for that accounts in the backend.
+      "Create User Auth Context",
+      s"""Create User Auth Context.
         |${authenticationRequiredMessage(true)}
         |""",
       postUserAuthContextJson,
@@ -1401,8 +1394,8 @@ trait APIMethods310 {
       nameOf(getUserAuthContexts),
       "GET",
       "/users/USER_ID/auth-context",
-      "Get UserAuthContexts",
-      s"""Get all UserAuthContexts.
+      "Get User Auth Contexts",
+      s"""Get User Auth Contexts for a User.
          |
         |
         |${authenticationRequiredMessage(true)}
@@ -1440,8 +1433,8 @@ trait APIMethods310 {
       nameOf(deleteUserAuthContexts),
       "DELETE",
       "/users/USER_ID/auth-context",
-      "Delete User's all AuthContext",
-      s"""Delete all AuthContext of a User specified by USER_ID.
+      "Delete User's Auth Contexts",
+      s"""Delete the Auth Contexts of a User specified by USER_ID.
          |
          |
          |${authenticationRequiredMessage(true)}
