@@ -2543,18 +2543,18 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("EUR","1000"),"for work"),
         
         // toAccount or toCounterparty
-        toCounterpartyId = "",
-        toCounterpartyName = "",
-        toCounterpartyCurrency = "",
-        toCounterpartyRoutingAddress = "",
-        toCounterpartyRoutingScheme = "",
-        toCounterpartyBankRoutingAddress = "",
-        toCounterpartyBankRoutingScheme = "")),
+        toCounterpartyId = counterpartyIdExample.value,
+        toCounterpartyName = "Tesobe",
+        toCounterpartyCurrency = "EUR",
+        toCounterpartyRoutingAddress = accountRoutingAddressExample.value,
+        toCounterpartyRoutingScheme = accountRoutingSchemeExample.value,
+        toCounterpartyBankRoutingAddress = bankRoutingSchemeExample.value,
+        toCounterpartyBankRoutingScheme = bankRoutingAddressExample.value)),
     exampleInboundMessage = decompose(
       InboundCreateTransactionId(
         authInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),
-        InternalTransactionId("")
+        InternalTransactionId(transactionIdExample.value)
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
