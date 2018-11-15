@@ -1,6 +1,7 @@
 package code.api.v1_2_1
 
 import java.net.URL
+import java.util.Random
 import java.util.UUID.randomUUID
 
 import com.tesobe.CacheKeyFromArguments
@@ -94,7 +95,7 @@ trait APIMethods121 {
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
 
       val hostedBy = new HostedBy(organisation, email, phone, organisationWebsite)
-      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy, Akka(APIUtil.akkaSanityCheck()))
+      val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion(), apiVersionStatus, gitCommit, connector, hostedBy)
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails
@@ -165,7 +166,13 @@ trait APIMethods121 {
             Extraction.decompose(banks)
           }
           for((banks, callContext)<- Connector.connector.vend.getBanks(Some(cc))) 
-            yield(successJsonResponse(banksToJson(banks)))
+            yield{
+
+          val r = new Random()
+          Thread.sleep(1000 * (r.nextInt(3) + 2))
+          successJsonResponse(banksToJson(banks))
+
+            }
       }
     }
 

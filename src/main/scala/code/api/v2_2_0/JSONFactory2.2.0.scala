@@ -277,7 +277,7 @@ case class CreateAccountJSONV220(
 
 case class CachedFunctionJSON(function_name: String, ttl_in_seconds: Int)
 case class PortJSON(property: String, value: String)
-case class AkkaJSON(ports: List[PortJSON], log_level: String)
+case class AkkaJSON(ports: List[PortJSON], log_level: String, remote_data_secret_matched: Option[Boolean])
 case class MetricsJSON(property: String, value: String)
 case class WarehouseJSON(property: String, value: String)
 case class ElasticSearchJSON(metrics: List[MetricsJSON], warehouse: List[WarehouseJSON])
@@ -797,7 +797,7 @@ object JSONFactory220{
     val f8 = CachedFunctionJSON("getCounterpartiesFromTransaction", APIUtil.getPropsValue("connector.cache.ttl.seconds.getCounterpartiesFromTransaction", "0").toInt)
 
     val akkaPorts = PortJSON("remotedata.local.port", ObpActorConfig.localPort.toString) :: PortJSON("remotedata.port", ObpActorConfig.remotePort) :: Nil
-    val akka = AkkaJSON(akkaPorts, ObpActorConfig.akka_loglevel)
+    val akka = AkkaJSON(akkaPorts, ObpActorConfig.akka_loglevel, APIUtil.akkaSanityCheck())
     val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
 
     val metrics = MetricsJSON("es.metrics.port.tcp", APIUtil.getPropsValue("es.metrics.port.tcp", "9300")) ::
