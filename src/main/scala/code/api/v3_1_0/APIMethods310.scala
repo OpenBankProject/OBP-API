@@ -1820,7 +1820,7 @@ trait APIMethods310 {
          |
          |""",
       emptyObjectJson,
-      refreshObpDateJson,
+      obpApiLoopbackJson,
       List(
         UnknownError
       ),
@@ -1839,19 +1839,19 @@ trait APIMethods310 {
     }
     
     resourceDocs += ResourceDoc(
-      refreshObpDate,
+      refreshUser,
       implementedInApiVersion,
-      nameOf(refreshObpDate),
+      nameOf(refreshUser),
       "POST",
       "/users/USER_ID/refresh",
-      "Refresh OBP Date.",
+      "Refresh User.",
       s""" The endpoint is used for updating the accounts, views, account holders for the user.
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      refreshObpDateJson,
+      refresUserJson,
       List(
         UserHasMissingRoles,
         UnknownError
@@ -1859,21 +1859,21 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle))
 
-    lazy val refreshObpDate : OBPEndpoint = {
+    lazy val refreshUser : OBPEndpoint = {
       case "users" :: userId :: "refresh" :: Nil JsonPost _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanRefreshObpDate)("", userId, canRefreshObpDate)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanRefreshUser)("", userId, canRefreshUser)
             startTime <- Future{Helpers.now}
             _ <- NewStyle.function.findByUserId(userId, Some(cc))
             _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
-              unboxFullOrFail(_, callContext, RefreshObpDateError, 400)
+              unboxFullOrFail(_, callContext, RefreshUserError, 400)
             }
             endTime <- Future{Helpers.now}
             durationTime = endTime.getTime - startTime.getTime
           } yield {
-            (createRefreshObpDateJson(durationTime), HttpCode.`201`(callContext))
+            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
           }
       }
     }

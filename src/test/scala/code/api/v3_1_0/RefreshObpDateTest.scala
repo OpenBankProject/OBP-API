@@ -26,15 +26,16 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import code.api.ErrorMessage
-import code.api.util.ApiRole.CanRefreshObpDate
+import code.api.util.ApiRole.CanRefreshUser
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
+import code.api.util.APIUtil.OAuth._
 
-class RefreshObpDateTest extends V310ServerSetup {
+class RefreshUserTest extends V310ServerSetup {
 
   /**
     * Test tags
@@ -44,31 +45,31 @@ class RefreshObpDateTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.refreshObpDate))
-  feature(nameOf(Implementations3_1_0.refreshObpDate))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.refreshUser))
+  feature(nameOf(Implementations3_1_0.refreshUser))
   {
-    scenario(s"The user missing the $CanRefreshObpDate role", ApiEndpoint1, VersionOfApi) {
+    scenario(s"The user missing the $CanRefreshUser role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val userId = resourceUser1.userId
-      val request310 = (v3_1_0_Request / "users" / userId /"refresh").GET
+      val request310 = (v3_1_0_Request / "users" / userId /"refresh").POST <@(user1)
       val response310 = makePostRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanRefreshObpDate)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanRefreshObpDate)
+      And("error should be " + UserHasMissingRoles + CanRefreshUser)
+      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanRefreshUser)
     }
     
     
     scenario(s"Test the success case ", ApiEndpoint1, VersionOfApi) {
       When("")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanRefreshObpDate.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanRefreshUser.toString)
       When("We make a request v3.1.0")
       val userId = resourceUser1.userId
-      val request310 = (v3_1_0_Request / "users" / userId /"refresh").GET
+      val request310 = (v3_1_0_Request / "users" / userId /"refresh").POST <@(user1)
       val response310 = makePostRequest(request310)
       Then("We should get a 201")
       response310.code should equal(201)
-      response310.body.extract[RefreshObpDateJson]
+      response310.body.extract[RefreshUserJson]
     }
     
   }

@@ -302,7 +302,7 @@ object ErrorMessages {
   val ScalaEmptyBoxToLiftweb = "OBP-50010: Scala return Empty box to Liftweb."
   val NoCallContext = "OBP-50012: Can not get the CallContext object here."
   val UnspecifiedCbsError = "OBP-50013: The Core Banking System returned an unspecified error or response."
-  val RefreshObpDateError = "OBP-50014: Can not refresh OBP data for the current Connecetor."
+  val RefreshUserError = "OBP-50014: Can not refresh User."
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200

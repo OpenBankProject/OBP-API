@@ -2968,7 +2968,7 @@ object SwaggerDefinitionsJSON {
   
   val obpApiLoopbackJson = ObpApiLoopbackJson("kafka_vSept2018","f0acd4be14cdcb94be3433ec95c1ad65228812a0","10 ms")
   
-  val refreshObpDateJson = RefreshObpDateJson("10 ms")
+  val refresUserJson = RefreshUserJson("10 ms")
 
   //The common error or success format.
   //Just some helper format to use in Json 
