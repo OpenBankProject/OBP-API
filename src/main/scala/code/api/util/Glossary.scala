@@ -69,6 +69,117 @@ object Glossary {
 	//val prettyJson: String = extraction(decompose(authInfoExample))
 
 
+	/*
+
+
+
+
+	 */
+
+
+	val latestKafkaConnector : String = "kafka_vSept2018"
+
+	def messageDocLink(process: String) : String = {
+		s"""<a href="/message-docs?connector=$latestKafkaConnector#$process">$process</a>"""
+	}
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Adapter.Kafka.Intro",
+		description =
+				s"""
+					|## Brief introduction to using Kafka as the interface layer between OBP and your Core Banking System (CBS).
+					|### Prerequesites
+					|
+					|
+					 |* We assume you have OBP-API running and it is connected to a working Kafka installation.
+						| You can check OBP -> Kafka connectivity using the following <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>
+|
+					|* We assume you have API Explorer running (the application serving this page) but its not necessary - (you could use a REST client)
+					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not nessessary (you could use a REST client  / API Explorer instead).
+					|* You should register a User that you want to use to call the API. Let's call this user Jane.
+|* You will need another user that will have the roles required for the following steps. Let's call this user CarolaAdmin.
+					 |* Use <a href="/index#vv3_1_0-createUserAuthContext">Create Auth Context</a> to add a “token” to the User who while request accounts.
+						|This token which could be a CUSTOMER_NUMBER is sent inside the AuthInfo object to Kafka
+					 |* OR Use Create Customer and Create User Customer Link (note that Create Auth Context is preferred)
+					 |
+					 |Once the User(s) have been created its time to consume and respond to the messages OBP will send to Kafka.
+|
+| We suggest they are implemented in the following order:
+|
+|
+ |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
+ |
+					 |* ${messageDocLink("obp.get.AdapterInfo")}
+					 |* ${messageDocLink("obp.get.Banks")}
+					 |* ${messageDocLink("obp.get.Bank")}
+					 |
+ |2) Get Accounts
+ |
+					 |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
+					 |* ${messageDocLink("obp.get.coreBankAccounts")}
+					 |* ${messageDocLink("obp.check.BankAccountExists")}
+					 |* ${messageDocLink("obp.get.Accounts")}
+					 |* ${messageDocLink("obp.get.Account")}
+					 |
+ |3) Get Transactions
+ |
+					 |* ${messageDocLink("obp.get.Transactions")}
+					 |* ${messageDocLink("obp.get.Transaction")}
+					 |
+ |4) Manage Counterparties
+ |
+					 |* ${messageDocLink("obp.get.counterparties")}
+					 |* ${messageDocLink("obp.get.CounterpartyByCounterpartyId")}
+					 |* ${messageDocLink("obp.create.Counterparty")}
+					 |
+ |5) Get Transaction Request Types
+ |
+					 |    OBP Internal (Props) - (No additional messages required)
+					 |
+ |6) Get Challenge Threshold (CBS)
+					 |Done See Message: Get Challenge Threshold
+					 |
+ |7) Create Transaction Request (Payments)
+					 |Done See Message: Make Payment
+					 |
+ |
+ |This also requires 8,9,10 for high value payments.
+					 |
+ |8) Get Transaction Requests.
+					 |* ${messageDocLink("obp.get.transactionRequests210")}
+					 |
+ |9) Generate Security Challenges (CBS)
+					 |* ${messageDocLink("obp.create.Challenge")}
+					 |
+ |10) Answer Security Challenges (Validate)
+					 |Optional / Internal OBP (No additional messages required)
+					 |
+ |11) Manage Counterparty Metadata
+					 |    Internal OBP (No additional messages required)
+					 |
+ |12) Get Entitlements
+					 |    Internal OBP (No additional messages required)
+					 |
+ |13) Manage Roles
+					 |    Internal OBP (No additional messages required)
+					 |
+ |14) Manage Entitlements
+					 |    Internal OBP (No additional messages required)
+					 |
+ |15) Manage Views
+					 |    Internal OBP (No additional messages required)
+					 |
+ |16) Manage Transaction Metadata
+					 |    Internal OBP (No additional messages required)
+					 |
+ |"""
+	)
+
+
+
+
 
 
 	glossaryItems += GlossaryItem(
