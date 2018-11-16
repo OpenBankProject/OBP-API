@@ -438,9 +438,6 @@ object SwaggerDefinitionsJSON {
     phone = "String",
     organisation_website = "String"
   )
-  val akka = Akka(
-    remote_data_secret_matched = Option(true)
-  )
 
   val rateLimiting = RateLimiting(true, "REDIS", true, true)
 
@@ -449,8 +446,7 @@ object SwaggerDefinitionsJSON {
     version_status = "String",
     git_commit = "String",
     connector = "String",
-    hosted_by = hostedBy,
-    akka = akka
+    hosted_by = hostedBy
   )
 
   /*  val aggregateMetricsJSON = AggregateMetricJSON(
@@ -2358,7 +2354,8 @@ object SwaggerDefinitionsJSON {
   )
   val akkaJSON = AkkaJSON(
     ports = List(portJSON),
-    log_level = "Debug"
+    log_level = "Debug",
+    remote_data_secret_matched = Some(true)
   )
   val metricsJSON = MetricsJSON(
     property = "String",
@@ -2607,6 +2604,12 @@ object SwaggerDefinitionsJSON {
     version = "String",
     git_commit = "String",
     date = "2013-01-21T23:08:00Z"
+  )
+  val rateLimitingInfoV310 = RateLimitingInfoV310(
+    enabled = true,
+    technology = "REDIS",
+    service_available = true,
+    is_active = true
   )
   
   val thisAccountJsonV300 = ThisAccountJsonV300(

@@ -1245,7 +1245,7 @@ trait APIMethods310 {
          |
       """.stripMargin,
       emptyObjectJson,
-      adapterInfoJsonV300,
+      rateLimitingInfoV310,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagApi, apiTagNewStyle))
@@ -1262,7 +1262,7 @@ trait APIMethods310 {
               RateLimiting(useConsumerLimits, "REDIS", isRedisAvailable, isActive)
             }
           } yield {
-            (rateLimiting, HttpCode.`200`(cc))
+            (createRateLimitingInfo(rateLimiting), HttpCode.`200`(cc))
           }
       }
     }

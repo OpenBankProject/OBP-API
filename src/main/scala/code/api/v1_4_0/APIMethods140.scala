@@ -5,7 +5,6 @@ import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiRole, ApiVersion, NewStyle}
-import code.api.v1_2_1.Akka
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
 import code.bankconnectors.Connector
@@ -757,7 +756,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "https://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy, Akka(APIUtil.akkaSanityCheck()))
+            val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy)
             Extraction.decompose(apiInfoJSON)
           }
 

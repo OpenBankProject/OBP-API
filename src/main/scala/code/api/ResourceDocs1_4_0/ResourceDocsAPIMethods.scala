@@ -10,7 +10,6 @@ import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiVersion}
-import code.api.v1_2_1.Akka
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
@@ -643,7 +642,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
         cc =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "http://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy, Akka(APIUtil.akkaSanityCheck()))
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "dummy-connector", hostedBy)
             Extraction.decompose(apiInfoJSON)
           }
 
