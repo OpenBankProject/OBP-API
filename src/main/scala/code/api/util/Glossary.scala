@@ -94,7 +94,7 @@ object Glossary {
 					|
 					|
 					 |* We assume you have OBP-API running and it is connected to a working Kafka installation.
-						| You can check OBP -> Kafka connectivity using the following <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>
+						| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
 |
 					|* We assume you have API Explorer running (the application serving this page) but its not necessary - (you could use a REST client)
 					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not nessessary (you could use a REST client  / API Explorer instead).
@@ -104,7 +104,7 @@ object Glossary {
 						|This token which could be a CUSTOMER_NUMBER is sent inside the AuthInfo object to Kafka
 					 |* OR Use Create Customer and Create User Customer Link (note that Create Auth Context is preferred)
 					 |
-					 |Once the User(s) have been created its time to consume and respond to the messages OBP will send to Kafka.
+					 |Then its time to configure or program your Adapter to consume, and respond to, the messages OBP will send to Kafka.
 |
 | We suggest they are implemented in the following order:
 |
