@@ -1174,9 +1174,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     outboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
-      OutboundChallengeBase(
-        action = "obp.create.Challenge",
-        messageFormat = messageFormat,
+      OutboundCreateChallengeSept2018(
+        authInfoExample,
         bankId = bankIdExample.value,
         accountId = accountIdExample.value,
         userId = userIdExample.value,
