@@ -41,8 +41,7 @@ case class APIInfoJSON(
   version_status: String,
   git_commit : String,
   connector : String,
-  hosted_by : HostedBy,
-  akka: Akka
+  hosted_by : HostedBy
 )
 case class HostedBy(
   organisation : String,
@@ -50,7 +49,6 @@ case class HostedBy(
   phone : String,
   organisation_website: String
 )
-case class Akka(remote_data_secret_matched: Option[Boolean])
 case class RateLimiting(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
 case class ErrorMessage(

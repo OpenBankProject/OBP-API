@@ -83,12 +83,19 @@ object ExampleValue {
   val transactionPostedDateExample = ConnectorField("20180127", "The Posted date of a transaction in the format: yyyyMMdd")
   val transactionCompletedDateExample = ConnectorField("20180128", "The Completed date of a transaction in the format: yyyyMMdd")
 
-  val currencyExample = ConnectorField("EUR", "The currency of the account.")
+  val transactionRequestTypeExample = ConnectorField("SEPA", "The Transaction Request Type defines the request body that is required - and the logic / flow of the Transaction Request. Allowed values include SEPA, COUNTERPARTY and SANDBOX_TAN.")
+  glossaryItems += makeGlossaryItem("Transaction Requests.Transaction Request Type", transactionRequestTypeExample)
 
+  val currencyExample = ConnectorField("EUR", "The currency of the account.")
 
 
   val owner1Example = ConnectorField("SusanSmith", "A username that is the owner of the account.")
   glossaryItems += makeGlossaryItem("Account.owner", owner1Example)
+
+
+
+
+
 
   val owner2Example = ConnectorField("JaneSmith", "A username that is the owner of the account.")
 
