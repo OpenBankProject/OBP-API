@@ -97,6 +97,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                          session_id = Some(""))))
       isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
       correlationId <- Full(cc.correlationId)
+      sessionId <- Full(cc.sessionId.getOrElse(""))
       //Here, need separate the GatewayLogin and other Types, because of for Gatewaylogin, there is no user here. Others, need sign up user in OBP side. 
       basicUserAuthContexts <- cc.gatewayLoginRequestPayload match {
         case None => 
@@ -109,7 +110,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         case _ => Full(Nil)
       }
     } yield{
-      AuthInfo("",username, "", isFirst, correlationId, Nil, basicUserAuthContexts, Nil)
+      AuthInfo("",username, "", isFirst, correlationId, sessionId, Nil, basicUserAuthContexts, Nil)
     }
   
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
@@ -130,6 +131,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
       isFirst <- tryo(gatewayLoginPayLoad.is_first)
       correlationId <- tryo(cc.correlationId)
+      sessionId <- tryo(cc.sessionId.getOrElse(""))
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
       linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
@@ -152,7 +154,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           AuthView(viewBasic, accountBasic)
       )
     } yield{
-      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, likedCustomersBasic, basicUserAuthContexts, authViews)
+      AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, sessionId, likedCustomersBasic, basicUserAuthContexts, authViews)
     }
   
   val viewBasicExample = ViewBasic("owner","Owner", "This is the owner view")
@@ -189,6 +191,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     cbsToken = cbsTokenExample.value,
     isFirst = true,
     correlationId = correlationIdExample.value,
+    sessionId = userIdExample.value,
     basicCustomersExample,
     BasicUserAuthContextsExample,
     authViewsExample
@@ -196,7 +199,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: Something went wrong."
   val statusExample = Status(errorCodeExample, inboundStatusMessagesExample)
-
+  val inboundAuthInfoExample = InboundAuthInfo(cbsToken=cbsTokenExample.value, sessionId = sessionIdExample.value)
 
 
 
@@ -292,7 +295,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetUserByUsernamePassword(
-        authInfoExample,
+        inboundAuthInfoExample,
         InboundValidatedUser(
           errorCodeExample,
           inboundStatusMessagesExample,
@@ -363,7 +366,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetBanks(
-        authInfoExample,
+        inboundAuthInfoExample,
         Status(
           errorCode = errorCodeExample,
           inboundStatusMessagesExample),
@@ -478,7 +481,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetBank(
-        authInfoExample,
+        inboundAuthInfoExample,
         Status(
           errorCodeExample,
           inboundStatusMessagesExample),
@@ -598,7 +601,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         InternalBasicCustomers(customers =List(internalBasicCustomerExample)))
     ),
     exampleInboundMessage = decompose(
-      InboundGetAccounts(authInfoExample, statusExample,
+      InboundGetAccounts(
+        inboundAuthInfoExample, 
+        statusExample,
         inboundAccountSept2018Example :: Nil)
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
@@ -712,7 +717,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetAccountbyAccountID(
-        authInfoExample,
+        inboundAuthInfoExample,
         statusExample,
         Some(inboundAccountSept2018Example))),
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
@@ -770,7 +775,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundCheckBankAccountExists(
-        authInfoExample,
+        inboundAuthInfoExample,
         statusExample,
         Some(inboundAccountSept2018Example))
     ),
@@ -833,7 +838,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetAccountbyAccountID(
-        authInfoExample,
+        inboundAuthInfoExample,
         statusExample, 
         Some(inboundAccountSept2018Example))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
@@ -963,7 +968,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetTransactions(
-        authInfoExample,
+        inboundAuthInfoExample,
         statusExample,
         exampleInternalTransactionSept2018::Nil)),
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
@@ -1116,7 +1121,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundGetTransaction(authInfoExample, statusExample, Some(exampleInternalTransactionSept2018))
+      InboundGetTransaction(inboundAuthInfoExample, statusExample, Some(exampleInternalTransactionSept2018))
     ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
@@ -1174,9 +1179,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     outboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
-      OutboundChallengeBase(
-        action = "obp.create.Challenge",
-        messageFormat = messageFormat,
+      OutboundCreateChallengeSept2018(
+        authInfoExample,
         bankId = bankIdExample.value,
         accountId = accountIdExample.value,
         userId = userIdExample.value,
@@ -1187,7 +1191,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundCreateChallengeSept2018(
-        authInfoExample,
+        inboundAuthInfoExample,
         InternalCreateChallengeSept2018(
           errorCodeExample,
           inboundStatusMessagesExample,
@@ -1221,7 +1225,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
          } catch {
            case e: Exception => throw new MappingException(s"$InboundCreateChallengeSept2018 extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
          }
-       } map { x => (x.authInfo, x.data) }
+       } map { x => (x.inboundAuthInfo, x.data) }
     } yield {
      Full(res)
     }
@@ -1269,7 +1273,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundCreateCounterparty(
-        authInfoExample, 
+        inboundAuthInfoExample, 
         statusExample,
         Some(InternalCounterparty(
           createdByUserId= "String", 
@@ -1384,7 +1388,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetTransactionRequests210(
-        authInfoExample, 
+        inboundAuthInfoExample, 
         statusExample,
         List(
           TransactionRequest(
@@ -1399,7 +1403,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           challenge = TransactionRequestChallenge("", 0, ""),
           charge = TransactionRequestCharge(
             "", 
-            AmountOfMoney("ILS", "0")
+            AmountOfMoney(
+              currencyExample.value,
+              transactionAmountExample.value)
           ),
           charge_policy = "",
           counterparty_id = CounterpartyId(""),
@@ -1494,7 +1500,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = decompose(
-      InboundGetCounterparties(authInfoExample, statusExample,
+      InboundGetCounterparties(inboundAuthInfoExample, statusExample,
         InternalCounterparty(
           createdByUserId = "",
           name = "",
@@ -1580,7 +1586,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       )
     ),
     exampleInboundMessage = Extraction.decompose(
-      InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
+      InboundGetCounterparty(inboundAuthInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     ),
     adapterImplementation = Some(AdapterImplementation("Payments", 1))
   )
@@ -1605,7 +1611,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
              } catch {
                case e: Exception => throw new MappingException(s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
              }
-         } map { x => (x.authInfo, x.data, x.status) }
+         } map { x => (x.inboundAuthInfo, x.data, x.status) }
        } yield {
          Full(res)
        }
@@ -1643,7 +1649,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
          } catch {
            case e: Exception => throw new MappingException(s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
          }
-     } map { x => (x.authInfo, x.data, x.status) }
+     } map { x => (x.inboundAuthInfo, x.data, x.status) }
    } yield {
      Full(res)
    }
@@ -1674,7 +1680,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetCustomersByUserId(
-        authInfoExample,
+        inboundAuthInfoExample,
         statusExample,
         InternalCustomer(
           customerId = "String", bankId = bankIdExample.value, number = "String",
@@ -1756,7 +1762,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetChecksOrderStatus(
-        authInfoExample,
+        inboundAuthInfoExample,
         statusExample,
         SwaggerDefinitionsJSON.checkbookOrdersJson
       )
@@ -1838,7 +1844,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetCreditCardOrderStatus(
-        authInfoExample,
+        inboundAuthInfoExample,
         statusExample,
         List(InboundCardDetails(
           "OrderId",
@@ -2070,7 +2076,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetBranches(
-        authInfoExample,
+        inboundAuthInfoExample,
         Status("",
         inboundStatusMessagesExample),
         InboundBranchVSept2018(
@@ -2165,7 +2171,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetBranch(
-        authInfoExample,
+        inboundAuthInfoExample,
         Status("",
           inboundStatusMessagesExample),
         Some(InboundBranchVSept2018(
@@ -2263,7 +2269,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetAtms(
-        authInfoExample,
+        inboundAuthInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),
         InboundAtmSept2018(
           atmId = AtmId("333"),
@@ -2364,7 +2370,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     exampleInboundMessage = decompose(
       InboundGetAtm(
-        authInfoExample,
+        inboundAuthInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),
         Some(InboundAtmSept2018(
           atmId = AtmId("333"),
@@ -2471,9 +2477,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       )),
     exampleInboundMessage = decompose(
       InboundGetChallengeThreshold(
-          authInfoExample, 
+          inboundAuthInfoExample, 
           Status(errorCodeExample, inboundStatusMessagesExample), 
-          AmountOfMoney("EUR","1000")
+          AmountOfMoney(
+            currencyExample.value,
+            transactionAmountExample.value)
         )
     ),
     adapterImplementation = Some(AdapterImplementation("Payments", 1))
@@ -2525,7 +2533,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getChallengeThreshold")
   
   messageDocs += MessageDoc(
-    process = "obp.get.makePaymentv210",
+    process = "obp.create.makePaymentv210",
     messageFormat = messageFormat,
     description = "Make payment (create transaction).",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).request),
@@ -2540,7 +2548,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         // transaction details
         transactionRequestType ="SEPA",
         transactionChargePolicy ="SHARE",
-        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121(currencyExample.value, transactionAmountExample.value),"for work"),
+        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(
+          AmountOfMoneyJsonV121(
+            currencyExample.value,
+            transactionAmountExample.value),
+          transactionDescriptionExample.value),
         
         // toAccount or toCounterparty
         toCounterpartyId = counterpartyIdExample.value,
@@ -2552,7 +2564,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         toCounterpartyBankRoutingScheme = bankRoutingAddressExample.value)),
     exampleInboundMessage = decompose(
       InboundCreateTransactionId(
-        authInfoExample,
+        inboundAuthInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),
         InternalTransactionId(transactionIdExample.value)
       )
@@ -2602,7 +2614,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case e: Exception => throw new MappingException(s"INTERNAL-$UnknownError $InboundCreateTransactionId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
           }
       } map {
-        (x => (x.authInfo, x.status,  x.data))
+        (x => (x.inboundAuthInfo, x.status,  x.data))
       }
     } yield {
       Full(res)
@@ -2612,7 +2624,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       case Full((authInfo, status,  data )) if (status.errorCode=="") =>
         (Full(TransactionId(data.id)), callContext)
       case Full((authInfo, status,  data )) if (status.errorCode!="") =>
-        (Failure("INTERNAL-OBP-ADAPTER-xxx:"+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages), callContext)
+        (Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages), callContext)
       case _ =>
         (Failure(ErrorMessages.UnknownError), callContext)
     }
