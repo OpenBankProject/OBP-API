@@ -2540,12 +2540,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         // transaction details
         transactionRequestType ="SEPA",
         transactionChargePolicy ="SHARE",
-        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("EUR","1000"),"for work"),
+        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121(currencyExample.value, transactionAmountExample.value),"for work"),
         
         // toAccount or toCounterparty
         toCounterpartyId = counterpartyIdExample.value,
-        toCounterpartyName = "Tesobe",
-        toCounterpartyCurrency = "EUR",
+        toCounterpartyName = counterpartyNameExample.value,
+        toCounterpartyCurrency = currencyExample.value,
         toCounterpartyRoutingAddress = accountRoutingAddressExample.value,
         toCounterpartyRoutingScheme = accountRoutingSchemeExample.value,
         toCounterpartyBankRoutingAddress = bankRoutingSchemeExample.value,
