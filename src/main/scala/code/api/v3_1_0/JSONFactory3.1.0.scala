@@ -305,6 +305,10 @@ case class ObpApiLoopbackJson(
   duration_time: String
 )
 
+case class RefreshUserJson(
+  duration_time: String
+)
+
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
 object JSONFactory310{
@@ -508,6 +512,9 @@ object JSONFactory310{
       s"${obpApiLoopback.durationTime} ms"
     )
 
+  def createRefreshUserJson(durationTime: Long): RefreshUserJson =
+    RefreshUserJson(s" $durationTime ms")
+  
   def createEntitlementJsonsV310(tr: List[Entitlement]) = {
     val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {
      userId => (userId, User.findByUserId(userId).map(_.name))

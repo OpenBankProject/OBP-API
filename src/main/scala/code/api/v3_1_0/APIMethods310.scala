@@ -27,6 +27,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Full
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1380,8 +1382,6 @@ trait APIMethods310 {
             }
             (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
-            //Note: this is tricky here, this endpoint has the side effects.
-            _ <- if (APIUtil.isSandboxMode) Future{} else Future(AuthUser.updateUserAccountViews(u, callContext))
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
           }
@@ -1809,7 +1809,7 @@ trait APIMethods310 {
       "Get Connector Status (Loopback)",
       s"""This endpoint makes a call to the Connector to check the backend transport (e.g. Kafka) is reachable.
          |
-         |Currently this is only implmented for Kafka based connectors.
+         |Currently this is only implemented for Kafka based connectors.
          |
          |For Kafka based connectors, this endpoint writes a message to Kafka and reads it again.
          |
@@ -1837,8 +1837,47 @@ trait APIMethods310 {
           }
       }
     }
-
     
+    resourceDocs += ResourceDoc(
+      refreshUser,
+      implementedInApiVersion,
+      nameOf(refreshUser),
+      "POST",
+      "/users/USER_ID/refresh",
+      "Refresh User.",
+      s""" The endpoint is used for updating the accounts, views, account holders for the user.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      refresUserJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi, apiTagNewStyle))
+
+    lazy val refreshUser : OBPEndpoint = {
+      case "users" :: userId :: "refresh" :: Nil JsonPost _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanRefreshUser)("", userId, canRefreshUser)
+            startTime <- Future{Helpers.now}
+            _ <- NewStyle.function.findByUserId(userId, Some(cc))
+            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
+              unboxFullOrFail(_, callContext, RefreshUserError, 400)
+            }
+            endTime <- Future{Helpers.now}
+            durationTime = endTime.getTime - startTime.getTime
+          } yield {
+            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
   }
 }
 

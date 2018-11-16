@@ -134,28 +134,28 @@ case class OutboundGetCreditCardOrderStatus(
 
 //AdapterInfo has no AuthInfo, because it just get data from Adapter, no need for AuthInfo
 case class InboundAdapterInfo(data: InboundAdapterInfoInternal)
-case class InboundGetUserByUsernamePassword(authInfo: AuthInfo, data: InboundValidatedUser)
-case class InboundGetBanks(authInfo: AuthInfo, status: Status,data: List[InboundBank])
-case class InboundGetBank(authInfo: AuthInfo, status: Status, data: InboundBank)
-case class InboundGetAccounts(authInfo: AuthInfo, status: Status, data: List[InboundAccountSept2018])
-case class InboundGetAccountbyAccountID(authInfo: AuthInfo, status: Status, data: Option[InboundAccountSept2018])
-case class InboundCheckBankAccountExists(authInfo: AuthInfo, status: Status, data: Option[InboundAccountSept2018])
-case class InboundGetCoreBankAccounts(authInfo: AuthInfo, data: List[InternalInboundCoreAccount])
-case class InboundGetTransactions(authInfo: AuthInfo, status: Status, data: List[InternalTransaction_vSept2018])
-case class InboundGetTransaction(authInfo: AuthInfo, status: Status, data: Option[InternalTransaction_vSept2018])
-case class InboundCreateChallengeSept2018(authInfo: AuthInfo, data: InternalCreateChallengeSept2018)
-case class InboundCreateCounterparty(authInfo: AuthInfo, status: Status, data: Option[InternalCounterparty])
-case class InboundGetTransactionRequests210(authInfo: AuthInfo, status: Status, data: List[TransactionRequest])
-case class InboundGetCounterparties(authInfo: AuthInfo, status: Status, data: List[InternalCounterparty])
-case class InboundGetCounterparty(authInfo: AuthInfo, status: Status, data: Option[InternalCounterparty])
-case class InboundGetCustomersByUserId(authInfo: AuthInfo, status: Status, data: List[InternalCustomer])
-case class InboundGetBranches(authInfo: AuthInfo,status: Status,data: List[InboundBranchVSept2018])
-case class InboundGetBranch(authInfo: AuthInfo,status: Status, data: Option[InboundBranchVSept2018])
-case class InboundGetAtms(authInfo: AuthInfo, status: Status, data: List[InboundAtmSept2018])
-case class InboundGetAtm(authInfo: AuthInfo, status: Status, data: Option[InboundAtmSept2018])
-case class InboundGetChecksOrderStatus(authInfo: AuthInfo, status: Status, data: CheckbookOrdersJson)
-case class InboundGetCreditCardOrderStatus(authInfo: AuthInfo, status: Status, data: List[InboundCardDetails])
-case class InboundGetChallengeThreshold(authInfo: AuthInfo, status: Status, data: AmountOfMoney)
+case class InboundGetUserByUsernamePassword(inboundAuthInfo: InboundAuthInfo, data: InboundValidatedUser)
+case class InboundGetBanks(inboundAuthInfo: InboundAuthInfo, status: Status,data: List[InboundBank])
+case class InboundGetBank(inboundAuthInfo: InboundAuthInfo, status: Status, data: InboundBank)
+case class InboundGetAccounts(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InboundAccountSept2018])
+case class InboundGetAccountbyAccountID(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InboundAccountSept2018])
+case class InboundCheckBankAccountExists(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InboundAccountSept2018])
+case class InboundGetCoreBankAccounts(inboundAuthInfo: InboundAuthInfo, data: List[InternalInboundCoreAccount])
+case class InboundGetTransactions(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InternalTransaction_vSept2018])
+case class InboundGetTransaction(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InternalTransaction_vSept2018])
+case class InboundCreateChallengeSept2018(inboundAuthInfo: InboundAuthInfo, data: InternalCreateChallengeSept2018)
+case class InboundCreateCounterparty(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InternalCounterparty])
+case class InboundGetTransactionRequests210(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[TransactionRequest])
+case class InboundGetCounterparties(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InternalCounterparty])
+case class InboundGetCounterparty(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InternalCounterparty])
+case class InboundGetCustomersByUserId(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InternalCustomer])
+case class InboundGetBranches(inboundAuthInfo: InboundAuthInfo,status: Status,data: List[InboundBranchVSept2018])
+case class InboundGetBranch(inboundAuthInfo: InboundAuthInfo,status: Status, data: Option[InboundBranchVSept2018])
+case class InboundGetAtms(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InboundAtmSept2018])
+case class InboundGetAtm(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InboundAtmSept2018])
+case class InboundGetChecksOrderStatus(inboundAuthInfo: InboundAuthInfo, status: Status, data: CheckbookOrdersJson)
+case class InboundGetCreditCardOrderStatus(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InboundCardDetails])
+case class InboundGetChallengeThreshold(inboundAuthInfo: InboundAuthInfo, status: Status, data: AmountOfMoney)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,9 +199,15 @@ case class AuthInfo(
   cbsToken: String = "", 
   isFirst: Boolean = true, 
   correlationId: String = "",
+  sessionId: String = "", 
   linkedCustomers: List[BasicCustomer] = Nil,
   userAuthContexts: List[BasicUserAuthContext]= Nil,
   authViews: List[AuthView] = Nil,
+)
+
+case class InboundAuthInfo(
+  cbsToken: String = "",
+  sessionId: String = ""
 )
 
 case class BasicCustomer(
@@ -448,7 +454,7 @@ case class InboundCardDetails(
 case class InternalTransactionId(
   id : String
 )
-case class InboundCreateTransactionId(authInfo: AuthInfo, status: Status, data: InternalTransactionId)
+case class InboundCreateTransactionId(inboundAuthInfo: InboundAuthInfo, status: Status, data: InternalTransactionId)
 
 object JsonFactory_vSept2018 {
   def createCustomerJson(customer : Customer) : InternalBasicCustomer = {
