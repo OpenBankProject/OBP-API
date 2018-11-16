@@ -305,6 +305,10 @@ case class ObpApiLoopbackJson(
   duration_time: String
 )
 
+case class RefreshObpDateJson(
+  duration_time: String
+)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -506,6 +510,9 @@ object JSONFactory310{
       s"${obpApiLoopback.durationTime} ms"
     )
 
+  def createRefreshObpDateJson(durationTime: Long): RefreshObpDateJson =
+    RefreshObpDateJson(s" $durationTime ms")
+  
   def createEntitlementJsonsV310(tr: List[Entitlement]) = {
     val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {
      userId => (userId, User.findByUserId(userId).map(_.name))
