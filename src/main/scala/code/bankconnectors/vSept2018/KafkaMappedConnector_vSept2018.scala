@@ -1399,7 +1399,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           challenge = TransactionRequestChallenge("", 0, ""),
           charge = TransactionRequestCharge(
             "", 
-            AmountOfMoney("ILS", "0")
+            AmountOfMoney(
+              currencyExample.value,
+              transactionAmountExample.value)
           ),
           charge_policy = "",
           counterparty_id = CounterpartyId(""),
@@ -2473,7 +2475,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       InboundGetChallengeThreshold(
           authInfoExample, 
           Status(errorCodeExample, inboundStatusMessagesExample), 
-          AmountOfMoney("EUR","1000")
+          AmountOfMoney(
+            currencyExample.value,
+            transactionAmountExample.value)
         )
     ),
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
@@ -2540,7 +2544,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         // transaction details
         transactionRequestType ="SEPA",
         transactionChargePolicy ="SHARE",
-        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("EUR","1000"),"for work"),
+        transactionRequestCommonBody = TransactionRequestBodyCommonJSON(
+          AmountOfMoneyJsonV121(
+            currencyExample.value,
+            transactionAmountExample.value),
+          transactionDescriptionExample.value),
         
         // toAccount or toCounterparty
         toCounterpartyId = counterpartyIdExample.value,
