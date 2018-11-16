@@ -136,43 +136,52 @@ object Glossary {
 					 |
  |5) Get Transaction Request Types
  |
-					 |    OBP Internal (Props) - (No additional messages required)
+					 |* This is configured using OBP Props - No messages required
 					 |
  |6) Get Challenge Threshold (CBS)
-					 |Done See Message: Get Challenge Threshold
-					 |
- |7) Create Transaction Request (Payments)
-					 |Done See Message: Make Payment
-					 |
  |
- |This also requires 8,9,10 for high value payments.
+					 |* ${messageDocLink("obp.get.getChallengeThreshold")}
+					 |
+ |7)  Make Payment (used by Create Transaction Request)
+ |
+					 |* ${messageDocLink("obp.get.makePaymentv210")}
+ 						|* This also requires 8,9,10 for high value payments.
 					 |
  |8) Get Transaction Requests.
+ |
 					 |* ${messageDocLink("obp.get.transactionRequests210")}
 					 |
  |9) Generate Security Challenges (CBS)
+ |
 					 |* ${messageDocLink("obp.create.Challenge")}
 					 |
  |10) Answer Security Challenges (Validate)
-					 |Optional / Internal OBP (No additional messages required)
+ |
+					 |* Optional / Internal OBP (No additional messages required)
 					 |
  |11) Manage Counterparty Metadata
-					 |    Internal OBP (No additional messages required)
+ |
+					 |* Internal OBP (No additional messages required)
 					 |
  |12) Get Entitlements
-					 |    Internal OBP (No additional messages required)
+ |
+					 |* Internal OBP (No additional messages required)
 					 |
  |13) Manage Roles
-					 |    Internal OBP (No additional messages required)
+ |
+					 |* Internal OBP (No additional messages required)
 					 |
  |14) Manage Entitlements
-					 |    Internal OBP (No additional messages required)
+ |
+					 |* Internal OBP (No additional messages required)
 					 |
  |15) Manage Views
-					 |    Internal OBP (No additional messages required)
+ |
+					 |* Internal OBP (No additional messages required)
 					 |
  |16) Manage Transaction Metadata
-					 |    Internal OBP (No additional messages required)
+ |
+					 |* Internal OBP (No additional messages required)
 					 |
  |"""
 	)

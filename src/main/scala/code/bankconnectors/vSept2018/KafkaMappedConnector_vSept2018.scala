@@ -2527,7 +2527,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.get.makePaymentv210",
     messageFormat = messageFormat,
-    description = "make payments.",
+    description = "Make payment (create transaction).",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
