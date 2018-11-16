@@ -2533,7 +2533,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getChallengeThreshold")
   
   messageDocs += MessageDoc(
-    process = "obp.get.makePaymentv210",
+    process = "obp.create.makePaymentv210",
     messageFormat = messageFormat,
     description = "make payments.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).request),
