@@ -177,26 +177,18 @@ trait SendServerRequests {
   }
 
 
-  private def getAPIResponse(req : Req) : APIResponse = {
-    //println("<<<<<<< " + req.toRequest.toString)
-    Await.result(
-      for(response <- Http(req > as.Response(p => p)))
-      yield
-      {
-        val body = if(response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
-        val parsedBody = tryo {parse(body)}
-        parsedBody match {
-          case Full(b) => APIResponse(response.getStatusCode, b)
-          case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
-        }
-      }
-      , Duration.Inf)
-  }
-
-  private def getAPIResponseAsync(req: Req): Future[APIResponse] = {
+  private def ApiResponseCommonPart(req: Req) = {
     for (response <- Http(req > as.Response(p => p)))
       yield {
         val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
+
+        // Check that every response has a correlationId at Response Header
+        val list = response.getHeaders("Correlation-Id").asScala.toList
+        list match {
+          case Nil => throw new Exception(s"There is no Correlation-Id in response header. Couldn't parse response from ${req.url} : $body")
+          case _ =>
+        }
+
         val parsedBody = tryo {
           parse(body)
         }
@@ -205,6 +197,15 @@ trait SendServerRequests {
           case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
         }
       }
+  }
+
+  private def getAPIResponse(req : Req) : APIResponse = {
+    //println("<<<<<<< " + req.toRequest.toString)
+    Await.result(ApiResponseCommonPart(req), Duration.Inf)
+  }
+
+  private def getAPIResponseAsync(req: Req): Future[APIResponse] = {
+    ApiResponseCommonPart(req)
   }
 
   /**
