@@ -4,6 +4,8 @@ import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.customeraddress.{MappedCustomerAddressProvider, RemotedataCustomerAddressCaseClasses}
 import code.util.Helper.MdcLoggable
+import akka.pattern.pipe
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -14,7 +16,7 @@ class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcL
 
     case cc.getAddress(customerId: String) =>
       logger.debug("getAddress(" + customerId + ")")
-      sender ! (mapper.getAddressRemote(customerId))
+      mapper.getAddress(customerId) pipeTo sender
 
     case cc.createAddress(customerId: String,
                       line1: String,
@@ -27,20 +29,20 @@ class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcL
                       countryCode: String,
                       status: String) =>
       logger.debug("createAddress(" + customerId + ", " + line1 + ", " + line2 + ")")
-      sender ! (mapper.createAddressRemote(customerId,
-                                        line1,
-                                        line2,
-                                        line3,
-                                        city,
-                                        county,
-                                        state,
-                                        postcode,
-                                        countryCode,
-                                        status))
+      mapper.createAddress(customerId,
+                           line1,
+                           line2,
+                           line3,
+                           city,
+                           county,
+                           state,
+                           postcode,
+                           countryCode,
+                           status) pipeTo sender
 
     case cc.deleteAddress(customerAddressId: String) =>
       logger.debug("deleteAddress(" + customerAddressId + ")")
-      sender ! (mapper.deleteAddressRemote(customerAddressId))
+      mapper.deleteAddress(customerAddressId) pipeTo sender
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
