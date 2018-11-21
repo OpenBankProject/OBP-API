@@ -124,7 +124,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.deleteUserAuthContextById), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getObpApiLoopback), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.refreshUser), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.refreshUser), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getAllEntitlements), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {

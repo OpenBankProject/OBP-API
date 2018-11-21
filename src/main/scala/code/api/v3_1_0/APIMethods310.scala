@@ -1655,8 +1655,7 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }
-            roleName <- Future(APIUtil.getHttpRequestUrlParam(cc.url, "role"))
-
+            roleName = APIUtil.getHttpRequestUrlParam(cc.url, "role")
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByRoleFuture(roleName) map {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
