@@ -220,6 +220,20 @@ object Glossary {
 	)
 
 
+	glossaryItems += GlossaryItem(
+		title = "API.Interfaces",
+		description =
+				s"""
+					 |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/48845997-413e0780-ed9e-11e8-86c5-e5ce510c140c.png"></img>
+					 |
+  |
+  |
+ |"""
+	)
+
+
+
+
 /*
 
 {
