@@ -265,7 +265,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
 
 
-    logger.debug(s"Kafka getAdapterInfo Res says:  is: $Box")
+    logger.debug(s"Kafka getAdapterInfo Res says:  is: $box")
 
     val res = box match {
       case Full(list) if (list.errorCode=="") =>
@@ -333,7 +333,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           inboundValidatedUser
         }
 
-        logger.debug(s"Kafka getUser Res says:  is: $Box")
+        logger.debug(s"Kafka getUser Res says:  is: $box")
 
         val res = box match {
           case Full(list) if (list.errorCode=="" && username == list.displayName) =>
@@ -407,7 +407,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           (inboundBanks, status)
         }
 
-        logger.debug(s"Kafka getBanks Res says:  is: $Box")
+        logger.debug(s"Kafka getBanks Res says:  is: $box")
         val res = box match {
           case Full((banks, status)) if (status.errorCode=="") =>
             Full((banks map (new Bank2(_)),callContext))
@@ -524,7 +524,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         }
 
 
-        logger.debug(s"Kafka getBank Res says:  is: $Box")
+        logger.debug(s"Kafka getBank Res says:  is: $box")
 
         box match {
           case Full((bank, status)) if (status.errorCode == "") =>
