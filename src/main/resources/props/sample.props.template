@@ -517,3 +517,9 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # migration_scripts.execute=false
 # -----------------------------------------------
+
+# -- Mapper rules -------------------------------
+# Define mapper rules
+# In case isn't defined default value is "false"
+# mapper_rules.create_foreign_keys=false
+# -----------------------------------------------
