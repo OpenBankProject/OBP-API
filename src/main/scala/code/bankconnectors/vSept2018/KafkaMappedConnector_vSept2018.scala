@@ -63,6 +63,7 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
 import code.context.UserAuthContextProvider
 import code.users.Users
+import net.liftweb
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -258,7 +259,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     val box = for {
       kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
-      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"$InboundAdapterInfo extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+      received = liftweb.json.compactRender(kafkaMessage)
+      expected = SchemaFor[InboundAdapterInfoInternal]().toString(false)
+      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
       inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
     } yield{
       inboundAdapterInfoInternal
@@ -327,7 +330,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val box = for {
           kafkaMessage <- processToBox[OutboundGetUserByUsernamePassword](req)
-          inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! s"$InboundGetUserByUsernamePassword extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetUserByUsernamePassword]().toString(false)
+          inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
           inboundValidatedUser <- Full(inboundGetUserByUsernamePassword.data)
         } yield{
           inboundValidatedUser
@@ -515,9 +520,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val box: Box[(InboundBank, Status)] = for {
           kafkaMessage <- processToBox[OutboundGetBank](req)
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetBank]().toString(false)
           inboundGetBank <- tryo {
             kafkaMessage.extract[InboundGetBank]
-          } ?~! s"$InboundGetBank extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          } ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
           (inboundBank, status) <- Full(inboundGetBank.data, inboundGetBank.status)
         } yield {
           (inboundBank, status)
@@ -627,7 +634,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           authInfo <- getAuthInfoFirstCbsCall(username, callContext)
           req = OutboundGetAccounts(authInfo, internalCustomers)
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
-          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetAccounts]().toString(false)
+          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
           (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
         } yield{
           (inboundAccountSept2018, status)
@@ -737,7 +746,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           req = OutboundGetAccountbyAccountID(authInfo, bankId.toString, accountId.value)
           _ <- Full(logger.debug(s"Kafka getBankAccount says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
-          inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetAccountbyAccountID]().toString(false)
+          inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
           (inboundAccountSept2018, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
         } yield{
           (inboundAccountSept2018, status)
@@ -800,6 +811,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           )
           _ <- Full(logger.debug(s"Kafka checkBankAccountExists says: req is: $req"))
           kafkaMessage <- processToBox[OutboundCheckBankAccountExists](req)
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundCheckBankAccountExists]().toString(false)
           inboundCheckBankAccountExists <- tryo{kafkaMessage.extract[InboundCheckBankAccountExists]} ?~! s"$InboundCheckBankAccountExists extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountSept2018, status) <- Full(inboundCheckBankAccountExists.data, inboundCheckBankAccountExists.status)
         } yield{
@@ -861,7 +874,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           )
           _<-Full(logger.debug(s"Kafka getCoreBankAccounts says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
-          inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetCoreBankAccounts]().toString(false)
+          inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
           internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
         } yield{
           internalInboundCoreAccounts
@@ -1003,9 +1018,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           logger.debug(s"Kafka getTransactions says: req is: $req")
           val box = for {
             kafkaMessage <- processToBox[OutboundGetTransactions](req)
+            received = liftweb.json.compactRender(kafkaMessage)
+            expected = SchemaFor[InboundGetTransactions]().toString(false)
             inboundGetTransactions <- tryo {
               kafkaMessage.extract[InboundGetTransactions]
-            } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+            } ?~! s"$InvalidConnectorResponseForGetTransactions Extraction Failed: You received this ($received). We expected this ($expected)"
             (internalTransactions, status) <- Full(inboundGetTransactions.data, inboundGetTransactions.status)
           } yield {
             (internalTransactions, status)
@@ -1071,9 +1088,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           logger.debug(s"Kafka getTransactions says: req is: $req")
           val box = for {
             kafkaMessage <- processToBox[OutboundGetTransactions](req)
+            received = liftweb.json.compactRender(kafkaMessage)
+            expected = SchemaFor[InboundGetTransactions]().toString(false)
             inboundGetTransactions <- tryo {
               kafkaMessage.extract[InboundGetTransactions]
-            } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+            } ?~! s"$InvalidConnectorResponseForGetTransactions Extraction Failed: You received this ($received). We expected this ($expected)"
             (internalTransactions, status) <- Full(inboundGetTransactions.data, inboundGetTransactions.status)
           } yield {
             (internalTransactions, status)
@@ -1140,7 +1159,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           req =  OutboundGetTransaction(authInfo,bankId.value, accountId.value, transactionId.value)
           _ <- Full(logger.debug(s"Kafka getTransaction Req says:  is: $req"))
           kafkaMessage <- processToBox[OutboundGetTransaction](req)
-          inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"$InvalidConnectorResponseForGetTransaction $InboundGetTransaction extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetTransaction]().toString(false)
+          inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
           (internalTransaction, status) <- Full(inboundGetTransaction.data, inboundGetTransaction.status)
         } yield{
           (internalTransaction, status)
@@ -1451,7 +1472,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           )
           _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
-          inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InboundGetTransactionRequests210 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetTransactionRequests210]().toString(false)
+          inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, Extraction Failed: You received this ($received). We expected this ($expected)"
           (internalGetTransactionRequests, status) <- Full(inboundGetTransactionRequests210.data, inboundGetTransactionRequests210.status)
         } yield{
           (internalGetTransactionRequests, status)
@@ -1547,7 +1570,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           )
           _<-Full(logger.debug(s"Kafka getCounterparties Req says: is: $req"))
           kafkaMessage <- processToBox[OutboundGetCounterparties](req)
-          inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"$InboundGetCounterparties extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
+          received = liftweb.json.compactRender(kafkaMessage)
+          expected = SchemaFor[InboundGetCounterparties]().toString(false)
+          inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
           (internalCounterparties, status) <- Full(inboundGetCounterparties.data, inboundGetCounterparties.status)
         } yield{
           (internalCounterparties, status)
