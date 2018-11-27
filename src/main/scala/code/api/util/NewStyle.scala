@@ -23,6 +23,8 @@ import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
+import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
+import code.products.Products.ProductCode
 import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequest
@@ -125,7 +127,11 @@ object NewStyle {
     (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getObpApiLoopback), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.refreshUser), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAllEntitlements), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getAllEntitlements), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createProductAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getProductAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateProductAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteProductAttribute), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -513,6 +519,29 @@ object NewStyle {
     
     def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[ObpApiLoopback] = {
       Connector.connector.vend.getObpApiLoopback(callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    
+    
+    def createOrUpdateProductAttribute(
+      bankId: BankId,
+      productCode: ProductCode,
+      productAttributeId: Option[String],
+      name: String,
+      attributType: ProductAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[ProductAttribute] = {
+      Connector.connector.vend.createOrUpdateProductAttribute(
+      bankId: BankId,
+      productCode: ProductCode,
+      productAttributeId: Option[String],
+      name: String,
+      attributType: ProductAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }

@@ -70,8 +70,7 @@ trait ProductAttributeProvider {
                                      productAttributeId: Option[String],
                                      name: String,
                                      attributType: ProductAttributeType.Value,
-                                     value: String
-                   ): Future[Box[ProductAttribute]]
+                                     value: String): Future[Box[ProductAttribute]]
   def deleteProductAttribute(productAttributeId: String): Future[Box[Boolean]]
   // End of Trait
 }

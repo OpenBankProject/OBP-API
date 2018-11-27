@@ -20,6 +20,8 @@ import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.AuthUser
+import code.productattribute.ProductAttribute.ProductAttributeType
+import code.products.Products.ProductCode
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
@@ -1866,6 +1868,165 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanRefreshUser)("", userId, canRefreshUser)
             startTime <- Future{Helpers.now}
             _ <- NewStyle.function.findByUserId(userId, Some(cc))
+            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
+              unboxFullOrFail(_, callContext, RefreshUserError, 400)
+            }
+            endTime <- Future{Helpers.now}
+            durationTime = endTime.getTime - startTime.getTime
+          } yield {
+            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      createProductAttribute,
+      implementedInApiVersion,
+      nameOf(createProductAttribute),
+      "POST",
+      "/product/attribute",
+      "Create Product Attribute.",
+      s""" Create Product Attribute
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeJson,
+      productAttributeResponseJson,
+      List(
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagNewStyle))
+
+    lazy val createProductAttribute : OBPEndpoint = {
+      case "product" :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJson]
+            }
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(postedData.bank_id),
+              ProductCode(postedData.product_code),
+              None,
+              postedData.name,
+              ProductAttributeType.withName(postedData.`type`),
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+            
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getProductAttribute,
+      implementedInApiVersion,
+      nameOf(getProductAttribute),
+      "GET",
+      "/product/attribute/PRODUCT_ATTRIBUTE_ID",
+      "Get Product Attribute",
+      s""" Get Product Attribute
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      refresUserJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagNewStyle))
+
+    lazy val getProductAttribute : OBPEndpoint = {
+      case "product" :: "attribute" :: productAttributeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            startTime <- Future{Helpers.now}
+            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
+              unboxFullOrFail(_, callContext, RefreshUserError, 400)
+            }
+            endTime <- Future{Helpers.now}
+            durationTime = endTime.getTime - startTime.getTime
+          } yield {
+            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      updateProductAttribute,
+      implementedInApiVersion,
+      nameOf(updateProductAttribute),
+      "PUT",
+      "/product/attribute/PRODUCT_ATTRIBUTE_ID",
+      "Update Product Attribute.",
+      s""" Update Product Attribute. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      refresUserJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagNewStyle))
+
+    lazy val updateProductAttribute : OBPEndpoint = {
+      case "product" :: "attribute" :: productAttributeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            startTime <- Future{Helpers.now}
+            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
+              unboxFullOrFail(_, callContext, RefreshUserError, 400)
+            }
+            endTime <- Future{Helpers.now}
+            durationTime = endTime.getTime - startTime.getTime
+          } yield {
+            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      deleteProductAttribute,
+      implementedInApiVersion,
+      nameOf(deleteProductAttribute),
+      "DELETE",
+      "/product/attribute/PRODUCT_ATTRIBUTE_ID",
+      "Refresh User.",
+      s""" The endpoint is used for updating the accounts, views, account holders for the user.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      refresUserJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagNewStyle))
+
+    lazy val deleteProductAttribute : OBPEndpoint = {
+      case "product" :: "attribute" :: productAttributeId :: Nil JsonDelete _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            startTime <- Future{Helpers.now}
             _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
               unboxFullOrFail(_, callContext, RefreshUserError, 400)
             }

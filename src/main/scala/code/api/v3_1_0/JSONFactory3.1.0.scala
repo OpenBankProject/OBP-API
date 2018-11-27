@@ -49,6 +49,7 @@ import scala.collection.immutable.List
 import code.customer.Customer
 import code.context.UserAuthContext
 import code.entitlement.Entitlement
+import code.productattribute.ProductAttribute.ProductAttribute
 import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
@@ -309,6 +310,26 @@ case class RefreshUserJson(
   duration_time: String
 )
 
+case class ProductAttributeJson(
+  bank_id: String,
+  product_code: String,
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+case class ProductAttributeResponseJson(
+  bank_id: String,
+  product_code: String,
+  product_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+
+
+
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
 object JSONFactory310{
@@ -540,5 +561,15 @@ object JSONFactory310{
       service_available = info.service_available, 
       is_active = info.is_active
     )
+  
+   def createProductAttributeJson(productAttribute: ProductAttribute): ProductAttributeResponseJson =
+     ProductAttributeResponseJson(
+       bank_id = productAttribute.bankId.value,
+       product_code = productAttribute.productCode.value,
+       product_attribute_id = productAttribute.productAttributeId,
+       name = productAttribute.name,
+       `type` = productAttribute.attributType.toString,
+       value = productAttribute.value,
+       )
 
 }

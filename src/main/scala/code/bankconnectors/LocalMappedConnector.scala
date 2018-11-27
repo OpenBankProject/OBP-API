@@ -30,6 +30,8 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model.dataAccess._
 import code.model.{TransactionRequestType, _}
+import code.productattribute.ProductAttribute
+import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.taxresidence
@@ -1908,4 +1910,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     UserAuthContextProvider.userAuthContextProvider.vend.deleteUserAuthContextById(userAuthContextId) map{
       (_, callContext)
     }
+  
+  
+  override def createOrUpdateProductAttribute(
+      bankId: BankId,
+      productCode: ProductCode,
+      productAttributeId: Option[String],
+      name: String,
+      attributType: ProductAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Box[ProductAttribute]] =
+    ProductAttribute.productAttributeProvider.vend.createOrUpdateProductAttribute(
+      bankId: BankId,
+      productCode: ProductCode,
+      productAttributeId: Option[String],
+      name: String,
+      attributType: ProductAttributeType.Value,
+      value: String ) map{
+        (_, callContext)
+    }
+  
+  
+
 }

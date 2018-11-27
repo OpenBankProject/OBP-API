@@ -2969,6 +2969,22 @@ object SwaggerDefinitionsJSON {
   val obpApiLoopbackJson = ObpApiLoopbackJson("kafka_vSept2018","f0acd4be14cdcb94be3433ec95c1ad65228812a0","10 ms")
   
   val refresUserJson = RefreshUserJson("10 ms")
+  
+  val productAttributeJson = ProductAttributeJson(
+    bank_id = "123",
+    product_code = "saving1",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23"
+  )
+  val productAttributeResponseJson = ProductAttributeResponseJson(
+    bank_id = "123",
+    product_code = "saving1",
+    product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23"
+  )
 
   //The common error or success format.
   //Just some helper format to use in Json 
