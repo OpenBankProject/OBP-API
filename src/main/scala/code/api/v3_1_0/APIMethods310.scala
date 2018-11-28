@@ -20,11 +20,14 @@ import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.AuthUser
+import code.productattribute.ProductAttribute.ProductAttributeType
+import code.products.Products.ProductCode
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Full
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
@@ -1873,6 +1876,163 @@ trait APIMethods310 {
             durationTime = endTime.getTime - startTime.getTime
           } yield {
             (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      createProductAttribute,
+      implementedInApiVersion,
+      nameOf(createProductAttribute),
+      "POST",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
+      "Create Product Attribute",
+      s""" Create Product Attribute
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeJson,
+      productAttributeResponseJson,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val createProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJson]
+            }
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(postedData.bank_id),
+              ProductCode(productCode),
+              None,
+              postedData.name,
+              ProductAttributeType.withName(postedData.`type`),
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getProductAttribute,
+      implementedInApiVersion,
+      nameOf(getProductAttribute),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Get Product Attribute",
+      s""" Get Product Attribute
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productAttributeResponseJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val getProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (productAttribute, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
+            
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      updateProductAttribute,
+      implementedInApiVersion,
+      nameOf(updateProductAttribute),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Update Product Attribute",
+      s""" Update Product Attribute. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeJson,
+      productAttributeResponseJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val updateProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJson]
+            }
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(postedData.bank_id),
+              ProductCode(productCode),
+              Some(productAttributeId),
+              postedData.name,
+              ProductAttributeType.withName(postedData.`type`),
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      deleteProductAttribute,
+      implementedInApiVersion,
+      nameOf(deleteProductAttribute),
+      "DELETE",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Delete Product Attribute",
+      s""" Delete Product Attribute
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val deleteProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId ::  Nil JsonDelete _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (productAttribute, callContext) <- NewStyle.function.deleteProductAttribute(productAttributeId, callContext)
+          } yield {
+            (JsRaw(""), HttpCode.`204`(callContext))
           }
       }
     }
