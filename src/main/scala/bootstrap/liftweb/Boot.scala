@@ -74,6 +74,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.model._
 import code.model.dataAccess._
+import code.productAttributeattribute.MappedProductAttribute
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
 import code.scope.{MappedScope, MappedUserScope}
@@ -577,6 +578,7 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
-    MappedCustomerIDMapping
+    MappedCustomerIDMapping,
+    MappedProductAttribute,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

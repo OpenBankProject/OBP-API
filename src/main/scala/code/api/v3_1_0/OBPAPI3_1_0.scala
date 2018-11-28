@@ -320,6 +320,10 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.deleteCustomerAddress ::
                           Implementations3_1_0.getObpApiLoopback ::
                           Implementations3_1_0.refreshUser ::
+                          Implementations3_1_0.createProductAttribute ::
+                          Implementations3_1_0.getProductAttribute ::
+                          Implementations3_1_0.updateProductAttribute ::
+                          Implementations3_1_0.deleteProductAttribute ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
