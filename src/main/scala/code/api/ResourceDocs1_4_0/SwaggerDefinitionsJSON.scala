@@ -2972,7 +2972,6 @@ object SwaggerDefinitionsJSON {
   
   val productAttributeJson = ProductAttributeJson(
     bank_id = "123",
-    product_code = "saving1",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"

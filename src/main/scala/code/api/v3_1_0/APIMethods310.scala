@@ -27,6 +27,7 @@ import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Full
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
@@ -1884,8 +1885,8 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createProductAttribute),
       "POST",
-      "/product/attribute",
-      "Create Product Attribute.",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
+      "Create Product Attribute",
       s""" Create Product Attribute
          |
          |${authenticationRequiredMessage(true)}
@@ -1894,13 +1895,14 @@ trait APIMethods310 {
       productAttributeJson,
       productAttributeResponseJson,
       List(
+        InvalidJsonFormat,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle))
 
     lazy val createProductAttribute : OBPEndpoint = {
-      case "product" :: "attribute" :: Nil JsonPost json -> _=> {
+      case "banks" :: bankId :: "products" :: productCode:: "attribute" :: Nil JsonPost json -> _=> {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -1910,14 +1912,13 @@ trait APIMethods310 {
             }
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(postedData.bank_id),
-              ProductCode(postedData.product_code),
+              ProductCode(productCode),
               None,
               postedData.name,
               ProductAttributeType.withName(postedData.`type`),
               postedData.value,
               callContext: Option[CallContext]
             )
-            
           } yield {
             (createProductAttributeJson(productAttribute), HttpCode.`201`(callContext))
           }
@@ -1929,7 +1930,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getProductAttribute),
       "GET",
-      "/product/attribute/PRODUCT_ATTRIBUTE_ID",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
       "Get Product Attribute",
       s""" Get Product Attribute
          |
@@ -1937,27 +1938,23 @@ trait APIMethods310 {
          |
          |""",
       emptyObjectJson,
-      refresUserJson,
+      productAttributeResponseJson,
       List(
         UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle))
 
     lazy val getProductAttribute : OBPEndpoint = {
-      case "product" :: "attribute" :: productAttributeId :: Nil JsonGet _ => {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            startTime <- Future{Helpers.now}
-            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
-              unboxFullOrFail(_, callContext, RefreshUserError, 400)
-            }
-            endTime <- Future{Helpers.now}
-            durationTime = endTime.getTime - startTime.getTime
+            (productAttribute, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
+            
           } yield {
-            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1967,35 +1964,42 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(updateProductAttribute),
       "PUT",
-      "/product/attribute/PRODUCT_ATTRIBUTE_ID",
-      "Update Product Attribute.",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Update Product Attribute",
       s""" Update Product Attribute. 
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      refresUserJson,
+      productAttributeJson,
+      productAttributeResponseJson,
       List(
         UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle))
 
     lazy val updateProductAttribute : OBPEndpoint = {
-      case "product" :: "attribute" :: productAttributeId :: Nil JsonPut json -> _ =>{
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            startTime <- Future{Helpers.now}
-            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
-              unboxFullOrFail(_, callContext, RefreshUserError, 400)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJson]
             }
-            endTime <- Future{Helpers.now}
-            durationTime = endTime.getTime - startTime.getTime
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(postedData.bank_id),
+              ProductCode(productCode),
+              Some(productAttributeId),
+              postedData.name,
+              ProductAttributeType.withName(postedData.`type`),
+              postedData.value,
+              callContext: Option[CallContext]
+            )
           } yield {
-            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2005,35 +2009,30 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(deleteProductAttribute),
       "DELETE",
-      "/product/attribute/PRODUCT_ATTRIBUTE_ID",
-      "Refresh User.",
-      s""" The endpoint is used for updating the accounts, views, account holders for the user.
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Delete Product Attribute",
+      s""" Delete Product Attribute
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      refresUserJson,
+      emptyObjectJson,
       List(
         UserHasMissingRoles,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle))
 
     lazy val deleteProductAttribute : OBPEndpoint = {
-      case "product" :: "attribute" :: productAttributeId :: Nil JsonDelete _=> {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId ::  Nil JsonDelete _=> {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            startTime <- Future{Helpers.now}
-            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
-              unboxFullOrFail(_, callContext, RefreshUserError, 400)
-            }
-            endTime <- Future{Helpers.now}
-            durationTime = endTime.getTime - startTime.getTime
+            (productAttribute, callContext) <- NewStyle.function.deleteProductAttribute(productAttributeId, callContext)
           } yield {
-            (createRefreshUserJson(durationTime), HttpCode.`201`(callContext))
+            (JsRaw(""), HttpCode.`204`(callContext))
           }
       }
     }

@@ -1534,7 +1534,15 @@ trait Connector extends MdcLoggable{
       attributType: ProductAttributeType.Value,
       value: String,
       callContext: Option[CallContext]
-    ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(NotImplemented + currentMethodName+"createCustomerAddress in Connector!"), callContext)}
+    ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
   
-
+  def getProductAttributeById(
+      productAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def deleteProductAttribute(
+    productAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

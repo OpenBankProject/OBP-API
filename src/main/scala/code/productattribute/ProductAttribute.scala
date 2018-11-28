@@ -61,9 +61,9 @@ trait ProductAttributeProvider {
 
   private val logger = Logger(classOf[ProductAttributeProvider])
 
-  protected def getProductAttributesFromProvider(bank: BankId, productCode: ProductCode): Future[Box[List[ProductAttribute]]]
+  def getProductAttributesFromProvider(bank: BankId, productCode: ProductCode): Future[Box[List[ProductAttribute]]]
 
-  protected def getProductAttributeById(productAttributeId: String): Future[Box[ProductAttribute]]
+  def getProductAttributeById(productAttributeId: String): Future[Box[ProductAttribute]]
 
   def createOrUpdateProductAttribute(bankId : BankId,
                                      productCode: ProductCode,

@@ -144,6 +144,9 @@ object NewStyle {
     def `202`(callContext: Option[CallContext]): Option[CallContext] = {
       callContext.map(_.copy(httpCode = Some(202)))
     }
+    def `204`(callContext: Option[CallContext]): Option[CallContext] = {
+      callContext.map(_.copy(httpCode = Some(204)))
+    }
     def `200`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(200)))
     }
@@ -534,14 +537,38 @@ object NewStyle {
       callContext: Option[CallContext]
     ): OBPReturnType[ProductAttribute] = {
       Connector.connector.vend.createOrUpdateProductAttribute(
-      bankId: BankId,
-      productCode: ProductCode,
-      productAttributeId: Option[String],
-      name: String,
-      attributType: ProductAttributeType.Value,
-      value: String,
+        bankId: BankId,
+        productCode: ProductCode,
+        productAttributeId: Option[String],
+        name: String,
+        attributType: ProductAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+          i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    
+    def getProductAttributeById(
+      productAttributeId: String,
       callContext: Option[CallContext]
-    ) map {
+    ): OBPReturnType[ProductAttribute] = {
+      Connector.connector.vend.getProductAttributeById(
+        productAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    
+    def deleteProductAttribute(
+      productAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteProductAttribute(
+        productAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }

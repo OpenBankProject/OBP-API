@@ -1931,6 +1931,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         (_, callContext)
     }
   
+  override def getProductAttributeById(
+    productAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductAttribute]] = 
+    ProductAttribute.productAttributeProvider.vend.getProductAttributeById(productAttributeId: String) map{
+      (_, callContext)
+    }
+  
+  override def deleteProductAttribute(
+    productAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = 
+    ProductAttribute.productAttributeProvider.vend.deleteProductAttribute(productAttributeId: String) map {
+      (_, callContext)
+    }
   
 
 }
