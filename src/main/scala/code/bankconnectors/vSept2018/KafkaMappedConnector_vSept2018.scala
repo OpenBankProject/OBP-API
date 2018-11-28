@@ -261,7 +261,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
       received = liftweb.json.compactRender(kafkaMessage)
       expected = SchemaFor[InboundAdapterInfoInternal]().toString(false)
-      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! {
+        val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+        sendOutboundAdapterError(err)
+        err
+      }
       inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
     } yield{
       inboundAdapterInfoInternal
@@ -332,7 +336,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetUserByUsernamePassword](req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetUserByUsernamePassword]().toString(false)
-          inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+          inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! {
+            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(err)
+            err
+          }
           inboundValidatedUser <- Full(inboundGetUserByUsernamePassword.data)
         } yield{
           inboundValidatedUser
@@ -524,7 +532,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           expected = SchemaFor[InboundGetBank]().toString(false)
           inboundGetBank <- tryo {
             kafkaMessage.extract[InboundGetBank]
-          } ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+          } ?~! {
+            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(err)
+            err
+          }
           (inboundBank, status) <- Full(inboundGetBank.data, inboundGetBank.status)
         } yield {
           (inboundBank, status)
@@ -636,7 +648,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetAccounts](req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetAccounts]().toString(false)
-          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! {
+            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(err)
+            err
+          }
           (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
         } yield{
           (inboundAccountSept2018, status)
@@ -748,7 +764,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetAccountbyAccountID]().toString(false)
-          inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+          inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! {
+            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(err)
+            err
+          }
           (inboundAccountSept2018, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
         } yield{
           (inboundAccountSept2018, status)
@@ -876,7 +896,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCoreBankAccounts]().toString(false)
-          inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+          inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! {
+            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(err)
+            err
+          }
           internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
         } yield{
           internalInboundCoreAccounts
@@ -1161,7 +1185,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetTransaction](req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetTransaction]().toString(false)
-          inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+          inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! {
+            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(err)
+            err
+          }
           (internalTransaction, status) <- Full(inboundGetTransaction.data, inboundGetTransaction.status)
         } yield{
           (internalTransaction, status)
@@ -1572,7 +1600,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetCounterparties](req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCounterparties]().toString(false)
-          inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"Extraction Failed: You received this ($received). We expected this ($expected)"
+          inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! {
+            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(err)
+            err
+          }
           (internalCounterparties, status) <- Full(inboundGetCounterparties.data, inboundGetCounterparties.status)
         } yield{
           (internalCounterparties, status)
