@@ -64,6 +64,7 @@ import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestComm
 import code.context.UserAuthContextProvider
 import code.users.Users
 import net.liftweb
+import net.liftweb.json
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   
@@ -458,7 +459,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBanks]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBanks extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetBanks]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             (x => (x.data, x.status))
@@ -583,7 +589,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBank]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBank extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetBank]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             (x => (x.data, x.status))
@@ -703,7 +714,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetAccounts]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetAccounts]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             (x => (x.data, x.status))
@@ -946,7 +962,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetCoreBankAccounts]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetCoreBankAccounts]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             _.data
@@ -1272,7 +1293,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
          try {
            f.extract[InboundCreateChallengeSept2018]
          } catch {
-           case e: Exception => throw new MappingException(s"$InboundCreateChallengeSept2018 extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+           case e: Exception =>
+             val received = liftweb.json.compactRender(f)
+             val expected = SchemaFor[InboundCreateChallengeSept2018]().toString(false)
+             val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+             sendOutboundAdapterError(err)
+             throw new MappingException(err, e)
          }
        } map { x => (x.inboundAuthInfo, x.data) }
     } yield {
@@ -1666,7 +1692,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
              try {
                f.extract[InboundGetCounterparty]
              } catch {
-               case e: Exception => throw new MappingException(s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+               case e: Exception =>
+                 val received = liftweb.json.compactRender(f)
+                 val expected = SchemaFor[InboundGetCounterparty]().toString(false)
+                 val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                 sendOutboundAdapterError(err)
+                 throw new MappingException(err, e)
              }
          } map { x => (x.inboundAuthInfo, x.data, x.status) }
        } yield {
@@ -1704,7 +1735,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
          try {
            f.extract[InboundGetCounterparty]
          } catch {
-           case e: Exception => throw new MappingException(s"$InboundGetCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+           case e: Exception =>
+             val received = liftweb.json.compactRender(f)
+             val expected = SchemaFor[InboundGetCounterparty]().toString(false)
+             val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+             sendOutboundAdapterError(err)
+             throw new MappingException(err, e)
          }
      } map { x => (x.inboundAuthInfo, x.data, x.status) }
    } yield {
@@ -1777,7 +1813,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetCustomersByUserId]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetCustomersByUserId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetCustomersByUserId]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {x => (x.data, x.status)}
         } yield{
@@ -1858,7 +1899,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetChecksOrderStatus]
               } catch {
-                case e: Exception => throw new MappingException(s"correlationId(${req.authInfo.correlationId}): $InboundGetChecksOrderStatus extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetChecksOrderStatus]().toString(false)
+                  val err = s"correlationId(${req.authInfo.correlationId}): Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {x => (x.data, x.status)}
         } yield{
@@ -1949,7 +1995,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetCreditCardOrderStatus]
               } catch {
-                case e: Exception => throw new MappingException(s"correlationId(${req.authInfo.correlationId}): $InboundCardDetails extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundCardDetails]().toString(false)
+                  val err = s"correlationId(${req.authInfo.correlationId}): Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {x => (x.data, x.status)}
         } yield{
@@ -2195,7 +2246,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBranches]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBranches extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetBranches]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2292,7 +2348,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetBranch]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetBranch extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetBranch]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2394,7 +2455,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetAtms]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetAtms extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetAtms]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2494,7 +2560,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetAtm]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetAtm extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetAtm]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2567,7 +2638,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               try {
                 f.extract[InboundGetChallengeThreshold]
               } catch {
-                case e: Exception => throw new MappingException(s"$InboundGetAtm extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetChallengeThreshold]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2668,7 +2744,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           try {
             f.extract[InboundCreateTransactionId]
           } catch {
-            case e: Exception => throw new MappingException(s"INTERNAL-$UnknownError $InboundCreateTransactionId extract error. Both check API and Adapter Inbound Case Classes need be the same ! ", e)
+            case e: Exception =>
+              val received = liftweb.json.compactRender(f)
+              val expected = SchemaFor[InboundCreateTransactionId]().toString(false)
+              val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+              sendOutboundAdapterError(err)
+              throw new MappingException(err, e)
           }
       } map {
         (x => (x.inboundAuthInfo, x.status,  x.data))
