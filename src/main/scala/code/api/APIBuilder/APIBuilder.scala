@@ -360,6 +360,7 @@ package code.api.builder
 import java.util.UUID
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
+import code.api.util.ApiTag._
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages._
 import net.liftweb.common.Full
