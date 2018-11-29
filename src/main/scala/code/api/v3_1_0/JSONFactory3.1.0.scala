@@ -567,7 +567,7 @@ object JSONFactory310{
        product_code = productAttribute.productCode.value,
        product_attribute_id = productAttribute.productAttributeId,
        name = productAttribute.name,
-       `type` = productAttribute.attributType.toString,
+       `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
 

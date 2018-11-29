@@ -92,7 +92,7 @@ class MappedProductAttribute extends ProductAttribute with LongKeyedMapper[Mappe
 
   override def name: String = mName.get
 
-  override def attributType: ProductAttributeType.Value = ProductAttributeType.withName(mType.get)
+  override def attributeType: ProductAttributeType.Value = ProductAttributeType.withName(mType.get)
 
   override def value: String = mValue.get
 

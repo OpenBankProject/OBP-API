@@ -37,7 +37,7 @@ object ProductAttribute extends SimpleInjector {
 
     def name: String
 
-    def attributType: ProductAttributeType.Value
+    def attributeType: ProductAttributeType.Value
 
     def value: String
   }
