@@ -263,9 +263,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       received = liftweb.json.compactRender(kafkaMessage)
       expected = SchemaFor[InboundAdapterInfoInternal]().toString(false)
       inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! {
-        val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-        sendOutboundAdapterError(err)
-        err
+        val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+        sendOutboundAdapterError(error)
+        error
       }
       inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
     } yield{
@@ -338,9 +338,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetUserByUsernamePassword]().toString(false)
           inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! {
-            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(err)
-            err
+            val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(error)
+            error
           }
           inboundValidatedUser <- Full(inboundGetUserByUsernamePassword.data)
         } yield{
@@ -539,9 +539,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           inboundGetBank <- tryo {
             kafkaMessage.extract[InboundGetBank]
           } ?~! {
-            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(err)
-            err
+            val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(error)
+            error
           }
           (inboundBank, status) <- Full(inboundGetBank.data, inboundGetBank.status)
         } yield {
@@ -592,9 +592,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetBank]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {
             (x => (x.data, x.status))
@@ -660,9 +660,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetAccounts]().toString(false)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! {
-            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(err)
-            err
+            val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(error)
+            error
           }
           (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
         } yield{
@@ -717,9 +717,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetAccounts]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {
             (x => (x.data, x.status))
@@ -781,9 +781,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetAccountbyAccountID]().toString(false)
           inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! {
-            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(err)
-            err
+            val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(error)
+            error
           }
           (inboundAccountSept2018, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
         } yield{
@@ -913,9 +913,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCoreBankAccounts]().toString(false)
           inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! {
-            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(err)
-            err
+            val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(error)
+            error
           }
           internalInboundCoreAccounts <- Full(inboundGetCoreBankAccounts.data)
         } yield{
@@ -1207,9 +1207,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetTransaction]().toString(false)
           inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! {
-            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(err)
-            err
+            val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(error)
+            error
           }
           (internalTransaction, status) <- Full(inboundGetTransaction.data, inboundGetTransaction.status)
         } yield{
@@ -1296,9 +1296,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
            case e: Exception =>
              val received = liftweb.json.compactRender(f)
              val expected = SchemaFor[InboundCreateChallengeSept2018]().toString(false)
-             val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-             sendOutboundAdapterError(err)
-             throw new MappingException(err, e)
+             val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+             sendOutboundAdapterError(error)
+             throw new MappingException(error, e)
          }
        } map { x => (x.inboundAuthInfo, x.data) }
     } yield {
@@ -1627,9 +1627,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCounterparties]().toString(false)
           inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! {
-            val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(err)
-            err
+            val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+            sendOutboundAdapterError(error)
+            error
           }
           (internalCounterparties, status) <- Full(inboundGetCounterparties.data, inboundGetCounterparties.status)
         } yield{
@@ -1738,9 +1738,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
            case e: Exception =>
              val received = liftweb.json.compactRender(f)
              val expected = SchemaFor[InboundGetCounterparty]().toString(false)
-             val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-             sendOutboundAdapterError(err)
-             throw new MappingException(err, e)
+             val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+             sendOutboundAdapterError(error)
+             throw new MappingException(error, e)
          }
      } map { x => (x.inboundAuthInfo, x.data, x.status) }
    } yield {
@@ -1816,9 +1816,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetCustomersByUserId]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {x => (x.data, x.status)}
         } yield{
@@ -1902,9 +1902,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetChecksOrderStatus]().toString(false)
-                  val err = s"correlationId(${req.authInfo.correlationId}): Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"correlationId(${req.authInfo.correlationId}): Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {x => (x.data, x.status)}
         } yield{
@@ -1998,9 +1998,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundCardDetails]().toString(false)
-                  val err = s"correlationId(${req.authInfo.correlationId}): Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"correlationId(${req.authInfo.correlationId}): Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {x => (x.data, x.status)}
         } yield{
@@ -2249,9 +2249,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetBranches]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2351,9 +2351,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetBranch]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2458,9 +2458,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetAtms]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2563,9 +2563,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetAtm]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2641,9 +2641,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetChallengeThreshold]().toString(false)
-                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
+                  val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
               }
           } map {
             d => (d.data, d.status)
@@ -2747,9 +2747,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case e: Exception =>
               val received = liftweb.json.compactRender(f)
               val expected = SchemaFor[InboundCreateTransactionId]().toString(false)
-              val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-              sendOutboundAdapterError(err)
-              throw new MappingException(err, e)
+              val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+              sendOutboundAdapterError(error)
+              throw new MappingException(error, e)
           }
       } map {
         (x => (x.inboundAuthInfo, x.status,  x.data))

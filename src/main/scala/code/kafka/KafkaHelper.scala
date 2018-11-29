@@ -47,6 +47,6 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     (actor ? request).mapTo[JValue]
   }
   
-  def sendOutboundAdapterError(err: String): Unit = actor ! OutboundAdapterError(err)
+  def sendOutboundAdapterError(error: String): Unit = actor ! OutboundAdapterError(error)
 
 }

@@ -204,7 +204,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     // This is used to send Outbound Adapter Error to Kafka topic responsable for it
     case request: OutboundAdapterError =>
       val key = APIUtil.generateUUID()
-      val value = request.err
+      val value = request.error
       val topic = s"from.obp.api.${apiInstanceId}.to.adapter.mf.caseclass.OutboundAdapterError"
       val message = new ProducerRecord[String, String](topic, key, value)
       logger.debug(s" kafka producer's OutboundAdapterError : $message")
@@ -221,9 +221,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
 /**
   * This case class design an error send to Kafka topic "from.obp.api.${apiInstanceId}.to.adapter.mf.caseclass.OutboundAdapterError
-  * @param err the error message sent to Kafka
+  * @param error the error message sent to Kafka
   */
-case class OutboundAdapterError(err: String)
+case class OutboundAdapterError(error: String)
 
 /**
   * This case class design a pair of Topic, for both North and South side.
