@@ -2,10 +2,12 @@ package code.productattribute
 
 /* For ProductAttribute */
 
+import code.api.util.APIUtil
 import code.model.BankId
 import code.productAttributeattribute.MappedProductAttributeProvider
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.products.Products.ProductCode
+import code.remotedata.RemotedataProductAttribute
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
@@ -43,7 +45,11 @@ object ProductAttribute extends SimpleInjector {
 
   val productAttributeProvider = new Inject(buildOne _) {}
 
-  def buildOne: ProductAttributeProvider = MappedProductAttributeProvider
+  def buildOne: ProductAttributeProvider =
+    APIUtil.getPropsAsBoolValue("use_akka", false) match {
+      case false  => MappedProductAttributeProvider
+      case true => RemotedataProductAttribute     // We will use Akka as a middleware
+    }
 
   // Helper to get the count out of an option
   def countOfProductAttribute(listOpt: Option[List[ProductAttribute]]): Int = {
@@ -75,8 +81,19 @@ trait ProductAttributeProvider {
   // End of Trait
 }
 
+class RemotedataProductAttributeCaseClasses {
+  case class getProductAttributesFromProvider(bank: BankId, productCode: ProductCode)
 
+  case class getProductAttributeById(cproductAttributeId: String)
 
+  case class createOrUpdateProductAttribute(bankId : BankId,
+                                            productCode: ProductCode,
+                                            productAttributeId: Option[String],
+                                            name: String,
+                                            attributType: ProductAttributeType.Value,
+                                            value: String)
 
+  case class deleteProductAttribute(productAttributeId: String)
+}
 
-
+object RemotedataProductAttributeCaseClasses extends RemotedataProductAttributeCaseClasses

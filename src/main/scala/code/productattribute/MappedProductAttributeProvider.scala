@@ -15,7 +15,7 @@ import scala.concurrent.Future
 
 object MappedProductAttributeProvider extends ProductAttributeProvider {
 
-  override protected def getProductAttributesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductAttribute]]] =
+  override def getProductAttributesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductAttribute]]] =
     Future {
       Box !!  MappedProductAttribute.findAll(
           By(MappedProductAttribute.mBankId, bankId.value),
@@ -23,7 +23,7 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
         )
     }
 
-  override protected def getProductAttributeById(productAttributeId: String): Future[Box[ProductAttribute]] = Future {
+  override def getProductAttributeById(productAttributeId: String): Future[Box[ProductAttribute]] = Future {
      MappedProductAttribute.find(By(MappedProductAttribute.mProductAttributeId, productAttributeId))
   }
 
