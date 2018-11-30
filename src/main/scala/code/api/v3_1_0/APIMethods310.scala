@@ -645,7 +645,7 @@ trait APIMethods310 {
       nameOf(checkFundsAvailable),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/funds-available",
-      "Check available funds",
+      "Check Available Funds",
       """Check Available Funds
         |Possible custom URL parameters for pagination:
         |

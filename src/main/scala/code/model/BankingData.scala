@@ -317,7 +317,7 @@ trait BankAccount extends MdcLoggable {
     * This field is tricky, it belongs to Trait `BankAccount` directly, not a filed in `MappedBankAccount`
     * So this method always need to call the Model `MapperAccountHolders` and get the data there.
     * Note: 
-    *  We need manully create records for`MapperAccountHolders`, then we can get the data back. 
+    *  We need manually create records for`MapperAccountHolders`, then we can get the data back.
     *  each time when we create a account, we need call `getOrCreateAccountHolder`
     *  eg1: code.sandbox.OBPDataImport#setAccountOwner used in createSandBox
     *  eg2: code.model.dataAccess.AuthUser#updateUserAccountViews used in Adapter create accounts.
@@ -348,7 +348,10 @@ trait BankAccount extends MdcLoggable {
     * 
     * Maybe later, we need to create a new model, store the link between account<--> Customers. But this is not OBP Standard, these customers should come 
     * from MainFrame, this is only for MainFrame Mode. We need to clarify what kind of Customers we can get from MainFrame. 
-    * 
+    *
+    * In other words, this returns the customers that are linked to the user (via user-customer-links)
+    *
+    *
     */
   final def customerOwners: Set[Customer] = {
     val customerList = for{
