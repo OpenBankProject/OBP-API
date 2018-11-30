@@ -1879,7 +1879,17 @@ trait APIMethods310 {
           }
       }
     }
-    
+
+
+    val productAttributeGeneralInfo =
+      s"""
+         |Product Attributes are used to describe a financial Product with a list of typed key value pairs.
+         |
+         |Each Product Attribute is linked to its Product by PRODUCT_CODE
+         |
+         |
+       """.stripMargin
+
     resourceDocs += ResourceDoc(
       createProductAttribute,
       implementedInApiVersion,
@@ -1888,6 +1898,8 @@ trait APIMethods310 {
       "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
       "Create Product Attribute",
       s""" Create Product Attribute
+         |
+         |$productAttributeGeneralInfo
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -1934,6 +1946,10 @@ trait APIMethods310 {
       "Get Product Attribute",
       s""" Get Product Attribute
          |
+         |$productAttributeGeneralInfo
+         |
+         |Get one product attribute by its id.
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -1967,6 +1983,11 @@ trait APIMethods310 {
       "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
       "Update Product Attribute",
       s""" Update Product Attribute. 
+         |
+
+         |$productAttributeGeneralInfo
+         |
+         |Update one Product Attribute by its id.
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -2012,6 +2033,10 @@ trait APIMethods310 {
       "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
       "Delete Product Attribute",
       s""" Delete Product Attribute
+         |
+         |$productAttributeGeneralInfo
+         |
+         |Delete a Product Attribute by its id.
          |
          |${authenticationRequiredMessage(true)}
          |

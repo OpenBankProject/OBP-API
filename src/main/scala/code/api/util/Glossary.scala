@@ -1036,12 +1036,18 @@ object Glossary {
 			|
 			""")
 
-  if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false) == true) {
+
+
+  val oauth2EnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false))
+		{"OAuth2 is allowed on this instance."} else {"Note: *OAuth2 is NOT allowed on this instance!*"}
 
     glossaryItems += GlossaryItem(
       title = "OAuth 2",
       description =
         s"""
+        |
+        |$oauth2EnabledMessage
+        |
         |OAuth 2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service, in this case any OBP REST call. It works by delegating user authentication to the service that hosts the user account, and authorizing third-party applications to access the user account. OAuth 2 provides authorization flows for web and desktop applications, and mobile devices.
         |
         |### OAuth 2 Roles
@@ -1165,32 +1171,25 @@ object Glossary {
         |    curl -v -H 'Authorization: Bearer eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw' $getServerUrl/obp/v3.0.0/users/current
         |
 			""")
-  }
 
 
-else {
-
-		glossaryItems += GlossaryItem(
-			title = "OAuth 2",
-			description =
-					s"""
-						 |OAuth 2 is not enabled for this OBP API instance.
-			""")
-	}
-
+	val gatewayLoginEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false))
+	{"Note: Gateway Login is enabled."} else {"Note: *Gateway Login is NOT enabled on this instance!*"}
 
 
 	glossaryItems += GlossaryItem(
 		title = "Gateway Login",
 		description =
-			"""
+			s"""
 						 |### Introduction
+|
+|$gatewayLoginEnabledMessage
 |
 |Gateway Login Authorisation is made by including a specific header (see step 3 below) in any OBP REST call.
 |
 |Note: Gateway Login does *not* require an explicit POST like Direct Login to create the token.
 |
-|The **Gateway is responsible** for creating a token which is trusted by OBP **absolutely**!!
+|The **Gateway is responsible** for creating a token which is trusted by OBP **absolutely**!
 |
 |When OBP recieves a token via Gateway Login, OBP creates or gets a user based on the username supplied.
 |
@@ -1263,7 +1262,7 @@ else {
 |
 |Using your favorite http client:
 |
-|  GET /obp/v3.0.0/users/current
+|  GET $getServerUrl/obp/v3.0.0/users/current
 |
 |Body
 |
@@ -1276,7 +1275,7 @@ else {
 |
 |Here is it all together:
 |
-|  GET /obp/v3.0.0/users/current HTTP/1.1
+|  GET $getServerUrl/obp/v3.0.0/users/current HTTP/1.1
 |        Host: localhost:8080
 |        User-Agent: curl/7.47.0
 |        Accept: */*
@@ -1289,7 +1288,7 @@ else {
 |```
 |curl -v -H 'Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
 |AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
-|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU" http://localhost:8080/obp/v3.0.0/users/current
+|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU" $getServerUrl/obp/v3.0.0/users/current
 |```
 |
 |
