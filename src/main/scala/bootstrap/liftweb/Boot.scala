@@ -246,7 +246,16 @@ class Boot extends MdcLoggable {
     }
 
 
-
+    /**
+      * Function that determines if foreign key constraints are
+      * created by Schemifier for the specified connection.
+      *
+      * Note: The chosen driver must also support foreign keys for
+      * creation to happen
+      *
+      * In case of PostgreSQL it works
+      */
+    MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
 
 
