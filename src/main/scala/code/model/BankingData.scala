@@ -349,7 +349,7 @@ trait BankAccount extends MdcLoggable {
     * Maybe later, we need to create a new model, store the link between account<--> Customers. But this is not OBP Standard, these customers should come 
     * from MainFrame, this is only for MainFrame Mode. We need to clarify what kind of Customers we can get from MainFrame. 
     *
-    * In other words, this returns the customers that are linked to the user (via user-customer-links)
+    * In other words, this currently returns the customers that are linked to the user (via user-customer-links)
     *
     *
     */
