@@ -65,6 +65,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     {
 
       // Determine if the partialFunctionName is due to be "featured" in API Explorer etc.
+      // "Featured" means shown at the top of the list or so.
       def getIsFeaturedApi(partialFunctionName: String) : Boolean = {
         val partialFunctionNames = APIUtil.getPropsValue("featured_apis") match {
           case Full(v) =>
@@ -160,6 +161,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       // Add any featured status and special instructions from Props
       // Overwrite the requestUrl adding /obp
+      // TODO We ideally need to return two urls here:
+      // 1) the implemented in url i.e. the earliest version under which this endpoint is available
+      // 2) the called url (contains the version we are calling)
+
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
         // This is the "implemented in" url
@@ -215,10 +220,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
           logger.debug(s"Generating OBP Resource Docs showCore is $showCore showPSD2 is $showPSD2 showOBWG is $showOBWG requestedApiVersion is $requestedApiVersion")
           val obpResourceDocJson = for {
-            rd <- getResourceDocsList(requestedApiVersion)
+            resourceDocs <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Filter
-            val rdFiltered = filterResourceDocs(rd, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
+            val rdFiltered = filterResourceDocs(resourceDocs, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctionNames)
             // Format the data as json
             val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
             // Return
