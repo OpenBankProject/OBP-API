@@ -17,7 +17,7 @@ import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
-import code.bankconnectors.vSept2018.{KafkaMappedConnector_vSept2018}
+import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.context.UserAuthContext
 import code.customer._
@@ -27,6 +27,7 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
 import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
+import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.products.Products.{Product, ProductCode}
 import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -1498,22 +1499,50 @@ trait Connector extends MdcLoggable{
     callContext: Option[CallContext]
   ): Future[Box[(List[CardObjectJson], Option[CallContext])]] = Future{Failure(NotImplemented + currentMethodName)}
 
+  //This method is normally used in obp side, so it has the default mapped implementation  
   def createUserAuthContext(userId: String,
                             key: String,
                             value: String,
                             callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] =
-    Future{(Failure(NotImplemented + currentMethodName+"createUserAuthContext in Connector!"), callContext)}
+  LocalMappedConnector.createUserAuthContext(userId: String,
+                            key: String,
+                            value: String,
+                            callContext: Option[CallContext])
+   
+  //This method is normally used in obp side, so it has the default mapped implementation   
   def deleteUserAuthContexts(userId: String,
                              callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
-    Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContexts in Connector!"), callContext)}
-
+    LocalMappedConnector.deleteUserAuthContexts(userId: String,
+                             callContext: Option[CallContext])
+  
+  //This method is normally used in obp side, so it has the default mapped implementation  
   def deleteUserAuthContextById(userAuthContextId: String,
                              callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
-    Future{(Failure(NotImplemented + currentMethodName+"deleteUserAuthContextById in Connector!"), callContext)}
-
+    LocalMappedConnector.deleteUserAuthContextById(userAuthContextId: String,
+                             callContext: Option[CallContext])
+  //This method is normally used in obp side, so it has the default mapped implementation  
   def getUserAuthContexts(userId : String,
                           callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] =
-    Future{(Failure(NotImplemented + currentMethodName+"getUserAuthContexts in Connector!"), callContext)}
+    LocalMappedConnector.getUserAuthContexts(userId : String,
+                          callContext: Option[CallContext])
 
-
+  def createOrUpdateProductAttribute(
+      bankId: BankId,
+      productCode: ProductCode,
+      productAttributeId: Option[String],
+      name: String,
+      attributType: ProductAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def getProductAttributeById(
+      productAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def deleteProductAttribute(
+    productAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

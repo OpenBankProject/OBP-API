@@ -1061,6 +1061,10 @@ trait APIMethods200 {
         |
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
+        |ACCOUNT_ID SHOULD be a UUID. ACCOUNT_ID MUST NOT be the ACCOUNT_NUMBER.
+        |
+        |TYPE SHOULD be the PRODUCT_CODE from Product.
+        |
         |Note: The Amount must be zero.""".stripMargin,
       CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
       coreAccountJSON,
@@ -1106,7 +1110,7 @@ trait APIMethods200 {
             _ <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, canCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! ErrorMessages.InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~! ErrorMessages.InvalidAccountType
-            accountLabel <- tryo(jsonBody.`type`) //?~! ErrorMessages.InvalidAccountLabel
+            accountLabel <- tryo(jsonBody.`type`) //?~! ErrorMessages.InvalidAccountLabel // TODO looks strange.
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitialBalance
             _ <- booleanToBox(0 == initialBalanceAsNumber) ?~! s"Initial balance must be zero"
             currency <- tryo (jsonBody.balance.currency) ?~! ErrorMessages.InvalidAccountBalanceCurrency
@@ -1899,7 +1903,7 @@ trait APIMethods200 {
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
             _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(user.name)
-            _ <- Full(AuthUser.updateUserAccountViews(user))
+            _ <- Full(AuthUser.updateUserAccountViews(user, callContext))
             
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))

@@ -74,6 +74,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.model._
 import code.model.dataAccess._
+import code.productAttributeattribute.MappedProductAttribute
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
 import code.scope.{MappedScope, MappedUserScope}
@@ -245,7 +246,16 @@ class Boot extends MdcLoggable {
     }
 
 
-
+    /**
+      * Function that determines if foreign key constraints are
+      * created by Schemifier for the specified connection.
+      *
+      * Note: The chosen driver must also support foreign keys for
+      * creation to happen
+      *
+      * In case of PostgreSQL it works
+      */
+    MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
 
 
@@ -450,24 +460,6 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    Connector.connector.vend.getAdapterInfo(None) match {
-      case Empty =>
-        logger.info("ADAPTER INFO - Adapter is not implemented.")
-      case Full((obj@InboundAdapterInfoInternal(errorCode, backendMessages, name, version, git_commit, date),_)) =>
-        logger.info("ADAPTER INFO - errorCode: " + errorCode)
-        logger.info("ADAPTER INFO - backendMessages: " + backendMessages)
-        logger.info("ADAPTER INFO - name: " + name)
-        logger.info("ADAPTER INFO - version: " + version)
-        logger.info("ADAPTER INFO - git_commit: " + git_commit)
-        logger.info("ADAPTER INFO - date: " + date)
-      case Failure(msg, t, c) =>
-        logger.info("ADAPTER INFO - " + msg)
-        logger.info("ADAPTER INFO - " + t)
-        logger.info("ADAPTER INFO - " + c)
-      case _     =>
-        logger.info("ADAPTER INFO - Unknown status.")
-    }
-
     Migration.database.generateAndPopulateMissingCustomerUUIDs()
 
   }
@@ -586,6 +578,7 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
-    MappedCustomerIDMapping
+    MappedCustomerIDMapping,
+    MappedProductAttribute,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

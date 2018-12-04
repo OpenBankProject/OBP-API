@@ -48,7 +48,7 @@ class ObpApiLoopbackTest extends V310ServerSetup {
   {
     scenario("Success Test", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "loopback").GET
+      val request310 = (v3_1_0_Request / "connector" / "loopback").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
       response310.code should equal(200)

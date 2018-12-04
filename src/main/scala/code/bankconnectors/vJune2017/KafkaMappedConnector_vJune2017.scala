@@ -149,7 +149,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       inboundAdapterInfo
     }
     
-    logger.debug(s"Kafka getAdapterInfo Res says:  is: $Box")
+    logger.debug(s"Kafka getAdapterInfo Res says:  is: $box")
     
     val res = box match {
       case Full(inboundAdapterInfo) if (inboundAdapterInfo.data.errorCode=="") =>
@@ -215,7 +215,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           (authInfo, inboundBanks, status)
         }
 
-        logger.debug(s"Kafka getBanks Res says:  is: $Box")
+        logger.debug(s"Kafka getBanks Res says:  is: $box")
         val res = box match {
           case Full((authInfo, banks, status)) if (status.errorCode=="") =>
             val callContextUpdated = ApiSession.updateSessionId(callContext, authInfo.sessionId)
@@ -331,7 +331,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         }
 
 
-        logger.debug(s"Kafka getBank Res says:  is: $Box")
+        logger.debug(s"Kafka getBank Res says:  is: $box")
 
         box match {
           case Full((authInfo, bank, status)) if (status.errorCode == "") =>

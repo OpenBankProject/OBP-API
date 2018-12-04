@@ -33,7 +33,7 @@ import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
-import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
+import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson}
 import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
 import code.api.v2_2_0._
@@ -49,6 +49,7 @@ import scala.collection.immutable.List
 import code.customer.Customer
 import code.context.UserAuthContext
 import code.entitlement.Entitlement
+import code.productattribute.ProductAttribute.ProductAttribute
 import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
@@ -305,6 +306,31 @@ case class ObpApiLoopbackJson(
   duration_time: String
 )
 
+case class RefreshUserJson(
+  duration_time: String
+)
+
+case class ProductAttributeJson(
+  bank_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+case class ProductAttributeResponseJson(
+  bank_id: String,
+  product_code: String,
+  product_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+
+
+
+case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -506,6 +532,9 @@ object JSONFactory310{
       s"${obpApiLoopback.durationTime} ms"
     )
 
+  def createRefreshUserJson(durationTime: Long): RefreshUserJson =
+    RefreshUserJson(s" $durationTime ms")
+  
   def createEntitlementJsonsV310(tr: List[Entitlement]) = {
     val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {
      userId => (userId, User.findByUserId(userId).map(_.name))
@@ -523,5 +552,23 @@ object JSONFactory310{
       )
     )
   }
+  
+  def createRateLimitingInfo(info: RateLimiting): RateLimitingInfoV310 = 
+    RateLimitingInfoV310(
+      enabled = info.enabled, 
+      technology = info.technology, 
+      service_available = info.service_available, 
+      is_active = info.is_active
+    )
+  
+   def createProductAttributeJson(productAttribute: ProductAttribute): ProductAttributeResponseJson =
+     ProductAttributeResponseJson(
+       bank_id = productAttribute.bankId.value,
+       product_code = productAttribute.productCode.value,
+       product_attribute_id = productAttribute.productAttributeId,
+       name = productAttribute.name,
+       `type` = productAttribute.attributeType.toString,
+       value = productAttribute.value,
+       )
 
 }

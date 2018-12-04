@@ -13,22 +13,23 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object MappedCustomerAddressProvider extends CustomerAddressProvider {
-  def getAddressRemote(customerId: String): Box[List[CustomerAddress]] = {
+
+  override def getAddress(customerId: String) =  Future {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
     id.map(customer => MappedCustomerAddress.findAll(By(MappedCustomerAddress.mCustomerId, customer.id.get)))
   }
-  override def getAddress(customerId: String) = Future(getAddressRemote(customerId))
 
-  def createAddressRemote(customerId: String,
-                          line1: String,
-                          line2: String,
-                          line3: String,
-                          city: String,
-                          county: String,
-                          state: String,
-                          postcode: String,
-                          countryCode: String,
-                          status: String): Box[CustomerAddress] = {
+  override def createAddress(customerId: String,
+                             line1: String,
+                             line2: String,
+                             line3: String,
+                             city: String,
+                             county: String,
+                             state: String,
+                             postcode: String,
+                             countryCode: String,
+                             status: String
+                ): Future[Box[CustomerAddress]] = Future {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
     id match {
       case Full(customer) =>
@@ -53,38 +54,14 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
         Failure(ErrorMessages.UnknownError)
     }
   }
-  override def createAddress(customerId: String,
-                             line1: String,
-                             line2: String,
-                             line3: String,
-                             city: String,
-                             county: String,
-                             state: String,
-                             postcode: String,
-                             countryCode: String,
-                             status: String
-                ): Future[Box[CustomerAddress]] = Future(
-    createAddressRemote(
-      customerId,
-      line1,
-      line2,
-      line3,
-      city,
-      county,
-      state,
-      postcode,
-      countryCode,
-      status)
-  )
-
-  def deleteAddressRemote(customerAddressId: String): Box[Boolean] = {
+  
+  override def deleteAddress(customerAddressId: String): Future[Box[Boolean]] = Future {
     MappedCustomerAddress.find(By(MappedCustomerAddress.mCustomerAddressId, customerAddressId)) match {
       case Full(t) => Full(t.delete_!)
       case Empty   => Empty ?~! ErrorMessages.CustomerAddressNotFound
       case _       => Full(false)
     }
   }
-  override def deleteAddress(customerAddressId: String): Future[Box[Boolean]] = Future(deleteAddressRemote(customerAddressId))
 }
 
 class MappedCustomerAddress extends CustomerAddress with LongKeyedMapper[MappedCustomerAddress] with IdPK with CreatedUpdated {

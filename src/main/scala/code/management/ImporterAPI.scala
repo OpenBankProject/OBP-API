@@ -11,6 +11,7 @@ import code.util.Helper
 import net.liftweb.common.Full
 import code.util.Helper.MdcLoggable
 import net.liftweb.http._
+import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.{DefaultFormats, Extraction}
@@ -53,7 +54,9 @@ object ImporterAPI extends RestHelper with MdcLoggable {
   }
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), Nil, Nil, httpCode)
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), APIUtil.getHeaders(), Nil, httpCode)
+  def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
+    JsonResponse(json, APIUtil.getHeaders(), Nil, httpCode)
 
   /**
    * Legacy format
@@ -171,7 +174,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
               Connector.connector.vend.setBankAccountLastUpdated(account.bank.national_identifier, account.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
             }
             val jsonList = insertedTs.map(whenAddedJson)
-            JsonResponse(JArray(jsonList))
+            successJsonResponse(JArray(jsonList))
           case _ => {
             logger.warn("no envelopes inserted")
             InternalServerErrorResponse()

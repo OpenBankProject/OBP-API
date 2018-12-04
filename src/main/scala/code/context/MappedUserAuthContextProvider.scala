@@ -22,9 +22,9 @@ object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLog
     }
 
   override def getUserAuthContexts(userId: String): Future[Box[List[MappedUserAuthContext]]] = Future {
-    getUserAuthContextsAkka(userId)
+    getUserAuthContextsBox(userId)
   }
-  def getUserAuthContextsAkka(userId: String): Box[List[MappedUserAuthContext]] = {
+  override def getUserAuthContextsBox(userId: String): Box[List[MappedUserAuthContext]] = {
     tryo {
       MappedUserAuthContext.findAll(By(MappedUserAuthContext.mUserId, userId))
     }

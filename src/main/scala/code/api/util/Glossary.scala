@@ -9,9 +9,6 @@ import scala.collection.mutable.ArrayBuffer
 import code.api.util.ExampleValue._
 
 
-
-
-
 object Glossary {
 
 	val PegDownProcessorTimeout: Long = 1000*20
@@ -67,10 +64,179 @@ object Glossary {
 
 	// NOTE! Some glossary items are defined in ExampleValue.scala
 
-	  glossaryItems += GlossaryItem(
-		title = "Account",
+
+	//implicit val formats = DefaultFormats
+	//val prettyJson: String = extraction(decompose(authInfoExample))
+
+
+	/*
+
+
+
+
+	 */
+
+
+	val latestKafkaConnector : String = "kafka_vSept2018"
+
+	def messageDocLink(process: String) : String = {
+		s"""<a href="/message-docs?connector=$latestKafkaConnector#$process">$process</a>"""
+	}
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Adapter.Kafka.Intro",
 		description =
-		  """The thing that tokens of value (money) come in and out of.
+				s"""
+					|## Brief introduction to using Kafka as the interface layer between OBP and your Core Banking System (CBS).
+					|### Prerequesites
+					|
+					|
+					 |* We assume you have OBP-API running and it is connected to a working Kafka installation.
+						| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+|
+					|* We assume you have API Explorer running (the application serving this page) but its not necessary - (you could use a REST client)
+					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not nessessary (you could use a REST client  / API Explorer instead).
+					|* You should register a User that you want to use to call the API. Let's call this user Jane.
+|* You will need another user that will have the roles required for the following steps. Let's call this user CarolaAdmin.
+					 |* Use <a href="/index#vv3_1_0-createUserAuthContext">Create Auth Context</a> to add a “token” to the User who while request accounts.
+						|This token which could be a CUSTOMER_NUMBER is sent inside the AuthInfo object to Kafka
+					 |* OR Use Create Customer and Create User Customer Link (note that Create Auth Context is preferred)
+					 |
+					 |Then its time to configure or program your Adapter to consume, and respond to, the messages OBP will send to Kafka.
+|
+| We suggest they are implemented in the following order:
+|
+|
+ |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
+ |
+					 |* ${messageDocLink("obp.get.AdapterInfo")}
+					 |* ${messageDocLink("obp.get.Banks")}
+					 |* ${messageDocLink("obp.get.Bank")}
+					 |
+ |2) Get Accounts
+ |
+					 |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
+					 |* ${messageDocLink("obp.get.coreBankAccounts")}
+					 |* ${messageDocLink("obp.check.BankAccountExists")}
+					 |* ${messageDocLink("obp.get.Accounts")}
+					 |* ${messageDocLink("obp.get.Account")}
+					 |
+ |3) Get Transactions
+ |
+					 |* ${messageDocLink("obp.get.Transactions")}
+					 |* ${messageDocLink("obp.get.Transaction")}
+					 |
+ |4) Manage Counterparties
+ |
+					 |* ${messageDocLink("obp.get.counterparties")}
+					 |* ${messageDocLink("obp.get.CounterpartyByCounterpartyId")}
+					 |* ${messageDocLink("obp.create.Counterparty")}
+					 |
+ |5) Get Transaction Request Types
+ |
+					 |* This is configured using OBP Props - No messages required
+					 |
+ |6) Get Challenge Threshold (CBS)
+ |
+					 |* ${messageDocLink("obp.get.getChallengeThreshold")}
+					 |
+ |7)  Make Payment (used by Create Transaction Request)
+ |
+					 |* ${messageDocLink("obp.get.makePaymentv210")}
+ 						|* This also requires 8,9,10 for high value payments.
+					 |
+ |8) Get Transaction Requests.
+ |
+					 |* ${messageDocLink("obp.get.transactionRequests210")}
+					 |
+ |9) Generate Security Challenges (CBS)
+ |
+					 |* ${messageDocLink("obp.create.Challenge")}
+					 |
+ |10) Answer Security Challenges (Validate)
+ |
+					 |* Optional / Internal OBP (No additional messages required)
+					 |
+ |11) Manage Counterparty Metadata
+ |
+					 |* Internal OBP (No additional messages required)
+					 |
+ |12) Get Entitlements
+ |
+					 |* Internal OBP (No additional messages required)
+					 |
+ |13) Manage Roles
+ |
+					 |* Internal OBP (No additional messages required)
+					 |
+ |14) Manage Entitlements
+ |
+					 |* Internal OBP (No additional messages required)
+					 |
+ |15) Manage Views
+ |
+					 |* Internal OBP (No additional messages required)
+					 |
+ |16) Manage Transaction Metadata
+ |
+					 |* Internal OBP (No additional messages required)
+					 |
+ |"""
+	)
+
+
+
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Adapter.authInfo",
+		description =
+				s"""authInfo is a JSON object sent by the Connector to the Adapter so the Adapter and/or Core Banking System can
+  | identify the User making the call.
+  |
+  | The authInfo object contains several optional objects and fields.
+  |
+  |Please see the Message Docs for your connector for the current JSON structure. The following serves as a guide:
+  |
+  |* userId is the user_id as generated by OBP
+  |* username can be chosen explicitly to match an existing customer number (not recommended)
+  |* linkedCustomers is a list of Customers the User is explicitly linked to. Use the <a href="/#vv2_0_0-createUserCustomerLinks">Create User Customer Link endpoint</a> to populate this data.
+  |* userAuthContexts may contain the customer number or other tokens in order to boot strap the User Customer Links
+  |or provide an alternative method of tagging the User with an authorisation context.
+  |Use the <a href="/#vv3_1_0-createUserAuthContext">Create UserAuthContext endpoint</a> to populate this data.
+  |* cbsToken is a token used by the CBS to identify the user's session. Either generated by the CBS or Gateway.
+  |* isFirst is a flag that indicates that OBP should refresh the user's list of accounts from the CBS (and flush / invalidate any User's cache)
+  |* correlationId just identifies the API call.
+  |* authViews are entitlements given by account holders to third party users e.g. Sam may grant her accountant Jill read only access to her business account. See the <a href="/index#vv3_0_0-createViewForBankAccount">Create View endpoint</a>
+  |
+  |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/48432550-f6f0d100-e774-11e8-84dc-e94520ba186e.png"></img>
+  |
+  |
+  |
+ |"""
+	)
+
+
+	glossaryItems += GlossaryItem(
+		title = "API.Interfaces",
+		description =
+				s"""
+					 |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/48845997-413e0780-ed9e-11e8-86c5-e5ce510c140c.png"></img>
+					 |
+  |
+  |
+ |"""
+	)
+
+
+	  glossaryItems += GlossaryItem(
+		title =
+				"Account",
+		description =
+				"""The thing that tokens of value (money) come in and out of.
 			|An account has one or more `owners` which are `Users`.
 			|In the future, `Customers` may also be `owners`.
 			|An account has a balance in a specified currency and zero or more `transactions` which are records of successful movements of money.
@@ -104,7 +270,7 @@ object Glossary {
 	  glossaryItems += GlossaryItem(
 		title = "Bank.bank_id",
 		description =
-		"""
+		s"""
 		  |An identifier that uniquely identifies the bank or financial institution on the OBP-API instance.
 		  |
 		  |It is typically a human (developer) friendly string for ease of identification.
@@ -122,7 +288,7 @@ object Glossary {
 	  glossaryItems += GlossaryItem(
 		title = "Consumer",
 		description =
-		"""
+		s"""
 		  |The "consumer" of the API, i.e. the web, mobile or serverside "App" that calls on the OBP API on behalf of the end user (or system).
 		  |
 		  |Each Consumer has a consumer key and secrect which allows it to enter into secure communication with the API server.
@@ -870,12 +1036,18 @@ object Glossary {
 			|
 			""")
 
-  if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false) == true) {
+
+
+  val oauth2EnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_oauth2_login", false))
+		{"OAuth2 is allowed on this instance."} else {"Note: *OAuth2 is NOT allowed on this instance!*"}
 
     glossaryItems += GlossaryItem(
       title = "OAuth 2",
       description =
         s"""
+        |
+        |$oauth2EnabledMessage
+        |
         |OAuth 2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service, in this case any OBP REST call. It works by delegating user authentication to the service that hosts the user account, and authorizing third-party applications to access the user account. OAuth 2 provides authorization flows for web and desktop applications, and mobile devices.
         |
         |### OAuth 2 Roles
@@ -999,20 +1171,182 @@ object Glossary {
         |    curl -v -H 'Authorization: Bearer eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw' $getServerUrl/obp/v3.0.0/users/current
         |
 			""")
-  }
 
 
-else {
-
-		glossaryItems += GlossaryItem(
-			title = "OAuth 2",
-			description =
-					s"""
-						 |OAuth 2 is not enabled for this OBP API instance.
-			""")
-	}
+	val gatewayLoginEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false))
+	{"Note: Gateway Login is enabled."} else {"Note: *Gateway Login is NOT enabled on this instance!*"}
 
 
+	glossaryItems += GlossaryItem(
+		title = "Gateway Login",
+		description =
+			s"""
+						 |### Introduction
+|
+|$gatewayLoginEnabledMessage
+|
+|Gateway Login Authorisation is made by including a specific header (see step 3 below) in any OBP REST call.
+|
+|Note: Gateway Login does *not* require an explicit POST like Direct Login to create the token.
+|
+|The **Gateway is responsible** for creating a token which is trusted by OBP **absolutely**!
+|
+|When OBP recieves a token via Gateway Login, OBP creates or gets a user based on the username supplied.
+|
+|![obp login via gateway and jwt](https://user-images.githubusercontent.com/485218/32783397-e39620ee-c94b-11e7-92e3-b244b8e841dd.png)
+|
+|
+|To use Gateway Login:
+|
+|### 1) Configure OBP API to accept Gateway Login.
+|
+|Set up properties in a props file
+|
+|```
+|# -- Gateway login --------------------------------------
+|# Enable/Disable Gateway communication at all
+|# In case isn't defined default value is false
+|# allow_gateway_login=false
+|# Define comma separated list of allowed IP addresses
+|# gateway.host=127.0.0.1
+|# Define secret used to validate JWT token
+|# gateway.token_secret=secret
+|# -------------------------------------- Gateway login --
+|```
+|Please keep in mind that property gateway.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
+|
+|### 2) Create / have access to a JWT
+|
+|
+|
+|HEADER:ALGORITHM & TOKEN TYPE
+|
+|```
+|{
+|  "alg": "HS256",
+|  "typ": "JWT"
+|}
+|```
+|PAYLOAD:DATA
+|
+|```
+|{
+|  "username": "simonr",
+|  "is_first": true,
+|  "timestamp": "timestamp",
+|  "consumer_id": "123",
+|  "consumer_name": "Name of Consumer"
+|}
+|```
+|VERIFY SIGNATURE
+|```
+|HMACSHA256(
+|  base64UrlEncode(header) + "." +
+|  base64UrlEncode(payload),
+|
+|) secret base64 encoded
+|```
+|
+|Here is the above example token:
+|
+|```
+|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
+|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU
+|```
+|
+|
+|
+|### 3) Try a REST call using the header
+|
+|
+|Using your favorite http client:
+|
+|  GET $getServerUrl/obp/v3.0.0/users/current
+|
+|Body
+|
+|  Leave Empty!
+|
+|
+|Headers:
+|
+|       Authorization: GatewayLogin token="your-jwt-from-step-above"
+|
+|Here is it all together:
+|
+|  GET $getServerUrl/obp/v3.0.0/users/current HTTP/1.1
+|        Host: localhost:8080
+|        User-Agent: curl/7.47.0
+|        Accept: */*
+|        Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
+|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU"
+|
+|CURL example
+|
+|```
+|curl -v -H 'Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
+|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU" $getServerUrl/obp/v3.0.0/users/current
+|```
+|
+|
+|You should receive a response like:
+|
+|```
+|{
+|  "user_id": "33fd104f-3e6f-4025-97cc-b76bbdc9148e",
+|  "email": "marko@tesobe.com",
+|  "provider_id": "marko.milic",
+|  "provider": "https://tesobe.openbankproject.com",
+|  "username": "marko.milic",
+|  "entitlements": {
+|    "list": []
+|  }
+|}
+|```
+|and custom response header i.e. OBP returns a new token in the custom response header called GatewayLogin (to the Gateway)
+|
+|```
+|{
+|"username": "simonr",
+|"CBS_auth_token": "fapsoidfuipoi889w3ih", (Encrypted by OBP Adapter)
+|"timestamp": "timestamp",
+|"consumer_id": "123",
+|"consumer_name": "Name of Consumer"
+|}
+|```
+|GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
+|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU"
+|
+|### Under the hood
+|
+|The file, GatewayLogin.scala handles the Gateway Login.
+|
+|We:
+|
+|```
+|-> Check if Props allow_gateway_login is true
+|  -> Check if GatewayLogin header exists
+|    -> Check if getRemoteIpAddress is OK
+|      -> Look for "token"
+|        -> If "is_first" is true -OR- CBS_auth_token is empty then, call CBS to get accounts
+|```
+|
+|The CBS_auth_token (either the new one from CBS or existing one from previous token) is returned in the GatewayLogin custom response header.
+|
+|
+|
+|### More information
+|
+|   Parameter names and values are case sensitive.
+|
+|
+|  Each parameter MUST NOT appear more than once per request.
+|
+					""")
 
 
 

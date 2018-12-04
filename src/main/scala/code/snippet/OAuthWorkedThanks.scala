@@ -62,11 +62,15 @@ class OAuthWorkedThanks extends MdcLoggable {
       case Full(url) =>
         //this redirect url is checked by following, no open redirect issue.
         // TODO maybe handle case of extra trailing / on the url ?
+
+        val incorrectRedirectUrlMessage =  s"The validRedirectURL is $validRedirectURL but the requestedRedirectURL was $requestedRedirectURL"
+
+
         if(validRedirectURL.equals(requestedRedirectURL)) {
           "#redirect-link [href]" #> url
         }else{
-          logger.info(s"Note: The validRedirectURL was $validRedirectURL but the requestedRedirectURL was $requestedRedirectURL")
-          "#oauth-done-thanks *" #> "Sorry, the App requested a redirect to a URL that is not registered. Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
+          logger.info(incorrectRedirectUrlMessage)
+          "#oauth-done-thanks *" #> s"Sorry, the App requested a redirect to a URL that is not registered. $incorrectRedirectUrlMessage - Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
         }
       case _ => {
         "#thanks *" #> "Error"

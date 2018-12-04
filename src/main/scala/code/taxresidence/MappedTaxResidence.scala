@@ -11,15 +11,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object MappedTaxResidenceProvider extends TaxResidenceProvider {
-
-  def getTaxResidenceRemote(customerId: String): Box[List[TaxResidence]] = {
+  
+  override def getTaxResidence(customerId: String): Future[Box[List[TaxResidence]]] = Future {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
     id.map(customer => MappedTaxResidence.findAll(By(MappedTaxResidence.mCustomerId, customer.id.get)))
   }
-  override def getTaxResidence(customerId: String): Future[Box[List[TaxResidence]]] = {
-    Future(getTaxResidenceRemote(customerId))
-  }
-  def createTaxResidenceRemote(customerId: String, domain: String, taxNumber: String): Box[TaxResidence] = {
+  
+  override def createTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = Future {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
     id match {
       case Full(customer) =>
@@ -32,18 +30,13 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
         Failure(ErrorMessages.UnknownError)
     }
   }
-  override def createTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = {
-    Future(createTaxResidenceRemote(customerId, domain, taxNumber))
-  }
-  def deleteTaxResidenceRemote(taxResidenceId: String): Box[Boolean] = {
+  
+  override def deleteTaxResidence(taxResidenceId: String): Future[Box[Boolean]] = Future {
     MappedTaxResidence.find(By(MappedTaxResidence.mTaxResidenceId, taxResidenceId)) match {
       case Full(t) => Full(t.delete_!)
       case Empty   => Empty ?~! ErrorMessages.TaxResidenceNotFound
       case _       => Full(false)
     }
-  }
-  override def deleteTaxResidence(taxResidenceId: String): Future[Box[Boolean]] = {
-    Future(deleteTaxResidenceRemote(taxResidenceId))
   }
 }
 
