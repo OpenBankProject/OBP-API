@@ -335,23 +335,25 @@ object JSONFactory1_4_0 {
 
   // Used to describe the OBP API calls for documentation and API discovery purposes
   case class ResourceDocJson(operation_id: String,
-                         implemented_by: ImplementedByJson,
-                         request_verb: String,
-                         request_url: String,
-                         summary: String,
-                         description: String,
-                         example_request_body: scala.Product,
-                         success_response_body: scala.Product,
-                         error_response_bodies: List[String],
-                         is_core: Boolean,
-                         is_psd2: Boolean,
-                         is_obwg: Boolean,
-                         tags: List[String],
-                         typed_request_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
-                         typed_success_response_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
-                         roles: Option[List[ApiRole]] = None,
-                         is_featured: Boolean,
-                         special_instructions: String)
+                             implemented_by: ImplementedByJson,
+                             request_verb: String,
+                             request_url: String,
+                             summary: String,
+                             description: String,
+                             example_request_body: scala.Product,
+                             success_response_body: scala.Product,
+                             error_response_bodies: List[String],
+                             is_core: Boolean,
+                             is_psd2: Boolean,
+                             is_obwg: Boolean,
+                             tags: List[String],
+                             typed_request_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
+                             typed_success_response_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
+                             roles: Option[List[ApiRole]] = None,
+                             is_featured: Boolean,
+                             special_instructions: String,
+                             specified_url: String // Derived value. The Url when called under a certain version.
+                            )
 
 
 
@@ -367,7 +369,7 @@ object JSONFactory1_4_0 {
 
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
     // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
-    val PegDownProcessorTimeout: Long = 1000*20  
+    val PegDownProcessorTimeout: Long = 1000*20
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
 
     ResourceDocJson(
@@ -389,7 +391,8 @@ object JSONFactory1_4_0 {
       typed_success_response_body = createTypedBody(rd.successResponseBody),
       roles = rd.roles,
       is_featured = rd.isFeatured,
-      special_instructions = pegDownProcessor.markdownToHtml(rd.specialInstructions.getOrElse("").stripMargin)
+      special_instructions = pegDownProcessor.markdownToHtml(rd.specialInstructions.getOrElse("").stripMargin),
+      specified_url = rd.specifiedUrl.getOrElse("")
       )
   }
 

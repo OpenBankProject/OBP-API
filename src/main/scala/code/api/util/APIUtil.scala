@@ -1032,7 +1032,7 @@ object APIUtil extends MdcLoggable {
                           implementedInApiVersion: ApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
-                          requestUrl: String, // The URL (includes implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+                          requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                           description: String, // Longer description (originally taken from github wiki)
                           exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
@@ -1042,7 +1042,8 @@ object APIUtil extends MdcLoggable {
                           tags: List[ResourceDocTag],
                           roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
-                          specialInstructions: Option[String] = None
+                          specialInstructions: Option[String] = None,
+                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
   )
 
 
