@@ -460,7 +460,7 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    Migration.database.generateAndPopulateMissingCustomerUUIDs()
+    Migration.database.generateAndPopulateMissingConsumersUUIDs()
 
   }
 
