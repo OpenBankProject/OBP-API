@@ -238,6 +238,19 @@ BankMockKey=change_me
 
 
 ## Web interface configuration
+
+## IMPLEMENTING BANK SPECIFIC BRANDING ON ONE OBP INSTANCE ########################
+# Note, you can specify bank specific branding by appending _FOR_BANK_<BANK_ID> to the standard props names
+# e.g.
+#webui_header_logo_left_url_FOR_BANK_banku = https://static.openbankproject.com/images/sandbox/bank_u.png
+#webui_header_logo_left_url_FOR_BANK_banky = https://static.openbankproject.com/images/sandbox/bank_y.png
+# And invoke by calling index etc with ?bank_id=<BANK_ID>
+# e.g. http://127.0.0.1:8080/?bank_id=x
+# For any properties that don't have a bank specific flavour, the standard props name will be used.
+####################################################################################
+
+
+
 webui_header_logo_left_url = /media/images/logo.png
 webui_header_logo_right_url =
 webui_index_page_about_section_background_image_url = /media/images/about-background.jpg
