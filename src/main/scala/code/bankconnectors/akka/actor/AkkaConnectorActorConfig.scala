@@ -1,18 +1,18 @@
-package code.actorsystem
+package code.bankconnectors.akka.actor
 
 import code.api.util.APIUtil
 import code.util.Helper
 
 
-object ObpActorConfig {
+object AkkaConnectorActorConfig {
 
-  val remoteHostname = APIUtil.getPropsValue("remotedata.hostname").openOr("127.0.0.1")
-  val remotePort = APIUtil.getPropsValue("remotedata.port").openOr("2662")
+  val remoteHostname = APIUtil.getPropsValue("akka_connector.hostname").openOr("127.0.0.1")
+  val remotePort = APIUtil.getPropsValue("akka_connector.port").openOr("2662")
 
   val localHostname = "127.0.0.1"
-  def localPort = Helper.findAvailablePort()
+  val localPort = Helper.findAvailablePort()
 
-  val akka_loglevel = APIUtil.getPropsValue("remotedata.loglevel").openOr("INFO")
+  val akka_loglevel = APIUtil.getPropsValue("akka_connector.loglevel").openOr("INFO")
 
   val commonConf = 
   """
@@ -89,7 +89,7 @@ object ObpActorConfig {
   }
   """
 
-  def localConf =
+  val localConf =
   s"""
   ${commonConf} 
   akka {
