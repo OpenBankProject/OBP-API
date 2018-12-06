@@ -122,7 +122,7 @@ trait ObpLookupSystem extends MdcLoggable {
           logger.error("Failed to find an available port.")
         }
         AkkaConnectorHelperActor.startAkkaConnectorHelperActors(ObpActorSystem.northSideAkkaConnectorActorSystem)
-        s"akka.tcp://NorthSideAkkaConnector_${props_hostname}@${hostname}:${port}/user/${actorName}"
+        s"akka.tcp://SouthSideAkkaConnector_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
     this.obpLookupSystem.actorSelection(actorPath)
   }

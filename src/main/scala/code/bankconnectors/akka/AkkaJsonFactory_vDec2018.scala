@@ -7,6 +7,7 @@ package code.bankconnectors.akka
   * 
   */
 case class OutboundGetBanks(authInfo: AuthInfo)
+case class OutboundGetBank(authInfo: AuthInfo, bankId: String)
 
 
 /**

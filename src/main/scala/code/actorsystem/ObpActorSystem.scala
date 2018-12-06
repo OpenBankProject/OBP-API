@@ -25,7 +25,7 @@ object ObpActorSystem extends MdcLoggable {
     logger.info("Starting North Side Akka Connector actor system")
     val localConf = AkkaConnectorActorConfig.localConf
     logger.info(localConf)
-    northSideAkkaConnectorActorSystem = ActorSystem.create(s"NorthSideAkkaConnector_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(localConf)))
+    northSideAkkaConnectorActorSystem = ActorSystem.create(s"SouthSideAkkaConnector_${props_hostname}", ConfigFactory.load(ConfigFactory.parseString(localConf)))
     northSideAkkaConnectorActorSystem
   }
 }
