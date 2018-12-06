@@ -291,11 +291,9 @@ object NewStyle {
     }
 
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
-      Future {
-        Connector.connector.vend.getAdapterInfo(callContext)
-      } map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
-      }
+        Connector.connector.vend.getAdapterInfoFuture(callContext) map {
+          unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+        }
     }
 
     def getEntitlementsByUserId(userId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
