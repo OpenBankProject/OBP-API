@@ -34,6 +34,8 @@ case class CallContext(
                        `X-Rate-Limit-Remaining` : Long = -1,
                        `X-Rate-Limit-Reset` : Long = -1
                       ) {
+  def rmvResDod: CallContext = this.copy(resourceDocument = None)
+  
   def toLight: CallContextLight = {
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,

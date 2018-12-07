@@ -22,17 +22,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   lazy val southSideActor = ObpLookupSystem.getAkkaConnectorActor(AkkaConnectorHelperActor.actorName)
 
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
-    val req = OutboundGetAdapterInfo(callContext, (new Date()).toString)
+    val req = OutboundGetAdapterInfo((new Date()).toString, callContext.map(_.rmvResDod))
     (southSideActor ? req).mapTo[Box[(InboundAdapterInfoInternal, Option[CallContext])]]
   }
 
   override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[MappedBank], Option[CallContext])]] = {
-    val req = OutboundGetBanks(callContext)
+    val req = OutboundGetBanks(callContext.map(_.rmvResDod))
     (southSideActor ? req).mapTo[Box[(List[MappedBank], Option[CallContext])]]
   }
   
   override def getBankFuture(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
-    val req = OutboundGetBank(callContext, bankId.value)
+    val req = OutboundGetBank(bankId.value, callContext.map(_.rmvResDod))
     (southSideActor ? req).mapTo[Box[(Bank, Option[CallContext])]]
   }
 

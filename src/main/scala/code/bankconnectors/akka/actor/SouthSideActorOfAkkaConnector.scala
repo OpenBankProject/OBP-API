@@ -20,14 +20,14 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
   def receive: Receive = waitingForRequest
 
   private def waitingForRequest: Receive = {
-    case OutboundGetAdapterInfo(cc, _) =>
+    case OutboundGetAdapterInfo(_, cc) =>
       val res = InboundAdapterInfoInternal("",  List(InboundStatusMessage("ESB","Success", "0", "OK")),"systemName", "version", APIUtil.gitCommit, (new Date()).toString)
       sender ! Full(res, cc)   
     
     case OutboundGetBanks(cc) =>
       sender ! LocalMappedConnector.getBanks(cc)
     
-    case OutboundGetBank(cc, bankId) =>
+    case OutboundGetBank(bankId, cc) =>
       sender ! LocalMappedConnector.getBank(BankId(bankId), cc)
   }
 
