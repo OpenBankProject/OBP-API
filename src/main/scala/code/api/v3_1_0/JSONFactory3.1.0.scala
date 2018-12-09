@@ -29,6 +29,7 @@ package code.api.v3_1_0
 import java.lang
 import java.util.Date
 
+import code.accountapplication.AccountApplication
 import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
@@ -49,6 +50,7 @@ import scala.collection.immutable.List
 import code.customer.Customer
 import code.context.UserAuthContext
 import code.entitlement.Entitlement
+import code.model.dataAccess.ResourceUser
 import code.productattribute.ProductAttribute.ProductAttribute
 import code.taxresidence.TaxResidence
 
@@ -326,7 +328,20 @@ case class ProductAttributeResponseJson(
   value: String,
 )
 
+case class AccountApplicationJson(
+  product_code: String,
+  user_id: String,
+  customer_id: String
+ )
 
+case class AccountApplicationResponseJson(
+  account_application_id: String,
+  product_code: String,
+  user: ResourceUserJSON,
+  customer: CustomerJsonV310,
+  date_of_applicaiton: Date,
+  status: String
+)
 
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
@@ -570,5 +585,26 @@ object JSONFactory310{
        `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
+  def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[ResourceUser], customer: Box[Customer]): AccountApplicationResponseJson = {
+
+    val userJson = user.map(u => ResourceUserJSON(
+      user_id = u.userId,
+      email = u.emailAddress,
+      provider_id = u.idGivenByProvider,
+      provider = u.provider,
+      username = u.name
+    )).orNull
+
+    val customerJson = customer.map(createCustomerJson).orNull
+
+    AccountApplicationResponseJson(
+      account_application_id = accountApplication.accountApplicationId,
+      product_code = accountApplication.productCode.value,
+      user = userJson,
+      customer = customerJson,
+      date_of_applicaiton =accountApplication.dateOfApplication,
+      status = accountApplication.status
+    )
+  }
 
 }

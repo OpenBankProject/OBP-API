@@ -32,6 +32,7 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
+import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -2058,6 +2059,56 @@ trait APIMethods310 {
             (productAttribute, callContext) <- NewStyle.function.deleteProductAttribute(productAttributeId, callContext)
           } yield {
             (JsRaw(""), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createAccountApplication,
+      implementedInApiVersion,
+      nameOf(createAccountApplication),
+      "POST",
+      "/account-applicaitons",
+      "Create AccountApplication",
+      s""" Create AccountApplication
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountApplicationJson,
+      accountApplicationeResponseJson,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG), //TODO belongs which catalogs?
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val createAccountApplication : OBPEndpoint = {
+      case "account-applicaitons" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountApplicationJson]
+            }
+            userId = Some(postedData.user_id).filter(StringUtils.isNotBlank)
+            customerId = Some(postedData.customer_id).filter(StringUtils.isNotBlank)
+            user = userId.map(NewStyle.function.findByUserId(_, cc))
+            customer = customerId.map(NewStyle.function.getConsumerByConsumerId(_, cc))
+            (u, c) <- Future {
+              //TODO check if both user and customer blanck
+            }
+
+            (productAttribute, callContext) <- NewStyle.function.createAccountApplication(
+              productCode = ProductCode(postedData.product_code),
+              userId = userId,
+              customerId = customerId,
+              callContext = cc
+            )
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`201`(callContext))
           }
       }
     }
