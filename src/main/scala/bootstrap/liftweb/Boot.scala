@@ -34,6 +34,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import code.accountapplication.MappedAccountApplication
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -548,7 +549,8 @@ object ToSchemify {
     MappedUserScope,
     MappedTaxResidence,
     MappedCustomerAddress,
-    MappedUserAuthContext
+    MappedUserAuthContext,
+    MappedAccountApplication
   )
 
   // The following tables are accessed directly via Mapper / JDBC

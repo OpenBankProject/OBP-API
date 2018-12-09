@@ -253,6 +253,9 @@ object ErrorMessages {
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
+  val AccountApplicationNotFound = "OBP-30310: AccountApplication not found by ACCOUNT_APPLICATION_ID. "
+  val ResourceUserNotFound = "OBP-30310: ResourceUser not found by USER_ID. "
+  val UserIdAndCustomerIdNotPresent = "OBP-30310: userId and customerId not present. "
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."

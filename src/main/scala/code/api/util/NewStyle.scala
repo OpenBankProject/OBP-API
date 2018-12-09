@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.accountapplication.AccountApplication
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
@@ -32,7 +33,7 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Failure}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 
@@ -572,6 +573,32 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
+
+    def createAccountApplication(
+                                  productCode: ProductCode,
+                                  userId: Option[String],
+                                  customerId: Option[String],
+                                  callContext: Option[CallContext]
+                                ): OBPReturnType[AccountApplication] =
+      Connector.connector.vend.createAccountApplication(productCode, userId, customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+
+
+    def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[List[AccountApplication]] =
+      Connector.connector.vend.getAllAccountApplication(callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+
+    def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[AccountApplication] =
+      Connector.connector.vend.getAccountApplicationById(accountApplicationId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+
+    def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Connector.connector.vend.updateAccountApplicationStatus(accountApplicationId, status, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
         
   }
 
