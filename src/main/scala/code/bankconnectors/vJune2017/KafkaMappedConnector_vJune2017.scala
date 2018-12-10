@@ -50,6 +50,7 @@ import com.google.common.cache.CacheBuilder
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, _}
+import net.liftweb.json
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
@@ -165,6 +166,47 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
     res
   }
+  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+    val req = OutboundGetAdapterInfo(
+      AuthInfo(sessionId = callContext.get.correlationId),
+      DateWithSecondsExampleString
+    )
+
+    logger.debug(s"Kafka getAdapterInfoFuture Req says:  is: $req")
+
+    val future = for {
+      res <- processToFuture[OutboundGetAdapterInfo](req) map {
+        f =>
+          try {
+            f.extract[InboundAdapterInfo]
+          } catch {
+            case e: Exception =>
+              val received = json.compactRender(f)
+              val expected = SchemaFor[InboundAdapterInfo]().toString(false)
+              val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+              sendOutboundAdapterError(err)
+              throw new MappingException(err, e)
+          }
+      } map {
+        x => x.data
+      }
+    } yield {
+      Full(res)
+    }
+
+    val res = future map {
+      case Full(list) if (list.errorCode=="") =>
+        Full(list, callContext)
+      case Full(list) if (list.errorCode!="") =>
+        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    logger.debug(s"Kafka getAdapterInfoFuture says res is $res")
+    res
+  }
+  
+  
   
   messageDocs += MessageDoc(
     process = "obp.get.Banks",
