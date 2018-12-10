@@ -32,7 +32,7 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
-import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.{StringUtils, Validate}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -2093,22 +2093,27 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountApplicationJson]
             }
-            userId = Some(postedData.user_id).filter(StringUtils.isNotBlank)
-            customerId = Some(postedData.customer_id).filter(StringUtils.isNotBlank)
-            user = userId.map(NewStyle.function.findByUserId(_, cc))
-            customer = customerId.map(NewStyle.function.getConsumerByConsumerId(_, cc))
-            (u, c) <- Future {
-              //TODO check if both user and customer blanck
+
+            illegalProductCodeMsg = "product_code should not be empty."
+            _ <- NewStyle.function.tryons(illegalMsg, 400, callContext) {
+              Validate.notBlank(postedData.product_code)
             }
+
+            illegalUserIdOrCustomerIdMsg = "User_id and customer_id should not both are empty."
+            _ <- NewStyle.function.tryons(illegalMsg, 400, callContext) {
+              Validate.isTrue(postedData.user_id.isDefined || postedData.customer_id.isDefined)
+            }
+
+            (user, customer) <- NewStyle.function.findUserAndCustomer(postData.userId, postData.customerId)
 
             (productAttribute, callContext) <- NewStyle.function.createAccountApplication(
               productCode = ProductCode(postedData.product_code),
-              userId = userId,
-              customerId = customerId,
+              userId = postData.user_id,
+              customerId = postData.customer_id,
               callContext = cc
             )
           } yield {
-            (createProductAttributeJson(productAttribute), HttpCode.`201`(callContext))
+            (createAccountApplicationJson(productAttribute, user, cu), HttpCode.`201`(callContext))
           }
       }
     }

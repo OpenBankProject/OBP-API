@@ -2,7 +2,7 @@ package code.api.util
 
 import code.accountapplication.AccountApplication
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail, unboxFuture}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -599,6 +599,17 @@ object NewStyle {
       Connector.connector.vend.updateAccountApplicationStatus(accountApplicationId, status, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
+
+    def findUserAndCustomer(userId: Option[String], customerId: Option[String], cc: Option[CallContext]): Future[(Box[User], Box[Consumer])] = {
+      val userFuture: Option[OBPReturnType[User]] = userId.map(NewStyle.function.findByUserId(_, cc))
+      val customerFuture: Option[Future[Consumer]] = customerId.map(NewStyle.function.getConsumerByConsumerId(_, cc))
+
+      for {
+        uerTuple <- unboxFuture(userFuture)
+        user = uerTuple map (_._1)
+        customer <- unboxFuture(customerFuture)
+      } yield (user, customer)
+    }
         
   }
 

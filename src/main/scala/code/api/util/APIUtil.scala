@@ -79,6 +79,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.reflect.ClassTag
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable {
@@ -1934,6 +1935,13 @@ Returns a string showed to the developer
       fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
     }
   }
+
+  def unboxFuture[T](box: Box[Future[T]]): Future[Box[T]] = box match {
+    case Full(v) => v.map(Box !! _)
+    case other => Future(other.asInstanceOf[Box[T]])
+  }
+
+  def unboxFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
 
 
   /**

@@ -330,8 +330,8 @@ case class ProductAttributeResponseJson(
 
 case class AccountApplicationJson(
   product_code: String,
-  user_id: String,
-  customer_id: String
+  user_id: Option[String],
+  customer_id: Option[String]
  )
 
 case class AccountApplicationResponseJson(

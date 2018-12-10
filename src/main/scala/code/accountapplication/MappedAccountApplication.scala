@@ -26,23 +26,8 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
 
   override def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String]): Future[Box[AccountApplication]] =
     Future {
-      val userBox: Box[ResourceUser] = Box(userId) match {
-        case Full(uId) => ResourceUser.find(By(ResourceUser.userId_, uId)) ?~! ErrorMessages.ResourceUserNotFound
-        case _ => _
-      }
-
-      val customerBox: Box[Customer] = Box(customerId) match {
-        case Full(cId) => MappedCustomer.find(By(MappedCustomer.mCustomerId, cId)) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-        case _ => _
-      }
-
-      (userBox, customerBox) match {
-        case (Empty, Empty) => Failure(ErrorMessages.UserIdAndCustomerIdNotPresent)
-        case (_: Failure,_) => userBox.asInstanceOf[Failure]
-        case (_, _:Failure) => customerBox.asInstanceOf[Failure]
-        case _ => tryo {
-          MappedAccountApplication.create.mCode(productCode.value).mUserId(userId.orNull).mCustomerId(customerId.orNull).mStatus("REQUESTED").saveMe()
-        }
+      tryo {
+        MappedAccountApplication.create.mCode(productCode.value).mUserId(userId.orNull).mCustomerId(customerId.orNull).mStatus("REQUESTED").saveMe()
       }
   }
 
