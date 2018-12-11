@@ -2148,7 +2148,9 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
- //           _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetAccountApplications)(bankId.value, u.userId, canGetAccountApplications)
+
+          _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetAccountApplications)("", u.userId, canGetAccountApplications)
+
             (accountApplications, _) <- NewStyle.function.getAllAccountApplication(callContext)
             (users, _) <- NewStyle.function.findUsers(accountApplications.map(_.userId), Some(cc))
             (customers, _) <- NewStyle.function.findCustomers(accountApplications.map(_.customerId), Some(cc))
@@ -2234,8 +2236,8 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
- //           _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateAccountApplications)(bankId.value, u.userId, ApiRole.canUpdateAccountApplications)
+
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateAccountApplications)("", u.userId, ApiRole.canUpdateAccountApplications)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
             putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountApplicationUpdateStatusJson]
