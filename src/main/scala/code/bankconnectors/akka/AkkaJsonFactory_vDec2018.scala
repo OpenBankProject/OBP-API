@@ -20,22 +20,24 @@ case class OutboundGetAdapterInfo(date: String, callContext: Option[CallContextA
 case class OutboundGetBanks(callContext: Option[CallContextAkka])
 case class OutboundGetBank(bankId: String, callContext: Option[CallContextAkka])
 case class OutboundCheckBankAccountExists(bankId: String, accountId: String, callContext: Option[CallContextAkka])
+case class OutboundGetAccount(bankId: String, accountId: String, callContext: Option[CallContextAkka])
 
 /**
   *
   * case classes used to define inbound Akka messages
   *
   */
-case class InboundGetBanks(banks: Option[List[Bank]], callContext: Option[CallContextAkka])
-case class InboundGetBank(bank: Option[Bank], callContext: Option[CallContextAkka])
 case class InboundAdapterInfo(
                                name: String,
                                version: String,
                                git_commit: String,
-                               date: String, 
+                               date: String,
                                callContext: Option[CallContextAkka]
                              )
+case class InboundGetBanks(banks: Option[List[Bank]], callContext: Option[CallContextAkka])
+case class InboundGetBank(bank: Option[Bank], callContext: Option[CallContextAkka])
 case class InboundCheckBankAccountExists(data: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
+case class InboundGetAccount(payload: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
 
 
 

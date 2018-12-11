@@ -5,7 +5,6 @@ import java.util.Date
 import akka.actor.{Actor, ActorLogging}
 import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedConnector._
-import code.bankconnectors.akka
 import code.bankconnectors.akka._
 import code.model.dataAccess.MappedBank
 import code.model.{Bank => _, _}
@@ -44,7 +43,11 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       
     case OutboundCheckBankAccountExists(bankId, accountId, cc) =>
       val result: Box[BankAccount] = checkBankAccountExists(BankId(bankId), AccountId(accountId), None).map(r => r._1)
-      sender ! akka.InboundCheckBankAccountExists(result.map(Transformer.bankAccount(_)).toOption, cc)
+      sender ! InboundCheckBankAccountExists(result.map(Transformer.bankAccount(_)).toOption, cc)
+      
+    case OutboundGetAccount(bankId, accountId, cc) =>
+      val result: Box[BankAccount] = getBankAccount(BankId(bankId), AccountId(accountId), None).map(r => r._1)
+      sender ! InboundGetAccount(result.map(Transformer.bankAccount(_)).toOption, cc)
   }
 
 }
