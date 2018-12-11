@@ -1418,7 +1418,8 @@ object SwaggerDefinitionsJSON {
     typed_success_response_body = json.parse("""{"response": { "type" :"string" }}"""),
     roles = Some(List(canCreateCustomerSwagger)),
     is_featured = false,
-    special_instructions = ""
+    special_instructions = "",
+    specified_url = ""
   )
 
   val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))

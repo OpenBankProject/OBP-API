@@ -186,7 +186,7 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
     for {
       customer <- MappedCustomer.findAll(NullRef(MappedCustomer.mCustomerId))
     } yield {
-      customer.mTitle(APIUtil.generateUUID()).save()
+      customer.mCustomerId(APIUtil.generateUUID()).save()
     }
   }.forall(_ == true)
 

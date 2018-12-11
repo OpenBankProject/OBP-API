@@ -1033,7 +1033,7 @@ object APIUtil extends MdcLoggable {
                           implementedInApiVersion: ApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
-                          requestUrl: String, // The URL (includes implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+                          requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                           description: String, // Longer description (originally taken from github wiki)
                           exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
@@ -1043,7 +1043,8 @@ object APIUtil extends MdcLoggable {
                           tags: List[ResourceDocTag],
                           roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
-                          specialInstructions: Option[String] = None
+                          specialInstructions: Option[String] = None,
+                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
   )
 
 
@@ -2182,7 +2183,13 @@ Returns a string showed to the developer
     * @return Decrypted value of a property
     */
   def getPropsValue(nameOfProperty: String): Box[String] = {
-    (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted"), Props.get(nameOfProperty + ".is_obfuscated") ) match {
+
+    val bankSpecificPropertyName = getBankSpecificPropertyName(nameOfProperty)
+
+    logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $bankSpecificPropertyName")
+
+
+    (Props.get(bankSpecificPropertyName), Props.get(bankSpecificPropertyName + ".is_encrypted"), Props.get(bankSpecificPropertyName + ".is_obfuscated") ) match {
       case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
         val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
         Full(decryptedValueAsString)
@@ -2197,8 +2204,8 @@ Returns a string showed to the developer
       case (Empty, Empty, Empty) =>
         Empty
       case _ =>
-        logger.error(cannotDecryptValueOfProperty + nameOfProperty)
-        Failure(cannotDecryptValueOfProperty + nameOfProperty)
+        logger.error(cannotDecryptValueOfProperty + bankSpecificPropertyName)
+        Failure(cannotDecryptValueOfProperty + bankSpecificPropertyName)
     }
   }
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
@@ -2219,6 +2226,29 @@ Returns a string showed to the developer
   }
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
+  }
+
+
+  /*
+  For bank specific branding and possibly other customisations, if bank_id is mentioned in urls (headers too sometime?),
+  we will look for property_AT_BANK_<BANK_ID>
+  We also check that the property exists, else return the standard property name.
+  */
+  def getBankSpecificPropertyName (nameOfProperty: String) : String = {
+
+    // If bank_id parameter is in url, append it to the property, else use the standard property name
+    val bankSpecificPropertyName = S.param("bank_id") match {
+      case Full(bankId) => s"${nameOfProperty}_FOR_BANK_${bankId}"
+      case _ => nameOfProperty
+    }
+
+    // Check if the property actually exits, if not, return the default / standard property name
+    val propertyToUse = Props.get(bankSpecificPropertyName) match {
+      case Full(value) => bankSpecificPropertyName
+      case _ => nameOfProperty
+    }
+
+    propertyToUse
   }
 
 
