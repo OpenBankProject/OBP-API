@@ -9,7 +9,7 @@ import code.api.util.CallContext
 import code.bankconnectors.Connector
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.model.{BankId, Bank => BankTrait}
+import code.model.{AccountId, BankAccount, BankId, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -101,4 +101,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     response.map(_.bank.map(r => (BankAkka(r), callContext)))
   }
 
+  override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Future[Box[(BankAccount, Option[CallContext])]] = {
+    val req = OutboundCheckBankAccountExists(bankId.value, accountId.value, callContext.map(_.toCallContextAkka))
+    val response: Future[InboundCheckBankAccountExists] = (southSideActor ? req).mapTo[InboundCheckBankAccountExists]
+    response.map(_.data.map(r => (BankAccountDec2018(r), callContext)))
+  }
 }

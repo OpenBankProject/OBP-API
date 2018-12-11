@@ -5,12 +5,14 @@ import java.util.Date
 import akka.actor.{Actor, ActorLogging}
 import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedConnector._
+import code.bankconnectors.akka
 import code.bankconnectors.akka._
-import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, InboundStatusMessage}
-import code.model.BankId
 import code.model.dataAccess.MappedBank
+import code.model.{Bank => _, _}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.Box
+
+import scala.collection.immutable.List
 
 
 /**
@@ -38,7 +40,11 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     
     case OutboundGetBank(bankId, cc) =>
       val result: Box[MappedBank] = getBank(BankId(bankId), None).map(r => r._1)
-      sender ! InboundGetBank(result.map(Transformer.bank(_)).toOption, cc)
+      sender ! InboundGetBank(result.map(Transformer.bank(_)).toOption, cc)  
+      
+    case OutboundCheckBankAccountExists(bankId, accountId, cc) =>
+      val result: Box[BankAccount] = checkBankAccountExists(BankId(bankId), AccountId(accountId), None).map(r => r._1)
+      sender ! akka.InboundCheckBankAccountExists(result.map(Transformer.bankAccount(_)).toOption, cc)
   }
 
 }
@@ -55,6 +61,27 @@ object Transformer {
       websiteUrl=mb.websiteUrl,
       bankRoutingScheme=mb.bankRoutingScheme,
       bankRoutingAddress=mb.bankRoutingAddress
+    )
+  
+  def bankAccount(acc: BankAccount) =
+    InboundAccountDec2018(
+      bankId = acc.bankId.value,
+      branchId = acc.branchId,
+      accountId = acc.accountId.value,
+      accountNumber = acc.number,
+      accountType = acc.accountType,
+      balanceAmount = acc.balance.toString(),
+      balanceCurrency = acc.currency,
+      owners = acc.customerOwners.map(_.customerId).toList,
+      viewsToGenerate = Nil,
+      bankRoutingScheme = acc.bankRoutingScheme,
+      bankRoutingAddress = acc.bankRoutingAddress,
+      branchRoutingScheme = "",
+      branchRoutingAddress = "",
+      accountRoutingScheme = acc.accountRoutingScheme,
+      accountRoutingAddress = acc.accountRoutingAddress,
+      accountRouting = Nil,
+      accountRules = Nil
     )
 }
 

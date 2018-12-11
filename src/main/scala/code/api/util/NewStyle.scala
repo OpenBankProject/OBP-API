@@ -187,10 +187,9 @@ object NewStyle {
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
-      Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
+      Connector.connector.vend.checkBankAccountExistsFuture(bankId, accountId, callContext) } map {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
       }
-    }
 
     def moderatedBankAccount(account: BankAccount, view: View, user: Box[User]) = Future {
       account.moderatedBankAccount(view, user)

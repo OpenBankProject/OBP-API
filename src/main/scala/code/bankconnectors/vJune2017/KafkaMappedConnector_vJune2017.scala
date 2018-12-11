@@ -687,6 +687,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getBankAccount")
+
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) =
+    Future {
+      checkBankAccountExists(bankId, accountId, callContext)
+    }
   
   messageDocs += MessageDoc(
     process = "obp.get.coreBankAccounts",
