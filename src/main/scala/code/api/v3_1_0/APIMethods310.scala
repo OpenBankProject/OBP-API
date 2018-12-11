@@ -2068,7 +2068,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createAccountApplication),
       "POST",
-      "/account-applicaitons",
+      "/account-applications",
       "Create AccountApplication",
       s""" Create AccountApplication
          |
@@ -2081,11 +2081,11 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG), //TODO belongs which catalogs?
+      Catalogs(notCore, notPSD2, notOBWG), 
       List(apiTagProduct, apiTagNewStyle))
 
     lazy val createAccountApplication : OBPEndpoint = {
-      case "account-applicaitons" :: Nil JsonPost json -> _=> {
+      case "account-applications" :: Nil JsonPost json -> _=> {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -2125,7 +2125,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getAccountApplications),
       "GET",
-      "/account-applicaitons",
+      "/account-applications",
       "Get Account Applications",
       s"""Get the Account Applications.
          |
@@ -2144,7 +2144,7 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagNewStyle))
 
     lazy val getAccountApplications : OBPEndpoint = {
-      case "ccount-applicaitons" ::  Nil JsonGet _ => {
+      case "account-applications" ::  Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -2167,7 +2167,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getAccountApplication),
       "GET",
-      "/account-applicaitons/ACCOUNT_APPLICAITON_ID",
+      "/account-applications/ACCOUNT_APPLICATION_ID",
       "Get Account Application by account_application_id",
       s"""Get the Account Application.
          |
@@ -2186,7 +2186,7 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagNewStyle))
 
     lazy val getAccountApplication : OBPEndpoint = {
-      case "ccount-applicaitons":: accountApplicationId ::  Nil JsonGet _ => {
+      case "account-applications":: accountApplicationId ::  Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -2208,11 +2208,11 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      updatAccountApplicationStatus,
+      updateAccountApplicationStatus,
       implementedInApiVersion,
-      nameOf(updatAccountApplicationStatus),
+      nameOf(updateAccountApplicationStatus),
       "PUT",
-      "/account-applicaitons/ACCOUNT_APPLICAITON_ID/",
+      "/account-applications/ACCOUNT_APPLICATION_ID/",
       "Update an Account Application status",
       s"""Update an Account Application status
          |
@@ -2231,8 +2231,8 @@ trait APIMethods310 {
       List(apiTagCustomer, apiTagNewStyle)
     )
 
-    lazy val updatAccountApplicationStatus : OBPEndpoint = {
-      case "account-applicaitons" :: accountApplicationId :: Nil JsonPut json -> _  => {
+    lazy val updateAccountApplicationStatus : OBPEndpoint = {
+      case "account-applications" :: accountApplicationId :: Nil JsonPut json -> _  => {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)

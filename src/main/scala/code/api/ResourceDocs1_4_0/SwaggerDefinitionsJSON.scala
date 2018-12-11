@@ -2997,7 +2997,7 @@ object SwaggerDefinitionsJSON {
     product_code = "saveing1",
     user = resourceUserJSON,
     customer = customerJsonV310,
-    date_of_applicaiton = DateWithDayExampleObject,
+    date_of_application = DateWithDayExampleObject,
     status = "REQUESTED"
   )
   val accountApplicationUpdateStatusJson = AccountApplicationUpdateStatusJson(

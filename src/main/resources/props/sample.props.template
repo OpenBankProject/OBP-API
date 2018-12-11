@@ -348,7 +348,7 @@ webui_agree_terms_url =
 
 
 
-# If we want to gather more informaiton about an Applicaiton / Startup fill this url and text
+# If we want to gather more information about an Application / Startup fill this url and text
 # Will be displayed on the post Consumer Registration page.
 #webui_post_consumer_registration_more_info_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
@@ -406,7 +406,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ##########################
 
 
-## OpenId Connect can be used to retrieve User informaiton from an
+## OpenId Connect can be used to retrieve User information from an
 ## external OpenID Connect server.
 ## To use an external OpenID Connect server,
 ## you will need to change these values.

@@ -339,7 +339,7 @@ case class AccountApplicationResponseJson(
   product_code: String,
   user: ResourceUserJSON,
   customer: CustomerJsonV310,
-  date_of_applicaiton: Date,
+  date_of_application: Date,
   status: String
 )
 
@@ -606,7 +606,7 @@ object JSONFactory310{
       product_code = accountApplication.productCode.value,
       user = userJson,
       customer = customerJson,
-      date_of_applicaiton =accountApplication.dateOfApplication,
+      date_of_application =accountApplication.dateOfApplication,
       status = accountApplication.status
     )
   }
