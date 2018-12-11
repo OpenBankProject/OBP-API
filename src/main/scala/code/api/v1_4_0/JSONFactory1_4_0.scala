@@ -436,10 +436,10 @@ object JSONFactory1_4_0 {
           
         //String --> Some field calleds `date`, we will treat the filed as a `date` object.
         //String --> But for some are not, eg: `date_of_birth` and `future_date` in V300Custom  
-        case i: String if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
-        case Some(i: String) if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
-        case List(i: String, _*) if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
-        case Some(List(i: String, _*)) if(key.contains("date")&& value.toString.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
+        case i: String if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case Some(i: String) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
+        case List(i: String, _*) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
+        case Some(List(i: String, _*)) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
          
         //String-->
         case i: String                     => "\""  + key + """": {"type":"string"}"""
