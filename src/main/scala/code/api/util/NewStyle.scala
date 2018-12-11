@@ -33,9 +33,10 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Failure}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
+import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -595,22 +596,31 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
 
-    def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[AccountApplication] =
       Connector.connector.vend.updateAccountApplicationStatus(accountApplicationId, status, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
 
-    def findUserAndCustomer(userId: Option[String], customerId: Option[String], cc: Option[CallContext]): Future[(Box[User], Box[Consumer])] = {
-      val userFuture: Option[OBPReturnType[User]] = userId.map(NewStyle.function.findByUserId(_, cc))
-      val customerFuture: Option[Future[Consumer]] = customerId.map(NewStyle.function.getConsumerByConsumerId(_, cc))
-
-      for {
-        uerTuple <- unboxFuture(userFuture)
-        user = uerTuple map (_._1)
-        customer <- unboxFuture(customerFuture)
-      } yield (user, customer)
+    def findUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[User]] = Future {
+      val userList = userIds.filterNot(StringUtils.isBlank).distinct.map(User.findByUserId).collect {
+        case Full(user) => user
+      }
+      (userList, callContext)
     }
-        
+
+
+    def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
+      val customerList = customerIds.filterNot(StringUtils.isBlank).distinct
+        .map(Consumers.consumers.vend.getConsumerByConsumerIdFuture)
+      Future.foldLeft(customerList)(List.empty[Customer]) { (prev, next) =>
+         next match {
+           case Full(customer:Customer) => customer :: prev
+           case _ => prev
+        }
+      } map {
+        (_, callContext)
+      }
+    }
   }
 
 }

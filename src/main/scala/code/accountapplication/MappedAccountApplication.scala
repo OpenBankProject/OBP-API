@@ -31,13 +31,20 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
       }
   }
 
-  override def updateStatus(accountApplicationId:String, status: String): Future[Box[Boolean]] = getById(accountApplicationId).map {
+  override def updateStatus(accountApplicationId:String, status: String): Future[Box[AccountApplication]] = getById(accountApplicationId).map {
     case Full(accountApplication) => {
       accountApplication.asInstanceOf[MappedAccountApplication].mStatus.set(status)
-      Full(true)
+      if(status == "ACCEPTED") {
+        //TODO
+//        we should create an Account
+//        type = AccountApplication.product_code
+//        use getOrCreateAccountHolder to set the owner to the AccountApplication.user_id
+      }
+
+      Full(accountApplication)
     }
     case Empty   => Empty ?~! ErrorMessages.AccountApplicationNotFound
-    case _       => Full(false)
+    case other   => other.asInstanceOf[Box[AccountApplication]]
   }
 }
 

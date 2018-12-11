@@ -213,7 +213,13 @@ object ApiRole {
 
   case class CanRefreshUser(requiresBankId: Boolean = false) extends ApiRole
   lazy val canRefreshUser = CanRefreshUser()
-  
+
+  case class CanGetAccountApplications(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAccountApplications = CanRefreshUser()
+
+  case class CanUpdateAccountApplications(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateAccountApplications = CanRefreshUser()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -284,6 +290,8 @@ object ApiRole {
       canCreateTaxResidence ::
       canDeleteTaxResidence ::
       canRefreshUser ::
+      canGetAccountApplications::
+      canUpdateAccountApplications::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

@@ -1968,7 +1968,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
 
-  override def updateStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+  override  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
     AccountApplication.accountApplication.vend.updateStatus(accountApplicationId, status) map {
       (_, callContext)
     }

@@ -2987,8 +2987,8 @@ object SwaggerDefinitionsJSON {
 
   val accountApplicationJson = AccountApplicationJson(
     product_code = "saveing1",
-      user_id = "123",
-      customer_id = "123"
+    user_id = Some("123"),
+    customer_id = Some("123")
   )
 
   val accountApplicationResponseJson = AccountApplicationResponseJson (
@@ -2999,6 +2999,11 @@ object SwaggerDefinitionsJSON {
     date_of_applicaiton = DateWithDayExampleObject,
     status = "REQUESTED"
   )
+  val accountApplicationUpdateStatusJson = AccountApplicationUpdateStatusJson(
+    status = "ACCEPTED"
+  )
+
+  val accountApplicationsJsonV310 = AccountApplicationsJsonV310(List(accountApplicationResponseJson))
 
   //The common error or success format.
   //Just some helper format to use in Json 

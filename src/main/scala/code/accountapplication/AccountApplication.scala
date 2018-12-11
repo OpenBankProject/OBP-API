@@ -26,7 +26,7 @@ trait AccountApplicationProvider {
   def getAll(): Future[Box[List[AccountApplication]]]
   def getById(accountApplicationId: String): Future[Box[AccountApplication]]
   def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String]): Future[Box[AccountApplication]]
-  def updateStatus(accountApplicationId:String, status: String): Future[Box[Boolean]]
+  def updateStatus(accountApplicationId:String, status: String): Future[Box[AccountApplication]]
 }
 
 trait AccountApplication {

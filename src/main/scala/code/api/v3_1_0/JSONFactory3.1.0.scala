@@ -27,7 +27,7 @@ Berlin 13359, Germany
 package code.api.v3_1_0
 
 import java.lang
-import java.util.Date
+import java.util.{Date, Objects}
 
 import code.accountapplication.AccountApplication
 import code.customeraddress.CustomerAddress
@@ -343,6 +343,10 @@ case class AccountApplicationResponseJson(
   status: String
 )
 
+case class AccountApplicationUpdateStatusJson(status: String)
+
+case class AccountApplicationsJsonV310(account_applications: List[AccountApplicationResponseJson])
+
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
@@ -585,7 +589,7 @@ object JSONFactory310{
        `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
-  def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[ResourceUser], customer: Box[Customer]): AccountApplicationResponseJson = {
+  def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[User], customer: Box[Customer]): AccountApplicationResponseJson = {
 
     val userJson = user.map(u => ResourceUserJSON(
       user_id = u.userId,
@@ -605,6 +609,15 @@ object JSONFactory310{
       date_of_applicaiton =accountApplication.dateOfApplication,
       status = accountApplication.status
     )
+  }
+
+  def createAccountApplications(accountApplications: List[AccountApplication], users: List[User], customers: List[Customer]): AccountApplicationsJsonV310 = {
+    val applicationList = accountApplications.map { x =>
+      val user = Box(users.find(it => it.userId == x.userId))
+      val customer = Box(customers.find(it => it.customerId == x.customerId))
+      createAccountApplicationJson(x, user, customer)
+    }
+    AccountApplicationsJsonV310(applicationList)
   }
 
 }

@@ -1560,6 +1560,6 @@ trait Connector extends MdcLoggable{
   def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
 
-  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

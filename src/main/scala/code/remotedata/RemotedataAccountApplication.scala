@@ -19,5 +19,5 @@ object RemotedataAccountApplication extends ObpActorInit with AccountApplication
 
   override def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String]): Future[Box[AccountApplication]] = (actor ? cc.createAccountApplication(productCode, userId, customerId)).mapTo[Box[AccountApplication]]
 
-  override def updateStatus(accountApplicationId: String, status: String): Future[Box[Boolean]] = (actor ? cc.updateStatus(accountApplicationId, status)).mapTo[Box[Boolean]]
+  override def updateStatus(accountApplicationId: String, status: String): Future[Box[AccountApplication]] = (actor ? cc.updateStatus(accountApplicationId, status)).mapTo[Box[AccountApplication]]
 }

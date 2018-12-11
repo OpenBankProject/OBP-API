@@ -1941,7 +1941,14 @@ Returns a string showed to the developer
     case other => Future(other.asInstanceOf[Box[T]])
   }
 
-  def unboxFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
+  def unboxOBPReturnType[T](box: Box[OBPReturnType[T]]): Future[Box[T]] = box match {
+    case Full(v) => v.map(Box !! _._1)
+    case other => Future(other.asInstanceOf[Box[T]])
+  }
+
+  def unboxOptionFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
+
+  def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
 
 
   /**
