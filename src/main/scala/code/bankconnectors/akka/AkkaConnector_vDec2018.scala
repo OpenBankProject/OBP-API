@@ -5,7 +5,8 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
-import code.api.util.CallContext
+import code.api.util.ExampleValue.{accountIdExample, bankIdExample}
+import code.api.util.{CallContext, ExampleValue}
 import code.bankconnectors.Connector
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -101,12 +102,53 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     response.map(_.bank.map(r => (BankAkka(r), callContext)))
   }
 
+  messageDocs += MessageDoc(
+    process = "obp.check.BankAccountExists",
+    messageFormat = messageFormat,
+    description = "Check a bank Account exists - as specified by bankId and accountId.",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = decompose(
+      OutboundCheckBankAccountExists(
+        bankIdExample.value,
+        accountIdExample.value,
+        None
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundCheckBankAccountExists(
+        Some(Examples.inboundAccountDec2018Example),
+        None)
+    ),
+    adapterImplementation = Some(AdapterImplementation("Accounts", 4))
+  )
   override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccount, Option[CallContext])]] = {
     val req = OutboundCheckBankAccountExists(bankId.value, accountId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundCheckBankAccountExists] = (southSideActor ? req).mapTo[InboundCheckBankAccountExists]
     response.map(_.data.map(r => (BankAccountDec2018(r), callContext)))
   }
 
+  messageDocs += MessageDoc(
+    process = "obp.get.Account",
+    messageFormat = messageFormat,
+    description = "Get a single Account as specified by the bankId and accountId.",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = decompose(
+      OutboundGetAccount(
+        bankIdExample.value,
+        accountIdExample.value,
+        None
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetAccount(
+        Some(Examples.inboundAccountDec2018Example),
+        None
+      )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Accounts", 7))
+  )
   override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
     val req = OutboundGetAccount(bankId.value, accountId.value, callContext.map(_.toCallContextAkka))
     val response = (southSideActor ? req).mapTo[InboundGetAccount]
@@ -115,3 +157,29 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   
   
 }
+
+object Examples {
+  val inboundAccountDec2018Example = 
+    InboundAccountDec2018(
+      bankId = bankIdExample.value,
+      branchId = ExampleValue.branchIdExample.value,
+      accountId = accountIdExample.value,
+      accountNumber = ExampleValue.accountNumberExample.value,
+      accountType = ExampleValue.accountTypeExample.value,
+      balanceAmount = ExampleValue.balanceAmountExample.value,
+      balanceCurrency = ExampleValue.currencyExample.value,
+      owners = ExampleValue.owner1Example.value :: ExampleValue.owner1Example.value :: Nil,
+      viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+      bankRoutingScheme = ExampleValue.bankRoutingSchemeExample.value,
+      bankRoutingAddress = ExampleValue.bankRoutingAddressExample.value,
+      branchRoutingScheme = ExampleValue.branchRoutingSchemeExample.value,
+      branchRoutingAddress = ExampleValue.branchRoutingAddressExample.value,
+      accountRoutingScheme = ExampleValue.accountRoutingSchemeExample.value,
+      accountRoutingAddress = ExampleValue.accountRoutingAddressExample.value,
+      accountRouting = Nil,
+      accountRules = Nil
+    )
+  
+}
+
+
