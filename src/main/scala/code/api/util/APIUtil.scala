@@ -1795,6 +1795,7 @@ Returns a string showed to the developer
         t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
       )
       in.onFail {
+        case Failure(null, _, _) => Full(reply.apply(errorJsonResponse(UnknownError)))
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
@@ -1803,7 +1804,7 @@ Returns a string showed to the developer
               Full((reply.apply(errorJsonResponse(msg))))
           }
         case _ =>
-          Full(reply.apply(errorJsonResponse("Error")))
+          Full(reply.apply(errorJsonResponse(UnknownError)))
       }
     })
   }
