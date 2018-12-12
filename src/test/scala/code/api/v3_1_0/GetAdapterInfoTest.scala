@@ -53,7 +53,7 @@ class GetAdapterInfoTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + NotImplemented)
-      response310.body.extract[ErrorMessage].error should include (NotImplemented + ApiEndpoint.name)
+      response310.body.extract[ErrorMessage].error should include (NotImplemented + "getAdapterInfoFuture")
     }
   }
 

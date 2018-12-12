@@ -101,7 +101,8 @@ case class TransactionRequestBodyCounterpartyJSON(
                                                    to: CounterpartyIdJson,
                                                    value: AmountOfMoneyJsonV121,
                                                    description: String,
-                                                   charge_policy: String
+                                                   charge_policy: String,
+                                                   future_date: Option[String] = None
                                                  ) extends TransactionRequestCommonBodyJSON
 
 // the data from endpoint, extract as valid JSON
@@ -109,7 +110,8 @@ case class TransactionRequestBodySEPAJSON(
                                            value: AmountOfMoneyJsonV121,
                                            to: IbanJson,
                                            description: String,
-                                           charge_policy: String
+                                           charge_policy: String,
+                                           future_date: Option[String] = None
                                          ) extends TransactionRequestCommonBodyJSON
 
 // Note: FreeForm is not used yet, the format maybe changed latter. the data from endpoint, extract as valid JSON

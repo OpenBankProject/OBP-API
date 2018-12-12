@@ -79,10 +79,10 @@ class JSONFactory1_4_0Test extends FlatSpec
   
   "validate all the resouceDocs json schema " should "work well, no exception is good enough" in {
     val resourceDocsRaw= OBPAPI3_0_0.allResourceDocs
-    val resouceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList)
+    val resourceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList)
     
     for{
-      resouceDoc <- resouceDocs.resource_docs
+      resouceDoc <- resourceDocs.resource_docs
       json <- List(compactRender(decompose(resouceDoc.success_response_body)))
       jsonSchema <- List(compactRender(resouceDoc.typed_success_response_body))
     } yield {

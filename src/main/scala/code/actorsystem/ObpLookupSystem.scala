@@ -2,10 +2,12 @@ package code.actorsystem
 
 import akka.actor.ActorSystem
 import code.api.util.APIUtil
+import code.bankconnectors.akka.actor.{AkkaConnectorActorConfig, AkkaConnectorHelperActor}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.webhook.WebhookHelperActors
 import com.typesafe.config.ConfigFactory
+import net.liftweb.common.Full
 import net.liftweb.util.Props
 
 
@@ -15,6 +17,7 @@ object ObpLookupSystem extends ObpLookupSystem {
 
 trait ObpLookupSystem extends MdcLoggable {
   var obpLookupSystem: ActorSystem = null
+  var obpLookupSystem1: ActorSystem = null
   val props_hostname = Helper.getHostname
 
   def init (): ActorSystem = {
@@ -24,6 +27,14 @@ trait ObpLookupSystem extends MdcLoggable {
       obpLookupSystem = system
     }
     obpLookupSystem
+  }
+  def init2 (): ActorSystem = {
+    if (obpLookupSystem1 == null ) {
+      val system = ActorSystem("ObpLookupSystem1", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.lookupConf)))
+      logger.info(ObpActorConfig.lookupConf)
+      obpLookupSystem1 = system
+    }
+    obpLookupSystem1
   }
 
   def getKafkaActor(actorName: String) = {
@@ -87,6 +98,31 @@ trait ObpLookupSystem extends MdcLoggable {
         logger.error("Failed to connect to local Web Hook actor")
       }
       s"akka.tcp://ObpActorSystem_${props_hostname}@${hostname}:${port}/user/${name}"
+    }
+    this.obpLookupSystem.actorSelection(actorPath)
+  }
+
+
+  def getAkkaConnectorActor(actorName: String) = {
+
+    val hostname = APIUtil.getPropsValue("akka_connector.hostname")
+    val port = APIUtil.getPropsValue("akka_connector.port")
+    val actorPath: String = (hostname, port) match {
+      case (Full(h), Full(p)) =>
+        val hostname = h
+        val port = p
+        val akka_connector_hostname = Helper.getAkkaConnectorHostname
+        s"akka.tcp://SouthSideAkkaConnector_${akka_connector_hostname}@${hostname}:${port}/user/${actorName}"
+
+      case _ =>
+        val hostname = AkkaConnectorActorConfig.localHostname
+        val port = AkkaConnectorActorConfig.localPort
+        val props_hostname = Helper.getHostname
+        if (port == 0) {
+          logger.error("Failed to find an available port.")
+        }
+        AkkaConnectorHelperActor.startAkkaConnectorHelperActors(ObpActorSystem.northSideAkkaConnectorActorSystem)
+        s"akka.tcp://SouthSideAkkaConnector_${props_hostname}@${hostname}:${port}/user/${actorName}"
     }
     this.obpLookupSystem.actorSelection(actorPath)
   }
