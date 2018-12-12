@@ -10,7 +10,7 @@ import code.api.util.{CallContext, ExampleValue}
 import code.bankconnectors.Connector
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.model.{AccountId, BankAccount, BankId, Bank => BankTrait}
+import code.model.{AccountId, BankAccount, BankId, BankIdAccountId, CoreAccount, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -154,9 +154,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val response = (southSideActor ? req).mapTo[InboundGetAccount]
     response.map(a => (a.payload.map(BankAccountDec2018(_)), callContext))
   }
-  
-  
-}
+
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
+    val req = OutboundGetCoreBankAccounts(BankIdAccountIds, callContext.map(_.toCallContextAkka))
+    val response: Future[InboundGetCoreBankAccounts] = (southSideActor ? req).mapTo[InboundGetCoreBankAccounts]
+    response.map(a => Full(a.payload.map( x => CoreAccount(x.id,x.label,x.bankId,x.accountType, x.accountRoutings)), callContext))
+  }
+
+
+
+  }
 
 object Examples {
   val inboundAccountDec2018Example = 

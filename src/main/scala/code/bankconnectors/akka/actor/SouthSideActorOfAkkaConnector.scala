@@ -48,6 +48,10 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     case OutboundGetAccount(bankId, accountId, cc) =>
       val result: Box[BankAccount] = getBankAccount(BankId(bankId), AccountId(accountId), None).map(r => r._1)
       sender ! InboundGetAccount(result.map(Transformer.bankAccount(_)).toOption, cc)
+      
+    case OutboundGetCoreBankAccounts(bankIdAccountIds, cc) =>
+      val result: Box[List[CoreAccount]] = getCoreBankAccounts(bankIdAccountIds, None).map(r => r._1)
+      sender ! InboundGetCoreBankAccounts(result.getOrElse(Nil).map(Transformer.coreAccount(_)), cc)
   }
 
 }
@@ -85,6 +89,15 @@ object Transformer {
       accountRoutingAddress = acc.accountRoutingAddress,
       accountRouting = Nil,
       accountRules = Nil
+    )
+  
+  def coreAccount(a: CoreAccount) =
+    InternalInboundCoreAccount(
+      id = a.id,
+      label = a.label,
+      bankId = a.bankId,
+      accountType = a.accountType,
+      accountRoutings = a.accountRoutings
     )
 }
 

@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.api.util.{APIUtil, CallContextAkka}
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AccountId, AccountRouting, AccountRule, BankAccount, BankId, Bank => BankTrait}
+import code.model.{AccountId, AccountRouting, AccountRule, BankAccount, BankId, BankIdAccountId, Bank => BankTrait}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
@@ -21,6 +21,7 @@ case class OutboundGetBanks(callContext: Option[CallContextAkka])
 case class OutboundGetBank(bankId: String, callContext: Option[CallContextAkka])
 case class OutboundCheckBankAccountExists(bankId: String, accountId: String, callContext: Option[CallContextAkka])
 case class OutboundGetAccount(bankId: String, accountId: String, callContext: Option[CallContextAkka])
+case class OutboundGetCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContextAkka])
 
 /**
   *
@@ -38,6 +39,7 @@ case class InboundGetBanks(banks: Option[List[Bank]], callContext: Option[CallCo
 case class InboundGetBank(bank: Option[Bank], callContext: Option[CallContextAkka])
 case class InboundCheckBankAccountExists(data: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
 case class InboundGetAccount(payload: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
+case class InboundGetCoreBankAccounts(payload: List[InternalInboundCoreAccount], callContext: Option[CallContextAkka])
 
 
 
@@ -113,3 +115,11 @@ case class BankAccountDec2018(r: InboundAccountDec2018) extends BankAccount {
   def accountRules: List[AccountRule] = r.accountRules
 
 }
+
+case class InternalInboundCoreAccount(
+                                       id : String,
+                                       label : String,
+                                       bankId : String,
+                                       accountType: String,
+                                       accountRoutings: List[AccountRouting]
+                                     )
