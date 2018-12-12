@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorLogging}
 import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedConnector._
 import code.bankconnectors.akka._
+import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.model.dataAccess.MappedBank
 import code.model.{Bank => _, _}
 import code.util.Helper.MdcLoggable
@@ -52,6 +53,12 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     case OutboundGetCoreBankAccounts(bankIdAccountIds, cc) =>
       val result: Box[List[CoreAccount]] = getCoreBankAccounts(bankIdAccountIds, None).map(r => r._1)
       sender ! InboundGetCoreBankAccounts(result.getOrElse(Nil).map(Transformer.coreAccount(_)), cc)
+       
+    case OutboundGetCustomersByUserId(userId, cc) =>
+      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
+      sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)
+      
+      
   }
 
 }
@@ -99,5 +106,27 @@ object Transformer {
       accountType = a.accountType,
       accountRoutings = a.accountRoutings
     )
+
+  def toInternalCustomer(customer: Customer): InternalCustomer = {
+    InternalCustomer(
+      customerId = customer.customerId,
+      bankId = customer.bankId,
+      number = customer.number,
+      legalName = customer.legalName,
+      mobileNumber = customer.mobileNumber,
+      email = customer.email,
+      faceImage = CustomerFaceImage(customer.faceImage.date,customer.faceImage.url),
+      dateOfBirth = customer.dateOfBirth,
+      relationshipStatus = customer.relationshipStatus,
+      dependents = customer.dependents,
+      dobOfDependents = customer.dobOfDependents,
+      highestEducationAttained = customer.highestEducationAttained,
+      employmentStatus = customer.employmentStatus,
+      creditRating = CreditRating(customer.creditRating.rating, customer.creditRating.source),
+      creditLimit = CreditLimit(customer.creditLimit.amount,customer.creditLimit.currency),
+      kycStatus = customer.kycStatus,
+      lastOkDate = customer.lastOkDate,
+    )
+  }
 }
 

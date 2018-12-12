@@ -77,6 +77,8 @@ object ExampleValue {
   val accountTypeExample = ConnectorField("AC","A short code that represents the type of the account as provided by the bank.")
 
   val balanceAmountExample = ConnectorField("50.89", "The balance on the account.")
+  
+  val creditLimitAmountExample = ConnectorField("1000.00", "The credit limit on the accounts of a customer.")
 
   val transactionAmountExample = ConnectorField("19.64", "A Transaction Amount.")
 

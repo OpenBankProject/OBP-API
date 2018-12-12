@@ -5,11 +5,12 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
-import code.api.util.CallContext
+import code.api.util.{APIUtil, CallContext}
 import code.api.util.ExampleValue._
 import code.bankconnectors.Connector
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
+import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
@@ -188,6 +189,54 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val response: Future[InboundGetCoreBankAccounts] = (southSideActor ? req).mapTo[InboundGetCoreBankAccounts]
     response.map(a => Full(a.payload.map( x => CoreAccount(x.id,x.label,x.bankId,x.accountType, x.accountRoutings)), callContext))
   }
+
+
+
+  messageDocs += MessageDoc(
+    process = "obp.get.CustomersByUserId",
+    messageFormat = messageFormat,
+    description = "Get Customers represented by the User.",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = decompose(
+      OutboundGetCustomersByUserId(
+        userIdExample.value,
+        None
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetCustomersByUserId(
+        InternalCustomer(
+          customerId = customerIdExample.value, 
+          bankId = bankIdExample.value, 
+          number = customerNumberExample.value,
+          legalName = legalNameExample.value, 
+          mobileNumber = "String", 
+          email = "String",
+          faceImage = CustomerFaceImage(date = APIUtil.DateWithSecondsExampleObject, url = "String"),
+          dateOfBirth = APIUtil.DateWithSecondsExampleObject, relationshipStatus = "String",
+          dependents = 1, 
+          dobOfDependents = List(APIUtil.DateWithSecondsExampleObject),
+          highestEducationAttained = "String", 
+          employmentStatus = "String",
+          creditRating = CreditRating(rating = "String", source = "String"),
+          creditLimit = CreditLimit(currency = currencyExample.value, amount = creditLimitAmountExample.value),
+          kycStatus = false, 
+          lastOkDate = APIUtil.DateWithSecondsExampleObject
+        ) :: Nil,
+        None
+      )
+    ),
+    outboundAvroSchema = None,
+    inboundAvroSchema = None,
+    adapterImplementation = Some(AdapterImplementation("Accounts", 0))
+  )
+  override def getCustomersByUserIdFuture(userId: String , callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = {
+    val req = OutboundGetCustomersByUserId(userId, callContext.map(_.toCallContextAkka))
+    val response: Future[InboundGetCustomersByUserId] = (southSideActor ? req).mapTo[InboundGetCustomersByUserId]
+    response.map(a => Full(InboundTransformerDec2018.toCustomers(a.payload), callContext))
+  }
+
 
 
 

@@ -1,8 +1,10 @@
 package code.bankconnectors.akka
 
+import java.lang
 import java.util.Date
 
 import code.api.util.{APIUtil, CallContextAkka}
+import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.model.dataAccess.MappedBankAccountData
 import code.model.{AccountId, AccountRouting, AccountRule, BankAccount, BankId, BankIdAccountId, Bank => BankTrait}
 import net.liftweb.mapper.By
@@ -22,6 +24,7 @@ case class OutboundGetBank(bankId: String, callContext: Option[CallContextAkka])
 case class OutboundCheckBankAccountExists(bankId: String, accountId: String, callContext: Option[CallContextAkka])
 case class OutboundGetAccount(bankId: String, accountId: String, callContext: Option[CallContextAkka])
 case class OutboundGetCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContextAkka])
+case class OutboundGetCustomersByUserId(userId: String, callContext: Option[CallContextAkka])
 
 /**
   *
@@ -40,6 +43,7 @@ case class InboundGetBank(bank: Option[Bank], callContext: Option[CallContextAkk
 case class InboundCheckBankAccountExists(data: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
 case class InboundGetAccount(payload: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
 case class InboundGetCoreBankAccounts(payload: List[InternalInboundCoreAccount], callContext: Option[CallContextAkka])
+case class InboundGetCustomersByUserId(payload: List[InternalCustomer], callContext: Option[CallContextAkka])
 
 
 
@@ -123,3 +127,76 @@ case class InternalInboundCoreAccount(
                                        accountType: String,
                                        accountRoutings: List[AccountRouting]
                                      )
+
+case class InternalCustomer(
+                             customerId: String,
+                             bankId: String,
+                             number: String,
+                             legalName: String,
+                             mobileNumber: String,
+                             email: String,
+                             faceImage: CustomerFaceImage,
+                             dateOfBirth: Date,
+                             relationshipStatus: String,
+                             dependents: Integer,
+                             dobOfDependents: List[Date],
+                             highestEducationAttained: String,
+                             employmentStatus: String,
+                             creditRating: CreditRating,
+                             creditLimit: CreditLimit,
+                             kycStatus: lang.Boolean,
+                             lastOkDate: Date
+                           )
+
+case class AkkaDec2018Customer(
+                        customerId: String,
+                        bankId: String,
+                        number: String,
+                        legalName: String,
+                        mobileNumber: String,
+                        email: String,
+                        faceImage: CustomerFaceImage,
+                        dateOfBirth: Date,
+                        relationshipStatus: String,
+                        dependents: Integer,
+                        dobOfDependents: List[Date],
+                        highestEducationAttained: String,
+                        employmentStatus: String,
+                        creditRating: CreditRating,
+                        creditLimit: CreditLimit,
+                        kycStatus: lang.Boolean,
+                        lastOkDate: Date,
+                        title: String = "", //These new fields for V310, not from Connector for now. 
+                        branchId: String = "", //These new fields for V310, not from Connector for now. 
+                        nameSuffix: String = "", //These new fields for V310, not from Connector for now. 
+                      ) extends Customer
+
+
+
+object InboundTransformerDec2018 {
+  def toCustomer(customer : InternalCustomer): Customer = {
+    AkkaDec2018Customer(
+      customerId = customer.customerId,
+      bankId = customer.bankId,
+      number = customer.number,
+      legalName = customer.legalName,
+      mobileNumber = customer.mobileNumber,
+      email = customer.email,
+      faceImage = customer.faceImage,
+      dateOfBirth = customer.dateOfBirth,
+      relationshipStatus = customer.relationshipStatus,
+      dependents = customer.dependents,
+      dobOfDependents = customer.dobOfDependents,
+      highestEducationAttained = customer.highestEducationAttained,
+      employmentStatus = customer.employmentStatus,
+      creditRating = customer.creditRating,
+      creditLimit = customer.creditLimit,
+      kycStatus = customer.kycStatus,
+      lastOkDate = customer.lastOkDate,
+    )
+  }
+
+  def toCustomers(customers : List[InternalCustomer]) : List[Customer] = {
+    customers.map(toCustomer)
+  }
+}

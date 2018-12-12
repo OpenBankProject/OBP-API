@@ -1801,6 +1801,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
   
+  def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Box[(List[Customer], Option[CallContext])] = {
+    Full((Customer.customerProvider.vend.getCustomersByUserId(userId), callContext))
+  }  
+  
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]]=
     Customer.customerProvider.vend.getCustomersByUserIdFuture(userId) map {
       customersBox =>(customersBox.map(customers=>(customers,callContext)))
