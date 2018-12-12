@@ -5,12 +5,12 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
-import code.api.util.ExampleValue.{accountIdExample, bankIdExample}
-import code.api.util.{CallContext, ExampleValue}
+import code.api.util.CallContext
+import code.api.util.ExampleValue._
 import code.bankconnectors.Connector
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.model.{AccountId, BankAccount, BankId, BankIdAccountId, CoreAccount, Bank => BankTrait}
+import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -155,6 +155,34 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     response.map(a => (a.payload.map(BankAccountDec2018(_)), callContext))
   }
 
+  messageDocs += MessageDoc(
+    process = "obp.get.coreBankAccounts",
+    messageFormat = messageFormat,
+    description = "Get bank Accounts available to the User (without Metadata)",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = decompose(
+      OutboundGetCoreBankAccounts(
+        List(BankIdAccountId(BankId(bankIdExample.value), AccountId(accountIdExample.value))),
+        None
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetCoreBankAccounts(
+        List(
+          InternalInboundCoreAccount(
+            accountIdExample.value, 
+            "My private account for Uber", 
+            bankIdExample.value, 
+            accountTypeExample.value, 
+            List(AccountRouting(accountRoutingSchemeExample.value, accountRoutingAddressExample.value)
+            )
+          )
+        ),
+        None
+      )),
+    adapterImplementation = Some(AdapterImplementation("Accounts", 1))
+  )
   override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
     val req = OutboundGetCoreBankAccounts(BankIdAccountIds, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetCoreBankAccounts] = (southSideActor ? req).mapTo[InboundGetCoreBankAccounts]
@@ -169,20 +197,20 @@ object Examples {
   val inboundAccountDec2018Example = 
     InboundAccountDec2018(
       bankId = bankIdExample.value,
-      branchId = ExampleValue.branchIdExample.value,
+      branchId = branchIdExample.value,
       accountId = accountIdExample.value,
-      accountNumber = ExampleValue.accountNumberExample.value,
-      accountType = ExampleValue.accountTypeExample.value,
-      balanceAmount = ExampleValue.balanceAmountExample.value,
-      balanceCurrency = ExampleValue.currencyExample.value,
-      owners = ExampleValue.owner1Example.value :: ExampleValue.owner1Example.value :: Nil,
+      accountNumber = accountNumberExample.value,
+      accountType = accountTypeExample.value,
+      balanceAmount = balanceAmountExample.value,
+      balanceCurrency = currencyExample.value,
+      owners = owner1Example.value :: owner1Example.value :: Nil,
       viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-      bankRoutingScheme = ExampleValue.bankRoutingSchemeExample.value,
-      bankRoutingAddress = ExampleValue.bankRoutingAddressExample.value,
-      branchRoutingScheme = ExampleValue.branchRoutingSchemeExample.value,
-      branchRoutingAddress = ExampleValue.branchRoutingAddressExample.value,
-      accountRoutingScheme = ExampleValue.accountRoutingSchemeExample.value,
-      accountRoutingAddress = ExampleValue.accountRoutingAddressExample.value,
+      bankRoutingScheme = bankRoutingSchemeExample.value,
+      bankRoutingAddress = bankRoutingAddressExample.value,
+      branchRoutingScheme = branchRoutingSchemeExample.value,
+      branchRoutingAddress = branchRoutingAddressExample.value,
+      accountRoutingScheme = accountRoutingSchemeExample.value,
+      accountRoutingAddress = accountRoutingAddressExample.value,
       accountRouting = Nil,
       accountRules = Nil
     )
