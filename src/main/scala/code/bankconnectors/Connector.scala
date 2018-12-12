@@ -1029,7 +1029,8 @@ trait Connector extends MdcLoggable{
                to = CounterpartyIdJson(counterpartyId.value), 
                value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount), 
                description = body.description,
-               charge_policy = transactionRequest.charge_policy)
+               charge_policy = transactionRequest.charge_policy,
+               future_date = transactionRequest.future_date)
   
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
              fromAccount,
@@ -1056,7 +1057,8 @@ trait Connector extends MdcLoggable{
               to = IbanJson(toCounterpartyIBan),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
               description = body.description,
-              charge_policy = transactionRequest.charge_policy
+              charge_policy = transactionRequest.charge_policy,
+              future_date = transactionRequest.future_date
             )
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,

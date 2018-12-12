@@ -398,7 +398,8 @@ object SwaggerDefinitionsJSON {
     other_account_routing_address= "String",
     other_bank_routing_scheme= "String",
     other_bank_routing_address= "String",
-    is_beneficiary= true
+    is_beneficiary= true,
+    future_date = Some("20881230")
   )
 
 
@@ -1864,14 +1865,16 @@ object SwaggerDefinitionsJSON {
     counterpartyIdJson,
     amountOfMoneyJsonV121,
     "A description for the transaction to the counterparty",
-    "SHARED"
+    "SHARED",
+    Some("20881230")
   )
 
   val transactionRequestBodySEPAJSON = TransactionRequestBodySEPAJSON(
     amountOfMoneyJsonV121,
     ibanJson,
     "This is a SEPA Transaction Request",
-    "SHARED"
+    "SHARED",
+    Some("20881230")
   )
 
   val customerCreditRatingJSON = CustomerCreditRatingJSON(
