@@ -266,7 +266,7 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
   
     //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same accounts, only different json body.
@@ -310,7 +310,7 @@ trait APIMethods200 {
       coreAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount, apiTagPrivateData))
+      List(apiTagAccount, apiTagPrivateData, apiTagNewStyle))
 
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, createAccount, "new")
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, corePrivateAccountsAtOneBank, "self")
@@ -384,7 +384,7 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagAccount)
+      List(apiTagAccount, apiTagNewStyle)
     )
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -423,7 +423,7 @@ trait APIMethods200 {
       basicAccountsJSON,
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
+      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData, apiTagNewStyle))
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
