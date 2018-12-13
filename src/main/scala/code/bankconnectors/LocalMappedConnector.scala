@@ -397,7 +397,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     getBankAccount(bankId: BankId, accountId: AccountId, callContext)
-  }
+  }  
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = 
+    Future {
+      getBankAccount(bankId: BankId, accountId: AccountId, callContext)
+    }
   
   override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {
     Full(
@@ -1796,6 +1800,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       nameSuffix
     )
   }
+  
+  def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Box[(List[Customer], Option[CallContext])] = {
+    Full((Customer.customerProvider.vend.getCustomersByUserId(userId), callContext))
+  }  
   
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]]=
     Customer.customerProvider.vend.getCustomersByUserIdFuture(userId) map {

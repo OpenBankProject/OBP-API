@@ -288,6 +288,42 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
     res
   }
+  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+    val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
+
+    logger.debug(s"Kafka getAdapterInfoFuture Req says:  is: $req")
+
+    val future = for {
+      res <- processToFuture[OutboundGetAdapterInfo](req) map {
+        f =>
+          try {
+            f.extract[InboundAdapterInfo]
+          } catch {
+            case e: Exception =>
+              val received = liftweb.json.compactRender(f)
+              val expected = SchemaFor[InboundAdapterInfo]().toString(false)
+              val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+              sendOutboundAdapterError(err)
+              throw new MappingException(err, e)
+          }
+      } map {
+        x => x.data
+      }
+    } yield {
+      Full(res)
+    }
+
+    val res = future map {
+      case Full(list) if (list.errorCode=="") =>
+        Full(list, callContext)
+      case Full(list) if (list.errorCode!="") =>
+        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    logger.debug(s"Kafka getAdapterInfoFuture says res is $res")
+    res
+  }
 
   messageDocs += MessageDoc(
     process = "obp.get.User",
@@ -871,6 +907,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getBankAccount")
+
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) =
+    Future {
+      checkBankAccountExists(bankId, accountId, callContext)
+    }
   
   messageDocs += MessageDoc(
     process = "obp.get.coreBankAccounts",

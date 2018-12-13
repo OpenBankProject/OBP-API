@@ -8,7 +8,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.UserNotLoggedIn
-import code.api.util.{APIUtil, ApiRole, ApiVersion, ErrorMessages}
+import code.api.util.NewStyle.HttpCode
+import code.api.util._
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -274,12 +275,12 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            successJsonResponse(privateBankAccountBasicListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
+            (privateBankAccountBasicListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank), HttpCode.`200`(callContext))
           }
       }
     }
@@ -322,38 +323,40 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc))
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
 
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            (result, HttpCode.`200`(callContext))
           }
       }
       // Also we support accounts/private to maintain compatibility with 1.4.0
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc))
-
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            (result, HttpCode.`200`(callContext))
           }
       }
       // Supports idea of default bank
       case "bank" :: "accounts" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(BankId(defaultBankId), Some(cc)) ?~! ErrorMessages.DefaultBankIdNotSet
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val privateAaccountsForOneBank = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAaccountsForOneBank, privateViewsUserCanAccessAtOneBank)
+            (result, HttpCode.`200`(callContext))
           }
       }
 
@@ -389,12 +392,12 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
             val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
+            (privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank), HttpCode.`200`(callContext))
           }
       }
     }
@@ -427,11 +430,11 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for {
-            (bank, callContext) <- Bank(bankId, Some(cc))
-            publicViewsForBank <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
+            (bank, callContext) <- NewStyle.function.getBank(bankId, Some(cc))
           } yield {
+            val publicViewsForBank = Views.views.vend.publicViewsForBank(bank.bankId)
             val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicViewsForBank), publicViewsForBank)
-            successJsonResponse(publicAccountsJson)
+            (publicAccountsJson, HttpCode.`200`(callContext))
           }
       }
     }

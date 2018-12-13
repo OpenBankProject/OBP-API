@@ -187,10 +187,9 @@ object NewStyle {
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
-      Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
+      Connector.connector.vend.checkBankAccountExistsFuture(bankId, accountId, callContext) } map {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
       }
-    }
 
     def moderatedBankAccount(account: BankAccount, view: View, user: Box[User]) = Future {
       account.moderatedBankAccount(view, user)
@@ -291,11 +290,9 @@ object NewStyle {
     }
 
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
-      Future {
-        Connector.connector.vend.getAdapterInfo(callContext)
-      } map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
-      }
+        Connector.connector.vend.getAdapterInfoFuture(callContext) map {
+          unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+        }
     }
 
     def getEntitlementsByUserId(userId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
