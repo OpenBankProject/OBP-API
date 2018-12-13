@@ -302,9 +302,9 @@ object NewStyle {
     }
 
     def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): OBPReturnType[List[CounterpartyTrait]] = {
-      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext)) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+      Connector.connector.vend.getCounterpartiesFuture(bankId,accountId,viewId, callContext) map { i=>
+        (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
     }
 
     def getMetadata(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyMetadata] = {

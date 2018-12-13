@@ -7,6 +7,7 @@ import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedConnector._
 import code.bankconnectors.akka._
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
+import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBank
 import code.model.{Bank => _, _}
 import code.util.Helper.MdcLoggable
@@ -56,7 +57,15 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
        
     case OutboundGetCustomersByUserId(userId, cc) =>
       val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
+      sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)  
+      
+    case OutboundGetCustomersByUserId(userId, cc) =>
+      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
       sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)
+       
+    case OutboundGetCounterparties(thisBankId, thisAccountId, viewId, cc) =>
+      val result: Box[List[CounterpartyTrait]] = getCounterparties(BankId(thisBankId), AccountId(thisAccountId), ViewId(viewId), None).map(r => r._1)
+      sender ! InboundGetCounterparties(result.getOrElse(Nil).map(Transformer.toInternalCounterparty(_)), cc)
       
       
   }
@@ -126,6 +135,28 @@ object Transformer {
       creditLimit = CreditLimit(customer.creditLimit.amount,customer.creditLimit.currency),
       kycStatus = customer.kycStatus,
       lastOkDate = customer.lastOkDate,
+    )
+  }
+  
+  def toInternalCounterparty(c: CounterpartyTrait) = {
+    InternalCounterparty(
+      createdByUserId=c.createdByUserId,
+      name=c.name,
+      thisBankId=c.thisBankId,
+      thisAccountId=c.thisAccountId,
+      thisViewId=c.thisViewId,
+      counterpartyId=c.counterpartyId,
+      otherAccountRoutingScheme=c.otherAccountRoutingScheme,
+      otherAccountRoutingAddress=c.otherAccountRoutingAddress,
+      otherBankRoutingScheme=c.otherBankRoutingScheme,
+      otherBankRoutingAddress=c.otherBankRoutingAddress,
+      otherBranchRoutingScheme=c.otherBankRoutingScheme,
+      otherBranchRoutingAddress=c.otherBranchRoutingAddress,
+      isBeneficiary=c.isBeneficiary,
+      description=c.description,
+      otherAccountSecondaryRoutingScheme=c.otherAccountSecondaryRoutingScheme,
+      otherAccountSecondaryRoutingAddress=c.otherAccountSecondaryRoutingAddress,
+      bespoke=c.bespoke
     )
   }
 }

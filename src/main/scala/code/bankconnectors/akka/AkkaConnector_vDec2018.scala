@@ -11,7 +11,8 @@ import code.bankconnectors.Connector
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
-import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, Bank => BankTrait}
+import code.metadata.counterparties.CounterpartyTrait
+import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, ViewId, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -235,6 +236,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val req = OutboundGetCustomersByUserId(userId, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetCustomersByUserId] = (southSideActor ? req).mapTo[InboundGetCustomersByUserId]
     response.map(a => Full(InboundTransformerDec2018.toCustomers(a.payload), callContext))
+  }
+  
+  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = {
+    val req = OutboundGetCounterparties(thisBankId.value, thisAccountId.value, viewId.value, callContext.map(_.toCallContextAkka))
+    val response: Future[InboundGetCounterparties] = (southSideActor ? req).mapTo[InboundGetCounterparties]
+    response.map(a => (Full(a.payload), callContext))
   }
 
 

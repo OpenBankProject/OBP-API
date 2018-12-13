@@ -5,8 +5,9 @@ import java.util.Date
 
 import code.api.util.{APIUtil, CallContextAkka}
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
+import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AccountId, AccountRouting, AccountRule, BankAccount, BankId, BankIdAccountId, Bank => BankTrait}
+import code.model.{AccountId, AccountRouting, AccountRule, BankAccount, BankId, BankIdAccountId, CounterpartyBespoke, Bank => BankTrait}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
@@ -25,6 +26,10 @@ case class OutboundCheckBankAccountExists(bankId: String, accountId: String, cal
 case class OutboundGetAccount(bankId: String, accountId: String, callContext: Option[CallContextAkka])
 case class OutboundGetCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContextAkka])
 case class OutboundGetCustomersByUserId(userId: String, callContext: Option[CallContextAkka])
+case class OutboundGetCounterparties(thisBankId: String,
+                                     thisAccountId: String,
+                                     viewId :String, 
+                                     callContext: Option[CallContextAkka])
 
 /**
   *
@@ -44,6 +49,7 @@ case class InboundCheckBankAccountExists(data: Option[InboundAccountDec2018], ca
 case class InboundGetAccount(payload: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
 case class InboundGetCoreBankAccounts(payload: List[InternalInboundCoreAccount], callContext: Option[CallContextAkka])
 case class InboundGetCustomersByUserId(payload: List[InternalCustomer], callContext: Option[CallContextAkka])
+case class InboundGetCounterparties(payload: List[InternalCounterparty], callContext: Option[CallContextAkka])
 
 
 
@@ -171,7 +177,24 @@ case class AkkaDec2018Customer(
                         nameSuffix: String = "", //These new fields for V310, not from Connector for now. 
                       ) extends Customer
 
-
+case class InternalCounterparty(
+                                 createdByUserId: String,
+                                 name: String,
+                                 thisBankId: String,
+                                 thisAccountId: String,
+                                 thisViewId: String,
+                                 counterpartyId: String,
+                                 otherAccountRoutingScheme: String,
+                                 otherAccountRoutingAddress: String,
+                                 otherBankRoutingScheme: String,
+                                 otherBankRoutingAddress: String,
+                                 otherBranchRoutingScheme: String,
+                                 otherBranchRoutingAddress: String,
+                                 isBeneficiary: Boolean,
+                                 description: String,
+                                 otherAccountSecondaryRoutingScheme: String,
+                                 otherAccountSecondaryRoutingAddress: String,
+                                 bespoke: List[CounterpartyBespoke]) extends CounterpartyTrait
 
 object InboundTransformerDec2018 {
   def toCustomer(customer : InternalCustomer): Customer = {
