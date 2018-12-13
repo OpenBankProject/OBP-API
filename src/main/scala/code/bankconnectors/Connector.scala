@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
+import code.accountapplication.{AccountApplication, MappedAccountApplication}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
@@ -1547,4 +1548,20 @@ trait Connector extends MdcLoggable{
     productAttributeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def createAccountApplication(
+    productCode: ProductCode,
+    userId: Option[String],
+    customerId: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[AccountApplication]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }
