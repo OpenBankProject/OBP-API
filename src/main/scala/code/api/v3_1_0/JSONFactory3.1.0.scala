@@ -27,8 +27,9 @@ Berlin 13359, Germany
 package code.api.v3_1_0
 
 import java.lang
-import java.util.Date
+import java.util.{Date, Objects}
 
+import code.accountapplication.AccountApplication
 import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
@@ -49,6 +50,7 @@ import scala.collection.immutable.List
 import code.customer.Customer
 import code.context.UserAuthContext
 import code.entitlement.Entitlement
+import code.model.dataAccess.ResourceUser
 import code.productattribute.ProductAttribute.ProductAttribute
 import code.taxresidence.TaxResidence
 
@@ -326,7 +328,24 @@ case class ProductAttributeResponseJson(
   value: String,
 )
 
+case class AccountApplicationJson(
+  product_code: String,
+  user_id: Option[String],
+  customer_id: Option[String]
+ )
 
+case class AccountApplicationResponseJson(
+  account_application_id: String,
+  product_code: String,
+  user: ResourceUserJSON,
+  customer: CustomerJsonV310,
+  date_of_application: Date,
+  status: String
+)
+
+case class AccountApplicationUpdateStatusJson(status: String)
+
+case class AccountApplicationsJsonV310(account_applications: List[AccountApplicationResponseJson])
 
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
@@ -570,5 +589,35 @@ object JSONFactory310{
        `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
+  def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[User], customer: Box[Customer]): AccountApplicationResponseJson = {
+
+    val userJson = user.map(u => ResourceUserJSON(
+      user_id = u.userId,
+      email = u.emailAddress,
+      provider_id = u.idGivenByProvider,
+      provider = u.provider,
+      username = u.name
+    )).orNull
+
+    val customerJson = customer.map(createCustomerJson).orNull
+
+    AccountApplicationResponseJson(
+      account_application_id = accountApplication.accountApplicationId,
+      product_code = accountApplication.productCode.value,
+      user = userJson,
+      customer = customerJson,
+      date_of_application =accountApplication.dateOfApplication,
+      status = accountApplication.status
+    )
+  }
+
+  def createAccountApplications(accountApplications: List[AccountApplication], users: List[User], customers: List[Customer]): AccountApplicationsJsonV310 = {
+    val applicationList = accountApplications.map { x =>
+      val user = Box(users.find(it => it.userId == x.userId))
+      val customer = Box(customers.find(it => it.customerId == x.customerId))
+      createAccountApplicationJson(x, user, customer)
+    }
+    AccountApplicationsJsonV310(applicationList)
+  }
 
 }

@@ -2989,6 +2989,26 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23"
   )
 
+  val accountApplicationJson = AccountApplicationJson(
+    product_code = "saveing1",
+    user_id = Some("123"),
+    customer_id = Some("123")
+  )
+
+  val accountApplicationResponseJson = AccountApplicationResponseJson (
+    account_application_id = "gc23a7e2-7dd2-4bdf-a0b4-ae31232a4763",
+    product_code = "saveing1",
+    user = resourceUserJSON,
+    customer = customerJsonV310,
+    date_of_application = DateWithDayExampleObject,
+    status = "REQUESTED"
+  )
+  val accountApplicationUpdateStatusJson = AccountApplicationUpdateStatusJson(
+    status = "ACCEPTED"
+  )
+
+  val accountApplicationsJsonV310 = AccountApplicationsJsonV310(List(accountApplicationResponseJson))
+
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

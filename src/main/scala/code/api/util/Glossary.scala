@@ -357,7 +357,7 @@ object Glossary {
 		title = "User.provider_id",
 		description =
 		  """
-			|The id of the user given by the authenticaiton provider.
+			|The id of the user given by the authentication provider.
 		  """)
 
 	  glossaryItems += GlossaryItem(

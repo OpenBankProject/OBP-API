@@ -236,7 +236,7 @@ object ErrorMessages {
 
   val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
 
-  val AccountIdAlreadyExsits = "OBP-30208: Account_ID already exists at the Bank."
+  val AccountIdAlreadyExists = "OBP-30208: Account_ID already exists at the Bank."
 
 
   val InsufficientAuthorisationToCreateBranch  = "OBP-30209: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
@@ -253,6 +253,12 @@ object ErrorMessages {
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
+  val AccountApplicationNotFound = "OBP-30311: AccountApplication not found by ACCOUNT_APPLICATION_ID. "
+  val ResourceUserNotFound = "OBP-30312: ResourceUser not found by USER_ID. "
+  val UserIdAndCustomerIdNotPresent = "OBP-30313: userId and customerId not present. "
+  val AccountApplicationAlreadyAccepted = "OBP-30314: AccountApplication has already been accepted. "
+  val UpdateAccountApplicationStatusError = "OBP-30315: AccountApplication Status can not be updated. "
+  val CreateAccountApplicationError = "OBP-30316: AccountApplication Status can not be created. "
 
   // Branch related messages
   val branchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
