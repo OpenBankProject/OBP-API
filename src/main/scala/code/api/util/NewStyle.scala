@@ -586,23 +586,23 @@ object NewStyle {
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[AccountApplication] =
       Connector.connector.vend.createAccountApplication(productCode, userId, customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, CreateAccountApplicationError, 400), i._2)
       }
 
 
     def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[List[AccountApplication]] =
       Connector.connector.vend.getAllAccountApplication(callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
       }
 
     def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[AccountApplication] =
       Connector.connector.vend.getAccountApplicationById(accountApplicationId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$AccountApplicationNotFound Current Account-Application-Id($accountApplicationId)", 400), i._2)
       }
 
     def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[AccountApplication] =
       Connector.connector.vend.updateAccountApplicationStatus(accountApplicationId, status, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateAccountApplicationStatusError  Current Account-Application-Id($accountApplicationId)", 400), i._2)
       }
 
     def findUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[User]] = Future {
@@ -612,6 +612,33 @@ object NewStyle {
       (userList, callContext)
     }
 
+    def createSandboxBankAccount(
+      bankId: BankId,
+      accountId: AccountId,
+      accountType: String,
+      accountLabel: String,
+      currency: String,
+      initialBalance: BigDecimal,
+      accountHolderName: String,
+      branchId: String,
+      accountRoutingScheme: String,
+      accountRoutingAddress: String, 
+      callContext: Option[CallContext]
+    ): OBPReturnType[BankAccount] = Future {
+      Connector.connector.vend.createSandboxBankAccount(
+        bankId: BankId,
+        accountId: AccountId,
+        accountType: String,
+        accountLabel: String,
+        currency: String,
+        initialBalance: BigDecimal,
+        accountHolderName: String,
+        branchId: String,
+        accountRoutingScheme: String,
+        accountRoutingAddress: String
+      )} map {
+        i => (unboxFullOrFail(i, callContext, UnknownError, 400), callContext)
+      }
 
     def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
       val customerList = customerIds.filterNot(StringUtils.isBlank).distinct

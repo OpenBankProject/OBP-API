@@ -5,7 +5,8 @@ import code.accountapplication.{MappedAccountApplicationProvider, RemotedataAcco
 import code.actorsystem.ObpActorHelper
 import code.products.Products.ProductCode
 import code.util.Helper.MdcLoggable
-
+import akka.pattern.pipe
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataAccountApplicationActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -16,19 +17,19 @@ class RemotedataAccountApplicationActor extends Actor with ObpActorHelper with M
 
     case cc.getAll() =>
       logger.debug("getAll()")
-      sender ! extractResult(mapper.getAll())
+      mapper.getAll() pipeTo sender
       
     case cc.getById(accountApplicationId: String) =>
       logger.debug(s"getById(${accountApplicationId})")
-      sender ! extractResult(mapper.getById(accountApplicationId))
+      mapper.getById(accountApplicationId) pipeTo sender
 
     case cc.createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String]) =>
       logger.debug(s"createAccountApplication(${productCode}, ${userId}, ${customerId}")
-      sender ! extractResult(mapper.createAccountApplication(productCode, userId, customerId))
+      mapper.createAccountApplication(productCode, userId, customerId)  pipeTo sender
       
     case cc.updateStatus(accountApplicationId: String, status: String) =>
       logger.debug(s"updateStatus(${accountApplicationId}, ${status})")
-      sender ! extractResult(mapper.updateStatus(accountApplicationId, status))
+      mapper.updateStatus(accountApplicationId, status) pipeTo sender
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
   }

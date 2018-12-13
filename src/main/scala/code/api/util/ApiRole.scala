@@ -215,10 +215,10 @@ object ApiRole {
   lazy val canRefreshUser = CanRefreshUser()
 
   case class CanGetAccountApplications(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetAccountApplications = CanRefreshUser()
+  lazy val canGetAccountApplications = CanGetAccountApplications()
 
   case class CanUpdateAccountApplications(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUpdateAccountApplications = CanRefreshUser()
+  lazy val canUpdateAccountApplications = CanUpdateAccountApplications()
 
   private val roles =
       canSearchAllTransactions ::

@@ -17,7 +17,7 @@ import scala.concurrent.Future
 object MappedAccountApplicationProvider extends AccountApplicationProvider {
 
   override def getAll(): Future[Box[List[AccountApplication]]] = Future {
-    Some(MappedAccountApplication.findAll())
+    tryo{MappedAccountApplication.findAll()}
   }
 
   override def getById(accountApplicationId: String): Future[Box[AccountApplication]] = Future {
@@ -31,21 +31,18 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
       }
   }
 
-  override def updateStatus(accountApplicationId:String, status: String): Future[Box[AccountApplication]] = getById(accountApplicationId).map {
-    case Full(accountApplication) => {
-      accountApplication.asInstanceOf[MappedAccountApplication].mStatus.set(status)
-      if(status == "ACCEPTED") {
-        //TODO
-//        we should create an Account
-//        type = AccountApplication.product_code
-//        use getOrCreateAccountHolder to set the owner to the AccountApplication.user_id
-      }
-
-      Full(accountApplication)
+  override def updateStatus(accountApplicationId:String, status: String): Future[Box[AccountApplication]] = 
+    Future{
+      MappedAccountApplication.find(By(MappedAccountApplication.mAccountApplicationId, accountApplicationId))
+       match {
+        case Full(accountApplication) if(accountApplication.status == "ACCEPTED") =>
+          Failure(s"${ErrorMessages.AccountApplicationAlreadyAccepted} Current Account-Application-Id($accountApplicationId)")
+        case Full(accountApplication)  => tryo{accountApplication.mStatus(status).saveMe()}
+        case Empty  => Failure(s"${ErrorMessages.AccountApplicationNotFound} Current Account-Application-Id($accountApplicationId)") 
+        case _  => Failure(ErrorMessages.UnknownError) 
+      }    
     }
-    case Empty   => Empty ?~! ErrorMessages.AccountApplicationNotFound
-    case other   => other.asInstanceOf[Box[AccountApplication]]
-  }
+  
 }
 
 class MappedAccountApplication extends AccountApplication with LongKeyedMapper[MappedAccountApplication] with IdPK with CreatedUpdated {

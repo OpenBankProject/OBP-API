@@ -723,7 +723,7 @@ trait APIMethods220 {
         InvalidAccountInitialBalance,
         InitialBalanceMustBeZero,
         InvalidAccountBalanceCurrency,
-        AccountIdAlreadyExsits,
+        AccountIdAlreadyExists,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -753,7 +753,7 @@ trait APIMethods220 {
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! InvalidAccountInitialBalance
             _ <- booleanToBox(0 == initialBalanceAsNumber) ?~! InitialBalanceMustBeZero
             currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
-            _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExsits)
+            _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExists)
             bankAccount <- Connector.connector.vend.createSandboxBankAccount(
               bankId,
               accountId,
