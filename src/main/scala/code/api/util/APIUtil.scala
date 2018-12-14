@@ -2169,12 +2169,12 @@ Returns a string showed to the developer
     */
   def getPropsValue(nameOfProperty: String): Box[String] = {
 
-    val bankSpecificPropertyName = getBankSpecificPropertyName(nameOfProperty)
+    val brandSpecificPropertyName = getBrandSpecificPropertyName(nameOfProperty)
 
-    logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $bankSpecificPropertyName")
+    logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $brandSpecificPropertyName")
 
 
-    (Props.get(bankSpecificPropertyName), Props.get(bankSpecificPropertyName + ".is_encrypted"), Props.get(bankSpecificPropertyName + ".is_obfuscated") ) match {
+    (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
       case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
         val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
         Full(decryptedValueAsString)
@@ -2189,8 +2189,8 @@ Returns a string showed to the developer
       case (Empty, Empty, Empty) =>
         Empty
       case _ =>
-        logger.error(cannotDecryptValueOfProperty + bankSpecificPropertyName)
-        Failure(cannotDecryptValueOfProperty + bankSpecificPropertyName)
+        logger.error(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+        Failure(cannotDecryptValueOfProperty + brandSpecificPropertyName)
     }
   }
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
@@ -2214,22 +2214,37 @@ Returns a string showed to the developer
   }
 
 
+  // Get the brand to use out of url parameter or failing that the session
+  def getSetBrandFromUrlOrSession() : Option[String] = {
+    val brand : Option[String] = S.getSessionAttribute("brand") match {
+      case Full(b) => Some(b)
+      case _ =>  {
+        // If we have a url parameter branding, use that to set the session branding
+        S.param("brand").map(value => S.setSessionAttribute("brand", value))
+        S.param("brand")
+      }
+    }
+    brand
+  }
+
+
+
   /*
   For bank specific branding and possibly other customisations, if bank_id is mentioned in urls (headers too sometime?),
   we will look for property_AT_BANK_<BANK_ID>
   We also check that the property exists, else return the standard property name.
   */
-  def getBankSpecificPropertyName (nameOfProperty: String) : String = {
+  def getBrandSpecificPropertyName(nameOfProperty: String) : String = {
 
     // If bank_id parameter is in url, append it to the property, else use the standard property name
-    val bankSpecificPropertyName = S.param("bank_id") match {
-      case Full(bankId) => s"${nameOfProperty}_FOR_BANK_${bankId}"
+    val brandSpecificPropertyName = getSetBrandFromUrlOrSession() match {
+      case Some(brand) => s"${nameOfProperty}_FOR_BRAND_${brand}"
       case _ => nameOfProperty
     }
 
     // Check if the property actually exits, if not, return the default / standard property name
-    val propertyToUse = Props.get(bankSpecificPropertyName) match {
-      case Full(value) => bankSpecificPropertyName
+    val propertyToUse = Props.get(brandSpecificPropertyName) match {
+      case Full(value) => brandSpecificPropertyName
       case _ => nameOfProperty
     }
 
