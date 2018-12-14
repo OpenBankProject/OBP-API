@@ -224,12 +224,29 @@ object Glossary {
 		title = "API.Interfaces",
 		description =
 				s"""
-					 |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/48845997-413e0780-ed9e-11e8-86c5-e5ce510c140c.png"></img>
+					 |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/49711990-9ef99d00-fc42-11e8-8cb4-cc68bab74703.png"></img>
 					 |
   |
   |
  |"""
 	)
+
+
+	glossaryItems += GlossaryItem(
+		title = "API.Access Control",
+		description =
+			s"""
+				 					 |<img width="468" alt="Access Control" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
+				 					 |
+				 |
+  |
+ |"""
+	)
+
+
+
+
+
 
 
 	  glossaryItems += GlossaryItem(
