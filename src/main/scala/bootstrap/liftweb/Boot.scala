@@ -34,6 +34,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import code.accountapplication.MappedAccountApplication
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -233,6 +234,7 @@ class Boot extends MdcLoggable {
     logger.debug(s"If you can read this, logging level is debug")
 
     val actorSystem = ObpActorSystem.startLocalActorSystem()
+    ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -460,7 +462,7 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    Migration.database.generateAndPopulateMissingCustomerUUIDs()
+    Migration.database.generateAndPopulateMissingConsumersUUIDs()
 
   }
 
@@ -548,7 +550,8 @@ object ToSchemify {
     MappedUserScope,
     MappedTaxResidence,
     MappedCustomerAddress,
-    MappedUserAuthContext
+    MappedUserAuthContext,
+    MappedAccountApplication
   )
 
   // The following tables are accessed directly via Mapper / JDBC

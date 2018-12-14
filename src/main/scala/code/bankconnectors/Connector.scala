@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
+import code.accountapplication.{AccountApplication, MappedAccountApplication}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
@@ -15,6 +16,7 @@ import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.api.v3_1_0._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
+import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
@@ -70,6 +72,7 @@ object Connector extends SimpleInjector {
   def getConnectorInstance(connectorVersion: String):Connector = {
     connectorVersion match {
       case "mapped" => LocalMappedConnector
+      case "akka_vDec2018" => AkkaConnector_vDec2018
       case "mongodb" => LocalRecordConnector
       case "obpjvm" => ObpJvmMappedConnector
       case "kafka" => KafkaMappedConnector
@@ -217,6 +220,7 @@ trait Connector extends MdcLoggable{
   }
   
   def getAdapterInfo(callContext: Option[CallContext]) : Box[(InboundAdapterInfoInternal, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
+  def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(Failure(NotImplemented + "getAdapterInfoFuture"))
 
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
@@ -350,6 +354,7 @@ trait Connector extends MdcLoggable{
   def getCoreBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]]= Future {Failure(NotImplemented + currentMethodName)}
 
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[(BankAccount, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
+  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Future[Box[(BankAccount, Option[CallContext])]] = Future {Failure(NotImplemented + currentMethodName)}
 
   /**
     * This method is just return an empty account to AccountType.
@@ -1025,7 +1030,8 @@ trait Connector extends MdcLoggable{
                to = CounterpartyIdJson(counterpartyId.value), 
                value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount), 
                description = body.description,
-               charge_policy = transactionRequest.charge_policy)
+               charge_policy = transactionRequest.charge_policy,
+               future_date = transactionRequest.future_date)
   
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
              fromAccount,
@@ -1052,7 +1058,8 @@ trait Connector extends MdcLoggable{
               to = IbanJson(toCounterpartyIBan),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
               description = body.description,
-              charge_policy = transactionRequest.charge_policy
+              charge_policy = transactionRequest.charge_policy,
+              future_date = transactionRequest.future_date
             )
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
@@ -1545,4 +1552,20 @@ trait Connector extends MdcLoggable{
     productAttributeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def createAccountApplication(
+    productCode: ProductCode,
+    userId: Option[String],
+    customerId: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[AccountApplication]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

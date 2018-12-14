@@ -46,6 +46,7 @@ import net.liftweb.mapper.{LongKeyedMetaMapper, _}
 import net.liftweb.util.Helpers.{now, _}
 import net.liftweb.util.{FieldError, Helpers, Props}
 import code.util.Helper.MdcLoggable
+import com.github.dwickern.macros.NameOf
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -71,7 +72,7 @@ object TokenType {
 }
 
 
-object MappedConsumersProvider extends ConsumersProvider {
+object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
 
   override def getConsumerByPrimaryIdFuture(id: Long): Future[Box[Consumer]] = {
     Future(
@@ -339,6 +340,15 @@ object MappedConsumersProvider extends ConsumersProvider {
         }
     }
   }
+  
+  override def populateMissingUUIDs(): Boolean = {
+    logger.warn("Executed script: MappedConsumersProvider." + NameOf.nameOf(populateMissingUUIDs))
+    for {
+      consumer <- Consumer.findAll(NullRef(Consumer.consumerId))
+    } yield {
+      consumer.consumerId(APIUtil.generateUUID()).save()
+    }
+  }.forall(_ == true)
 
 }
 

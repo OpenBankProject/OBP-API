@@ -398,7 +398,8 @@ object SwaggerDefinitionsJSON {
     other_account_routing_address= "String",
     other_bank_routing_scheme= "String",
     other_bank_routing_address= "String",
-    is_beneficiary= true
+    is_beneficiary= true,
+    future_date = Some("20881230")
   )
 
 
@@ -1864,14 +1865,16 @@ object SwaggerDefinitionsJSON {
     counterpartyIdJson,
     amountOfMoneyJsonV121,
     "A description for the transaction to the counterparty",
-    "SHARED"
+    "SHARED",
+    Some("20881230")
   )
 
   val transactionRequestBodySEPAJSON = TransactionRequestBodySEPAJSON(
     amountOfMoneyJsonV121,
     ibanJson,
     "This is a SEPA Transaction Request",
-    "SHARED"
+    "SHARED",
+    Some("20881230")
   )
 
   val customerCreditRatingJSON = CustomerCreditRatingJSON(
@@ -2985,6 +2988,26 @@ object SwaggerDefinitionsJSON {
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
   )
+
+  val accountApplicationJson = AccountApplicationJson(
+    product_code = "saveing1",
+    user_id = Some("123"),
+    customer_id = Some("123")
+  )
+
+  val accountApplicationResponseJson = AccountApplicationResponseJson (
+    account_application_id = "gc23a7e2-7dd2-4bdf-a0b4-ae31232a4763",
+    product_code = "saveing1",
+    user = resourceUserJSON,
+    customer = customerJsonV310,
+    date_of_application = DateWithDayExampleObject,
+    status = "REQUESTED"
+  )
+  val accountApplicationUpdateStatusJson = AccountApplicationUpdateStatusJson(
+    status = "ACCEPTED"
+  )
+
+  val accountApplicationsJsonV310 = AccountApplicationsJsonV310(List(accountApplicationResponseJson))
 
   //The common error or success format.
   //Just some helper format to use in Json 

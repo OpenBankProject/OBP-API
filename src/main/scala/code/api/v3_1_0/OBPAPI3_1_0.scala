@@ -324,6 +324,10 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getProductAttribute ::
                           Implementations3_1_0.updateProductAttribute ::
                           Implementations3_1_0.deleteProductAttribute ::
+                          Implementations3_1_0.createAccountApplication ::
+                          Implementations3_1_0.getAccountApplications ::
+                          Implementations3_1_0.getAccountApplication ::
+                          Implementations3_1_0.updateAccountApplicationStatus ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

@@ -57,6 +57,9 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
       logger.debug("getOrCreateConsumer(" + consumerId.getOrElse("None") + ", " + "*****" + ", " + "*****" + ", " + isActive.getOrElse("None") + ", " + name.getOrElse("None") + ", " + appType.getOrElse("None") + ", " + description.getOrElse("None") + ", " + developerEmail.getOrElse("None") + ", " + redirectURL.getOrElse("None") + ", " + createdByUserId.getOrElse("None") + ")")
       sender ! extractResult(mapper.getOrCreateConsumer(consumerId, key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId))
 
+    case cc.populateMissingUUIDs() =>
+      logger.debug("populateMissingUUIDs()")
+      sender ! extractResult(mapper.populateMissingUUIDs())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

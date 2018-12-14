@@ -1,5 +1,7 @@
 package code.api.v3_1_0
 
+import java.util.UUID
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -19,19 +21,20 @@ import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.productattribute.ProductAttribute.ProductAttributeType
 import code.products.Products.ProductCode
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
+import org.apache.commons.lang3.Validate
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1868,7 +1871,7 @@ trait APIMethods310 {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanRefreshUser)("", userId, canRefreshUser)
             startTime <- Future{Helpers.now}
-            _ <- NewStyle.function.findByUserId(userId, Some(cc))
+            _ <- NewStyle.function.findByUserId(userId, callContext)
             _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
               unboxFullOrFail(_, callContext, RefreshUserError, 400)
             }
@@ -2058,6 +2061,238 @@ trait APIMethods310 {
             (productAttribute, callContext) <- NewStyle.function.deleteProductAttribute(productAttributeId, callContext)
           } yield {
             (JsRaw(""), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createAccountApplication,
+      implementedInApiVersion,
+      nameOf(createAccountApplication),
+      "POST",
+      "/banks/BANK_ID/account-applications",
+      "Create Account Application",
+      s""" Create Account Application
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountApplicationJson,
+      accountApplicationResponseJson,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG), 
+      List(apiTagAccount, apiTagNewStyle))
+
+    lazy val createAccountApplication : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "account-applications" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountApplicationJson]
+            }
+
+            illegalProductCodeMsg = s"$InvalidJsonFormat product_code should not be empty."
+            _ <- NewStyle.function.tryons(illegalProductCodeMsg, 400, callContext) {
+              Validate.notBlank(postedData.product_code)
+            }
+
+            illegalUserIdOrCustomerIdMsg = s"$InvalidJsonFormat User_id and customer_id should not both are empty."
+            _ <- NewStyle.function.tryons(illegalUserIdOrCustomerIdMsg, 400, callContext) {
+              Validate.isTrue(postedData.user_id.isDefined || postedData.customer_id.isDefined)
+            }
+
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            
+            user <- unboxOptionOBPReturnType(postedData.user_id.map(NewStyle.function.findByUserId(_, callContext)))
+            
+            customer  <- unboxOptionOBPReturnType(postedData.customer_id.map(NewStyle.function.getCustomerByCustomerId(_, callContext)))
+
+            (productAttribute, callContext) <- NewStyle.function.createAccountApplication(
+              productCode = ProductCode(postedData.product_code),
+              userId = postedData.user_id,
+              customerId = postedData.customer_id,
+              callContext = callContext
+            )
+          } yield {
+            (createAccountApplicationJson(productAttribute, user, customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getAccountApplications,
+      implementedInApiVersion,
+      nameOf(getAccountApplications),
+      "GET",
+      "/banks/BANK_ID/account-applications",
+      "Get Account Applications",
+      s"""Get the Account Applications.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      emptyObjectJson,
+      accountApplicationsJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle))
+
+    lazy val getAccountApplications : OBPEndpoint = {
+      case "banks" :: BankId(bankId) ::"account-applications" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetAccountApplications)("", u.userId, canGetAccountApplications)
+
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            
+            (accountApplications, _) <- NewStyle.function.getAllAccountApplication(callContext)
+            (users, _) <- NewStyle.function.findUsers(accountApplications.map(_.userId), callContext)
+            (customers, _) <- NewStyle.function.findCustomers(accountApplications.map(_.customerId), callContext)
+          } yield {
+            (JSONFactory310.createAccountApplications(accountApplications, users, customers), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getAccountApplication,
+      implementedInApiVersion,
+      nameOf(getAccountApplication),
+      "GET",
+      "/banks/BANK_ID/account-applications/ACCOUNT_APPLICATION_ID",
+      "Get Account Application by Id",
+      s"""Get the Account Application.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      accountApplicationResponseJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle))
+
+    lazy val getAccountApplication : OBPEndpoint = {
+      case "banks" :: BankId(bankId) ::"account-applications":: accountApplicationId ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            
+            (accountApplication, _) <- NewStyle.function.getAccountApplicationById(accountApplicationId, callContext)
+
+            userId = Option(accountApplication.userId)
+            customerId = Option(accountApplication.customerId)
+
+            user <- unboxOptionOBPReturnType(userId.map(NewStyle.function.findByUserId(_, callContext)))
+            customer  <- unboxOptionOBPReturnType(customerId.map(NewStyle.function.getCustomerByCustomerId(_, callContext)))
+
+          } yield {
+            (createAccountApplicationJson(accountApplication, user, customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      updateAccountApplicationStatus,
+      implementedInApiVersion,
+      nameOf(updateAccountApplicationStatus),
+      "PUT",
+      "/banks/BANK_ID/account-applications/ACCOUNT_APPLICATION_ID",
+      "Update Account Application Status",
+      s"""Update an Account Application status
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountApplicationUpdateStatusJson,
+      accountApplicationResponseJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle)
+    )
+
+    lazy val updateAccountApplicationStatus : OBPEndpoint = {
+      case "banks" :: BankId(bankId) ::"account-applications" :: accountApplicationId :: Nil JsonPut json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateAccountApplications)("", u.userId, ApiRole.canUpdateAccountApplications)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
+            putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountApplicationUpdateStatusJson]
+            }
+
+            failMsg = s"$InvalidJsonFormat status should not be blank."
+            status <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               Validate.notBlank(putJson.status)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            
+            (accountApplication, _) <- NewStyle.function.getAccountApplicationById(accountApplicationId, callContext)
+            
+            (accountApplication, _) <- NewStyle.function.updateAccountApplicationStatus(accountApplicationId, status, callContext)
+            
+            userId = Option(accountApplication.userId)
+            customerId = Option(accountApplication.customerId)
+
+            user <- unboxOptionOBPReturnType(userId.map(NewStyle.function.findByUserId(_, callContext)))
+            customer  <- unboxOptionOBPReturnType(customerId.map(NewStyle.function.getCustomerByCustomerId(_, callContext)))
+            
+            _ <- status match {
+              case "ACCEPTED" =>
+                for{
+                  accountId <- Future{AccountId(UUID.randomUUID().toString)}
+                  (_, callContext) <- NewStyle.function.createSandboxBankAccount(
+                                                                                 bankId, 
+                                                                                 accountId, 
+                                                                                 accountApplication.productCode.value,
+                                                                                 "", 
+                                                                                 "EUR",
+                                                                                 BigDecimal("0"), 
+                                                                                 u.name,
+                                                                                 "", 
+                                                                                 "", 
+                                                                                 "",
+                                                                                 callContext)
+                }yield {
+                  BankAccountCreation.setAsOwner(bankId, accountId, u)
+                }
+              case _ => Future{""}
+            }
+            
+          } yield {
+            (createAccountApplicationJson(accountApplication, user, customer), HttpCode.`200`(callContext))
           }
       }
     }

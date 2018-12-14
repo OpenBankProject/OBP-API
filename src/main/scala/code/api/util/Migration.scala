@@ -1,6 +1,7 @@
 package code.api.util
 
 import code.api.util.APIUtil.getPropsAsBoolValue
+import code.consumer.Consumers
 import code.customer.Customer
 
 object Migration {
@@ -15,6 +16,10 @@ object Migration {
     
     def generateAndPopulateMissingCustomerUUIDs(): Boolean = executeScript {
       Customer.customerProvider.vend.populateMissingUUIDs()
+    }
+    
+    def generateAndPopulateMissingConsumersUUIDs(): Boolean = executeScript {
+      Consumers.consumers.vend.populateMissingUUIDs()
     }
     
   }
