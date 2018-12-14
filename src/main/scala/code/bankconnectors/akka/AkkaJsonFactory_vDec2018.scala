@@ -7,11 +7,12 @@ import code.api.util.{APIUtil, CallContextAkka}
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AccountId, AccountRouting, AccountRule, BankAccount, BankId, BankIdAccountId, CounterpartyBespoke, Bank => BankTrait}
+import code.model.{AccountId, AccountRouting, AccountRule, BankAccount, BankId, BankIdAccountId, Counterparty, CounterpartyBespoke, Transaction, TransactionId, Bank => BankTrait}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
 import scala.collection.immutable.List
+import scala.math.BigDecimal
 
 
 /**
@@ -19,17 +20,30 @@ import scala.collection.immutable.List
   * case classes used to define outbound Akka messages
   *
   */
-case class OutboundGetAdapterInfo(date: String, callContext: Option[CallContextAkka])
+case class OutboundGetAdapterInfo(date: String, 
+                                  callContext: Option[CallContextAkka])
 case class OutboundGetBanks(callContext: Option[CallContextAkka])
-case class OutboundGetBank(bankId: String, callContext: Option[CallContextAkka])
-case class OutboundCheckBankAccountExists(bankId: String, accountId: String, callContext: Option[CallContextAkka])
-case class OutboundGetAccount(bankId: String, accountId: String, callContext: Option[CallContextAkka])
-case class OutboundGetCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContextAkka])
+case class OutboundGetBank(bankId: String, 
+                           callContext: Option[CallContextAkka])
+case class OutboundCheckBankAccountExists(bankId: String, 
+                                          ccountId: String, 
+                                          callContext: Option[CallContextAkka])
+case class OutboundGetAccount(bankId: String, 
+                              accountId: String, 
+                              callContext: Option[CallContextAkka])
+case class OutboundGetCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], 
+                                       callContext: Option[CallContextAkka])
 case class OutboundGetCustomersByUserId(userId: String, callContext: Option[CallContextAkka])
 case class OutboundGetCounterparties(thisBankId: String,
                                      thisAccountId: String,
                                      viewId :String, 
                                      callContext: Option[CallContextAkka])
+case class OutboundGetTransactions(bankId: String, 
+                                   accountId: String, 
+                                   limit: Int, 
+                                   fromDate: String, 
+                                   toDate: String, 
+                                   callContext: Option[CallContextAkka])
 
 /**
   *
@@ -50,6 +64,7 @@ case class InboundGetAccount(payload: Option[InboundAccountDec2018], callContext
 case class InboundGetCoreBankAccounts(payload: List[InternalInboundCoreAccount], callContext: Option[CallContextAkka])
 case class InboundGetCustomersByUserId(payload: List[InternalCustomer], callContext: Option[CallContextAkka])
 case class InboundGetCounterparties(payload: List[InternalCounterparty], callContext: Option[CallContextAkka])
+case class InboundGetTransactions(payload: List[InternalTransaction_vDec2018], callContext: Option[CallContextAkka])
 
 
 
@@ -154,6 +169,28 @@ case class InternalCustomer(
                              lastOkDate: Date
                            )
 
+case class InternalTransaction_vDec2018(
+                                         //A universally unique id
+                                         val uuid: String,
+                                         //id is unique for transactions of @thisAccount
+                                         val id : TransactionId,
+                                         val thisAccount : BankAccount,
+                                         val otherAccount : Counterparty,
+                                         //E.g. cash withdrawal, electronic payment, etc.
+                                         val transactionType : String,
+                                         val amount : BigDecimal,
+                                         //ISO 4217, e.g. EUR, GBP, USD, etc.
+                                         val currency : String,
+                                         // Bank provided label
+                                         val description : Option[String],
+                                         // The date the transaction was initiated
+                                         val startDate : Date,
+                                         // The date when the money finished changing hands
+                                         val finishDate : Date,
+                                         //the new balance for the bank account
+                                         val balance :  BigDecimal
+                                        )
+
 case class AkkaDec2018Customer(
                         customerId: String,
                         bankId: String,
@@ -221,5 +258,25 @@ object InboundTransformerDec2018 {
 
   def toCustomers(customers : List[InternalCustomer]) : List[Customer] = {
     customers.map(toCustomer)
+  }
+
+  def toTransaction(t: InternalTransaction_vDec2018): Transaction = {
+    new Transaction(
+      uuid = t.uuid ,
+      id  = t.id ,
+      thisAccount = t.thisAccount ,
+      otherAccount = t.otherAccount ,
+      transactionType = t.transactionType ,
+      amount = t.amount ,
+      currency = t.currency ,
+      description = t.description ,
+      startDate = t.startDate ,
+      finishDate = t.finishDate ,
+      balance = t.balance
+    )
+  }
+
+  def toTransactions(t : List[InternalTransaction_vDec2018]) : List[Transaction] = {
+    t.map(toTransaction)
   }
 }

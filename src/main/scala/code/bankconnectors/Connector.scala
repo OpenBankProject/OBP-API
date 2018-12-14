@@ -413,6 +413,10 @@ trait Connector extends MdcLoggable{
   //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class, 
   // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
   def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[Transaction], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
+  def getTransactionsFuture(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = {
+    val result: Box[(List[Transaction], Option[CallContext])] = getTransactions(bankId, accountID, callContext, queryParams: _*)
+    Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
+  }
   def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(NotImplemented + currentMethodName)

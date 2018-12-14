@@ -7,12 +7,12 @@ import code.actorsystem.ObpLookupSystem
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
 import code.api.util.{APIUtil, CallContext}
 import code.api.util.ExampleValue._
-import code.bankconnectors.Connector
+import code.bankconnectors._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, ViewId, Bank => BankTrait}
+import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, Transaction, ViewId, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -242,6 +242,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val req = OutboundGetCounterparties(thisBankId.value, thisAccountId.value, viewId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetCounterparties] = (southSideActor ? req).mapTo[InboundGetCounterparties]
     response.map(a => (Full(a.payload), callContext))
+  }
+
+
+  override def getTransactionsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = {
+    val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
+    val toDate = queryParams.collect { case OBPToDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
+
+    val req = OutboundGetTransactions(bankId.value, accountId.value, limit, fromDate, toDate, callContext.map(_.toCallContextAkka))
+    val response: Future[InboundGetTransactions] = (southSideActor ? req).mapTo[InboundGetTransactions]
+    response.map(a => (Full(InboundTransformerDec2018.toTransactions(a.payload)), callContext))
   }
 
 

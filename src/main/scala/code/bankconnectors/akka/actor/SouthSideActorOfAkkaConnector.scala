@@ -5,6 +5,7 @@ import java.util.Date
 import akka.actor.{Actor, ActorLogging}
 import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedConnector._
+import code.bankconnectors._
 import code.bankconnectors.akka._
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.metadata.counterparties.CounterpartyTrait
@@ -66,7 +67,15 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     case OutboundGetCounterparties(thisBankId, thisAccountId, viewId, cc) =>
       val result: Box[List[CounterpartyTrait]] = getCounterparties(BankId(thisBankId), AccountId(thisAccountId), ViewId(viewId), None).map(r => r._1)
       sender ! InboundGetCounterparties(result.getOrElse(Nil).map(Transformer.toInternalCounterparty(_)), cc)
-      
+        
+    case OutboundGetTransactions(bankId, accountId, limit, fromDate, toDate, cc) =>
+      val from = APIUtil.DateWithMsFormat.parse(fromDate)
+      val to = APIUtil.DateWithMsFormat.parse(toDate)
+      val result = getTransactions(BankId(bankId), AccountId(accountId), None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
+      sender ! InboundGetTransactions(result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)), cc)
+
+    case message => 
+      logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
       
   }
 
@@ -157,6 +166,22 @@ object Transformer {
       otherAccountSecondaryRoutingScheme=c.otherAccountSecondaryRoutingScheme,
       otherAccountSecondaryRoutingAddress=c.otherAccountSecondaryRoutingAddress,
       bespoke=c.bespoke
+    )
+  }
+
+  def toInternalTransaction(t: Transaction): InternalTransaction_vDec2018 = {
+    InternalTransaction_vDec2018(
+      uuid = t.uuid ,
+      id  = t.id ,
+      thisAccount = t.thisAccount ,
+      otherAccount = t.otherAccount ,
+      transactionType = t.transactionType ,
+      amount = t.amount ,
+      currency = t.currency ,
+      description = t.description ,
+      startDate = t.startDate ,
+      finishDate = t.finishDate ,
+      balance = t.balance
     )
   }
 }
