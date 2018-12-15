@@ -497,7 +497,10 @@ trait APIMethods310 {
       "/users/USERNAME/lock-status",
       "Unlock the user",
       s"""
-         |Get Customers that has a firehose View.
+         |Unlock a User.
+         |
+         |(Perhaps the user was locked due to multiple failed login attempts)
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
