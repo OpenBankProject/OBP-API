@@ -111,10 +111,18 @@ object Glossary {
 |
  |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
  |
-					 |* ${messageDocLink("obp.get.AdapterInfo")}
-					 |* ${messageDocLink("obp.get.Banks")}
-					 |* ${messageDocLink("obp.get.Bank")}
-					 |
+ |* ${messageDocLink("obp.get.AdapterInfo")}
+ |
+ |Now you should be able to use the [Adapter Info](/index#vv3_0_0-getAdapter) endpoint
+ |
+ |* ${messageDocLink("obp.get.Banks")}
+ |
+|Now you should be able to use the [Get Banks](/index#vv3_0_0-getBanks) endpoint
+|
+ |* ${messageDocLink("obp.get.Bank")}
+ |
+ |Now you should be able to use the [Get Bank](/index#vv3_0_0-bankById) endpoint
+ |
  |2) Get Accounts
  |
 					 |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
@@ -224,7 +232,7 @@ object Glossary {
 		title = "API.Interfaces",
 		description =
 				s"""
-					 |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/49711990-9ef99d00-fc42-11e8-8cb4-cc68bab74703.png"></img>
+					 |<img width="468" alt="OBP Interfaces Image" src="https://user-images.githubusercontent.com/485218/49711990-9ef99d00-fc42-11e8-8cb4-cc68bab74703.png"></img>
 					 |
   |
   |
@@ -236,7 +244,7 @@ object Glossary {
 		title = "API.Access Control",
 		description =
 			s"""
-				 					 |<img width="468" alt="Access Control" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
+				 					 |<img width="468" alt="OBP Access Control Image" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
 				 					 |
 				 |
   |
