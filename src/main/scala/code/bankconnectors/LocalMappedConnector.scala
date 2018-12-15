@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 
+import code.accountapplication.AccountApplication
 import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -1957,6 +1958,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ProductAttribute.productAttributeProvider.vend.deleteProductAttribute(productAttributeId: String) map {
       (_, callContext)
     }
-  
+
+  override def createAccountApplication(
+    productCode: ProductCode,
+    userId: Option[String],
+    customerId: Option[String],
+    callContext: Option[CallContext]
+    ): OBPReturnType[Box[AccountApplication]] =
+    AccountApplication.accountApplication.vend.createAccountApplication(productCode, userId, customerId) map {
+      (_, callContext)
+    }
+
+  override def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] =
+    AccountApplication.accountApplication.vend.getAll() map {
+      (_, callContext)
+    }
+
+  override def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    AccountApplication.accountApplication.vend.getById(accountApplicationId) map {
+      (_, callContext)
+    }
+
+  override  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    AccountApplication.accountApplication.vend.updateStatus(accountApplicationId, status) map {
+      (_, callContext)
+    }
 
 }

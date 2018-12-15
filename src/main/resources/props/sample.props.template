@@ -241,12 +241,12 @@ BankMockKey=change_me
 ## Web interface configuration
 
 ## IMPLEMENTING BANK SPECIFIC BRANDING ON ONE OBP INSTANCE ########################
-# Note, you can specify bank specific branding by appending _FOR_BANK_<BANK_ID> to the standard props names
+# Note, you can specify bank specific branding by appending _FOR_BRAND_<BANK_ID> to the standard props names
 # e.g.
-#webui_header_logo_left_url_FOR_BANK_banku = https://static.openbankproject.com/images/sandbox/bank_u.png
-#webui_header_logo_left_url_FOR_BANK_banky = https://static.openbankproject.com/images/sandbox/bank_y.png
-# And invoke by calling index etc with ?bank_id=<BANK_ID>
-# e.g. http://127.0.0.1:8080/?bank_id=x
+#webui_header_logo_left_url_FOR_BRAND_banku = https://static.openbankproject.com/images/sandbox/bank_u.png
+#webui_header_logo_left_url_FOR_BRAND_banky = https://static.openbankproject.com/images/sandbox/bank_y.png
+# And invoke by calling index etc with ?brand=<BANK_ID>
+# e.g. http://127.0.0.1:8080/?brand=x
 # For any properties that don't have a bank specific flavour, the standard props name will be used.
 ####################################################################################
 
@@ -349,7 +349,7 @@ webui_agree_terms_url =
 
 
 
-# If we want to gather more informaiton about an Applicaiton / Startup fill this url and text
+# If we want to gather more information about an Application / Startup fill this url and text
 # Will be displayed on the post Consumer Registration page.
 #webui_post_consumer_registration_more_info_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
@@ -407,7 +407,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ##########################
 
 
-## OpenId Connect can be used to retrieve User informaiton from an
+## OpenId Connect can be used to retrieve User information from an
 ## external OpenID Connect server.
 ## To use an external OpenID Connect server,
 ## you will need to change these values.

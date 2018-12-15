@@ -171,9 +171,9 @@ object OAuthAuthorisation {
       validTokenCase(token, tokenParam)
     }
 
-    // In this function we bind submit button to loginAction function.
+    // Bind submit button to loginAction function.
     // In case that unique token of submit button cannot be paired submit action will be omitted.
-    // Please note that unique token is obtained by responce from AuthUser.login function.
+    // Please note that unique token is obtained by response from AuthUser.login function.
     def getSubmitButtonWithValidLoginToken = {
       val allInputFields = (AuthUser.login \\ "input")
       val submitFields = allInputFields.filter(e => e.\@("type").equalsIgnoreCase("submit"))

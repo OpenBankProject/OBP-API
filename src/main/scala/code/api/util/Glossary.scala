@@ -90,96 +90,132 @@ object Glossary {
 		description =
 				s"""
 					|## Brief introduction to using Kafka as the interface layer between OBP and your Core Banking System (CBS).
-					|### Prerequesites
+					|### Installation Prerequesites
 					|
 					|
-					 |* We assume you have OBP-API running and it is connected to a working Kafka installation.
-						| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+					|* You have OBP-API running and it is connected to a working Kafka installation.
+					| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+					|
+					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
+					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
+					|
+|### Create a Customer User and an Admin User
 |
-					|* We assume you have API Explorer running (the application serving this page) but its not necessary - (you could use a REST client)
-					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not nessessary (you could use a REST client  / API Explorer instead).
-					|* You should register a User that you want to use to call the API. Let's call this user Jane.
-|* You will need another user that will have the roles required for the following steps. Let's call this user CarolaAdmin.
-					 |* Use <a href="/index#vv3_1_0-createUserAuthContext">Create Auth Context</a> to add a “token” to the User who while request accounts.
-						|This token which could be a CUSTOMER_NUMBER is sent inside the AuthInfo object to Kafka
-					 |* OR Use Create Customer and Create User Customer Link (note that Create Auth Context is preferred)
-					 |
-					 |Then its time to configure or program your Adapter to consume, and respond to, the messages OBP will send to Kafka.
+|* Register a User who will use the API as a Customer.
+|* Register another User that will use the API as an Admin. The Admin user will need some Roles. See [here](/index#vv2_0_0-addEntitlement). You can bootstrap an Admin user by editing the Props file. See the README for that.
 |
-| We suggest they are implemented in the following order:
+|### Add some authentication context to the Customer User
 |
+|* As the Admin User, use the [Create Auth Context](/index#vv3_1_0-createUserAuthContext) endpoint to add one or more attributes to the Customer User.
+|For instance you could add the name/value pair CUSTOMER_NUMBER/889763 and this will be sent to the Adapter / CBS inside the AuthInfo object.
+|
+|
+|Now you should be able to use the [Get Auth Contexts](/index#vv3_1_0-getUserAuthContexts) endpoint to see the data you added.
+|
+|### Write or Build an Adapter to respond to the following messages.
+|
+| When getting started, we suggest that you implement the messages in the following order:
 |
  |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
  |
-					 |* ${messageDocLink("obp.get.AdapterInfo")}
-					 |* ${messageDocLink("obp.get.Banks")}
-					 |* ${messageDocLink("obp.get.Bank")}
-					 |
- |2) Get Accounts
+ |* ${messageDocLink("obp.get.AdapterInfo")}
  |
-					 |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
-					 |* ${messageDocLink("obp.get.coreBankAccounts")}
-					 |* ${messageDocLink("obp.check.BankAccountExists")}
-					 |* ${messageDocLink("obp.get.Accounts")}
-					 |* ${messageDocLink("obp.get.Account")}
-					 |
- |3) Get Transactions
+ |Now you should be able to use the [Adapter Info](/index#vv3_0_0-getAdapter) endpoint
+ |
+ |* ${messageDocLink("obp.get.Banks")}
+ |
+|Now you should be able to use the [Get Banks](/index#vv3_0_0-getBanks) endpoint
+|
+ |* ${messageDocLink("obp.get.Bank")}
+ |
+ |Now you should be able to use the [Get Bank](/index#vv3_0_0-bankById) endpoint
+ |
+ |
+ |2) Customers for logged in User
+ |
+ |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
+|
+ |Now you should be able to use the [Get Customers](/index#vv3_0_0-getCustomersForUser) endpoint.
+ |
+ |
+ |3) Get Accounts
+ |
+ |* ${messageDocLink("obp.check.BankAccountExists")}
+ |* ${messageDocLink("obp.get.coreBankAccounts")}
+ |* ${messageDocLink("obp.get.Accounts")}
+ |
+ | The above messages should enable at least the following endpoints:
+ |
+ |* [Get Accounts Held](http://localhost:8082/index#vv3_0_0-getAccountsHeld)
+ |* [Get Account IDs](/index#vv3_0_0-getPrivateAccountIdsbyBankId)
+ |* [Get Accounts - Minimal](index#vv3_0_0-privateAccountsAtOneBank)
+ |
+ |4) Get Account
+ |
+ |* ${messageDocLink("obp.get.Account")}
+ |
+| The above message should enable at least the following endpoints:
+|
+ |* [Get Account by Id - Core](/index#vv3_0_0-getCoreAccountById)
+ |* [Get Account by Id - Full](/index#vv3_0_0-getPrivateAccountById)
+ |
+ |5) Get Transactions
  |
 					 |* ${messageDocLink("obp.get.Transactions")}
 					 |* ${messageDocLink("obp.get.Transaction")}
 					 |
- |4) Manage Counterparties
+ |6) Manage Counterparties
  |
 					 |* ${messageDocLink("obp.get.counterparties")}
 					 |* ${messageDocLink("obp.get.CounterpartyByCounterpartyId")}
 					 |* ${messageDocLink("obp.create.Counterparty")}
 					 |
- |5) Get Transaction Request Types
+ |7) Get Transaction Request Types
  |
 					 |* This is configured using OBP Props - No messages required
 					 |
- |6) Get Challenge Threshold (CBS)
+ |8) Get Challenge Threshold (CBS)
  |
 					 |* ${messageDocLink("obp.get.getChallengeThreshold")}
 					 |
- |7)  Make Payment (used by Create Transaction Request)
+ |9)  Make Payment (used by Create Transaction Request)
  |
 					 |* ${messageDocLink("obp.get.makePaymentv210")}
  						|* This also requires 8,9,10 for high value payments.
 					 |
- |8) Get Transaction Requests.
+ |10) Get Transaction Requests.
  |
 					 |* ${messageDocLink("obp.get.transactionRequests210")}
 					 |
- |9) Generate Security Challenges (CBS)
+ |11) Generate Security Challenges (CBS)
  |
 					 |* ${messageDocLink("obp.create.Challenge")}
 					 |
- |10) Answer Security Challenges (Validate)
+ |12) Answer Security Challenges (Validate)
  |
 					 |* Optional / Internal OBP (No additional messages required)
 					 |
- |11) Manage Counterparty Metadata
+ |13) Manage Counterparty Metadata
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |12) Get Entitlements
+ |14) Get Entitlements
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |13) Manage Roles
+ |15) Manage Roles
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |14) Manage Entitlements
+ |16) Manage Entitlements
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |15) Manage Views
+ |17) Manage Views
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |16) Manage Transaction Metadata
+ |18) Manage Transaction Metadata
  |
 					 |* Internal OBP (No additional messages required)
 					 |
@@ -224,12 +260,29 @@ object Glossary {
 		title = "API.Interfaces",
 		description =
 				s"""
-					 |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/48845997-413e0780-ed9e-11e8-86c5-e5ce510c140c.png"></img>
+					 |<img width="468" alt="OBP Interfaces Image" src="https://user-images.githubusercontent.com/485218/49711990-9ef99d00-fc42-11e8-8cb4-cc68bab74703.png"></img>
 					 |
   |
   |
  |"""
 	)
+
+
+	glossaryItems += GlossaryItem(
+		title = "API.Access Control",
+		description =
+			s"""
+				 					 |<img width="468" alt="OBP Access Control Image" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
+				 					 |
+				 |
+  |
+ |"""
+	)
+
+
+
+
+
 
 
 	  glossaryItems += GlossaryItem(
@@ -357,7 +410,7 @@ object Glossary {
 		title = "User.provider_id",
 		description =
 		  """
-			|The id of the user given by the authenticaiton provider.
+			|The id of the user given by the authentication provider.
 		  """)
 
 	  glossaryItems += GlossaryItem(

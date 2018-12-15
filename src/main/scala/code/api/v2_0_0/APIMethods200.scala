@@ -945,7 +945,7 @@ trait APIMethods200 {
         |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
         |
         |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
-        |This call provides balance and other account information via delegated authenticaiton using OAuth.
+        |This call provides balance and other account information via delegated authentication using OAuth.
         |
         |${authenticationRequiredMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |
