@@ -5,14 +5,14 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
-import code.api.util.{APIUtil, CallContext}
 import code.api.util.ExampleValue._
+import code.api.util.{APIUtil, CallContext}
 import code.bankconnectors._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, Transaction, ViewId, Bank => BankTrait}
+import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, CounterpartyBespoke, Transaction, ViewId, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -237,14 +237,78 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val response: Future[InboundGetCustomersByUserId] = (southSideActor ? req).mapTo[InboundGetCustomersByUserId]
     response.map(a => Full(InboundTransformerDec2018.toCustomers(a.payload), callContext))
   }
-  
+
+  messageDocs += MessageDoc(
+    process = "obp.get.counterparties",
+    messageFormat = messageFormat,
+    description = "Get Counterparties available to the View on the Account specified by thisBankId, thisAccountId and viewId.",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = decompose(
+      OutboundGetCounterparties(
+        thisBankId = bankIdExample.value,
+        accountIdExample.value,
+        viewId = "Auditor",
+        None
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetCounterparties(
+        InternalCounterparty(
+          createdByUserId = userIdExample.value,
+          name = "",
+          thisBankId = bankIdExample.value,
+          thisAccountId = accountIdExample.value,
+          thisViewId = "Auditor",
+          counterpartyId = counterpartyIdExample.value,
+          otherAccountRoutingScheme = accountRoutingSchemeExample.value,
+          otherAccountRoutingAddress = accountRoutingAddressExample.value,
+          otherBankRoutingScheme = bankRoutingSchemeExample.value,
+          otherBankRoutingAddress = bankRoutingAddressExample.value,
+          otherBranchRoutingScheme = accountRoutingSchemeExample.value,
+          otherBranchRoutingAddress = accountRoutingAddressExample.value,
+          isBeneficiary = true,
+          description = "",
+          otherAccountSecondaryRoutingScheme = accountRoutingSchemeExample.value,
+          otherAccountSecondaryRoutingAddress = accountRoutingAddressExample.value,
+          bespoke =  List(
+            CounterpartyBespoke(key = "key", value = "value"))
+        ) :: Nil,
+        None
+      )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Payments", 0))
+  )
   override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = {
     val req = OutboundGetCounterparties(thisBankId.value, thisAccountId.value, viewId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetCounterparties] = (southSideActor ? req).mapTo[InboundGetCounterparties]
     response.map(a => (Full(a.payload), callContext))
   }
 
-
+  messageDocs += MessageDoc(
+    process = "obp.get.Transactions",
+    messageFormat = messageFormat,
+    description = "Get Transactions for an Account specified by bankId and accountId. Pagination is achieved with limit, fromDate and toDate.",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = decompose(
+      OutboundGetTransactions(
+        bankId = bankIdExample.value,
+        accountId = accountIdExample.value,
+        limit = 100,
+        fromDate=APIUtil.DateWithSecondsExampleString,
+        toDate=APIUtil.DateWithSecondsExampleString,
+        None
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetTransactions(
+        Nil, 
+        None
+      )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Transactions", 10))
+  )
   override def getTransactionsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
