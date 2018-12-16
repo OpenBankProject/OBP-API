@@ -89,11 +89,11 @@ object Glossary {
 		title = "Adapter.Kafka.Intro",
 		description =
 				s"""
-					|## Brief introduction to using Kafka as the interface layer between OBP and your Core Banking System (CBS).
-					|### Installation Prerequesites
+					|## How to use Kafka as the interface layer between OBP and your Core Banking System (CBS).
+					|### Installation Prerequisites
 					|
 					|
-					|* You have OBP-API running and it is connected to a working Kafka installation.
+					|* You have OBP-API running and it is connected to a Kafka installation.
 					| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
 					|
 					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.

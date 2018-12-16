@@ -459,6 +459,10 @@ object APIUtil extends MdcLoggable {
     }
   }
 
+
+
+
+
   /** enforce the password.
     * The rules :
     * 1) length is >16 characters without validations
@@ -2230,31 +2234,45 @@ Returns a string showed to the developer
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
   }
 
+/*
+  Get any brand specified in url parameter or form field, validate it, and if all good, set the session
+  Else just return the session
+  Note there are Read and Write side effects here!
+*/
+  def activeBrand() : Option[String] = {
 
-  // Get the brand to use out of url parameter or failing that the session
-  def getSetBrandFromUrlOrSession() : Option[String] = {
-    val brand : Option[String] = S.getSessionAttribute("brand") match {
-      case Full(b) => Some(b)
+    val brandParameter = "brand"
+
+    // Use brand in parameter (query or form)
+    val brand : Option[String] = S.param(brandParameter) match {
+      case Full(value) => {
+        // If found, and has a valid format, set the session.
+          if (isValidID(value)) {
+            S.setSessionAttribute(brandParameter, value)
+            logger.debug(s"activeBrand says: I found a $brandParameter param. $brandParameter session has been set to: ${S.getSessionAttribute(brandParameter)}")
+            Some(value)
+          } else {
+            logger.warn (s"activeBrand says: ${ErrorMessages.InvalidBankIdFormat}")
+            None
+          }
+      }
       case _ =>  {
-        // If we have a url parameter branding, use that to set the session branding
-        S.param("brand").map(value => S.setSessionAttribute("brand", value))
-        S.param("brand")
+        // Else look in the session
+        S.getSessionAttribute(brandParameter)
       }
     }
     brand
   }
 
 
-
   /*
-  For bank specific branding and possibly other customisations, if bank_id is mentioned in urls (headers too sometime?),
-  we will look for property_AT_BANK_<BANK_ID>
+  For bank specific branding and possibly other customisations, if we have an active brand (in url param, form field, session),
+  we will look for property_FOR_BRAND_<BANK_ID>
   We also check that the property exists, else return the standard property name.
   */
   def getBrandSpecificPropertyName(nameOfProperty: String) : String = {
-
-    // If bank_id parameter is in url, append it to the property, else use the standard property name
-    val brandSpecificPropertyName = getSetBrandFromUrlOrSession() match {
+    // If we have an active brand, construct a target property name to look for.
+    val brandSpecificPropertyName = activeBrand() match {
       case Some(brand) => s"${nameOfProperty}_FOR_BRAND_${brand}"
       case _ => nameOfProperty
     }
