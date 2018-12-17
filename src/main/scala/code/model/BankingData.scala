@@ -525,10 +525,10 @@ trait BankAccount extends MdcLoggable {
     else
       viewNotAllowed(view)
   }
-  final def moderatedTransactionFuture(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
+  final def moderatedTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
     if(APIUtil.hasAccess(view, user))
       for{
-       (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext)map {
+       (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext) map {
          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
        }
       } yield {

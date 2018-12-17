@@ -1086,7 +1086,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(transactionId, view, user, callContext) map {
+            (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(bankId, accountId, transactionId, view, user, callContext) map {
               unboxFullOrFail(_, callContext, GetTransactionsException)
             }
           } yield {

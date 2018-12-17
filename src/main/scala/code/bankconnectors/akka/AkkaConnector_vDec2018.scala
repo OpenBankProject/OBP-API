@@ -12,7 +12,7 @@ import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelp
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, CounterpartyBespoke, Transaction, ViewId, Bank => BankTrait}
+import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, CounterpartyBespoke, Transaction, TransactionId, ViewId, Bank => BankTrait}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -319,6 +319,30 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     response.map(a => (Full(InboundTransformerDec2018.toTransactions(a.payload)), callContext))
   }
 
+  messageDocs += MessageDoc(
+    process = "obp.get.Transaction",
+    messageFormat = messageFormat,
+    description = "Get a single Transaction specified by bankId, accountId and transactionId",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = decompose(
+      OutboundGetTransaction(
+        bankId = bankIdExample.value,
+        accountId = accountIdExample.value,
+        transactionId = transactionIdExample.value,
+        None
+      )
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetTransaction(None, None)
+    ),
+    adapterImplementation = Some(AdapterImplementation("Transactions", 11))
+  )
+  override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
+    val req = OutboundGetTransaction(bankId.value, accountId.value, transactionId.value, callContext.map(_.toCallContextAkka))
+    val response: Future[InboundGetTransaction] = (southSideActor ? req).mapTo[InboundGetTransaction]
+    response.map(a => (a.payload.map(InboundTransformerDec2018.toTransaction(_)), callContext))
+  }
 
 
 

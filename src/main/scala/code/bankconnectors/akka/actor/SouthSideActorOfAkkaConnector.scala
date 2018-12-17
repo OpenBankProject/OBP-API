@@ -50,6 +50,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       
     case OutboundGetAccount(bankId, accountId, cc) =>
       val result: Box[BankAccount] = getBankAccount(BankId(bankId), AccountId(accountId), None).map(r => r._1)
+      org.scalameta.logger.elem(result)
       sender ! InboundGetAccount(result.map(Transformer.bankAccount(_)).toOption, cc)
       
     case OutboundGetCoreBankAccounts(bankIdAccountIds, cc) =>
@@ -73,6 +74,10 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       val to = APIUtil.DateWithMsFormat.parse(toDate)
       val result = getTransactions(BankId(bankId), AccountId(accountId), None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
       sender ! InboundGetTransactions(result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)), cc)
+        
+    case OutboundGetTransaction(bankId, accountId, transactionId, cc) =>
+      val result = getTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId),  None).map(r => r._1)
+      sender ! InboundGetTransaction(result.map(Transformer.toInternalTransaction(_)), cc)
 
     case message => 
       logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)

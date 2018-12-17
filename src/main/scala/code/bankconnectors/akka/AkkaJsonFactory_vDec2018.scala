@@ -44,6 +44,10 @@ case class OutboundGetTransactions(bankId: String,
                                    fromDate: String, 
                                    toDate: String, 
                                    callContext: Option[CallContextAkka])
+case class OutboundGetTransaction(bankId: String, 
+                                  accountId: String, 
+                                  transactionId: String,
+                                  callContext: Option[CallContextAkka])
 
 /**
   *
@@ -65,6 +69,7 @@ case class InboundGetCoreBankAccounts(payload: List[InternalInboundCoreAccount],
 case class InboundGetCustomersByUserId(payload: List[InternalCustomer], callContext: Option[CallContextAkka])
 case class InboundGetCounterparties(payload: List[InternalCounterparty], callContext: Option[CallContextAkka])
 case class InboundGetTransactions(payload: List[InternalTransaction_vDec2018], callContext: Option[CallContextAkka])
+case class InboundGetTransaction(payload: Option[InternalTransaction_vDec2018], callContext: Option[CallContextAkka])
 
 
 
