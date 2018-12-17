@@ -38,6 +38,7 @@ import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 
 import net.liftweb.util.{Props}
+import code.api.util.APIUtil.activeBrand
 
 import scala.xml.{XML, NodeSeq}
 
@@ -107,9 +108,18 @@ class WebUI extends MdcLoggable{
     "#top-text *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_top_text", ""))
   }
 
+
+
+
+  val brandString = activeBrand match {
+    case Some(v) => s"&brand=$v"
+    case _ => ""
+  }
+
+
   def apiExplorerLink: CssSel = {
     val tags = S.attr("tags") openOr ""
-    ".api-explorer-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_explorer_url", "") + s"?ignoredefcat=true&tags=$tags")
+    ".api-explorer-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_explorer_url", "") + s"?ignoredefcat=true&tags=$tags${brandString}")
   }
 
   // Link to API Manager
