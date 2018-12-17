@@ -615,6 +615,14 @@ import net.liftweb.util.Helpers._
     }
   }
 
+
+
+def restoreSomeSessions(): Unit = {
+  activeBrand()
+}
+
+  override protected def capturePreLoginState(): () => Unit = () => {restoreSomeSessions}
+
   //overridden to allow a redirection if login fails
   /**
     * Success cases: 
