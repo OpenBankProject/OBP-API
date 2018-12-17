@@ -91,7 +91,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
 object Transformer {
   def bank(mb: MappedBank): Bank = 
     Bank(
-      bankId=mb.bankId,
+      bankId=mb.bankId.value,
       shortName=mb.shortName,
       fullName=mb.fullName,
       logoUrl=mb.logoUrl,

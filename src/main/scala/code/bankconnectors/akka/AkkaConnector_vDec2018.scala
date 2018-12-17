@@ -6,7 +6,7 @@ import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
 import code.api.util.ExampleValue._
-import code.api.util.{APIUtil, CallContext}
+import code.api.util.{APIUtil, CallContext, CallContextAkka}
 import code.bankconnectors._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
@@ -74,8 +74,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Gets the banks list on this OBP installation.",
     outboundTopic = None,
     inboundTopic = None,
-    emptyObjectJson,
-    emptyObjectJson,
+    exampleOutboundMessage = decompose(
+      OutboundGetBanks(Examples.callContextAkka)
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetBanks(
+        Some(List(Examples.bank)),
+        Examples.callContextAkka)
+    ),
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBanks]().toString(true))),
     inboundAvroSchema =  Some(parse(SchemaFor[InboundGetBanks]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
@@ -83,7 +89,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[BankTrait], Option[CallContext])]] = {
     val req = OutboundGetBanks(callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetBanks] = (southSideActor ? req).mapTo[InboundGetBanks]
-    response.map(_.banks.map(r => (r.map(BankAkka(_)), callContext)))
+    response.map(_.payload.map(r => (r.map(BankAkka(_)), callContext)))
   }
 
   messageDocs += MessageDoc(
@@ -92,8 +98,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get a specific Bank as specified by bankId",
     outboundTopic = None,
     inboundTopic = None,
-    emptyObjectJson,
-    emptyObjectJson,
+    exampleOutboundMessage = decompose(
+      OutboundGetBank(
+        bankIdExample.value,
+        Examples.callContextAkka)
+    ),
+    exampleInboundMessage = decompose(
+      InboundGetBank(
+        Some(Examples.bank),
+        Examples.callContextAkka)
+    ),
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBank]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
@@ -101,7 +115,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getBankFuture(bankId : BankId, callContext: Option[CallContext]): Future[Box[(BankTrait, Option[CallContext])]] = {
     val req = OutboundGetBank(bankId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetBank] = (southSideActor ? req).mapTo[InboundGetBank]
-    response.map(_.bank.map(r => (BankAkka(r), callContext)))
+    response.map(_.payload.map(r => (BankAkka(r), callContext)))
   }
 
   messageDocs += MessageDoc(
@@ -114,20 +128,21 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       OutboundCheckBankAccountExists(
         bankIdExample.value,
         accountIdExample.value,
-        None
+        Examples.callContextAkka
       )
     ),
     exampleInboundMessage = decompose(
       InboundCheckBankAccountExists(
         Some(Examples.inboundAccountDec2018Example),
-        None)
+        Examples.callContextAkka
+      )
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
   override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccount, Option[CallContext])]] = {
     val req = OutboundCheckBankAccountExists(bankId.value, accountId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundCheckBankAccountExists] = (southSideActor ? req).mapTo[InboundCheckBankAccountExists]
-    response.map(_.data.map(r => (BankAccountDec2018(r), callContext)))
+    response.map(_.payload.map(r => (BankAccountDec2018(r), callContext)))
   }
 
   messageDocs += MessageDoc(
@@ -140,13 +155,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       OutboundGetAccount(
         bankIdExample.value,
         accountIdExample.value,
-        None
+        Examples.callContextAkka
       )
     ),
     exampleInboundMessage = decompose(
       InboundGetAccount(
         Some(Examples.inboundAccountDec2018Example),
-        None
+        Examples.callContextAkka
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 7))
@@ -166,7 +181,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = decompose(
       OutboundGetCoreBankAccounts(
         List(BankIdAccountId(BankId(bankIdExample.value), AccountId(accountIdExample.value))),
-        None
+        Examples.callContextAkka
       )
     ),
     exampleInboundMessage = decompose(
@@ -181,7 +196,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
             )
           )
         ),
-        None
+        Examples.callContextAkka
       )),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
@@ -202,7 +217,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = decompose(
       OutboundGetCustomersByUserId(
         userIdExample.value,
-        None
+        Examples.callContextAkka
       )
     ),
     exampleInboundMessage = decompose(
@@ -225,7 +240,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
           kycStatus = false, 
           lastOkDate = APIUtil.DateWithSecondsExampleObject
         ) :: Nil,
-        None
+        Examples.callContextAkka
       )
     ),
     outboundAvroSchema = None,
@@ -249,7 +264,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         thisBankId = bankIdExample.value,
         accountIdExample.value,
         viewId = "Auditor",
-        None
+        Examples.callContextAkka
       )
     ),
     exampleInboundMessage = decompose(
@@ -274,7 +289,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
           bespoke =  List(
             CounterpartyBespoke(key = "key", value = "value"))
         ) :: Nil,
-        None
+        Examples.callContextAkka
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Payments", 0))
@@ -298,13 +313,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         limit = 100,
         fromDate=APIUtil.DateWithSecondsExampleString,
         toDate=APIUtil.DateWithSecondsExampleString,
-        None
+        Examples.callContextAkka
       )
     ),
     exampleInboundMessage = decompose(
       InboundGetTransactions(
-        Nil, 
-        None
+        Nil,
+        Examples.callContextAkka
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
@@ -330,11 +345,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         bankId = bankIdExample.value,
         accountId = accountIdExample.value,
         transactionId = transactionIdExample.value,
-        None
+        Examples.callContextAkka
       )
     ),
     exampleInboundMessage = decompose(
-      InboundGetTransaction(None, None)
+      InboundGetTransaction(
+        None,
+        Examples.callContextAkka
+      )
     ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
@@ -369,6 +387,27 @@ object Examples {
       accountRouting = Nil,
       accountRules = Nil
     )
+  
+  val callContextAkka = Some(
+    CallContextAkka(
+      Some(userIdExample.value),
+      Some("9ddb6507-9cec-4e5e-b09a-ef1cb203825a"),
+      correlationIdExample.value,
+      Some(sessionIdExample.value)
+    )
+  )
+  
+  val bank = 
+    Bank(
+      bankId = bankIdExample.value,
+      shortName = "The Royal Bank of Scotland",
+      fullName = "The Royal Bank of Scotland",
+      logoUrl = "http://www.red-bank-shoreditch.com/logo.gif",
+      websiteUrl = "http://www.red-bank-shoreditch.com",
+      bankRoutingScheme = "OBP",
+      bankRoutingAddress = "rbs"
+    )
+    
   
 }
 

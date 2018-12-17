@@ -61,9 +61,9 @@ case class InboundAdapterInfo(
                                date: String,
                                callContext: Option[CallContextAkka]
                              )
-case class InboundGetBanks(banks: Option[List[Bank]], callContext: Option[CallContextAkka])
-case class InboundGetBank(bank: Option[Bank], callContext: Option[CallContextAkka])
-case class InboundCheckBankAccountExists(data: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
+case class InboundGetBanks(payload: Option[List[Bank]], callContext: Option[CallContextAkka])
+case class InboundGetBank(payload: Option[Bank], callContext: Option[CallContextAkka])
+case class InboundCheckBankAccountExists(payload: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
 case class InboundGetAccount(payload: Option[InboundAccountDec2018], callContext: Option[CallContextAkka])
 case class InboundGetCoreBankAccounts(payload: List[InternalInboundCoreAccount], callContext: Option[CallContextAkka])
 case class InboundGetCustomersByUserId(payload: List[InternalCustomer], callContext: Option[CallContextAkka])
@@ -73,7 +73,7 @@ case class InboundGetTransaction(payload: Option[InternalTransaction_vDec2018], 
 
 
 
-case class Bank(bankId: BankId,
+case class Bank(bankId: String,
                 shortName: String,
                 fullName: String,
                 logoUrl: String,
@@ -83,7 +83,7 @@ case class Bank(bankId: BankId,
                )
 
 case class BankAkka(b: Bank) extends BankTrait {
-  override def bankId = b.bankId
+  override def bankId = BankId(b.bankId)
   override def fullName = b.fullName
   override def shortName = b.shortName
   override def logoUrl = b.logoUrl
