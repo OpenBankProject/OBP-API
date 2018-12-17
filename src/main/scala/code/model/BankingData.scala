@@ -525,6 +525,21 @@ trait BankAccount extends MdcLoggable {
     else
       viewNotAllowed(view)
   }
+  final def moderatedTransactionFuture(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
+    if(APIUtil.hasAccess(view, user))
+      for{
+       (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext)map {
+         x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+       }
+      } yield {
+        view.moderateTransaction(transaction) match {
+          case Full(m) => Full((m, callContext))
+          case _ => Failure("Server error - moderateTransactionsWithSameAccount")
+        }
+      }
+    else
+      Future(viewNotAllowed(view))
+  }
 
   /*
    end views
@@ -547,7 +562,6 @@ trait BankAccount extends MdcLoggable {
           x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
         }
       } yield {
-        org.scalameta.logger.elem(transactions)
         view.moderateTransactionsWithSameAccount(transactions) match {
           case Full(m) => Full((m, callContext))
           case _ => Failure("Server error - moderateTransactionsWithSameAccount")

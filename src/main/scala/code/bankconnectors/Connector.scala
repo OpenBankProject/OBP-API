@@ -421,6 +421,10 @@ trait Connector extends MdcLoggable{
   def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
+  def getTransactionFuture(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
+    val result: Box[(Transaction, Option[CallContext])] = getTransaction(bankId, accountID, transactionId, callContext)
+    Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
+  }
 
   def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(NotImplemented + currentMethodName)
   
