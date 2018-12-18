@@ -1612,7 +1612,7 @@ trait APIMethods300 {
       nameOf(addEntitlementRequest),
       "POST",
       "/entitlement-requests",
-      "Add Entitlement Request for a Logged User.",
+      "Add Entitlement Request for current User.",
       s"""Create Entitlement Request.
         |
         |Any logged in User can use this endpoint to request an Entitlement
@@ -2056,7 +2056,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagScope, apiTagRole, apiTagNewStyle),
       Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)))
   
     lazy val addScope : OBPEndpoint = {
@@ -2128,7 +2128,7 @@ trait APIMethods300 {
       emptyObjectJson,
       List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
     lazy val deleteScope: OBPEndpoint = {
       case "consumers" :: consumerId :: "scope" :: scopeId :: Nil JsonDelete _ => {
@@ -2170,7 +2170,7 @@ trait APIMethods300 {
       scopeJsons,
       List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
   
     lazy val getScopes: OBPEndpoint = {
       case "consumers" :: consumerId :: "scopes" :: Nil JsonGet _ => {
