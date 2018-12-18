@@ -193,6 +193,7 @@ class Boot extends MdcLoggable {
       LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
 
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
+      DB.currentConnection.map(_.clearWarnings())
     }
     
     if (APIUtil.getPropsAsBoolValue("logging.database.queries.enable", false)) {
