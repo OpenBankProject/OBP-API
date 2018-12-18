@@ -234,7 +234,12 @@ class Boot extends MdcLoggable {
     logger.debug(s"If you can read this, logging level is debug")
 
     val actorSystem = ObpActorSystem.startLocalActorSystem()
-    ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
+    connector match {
+      case "akka_vDec2018" => 
+        // Start Actor system of Akka connector
+        ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
+      case _ => // Do nothing
+    }
 
     // where to search snippets
     LiftRules.addToPackages("code")
