@@ -12,8 +12,8 @@ object KafkaHelper extends KafkaHelper
 
 trait KafkaHelper extends ObpActorInit with MdcLoggable {
 
-  override lazy val actorName = "KafkaStreamsHelperActor" //CreateActorNameFromClassName(this.getClass.getName)
-  override lazy val actor = ObpLookupSystem.getKafkaActor(actorName)
+  override val actorName = "KafkaStreamsHelperActor" //CreateActorNameFromClassName(this.getClass.getName)
+  override val actor = ObpLookupSystem.getKafkaActor(actorName)
   
   
   /**
