@@ -336,7 +336,7 @@ class Boot extends MdcLoggable {
       KafkaConsumer.primaryConsumer.start()
     }
 
-    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
+    if (APIUtil.getPropsAsBoolValue("remotedata.enable", false) == true) {
       try {
         logger.info(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) starting")
         RemotedataActors.startActors(actorSystem)
