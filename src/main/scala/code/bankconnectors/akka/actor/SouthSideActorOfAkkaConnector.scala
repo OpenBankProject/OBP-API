@@ -28,8 +28,8 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     case OutboundGetAdapterInfo(_, cc) =>
       val result = 
         InboundAdapterInfo(
-          "systemName",
-          "version", 
+          "The south side of Akka connector",
+          "Dec2018", 
           APIUtil.gitCommit, 
           (new Date()).toString,
           cc
@@ -89,8 +89,8 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
 
 
 object Transformer {
-  def bank(mb: MappedBank): Bank = 
-    Bank(
+  def bank(mb: MappedBank): InboundBank = 
+    InboundBank(
       bankId=mb.bankId.value,
       shortName=mb.shortName,
       fullName=mb.fullName,
@@ -101,7 +101,7 @@ object Transformer {
     )
   
   def bankAccount(acc: BankAccount) =
-    InboundAccountDec2018(
+    InboundAccount(
       bankId = acc.bankId.value,
       branchId = acc.branchId,
       accountId = acc.accountId.value,
@@ -122,7 +122,7 @@ object Transformer {
     )
   
   def coreAccount(a: CoreAccount) =
-    InternalInboundCoreAccount(
+    InboundCoreAccount(
       id = a.id,
       label = a.label,
       bankId = a.bankId,
@@ -130,8 +130,8 @@ object Transformer {
       accountRoutings = a.accountRoutings
     )
 
-  def toInternalCustomer(customer: Customer): InternalCustomer = {
-    InternalCustomer(
+  def toInternalCustomer(customer: Customer): InboundCustomer = {
+    InboundCustomer(
       customerId = customer.customerId,
       bankId = customer.bankId,
       number = customer.number,
@@ -153,7 +153,7 @@ object Transformer {
   }
   
   def toInternalCounterparty(c: CounterpartyTrait) = {
-    InternalCounterparty(
+    InboundCounterparty(
       createdByUserId=c.createdByUserId,
       name=c.name,
       thisBankId=c.thisBankId,
@@ -174,8 +174,8 @@ object Transformer {
     )
   }
 
-  def toInternalTransaction(t: Transaction): InternalTransaction_vDec2018 = {
-    InternalTransaction_vDec2018(
+  def toInternalTransaction(t: Transaction): InboundTransaction = {
+    InboundTransaction(
       uuid = t.uuid ,
       id  = t.id ,
       thisAccount = t.thisAccount ,

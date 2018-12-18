@@ -17,7 +17,6 @@ object ObpLookupSystem extends ObpLookupSystem {
 
 trait ObpLookupSystem extends MdcLoggable {
   var obpLookupSystem: ActorSystem = null
-  var obpLookupSystem1: ActorSystem = null
   val props_hostname = Helper.getHostname
 
   def init (): ActorSystem = {
@@ -27,14 +26,6 @@ trait ObpLookupSystem extends MdcLoggable {
       obpLookupSystem = system
     }
     obpLookupSystem
-  }
-  def init2 (): ActorSystem = {
-    if (obpLookupSystem1 == null ) {
-      val system = ActorSystem("ObpLookupSystem1", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.lookupConf)))
-      logger.info(ObpActorConfig.lookupConf)
-      obpLookupSystem1 = system
-    }
-    obpLookupSystem1
   }
 
   def getKafkaActor(actorName: String) = {

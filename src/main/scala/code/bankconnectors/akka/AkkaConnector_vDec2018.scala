@@ -8,6 +8,7 @@ import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
 import code.api.util.ExampleValue._
 import code.api.util.{APIUtil, CallContext, CallContextAkka}
 import code.bankconnectors._
+import code.bankconnectors.akka.InboundTransformerDec2018._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
@@ -89,7 +90,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[BankTrait], Option[CallContext])]] = {
     val req = OutboundGetBanks(callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetBanks] = (southSideActor ? req).mapTo[InboundGetBanks]
-    response.map(_.payload.map(r => (r.map(BankAkka(_)), callContext)))
+    response.map(_.payload.map(r => (r.map(toBank(_)), callContext)))
   }
 
   messageDocs += MessageDoc(
@@ -115,7 +116,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getBankFuture(bankId : BankId, callContext: Option[CallContext]): Future[Box[(BankTrait, Option[CallContext])]] = {
     val req = OutboundGetBank(bankId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetBank] = (southSideActor ? req).mapTo[InboundGetBank]
-    response.map(_.payload.map(r => (BankAkka(r), callContext)))
+    response.map(_.payload.map(r => (toBank(r), callContext)))
   }
 
   messageDocs += MessageDoc(
@@ -142,7 +143,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccount, Option[CallContext])]] = {
     val req = OutboundCheckBankAccountExists(bankId.value, accountId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundCheckBankAccountExists] = (southSideActor ? req).mapTo[InboundCheckBankAccountExists]
-    response.map(_.payload.map(r => (BankAccountDec2018(r), callContext)))
+    response.map(_.payload.map(r => (toAccount(r), callContext)))
   }
 
   messageDocs += MessageDoc(
@@ -169,7 +170,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
     val req = OutboundGetAccount(bankId.value, accountId.value, callContext.map(_.toCallContextAkka))
     val response = (southSideActor ? req).mapTo[InboundGetAccount]
-    response.map(a => (a.payload.map(BankAccountDec2018(_)), callContext))
+    response.map(a => (a.payload.map(toAccount(_)), callContext))
   }
 
   messageDocs += MessageDoc(
@@ -187,7 +188,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = decompose(
       InboundGetCoreBankAccounts(
         List(
-          InternalInboundCoreAccount(
+          InboundCoreAccount(
             accountIdExample.value, 
             "My private account for Uber", 
             bankIdExample.value, 
@@ -222,7 +223,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     exampleInboundMessage = decompose(
       InboundGetCustomersByUserId(
-        InternalCustomer(
+        InboundCustomer(
           customerId = customerIdExample.value, 
           bankId = bankIdExample.value, 
           number = customerNumberExample.value,
@@ -250,7 +251,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getCustomersByUserIdFuture(userId: String , callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = {
     val req = OutboundGetCustomersByUserId(userId, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetCustomersByUserId] = (southSideActor ? req).mapTo[InboundGetCustomersByUserId]
-    response.map(a => Full(InboundTransformerDec2018.toCustomers(a.payload), callContext))
+    response.map(a => Full(toCustomers(a.payload), callContext))
   }
 
   messageDocs += MessageDoc(
@@ -269,7 +270,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     exampleInboundMessage = decompose(
       InboundGetCounterparties(
-        InternalCounterparty(
+        InboundCounterparty(
           createdByUserId = userIdExample.value,
           name = "",
           thisBankId = bankIdExample.value,
@@ -331,7 +332,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
     val req = OutboundGetTransactions(bankId.value, accountId.value, limit, fromDate, toDate, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetTransactions] = (southSideActor ? req).mapTo[InboundGetTransactions]
-    response.map(a => (Full(InboundTransformerDec2018.toTransactions(a.payload)), callContext))
+    response.map(a => (Full(toTransactions(a.payload)), callContext))
   }
 
   messageDocs += MessageDoc(
@@ -359,7 +360,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
     val req = OutboundGetTransaction(bankId.value, accountId.value, transactionId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetTransaction] = (southSideActor ? req).mapTo[InboundGetTransaction]
-    response.map(a => (a.payload.map(InboundTransformerDec2018.toTransaction(_)), callContext))
+    response.map(a => (a.payload.map(toTransaction(_)), callContext))
   }
 
 
@@ -368,7 +369,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 object Examples {
   val inboundAccountDec2018Example = 
-    InboundAccountDec2018(
+    InboundAccount(
       bankId = bankIdExample.value,
       branchId = branchIdExample.value,
       accountId = accountIdExample.value,
@@ -398,7 +399,7 @@ object Examples {
   )
   
   val bank = 
-    Bank(
+    InboundBank(
       bankId = bankIdExample.value,
       shortName = "The Royal Bank of Scotland",
       fullName = "The Royal Bank of Scotland",
