@@ -272,6 +272,30 @@ object Glossary {
 		title = "API.Access Control",
 		description =
 			s"""
+|
+|Access Control is achieved via the following mechanisms in OBP:
+|
+|* APIs are enabled in Props. See the README.md
+|
+|* Consumers (Apps) are granted access to Roles and Views via Scopes (WIP)
+|
+|See [here](/index#group-Scope) for related endpoints and documentation.
+|
+|* Users are granted access to System or Bank Roles via Entitlements.
+|
+|See [here](/index#group-Role) for related endpoints and documentation.
+|
+|Users may request Entitlement Requests [here](/index#vv3_0_0-addEntitlementRequest)
+|
+|Entitlements and Entitlement Requests can be managed in the OBP API Manager.
+|
+|* Users are granted access to Customer Accounts, Transactions and Payments via Views.
+|
+|See [here](/index#group-View) for related endpoints and documentation.
+|
+|User Views can be managed via the OBP Sofit Consent App.
+|
+|
 				 					 |<img width="468" alt="OBP Access Control Image" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
 				 					 |
 				 |

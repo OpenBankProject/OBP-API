@@ -2087,7 +2087,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG), 
-      List(apiTagAccount, apiTagNewStyle))
+      List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle))
 
     lazy val createAccountApplication : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "account-applications" :: Nil JsonPost json -> _=> {
@@ -2150,7 +2150,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagNewStyle))
+      List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle))
 
     lazy val getAccountApplications : OBPEndpoint = {
       case "banks" :: BankId(bankId) ::"account-applications" ::  Nil JsonGet _ => {
@@ -2194,7 +2194,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagNewStyle))
+      List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle))
 
     lazy val getAccountApplication : OBPEndpoint = {
       case "banks" :: BankId(bankId) ::"account-applications":: accountApplicationId ::  Nil JsonGet _ => {
@@ -2241,7 +2241,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount, apiTagNewStyle)
+      List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle)
     )
 
     lazy val updateAccountApplicationStatus : OBPEndpoint = {
