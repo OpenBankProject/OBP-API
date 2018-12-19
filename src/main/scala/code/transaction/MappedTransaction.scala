@@ -5,6 +5,7 @@ import java.util.UUID
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, ApiTrigger}
 import code.bankconnectors.Connector
+import code.bankconnectors.LocalMappedConnector.getBankAccountCommon
 import code.model._
 import code.util._
 import code.webhook.WebhookActor
@@ -209,10 +210,19 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   }
 
   def toTransaction : Option[Transaction] = {
-    for {
-      acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
-      transaction <- toTransaction(acc)
-    } yield transaction
+    APIUtil.getPropsValue("connector") match {
+      case Full("akka_vDec2018") =>
+        for {
+          acc <- getBankAccountCommon(theBankId, theAccountId, None).map(_._1)
+          transaction <- toTransaction(acc)
+        } yield transaction
+      case _ =>
+        for {
+          acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
+          transaction <- toTransaction(acc)
+        } yield transaction
+    }
+    
   }
 
 }

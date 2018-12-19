@@ -40,7 +40,7 @@ case class CallContext(
   def toCallContextAkka: CallContextAkka = 
     CallContextAkka(
       userId = this.user.map(_.userId).toOption,
-      consumerId = this.consumer.map(_.id.get).toOption,
+      consumerId = this.consumer.map(_.consumerId.get).toOption,
       correlationId = this.correlationId,
       sessionId = this.sessionId
     )
@@ -98,7 +98,7 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                            )
 
 case class CallContextAkka(userId: Option[String] = None,
-                           consumerId: Option[Long] = None,
+                           consumerId: Option[String] = None,
                            correlationId: String = "",
                            sessionId: Option[String] = None,
                            )

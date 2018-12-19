@@ -25,6 +25,7 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
+
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -52,6 +53,7 @@ import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers.{now, tryo}
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -62,6 +64,7 @@ import code.api.util.ExampleValue._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
 import code.context.UserAuthContextProvider
+import code.metadata.counterparties.CounterpartyTrait
 import code.users.Users
 import net.liftweb
 import net.liftweb.json
@@ -1694,6 +1697,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getCounterparties")
+  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
+    (getCounterparties(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
+  }
   
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyByCounterpartyId",

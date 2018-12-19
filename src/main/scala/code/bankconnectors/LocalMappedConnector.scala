@@ -372,15 +372,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+    getBankAccountCommon(bankId, accountId, callContext)
+  }
+
+  def getBankAccountCommon(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     MappedBankAccount
       .find(By(MappedBankAccount.bank, bankId.value),
         By(MappedBankAccount.theAccountId, accountId.value))
       .map(
         account =>
-            account
-              .mAccountRoutingScheme(APIUtil.ValueOrOBP(account.accountRoutingScheme))
-              .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress,account.accountId.value))
-      ).map(bankAccount => (bankAccount,callContext))
+          account
+            .mAccountRoutingScheme(APIUtil.ValueOrOBP(account.accountRoutingScheme))
+            .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress, account.accountId.value))
+      ).map(bankAccount => (bankAccount, callContext))
   }
 
   override def getBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]] = {
@@ -1670,6 +1674,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])] = {
     Counterparties.counterparties.vend.getCounterparties(thisBankId, thisAccountId, viewId).map(counterparties =>(counterparties, callContext))
+  }
+  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
+    (getCounterparties(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
   }
 
   override def createOrUpdateBank(

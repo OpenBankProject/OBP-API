@@ -234,7 +234,12 @@ class Boot extends MdcLoggable {
     logger.debug(s"If you can read this, logging level is debug")
 
     val actorSystem = ObpActorSystem.startLocalActorSystem()
-    ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
+    connector match {
+      case "akka_vDec2018" => 
+        // Start Actor system of Akka connector
+        ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
+      case _ => // Do nothing
+    }
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -331,9 +336,9 @@ class Boot extends MdcLoggable {
       KafkaConsumer.primaryConsumer.start()
     }
 
-    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
+    if (APIUtil.getPropsAsBoolValue("use_akka", false) == true) {
       try {
-        logger.info(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) starting")
+        logger.info(s"RemotedataActors.startActors( ${actorSystem} ) starting")
         RemotedataActors.startActors(actorSystem)
       } catch {
         case ex: Exception => logger.warn(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) could not start: $ex")
@@ -468,6 +473,9 @@ class Boot extends MdcLoggable {
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
+    if (APIUtil.getPropsAsBoolValue("remotedata.enable", false) == false) {
+      Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
+    }
   }
 
   private def showException(le: Throwable): String = {

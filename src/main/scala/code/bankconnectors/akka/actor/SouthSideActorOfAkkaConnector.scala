@@ -5,8 +5,10 @@ import java.util.Date
 import akka.actor.{Actor, ActorLogging}
 import code.api.util.APIUtil
 import code.bankconnectors.LocalMappedConnector._
+import code.bankconnectors._
 import code.bankconnectors.akka._
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
+import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBank
 import code.model.{Bank => _, _}
 import code.util.Helper.MdcLoggable
@@ -26,10 +28,10 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     case OutboundGetAdapterInfo(_, cc) =>
       val result = 
         InboundAdapterInfo(
-          "systemName",
-          "version", 
-          APIUtil.gitCommit, 
-          (new Date()).toString,
+          "The south side of Akka connector",
+          "Dec2018", 
+          APIUtil.gitCommit,
+          APIUtil.DateWithMsFormat.format(new Date()),
           cc
         )
       sender ! result   
@@ -48,6 +50,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       
     case OutboundGetAccount(bankId, accountId, cc) =>
       val result: Box[BankAccount] = getBankAccount(BankId(bankId), AccountId(accountId), None).map(r => r._1)
+      org.scalameta.logger.elem(result)
       sender ! InboundGetAccount(result.map(Transformer.bankAccount(_)).toOption, cc)
       
     case OutboundGetCoreBankAccounts(bankIdAccountIds, cc) =>
@@ -56,8 +59,28 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
        
     case OutboundGetCustomersByUserId(userId, cc) =>
       val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
-      sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)
+      sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)  
       
+    case OutboundGetCustomersByUserId(userId, cc) =>
+      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
+      sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)
+       
+    case OutboundGetCounterparties(thisBankId, thisAccountId, viewId, cc) =>
+      val result: Box[List[CounterpartyTrait]] = getCounterparties(BankId(thisBankId), AccountId(thisAccountId), ViewId(viewId), None).map(r => r._1)
+      sender ! InboundGetCounterparties(result.getOrElse(Nil).map(Transformer.toInternalCounterparty(_)), cc)
+        
+    case OutboundGetTransactions(bankId, accountId, limit, fromDate, toDate, cc) =>
+      val from = APIUtil.DateWithMsFormat.parse(fromDate)
+      val to = APIUtil.DateWithMsFormat.parse(toDate)
+      val result = getTransactions(BankId(bankId), AccountId(accountId), None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
+      sender ! InboundGetTransactions(result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)), cc)
+        
+    case OutboundGetTransaction(bankId, accountId, transactionId, cc) =>
+      val result = getTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId),  None).map(r => r._1)
+      sender ! InboundGetTransaction(result.map(Transformer.toInternalTransaction(_)), cc)
+
+    case message => 
+      logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
       
   }
 
@@ -66,9 +89,9 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
 
 
 object Transformer {
-  def bank(mb: MappedBank): Bank = 
-    Bank(
-      bankId=mb.bankId,
+  def bank(mb: MappedBank): InboundBank = 
+    InboundBank(
+      bankId=mb.bankId.value,
       shortName=mb.shortName,
       fullName=mb.fullName,
       logoUrl=mb.logoUrl,
@@ -78,7 +101,7 @@ object Transformer {
     )
   
   def bankAccount(acc: BankAccount) =
-    InboundAccountDec2018(
+    InboundAccount(
       bankId = acc.bankId.value,
       branchId = acc.branchId,
       accountId = acc.accountId.value,
@@ -99,7 +122,7 @@ object Transformer {
     )
   
   def coreAccount(a: CoreAccount) =
-    InternalInboundCoreAccount(
+    InboundCoreAccount(
       id = a.id,
       label = a.label,
       bankId = a.bankId,
@@ -107,8 +130,8 @@ object Transformer {
       accountRoutings = a.accountRoutings
     )
 
-  def toInternalCustomer(customer: Customer): InternalCustomer = {
-    InternalCustomer(
+  def toInternalCustomer(customer: Customer): InboundCustomer = {
+    InboundCustomer(
       customerId = customer.customerId,
       bankId = customer.bankId,
       number = customer.number,
@@ -126,6 +149,44 @@ object Transformer {
       creditLimit = CreditLimit(customer.creditLimit.amount,customer.creditLimit.currency),
       kycStatus = customer.kycStatus,
       lastOkDate = customer.lastOkDate,
+    )
+  }
+  
+  def toInternalCounterparty(c: CounterpartyTrait) = {
+    InboundCounterparty(
+      createdByUserId=c.createdByUserId,
+      name=c.name,
+      thisBankId=c.thisBankId,
+      thisAccountId=c.thisAccountId,
+      thisViewId=c.thisViewId,
+      counterpartyId=c.counterpartyId,
+      otherAccountRoutingScheme=c.otherAccountRoutingScheme,
+      otherAccountRoutingAddress=c.otherAccountRoutingAddress,
+      otherBankRoutingScheme=c.otherBankRoutingScheme,
+      otherBankRoutingAddress=c.otherBankRoutingAddress,
+      otherBranchRoutingScheme=c.otherBankRoutingScheme,
+      otherBranchRoutingAddress=c.otherBranchRoutingAddress,
+      isBeneficiary=c.isBeneficiary,
+      description=c.description,
+      otherAccountSecondaryRoutingScheme=c.otherAccountSecondaryRoutingScheme,
+      otherAccountSecondaryRoutingAddress=c.otherAccountSecondaryRoutingAddress,
+      bespoke=c.bespoke
+    )
+  }
+
+  def toInternalTransaction(t: Transaction): InboundTransaction = {
+    InboundTransaction(
+      uuid = t.uuid ,
+      id  = t.id ,
+      thisAccount = t.thisAccount ,
+      otherAccount = t.otherAccount ,
+      transactionType = t.transactionType ,
+      amount = t.amount ,
+      currency = t.currency ,
+      description = t.description ,
+      startDate = t.startDate ,
+      finishDate = t.finishDate ,
+      balance = t.balance
     )
   }
 }

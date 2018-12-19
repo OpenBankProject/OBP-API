@@ -36,7 +36,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
 import net.liftweb.util.Helpers.tryo
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -660,21 +660,20 @@ trait APIMethods300 {
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-              (user, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
-              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-            } yield {
-              for {
-              //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
-              } yield {
-                (createTransactionsJson(transactions), HttpCode.`200`(callContext))
-              }
+          for {
+            (user, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
+            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
+              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+            //Note: error handling and messages for getTransactionParams are in the sub method
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params: _*) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            (createTransactionsJson(transactions), HttpCode.`200`(callContext))
+          }
       }
     }
 

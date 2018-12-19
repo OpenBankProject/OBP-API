@@ -35,7 +35,7 @@ import java.util.Date
 
 import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.hasEntitlement
+import code.api.util.APIUtil.{hasEntitlement, unboxFullOrFail}
 import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.customer.Customer
@@ -57,6 +57,7 @@ import net.liftweb.util.Props
 import scala.collection.immutable.{List, Set}
 import scala.concurrent.Future
 import scala.math.BigDecimal
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Uniquely identifies a view
@@ -524,6 +525,21 @@ trait BankAccount extends MdcLoggable {
     else
       viewNotAllowed(view)
   }
+  final def moderatedTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
+    if(APIUtil.hasAccess(view, user))
+      for{
+       (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext) map {
+         x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+       }
+      } yield {
+        view.moderateTransaction(transaction) match {
+          case Full(m) => Full((m, callContext))
+          case _ => Failure("Server error - moderateTransactionsWithSameAccount")
+        }
+      }
+    else
+      Future(viewNotAllowed(view))
+  }
 
   /*
    end views
@@ -538,6 +554,21 @@ trait BankAccount extends MdcLoggable {
       } yield (moderated, callContext)
     }
     else viewNotAllowed(view)
+  }  
+  final def getModeratedTransactionsFuture(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
+    if(APIUtil.hasAccess(view, user)) {
+      for {
+        (transactions, callContext)  <- Connector.connector.vend.getTransactionsFuture(bankId, accountId, callContext, queryParams: _*) map {
+          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+        }
+      } yield {
+        view.moderateTransactionsWithSameAccount(transactions) match {
+          case Full(m) => Full((m, callContext))
+          case _ => Failure("Server error - moderateTransactionsWithSameAccount")
+        }
+      }
+    }
+    else Future(viewNotAllowed(view))
   }
   
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.

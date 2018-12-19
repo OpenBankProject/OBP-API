@@ -1481,6 +1481,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getCounterparties")
+  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
+    (getCounterparties(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
+  }
   
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyByCounterpartyId",

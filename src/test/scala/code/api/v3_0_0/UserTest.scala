@@ -66,6 +66,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       When("We have to find it by endpoint getUsersByEmail")
       val requestGet = (v3_0Request / "users" / "email" / "some@email.com"/ "terminator").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
+      org.scalameta.logger.elem(responseGet)
 
       And("We should get a 403")
       responseGet.code should equal(403)
