@@ -30,8 +30,8 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
         InboundAdapterInfo(
           "The south side of Akka connector",
           "Dec2018", 
-          APIUtil.gitCommit, 
-          (new Date()).toString,
+          APIUtil.gitCommit,
+          APIUtil.DateWithMsFormat.format(new Date()),
           cc
         )
       sender ! result   

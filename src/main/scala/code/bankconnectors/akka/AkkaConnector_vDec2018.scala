@@ -40,10 +40,21 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
     description = "Gets information about the active general (non bank specific) Adapter that is responding to messages sent by OBP.",
-    outboundTopic = None,
-    inboundTopic = None,
-    emptyObjectJson,
-    emptyObjectJson,
+    outboundTopic = Some(OutboundGetAdapterInfo.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundAdapterInfo.getClass.getSimpleName.replace("$", "")),
+    exampleOutboundMessage = decompose(
+      OutboundGetAdapterInfo(
+        APIUtil.DateWithMsFormat.format(new Date()),
+        Examples.callContextAkka)
+    ),
+    exampleInboundMessage = decompose(
+      InboundAdapterInfo(
+        name = "The south side of Akka connector",
+        version = messageFormat,
+        git_commit = gitCommitExample.value,
+        date = APIUtil.DateWithMsFormat.format(new Date()),
+        Examples.callContextAkka)
+    ),
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAdapterInfo]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfo]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -73,8 +84,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Banks",
     messageFormat = messageFormat,
     description = "Gets the banks list on this OBP installation.",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetBanks.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetBanks.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetBanks(Examples.callContextAkka)
     ),
@@ -97,8 +108,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Bank",
     messageFormat = messageFormat,
     description = "Get a specific Bank as specified by bankId",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetBank.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetBank.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetBank(
         bankIdExample.value,
@@ -123,8 +134,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
     description = "Check a bank Account exists - as specified by bankId and accountId.",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundCheckBankAccountExists(
         bankIdExample.value,
@@ -150,8 +161,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Account",
     messageFormat = messageFormat,
     description = "Get a single Account as specified by the bankId and accountId.",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetAccount.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetAccount.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetAccount(
         bankIdExample.value,
@@ -177,8 +188,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.coreBankAccounts",
     messageFormat = messageFormat,
     description = "Get bank Accounts available to the User (without Metadata)",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetCoreBankAccounts.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetCoreBankAccounts.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetCoreBankAccounts(
         List(BankIdAccountId(BankId(bankIdExample.value), AccountId(accountIdExample.value))),
@@ -213,8 +224,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.CustomersByUserId",
     messageFormat = messageFormat,
     description = "Get Customers represented by the User.",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetCustomersByUserId(
         userIdExample.value,
@@ -258,8 +269,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.counterparties",
     messageFormat = messageFormat,
     description = "Get Counterparties available to the View on the Account specified by thisBankId, thisAccountId and viewId.",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetCounterparties.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetCounterparties.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetCounterparties(
         thisBankId = bankIdExample.value,
@@ -305,8 +316,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
     description = "Get Transactions for an Account specified by bankId and accountId. Pagination is achieved with limit, fromDate and toDate.",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetTransactions.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetTransactions.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetTransactions(
         bankId = bankIdExample.value,
@@ -339,8 +350,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
     description = "Get a single Transaction specified by bankId, accountId and transactionId",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(OutboundGetTransaction.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetTransaction.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = decompose(
       OutboundGetTransaction(
         bankId = bankIdExample.value,
