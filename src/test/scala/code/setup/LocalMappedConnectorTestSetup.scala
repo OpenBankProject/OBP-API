@@ -1,22 +1,19 @@
 package code.setup
 
-import java.util.{Date, UUID}
+import java.util.Date
 
-import code.api.util.ErrorMessages._
 import bootstrap.liftweb.ToSchemify
-import code.accountholder.AccountHolders
 import code.api.util.APIUtil
+import code.api.util.ErrorMessages._
 import code.entitlement.Entitlement
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.model.dataAccess._
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest, TransactionRequests}
-import code.views.Views
+import code.transactionrequests.MappedTransactionRequest
 import net.liftweb.common.Box
 import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.util.Random
 
@@ -56,24 +53,6 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       bespoke = Nil
     ).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
-
-// TODO: Should return an option or box so can test if the insert succeeded
-// or if it failed due to unique exception etc. However, we'll need to modify / lift callers so they can handle an Option
-//  override protected def createBank(id : String) : Option[Bank] = {
-//    val newBankOpt : Option[Bank] = try {
-//      Some(MappedBank.create
-//        .fullBankName(randomString(5))
-//        .shortBankName(randomString(5))
-//        .permalink(id)
-//        .national_identifier(randomString(5)).saveMe)
-//    } catch {
-//      case se : SQLException => None
-//    }
-//    newBankOpt
-//  }
-
-
-
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     MappedBankAccount.create
@@ -176,16 +155,6 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
-      ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    } else {
-      Views.views.vend.bulkDeleteAllPermissionsAndViews()
-      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
-      TransactionRequests.transactionRequestProvider.vend.bulkDeleteTransactionRequests()
-      MappedTransaction.bulkDelete_!!()
-      MappedBank.bulkDelete_!!()
-      MappedBankAccount.bulkDelete_!!()
-      Counterparties.counterparties.vend.bulkDeleteAllCounterparties()
-    }
+    ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
   }
 }

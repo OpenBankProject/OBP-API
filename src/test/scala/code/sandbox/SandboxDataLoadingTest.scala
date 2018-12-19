@@ -31,15 +31,13 @@ Berlin 13359, Germany
   */
 package code.sandbox
 
-import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.util.ErrorMessages._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
-import code.accountholder.AccountHolders
-import code.api.util.{APIUtil, CallContext}
+import code.api.util.APIUtil
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT, countOfAtms}
 import code.bankconnectors.{Connector, OBPLimit}
@@ -61,7 +59,6 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{JField, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Props
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 
 /*
@@ -92,13 +89,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //drop database tables before
     //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.foreach(_.bulkDelete_!!())
-    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
-      ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
-    } else {
-      Views.views.vend.bulkDeleteAllPermissionsAndViews()
-      Users.users.vend.bulkDeleteAllResourceUsers()
-      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
-    }
+    ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
   }
 
 
