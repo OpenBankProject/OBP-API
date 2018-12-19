@@ -139,6 +139,12 @@ class WebUI extends MdcLoggable{
     ".api-link a [href]" #> hostname
   }
 
+  // Link to API Human
+  def apiLinkHuman: CssSel = {
+    val hostname = scala.xml.Unparsed(APIUtil.getPropsValue("hostname", ""))
+      ".api-link a [href]" #> hostname
+  }
+
 
 
   // Social Finance (Sofi)
