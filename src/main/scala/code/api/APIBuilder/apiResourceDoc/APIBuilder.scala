@@ -23,9 +23,10 @@ Berlin 13359, Germany
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
  */
-package code.api.APIBuilder;
+package code.api.APIBuilder.apiResourceDoc;
 
 import code.api.APIBuilder.APIBuilderModel._
+import code.api.APIBuilder.APIBuilderModel
 import code.api.util.APIUtil
 import scala.meta._
 import net.liftweb.json.JsonAST.{JObject, JString}
@@ -35,7 +36,7 @@ object APIBuilder
 {
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
 
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/apisResource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/apiResourceDoc/apisResource.json")
 
   val resourceDocsJObject= jsonJValueFromFile.\("resource_docs").children.asInstanceOf[List[JObject]]
     
