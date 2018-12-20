@@ -1303,6 +1303,20 @@ Returns a string showed to the developer
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }
+  def getConsumerPrimaryKey(callContext: Option[CallContext]): String = {
+    callContext match {
+      case Some(cc) =>
+        cc.consumer.map(_.id.get.toString).getOrElse("")
+      case _ =>
+        ""
+    }
+  }
+  def checkScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
+    REQUIRE_SCOPES match {
+      case false => true // if the props require_scopes == false, we do not need to check the Scope stuff..
+      case true => !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
+    }
+  }
   
   // Function checks does a consumer specified by a parameter consumerId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does consumer has assigned at least one role from the list
