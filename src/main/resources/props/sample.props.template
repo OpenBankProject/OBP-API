@@ -549,3 +549,9 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "akka-connector-actor"
 # akka_connector.name_of_actor=SOME_ACTOR_NAME
 # --------------------------------------------------------------
+
+# -- Scopes ---------------------------------------------
+# Scopes are a way to limit the APIs a Consumer can call.
+# In case isn't defined default value is "false"
+# require_scopes=false
+# -------------------------------------------------------
