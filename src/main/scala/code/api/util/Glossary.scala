@@ -86,10 +86,33 @@ object Glossary {
 
 
 	glossaryItems += GlossaryItem(
+		title = "Adapter.Akka.Intro",
+		description =
+			s"""
+				 |## Use Akka as an interface between OBP and your Core Banking System (CBS).
+|
+|For an introduction to Akka see [here](https://akka.io/)
+|
+|The OBP Akka interface allows integrators to write Java or Scala Adapters (any JVM language with Akka support)
+|respond to requests for data and services from OBP.
+|
+|For the message definitions see [here](/message-docs?connector=akka_vDec2018)
+|
+|This glossary item is Work In Progress.
+|
+""")
+
+
+
+	glossaryItems += GlossaryItem(
 		title = "Adapter.Kafka.Intro",
 		description =
 				s"""
-					|## How to use Kafka as the interface layer between OBP and your Core Banking System (CBS).
+					|## Use Kafka as an interface between OBP and your Core Banking System (CBS).
+|
+|
+|For an introduction to Kafka see [here](https://kafka.apache.org/)
+|
 					|### Installation Prerequisites
 					|
 					|
