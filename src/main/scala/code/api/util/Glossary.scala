@@ -87,7 +87,7 @@ object Glossary {
 
 
 	glossaryItems += GlossaryItem(
-		title = "OBP.Cheat Sheet",
+		title = "Cheat Sheet",
 		description =
 			s"""
 				 |## A selection of links to get you started using the Open Bank Project API platform, applications and tools.
