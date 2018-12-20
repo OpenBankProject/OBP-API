@@ -247,6 +247,9 @@ trait APIMethods220 {
         cc =>
           for {
             (_, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx) {
+              checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canReadFx)
+            }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
               assert(isValidCurrencyISOCode(fromCurrencyCode))
