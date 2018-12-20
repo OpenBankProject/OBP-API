@@ -1,12 +1,12 @@
 package code.branches
 
-import code.bankconnectors._
+import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.branches.Branches._
 import code.common._
 import code.model.BankId
 import code.util.{TwentyFourHourClockString, UUIDString}
+import net.liftweb.common.Logger
 import net.liftweb.mapper.{By, _}
-import net.liftweb.common.{Box, Logger}
 
 object MappedBranchesProvider extends BranchesProvider {
 

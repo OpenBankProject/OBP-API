@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.bankconnectors.OBPQueryParam
+import code.api.util.OBPQueryParam
 import code.customer.{AmountOfMoneyTrait, _}
 import code.model._
 import code.util.Helper.MdcLoggable

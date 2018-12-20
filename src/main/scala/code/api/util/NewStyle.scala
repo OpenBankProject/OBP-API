@@ -2,7 +2,7 @@ package code.api.util
 
 import code.accountapplication.AccountApplication
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail, unboxFuture}
+import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -14,7 +14,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.bankconnectors.{Connector, OBPQueryParam, ObpApiLoopback}
+import code.bankconnectors.{Connector, ObpApiLoopback}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
@@ -33,7 +33,7 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils

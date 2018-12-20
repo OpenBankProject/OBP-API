@@ -2,7 +2,7 @@ package code.remotedata
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.bankconnectors.OBPQueryParam
+import code.api.util.OBPQueryParam
 import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemotedataUsersCaseClasses}
 import code.util.Helper.MdcLoggable

@@ -1,6 +1,6 @@
 package code.webhook
 
-import code.bankconnectors._
+import code.api.util._
 import code.util.{AccountIdString, MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._

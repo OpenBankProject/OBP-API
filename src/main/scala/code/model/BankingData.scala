@@ -33,11 +33,11 @@ package code.model
 
 import java.util.Date
 
-import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.{hasEntitlement, unboxFullOrFail}
-import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
-import code.bankconnectors.{Connector, OBPQueryParam}
+import code.api.util.APIUtil.unboxFullOrFail
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CallContext, ErrorMessages, OBPQueryParam}
+import code.bankconnectors.Connector
 import code.customer.Customer
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -47,17 +47,16 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.util.Helper
 import code.util.Helper.MdcLoggable
-import code.views.{MapperViews, Views}
+import code.views.Views
 import net.liftweb.common._
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonDSL._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Set}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.math.BigDecimal
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Uniquely identifies a view

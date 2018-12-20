@@ -2,16 +2,15 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.bankconnectors.OBPQueryParam
+import code.api.util.OBPQueryParam
 import code.entitlement.Entitlement
 import code.model.User
-import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
+import code.model.dataAccess.ResourceUser
 import code.users.{RemotedataUsersCaseClasses, Users}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object RemotedataUsers extends ObpActorInit with Users {
 

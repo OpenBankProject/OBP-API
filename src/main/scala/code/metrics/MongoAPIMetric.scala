@@ -34,7 +34,7 @@ Berlin 13359, Germany
 
 import java.util.Date
 
-import code.bankconnectors.OBPQueryParam
+import code.api.util.OBPQueryParam
 import net.liftweb.common.Box
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}

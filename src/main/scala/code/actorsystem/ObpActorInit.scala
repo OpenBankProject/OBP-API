@@ -5,7 +5,6 @@ import code.api.APIFailure
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
-import net.liftweb.util.Props
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

@@ -1,7 +1,7 @@
 package code.atms
 
+import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.atms.Atms._
-import code.bankconnectors.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.common._
 import code.model.BankId
 import code.util.{TwentyFourHourClockString, UUIDString}

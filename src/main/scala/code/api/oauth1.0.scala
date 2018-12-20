@@ -33,7 +33,7 @@ import code.api.Constant._
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util._
 import code.consumer.Consumers
 import code.model.{Consumer, TokenType, User}
 import code.nonce.Nonces

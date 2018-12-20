@@ -1,11 +1,9 @@
 package code.metrics
 
-import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, OBPLimit}
 import code.api.util.APIUtil.getCorrelationId
-import code.bankconnectors.OBPLimit
 import code.setup.ServerSetup
 
 

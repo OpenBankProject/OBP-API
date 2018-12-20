@@ -1,21 +1,14 @@
 package code.bankconnectors
 
-import java.text.SimpleDateFormat
-import java.util.{Date, TimeZone, UUID}
+import java.util.{Date, TimeZone}
 
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext}
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.branches.Branches.{Branch, BranchT}
-import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
+import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
-import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
@@ -25,7 +18,6 @@ import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 import org.bson.types.ObjectId
 
 import scala.concurrent.ExecutionContext.Implicits.global

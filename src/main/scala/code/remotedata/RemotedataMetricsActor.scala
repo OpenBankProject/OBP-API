@@ -4,10 +4,11 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.bankconnectors.OBPQueryParam
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 import akka.pattern.pipe
+import code.api.util.OBPQueryParam
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {

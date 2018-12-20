@@ -2,8 +2,8 @@ package code.metrics
 
 import java.util.Date
 
-import code.bankconnectors._
-import code.util.{MappedUUID}
+import code.api.util._
+import code.util.MappedUUID
 import net.liftweb.mapper._
 
 object ConnectorMetrics extends ConnectorMetricsProvider {

@@ -2,11 +2,10 @@ package code.metrics
 
 import java.util.{Calendar, Date}
 
-import code.api.util.APIUtil
-import code.bankconnectors.OBPQueryParam
+import code.api.util.{APIUtil, OBPQueryParam}
 import code.remotedata.RemotedataMetrics
 import net.liftweb.common.Box
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
