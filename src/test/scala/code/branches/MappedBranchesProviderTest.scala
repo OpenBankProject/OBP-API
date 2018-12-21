@@ -1,10 +1,10 @@
 package code.branches
 
-import code.bankconnectors.{OBPLimit, OBPOffset}
+import code.api.util.OBPLimit
+import code.branches.Branches.BranchT
 import code.model.BankId
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import net.liftweb.mapper.By
 import code.setup.ServerSetup
+import net.liftweb.mapper.By
 
 class MappedBranchesProviderTest extends ServerSetup {
 

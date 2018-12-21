@@ -3,10 +3,9 @@ package code.customer
 import java.lang
 import java.util.Date
 
-import code.api.util.APIUtil
-import code.bankconnectors._
+import code.api.util._
 import code.model.{BankId, User}
-import code.usercustomerlinks.{MappedUserCustomerLink, MappedUserCustomerLinkProvider, UserCustomerLink}
+import code.usercustomerlinks.{MappedUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
@@ -16,8 +15,8 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.List
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 object MappedCustomerProvider extends CustomerProvider with MdcLoggable {

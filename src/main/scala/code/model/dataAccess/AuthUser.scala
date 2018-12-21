@@ -31,27 +31,25 @@ Berlin 13359, Germany
   */
 package code.model.dataAccess
 
-import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util.ErrorMessages._
+import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundAccountCommon, InboundUser}
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.mapper._
-import net.liftweb.util.Mailer.{BCC, From, Subject, To}
-import net.liftweb.util._
-import net.liftweb.util.Bindable
-
-import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
 import code.model._
 import code.users.Users
 import code.util.Helper
 import code.views.Views
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.mapper._
+import net.liftweb.util.Mailer.{BCC, From, Subject, To}
+import net.liftweb.util._
 
 import scala.collection.immutable.List
+import scala.xml.{NodeSeq, Text}
 
 
 /**

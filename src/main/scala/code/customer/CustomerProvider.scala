@@ -3,12 +3,11 @@ package code.customer
 import java.lang
 import java.util.Date
 
-import code.api.util.APIUtil
-import code.bankconnectors.OBPQueryParam
+import code.api.util.{APIUtil, OBPQueryParam}
 import code.model.{BankId, User}
 import code.remotedata.RemotedataCustomers
 import net.liftweb.common.Box
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
 import scala.concurrent.Future

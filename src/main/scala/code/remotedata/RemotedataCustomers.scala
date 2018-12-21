@@ -4,8 +4,8 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.bankconnectors.OBPQueryParam
-import code.customer.{AmountOfMoneyTrait, CreditRatingTrait, Customer, CustomerFaceImageTrait, CustomerProvider, RemotedataCustomerProviderCaseClasses}
+import code.api.util.OBPQueryParam
+import code.customer._
 import code.model._
 import net.liftweb.common.Box
 

@@ -78,6 +78,7 @@ import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
+import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
@@ -456,6 +457,11 @@ class Boot extends MdcLoggable {
       val delay = APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
       TransactionStatusScheduler.start(delay)
     }
+    APIUtil.getPropsAsLongValue("database_messages_scheduler_interval") match {
+      case Full(i) => DatabaseDriverScheduler.start(i)
+      case _ => // Do not start it
+    }
+    
 
     APIUtil.akkaSanityCheck() match {
       case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")

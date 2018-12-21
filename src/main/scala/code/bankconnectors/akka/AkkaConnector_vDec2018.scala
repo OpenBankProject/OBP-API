@@ -6,7 +6,7 @@ import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
 import code.api.util.ExampleValue._
-import code.api.util.{APIUtil, CallContext, CallContextAkka}
+import code.api.util._
 import code.bankconnectors._
 import code.bankconnectors.akka.InboundTransformerDec2018._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}

@@ -1,13 +1,12 @@
 package code.users
 
-import code.api.util.APIUtil
-import code.bankconnectors.OBPQueryParam
+import code.api.util.{APIUtil, OBPQueryParam}
 import code.entitlement.Entitlement
 import code.model.User
-import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
+import code.model.dataAccess.ResourceUser
 import code.remotedata.RemotedataUsers
 import net.liftweb.common.Box
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
 import scala.concurrent.Future

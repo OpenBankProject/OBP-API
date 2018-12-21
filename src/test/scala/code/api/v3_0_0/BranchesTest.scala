@@ -1,9 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
-import code.bankconnectors.OBPQueryParam
+import code.api.util.{ErrorMessages, OBPQueryParam}
 import code.branches.Branches._
 import code.branches.{Branches, BranchesProvider}
 import code.common._

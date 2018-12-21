@@ -35,12 +35,12 @@ import java.util.Date
 
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, OBPLimit}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT, countOfAtms}
-import code.bankconnectors.{Connector, OBPLimit}
+import code.bankconnectors.Connector
 import code.branches.Branches
 import code.branches.Branches.{BranchId, BranchT, countOfBranches}
 import code.crm.CrmEvent

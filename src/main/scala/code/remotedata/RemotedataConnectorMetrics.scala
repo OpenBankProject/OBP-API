@@ -4,7 +4,7 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.bankconnectors.OBPQueryParam
+import code.api.util.OBPQueryParam
 import code.metrics.{ConnectorMetricsProvider, MappedConnectorMetric, RemotedataConnectorMetricsCaseClasses}
 
 

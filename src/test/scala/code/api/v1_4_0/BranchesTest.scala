@@ -1,9 +1,8 @@
 package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.OBPQueryParam
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
-import code.api.v3_0_0.V300ServerSetup
-import code.bankconnectors.OBPQueryParam
 import code.branches.Branches.{BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
 import code.common._

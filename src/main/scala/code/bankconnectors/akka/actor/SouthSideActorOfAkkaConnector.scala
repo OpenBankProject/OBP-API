@@ -3,9 +3,8 @@ package code.bankconnectors.akka.actor
 import java.util.Date
 
 import akka.actor.{Actor, ActorLogging}
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, OBPFromDate, OBPLimit, OBPToDate}
 import code.bankconnectors.LocalMappedConnector._
-import code.bankconnectors._
 import code.bankconnectors.akka._
 import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.metadata.counterparties.CounterpartyTrait

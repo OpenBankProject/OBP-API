@@ -1,6 +1,6 @@
 package code.webhook
 
-import code.bankconnectors.OBPQueryParam
+import code.api.util.OBPQueryParam
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 

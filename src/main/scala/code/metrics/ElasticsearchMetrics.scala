@@ -2,12 +2,10 @@ package code.metrics
 
 import java.util.Date
 
-import code.api.util.APIUtil
-import code.bankconnectors._
+import code.api.util._
 import code.search.elasticsearchMetrics
 import net.liftweb.common.Box
 import net.liftweb.mapper._
-import net.liftweb.util.Props
 
 import scala.concurrent.Future
 

@@ -30,7 +30,7 @@ import java.util.Date
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util._
 import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, User}

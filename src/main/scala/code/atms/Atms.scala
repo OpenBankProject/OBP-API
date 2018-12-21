@@ -4,10 +4,10 @@ package code.atms
 
 // Need to import these one by one because in same package!
 
+import code.api.util.OBPQueryParam
 import code.atms.Atms.{AtmId, AtmT}
-import code.bankconnectors.OBPQueryParam
-import code.model.BankId
 import code.common._
+import code.model.BankId
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 

@@ -1,15 +1,13 @@
 package code.bankconnectors
 
-import java.util.{Date, UUID}
+import java.util.Date
 
-import code.accountapplication.{AccountApplication, MappedAccountApplication}
+import code.accountapplication.AccountApplication
 import code.accountholder.{AccountHolders, MapperAccountHolders}
-import code.customeraddress.CustomerAddress
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages, NewStyle}
+import code.api.util._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
@@ -23,6 +21,7 @@ import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.context.UserAuthContext
 import code.customer._
+import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
@@ -42,15 +41,14 @@ import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.{BCrypt, Helpers, Props, SimpleInjector}
+import net.liftweb.util.{BCrypt, Helpers, SimpleInjector}
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.math.BigInt
 import scala.util.Random
-import scala.concurrent.duration._
 
 /*
 So we can switch between different sources of resources e.g.
@@ -67,8 +65,6 @@ Could consider a Map of ("resourceType" -> "provider") - this could tell us whic
  */
 
 object Connector extends SimpleInjector {
-
-  import scala.reflect.runtime.universe._
   def getConnectorInstance(connectorVersion: String):Connector = {
     connectorVersion match {
       case "mapped" => LocalMappedConnector
@@ -93,41 +89,6 @@ object Connector extends SimpleInjector {
   }
 
 }
-
-class OBPQueryParam
-trait OBPOrder { def orderValue : Int }
-object OBPOrder {
-  def apply(s: Option[String]): OBPOrder = s match {
-    case Some("asc") => OBPAscending
-    case Some("ASC")=> OBPAscending
-    case _ => OBPDescending
-  }
-}
-object OBPAscending extends OBPOrder { def orderValue = 1 }
-object OBPDescending extends OBPOrder { def orderValue = -1}
-case class OBPLimit(value: Int) extends OBPQueryParam
-case class OBPOffset(value: Int) extends OBPQueryParam
-case class OBPFromDate(value: Date) extends OBPQueryParam
-case class OBPToDate(value: Date) extends OBPQueryParam
-case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
-case class OBPConsumerId(value: String) extends OBPQueryParam
-case class OBPUserId(value: String) extends OBPQueryParam
-case class OBPBankId(value: String) extends OBPQueryParam
-case class OBPAccountId(value: String) extends OBPQueryParam
-case class OBPUrl(value: String) extends OBPQueryParam
-case class OBPAppName(value: String) extends OBPQueryParam
-case class OBPExcludeAppNames(values: List[String]) extends OBPQueryParam
-case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
-case class OBPImplementedInVersion(value: String) extends OBPQueryParam
-case class OBPVerb(value: String) extends OBPQueryParam
-case class OBPAnon(value: Boolean) extends OBPQueryParam
-case class OBPCorrelationId(value: String) extends OBPQueryParam
-case class OBPDuration(value: Long) extends OBPQueryParam
-case class OBPExcludeUrlPatterns(values: List[String]) extends OBPQueryParam
-case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam
-case class OBPFunctionName(value: String) extends OBPQueryParam
-case class OBPConnectorName(value: String) extends OBPQueryParam
-case class OBPEmpty() extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
 case class InboundUser(

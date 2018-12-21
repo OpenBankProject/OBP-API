@@ -14,7 +14,7 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
-import code.bankconnectors.{Connector, OBPBankId}
+import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.{CreditLimit, CreditRating, CustomerFaceImage}
 import code.entitlement.Entitlement
@@ -28,7 +28,7 @@ import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper

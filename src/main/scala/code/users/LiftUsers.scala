@@ -1,17 +1,17 @@
 package code.users
 
 import code.api.GatewayLogin.gateway
-import code.bankconnectors.{OBPLimit, OBPOffset, OBPQueryParam}
+import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.entitlement.Entitlement
-import net.liftweb.common.{Box, Full}
 import code.model.User
 import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object LiftUsers extends Users with MdcLoggable{
 
