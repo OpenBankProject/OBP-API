@@ -85,6 +85,51 @@ object Glossary {
 
 
 
+
+	glossaryItems += GlossaryItem(
+		title = "Cheat Sheet",
+		description =
+			s"""
+				 |## A selection of links to get you started using the Open Bank Project API platform, applications and tools.
+				 				 |
+				 |[OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
+				 				 |
+				 |[OBP API Contributing](https://github.com/OpenBankProject/OBP-API/blob/develop/CONTRIBUTING.md)
+				 				 |
+				 |[Access Control](/glossary#API.Access-Control)
+				 				 |
+|[Versioning](https://github.com/OpenBankProject/OBP-API/wiki/API-Versioning)
+|
+ |[Authentication](https://github.com/OpenBankProject/OBP-API/wiki/Authentication)
+|
+				 |[Interfaces](/glossary#API.Interfaces)
+				 				 |
+				 |[Endpoints](https://apiexplorersandbox.openbankproject.com)
+				 				 |
+				 |[Glossary](/glossary)
+				 				 |
+				 |[Access Control](/glossary#API.Access-Control)
+				 				 |
+				 |[OBP Kafka](/glossary#Adapter.Kafka.Intro)
+				 				 |
+				 |[OBP Akka](/glossary#Adapter.Akka.Intro)
+				 				 |
+				 |[API Explorer](https://github.com/OpenBankProject/API-Explorer/blob/develop/README.md)
+				 				 |
+				 |[API Manager](https://github.com/OpenBankProject/API-Manager/blob/master/README.md)
+				 				 |
+				 |[API Tester](https://github.com/OpenBankProject/API-Tester/blob/master/README.md)
+				 				 |
+
+				 				 |
+""")
+
+
+
+
+
+
+
 	glossaryItems += GlossaryItem(
 		title = "Adapter.Akka.Intro",
 		description =
