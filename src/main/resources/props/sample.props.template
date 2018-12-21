@@ -555,3 +555,9 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # require_scopes=false
 # -------------------------------------------------------
+
+# -- Database scheduler -----------------------------
+# Database scheduler interval in seconds.
+# Scheduler would not be started if delay is not set.
+database_messages_scheduler_interval=3600
+# ---------------------------------------------------
