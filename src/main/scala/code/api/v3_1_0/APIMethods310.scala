@@ -831,7 +831,7 @@ trait APIMethods310 {
                                |
                                |Account Webhooks focus on events around accounts.
                                |
-                               |For instance, a webhook could be used to notify an external serivce if a balance changes on an account.
+                               |For instance, a webhook could be used to notify an external service if a balance changes on an account.
                                |
                                |This functionality is work in progress! Although you can create and modify Webhooks, they do not yet fire on triggers."""
 

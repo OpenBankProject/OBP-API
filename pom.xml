@@ -13,7 +13,7 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.4</scala.compiler>
-    <akka.version>2.5.13</akka.version>
+    <akka.version>2.5.19</akka.version>
     <akka-streams-kafka.version>0.22</akka-streams-kafka.version>
     <kafka.version>1.1.0</kafka.version>
     <avro.version>1.8.3</avro.version>
@@ -292,6 +292,12 @@
       <groupId>com.tesobe.obp</groupId>
       <artifactId>obp-ri-transport</artifactId>
       <version>${obp-ri.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.typesafe.akka/akka-http-core -->
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-http-core_${scala.version}</artifactId>
+      <version>10.1.6</version>
     </dependency>
     <dependency>
       <groupId>com.typesafe.akka</groupId>
