@@ -881,6 +881,7 @@ trait APIMethods310 {
               triggerName = postJson.trigger_name,
               url = postJson.url,
               httpMethod = postJson.http_method,
+              httpProtocol = postJson.http_protocol,
               isActive = isActive
             ) map {
               unboxFullOrFail(_, callContext, CreateWebhookError, 400)

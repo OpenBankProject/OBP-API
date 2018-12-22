@@ -29,7 +29,7 @@ object WebhookHttpClient extends MdcLoggable {
       By(MappedAccountWebhook.mAccountId, request.accountId),
       By(MappedAccountWebhook.mTriggerName, request.trigger.toString())
     ) map {
-      i => makeRequest(getHttpRequest(i.url, i.httpMethod, getEventPayload(request)), request)
+      i => makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
     }
   }
 
@@ -40,18 +40,27 @@ object WebhookHttpClient extends MdcLoggable {
     entity
   }
 
-  private def getHttpRequest(uri: String, method: String, entity: RequestEntity = HttpEntity.Empty): HttpRequest = {
+  private def getHttpRequest(uri: String, method: String, httpProtocol: String, entity: RequestEntity = HttpEntity.Empty): HttpRequest = {
     method match {
       case m: String if m.toUpperCase == "GET" =>
-        HttpRequest(uri = uri, method = GET)
+        HttpRequest(uri = uri, method = GET, protocol = getHttpProtocol(httpProtocol))
       case m: String if m.toUpperCase == "POST" =>
-        HttpRequest(uri = uri, method = POST, entity = entity)
+        HttpRequest(uri = uri, method = POST, entity = entity, protocol = getHttpProtocol(httpProtocol))
       case m: String if m.toUpperCase == "PUT" =>
-        HttpRequest(uri = uri, method = PUT, entity = entity)
+        HttpRequest(uri = uri, method = PUT, entity = entity, protocol = getHttpProtocol(httpProtocol))
       case m: String if m.toUpperCase == "DELETE" =>
-        HttpRequest(uri = uri, method = DELETE, entity = entity)
+        HttpRequest(uri = uri, method = DELETE, entity = entity, protocol = getHttpProtocol(httpProtocol))
       case _ =>
-        HttpRequest(uri = uri, method = GET)
+        HttpRequest(uri = uri, method = GET, protocol = getHttpProtocol(httpProtocol))
+    }
+  }
+  
+  private def getHttpProtocol(httpProtocol: String): HttpProtocol = {
+    httpProtocol match {
+      case m: String if m.toUpperCase == "HTTP/1.0" => HttpProtocols.`HTTP/1.0`
+      case m: String if m.toUpperCase == "HTTP/1.1" => HttpProtocols.`HTTP/1.1`
+      case m: String if m.toUpperCase == "HTTP/2.0" => HttpProtocols.`HTTP/2.0`
+      case _ => HttpProtocols.`HTTP/1.1`
     }
   }
   
@@ -96,7 +105,7 @@ object WebhookHttpClient extends MdcLoggable {
       amount="10000", 
       balance="21000"
     )
-    makeRequest(getHttpRequest(uri, "GET"), request)
+    makeRequest(getHttpRequest(uri, "GET", "HTTP/1.1"), request)
   }
   
 }
