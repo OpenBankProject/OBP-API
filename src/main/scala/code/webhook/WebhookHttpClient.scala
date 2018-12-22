@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
+import akka.util.ByteString
 import code.actorsystem.ObpLookupSystem
 import code.api.util.ApiTrigger
 import code.util.Helper.MdcLoggable
@@ -13,7 +14,6 @@ import net.liftweb
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.By
 
-import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
@@ -83,10 +83,8 @@ object WebhookHttpClient extends MdcLoggable {
   // We need to respond to it after we finish an event.
   val requestActor = ObpLookupSystem.getWebhookActor()
   
-  private def makeRequest(httpRequest: HttpRequest, request: WebhookRequest) = {
-    val responseFuture: Future[HttpResponse] = Http().singleRequest(httpRequest)
-    responseFuture
-      .onComplete {
+  private def makeRequest(httpRequest: HttpRequest, request: WebhookRequest): Unit = {
+    makeHttpRequest(httpRequest).onComplete {
         case Success(res) =>
           requestActor ! WebhookResponse(res.status.toString(), "", request)
           res.discardEntityBytes()
@@ -94,7 +92,11 @@ object WebhookHttpClient extends MdcLoggable {
           requestActor ! WebhookFailure("", error.getMessage, request)
       }
   }
-  
+
+  private def makeHttpRequest(httpRequest: HttpRequest) = {
+    Http().singleRequest(httpRequest)
+  }
+
   def main(args: Array[String]): Unit = {
     val uri = "https://www.openbankproject.com"
     val request = WebhookRequest(
@@ -106,6 +108,33 @@ object WebhookHttpClient extends MdcLoggable {
       balance="21000"
     )
     makeRequest(getHttpRequest(uri, "GET", "HTTP/1.1"), request)
+
+    implicit val formats = net.liftweb.json.DefaultFormats
+    case class User(name: String, job: String)
+    val user = User("morpheus", "leader")
+    val json = liftweb.json.compactRender(Extraction.decompose(user))
+    val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
+    makeHttpRequest(getHttpRequest("https://reqres.in/api/users", "POST", "HTTP/1.1", entity)) map {
+      `POST response` =>
+        org.scalameta.logger.elem(`POST response`.status)
+        `POST response`.entity.dataBytes.runFold(ByteString(""))(_ ++ _).foreach { body =>
+            val `Got POST response, body: ` = body.utf8String
+            org.scalameta.logger.elem(`Got POST response, body: `)
+        }
+    }    
+    
+    val user2 = User("morpheus", "zion resident")
+    val json2 = liftweb.json.compactRender(Extraction.decompose(user2))
+    val entity2: RequestEntity = HttpEntity(ContentTypes.`application/json`, json2)
+    makeHttpRequest(getHttpRequest("https://reqres.in/api/users", "PUT", "HTTP/1.1", entity2)) map {
+      `PUT response` =>
+        org.scalameta.logger.elem(`PUT response`.status)
+        `PUT response`.entity.dataBytes.runFold(ByteString(""))(_ ++ _).foreach { body =>
+            val `Got PUT response, body: ` = body.utf8String
+            org.scalameta.logger.elem(`Got PUT response, body: `)
+        }
+    }
+
   }
   
 }
