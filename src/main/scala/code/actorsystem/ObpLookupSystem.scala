@@ -1,6 +1,6 @@
 package code.actorsystem
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSelection, ActorSystem}
 import code.api.util.APIUtil
 import code.bankconnectors.akka.actor.{AkkaConnectorActorConfig, AkkaConnectorHelperActor}
 import code.util.Helper
@@ -8,7 +8,6 @@ import code.util.Helper.MdcLoggable
 import code.webhook.WebhookHelperActors
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common.Full
-import net.liftweb.util.Props
 
 
 object ObpLookupSystem extends ObpLookupSystem {
@@ -78,15 +77,24 @@ trait ObpLookupSystem extends MdcLoggable {
     this.obpLookupSystem.actorSelection(actorPath)
   }
 
-
-  def getWebhookActor() = {
+  /**
+    * This function is a Single Point Of Entry for Webhook's Actor
+    * I.e. we can obtain te Actor all over the code in next way:
+    * {
+    *   val actor: ActorSelection = ObpLookupSystem.getWebhookActor()
+    * }
+    *
+    * @return An ActorSelection which is a logical view of a section of an ActorSystem's tree of Actors,
+    *         allowing for broadcasting of messages to that section.
+    */
+  def getWebhookActor(): ActorSelection = {
     val name = WebhookHelperActors.actorName
     val actorPath: String = {
       val hostname = ObpActorConfig.localHostname
       val port = ObpActorConfig.localPort
       val props_hostname = Helper.getHostname
       if (port == 0) {
-        logger.error("Failed to connect to local Web Hook actor")
+        logger.error("Failed to connect to local Webhook's actor")
       }
       s"akka.tcp://ObpActorSystem_${props_hostname}@${hostname}:${port}/user/${name}"
     }

@@ -18,7 +18,26 @@ import scala.util.{Failure, Success}
 
 
 object WebhookHttpClient extends MdcLoggable {
-  
+
+  /**
+    * This function starts the webhook event for instance ApiTrigger.onBalanceChange.
+    * For the whole list of supported webhook events please take a look at a file code.api.util.ApiTrigger
+    *
+    * @param request is a message which provide all necessary data of the event
+    * @return   we do not return anything because we use fire and forget scenario 
+    *           but we will still send a result to the Actor in the end.
+    *         I.e. we trigger some webhook's event with:
+    *         1. actor ! WebhookActor.WebhookRequest(
+    *             ApiTrigger.onBalanceChange,
+    *             eventId,
+    *             t.theBankId.value,
+    *             t.theAccountId.value,
+    *             getAmount(t.amount.get),
+    *             getAmount(t.newAccountBalance.get)
+    *           )
+    *           and then send result of event to the Actor:
+    *         2. requestActor ! WebhookResponse(res.status.toString(), "", request)
+    */
   def startEvent(request: WebhookRequest): List[Unit] = {
     
     logEvent(request)

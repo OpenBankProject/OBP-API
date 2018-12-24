@@ -39,7 +39,18 @@ object WebhookActor {
 
 
 /**
-  * This Actor acts in next way:
+  * This Actor process all request/response messages related to Webhooks.
+  * It's accessible at the North side all over the code. 
+  * Example:
+  * {
+  *   val actor: ActorSelection = ObpLookupSystem.getWebhookActor()
+  * }
+  * We use fire and forget scenario in case of this Actor.
+  * I.e. we trigger some webhook's event with:
+  * 1. actor ! Request
+  * and then send result of event to the Actor:
+  * 2. actor ! Response
+  * 
   */
 class WebhookActor extends Actor with ActorLogging with MdcLoggable {
 
