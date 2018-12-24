@@ -34,7 +34,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
     transactionRequests.map{ tr =>
       for {
         transactionRequest <- tr.toTransactionRequest
-        if (statuses.exists(_ == transactionRequest.id -> "APVD"))
+        if (statuses.exists(i => i.transactionRequestId -> i.bulkTransactionsStatus == transactionRequest.id -> List("APVD")))
       } yield {
         tr.updateStatus(TransactionRequestStatus.COMPLETED.toString)
         logger.debug(s"updated ${transactionRequest.id} status: ${TransactionRequestStatus.COMPLETED}")
