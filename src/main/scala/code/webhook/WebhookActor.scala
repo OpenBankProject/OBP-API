@@ -29,11 +29,9 @@ object WebhookActor {
         balance=this.balance
       )
   }
-  case class WebhookResponse(status: String, 
-                             error: String, 
+  case class WebhookResponse(status: String,
                              request: WebhookRequest)
-  case class WebhookFailure(status: String, 
-                            error: String, 
+  case class WebhookFailure(error: String, 
                             request: WebhookRequest)
 }
 
@@ -60,10 +58,10 @@ class WebhookActor extends Actor with ActorLogging with MdcLoggable {
     case request@WebhookRequest(trigger, eventId, bankId, accountId, amount, balance) =>
       implicit val ec = context.dispatcher
       WebhookHttpClient.startEvent(request)
-    case WebhookResponse(status, _, request) =>
+    case WebhookResponse(status, request) =>
       logger.info("EVENT_ID: " + request.eventId)
       logger.info("STATUS: " + status)
-    case WebhookFailure(_, error, request) =>
+    case WebhookFailure(error, request) =>
       logger.info("EVENT_ID: " + request.eventId)
       logger.error("ERROR: " + error)
   }

@@ -14,6 +14,7 @@ import net.liftweb
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.By
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
@@ -24,8 +25,8 @@ object WebhookHttpClient extends MdcLoggable {
     * For the whole list of supported webhook events please take a look at a file code.api.util.ApiTrigger
     *
     * @param request is a message which provide all necessary data of the event
-    * @return   we do not return anything because we use fire and forget scenario 
-    *           but we will still send a result to the Actor in the end.
+    * @return we do not return anything because we use fire and forget scenario 
+    *         but we will still send a result to the Actor in the end.
     *         I.e. we trigger some webhook's event with:
     *         1. actor ! WebhookActor.WebhookRequest(
     *             ApiTrigger.onBalanceChange,
@@ -53,10 +54,15 @@ object WebhookHttpClient extends MdcLoggable {
   }
 
   private def getEventPayload(request: WebhookRequest): RequestEntity = {
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val json = liftweb.json.compactRender(Extraction.decompose(request.toEventPayload))
-    val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
-    entity
+    request.trigger match {
+      case ApiTrigger.OnBalanceChange() =>
+        implicit val formats = net.liftweb.json.DefaultFormats
+        val json = liftweb.json.compactRender(Extraction.decompose(request.toEventPayload))
+        val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
+        entity
+      case _ =>
+        HttpEntity.Empty
+    }
   }
 
   private def getHttpRequest(uri: String, method: String, httpProtocol: String, entity: RequestEntity = HttpEntity.Empty): HttpRequest = {
@@ -98,21 +104,21 @@ object WebhookHttpClient extends MdcLoggable {
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
-  // The Actor which sent the request. 
+  // The Actor which has sent the request. 
   // We need to respond to it after we finish an event.
   val requestActor = ObpLookupSystem.getWebhookActor()
   
   private def makeRequest(httpRequest: HttpRequest, request: WebhookRequest): Unit = {
     makeHttpRequest(httpRequest).onComplete {
-        case Success(res) =>
-          requestActor ! WebhookResponse(res.status.toString(), "", request)
+        case Success(res@HttpResponse(status, headers, entity, protocol)) =>
+          requestActor ! WebhookResponse(status.toString(), request)
           res.discardEntityBytes()
         case Failure(error)   =>
-          requestActor ! WebhookFailure("", error.getMessage, request)
+          requestActor ! WebhookFailure(error.getMessage, request)
       }
   }
 
-  private def makeHttpRequest(httpRequest: HttpRequest) = {
+  private def makeHttpRequest(httpRequest: HttpRequest): Future[HttpResponse] = {
     Http().singleRequest(httpRequest)
   }
 
