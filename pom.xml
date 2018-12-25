@@ -92,11 +92,6 @@
       <version>0.13.1</version>
     </dependency>
     <dependency>
-      <groupId>net.databinder.dispatch</groupId>
-      <artifactId>dispatch-core_${scala.version}</artifactId>
-      <version>0.13.1</version>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>log4j-over-slf4j</artifactId>
       <version>1.7.25</version>
