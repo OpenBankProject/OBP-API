@@ -9,7 +9,6 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jose._
 import com.nimbusds.jose.crypto.{MACSigner, RSAEncrypter}
 import com.nimbusds.jwt.{EncryptedJWT, JWTClaimsSet}
-import javax.crypto.Cipher
 
 
 object CryptoSystem extends Enumeration {
@@ -65,7 +64,22 @@ object CertificateUtil extends MdcLoggable {
     keyPairGenerator.genKeyPair
   }
 
-  def jwtWithHmacProtection(claimsSet: JWTClaimsSet) = {
+  def jwtWithHmacProtection(claimsSet: JWTClaimsSet): String = {
+    // Create HMAC signer
+    val  signer: JWSSigner = new MACSigner(sharedSecret)
+    import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
+    import com.nimbusds.jwt.SignedJWT
+    val signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet)
+    // Apply the HMAC protection
+    signedJWT.sign(signer)
+    // Serialize to compact form, produces something like
+    // eyJhbGciOiJIUzI1NiJ9.SGVsbG8sIHdvcmxkIQ.onO9Ihudz3WkiauDO2Uhyuz0Y18UASXlSc1eS0NkWyA
+    val s: String = signedJWT.serialize()
+    // logger.info("jwtWithHmacProtection: " + s)
+    s
+  }
+  
+  def jwtWithHmacProtection(claimsSet: JWTClaimsSet, sharedSecret: String): String = {
     // Create HMAC signer
     val  signer: JWSSigner = new MACSigner(sharedSecret)
     import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
@@ -80,7 +94,16 @@ object CertificateUtil extends MdcLoggable {
     s
   }
 
-  def verifywtWithHmacProtection(jwt: String) = {
+  def verifywtWithHmacProtection(jwt: String): Boolean = {
+    import com.nimbusds.jose.crypto.MACVerifier
+    import com.nimbusds.jwt.SignedJWT
+    val signedJWT: SignedJWT = SignedJWT.parse(jwt)
+    // your-at-least-256-bit-secret
+    val verifier = new MACVerifier(sharedSecret)
+    signedJWT.verify(verifier)
+  }
+  
+  def verifywtWithHmacProtection(jwt: String, sharedSecret: String): Boolean = {
     import com.nimbusds.jose.crypto.MACVerifier
     import com.nimbusds.jwt.SignedJWT
     val signedJWT: SignedJWT = SignedJWT.parse(jwt)

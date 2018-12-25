@@ -221,11 +221,6 @@
       <version>1.6.0</version>
     </dependency>
     <dependency>
-      <groupId>com.jason-goodwin</groupId>
-      <artifactId>authentikat-jwt_${scala.version}</artifactId>
-      <version>0.4.5</version>
-    </dependency>
-    <dependency>
       <groupId>com.tokbox</groupId>
       <artifactId>opentok-server-sdk</artifactId>
       <version>3.0.0-beta.2</version>
@@ -358,7 +353,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>4.23</version>
+      <version>6.0</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>
