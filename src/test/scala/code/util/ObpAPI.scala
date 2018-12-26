@@ -135,7 +135,7 @@ object ObpAPI extends MdcLoggable {
       json \ "views" match {
         case JArray(l) => l.map(viewJson => 
           viewJson.values match{
-            case vals: Map[String, Any] => CompleteViewJson(vals)
+            case vals: Map[_, _] => CompleteViewJson(vals.asInstanceOf[Map[String, Any]])
             case _ => CompleteViewJson(Map.empty)
           })
         case _ => Nil

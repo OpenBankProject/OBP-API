@@ -3,7 +3,6 @@ package code.remotedata
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.context.{RemotedataUserAuthContextCaseClasses, UserAuthContext, UserAuthContextProvider}
-import code.remotedata.RemotedataNonces.extractFutureToBox
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

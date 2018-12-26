@@ -326,7 +326,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           } yield {
             val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
               case Full(a) => a
-              case Empty => List.empty
+              case _ => List.empty
             }
             logger.debug(s"JVMCompatible updateUserAccountViews got response ${res}")
             res
