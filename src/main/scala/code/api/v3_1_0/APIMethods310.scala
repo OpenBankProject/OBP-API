@@ -899,8 +899,8 @@ trait APIMethods310 {
       nameOf(enableDisableAccountWebhook),
       "PUT",
       "/banks/BANK_ID/account-web-hooks",
-      "Update an Account Webhook",
-      s"""Update an Account Webhook
+      "Enable/Disable an Account Webhook",
+      s"""Enable/Disable an Account Webhook
         |
         |
         |$accountWebHookInfo
