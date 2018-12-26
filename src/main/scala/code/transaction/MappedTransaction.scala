@@ -234,13 +234,17 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
       tryo {
         val eventId = APIUtil.generateUUID()
         val actor = ObpLookupSystem.getWebhookActor()
-        actor ! WebhookActor.Request(
+        def getAmount(value: Long): String = {
+          Helper.smallestCurrencyUnitToBigDecimal(value, t.currency.get).toString() + " " + t.currency.get
+        }
+
+        actor ! WebhookActor.WebhookRequest(
           ApiTrigger.onBalanceChange,
           eventId,
           t.theBankId.value,
           t.theAccountId.value,
-          t.amount.get.toString,
-          t.newAccountBalance.get.toString
+          getAmount(t.amount.get),
+          getAmount(t.newAccountBalance.get)
         )
     }
   )

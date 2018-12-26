@@ -183,6 +183,7 @@ case class AccountWebhookJson(account_webhook_id: String,
                               trigger_name: String,
                               url: String,
                               http_method: String,
+                              http_protocol: String,
                               created_by_user_id: String,
                               is_active: Boolean
                              )
@@ -191,6 +192,7 @@ case class AccountWebhookPostJson(account_id: String,
                                   trigger_name: String,
                                   url: String,
                                   http_method: String,
+                                  http_protocol: String,
                                   is_active: String
                                   )
 case class AccountWebhookPutJson(account_webhook_id: String,
@@ -461,6 +463,7 @@ object JSONFactory310{
       trigger_name = wh.triggerName,
       url = wh.url,
       http_method = wh.httpMethod,
+      http_protocol = wh.httpProtocol,
       created_by_user_id = wh.createdByUserId,
       is_active = wh.isActive()
     )

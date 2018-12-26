@@ -531,6 +531,17 @@ Info about rate limiting availibility at some instance can be found over next AP
   }
 }
 ```
+
+## Webhooks
+Webhooks are used to call external URLs when certain events happen.
+Account Webhooks focus on events around accounts.
+For instance, a webhook could be used to notify an external service if a balance changes on an account.
+This functionality is work in progress!
+
+There are 3 API's endpoint related to webhooks:
+1. `POST ../banks/BANK_ID/account-web-hooks` - Create an Account Webhook
+2. `PUT ../banks/BANK_ID/account-web-hooks` - Enable/Disable an Account Webhook
+3. `GET ../management/banks/BANK_ID/account-web-hooks` - Get Account Webhooks
    
 ## Scala / Lift
 

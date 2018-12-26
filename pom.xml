@@ -13,7 +13,7 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.4</scala.compiler>
-    <akka.version>2.5.13</akka.version>
+    <akka.version>2.5.19</akka.version>
     <akka-streams-kafka.version>0.22</akka-streams-kafka.version>
     <kafka.version>1.1.0</kafka.version>
     <avro.version>1.8.3</avro.version>
@@ -89,11 +89,6 @@
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-lift-json_${scala.version}</artifactId>
-      <version>0.13.1</version>
-    </dependency>
-    <dependency>
-      <groupId>net.databinder.dispatch</groupId>
-      <artifactId>dispatch-core_${scala.version}</artifactId>
       <version>0.13.1</version>
     </dependency>
     <dependency>
@@ -221,11 +216,6 @@
       <version>1.6.0</version>
     </dependency>
     <dependency>
-      <groupId>com.jason-goodwin</groupId>
-      <artifactId>authentikat-jwt_${scala.version}</artifactId>
-      <version>0.4.5</version>
-    </dependency>
-    <dependency>
       <groupId>com.tokbox</groupId>
       <artifactId>opentok-server-sdk</artifactId>
       <version>3.0.0-beta.2</version>
@@ -293,6 +283,12 @@
       <artifactId>obp-ri-transport</artifactId>
       <version>${obp-ri.version}</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.typesafe.akka/akka-http-core -->
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-http-core_${scala.version}</artifactId>
+      <version>10.1.6</version>
+    </dependency>
     <dependency>
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-actor_${scala.version}</artifactId>
@@ -352,7 +348,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>4.23</version>
+      <version>6.0</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>

@@ -2935,6 +2935,7 @@ object SwaggerDefinitionsJSON {
     trigger_name = ApiTrigger.onBalanceChange.toString(),
     url = "https://localhost.openbankproject.com",
     http_method = "POST",
+    http_protocol = "HTTP/1.1",
     is_active = "true"
   )
   val accountWebhookPutJson = AccountWebhookPutJson(
@@ -2948,6 +2949,7 @@ object SwaggerDefinitionsJSON {
     trigger_name = ApiTrigger.onBalanceChange.toString(),
     url = "https://localhost.openbankproject.com",
     http_method = "POST",
+    http_protocol = "HTTP/1.1",
     created_by_user_id = "b1fd9b29-659d-4838-a300-ea65b65b5fb6",
     is_active = true
   )

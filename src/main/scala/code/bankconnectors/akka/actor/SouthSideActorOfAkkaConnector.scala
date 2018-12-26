@@ -58,10 +58,6 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
        
     case OutboundGetCustomersByUserId(userId, cc) =>
       val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
-      sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)  
-      
-    case OutboundGetCustomersByUserId(userId, cc) =>
-      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
       sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)
        
     case OutboundGetCounterparties(thisBankId, thisAccountId, viewId, cc) =>

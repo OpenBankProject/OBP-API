@@ -831,7 +831,7 @@ trait APIMethods310 {
                                |
                                |Account Webhooks focus on events around accounts.
                                |
-                               |For instance, a webhook could be used to notify an external serivce if a balance changes on an account.
+                               |For instance, a webhook could be used to notify an external service if a balance changes on an account.
                                |
                                |This functionality is work in progress! Although you can create and modify Webhooks, they do not yet fire on triggers."""
 
@@ -881,6 +881,7 @@ trait APIMethods310 {
               triggerName = postJson.trigger_name,
               url = postJson.url,
               httpMethod = postJson.http_method,
+              httpProtocol = postJson.http_protocol,
               isActive = isActive
             ) map {
               unboxFullOrFail(_, callContext, CreateWebhookError, 400)
@@ -898,8 +899,8 @@ trait APIMethods310 {
       nameOf(enableDisableAccountWebhook),
       "PUT",
       "/banks/BANK_ID/account-web-hooks",
-      "Update an Account Webhook",
-      s"""Update an Account Webhook
+      "Enable/Disable an Account Webhook",
+      s"""Enable/Disable an Account Webhook
         |
         |
         |$accountWebHookInfo

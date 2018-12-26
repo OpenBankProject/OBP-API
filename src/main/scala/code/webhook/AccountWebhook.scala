@@ -24,6 +24,7 @@ trait AccountWebhookProvider {
                                  triggerName: String,
                                  url: String,
                                  httpMethod: String,
+                                 httpProtocol: String,
                                  isActive: Boolean
                                 ): Future[Box[AccountWebhook]]
   def updateAccountWebhookFuture(accountWebhookId: String,
@@ -43,6 +44,8 @@ trait AccountWebhook {
   def url: String
 
   def httpMethod: String
+  
+  def httpProtocol: String
 
   def createdByUserId: String
 
