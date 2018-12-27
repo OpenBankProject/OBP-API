@@ -103,7 +103,7 @@ object PostCustomer extends SendServerRequests {
     println(s"customerDataPath is $customerDataPath")
 
     // This contains a list of customers.
-    val customerListData = JsonParser.parse(Source.fromFile(customerDataPath.getOrElse("ERROR")) mkString)
+    val customerListData = JsonParser.parse(Source.fromFile(customerDataPath.getOrElse("ERROR")).mkString)
 
     var customers = ListBuffer[CustomerFullJson]()
 
@@ -127,7 +127,7 @@ object PostCustomer extends SendServerRequests {
 
     println(s"mainDataPath is $mainDataPath")
 
-    val mainData = JsonParser.parse(Source.fromFile(mainDataPath.getOrElse("ERROR")) mkString)
+    val mainData = JsonParser.parse(Source.fromFile(mainDataPath.getOrElse("ERROR")).mkString)
 
     val users = (mainData \ "users").children
     println("got " + users.length + " users")
