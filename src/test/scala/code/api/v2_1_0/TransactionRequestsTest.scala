@@ -2,10 +2,10 @@ package code.api.v2_1_0
 
 import java.util.UUID
 
-import code.api.util.ErrorMessages._
 import code.api.ChargePolicy
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
+import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
@@ -18,7 +18,6 @@ import code.transactionrequests.TransactionRequests.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write
-import net.liftweb.util.Props
 import org.scalatest.Tag
 
 class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
@@ -31,8 +30,9 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     })
   }
 
-  def defaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) =
-    new {
+  def defaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) = new DefaultSetup(transactionRequestTypeInput)
+  
+  class DefaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) {
 
       val sharedChargePolicy = ChargePolicy.withName("SHARED").toString
       var transactionRequestType: String = transactionRequestTypeInput
@@ -1052,125 +1052,5 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       }
     }
   }
-
-  /** notes: this is from V140, not the latest test, need to be fixed
-  scenario("we can't make a payment of zero units of currency", Payments) {
-    When("we try to make a payment with amount = 0")
-
-    val testBank = createPaymentTestBank()
-    val bankId = testBank.bankId
-    val accountId1 = AccountId("__acc1")
-    val accountId2 = AccountId("__acc2")
-    createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-    createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
-
-    def getFromAccount: BankAccount = {
-      BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
-    }
-
-    def getToAccount: BankAccount = {
-      BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
-    }
-
-    val fromAccount = getFromAccount
-    val toAccount = getToAccount
-
-    val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
-
-    val beforeFromBalance = fromAccount.balance
-    val beforeToBalance = toAccount.balance
-
-    val amt = BigDecimal("0")
-
-    val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
-    val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
-
-    Then("we should get a 400")
-    postResult.code should equal(400)
-
-    And("the number of transactions for each account should remain unchanged")
-    totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
-
-    And("the balances of each account should remain unchanged")
-    beforeFromBalance should equal(getFromAccount.balance)
-    beforeToBalance should equal(getToAccount.balance)
-  }
-
-  scenario("we can't make a payment with a negative amount of money", Payments) {
-
-    val testBank = createPaymentTestBank()
-    val bankId = testBank.bankId
-    val accountId1 = AccountId("__acc1")
-    val accountId2 = AccountId("__acc2")
-    val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-    val acc2 = createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
-
-    When("we try to make a payment with amount < 0")
-
-    def getFromAccount: BankAccount = {
-      BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
-    }
-
-    def getToAccount: BankAccount = {
-      BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
-    }
-
-    val fromAccount = getFromAccount
-    val toAccount = getToAccount
-
-    val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
-
-    val beforeFromBalance = fromAccount.balance
-    val beforeToBalance = toAccount.balance
-
-    val amt = BigDecimal("-20.30")
-
-    val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
-    val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
-
-    Then("we should get a 400")
-    postResult.code should equal(400)
-
-    And("the number of transactions for each account should remain unchanged")
-    totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
-
-    And("the balances of each account should remain unchanged")
-    beforeFromBalance should equal(getFromAccount.balance)
-    beforeToBalance should equal(getToAccount.balance)
-  }
-
-  scenario("we can't make a payment to an account that doesn't exist", Payments) {
-
-    val testBank = createPaymentTestBank()
-    val bankId = testBank.bankId
-    val accountId1 = AccountId("__acc1")
-    val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
-
-    When("we try to make a payment to an account that doesn't exist")
-
-    def getFromAccount: BankAccount = {
-      BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
-    }
-
-    val fromAccount = getFromAccount
-
-    val totalTransactionsBefore = transactionCount(fromAccount)
-
-    val beforeFromBalance = fromAccount.balance
-
-    val amt = BigDecimal("17.30")
-
-    val payJson = MakePaymentJson(bankId.value, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
-    val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
-
-    Then("we should get a 400")
-    postResult.code should equal(400)
-
-    And("the number of transactions for the sender's account should remain unchanged")
-    totalTransactionsBefore should equal(transactionCount(fromAccount))
-
-    And("the balance of the sender's account should remain unchanged")
-    beforeFromBalance should equal(getFromAccount.balance)
-  }
-    */
+  
 }
