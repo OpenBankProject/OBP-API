@@ -1,12 +1,11 @@
 package code.api.v2_1_0
 
+import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
 import code.api.util.ErrorMessages.UserHasMissingRoles
-import code.entitlement.Entitlement
-import code.model.BankId
-import net.liftweb.json.JsonAST._
 import code.api.util.{ApiRole, ErrorMessages}
+import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 
 
@@ -24,9 +23,8 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      error should contain (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -47,9 +45,8 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      error should contain (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -59,13 +56,12 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 403")
       responseGet.code should equal(403)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       val requiredEntitlements = CanGetEntitlementsForAnyUserAtOneBank ::
         CanGetEntitlementsForAnyUserAtAnyBank::
         Nil
       val requiredEntitlementsTxt = requiredEntitlements.mkString(" or ")
       And("We should get a message: " + s"$requiredEntitlementsTxt entitlements required")
-      error should contain (UserHasMissingRoles + requiredEntitlementsTxt)
+      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + requiredEntitlementsTxt)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlementsByBankAndUser") {

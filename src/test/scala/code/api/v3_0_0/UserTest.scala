@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ApiRole.CanGetAnyUser
@@ -24,9 +25,8 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      error should contain (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -37,9 +37,8 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
       responseGet.code should equal(403)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
-      And("We should get a message: " + ErrorMessages.UserHasMissingRoles)
-      error.toString contains (ErrorMessages.UserHasMissingRoles) should be (true)
+      And("We should get a message: " + UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
     }
   
   
@@ -70,7 +69,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get all user data without required role " + CanGetAnyUser){
@@ -81,7 +80,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get user data by USER_ID without required role " + CanGetAnyUser){
@@ -92,7 +91,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get user data by USERNAME without required role " + CanGetAnyUser){
@@ -103,7 +102,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We create an user and get it by EMAIL and USER_ID") {
