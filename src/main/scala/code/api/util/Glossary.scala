@@ -339,7 +339,7 @@ object Glossary {
 		title = "API.Timeouts",
 		description =
 				s"""
-					 |<img width="1403" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50450646-7a364280-092f-11e9-9f2a-b00e47e4873e.png"></img>
+					 |<img width="1403" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50471858-b52f8900-09b6-11e9-9888-454e6d41907c.png"></img>
 					 |
            |
            |
