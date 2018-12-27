@@ -122,6 +122,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
+        case _ => ArrayBuffer.empty[ResourceDoc]
       }
 
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
@@ -138,6 +139,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
         case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
         case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
+        case _                 => Nil
       }
 
       logger.debug(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")

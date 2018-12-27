@@ -1,11 +1,13 @@
 package code.api.v2_1_0
 
+import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole.CanGetAnyUser
+import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v2_0_0.JSONFactory200.UsersJsonV200
 import code.entitlement.Entitlement
 import code.setup.User1AllPrivileges
-import net.liftweb.json.JsonAST._
 
 
 /**
@@ -22,9 +24,8 @@ class UserTests extends V210ServerSetup with User1AllPrivileges {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      error should contain (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -35,9 +36,8 @@ class UserTests extends V210ServerSetup with User1AllPrivileges {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
       responseGet.code should equal(403)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.UserHasMissingRoles)
-      error.toString contains (ErrorMessages.UserHasMissingRoles) should be (true)
+      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
     }
   
   

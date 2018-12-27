@@ -16,8 +16,8 @@ trait ObpActorHelper {
           }
         case af: APIFailure => af
         case f: Failure => f
-        case l: List[T] => l
-        case s: Set[T] => s
+        case l: List[_] => l.asInstanceOf[List[T]]
+        case s: Set[_] => s.asInstanceOf[Set[T]]
         case Full(r) => r
         case j: JValue => j
         case t: T => t

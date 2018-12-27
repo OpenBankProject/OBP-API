@@ -1662,6 +1662,7 @@ Returns a string showed to the developer
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
+        case _ => logger.info(s"There is no ${version.toString}")
       }
 
       logger.info(s"${version.toString} was ENABLED")

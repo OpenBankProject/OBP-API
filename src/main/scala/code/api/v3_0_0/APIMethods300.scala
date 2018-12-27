@@ -29,7 +29,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common._
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -1188,6 +1188,8 @@ trait APIMethods300 {
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
                 else Full(branchesWithLicense)
+              case Failure(msg, t, c) => Failure(msg, t, c)
+              case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
             } map { unboxFull(_) } map {
               branches =>
               // Before we slice we need to sort in order to keep consistent results
@@ -1309,6 +1311,8 @@ trait APIMethods300 {
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
                 else Full(branchesWithLicense)
+              case Failure(msg, t, c) => Failure(msg, t, c)
+              case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
             } map { unboxFull(_) } map {
               branch =>
                 // Before we slice we need to sort in order to keep consistent results

@@ -1174,7 +1174,7 @@ trait APIMethods200 {
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "transaction-types" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "" :: Nil JsonGet _ => {
         cc => {
           for {
           // Get Transaction Types from the active provider

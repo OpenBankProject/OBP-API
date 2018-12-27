@@ -22,8 +22,8 @@ trait ObpActorInit extends MdcLoggable{
 
   def extractFuture[T](f: Future[Any]): T = {
     val r = f.map {
-      case s: Set[T] => s
-      case l: List[T] => l
+      case s: Set[_] => s.asInstanceOf[Set[T]]
+      case l: List[_] => l.asInstanceOf[List[T]]
       case t: T => t
       case _ => Empty ~> APIFailure(s"future extraction failed", 501)
     }
