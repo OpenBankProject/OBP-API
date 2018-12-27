@@ -335,6 +335,17 @@ object Glossary {
  |"""
 	)
 
+	glossaryItems += GlossaryItem(
+		title = "API.Timeouts",
+		description =
+				s"""
+					 |<img width="1403" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50450646-7a364280-092f-11e9-9f2a-b00e47e4873e.png"></img>
+					 |
+           |
+           |
+           |"""
+	)
+
 
 	glossaryItems += GlossaryItem(
 		title = "API.Access Control",
