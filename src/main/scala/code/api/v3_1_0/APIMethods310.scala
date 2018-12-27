@@ -44,7 +44,9 @@ import scala.concurrent.Future
 trait APIMethods310 {
   self: RestHelper =>
 
-  val Implementations3_1_0 = new Object() {
+  val Implementations3_1_0 = new Implementations310() 
+  
+  class Implementations310 {
 
     val implementedInApiVersion: ApiVersion = ApiVersion.v3_1_0
 
