@@ -829,13 +829,13 @@ trait APIMethods310 {
     }
 
 
-    val accountWebHookInfo = """Webhooks are used to call external URLs when certain events happen.
+    val accountWebHookInfo = s"""Webhooks are used to call external URLs when certain events happen.
                                |
                                |Account Webhooks focus on events around accounts.
                                |
                                |For instance, a webhook could be used to notify an external service if a balance changes on an account.
                                |
-                               |This functionality is work in progress! Although you can create and modify Webhooks, they do not yet fire on triggers."""
+                               |This functionality is work in progress! Please note that only implemented trigger is: ${ApiTrigger.onBalanceChange}"""
 
 
     resourceDocs += ResourceDoc(
@@ -912,7 +912,7 @@ trait APIMethods310 {
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
-      Some(List(canCreateWebhook))
+      Some(List(canUpdateWebhook))
     )
 
     lazy val enableDisableAccountWebhook : OBPEndpoint = {
