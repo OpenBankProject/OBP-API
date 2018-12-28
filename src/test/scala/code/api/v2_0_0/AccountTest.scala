@@ -23,23 +23,6 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       And("We should get a 200")
       responsePut.code should equal(200)
 
-//      When("We make the anonymous access request")
-//      val requestGet = (v2_0Request / "accounts").GET
-//      val responseGet = makeGetRequest(requestGet)
-//
-//      Then("We should get a 200")
-//      responseGet.code should equal(200)
-//
-//      val isPublic: List[Boolean] =
-//        for {
-//          JObject(o) <- responseGet.body
-//          JField("is_public", JBool(isPublic)) <- o
-//        } yield {
-//          isPublic
-//        }
-//      And("All received accounts have to be public")
-//      isPublic.forall(_ == true) should equal(true)
-
       When("We make the authenticated access request")
       val requestGetAll = (v2_0Request / "accounts").GET <@ (user1)
       val responseGetAll = makeGetRequest(requestGetAll)
@@ -70,23 +53,6 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
 
       And("We should get a 200")
       responsePut.code should equal(200)
-
-//      When("We make the anonymous access request")
-//      val requestGet = (v2_0Request / "banks" / testBank.value / "accounts").GET
-//      val responseGet = makeGetRequest(requestGet)
-//
-//      Then("We should get a 200")
-//      responseGet.code should equal(200)
-//
-//      val isPublic: List[Boolean] =
-//        for {
-//          JObject(o) <- responseGet.body
-//          JField("is_public", JBool(isPublic)) <- o
-//        } yield {
-//          isPublic
-//        }
-//      And("All received accounts have to be public")
-//      isPublic.forall(_ == true) should equal(true)
 
       When("We make the authenticated access request")
       val requestGetAll = (v2_0Request / "banks" / testBank.value / "accounts").GET <@ (user1)
