@@ -43,6 +43,9 @@ trait ObpActorInit extends MdcLoggable{
     Await.result(r, TIMEOUT)
     
   }
+  def getValueFromFuture[T](f: Future[T]): T = {
+    Await.result(f, TIMEOUT)
+  }
 
   def CreateActorNameFromClassName(c: String): String = {
     val n = c.replaceFirst("^.*Remotedata", "").replaceAll("\\$.*", "")
