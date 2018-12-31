@@ -16,19 +16,19 @@ class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLo
 
     case cc.getOrCreateAccountHolder(user: User, account :BankIdAccountId) =>
       logger.debug("getOrCreateAccountHolder(" + user +", "+ account +", " +")")
-      sender ! extractResult(mapper.getOrCreateAccountHolder(user: User, account :BankIdAccountId))
+      sender ! (mapper.getOrCreateAccountHolder(user: User, account :BankIdAccountId))
       
     case cc.getAccountHolders(bankId: BankId, accountId: AccountId) =>
       logger.debug("getAccountHolders(" + bankId +", "+ accountId +")")
-      sender ! extractResult(mapper.getAccountHolders(bankId, accountId))
+      sender ! (mapper.getAccountHolders(bankId, accountId))
 
     case cc.getAccountsHeld(bankId: BankId, user: User) =>
       logger.debug("getAccountsHeld(" + bankId +", "+ user+")")
-      sender ! extractResult(mapper.getAccountsHeld(bankId: BankId, user: User))
+      sender ! (mapper.getAccountsHeld(bankId: BankId, user: User))
       
     case cc.bulkDeleteAllAccountHolders() =>
       logger.debug("bulkDeleteAllAccountHolders()")
-      sender ! extractResult(mapper.bulkDeleteAllAccountHolders())
+      sender ! (mapper.bulkDeleteAllAccountHolders())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
   }
