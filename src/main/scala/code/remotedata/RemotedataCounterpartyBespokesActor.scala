@@ -14,15 +14,15 @@ class RemotedataCounterpartyBespokesActor extends Actor with ObpActorHelper with
   val mapper = MapperCounterpartyBespokes
   val cc = RemotedataCounterpartyBespokesCaseClasses
 
-  def receive = {
+  def receive: PartialFunction[Any, Unit] = {
 
     case cc.createCounterpartyBespokes(mapperCounterpartyPrimaryKey: Long, bespokes: List[CounterpartyBespoke]) =>
       logger.debug(s"createCounterpartyBespokes($mapperCounterpartyPrimaryKey , $bespokes)")
-      sender ! extractResult(mapper.createCounterpartyBespokes(mapperCounterpartyPrimaryKey: Long, bespokes: List[CounterpartyBespoke]))
+      sender ! (mapper.createCounterpartyBespokes(mapperCounterpartyPrimaryKey: Long, bespokes: List[CounterpartyBespoke]))
 
     case cc.getCounterpartyBespokesByCounterpartyId(mapperCounterpartyPrimaryKey: Long) =>
       logger.debug(s"getCounterpartyBespokesByCounterpartyId($mapperCounterpartyPrimaryKey)")
-      sender ! extractResult(mapper.getCounterpartyBespokesByCounterpartyId(mapperCounterpartyPrimaryKey: Long))
+      sender ! (mapper.getCounterpartyBespokesByCounterpartyId(mapperCounterpartyPrimaryKey: Long))
       
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

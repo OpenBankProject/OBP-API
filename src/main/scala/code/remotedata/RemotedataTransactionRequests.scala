@@ -13,17 +13,21 @@ object RemotedataTransactionRequests extends ObpActorInit with TransactionReques
 
   val cc = RemotedataTransactionRequestsCaseClasses
 
-  def getMappedTransactionRequest(transactionRequestId: TransactionRequestId): Box[MappedTransactionRequest] =
-    extractFutureToBox(actor ? cc.getMappedTransactionRequest(transactionRequestId))
+  def getMappedTransactionRequest(transactionRequestId: TransactionRequestId): Box[MappedTransactionRequest] = getValueFromFuture(
+    (actor ? cc.getMappedTransactionRequest(transactionRequestId)).mapTo[Box[MappedTransactionRequest]]
+  )
 
-  def getTransactionRequestsFromProvider(bankId: BankId, accountId: AccountId): Box[List[TransactionRequest]] =
-    extractFutureToBox(actor ? cc.getTransactionRequestsFromProvider(bankId, accountId))
+  def getTransactionRequestsFromProvider(bankId: BankId, accountId: AccountId): Box[List[TransactionRequest]] = getValueFromFuture(
+    (actor ? cc.getTransactionRequestsFromProvider(bankId, accountId)).mapTo[Box[List[TransactionRequest]]]
+  )
 
-  def getTransactionRequestFromProvider(transactionRequestId: TransactionRequestId): Box[TransactionRequest] =
-    extractFutureToBox(actor ? cc.getTransactionRequestFromProvider(transactionRequestId))
+  def getTransactionRequestFromProvider(transactionRequestId: TransactionRequestId): Box[TransactionRequest] = getValueFromFuture(
+    (actor ? cc.getTransactionRequestFromProvider(transactionRequestId)).mapTo[Box[TransactionRequest]]
+  )
 
-  def updateAllPendingTransactionRequests(): Box[Option[Unit]] =
-    extractFutureToBox(actor ? cc.updateAllPendingTransactionRequests())
+  def updateAllPendingTransactionRequests(): Box[Option[Unit]] = getValueFromFuture(
+    (actor ? cc.updateAllPendingTransactionRequests()).mapTo[ Box[Option[Unit]]]
+  )
 
   def createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
                                    transactionRequestType: TransactionRequestType,
@@ -31,15 +35,16 @@ object RemotedataTransactionRequests extends ObpActorInit with TransactionReques
                                    counterparty: BankAccount,
                                    body: TransactionRequestBody,
                                    status: String,
-                                   charge: TransactionRequestCharge): Box[TransactionRequest] =
-    extractFutureToBox(actor ? cc.createTransactionRequestImpl(
+                                   charge: TransactionRequestCharge): Box[TransactionRequest] = getValueFromFuture(
+    (actor ? cc.createTransactionRequestImpl(
       transactionRequestId,
       transactionRequestType,
       account,
       counterparty,
       body,
       status,
-      charge))
+      charge)).mapTo[Box[TransactionRequest]]
+  )
 
   def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
                                       transactionRequestType: TransactionRequestType,
@@ -49,8 +54,8 @@ object RemotedataTransactionRequests extends ObpActorInit with TransactionReques
                                       details: String,
                                       status: String,
                                       charge: TransactionRequestCharge,
-                                      chargePolicy: String): Box[TransactionRequest] =
-    extractFutureToBox(actor ? cc.createTransactionRequestImpl210(
+                                      chargePolicy: String): Box[TransactionRequest] = getValueFromFuture(
+    (actor ? cc.createTransactionRequestImpl210(
       transactionRequestId,
       transactionRequestType,
       fromAccount,
@@ -59,19 +64,24 @@ object RemotedataTransactionRequests extends ObpActorInit with TransactionReques
       details,
       status,
       charge,
-      chargePolicy))
+      chargePolicy)).mapTo[Box[TransactionRequest]]
+  )
 
-  def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] =
-    extractFutureToBox(actor ? cc.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId))
+  def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)).mapTo[Box[Boolean]]
+  )
 
-  def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] =
-    extractFutureToBox(actor ? cc.saveTransactionRequestChallengeImpl(transactionRequestId, challenge))
+  def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.saveTransactionRequestChallengeImpl(transactionRequestId, challenge)).mapTo[Box[Boolean]]
+  )
 
-  def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.saveTransactionRequestStatusImpl(transactionRequestId, status))
+  def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.saveTransactionRequestStatusImpl(transactionRequestId, status)).mapTo[Box[Boolean]]
+  )
 
-  def bulkDeleteTransactionRequests(): Boolean =
-    extractFuture(actor ? cc.bulkDeleteTransactionRequests())
+  def bulkDeleteTransactionRequests(): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteTransactionRequests()).mapTo[Boolean]
+  )
 
 
 }

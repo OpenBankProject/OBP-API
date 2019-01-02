@@ -15,23 +15,29 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
 
   val cc = RemotedataCounterpartiesCaseClasses
 
-  override def getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String) : Box[CounterpartyMetadata] =
-    extractFutureToBox(actor ? cc.getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String))
+  override def getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String) : Box[CounterpartyMetadata] = getValueFromFuture(
+    (actor ? cc.getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)).mapTo[Box[CounterpartyMetadata]]
+  )
   
-  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] =
-    extractFuture(actor ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId))
+  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] = getValueFromFuture(
+    (actor ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)).mapTo[List[CounterpartyMetadata]]
+  )
 
-  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[CounterpartyMetadata] =
-    extractFutureToBox(actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String))
+  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[CounterpartyMetadata] = getValueFromFuture(
+    (actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[Box[CounterpartyMetadata]]
+  )
 
-  override def getCounterparty(counterpartyId: String): Box[CounterpartyTrait] =
-    extractFutureToBox(actor ? cc.getCounterparty(counterpartyId: String))
+  override def getCounterparty(counterpartyId: String): Box[CounterpartyTrait] = getValueFromFuture(
+    (actor ? cc.getCounterparty(counterpartyId: String)).mapTo[Box[CounterpartyTrait]]
+  )
 
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
-    extractFutureToBox(actor ? cc.getCounterpartyByIban(iban: String))
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = getValueFromFuture(
+    (actor ? cc.getCounterpartyByIban(iban: String)).mapTo[Box[CounterpartyTrait]]
+  )
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] =
-    extractFutureToBox(actor ? cc.getCounterparties(thisBankId, thisAccountId, viewId))
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = getValueFromFuture(
+    (actor ? cc.getCounterparties(thisBankId, thisAccountId, viewId)).mapTo[Box[List[CounterpartyTrait]]]
+  )
   
   override def createCounterparty(
                                   createdByUserId: String,
@@ -49,79 +55,101 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
                                   otherAccountSecondaryRoutingScheme: String,
                                   otherAccountSecondaryRoutingAddress: String,
                                   description: String,
-                                  bespoke: List[CounterpartyBespoke]): Box[CounterpartyTrait] =
-    extractFutureToBox(actor ? cc.createCounterparty(createdByUserId, thisBankId,
-                                                      thisAccountId, thisViewId, name,
-                                                      otherAccountRoutingScheme,
-                                                      otherAccountRoutingAddress,
-                                                      otherBankRoutingScheme,
-                                                      otherBankRoutingAddress,
-                                                      otherBranchRoutingScheme,
-                                                      otherBranchRoutingAddress,
-                                                      isBeneficiary,
-                                                      otherAccountSecondaryRoutingScheme,
-                                                      otherAccountSecondaryRoutingAddress,
-                                                      description,
-                                                      bespoke))
+                                  bespoke: List[CounterpartyBespoke]): Box[CounterpartyTrait] = getValueFromFuture(
+    (actor ? cc.createCounterparty(createdByUserId, 
+                                  thisBankId,
+                                  thisAccountId, thisViewId, name,
+                                  otherAccountRoutingScheme,
+                                  otherAccountRoutingAddress,
+                                  otherBankRoutingScheme,
+                                  otherBankRoutingAddress,
+                                  otherBranchRoutingScheme,
+                                  otherBranchRoutingAddress,
+                                  isBeneficiary,
+                                  otherAccountSecondaryRoutingScheme,
+                                  otherAccountSecondaryRoutingAddress,
+                                  description,
+                                  bespoke)).mapTo[Box[CounterpartyTrait]]
+  )
 
-  override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean =
-    extractFuture(actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))
+  override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean = getValueFromFuture(
+    (actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean]
+  )
 
-  override def getCorporateLocation(counterpartyId: String): Box[GeoTag] =
-    extractFutureToBox(actor ? cc.getCorporateLocation(counterpartyId))
+  override def getCorporateLocation(counterpartyId: String): Box[GeoTag] = getValueFromFuture(
+    (actor ? cc.getCorporateLocation(counterpartyId)).mapTo[Box[GeoTag]]
+  )
 
-  override def getPublicAlias(counterpartyId: String): Box[String] =
-    extractFutureToBox(actor ? cc.getPublicAlias(counterpartyId))
+  override def getPublicAlias(counterpartyId: String): Box[String] = getValueFromFuture(
+    (actor ? cc.getPublicAlias(counterpartyId)).mapTo[Box[String]]
+  )
 
-  override def getPrivateAlias(counterpartyId: String): Box[String] =
-    extractFutureToBox(actor ? cc.getPrivateAlias(counterpartyId))
+  override def getPrivateAlias(counterpartyId: String): Box[String] = getValueFromFuture(
+    (actor ? cc.getPrivateAlias(counterpartyId)).mapTo[Box[String]]
+  )
 
-  override def getPhysicalLocation(counterpartyId: String): Box[GeoTag] =
-    extractFutureToBox(actor ? cc.getPhysicalLocation(counterpartyId))
+  override def getPhysicalLocation(counterpartyId: String): Box[GeoTag] = getValueFromFuture(
+    (actor ? cc.getPhysicalLocation(counterpartyId)).mapTo[Box[GeoTag]]
+  )
 
-  override def getOpenCorporatesURL(counterpartyId: String): Box[String] =
-    extractFutureToBox(actor ? cc.getOpenCorporatesURL(counterpartyId))
+  override def getOpenCorporatesURL(counterpartyId: String): Box[String] = getValueFromFuture(
+    (actor ? cc.getOpenCorporatesURL(counterpartyId)).mapTo[Box[String]]
+  )
 
-  override def getImageURL(counterpartyId: String): Box[String] =
-  extractFutureToBox(actor ? cc.getImageURL(counterpartyId))
+  override def getImageURL(counterpartyId: String): Box[String] = getValueFromFuture(
+    (actor ? cc.getImageURL(counterpartyId)).mapTo[Box[String]]
+  )
 
-  override def getUrl(counterpartyId: String): Box[String] =
-  extractFutureToBox(actor ? cc.getUrl(counterpartyId))
+  override def getUrl(counterpartyId: String): Box[String] = getValueFromFuture(
+    (actor ? cc.getUrl(counterpartyId)).mapTo[Box[String]]
+  )
 
-  override def getMoreInfo(counterpartyId: String): Box[String] =
-  extractFutureToBox(actor ? cc.getMoreInfo(counterpartyId))
+  override def getMoreInfo(counterpartyId: String): Box[String] = getValueFromFuture(
+    (actor ? cc.getMoreInfo(counterpartyId)).mapTo[Box[String]]
+  )
 
-  override def addPublicAlias(counterpartyId: String, alias: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addPublicAlias(counterpartyId, alias))
+  override def addPublicAlias(counterpartyId: String, alias: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addPublicAlias(counterpartyId, alias)).mapTo[Box[Boolean]]
+  )
 
-  override def addPrivateAlias(counterpartyId: String, alias: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addPrivateAlias(counterpartyId, alias))
+  override def addPrivateAlias(counterpartyId: String, alias: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addPrivateAlias(counterpartyId, alias)).mapTo[Box[Boolean]]
+  )
 
-  override def addURL(counterpartyId: String, url: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addURL(counterpartyId, url))
+  override def addURL(counterpartyId: String, url: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addURL(counterpartyId, url)).mapTo[Box[Boolean]]
+  )
 
-  override def addImageURL(counterpartyId: String, url: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addImageURL(counterpartyId, url))
+  override def addImageURL(counterpartyId: String, url: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addImageURL(counterpartyId, url)).mapTo[Box[Boolean]]
+  )
 
-  override def addOpenCorporatesURL(counterpartyId: String, url: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addOpenCorporatesURL(counterpartyId, url))
+  override def addOpenCorporatesURL(counterpartyId: String, url: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addOpenCorporatesURL(counterpartyId, url)).mapTo[Box[Boolean]]
+  )
 
-  override def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addMoreInfo(counterpartyId, moreInfo))
+  override def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addMoreInfo(counterpartyId, moreInfo)).mapTo[Box[Boolean]]
+  )
 
-  override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addPhysicalLocation(counterpartyId, userId, datePosted, longitude, latitude))
+  override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addPhysicalLocation(counterpartyId, userId, datePosted, longitude, latitude)).mapTo[Box[Boolean]]
+  )
 
-  override def addCorporateLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] =
-    extractFutureToBox(actor ? cc.addCorporateLocation(counterpartyId, userId, datePosted, longitude, latitude))
+  override def addCorporateLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.addCorporateLocation(counterpartyId, userId, datePosted, longitude, latitude)).mapTo[Box[Boolean]]
+  )
 
-  override def deletePhysicalLocation(counterpartyId: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.deletePhysicalLocation(counterpartyId))
+  override def deletePhysicalLocation(counterpartyId: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.deletePhysicalLocation(counterpartyId)).mapTo[Box[Boolean]]
+  )
 
-  override def deleteCorporateLocation(counterpartyId: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.deleteCorporateLocation(counterpartyId))
+  override def deleteCorporateLocation(counterpartyId: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.deleteCorporateLocation(counterpartyId)).mapTo[Box[Boolean]]
+  )
   
-  override def bulkDeleteAllCounterparties(): Box[Boolean] =
-    extractFutureToBox(actor ? cc.bulkDeleteAllCounterparties())
+  override def bulkDeleteAllCounterparties(): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.bulkDeleteAllCounterparties()).mapTo[Box[Boolean]]
+  )
 
 }

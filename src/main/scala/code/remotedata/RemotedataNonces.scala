@@ -18,17 +18,20 @@ object RemotedataNonces extends ObpActorInit with NoncesProvider {
                   consumerKey: Option[String],
                   tokenKey: Option[String],
                   timestamp: Option[Date],
-                  value: Option[String]): Box[Nonce] =
-    extractFutureToBox(actor ? cc.createNonce(id, consumerKey, tokenKey, timestamp, value))
+                  value: Option[String]): Box[Nonce] = getValueFromFuture(
+    (actor ? cc.createNonce(id, consumerKey, tokenKey, timestamp, value)).mapTo[Box[Nonce]]
+  )
 
-  def deleteExpiredNonces(currentDate: Date): Boolean =
-    extractFuture(actor ? cc.deleteExpiredNonces(currentDate))
+  def deleteExpiredNonces(currentDate: Date): Boolean = getValueFromFuture(
+    (actor ? cc.deleteExpiredNonces(currentDate)).mapTo[Boolean]
+  )
 
   def countNonces(consumerKey: String,
                   tokenKey: String,
                   timestamp: Date,
-                  value: String): Long =
-    extractFuture(actor ? cc.countNonces(consumerKey, tokenKey, timestamp, value))
+                  value: String): Long = getValueFromFuture(
+    (actor ? cc.countNonces(consumerKey, tokenKey, timestamp, value)).mapTo[Long]
+  )
 
   def countNoncesFuture(consumerKey: String,
                         tokenKey: String,
