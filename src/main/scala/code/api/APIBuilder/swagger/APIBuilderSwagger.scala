@@ -59,7 +59,7 @@ object APIBuilderSwagger
   
   val getMultipleApiSummary: String = ((jsonJValueFromFile  \\"get"\\ "summary")\("summary")).asInstanceOf[JArray].children(0).asInstanceOf[JString].values
   val getSingleApiSummary: String = ((jsonJValueFromFile  \\"get"\\ "summary")\("summary")).asInstanceOf[JArray].children(1).asInstanceOf[JString].values
-  val deleteSingleApiSummary: String = ((jsonJValueFromFile  \\"get"\\ "summary")\("summary")).asInstanceOf[JArray].children(1).asInstanceOf[JString].values
+  val deleteSingleApiSummary: String = ((jsonJValueFromFile \\"delete"\\ "summary")\("summary")).asInstanceOf[JString].values
   val createSingleApiSummary: String = ((jsonJValueFromFile \\"post"\\ "summary")\("summary")).asInstanceOf[JString].values
   
   val getApiDescription: String = ((jsonJValueFromFile \\"get"\\ "description").obj.head.value).asInstanceOf[JString].values 
@@ -82,9 +82,10 @@ object APIBuilderSwagger
   val createApiUrlLiftweb: Lit.String = Lit.String(getApiUrlLiftFormat)
   
   val getSingleApiUrlVal = Lit.String(s"$getSingleApiUrl")
+  val deleteSingleApiUrlVal = Lit.String(s"$getSingleApiUrl")
   val getSingleApiUrlLiftFormat = getSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
   val getSingleApiUrlLiftweb: Lit.String = Lit.String(getSingleApiUrlLiftFormat)
-  val deleteSingleApiUrlLiftweb: Lit.String = Lit.String(getSingleApiUrlLiftFormat)
+  val deleteApiUrlLiftweb: Lit.String = Lit.String(getSingleApiUrlLiftFormat)
   
   val getMultipleApiSummaryVal = Lit.String(s"$getMultipleApiSummary")
   val getSingleApiSummaryVal = Lit.String(s"$getSingleApiSummary")
@@ -201,6 +202,42 @@ object APIBuilderSwagger
       }
     }"""
   
+  val deleteTemplateResourceCode: Term.ApplyInfix = q"""
+    resourceDocs += ResourceDoc(
+      deleteTemplate, 
+      apiVersion, 
+      "deleteTemplate", 
+      "DELETE",
+      $deleteSingleApiUrlVal,
+      $deleteSingleApiSummaryVal,
+      $deleteSingleApiDescriptionVal,
+      emptyObjectJson, 
+      emptyObjectJson.copy("true"),
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG), 
+      apiTagApiBuilder :: Nil
+    )"""
+  
+  val deleteTemplatePartialFunction: Defn.Val = q"""
+    lazy val deleteTemplate: OBPEndpoint ={
+      case ($deleteApiUrlLiftweb :: templateId :: Nil) JsonDelete _ => {
+        cc =>
+        {
+          for{
+            u <- $deleteSingleApiAuthenticationStatement
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
+            deleted <- APIBuilder_Connector.deleteTemplate(templateId)
+          }yield{
+            if(deleted)
+              noContentJsonResponse
+            else
+              errorJsonResponse("Delete not completed")
+          }
+        }
+      }
+    }
+    """
+  
   //List(author, pages, points)
   val modelFieldsNames: List[String] = getModelFieldsNames(modelFieldsJValue)
   //List(String, Int, Double)
@@ -299,7 +336,7 @@ trait APIMethods_APIBuilder
     implicit val formats = net.liftweb.json.DefaultFormats
 
     $errorMessageVal;
-    def endpointsOfBuilderAPI =  getTemplates :: createTemplate :: getTemplate :: Nil
+    def endpointsOfBuilderAPI =  getTemplates :: createTemplate :: getTemplate :: deleteTemplate:: Nil
     
  
     $getTemplatesResourceCode
@@ -309,7 +346,10 @@ trait APIMethods_APIBuilder
     $createTemplatePartialFunction
                              
     $getTemplateResourceCode
-    $getTemplatePartialFunction                              
+    $getTemplatePartialFunction
+        
+    $deleteTemplateResourceCode
+    $deleteTemplatePartialFunction                                
     
   }
 }
