@@ -9,6 +9,7 @@ import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import code.actorsystem.ObpLookupSystem
 import code.api.util.ApiTrigger
+import code.api.util.ApiTrigger.{OnBalanceChange, OnCreditTransaction, OnDebitTransaction}
 import code.util.Helper.MdcLoggable
 import code.webhook.WebhookActor.{WebhookFailure, WebhookRequest, WebhookResponse}
 import net.liftweb
@@ -38,7 +39,7 @@ object WebhookHttpClient extends MdcLoggable {
     *             getAmount(t.newAccountBalance.get)
     *           )
     *           and then send result of event to the Actor:
-    *         2. requestActor ! WebhookResponse(res.status.toString(), "", request)
+    *         2. requestActor ! WebhookResponse(res.status.toString(), request)
     */
   def startEvent(request: WebhookRequest): List[Unit] = {
     
@@ -56,7 +57,7 @@ object WebhookHttpClient extends MdcLoggable {
 
   private def getEventPayload(request: WebhookRequest): RequestEntity = {
     request.trigger match {
-      case ApiTrigger.OnBalanceChange() =>
+      case OnBalanceChange() | OnCreditTransaction() | OnDebitTransaction() =>
         implicit val formats = net.liftweb.json.DefaultFormats
         val json = liftweb.json.compactRender(Extraction.decompose(request.toEventPayload))
         val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
