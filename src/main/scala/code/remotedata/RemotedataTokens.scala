@@ -15,14 +15,16 @@ object RemotedataTokens extends ObpActorInit with TokensProvider {
 
   val cc = RemotedataTokensCaseClasses
 
-  def getTokenByKey(key: String): Box[Token] =
-    extractFutureToBox(actor ? cc.getTokenByKey(key))
+  def getTokenByKey(key: String): Box[Token] = getValueFromFuture(
+    (actor ? cc.getTokenByKey(key)).mapTo[Box[Token]]
+  )
 
   def getTokenByKeyFuture(key: String): Future[Box[Token]] =
     (actor ? cc.getTokenByKeyFuture(key)).mapTo[Box[Token]]
 
-  def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] =
-    extractFutureToBox(actor ? cc.getTokenByKeyAndType(key, tokenType))
+  def getTokenByKeyAndType(key: String, tokenType: TokenType): Box[Token] = getValueFromFuture(
+    (actor ? cc.getTokenByKeyAndType(key, tokenType)).mapTo[Box[Token]]
+  )
 
   def getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType): Future[Box[Token]] =
     (actor ? cc.getTokenByKeyAndTypeFuture(key, tokenType)).mapTo[Box[Token]]
@@ -35,20 +37,25 @@ object RemotedataTokens extends ObpActorInit with TokensProvider {
                   duration: Option[Long],
                   expirationDate: Option[Date],
                   insertDate: Option[Date],
-                  callbackURL: Option[String]): Box[Token] =
-    extractFutureToBox(actor ? cc.createToken(tokenType, consumerId, userId, key, secret, duration, expirationDate, insertDate, callbackURL))
+                  callbackURL: Option[String]): Box[Token] = getValueFromFuture(
+    (actor ? cc.createToken(tokenType, consumerId, userId, key, secret, duration, expirationDate, insertDate, callbackURL)).mapTo[Box[Token]]
+  )
 
-  def gernerateVerifier(id: Long): String =
-    extractFuture(actor ? cc.gernerateVerifier(id))
+  def gernerateVerifier(id: Long): String = getValueFromFuture(
+    (actor ? cc.gernerateVerifier(id)).mapTo[String]
+  )
 
-  def updateToken(id: Long, userId: Long): Boolean =
-    extractFuture(actor ? cc.updateToken(id, userId))
+  def updateToken(id: Long, userId: Long): Boolean = getValueFromFuture(
+    (actor ? cc.updateToken(id, userId)).mapTo[Boolean]
+  )
 
-  def deleteToken(id: Long): Boolean =
-    extractFuture(actor ? cc.deleteToken(id))
+  def deleteToken(id: Long): Boolean = getValueFromFuture(
+    (actor ? cc.deleteToken(id)).mapTo[Boolean]
+  )
 
-  def deleteExpiredTokens(currentDate: Date): Boolean =
-    extractFuture(actor ? cc.deleteExpiredTokens(currentDate))
+  def deleteExpiredTokens(currentDate: Date): Boolean = getValueFromFuture(
+    (actor ? cc.deleteExpiredTokens(currentDate)).mapTo[Boolean]
+  )
 
 
 }

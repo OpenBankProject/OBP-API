@@ -1,6 +1,7 @@
 package code.remotedata
 
 import java.util.Date
+
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.usercustomerlinks.{RemotedataUserCustomerLinkProviderCaseClass, UserCustomerLink, UserCustomerLinkProvider}
@@ -11,22 +12,28 @@ object RemotedataUserCustomerLinks extends ObpActorInit with UserCustomerLinkPro
 
   val cc = RemotedataUserCustomerLinkProviderCaseClass
 
-  def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) : Box[UserCustomerLink] =
-    extractFutureToBox(actor ? cc.createUserCustomerLink(userId, customerId, dateInserted, isActive))
+  def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean) : Box[UserCustomerLink] =  getValueFromFuture(
+    (actor ? cc.createUserCustomerLink(userId, customerId, dateInserted, isActive)).mapTo[Box[UserCustomerLink]]
+  )
 
-  def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] =
-    extractFutureToBox(actor ? cc.getUserCustomerLinkByCustomerId(customerId))
+  def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] = getValueFromFuture(
+    (actor ? cc.getUserCustomerLinkByCustomerId(customerId)).mapTo[Box[UserCustomerLink]]
+  )
 
-  def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] =
-    extractFuture(actor ? cc.getUserCustomerLinksByUserId(userId))
+  def getUserCustomerLinksByUserId(userId: String): List[UserCustomerLink] = getValueFromFuture(
+    (actor ? cc.getUserCustomerLinksByUserId(userId)).mapTo[List[UserCustomerLink]]
+  )
 
-  def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink] =
-    extractFutureToBox(actor ? cc.getUserCustomerLink(userId, customerId))
+  def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink] = getValueFromFuture(
+    (actor ? cc.getUserCustomerLink(userId, customerId)).mapTo[Box[UserCustomerLink]]
+  )
 
-  def getUserCustomerLinks: Box[List[UserCustomerLink]] =
-    extractFutureToBox(actor ? cc.getUserCustomerLinks())
+  def getUserCustomerLinks: Box[List[UserCustomerLink]] = getValueFromFuture(
+    (actor ? cc.getUserCustomerLinks()).mapTo[Box[List[UserCustomerLink]]]
+  )
 
-  def bulkDeleteUserCustomerLinks(): Boolean =
-    extractFuture(actor ? cc.bulkDeleteUserCustomerLinks())
+  def bulkDeleteUserCustomerLinks(): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteUserCustomerLinks()).mapTo[Boolean]
+  )
 
 }

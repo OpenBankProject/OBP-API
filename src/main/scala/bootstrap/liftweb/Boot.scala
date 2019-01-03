@@ -58,7 +58,7 @@ import code.customeraddress.MappedCustomerAddress
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
-import code.kafka.{KafkaConsumer, KafkaHelperActors}
+import code.kafka.{OBPKafkaConsumer, KafkaHelperActors}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -334,7 +334,7 @@ class Boot extends MdcLoggable {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
       // Start North Side Consumer if it's not already started
-      KafkaConsumer.primaryConsumer.start()
+      OBPKafkaConsumer.primaryConsumer.start()
     }
 
     if (APIUtil.getPropsAsBoolValue("use_akka", false) == true) {

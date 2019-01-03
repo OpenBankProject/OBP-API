@@ -16,15 +16,15 @@ class RemotedataConnectorMetricsActor extends Actor with ObpActorHelper with Mdc
 
     case cc.saveConnecotrMetric(connectorName: String, functionName: String, obpApiRequestId: String, date: Date, duration: Long) =>
       logger.debug("saveMetric()")
-      sender ! extractResult(mapper.saveConnectorMetric(connectorName, functionName, obpApiRequestId, date, duration))
+      sender ! (mapper.saveConnectorMetric(connectorName, functionName, obpApiRequestId, date, duration))
 
     case cc.getAllConnectorMetrics(queryParams) =>
       logger.debug("getAllMetrics()")
-      sender ! extractResult(mapper.getAllConnectorMetrics(queryParams))
+      sender ! (mapper.getAllConnectorMetrics(queryParams))
 
     case cc.bulkDeleteMetrics() =>
       logger.debug("bulkDeleteMetrics()")
-      sender ! extractResult(mapper.bulkDeleteConnectorMetrics())
+      sender ! (mapper.bulkDeleteConnectorMetrics())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

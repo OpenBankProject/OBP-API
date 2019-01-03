@@ -12,10 +12,12 @@ object RemotedataCounterpartyBespokes extends ObpActorInit with CounterpartyBesp
 
   val cc = RemotedataCounterpartyBespokesCaseClasses
 
-  override def createCounterpartyBespokes(mapperCounterpartyPrimaryKey: Long,bespokes: List[CounterpartyBespoke]): List[MappedCounterpartyBespoke] =
-    extractFuture(actor ? cc.createCounterpartyBespokes(mapperCounterpartyPrimaryKey: Long, bespokes: List[CounterpartyBespoke]))
+  override def createCounterpartyBespokes(mapperCounterpartyPrimaryKey: Long,bespokes: List[CounterpartyBespoke]): List[MappedCounterpartyBespoke] = getValueFromFuture(
+    (actor ? cc.createCounterpartyBespokes(mapperCounterpartyPrimaryKey: Long, bespokes: List[CounterpartyBespoke])).mapTo[List[MappedCounterpartyBespoke]]
+  )
   
-  override def getCounterpartyBespokesByCounterpartyId(mapperCounterpartyPrimaryKey: Long): List[MappedCounterpartyBespoke] =
-    extractFuture(actor ? cc.getCounterpartyBespokesByCounterpartyId(mapperCounterpartyPrimaryKey: Long))
+  override def getCounterpartyBespokesByCounterpartyId(mapperCounterpartyPrimaryKey: Long): List[MappedCounterpartyBespoke] = getValueFromFuture(
+    (actor ? cc.getCounterpartyBespokesByCounterpartyId(mapperCounterpartyPrimaryKey: Long)).mapTo[List[MappedCounterpartyBespoke]]
+  )
 
 }

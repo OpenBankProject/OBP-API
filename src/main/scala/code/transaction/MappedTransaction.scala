@@ -232,20 +232,32 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
   override def afterSave = List(
     t =>
       tryo {
-        val eventId = APIUtil.generateUUID()
         val actor = ObpLookupSystem.getWebhookActor()
         def getAmount(value: Long): String = {
           Helper.smallestCurrencyUnitToBigDecimal(value, t.currency.get).toString() + " " + t.currency.get
         }
+        def sendMessage(apiTrigger: ApiTrigger): Unit = {
+          actor ! WebhookActor.WebhookRequest(
+            apiTrigger,
+            APIUtil.generateUUID(),
+            t.theBankId.value,
+            t.theAccountId.value,
+            getAmount(t.amount.get),
+            getAmount(t.newAccountBalance.get)
+          )
+        }
 
-        actor ! WebhookActor.WebhookRequest(
-          ApiTrigger.onBalanceChange,
-          eventId,
-          t.theBankId.value,
-          t.theAccountId.value,
-          getAmount(t.amount.get),
-          getAmount(t.newAccountBalance.get)
-        )
+        t.amount.get match {
+          case amount if amount > 0 =>
+            sendMessage(ApiTrigger.onBalanceChange)
+            sendMessage(ApiTrigger.onCreditTransaction)
+          case amount if amount < 0 =>
+            sendMessage(ApiTrigger.onBalanceChange)
+            sendMessage(ApiTrigger.onDebitTransaction)
+          case _  => 
+            // Do not send anything
+        }
+        
     }
   )
 }

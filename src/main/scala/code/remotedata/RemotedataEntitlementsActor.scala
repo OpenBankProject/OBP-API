@@ -13,19 +13,19 @@ class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLogg
   val mapper = MappedEntitlementsProvider
   val cc = RemotedataEntitlementsCaseClasses
 
-  def receive = {
+  def receive: PartialFunction[Any, Unit] = {
 
     case cc.getEntitlement(bankId: String, userId: String, roleName: String) =>
       logger.debug("getEntitlement(" + bankId + ", " + userId + ", " + roleName + ")")
-      sender ! extractResult(mapper.getEntitlement(bankId, userId, roleName))
+      sender ! (mapper.getEntitlement(bankId, userId, roleName))
 
     case cc.getEntitlementById(entitlementId: String) =>
       logger.debug("getEntitlementById(" + entitlementId + ")")
-      sender ! extractResult(mapper.getEntitlementById(entitlementId))
+      sender ! (mapper.getEntitlementById(entitlementId))
 
     case cc.getEntitlementsByUserId(userId: String) =>
       logger.debug("getEntitlementsByUserId(" + userId + ")")
-      sender ! extractResult(mapper.getEntitlementsByUserId(userId))
+      sender ! (mapper.getEntitlementsByUserId(userId))
 
     case cc.getEntitlementsByUserIdFuture(userId: String) =>
       logger.debug("getEntitlementsByUserIdFuture(" + userId + ")")
@@ -33,11 +33,11 @@ class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLogg
 
     case cc.deleteEntitlement(entitlement: Box[Entitlement]) =>
       logger.debug("deleteEntitlement(" + entitlement + ")")
-      sender ! extractResult(mapper.deleteEntitlement(entitlement))
+      sender ! (mapper.deleteEntitlement(entitlement))
 
     case cc.getEntitlements() =>
       logger.debug("getEntitlements(" + ")")
-      sender ! extractResult(mapper.getEntitlements())
+      sender ! (mapper.getEntitlements())
 
     case cc.getEntitlementsFuture() =>
       logger.debug("getEntitlementsFuture(" + ")")
@@ -53,7 +53,7 @@ class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLogg
 
     case cc.addEntitlement(bankId: String, userId: String, roleName: String) =>
       logger.debug("addEntitlement(" + bankId + ", " + userId + ", " + roleName + ")")
-      sender ! extractResult(mapper.addEntitlement(bankId, userId, roleName))
+      sender ! (mapper.addEntitlement(bankId, userId, roleName))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

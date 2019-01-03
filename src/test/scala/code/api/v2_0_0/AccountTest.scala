@@ -22,7 +22,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
 
       And("We should get a 200")
       responsePut.code should equal(200)
-
+// TODO Make this work
 //      When("We make the anonymous access request")
 //      val requestGet = (v2_0Request / "accounts").GET
 //      val responseGet = makeGetRequest(requestGet)
@@ -70,7 +70,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
 
       And("We should get a 200")
       responsePut.code should equal(200)
-
+//      TODO Make this work
 //      When("We make the anonymous access request")
 //      val requestGet = (v2_0Request / "banks" / testBank.value / "accounts").GET
 //      val responseGet = makeGetRequest(requestGet)

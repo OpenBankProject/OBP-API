@@ -19,19 +19,19 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
 
     case cc.getMappedTransactionRequest(transactionRequestId: TransactionRequestId) =>
       logger.debug("getMappedTransactionRequest(" + transactionRequestId + ")")
-      sender ! extractResult(mapper.getMappedTransactionRequest(transactionRequestId))
+      sender ! (mapper.getMappedTransactionRequest(transactionRequestId))
 
     case cc.getTransactionRequestsFromProvider(bankId: BankId, accountId: AccountId) =>
       logger.debug("getTransactionRequestsFromProvider(" + bankId + ", " + accountId + ", " + ")")
-      sender ! extractResult(mapper.getTransactionRequestsFromProvider(bankId, accountId))
+      sender ! (mapper.getTransactionRequestsFromProvider(bankId, accountId))
 
     case cc.getTransactionRequestFromProvider(transactionRequestId: TransactionRequestId) =>
       logger.debug("getTransactionRequestFromProvider(" + transactionRequestId + ")")
-      sender ! extractResult(mapper.getTransactionRequestFromProvider(transactionRequestId))
+      sender ! (mapper.getTransactionRequestFromProvider(transactionRequestId))
 
     case cc.updateAllPendingTransactionRequests() =>
       logger.debug("updateAllPendingTransactionRequests()")
-      sender ! extractResult(mapper.updateAllPendingTransactionRequests)
+      sender ! (mapper.updateAllPendingTransactionRequests)
 
     case cc.createTransactionRequestImpl(transactionRequestId: TransactionRequestId,
                                           transactionRequestType: TransactionRequestType,
@@ -48,7 +48,7 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
                                                       status + ", " +
                                                       charge + ", " +
                                                       ")")
-      sender ! extractResult(mapper.createTransactionRequestImpl(transactionRequestId,
+      sender ! (mapper.createTransactionRequestImpl(transactionRequestId,
         transactionRequestType,
         account,
         counterparty,
@@ -75,7 +75,7 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
                                                         charge + ", " +
                                                         chargePolicy + ", " +
                                                         ")")
-      sender ! extractResult(mapper.createTransactionRequestImpl210(transactionRequestId,
+      sender ! (mapper.createTransactionRequestImpl210(transactionRequestId,
                                                                     transactionRequestType,
                                                                     fromAccount,
                                                                     toAccount,
@@ -87,19 +87,19 @@ class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with 
 
     case cc.saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) =>
       logger.debug("saveTransactionRequestTransactionImpl(" + transactionRequestId + ", " +  transactionId + ")")
-      sender ! extractResult(mapper.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId))
+      sender ! (mapper.saveTransactionRequestTransactionImpl(transactionRequestId, transactionId))
 
     case cc.saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) =>
       logger.debug("saveTransactionRequestChallengeImpl(" + transactionRequestId + ", " +  challenge + ")")
-      sender ! extractResult(mapper.saveTransactionRequestChallengeImpl(transactionRequestId, challenge))
+      sender ! (mapper.saveTransactionRequestChallengeImpl(transactionRequestId, challenge))
 
     case cc.saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String) =>
       logger.debug("saveTransactionRequestStatusImpl(" + transactionRequestId + ", " +  status + ")")
-      sender ! extractResult(mapper.saveTransactionRequestStatusImpl(transactionRequestId, status))
+      sender ! (mapper.saveTransactionRequestStatusImpl(transactionRequestId, status))
 
     case cc.bulkDeleteTransactionRequests() =>
       logger.debug("bulkDeleteTransactionRequests()")
-      sender ! extractResult(mapper.bulkDeleteTransactionRequests())
+      sender ! (mapper.bulkDeleteTransactionRequests())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

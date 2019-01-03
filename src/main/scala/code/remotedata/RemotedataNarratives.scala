@@ -9,13 +9,16 @@ object RemotedataNarratives extends ObpActorInit with Narrative {
 
   val cc = RemoteNarrativesCaseClasses
 
-  def getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)() : String =
-    extractFuture(actor ? cc.getNarrative(bankId, accountId, transactionId))
+  def getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)() : String = getValueFromFuture(
+    (actor ? cc.getNarrative(bankId, accountId, transactionId)).mapTo[String]
+  )
 
-  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String): Boolean =
-    extractFuture(actor ? cc.setNarrative(bankId, accountId, transactionId, narrative))
+  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String): Boolean = getValueFromFuture(
+    (actor ? cc.setNarrative(bankId, accountId, transactionId, narrative)).mapTo[Boolean]
+  )
 
-  def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean =
-    extractFuture(actor ? cc.bulkDeleteNarratives(bankId, accountId))
+  def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteNarratives(bankId, accountId)).mapTo[Boolean]
+  )
 
 }

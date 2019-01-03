@@ -43,7 +43,7 @@ import org.apache.http.client.utils.URLEncodedUtils
 import org.openqa.selenium._
 import org.openqa.selenium.htmlunit.HtmlUnitDriver
 import code.api.oauth1a.OauthParams._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 sealed trait Provider {
   val name : String
@@ -144,12 +144,12 @@ object OAuthClient extends MdcLoggable {
     element.submit()
 
     //get redirect urls oauth_verifier
-    val params = URLEncodedUtils.parse(new URI(webdriver.getCurrentUrl()), "UTF-8")
+    val params = URLEncodedUtils.parse(new URI(webdriver.getCurrentUrl()), "UTF-8").asScala
     var verifier : Box[String] = Empty
     params.foreach(p => {
       if (p.getName() == "redirectUrl") {
-        val decoded = URLDecoder.decode(p.getValue())
-        val params = URLEncodedUtils.parse(new URI(decoded), "UTF-8")
+        val decoded = URLDecoder.decode(p.getValue(), "UTF-8")
+        val params = URLEncodedUtils.parse(new URI(decoded), "UTF-8").asScala
         params.foreach(p => {
           if (p.getName() == VerifierName) {
             verifier = Full(p.getValue())

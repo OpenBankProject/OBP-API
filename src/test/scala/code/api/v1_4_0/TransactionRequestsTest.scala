@@ -326,7 +326,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
       }
     }
 
-    /*
+    /* TODO Make this tests functional
     scenario("we can't make a payment without access to the owner view", Payments) {
       val testBank = createPaymentTestBank()
       val bankId = testBank.bankId

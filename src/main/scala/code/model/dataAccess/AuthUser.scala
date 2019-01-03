@@ -105,7 +105,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     override def setFromAny(f: Any): String = {
       f match {
         case a: Array[String] if (a.length == 2 && a(0) == a(1)) => {
-          passwordValue = a(0).toString;
+          passwordValue = a(0).toString
           if (isValidStrongPassword(passwordValue))
             invalidPw = false
           else {
@@ -114,8 +114,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
           }
           this.set(a(0))
         }
-        case l: List[String] if (l.length == 2 && l.head == l(1)) => {
-          passwordValue = l(0).toString;
+        case l: List[_] if (l.length == 2 && l.head.asInstanceOf[String] == l(1).asInstanceOf[String]) => {
+          passwordValue = l(0).asInstanceOf[String]
           if (isValidStrongPassword(passwordValue))
             invalidPw = false
           else {
@@ -123,7 +123,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
             invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
           }
           
-          this.set(l.head)
+          this.set(l.head.asInstanceOf[String])
         }
         case _ => {
           invalidPw = true;

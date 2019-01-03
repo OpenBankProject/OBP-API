@@ -18,7 +18,7 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
   val mapper = MappedCustomerProvider
   val cc = RemotedataCustomerProviderCaseClasses
 
-  def receive = {
+  def receive: PartialFunction[Any, Unit] = {
 
     case cc.getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam]) =>
       logger.debug("getCustomersFuture(" + bankId + ", " + queryParams + ")")
@@ -26,11 +26,11 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
 
     case cc.getCustomerByUserId(bankId: BankId, userId: String) =>
       logger.debug("getCustomerByUserId(" + bankId + ", " + userId + ")")
-      sender ! extractResult(mapper.getCustomerByUserId(bankId, userId))
+      sender ! (mapper.getCustomerByUserId(bankId, userId))
 
     case cc.getCustomersByUserId(userId: String) =>
       logger.debug("getCustomersByUserId(" + userId + ")")
-      sender ! extractResult(mapper.getCustomersByUserId(userId))
+      sender ! (mapper.getCustomersByUserId(userId))
 
     case cc.getCustomersByUserIdFuture(userId: String) =>
       logger.debug("getCustomersByUserIdFuture(" + userId + ")")
@@ -42,15 +42,15 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
 
     case cc.getCustomerByCustomerId(customerId: String) =>
       logger.debug("getCustomerByCustomerId(" + customerId + ")")
-      sender ! extractResult(mapper.getCustomerByCustomerId(customerId))
+      sender ! (mapper.getCustomerByCustomerId(customerId))
 
     case cc.getBankIdByCustomerId(customerId: String) =>
       logger.debug("getBankIdByCustomerId(" + customerId + ")")
-      sender ! extractResult(mapper.getBankIdByCustomerId(customerId))
+      sender ! (mapper.getBankIdByCustomerId(customerId))
 
     case cc.getCustomerByCustomerNumber(customerNumber: String, bankId: BankId) =>
       logger.debug("getCustomerByCustomerNumber(" + customerNumber + ", " + bankId + ")")
-      sender ! extractResult(mapper.getCustomerByCustomerNumber(customerNumber, bankId))
+      sender ! (mapper.getCustomerByCustomerNumber(customerNumber, bankId))
 
     case cc.getCustomerByCustomerNumberFuture(customerNumber: String, bankId: BankId) =>
       logger.debug("getCustomerByCustomerNumberFuture(" + customerNumber + ", " + bankId + ")")
@@ -58,11 +58,11 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
 
     case cc.getUser(bankId: BankId, customerNumber: String) =>
       logger.debug("getUser(" + bankId + ", " + customerNumber + ")")
-      sender ! extractResult(mapper.getUser(bankId, customerNumber))
+      sender ! (mapper.getUser(bankId, customerNumber))
 
     case cc.checkCustomerNumberAvailable(bankId: BankId, customerNumber: String) =>
       logger.debug("checkCustomerNumberAvailable(" + bankId + ", " + customerNumber + ")")
-      sender ! extractResult(mapper.checkCustomerNumberAvailable(bankId, customerNumber))
+      sender ! (mapper.checkCustomerNumberAvailable(bankId, customerNumber))
 
     case cc.addCustomer(bankId: BankId,
                         number: String,
@@ -85,34 +85,34 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                         nameSuffix: String
                         ) =>
       logger.debug("addCustomer(" + bankId + ", " + number + ")")
-      sender ! extractResult(mapper.addCustomer(bankId,
-                                                number,
-                                                legalName,
-                                                mobileNumber,
-                                                email,
-                                                faceImage,
-                                                dateOfBirth,
-                                                relationshipStatus,
-                                                dependents,
-                                                dobOfDependents,
-                                                highestEducationAttained,
-                                                employmentStatus,
-                                                kycStatus,
-                                                lastOkDate,
-                                                creditRating,
-                                                creditLimit,
-                                                title: String,     
-                                                branchId: String,  
-                                                nameSuffix: String
-                                              ))
+      sender ! (mapper.addCustomer(bankId,
+                                    number,
+                                    legalName,
+                                    mobileNumber,
+                                    email,
+                                    faceImage,
+                                    dateOfBirth,
+                                    relationshipStatus,
+                                    dependents,
+                                    dobOfDependents,
+                                    highestEducationAttained,
+                                    employmentStatus,
+                                    kycStatus,
+                                    lastOkDate,
+                                    creditRating,
+                                    creditLimit,
+                                    title: String,     
+                                    branchId: String,  
+                                    nameSuffix: String
+                                  ))
 
     case cc.bulkDeleteCustomers() =>
       logger.debug("bulkDeleteCustomers()")
-      sender ! extractResult(mapper.bulkDeleteCustomers())
+      sender ! (mapper.bulkDeleteCustomers())
 
     case cc.populateMissingUUIDs() =>
       logger.debug("populateMissingUUIDs()")
-      sender ! extractResult(mapper.populateMissingUUIDs())
+      sender ! (mapper.populateMissingUUIDs())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
