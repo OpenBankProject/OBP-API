@@ -29,7 +29,7 @@ import code.api.APIBuilder.APIBuilderModel._
 import code.api.APIBuilder.APIBuilderModel
 import code.api.util.APIUtil
 import net.liftweb.json.JsonAST.{JObject, JString}
-import net.liftweb.json.JValue
+import net.liftweb.json.{JArray, JValue}
 
 import scala.meta._
 
@@ -57,16 +57,23 @@ object APIBuilderSwagger
   val modelInit =Init.apply(Type.Name(modelMappedName), Term.Name(modelMappedName), Nil)
   
   
-  val getMultipleApiSummary: String = ((jsonJValueFromFile  \\"get"\\ "summary")\("summary")).asInstanceOf[JString].values
+  val getMultipleApiSummary: String = ((jsonJValueFromFile  \\"get"\\ "summary")\("summary")).asInstanceOf[JArray].children(0).asInstanceOf[JString].values
+  val getSingleApiSummary: String = ((jsonJValueFromFile  \\"get"\\ "summary")\("summary")).asInstanceOf[JArray].children(1).asInstanceOf[JString].values
+  val deleteSingleApiSummary: String = ((jsonJValueFromFile  \\"get"\\ "summary")\("summary")).asInstanceOf[JArray].children(1).asInstanceOf[JString].values
   val createSingleApiSummary: String = ((jsonJValueFromFile \\"post"\\ "summary")\("summary")).asInstanceOf[JString].values
   
   val getApiDescription: String = ((jsonJValueFromFile \\"get"\\ "description").obj.head.value).asInstanceOf[JString].values 
+  val getSingleDescription: String = ((jsonJValueFromFile \\"get"\\ "description").obj(3).value).asInstanceOf[JString].values 
   val createApiDescription: String = ((jsonJValueFromFile \\"post"\\ "description").obj.head.value).asInstanceOf[JString].values 
+  val deleteApiDescription: String = ((jsonJValueFromFile \\"delete"\\ "description").obj.head.value).asInstanceOf[JString].values 
   
-  val getMultipleAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(true)
+  val getMultipleApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(true)
+  val getSingleApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(true)
+  val deleteSingleApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(true)
   val createSingleApiAuthenticationStatement: Term.ApplyInfix = getAuthenticationStatement(true)
   
-  val getMultipleApiUrl: String = (jsonJValueFromFile \\("paths")\"paths").asInstanceOf[JObject].obj.head.name
+  val getMultipleApiUrl: String = (jsonJValueFromFile \\("paths")\"paths").asInstanceOf[JObject].obj(0).name
+  val getSingleApiUrl: String = (jsonJValueFromFile \\("paths")\"paths").asInstanceOf[JObject].obj(1).name
  
   val getMultipleApiUrlVal = Lit.String(s"$getMultipleApiUrl")
   val createSingleApiUrlVal = getMultipleApiUrl
@@ -74,18 +81,26 @@ object APIBuilderSwagger
   val getApiUrlLiftweb: Lit.String = Lit.String(getApiUrlLiftFormat)
   val createApiUrlLiftweb: Lit.String = Lit.String(getApiUrlLiftFormat)
   
+  val getSingleApiUrlVal = Lit.String(s"$getSingleApiUrl")
+  val getSingleApiUrlLiftFormat = getSingleApiUrl.replaceFirst("/", "").split("/").dropRight(1).mkString("""""","""  ::  ""","""""")
+  val getSingleApiUrlLiftweb: Lit.String = Lit.String(getSingleApiUrlLiftFormat)
+  val deleteSingleApiUrlLiftweb: Lit.String = Lit.String(getSingleApiUrlLiftFormat)
+  
   val getMultipleApiSummaryVal = Lit.String(s"$getMultipleApiSummary")
+  val getSingleApiSummaryVal = Lit.String(s"$getSingleApiSummary")
+  val deleteSingleApiSummaryVal = Lit.String(s"$deleteSingleApiSummary")
   val createSingleApiSummaryVal = Lit.String(s"$createSingleApiSummary")
   
   val getMultipleApiDescriptionVal = Lit.String(s"$getApiDescription")
   val createSingleApiDescriptionVal = Lit.String(s"$createApiDescription")
+  val getSingleApiDescriptionVal = Lit.String(s"$getSingleDescription")
+  val deleteSingleApiDescriptionVal = Lit.String(s"$deleteApiDescription")
   
   val errorMessageBody: Lit.String = Lit.String(s"OBP-31001: ${modelNameCapitalized} not found. Please specify a valid value for ${modelNameUpperCase}_ID.")
   val errorMessageName: Pat.Var = Pat.Var(Term.Name(s"${modelNameCapitalized}NotFound"))
   val errorMessageVal: Defn.Val = q"""val TemplateNotFound = $errorMessageBody""".copy(pats = List(errorMessageName))
   val errorMessage: Term.Name = Term.Name(errorMessageVal.pats.head.toString())
 
-  
   val getTemplatesResourceCode: Term.ApplyInfix =q"""
     resourceDocs += ResourceDoc(
       getTemplates,
@@ -101,15 +116,13 @@ object APIBuilderSwagger
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )"""
-  val getPartialFuncTermName = Term.Name(s"get${modelNameCapitalized}")
-  val getPartialFuncName = Pat.Var(getPartialFuncTermName)  
   val getTemplatesPartialFunction: Defn.Val = q"""
-    lazy val $getPartialFuncName: OBPEndpoint ={
+    lazy val getTemplates: OBPEndpoint ={
       case ($getApiUrlLiftweb:: Nil) JsonGet req =>
         cc =>
         {
           for{
-            u <- $getMultipleAuthenticationStatement 
+            u <- $getMultipleApiAuthenticationStatement 
             templates <- APIBuilder_Connector.getTemplates
             templatesJson = JsonFactory_APIBuilder.createTemplates(templates)
             jsonObject:JValue = decompose(templatesJson)
@@ -154,6 +167,40 @@ object APIBuilderSwagger
       }
     }
     """
+  
+  val getTemplateResourceCode: Term.ApplyInfix =q"""
+    resourceDocs += ResourceDoc(
+      getTemplate, 
+      apiVersion, 
+      "getTemplate", 
+      "GET",
+      $getSingleApiUrlVal,
+      $getSingleApiSummaryVal,
+      $getSingleApiDescriptionVal,
+      emptyObjectJson, 
+      templateJson,
+      List(UserNotLoggedIn, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG), 
+      apiTagApiBuilder :: Nil
+    )"""
+  
+  val getTemplatePartialFunction: Defn.Val = q"""
+    lazy val getTemplate: OBPEndpoint ={
+      case ($getSingleApiUrlLiftweb :: templateId :: Nil) JsonGet _ => {
+        cc =>
+        {
+          for{
+            u <- $getSingleApiAuthenticationStatement
+            template <- APIBuilder_Connector.getTemplateById(templateId) ?~! $errorMessage
+            templateJson = JsonFactory_APIBuilder.createTemplate(template)
+            jsonObject:JValue = decompose(templateJson)
+          }yield{
+            successJsonResponse(jsonObject)
+          }
+        }
+      }
+    }"""
+  
   //List(author, pages, points)
   val modelFieldsNames: List[String] = getModelFieldsNames(modelFieldsJValue)
   //List(String, Int, Double)
@@ -252,14 +299,17 @@ trait APIMethods_APIBuilder
     implicit val formats = net.liftweb.json.DefaultFormats
 
     $errorMessageVal;
-    def endpointsOfBuilderAPI =  getTemplates :: createTemplate :: Nil
+    def endpointsOfBuilderAPI =  getTemplates :: createTemplate :: getTemplate :: Nil
     
  
     $getTemplatesResourceCode
     $getTemplatesPartialFunction
         
     $createTemplateResourceCode
-    $createTemplatePartialFunction                             
+    $createTemplatePartialFunction
+                             
+    $getTemplateResourceCode
+    $getTemplatePartialFunction                              
     
   }
 }

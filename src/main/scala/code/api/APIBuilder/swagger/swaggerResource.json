@@ -85,6 +85,81 @@
           }
         }
       }
+    },
+    "/templates/{template_id}": {
+      "get": {
+        "tags": [
+          "API-Builder"
+        ],
+        "summary": "Get Template",
+        "description": "Return one template. Authentication is Mandatory.",
+        "operationId": "vb1-GetTemplate",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorUserNotLoggedIn"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "API-Builder"
+        ],
+        "summary": "Delete Template",
+        "description": "Delete template. Authentication is Mandatory.",
+        "operationId": "vb1-DeleteTemplate",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorUserNotLoggedIn"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
