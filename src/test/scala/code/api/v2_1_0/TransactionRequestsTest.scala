@@ -1053,6 +1053,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
+  // TODO Make this tests functional
   /** notes: this is from V140, not the latest test, need to be fixed
   scenario("we can't make a payment of zero units of currency", Payments) {
     When("we try to make a payment with amount = 0")
