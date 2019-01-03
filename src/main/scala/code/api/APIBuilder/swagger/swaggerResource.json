@@ -54,6 +54,36 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "API-Builder"
+        ],
+        "summary": "Create Template",
+        "description": "Create template. Authentication is Mandatory.",
+        "operationId": "vb1-CreateTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorUserNotLoggedIn"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
