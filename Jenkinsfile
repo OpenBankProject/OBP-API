@@ -3,10 +3,15 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                sh 'echo "Run maven"'
+                echo 'Building with maven'
                 sh 'mvn --version'
-                sh 'echo "maven test"'
-                sh 'mvn test'
+                sh 'mvn compile'
+            }
+        }
+        stage('test') {
+            steps {
+                echo 'Testing'
+                sh 'mvn verify'
             }
         }
     }
