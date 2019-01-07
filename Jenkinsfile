@@ -5,13 +5,13 @@ pipeline {
             steps {
                 echo 'Building with maven'
                 sh 'mvn --version'
-                sh 'mvn compile'
+                sh 'mvn -e compile'
             }
         }
         stage('test') {
             steps {
                 echo 'Testing'
-                sh 'mvn verify'
+                sh 'mvn -e verify'
             }
         }
     }
