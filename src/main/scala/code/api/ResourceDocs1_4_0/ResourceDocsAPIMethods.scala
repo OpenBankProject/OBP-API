@@ -21,6 +21,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftRules, S}
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -430,8 +431,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       cc =>{
        for {
         (showCore, showPSD2, showOBWG, tags, partialFunctions) <- Full(getParams())
-         requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
-         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+         requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
+         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
          json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
         } yield {
           json
@@ -475,9 +476,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) <- Full(getParams())
-            requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
-            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) <- tryo(getParams())
+            requestedApiVersion <- tryo(ApiVersion.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
+            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             json <- getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersionString, resourceDocTags, partialFunctions)
           } yield {
             json
