@@ -55,6 +55,18 @@ object WebhookHttpClient extends MdcLoggable {
     }
   }
 
+  /**
+    * This function makes payload for POST/PUT/DELETE HTTP calls. For instance:
+    * {
+    *   "event_name":"OnCreditTransaction",
+    *   "event_id":"fc7e4a71-5ff1-4006-95bb-7fd9e4adaef9", 
+    *   "bank_id":"gh.29.uk.x", 
+    *   "account_id":"marko_privite_01", 
+    *   "amount":"50.00 EUR", 
+    *   "balance":"739.00 EUR"
+    * }
+    * 
+    */
   private def getEventPayload(request: WebhookRequest): RequestEntity = {
     request.trigger match {
       case OnBalanceChange() | OnCreditTransaction() | OnDebitTransaction() =>
@@ -67,6 +79,23 @@ object WebhookHttpClient extends MdcLoggable {
     }
   }
 
+  /**
+    * This function makes HttpRequest object according to the DB's data related to an account's webhook
+    * @param uri In most cases it's a URL
+    * @param method  GET/POST/POST/DELETE
+    * @param httpProtocol HTTP/1.0 / HTTP/1.1 / HTTP/2.0
+    * @param entity For instance:
+    *                {
+    *                  "event_name":"OnCreditTransaction",
+    *                  "event_id":"fc7e4a71-5ff1-4006-95bb-7fd9e4adaef9", 
+    *                  "bank_id":"gh.29.uk.x", 
+    *                  "account_id":"private_01", 
+    *                  "amount":"50.00 EUR", 
+    *                  "balance":"739.00 EUR"
+    *                 }
+    * Please note it's empty in case of GET
+    * @return HttpRequest object
+    */
   private def getHttpRequest(uri: String, method: String, httpProtocol: String, entity: RequestEntity = HttpEntity.Empty): HttpRequest = {
     method match {
       case m: String if m.toUpperCase == "GET" =>
