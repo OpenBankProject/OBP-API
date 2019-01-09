@@ -105,7 +105,6 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
         validateAccessToken(value) match {
           case Full(_) =>
             val username = JwtUtil.getSubject(value).getOrElse("")
-            (Users.users.vend.getUserByUserName(username), Some(sc))
             for {
               user <- Users.users.vend.getUserByUserNameFuture(username)
             } yield {
