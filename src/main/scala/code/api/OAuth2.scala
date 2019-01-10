@@ -122,5 +122,20 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     }
   }
 
+  /**
+    * This function creates user based on "iss" and "sub" fields
+    * It is mapped in next way:
+    * iss => ResourceUser.provider_
+    * sub => ResourceUser.providerId
+    * @param cc CallContext
+    * @return Existing or New User
+    */
+  def getOrCreateResourceUserFuture(cc: CallContext): Future[Box[User]] = {
+    val value = getValueOfOAuh2HeaderField(cc)
+    val sub = JwtUtil.getSubject(value).getOrElse("")
+    val iss = JwtUtil.getIssuer(value).getOrElse("")
+    Users.users.vend.getOrCreateUserByProviderIdFuture(provider = iss, idGivenByProvider = sub)
+  }
+
 
 }

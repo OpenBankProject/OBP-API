@@ -1,17 +1,16 @@
 package code.api.util
 
 import java.net.URL
+import java.text.ParseException
 
 import com.auth0.jwt.JWT
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.crypto.{MACVerifier, RSASSAVerifier}
 import com.nimbusds.jose.jwk.source.{JWKSource, RemoteJWKSet}
 import com.nimbusds.jose.proc.{JWSVerificationKeySelector, SecurityContext}
-import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import com.nimbusds.jwt.proc.{BadJWTException, DefaultJWTProcessor}
+import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.util.Props
-import java.text.ParseException
 
 object JwtUtil {
 
@@ -74,13 +73,40 @@ object JwtUtil {
   /**
     * Get the value of the "sub" claim, or None if it's not available.
     *
-    * @return the Subject value or None.
+    * @return the Subject's value or None.
     */
   def getSubject(jwtToken: String): Option[String] = {
     val jwtDecoded = JWT.decode(jwtToken)
     jwtDecoded.getSubject() match {
       case null => None
       case value => Some(value)
+    }
+  }
+  /**
+    * The Issuer Identifier for the Issuer of the response. 
+    * Get the value of the "iss" claim, or None if it's not available.
+    *
+    * @return the Issuer's value or None.
+    */
+  def getIssuer(jwtToken: String): Option[String] = {
+    val jwtDecoded = JWT.decode(jwtToken)
+    jwtDecoded.getIssuer() match {
+      case null => None
+      case value => Some(value)
+    }
+  }
+  /**
+    * The Audience Identifier for the Issuer of the response. 
+    * Get the value of the "aud" claim.
+    *
+    * @return the Issuer's value. In case if it's not available the value is empty list.
+    */
+  def getAudience(jwtToken: String): List[String] = {
+    import scala.collection.JavaConverters._
+    val jwtDecoded = JWT.decode(jwtToken)
+    jwtDecoded.getAudience() match {
+      case null => Nil
+      case value => value.asScala.toList
     }
   }
 
@@ -133,8 +159,8 @@ object JwtUtil {
     println("Header: " + getHeader(jwtToken))
     println("Payload: " + getPayload(jwtToken))
     println("Subject: " + getSubject(jwtToken))
-    println("Signature :" + getSignature(jwtToken))
-    println("Verify JWT :" + verifyRsaSignedJwt(jwtToken))
+    println("Signature: " + getSignature(jwtToken))
+    println("Verify JWT: " + verifyRsaSignedJwt(jwtToken))
   }
 
 
