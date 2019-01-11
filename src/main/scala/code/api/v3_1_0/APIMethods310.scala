@@ -160,7 +160,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(cc))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`201`(Some(cc)))}
       }
     }
     
@@ -889,7 +889,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, CreateWebhookError, 400)
             }
           } yield {
-            (createAccountWebhookJson(wh), HttpCode.`200`(callContext))
+            (createAccountWebhookJson(wh), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1235,7 +1235,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, CreateCustomerError, 400)
             }
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1356,7 +1356,7 @@ trait APIMethods310 {
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1395,7 +1395,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
           } yield {
-            (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
+            (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1552,7 +1552,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (taxResidence, callContext) <- NewStyle.function.createTaxResidence(customerId, postedData.domain, postedData.tax_number, callContext)
           } yield {
-            (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`200`(callContext))
+            (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1728,7 +1728,7 @@ trait APIMethods310 {
               postedData.state,
               callContext)
           } yield {
-            (JSONFactory310.createAddress(address), HttpCode.`200`(callContext))
+            (JSONFactory310.createAddress(address), HttpCode.`201`(callContext))
           }
       }
     }

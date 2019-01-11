@@ -37,7 +37,7 @@ class CreateCreditCardTest extends V210ServerSetup with DefaultUsers {
       val requestPost = (v2_1Request / "banks" / bankId.value / "cards" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(physicalCardJSON))
       Then("We should get a 200 and check all the fields")
-      responsePost.code should equal(200)
+      responsePost.code should equal(201)
 
       val responseJson: PhysicalCardJSON = responsePost.body.extract[PhysicalCardJSON]
       responseJson.bank_id should equal(bankId.value)

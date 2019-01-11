@@ -739,7 +739,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result: esw.APIResponse <- esw.searchProxyAsyncV300(u.userId, indexPart, bodyPart)
           } yield {
-            (esw.parseResponse(result), HttpCode.`200`(callContext))
+            (esw.parseResponse(result), HttpCode.`201`(callContext))
           }
       }
     }
@@ -808,7 +808,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
-            (esw.parseResponse(result), HttpCode.`200`(callContext))
+            (esw.parseResponse(result), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1010,7 +1010,7 @@ trait APIMethods300 {
             success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
           } yield {
             val json = JSONFactory300.createBranchJsonV300(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json), 201)
           }
       }
     }
@@ -1065,7 +1065,7 @@ trait APIMethods300 {
             success <- Connector.connector.vend.createOrUpdateAtm(atm)
           } yield {
             val json = JSONFactory300.createAtmJsonV300(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json), 201)
           }
       }
     }
@@ -1671,7 +1671,7 @@ trait APIMethods300 {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementRequestCannotBeAdded, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             } yield {
-              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`200`(callContext))
+              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`201`(callContext))
             }
       }
     }
@@ -2108,7 +2108,7 @@ trait APIMethods300 {
             addedEntitlement <- Future {Scope.scope.vend.addScope(postedData.bank_id, consumerId, postedData.role_name)} map { unboxFull(_) }
             
           } yield {
-            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`200`(callContext))
+            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`201`(callContext))
           }
       }
     }

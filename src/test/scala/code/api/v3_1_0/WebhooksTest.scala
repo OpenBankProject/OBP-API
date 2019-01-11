@@ -101,8 +101,8 @@ class WebhooksTest extends V310ServerSetup {
       When("We make a request v3.1.0 with a Role " + canCreateWebhook)
       val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").POST <@(user1)
       val response310 = makePostRequest(request310, write(postJson))
-      Then("We should get a 200")
-      response310.code should equal(200)
+      Then("We should get a 201")
+      response310.code should equal(201)
       response310.body.extract[AccountWebhookJson]
     }
 
@@ -162,8 +162,8 @@ class WebhooksTest extends V310ServerSetup {
       When("We create a web hook with a Role " + canCreateWebhook)
       val createRequest310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").POST <@(user1)
       val createResponse310 = makePostRequest(createRequest310, write(postJson))
-      Then("We should get a 200")
-      createResponse310.code should equal(200)
+      Then("We should get a 201")
+      createResponse310.code should equal(201)
       val id = createResponse310.body.extract[AccountWebhookJson].account_webhook_id
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateWebhook.toString)
       When("We update the web hook")
