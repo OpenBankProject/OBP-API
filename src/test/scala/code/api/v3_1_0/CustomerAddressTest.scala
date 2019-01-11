@@ -140,15 +140,15 @@ class CustomerAddressTest extends V310ServerSetup {
       When("We try to create the customer v3.1.0")
       val requestCustomer310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
       val responseCustomer310 = makePostRequest(requestCustomer310, write(postCustomerJson))
-      Then("We should get a 200")
-      responseCustomer310.code should equal(200)
+      Then("We should get a 201")
+      responseCustomer310.code should equal(201)
       val customerJson = responseCustomer310.body.extract[CustomerJsonV310]
 
       When("We try to create the customer address v3.1.0")
       val successReq = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "address").POST <@(user1)
       val successRes = makePostRequest(successReq, write(postCustomerAddressJson))
-      Then("We should get a 200")
-      successRes.code should equal(200)
+      Then("We should get a 201")
+      successRes.code should equal(201)
       successRes.body.extract[CustomerAddressJsonV310]
 
       When("We try to make the GET request v3.1.0")

@@ -115,16 +115,16 @@ class TaxResidenceTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val requestCustomer310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
       val responseCustomer310 = makePostRequest(requestCustomer310, write(postCustomerJson))
-      Then("We should get a 200")
-      responseCustomer310.code should equal(200)
+      Then("We should get a 201")
+      responseCustomer310.code should equal(201)
       val customerJson = responseCustomer310.body.extract[CustomerJsonV310]
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canCreateTaxResidence)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "tax-residence").POST <@(user1)
       val response310 = makePostRequest(request310, write(postTaxResidenceJson))
-      Then("We should get a 200")
-      response310.code should equal(200)
+      Then("We should get a 201")
+      response310.code should equal(201)
       val taxResidenceJson = response310.body.extract[TaxResidenceJsonV310]
       org.scalameta.logger.elem(taxResidenceJson)
 
