@@ -43,7 +43,7 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
-import code.api.util.APIUtil.enableVersionIfAllowed
+import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages, Migration}
 import code.atms.MappedAtm
 import code.bankconnectors.Connector
@@ -451,6 +451,10 @@ class Boot extends MdcLoggable {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
       }
+    }
+    
+    LiftRules.uriNotFound.prepend{
+      case (r, _) => NotFoundAsResponse(errorJsonResponse(s"${ErrorMessages.NotRegisteredUrl}Current Url is (${r.uri.toString})"))
     }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty ) {
