@@ -4,12 +4,15 @@ import java.net.URL
 import java.text.ParseException
 
 import com.auth0.jwt.JWT
+import com.auth0.jwt.interfaces.Claim
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.crypto.{MACVerifier, RSASSAVerifier}
 import com.nimbusds.jose.jwk.source.{JWKSource, RemoteJWKSet}
 import com.nimbusds.jose.proc.{JWSVerificationKeySelector, SecurityContext}
+import com.nimbusds.jose.util.DefaultResourceRetriever
 import com.nimbusds.jwt.proc.{BadJWTException, DefaultJWTProcessor}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
+import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
 object JwtUtil {
@@ -111,7 +114,18 @@ object JwtUtil {
   }
 
   /**
-    * Helper function which validating bearer JWT access tokens
+    * This fuction gets an arbitrary claim
+    * @param name The name of the claim we want to get
+    * @param jwtToken JSON Web Token (JWT) as a String value
+    * @return The claim we requested
+    */
+  def getClaim(name: String, jwtToken: String): Claim = {
+    val jwtDecoded = JWT.decode(jwtToken)
+    jwtDecoded.getClaim(name)
+  }
+
+  /**
+    * This function validates Access Token
     * @param accessToken The access token to validate, typically submitted with a HTTP header like
     *                    Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6InMxIn0.eyJzY3A...
     * @param remoteJWKSetUrl The URL of OAuth 2.0 server's JWK set, published at a well-known URL
@@ -150,17 +164,70 @@ object JwtUtil {
     }
   }
 
+  /**
+    * This function validates ID Token
+    * @param idToken The access token to validate, typically submitted with a HTTP header like
+    *                Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6InMxIn0.eyJzY3A...
+    * @param remoteJWKSetUrl The URL of OAuth 2.0 server's JWK set, published at a well-known URL
+    * @return The boxed token claims set or Failure
+    */
+  def validateIdToken(idToken: String, remoteJWKSetUrl: String): Box[IDTokenClaimsSet] = {
+    import java.net._
+
+    import com.nimbusds.jose._
+    import com.nimbusds.oauth2.sdk.id._
+    import com.nimbusds.openid.connect.sdk.validators._
+    
+    val resourceRetriever = new DefaultResourceRetriever(1000, 1000, 50 * 1024)
+
+    // The required parameters
+    val iss: Issuer = new Issuer(getIssuer(idToken).getOrElse(""))
+    val azp = getClaim("azp", idToken).asString()
+    val clientID: ClientID = new ClientID(azp)
+    val jwsAlg: JWSAlgorithm = JWSAlgorithm.RS256
+    //val jwkSetURL: URL = new URL("https://www.googleapis.com/oauth2/v3/certs")
+    val jwkSetURL: URL = new URL(remoteJWKSetUrl)
+
+    // Create validator for signed ID tokens
+    val validator: IDTokenValidator = new IDTokenValidator(iss, clientID, jwsAlg, jwkSetURL, resourceRetriever)
+
+    import com.nimbusds.jose.JOSEException
+    import com.nimbusds.jose.proc.BadJOSEException
+    import com.nimbusds.jwt.{JWT, JWTParser}
+    import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
+    
+    // Parse the ID token// Parse the ID token
+    val idTokenAsJWT: JWT = JWTParser.parse(idToken)
+
+    // Set the expected nonce, leave null if none
+    val expectedNonce = null // new Nonce("xyz...") or null
+    
+    try {
+      val claims: IDTokenClaimsSet = validator.validate(idTokenAsJWT, expectedNonce)
+      Full(claims)
+    } catch {
+      case e: BadJOSEException =>
+        // Invalid signature or claims (iss, aud, exp...)
+        Failure(ErrorMessages.Oauth2BadJWTException + e.getMessage, Full(e), Empty)
+      case e: JOSEException =>
+        // Internal processing exception
+        Failure(ErrorMessages.Oauth2JOSEBException + e.getMessage, Full(e), Empty)
+    }
+  }
+
 
 
 
   def main(args: Array[String]): Unit = {
-    // val jwtToken = "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw"
-    val jwtToken = "eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJtYXJrby5taWxpYyIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk3MTc2MDUsImlhdCI6MTUxOTcxNDAwNSwianRpIjoiY2RiNThmNTctZTI2OC00MzZhLWIzMDQtNWE0MWFiYTg0NDFhIn0.XiZKY8A_mXZz6zjCgtXaj0bHI5klmQGnEQcX_b9lBlhfh6IruUwiHuYW0DHXDpKHdKA3Uuqcubj68aT8r5FGyrEGRy4AmzHbzCcwly-MYIElAK4trjSwUJh9VmGwDdr1OFtWC5HrTfsTGfiLQrhNjBGePCy2bGy0pG7pjBNQ3TVOkiAFUVYnCJOiFGLdWcHvEHnPYoYOdvRBLa072qDFbNFiWXqfKcdXdYGXZD5SGMMlA6J6l3NKKiy4t53yE3LjHs5pIclG5OdSV3uB8wGTTACN44CMVUFpWaL6_7_Zlzr-swq_jXYuxHesWGoCWaZKzlbtHsOqpvolgQJlTgdAgA"
+    val jwtToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjhhYWQ2NmJkZWZjMWI0M2Q4ZGIyN2U2NWUyZTJlZjMwMTg3OWQzZTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJhdF9oYXNoIjoiWGlpckZ1cnJ2X0ZxN3RHd25rLWt1QSIsIm5hbWUiOiJNYXJrbyBNaWxpxIciLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDUuZ29vZ2xldXNlcmNvbnRlbnQuY29tLy1YZDQ0aG5KNlREby9BQUFBQUFBQUFBSS9BQUFBQUFBQUFBQS9BS3hyd2NhZHd6aG00TjR0V2s1RThBdnhpLVpLNmtzNHFnL3M5Ni1jL3Bob3RvLmpwZyIsImdpdmVuX25hbWUiOiJNYXJrbyIsImZhbWlseV9uYW1lIjoiTWlsacSHIiwibG9jYWxlIjoiZW4iLCJpYXQiOjE1NDczMTE3NjAsImV4cCI6MTU0NzMxNTM2MH0.UyOmM0rsO0-G_ibDH3DFogS94GcsNd9GtYVw7j3vSMjO1rZdIraV-N2HUtQN3yHopwdf35A2FEJaag6X8dbvEkJC7_GAynyLIpodoaHNtaLbww6XQSYuQYyF27aPMpROoGZUYkMpB_82LF3PbD4ecDPC2IA5oSyDF4Eya4yn-MzxYmXS7usVWvanREg8iNQSxpu7zZqj4UwhvSIv7wH0vskr_M-PnefQzNTrdUx74i-v9lVqC4E_bF5jWeDGO8k5dqWqg55QuZdyJdSh89KNiIjJXGZDWUBzGfsbetWRnObIgX264fuOW4SpRglUc8fzv41Sc7SSqjqRAFm05t60kg"
     println("Header: " + getHeader(jwtToken))
     println("Payload: " + getPayload(jwtToken))
     println("Subject: " + getSubject(jwtToken))
     println("Signature: " + getSignature(jwtToken))
     println("Verify JWT: " + verifyRsaSignedJwt(jwtToken))
+
+    val idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjhhYWQ2NmJkZWZjMWI0M2Q4ZGIyN2U2NWUyZTJlZjMwMTg3OWQzZTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJhdF9oYXNoIjoiWVVuME9EYlVsUU4xQ1VUOThSVmE3USIsIm5hbWUiOiJNYXJrbyBNaWxpxIciLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDUuZ29vZ2xldXNlcmNvbnRlbnQuY29tLy1YZDQ0aG5KNlREby9BQUFBQUFBQUFBSS9BQUFBQUFBQUFBQS9BS3hyd2NhZHd6aG00TjR0V2s1RThBdnhpLVpLNmtzNHFnL3M5Ni1jL3Bob3RvLmpwZyIsImdpdmVuX25hbWUiOiJNYXJrbyIsImZhbWlseV9uYW1lIjoiTWlsacSHIiwibG9jYWxlIjoiZW4iLCJpYXQiOjE1NDc0NTQ3MTIsImV4cCI6MTU0NzQ1ODMxMn0.GImeYoPuOgitxpS59XvEd93nxRYKbWl9vHvuMIXYJWFQ5bF_LcnX_PdXRA3w-cBrAZZ3FCAtY0nrE8f7pb6-oQnqpJXYl6PwCe_oZV5rUzMnWUyWauk752_Et-hSxCypAyf7zvW3xcunQUdeKLt_b5dIIs80d8vDpnSlR4SkXx9iduOQ84ktvHMgwIb7ymws6LenstJH864TMvmUNokFgVGOcVeJRKKiGmcoIhIYdh9j1z4J0_gCPs-UsJhJTdmVQgtNQFqMUt8KPEYvFd0gI3Cdvd9gQM5cq9OSUs3D9sI0DLEhBCoEHanBinUrII8B7JE2HkPTEMdM2ZN-2Ecq5A"
+    println("validateIdToken: " + validateIdToken(idToken = idToken, remoteJWKSetUrl = "https://www.googleapis.com/oauth2/v3/certs").map("Logged in user: " + _.getSubject))
   }
 
 
