@@ -132,8 +132,8 @@ object ErrorMessages {
   val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
   val Oauth2BadJWTException = "OBP-20204: Bad JWT error. "
   val Oauth2ParseException = "OBP-20205: Parse error. "
-  val Oauth2BadJOSEBException = "OBP-20205: Bad JSON Object Signing and Encryption (JOSE) exception. "
-  val Oauth2JOSEBException = "OBP-20205: Javascript Object Signing and Encryption (JOSE) exception. "
+  val Oauth2BadJOSEBException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. "
+  val Oauth2JOSEBException = "OBP-20207: Javascript Object Signing and Encryption (JOSE) exception. "
 
   val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
   val MissingQueryParams = "OBP-20055: These query parameters are missing: "
