@@ -312,6 +312,8 @@ object ErrorMessages {
   val NoCallContext = "OBP-50012: Can not get the CallContext object here."
   val UnspecifiedCbsError = "OBP-50013: The Core Banking System returned an unspecified error or response."
   val RefreshUserError = "OBP-50014: Can not refresh User."
+  val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
+
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
