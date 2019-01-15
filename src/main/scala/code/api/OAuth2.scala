@@ -105,7 +105,6 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
         validateAccessToken(value) match {
           case Full(_) =>
             val username = JwtUtil.getSubject(value).getOrElse("")
-            (Users.users.vend.getUserByUserName(username), Some(sc))
             for {
               user <- Users.users.vend.getUserByUserNameFuture(username)
             } yield {
@@ -121,6 +120,21 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
       case false =>
         Future((Failure(ErrorMessages.Oauth2IsNotAllowed), Some(sc)))
     }
+  }
+
+  /**
+    * This function creates user based on "iss" and "sub" fields
+    * It is mapped in next way:
+    * iss => ResourceUser.provider_
+    * sub => ResourceUser.providerId
+    * @param cc CallContext
+    * @return Existing or New User
+    */
+  def getOrCreateResourceUserFuture(cc: CallContext): Future[Box[User]] = {
+    val value = getValueOfOAuh2HeaderField(cc)
+    val sub = JwtUtil.getSubject(value).getOrElse("")
+    val iss = JwtUtil.getIssuer(value).getOrElse("")
+    Users.users.vend.getOrCreateUserByProviderIdFuture(provider = iss, idGivenByProvider = sub)
   }
 
 

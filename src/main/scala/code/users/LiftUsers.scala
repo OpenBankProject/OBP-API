@@ -1,6 +1,5 @@
 package code.users
 
-import code.api.GatewayLogin.gateway
 import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.entitlement.Entitlement
 import code.model.User
@@ -46,7 +45,7 @@ object LiftUsers extends Users with MdcLoggable{
   def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
     Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = idGivenByProvider).or { // Find a user
       Users.users.vend.createResourceUser( // Otherwise create a new one
-        provider = gateway,
+        provider = provider,
         providerId = Some(idGivenByProvider),
         name = Some(idGivenByProvider),
         email = None,

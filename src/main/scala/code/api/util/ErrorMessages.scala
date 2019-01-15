@@ -51,6 +51,8 @@ object ErrorMessages {
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
   val TooManyRequests = "OBP-10018: Too Many Requests."
   val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
+  val InvalidUri = "OBP-404: 404 Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
+    "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
@@ -131,6 +133,8 @@ object ErrorMessages {
   val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
   val Oauth2BadJWTException = "OBP-20204: Bad JWT error. "
   val Oauth2ParseException = "OBP-20205: Parse error. "
+  val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. "
+  val Oauth2JOSEException = "OBP-20207: Javascript Object Signing and Encryption (JOSE) exception. "
 
   val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
   val MissingQueryParams = "OBP-20055: These query parameters are missing: "
@@ -309,6 +313,8 @@ object ErrorMessages {
   val NoCallContext = "OBP-50012: Can not get the CallContext object here."
   val UnspecifiedCbsError = "OBP-50013: The Core Banking System returned an unspecified error or response."
   val RefreshUserError = "OBP-50014: Can not refresh User."
+  val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
+
 
   // Connector Data Exceptions (OBP-502XX)
   val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200

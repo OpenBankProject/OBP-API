@@ -43,7 +43,7 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
-import code.api.util.APIUtil.enableVersionIfAllowed
+import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages, Migration}
 import code.atms.MappedAtm
 import code.bankconnectors.Connector
@@ -58,7 +58,7 @@ import code.customeraddress.MappedCustomerAddress
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
-import code.kafka.{OBPKafkaConsumer, KafkaHelperActors}
+import code.kafka.{KafkaHelperActors, OBPKafkaConsumer}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -95,6 +95,7 @@ import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
 import net.liftweb.http._
+import net.liftweb.json.Extraction
 import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
@@ -438,19 +439,30 @@ class Boot extends MdcLoggable {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
 
+    implicit val formats = net.liftweb.json.DefaultFormats
     LiftRules.exceptionHandler.prepend{
-      //same as default LiftRules.exceptionHandler
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
-        XhtmlResponse((<html> <body>Exception occured while processing {r.uri}<pre>{showException(e)}</pre> </body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
-
+        JsonResponse(
+          Extraction.decompose(ErrorMessage(s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
+          500
+        )
       }
-      //same as default LiftRules.exceptionHandler, except that it also send an email notification
       case (_, r , e) => {
         sendExceptionEmail(e)
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
-        XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
+        JsonResponse(
+          Extraction.decompose(ErrorMessage(s"${ErrorMessages.InternalServerError}")),
+          500
+        )
       }
+    }
+    
+    LiftRules.uriNotFound.prepend{
+      case (r, _) => NotFoundAsResponse(errorJsonResponse(
+        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})", 
+        404)
+      )
     }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty ) {
@@ -484,16 +496,15 @@ class Boot extends MdcLoggable {
     }
   }
 
-  private def showException(le: Throwable): String = {
-    val ret = "Message: " + le.toString + "\n\t" +
-      le.getStackTrace.map(_.toString).mkString("\n\t") + "\n"
+  private def showExceptionAtJson(error: Throwable): String = {
+    val formattedError = "Message: " + error.toString  + error.getStackTrace.map(_.toString).mkString(" ")
 
-    val also = le.getCause match {
+    val formattedCause = error.getCause match {
       case null => ""
-      case sub: Throwable => "\nCaught and thrown by:\n" + showException(sub)
+      case cause: Throwable => "Caught and thrown by: " + showExceptionAtJson(cause)
     }
 
-    ret + also
+    formattedError + formattedCause
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
