@@ -208,10 +208,10 @@ object JwtUtil {
     } catch {
       case e: BadJOSEException =>
         // Invalid signature or claims (iss, aud, exp...)
-        Failure(ErrorMessages.Oauth2BadJWTException + e.getMessage, Full(e), Empty)
+        Failure(ErrorMessages.Oauth2BadJOSEException + e.getMessage, Full(e), Empty)
       case e: JOSEException =>
         // Internal processing exception
-        Failure(ErrorMessages.Oauth2JOSEBException + e.getMessage, Full(e), Empty)
+        Failure(ErrorMessages.Oauth2JOSEException + e.getMessage, Full(e), Empty)
     }
   }
 
