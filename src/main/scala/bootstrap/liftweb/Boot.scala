@@ -458,15 +458,12 @@ class Boot extends MdcLoggable {
       }
     }
     
-    LiftRules.uriNotFound.prepend(NamedPF("404handler"){
-      case (r, _) => 
-        NotFoundAsResponse(
-          errorJsonResponse(
-            message = s"${ErrorMessages.NotRegisteredUrl}Current Url is (${r.uri.toString})", 
-            httpCode = 404
-          )
-        )
-    })
+    LiftRules.uriNotFound.prepend{
+      case (r, _) => NotFoundAsResponse(errorJsonResponse(
+        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})", 
+        404)
+      )
+    }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty ) {
       val delay = APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
