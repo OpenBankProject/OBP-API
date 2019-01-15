@@ -19,11 +19,13 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
   def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     (actor ? cc.getCustomersFuture(bankId, queryParams)).mapTo[Box[List[Customer]]]
 
-  def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer] =
-    extractFutureToBox(actor ? cc.getCustomerByUserId(bankId, userId))
+  def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer] = getValueFromFuture(
+    (actor ? cc.getCustomerByUserId(bankId, userId)).mapTo[Box[Customer]]
+  )
 
-  def getCustomersByUserId(userId: String): List[Customer] =
-    extractFuture(actor ? cc.getCustomersByUserId(userId))
+  def getCustomersByUserId(userId: String): List[Customer] = getValueFromFuture(
+    (actor ? cc.getCustomersByUserId(userId)).mapTo[List[Customer]]
+  )
 
   def getCustomersByUserIdFuture(userId: String): Future[Box[List[Customer]]] =
     (actor ? cc.getCustomersByUserIdFuture(userId)).mapTo[Box[List[Customer]]]
@@ -31,23 +33,28 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
   def getCustomerByCustomerIdFuture(customerId: String): Future[Box[Customer]] =
     (actor ? cc.getCustomerByCustomerIdFuture(customerId)).mapTo[Box[Customer]]
 
-  def getCustomerByCustomerId(customerId: String) : Box[Customer] =
-    extractFutureToBox(actor ? cc.getCustomerByCustomerId(customerId))
+  def getCustomerByCustomerId(customerId: String) : Box[Customer] = getValueFromFuture(
+    (actor ? cc.getCustomerByCustomerId(customerId)).mapTo[Box[Customer]]
+  )
 
-  def getBankIdByCustomerId(customerId: String) : Box[String] =
-    extractFutureToBox(actor ? cc.getBankIdByCustomerId(customerId))
+  def getBankIdByCustomerId(customerId: String) : Box[String] = getValueFromFuture(
+    (actor ? cc.getBankIdByCustomerId(customerId)).mapTo[Box[String]]
+  )
 
-  def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId) : Box[Customer] =
-    extractFutureToBox(actor ? cc.getCustomerByCustomerNumber(customerNumber, bankId))
+  def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId) : Box[Customer] = getValueFromFuture(
+    (actor ? cc.getCustomerByCustomerNumber(customerNumber, bankId)).mapTo[Box[Customer]]
+  )
 
   def getCustomerByCustomerNumberFuture(customerNumber: String, bankId : BankId): Future[Box[Customer]] =
     (actor ? cc.getCustomerByCustomerNumberFuture(customerNumber, bankId)).mapTo[Box[Customer]]
 
-  def getUser(bankId : BankId, customerNumber : String) : Box[User] =
-    extractFutureToBox(actor ? cc.getUser(bankId, customerNumber))
+  def getUser(bankId : BankId, customerNumber : String) : Box[User] = getValueFromFuture(
+    (actor ? cc.getUser(bankId, customerNumber)).mapTo[Box[User]]
+  )
 
-  def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String): Boolean =
-    extractFuture(actor ? cc.checkCustomerNumberAvailable(bankId, customerNumber))
+  def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String): Boolean = getValueFromFuture(
+    (actor ? cc.checkCustomerNumberAvailable(bankId, customerNumber)).mapTo[Boolean]
+  )
 
   def addCustomer(bankId: BankId,
                   number: String,
@@ -68,8 +75,8 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                   title: String,     
                   branchId: String,  
                   nameSuffix: String 
-                 ) : Box[Customer] =
-    extractFutureToBox(actor ? cc.addCustomer(
+                 ) : Box[Customer] = getValueFromFuture(
+    (actor ? cc.addCustomer(
                                               bankId = bankId,
                                               number = number,
                                               legalName = legalName,
@@ -89,13 +96,16 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                                               title = title,
                                               branchId = branchId,
                                               nameSuffix= nameSuffix
-                                            ))
+                                            )).mapTo[Box[Customer]]
+  )
 
-  def bulkDeleteCustomers(): Boolean =
-    extractFuture(actor ? cc.bulkDeleteCustomers())
+  def bulkDeleteCustomers(): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteCustomers()).mapTo[Boolean]
+  )
 
-  def populateMissingUUIDs(): Boolean =
-    extractFuture(actor ? cc.populateMissingUUIDs())
+  def populateMissingUUIDs(): Boolean = getValueFromFuture(
+    (actor ? cc.populateMissingUUIDs()).mapTo[Boolean]
+  )
 
 
 }

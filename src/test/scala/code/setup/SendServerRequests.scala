@@ -31,8 +31,9 @@
  */
 package code.setup
 
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 import java.util.TimeZone
+
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
@@ -72,9 +73,9 @@ trait SendServerRequests {
                       form_params: Map[String,String]
                      )
 
-  def encode_% (s: String) = java.net.URLEncoder.encode(s, org.apache.http.protocol.HTTP.UTF_8)
+  def encode_% (s: String) = java.net.URLEncoder.encode(s, StandardCharsets.UTF_8.name())
 
-  def decode_% (s: String) = java.net.URLDecoder.decode(s, org.apache.http.protocol.HTTP.UTF_8)
+  def decode_% (s: String) = java.net.URLDecoder.decode(s, StandardCharsets.UTF_8.name())
 
   //normalize to OAuth percent encoding
   def %% (str: String): String = {
@@ -178,7 +179,7 @@ trait SendServerRequests {
 
 
   private def ApiResponseCommonPart(req: Req) = {
-    for (response <- Http(req > as.Response(p => p)))
+    for (response <- Http.default(req > as.Response(p => p)))
       yield {
         val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
 

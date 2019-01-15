@@ -12,13 +12,16 @@ object RemotedataConnectorMetrics extends ObpActorInit with ConnectorMetricsProv
 
   val cc = RemotedataConnectorMetricsCaseClasses
 
-  def saveConnectorMetric(connectorName: String, functionName: String, obpApiRequestId: String, date: Date, duration: Long) : Unit =
-    extractFuture(actor ? cc.saveConnecotrMetric(connectorName, functionName, obpApiRequestId, date, duration))
+  def saveConnectorMetric(connectorName: String, functionName: String, obpApiRequestId: String, date: Date, duration: Long) : Unit = getValueFromFuture(
+    (actor ? cc.saveConnecotrMetric(connectorName, functionName, obpApiRequestId, date, duration)).mapTo[Unit]
+  )
 
-  def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] =
-    extractFuture(actor ? cc.getAllConnectorMetrics(queryParams))
+  def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] = getValueFromFuture(
+    (actor ? cc.getAllConnectorMetrics(queryParams)).mapTo[List[MappedConnectorMetric]]
+  )
 
-  def bulkDeleteConnectorMetrics(): Boolean =
-    extractFuture(actor ? cc.bulkDeleteMetrics())
+  def bulkDeleteConnectorMetrics(): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteMetrics()).mapTo[Boolean]
+  )
 
 }

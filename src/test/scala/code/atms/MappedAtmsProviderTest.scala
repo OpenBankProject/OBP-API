@@ -22,8 +22,9 @@ class MappedAtmsProviderTest extends ServerSetup {
     delete()
   }
 
-  def defaultSetup() =
-    new {
+  def defaultSetup() = new DefaultSetup()
+  
+  class DefaultSetup {
       val bankIdX = "some-bank-x"
       val bankIdY = "some-bank-y"
 

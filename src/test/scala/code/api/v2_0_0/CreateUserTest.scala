@@ -45,7 +45,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
   private def getAPIResponse(req : Req) : OAuthResponse = {
     Await.result(
-      for(response <- Http(req > as.Response(p => p)))
+      for(response <- Http.default(req > as.Response(p => p)))
         yield OAuthResponse(response.getStatusCode, response.getResponseBody), Duration.Inf)
   }
 

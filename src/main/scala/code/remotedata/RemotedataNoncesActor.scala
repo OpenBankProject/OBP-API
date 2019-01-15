@@ -13,7 +13,7 @@ class RemotedataNoncesActor extends Actor with ObpActorHelper with MdcLoggable {
   val mapper = MappedNonceProvider
   val cc = RemotedataNoncesCaseClasses
 
-  def receive = {
+  def receive: PartialFunction[Any, Unit] = {
 
     case cc.createNonce(id: Option[Long],
                         consumerKey: Option[String],
@@ -25,11 +25,11 @@ class RemotedataNoncesActor extends Actor with ObpActorHelper with MdcLoggable {
                                     tokenKey + ", " +
                                     timestamp + ", " +
                                     value + ")")
-      sender ! extractResult(mapper.createNonce(id, consumerKey, tokenKey, timestamp, value))
+      sender ! (mapper.createNonce(id, consumerKey, tokenKey, timestamp, value))
 
     case cc.deleteExpiredNonces(currentDate: Date) =>
       logger.debug("deleteExpiredNonces(" + currentDate +")")
-      sender ! extractResult(mapper.deleteExpiredNonces(currentDate))
+      sender ! (mapper.deleteExpiredNonces(currentDate))
 
     case cc.countNonces(consumerKey: String,
                         tokenKey: String,
@@ -40,7 +40,7 @@ class RemotedataNoncesActor extends Actor with ObpActorHelper with MdcLoggable {
                                     timestamp + ", " +
                                     value + ", " +
                                     ")")
-      sender ! extractResult(mapper.countNonces(consumerKey, tokenKey, timestamp, value))
+      sender ! (mapper.countNonces(consumerKey, tokenKey, timestamp, value))
 
     case cc.countNoncesFuture(consumerKey: String,
                               tokenKey: String,

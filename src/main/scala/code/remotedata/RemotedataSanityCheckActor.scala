@@ -14,7 +14,7 @@ class RemotedataSanityCheckActor extends Actor with ObpActorHelper with MdcLogga
 
     case cc.remoteAkkaSanityCheck(remoteDataSecret: String) =>
       logger.debug("remoteAkkaSanityCheck()")
-      sender ! extractResult(mapper.remoteAkkaSanityCheck(remoteDataSecret))
+      sender ! (mapper.remoteAkkaSanityCheck(remoteDataSecret))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

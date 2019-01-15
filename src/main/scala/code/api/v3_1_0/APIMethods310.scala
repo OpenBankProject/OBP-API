@@ -44,7 +44,9 @@ import scala.concurrent.Future
 trait APIMethods310 {
   self: RestHelper =>
 
-  val Implementations3_1_0 = new Object() {
+  val Implementations3_1_0 = new Implementations310() 
+  
+  class Implementations310 {
 
     val implementedInApiVersion: ApiVersion = ApiVersion.v3_1_0
 
@@ -158,7 +160,7 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`200`(cc))}
+           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`201`(Some(cc)))}
       }
     }
     
@@ -827,13 +829,13 @@ trait APIMethods310 {
     }
 
 
-    val accountWebHookInfo = """Webhooks are used to call external URLs when certain events happen.
+    val accountWebHookInfo = s"""Webhooks are used to call external URLs when certain events happen.
                                |
                                |Account Webhooks focus on events around accounts.
                                |
                                |For instance, a webhook could be used to notify an external service if a balance changes on an account.
                                |
-                               |This functionality is work in progress! Although you can create and modify Webhooks, they do not yet fire on triggers."""
+                               |This functionality is work in progress! Please note that only implemented trigger is: ${ApiTrigger.onBalanceChange}"""
 
 
     resourceDocs += ResourceDoc(
@@ -887,7 +889,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, CreateWebhookError, 400)
             }
           } yield {
-            (createAccountWebhookJson(wh), HttpCode.`200`(callContext))
+            (createAccountWebhookJson(wh), HttpCode.`201`(callContext))
           }
       }
     }
@@ -910,7 +912,7 @@ trait APIMethods310 {
       List(UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
-      Some(List(canCreateWebhook))
+      Some(List(canUpdateWebhook))
     )
 
     lazy val enableDisableAccountWebhook : OBPEndpoint = {
@@ -1233,7 +1235,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, CreateCustomerError, 400)
             }
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1354,7 +1356,7 @@ trait APIMethods310 {
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
           } yield {
-            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1393,7 +1395,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
             (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
           } yield {
-            (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`200`(callContext))
+            (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1550,7 +1552,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (taxResidence, callContext) <- NewStyle.function.createTaxResidence(customerId, postedData.domain, postedData.tax_number, callContext)
           } yield {
-            (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`200`(callContext))
+            (JSONFactory310.createTaxResidence(List(taxResidence)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1726,7 +1728,7 @@ trait APIMethods310 {
               postedData.state,
               callContext)
           } yield {
-            (JSONFactory310.createAddress(address), HttpCode.`200`(callContext))
+            (JSONFactory310.createAddress(address), HttpCode.`201`(callContext))
           }
       }
     }

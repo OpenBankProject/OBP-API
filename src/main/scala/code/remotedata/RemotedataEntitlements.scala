@@ -12,26 +12,32 @@ object RemotedataEntitlements extends ObpActorInit with EntitlementProvider {
 
   val cc = RemotedataEntitlementsCaseClasses
 
-  def getEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement] =
-    extractFutureToBox(actor ? cc.getEntitlement(bankId, userId, roleName))
+  def getEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement] = getValueFromFuture(
+    (actor ? cc.getEntitlement(bankId, userId, roleName)).mapTo[Box[Entitlement]]
+  )
 
-  def getEntitlementById(entitlementId: String) : Box[Entitlement] =
-    extractFutureToBox(actor ? cc.getEntitlementById(entitlementId))
+  def getEntitlementById(entitlementId: String) : Box[Entitlement] = getValueFromFuture(
+    (actor ? cc.getEntitlementById(entitlementId)).mapTo[Box[Entitlement]]
+  )
 
-  def getEntitlementsByUserId(userId: String) : Box[List[Entitlement]] =
-    extractFutureToBox(actor ? cc.getEntitlementsByUserId(userId))
+  def getEntitlementsByUserId(userId: String) : Box[List[Entitlement]] = getValueFromFuture(
+    (actor ? cc.getEntitlementsByUserId(userId)).mapTo[Box[List[Entitlement]]]
+  )
 
   def getEntitlementsByUserIdFuture(userId: String) : Future[Box[List[Entitlement]]] =
     (actor ? cc.getEntitlementsByUserIdFuture(userId)).mapTo[Box[List[Entitlement]]]
 
-  def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean] =
-    extractFutureToBox(actor ? cc.deleteEntitlement(entitlement))
+  def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean] = getValueFromFuture(
+    (actor ? cc.deleteEntitlement(entitlement)).mapTo[Box[Boolean]]
+  )
 
-  def getEntitlements() : Box[List[Entitlement]] =
-    extractFutureToBox(actor ? cc.getEntitlements())
+  def getEntitlements() : Box[List[Entitlement]] = getValueFromFuture(
+    (actor ? cc.getEntitlements()).mapTo[Box[List[Entitlement]]]
+  )
 
-  def getEntitlementsByRole(roleName: String): Box[List[Entitlement]] =
-    extractFutureToBox(actor ? cc.getEntitlementsByRole(roleName))
+  def getEntitlementsByRole(roleName: String): Box[List[Entitlement]] =getValueFromFuture(
+    (actor ? cc.getEntitlementsByRole(roleName)).mapTo[Box[List[Entitlement]]]
+  )
 
   def getEntitlementsFuture() : Future[Box[List[Entitlement]]] =
     (actor ? cc.getEntitlementsFuture()).mapTo[Box[List[Entitlement]]]
@@ -39,7 +45,8 @@ object RemotedataEntitlements extends ObpActorInit with EntitlementProvider {
   def getEntitlementsByRoleFuture(roleName: String) : Future[Box[List[Entitlement]]] =
     (actor ? cc.getEntitlementsByRoleFuture(roleName)).mapTo[Box[List[Entitlement]]]
 
-  def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement] =
-    extractFutureToBox(actor ? cc.addEntitlement(bankId, userId, roleName))
+  def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement] = getValueFromFuture(
+    (actor ? cc.addEntitlement(bankId, userId, roleName)).mapTo[Box[Entitlement]]
+  )
 
 }

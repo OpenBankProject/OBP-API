@@ -21,6 +21,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftRules, S}
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -122,6 +123,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
+        case _ => ArrayBuffer.empty[ResourceDoc]
       }
 
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
@@ -138,6 +140,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
         case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
         case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
+        case _                 => Nil
       }
 
       logger.debug(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
@@ -425,15 +428,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     def getResourceDocsObp : OBPEndpoint = {
     case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-     val (showCore, showPSD2, showOBWG, tags, partialFunctions) =  getParams()
       cc =>{
-
        for {
-         requestedApiVersion <- Full(ApiVersion.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
-         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+        (showCore, showPSD2, showOBWG, tags, partialFunctions) <- Full(getParams())
+         requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
+         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
          json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
-        }
-        yield {
+        } yield {
           json
         }
       }
@@ -472,9 +473,17 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
     def getResourceDocsSwagger : OBPEndpoint = {
-      case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
-        val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) =  getParams()
-        cc =>getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersion, resourceDocTags, partialFunctions)
+      case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
+        cc =>{
+          for {
+            (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions) <- tryo(getParams())
+            requestedApiVersion <- tryo(ApiVersion.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
+            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
+            json <- getResourceDocsSwaggerCached(showCore, showPSD2, showOBWG, requestedApiVersionString, resourceDocTags, partialFunctions)
+          } yield {
+            json
+          }
+        }
       }
     }
 

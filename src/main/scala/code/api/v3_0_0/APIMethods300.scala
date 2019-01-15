@@ -29,7 +29,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common._
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -739,7 +739,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result: esw.APIResponse <- esw.searchProxyAsyncV300(u.userId, indexPart, bodyPart)
           } yield {
-            (esw.parseResponse(result), HttpCode.`200`(callContext))
+            (esw.parseResponse(result), HttpCode.`201`(callContext))
           }
       }
     }
@@ -808,7 +808,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
-            (esw.parseResponse(result), HttpCode.`200`(callContext))
+            (esw.parseResponse(result), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1010,7 +1010,7 @@ trait APIMethods300 {
             success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
           } yield {
             val json = JSONFactory300.createBranchJsonV300(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json), 201)
           }
       }
     }
@@ -1065,7 +1065,7 @@ trait APIMethods300 {
             success <- Connector.connector.vend.createOrUpdateAtm(atm)
           } yield {
             val json = JSONFactory300.createAtmJsonV300(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json), 201)
           }
       }
     }
@@ -1188,6 +1188,8 @@ trait APIMethods300 {
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
                 else Full(branchesWithLicense)
+              case Failure(msg, t, c) => Failure(msg, t, c)
+              case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
             } map { unboxFull(_) } map {
               branches =>
               // Before we slice we need to sort in order to keep consistent results
@@ -1309,6 +1311,8 @@ trait APIMethods300 {
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
                 else Full(branchesWithLicense)
+              case Failure(msg, t, c) => Failure(msg, t, c)
+              case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
             } map { unboxFull(_) } map {
               branch =>
                 // Before we slice we need to sort in order to keep consistent results
@@ -1667,7 +1671,7 @@ trait APIMethods300 {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementRequestCannotBeAdded, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             } yield {
-              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`200`(callContext))
+              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`201`(callContext))
             }
       }
     }
@@ -2104,7 +2108,7 @@ trait APIMethods300 {
             addedEntitlement <- Future {Scope.scope.vend.addScope(postedData.bank_id, consumerId, postedData.role_name)} map { unboxFull(_) }
             
           } yield {
-            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`200`(callContext))
+            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`201`(callContext))
           }
       }
     }

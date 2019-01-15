@@ -1016,7 +1016,7 @@ trait APIMethods210 {
                               )
           } yield {
             val cardJson = JSONFactory1_3_0.createPhysicalCardJSON(card, u)
-            successJsonResponse(Extraction.decompose(cardJson))
+            successJsonResponse(Extraction.decompose(cardJson), 201)
           }
       }
     }
@@ -1520,7 +1520,7 @@ trait APIMethods210 {
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
             val json = JSONFactory1_4_0.createBranchJson(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json),201)
           }
       }
     }
@@ -1560,7 +1560,7 @@ trait APIMethods210 {
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
            val json = JSONFactory1_4_0.createBranchJson(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json), 201)
           }
       }
     }

@@ -15,17 +15,21 @@ object RemotedataComments extends ObpActorInit with Comments {
 
    val cc = RemotedataCommentsCaseClasses
 
-  def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] =
-    extractFuture(actor ? cc.getComments(bankId, accountId, transactionId, viewId))
+  def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] = getValueFromFuture(
+    (actor ? cc.getComments(bankId, accountId, transactionId, viewId)).mapTo[List[Comment]]
+  )
 
-  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryKey, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] =
-    extractFutureToBox(actor ? cc.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted))
+  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserPrimaryKey, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] = getValueFromFuture(
+    (actor ? cc.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted)).mapTo[Box[Comment]]
+  )
 
-  def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Boolean] =
-    extractFutureToBox(actor ? cc.deleteComment(bankId, accountId, transactionId, commentId))
+  def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Boolean] = getValueFromFuture(
+    (actor ? cc.deleteComment(bankId, accountId, transactionId, commentId)).mapTo[Box[Boolean]]
+  )
 
-  def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean =
-    extractFuture(actor ? cc.bulkDeleteComments(bankId, accountId))
+  def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteComments(bankId, accountId)).mapTo[Boolean]
+  )
 
 
 }

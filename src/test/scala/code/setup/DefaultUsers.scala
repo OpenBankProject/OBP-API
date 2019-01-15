@@ -2,16 +2,15 @@ package code.setup
 
 import java.util.UUID
 
-import code.api.util.ErrorMessages._
 import code.api.GatewayLogin
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
+import code.api.util.ErrorMessages._
 import code.consumer.Consumers
 import code.model.TokenType._
-import code.model.{User, Consumer => OBPConsumer, Token => OBPToken}
+import code.model.User
 import code.token.Tokens
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers.TimeSpan
 
 /**
@@ -58,7 +57,7 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some({ (now: TimeSpan) + tokenDuration }),
+    Some(TimeSpan(tokenDuration + now.getTime)),
     Some(now),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -70,7 +69,7 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some({ (now: TimeSpan) + tokenDuration }),
+    Some(TimeSpan(tokenDuration + now.getTime)),
     Some(now),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -81,7 +80,7 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some({ (now: TimeSpan) + tokenDuration }),
+    Some(TimeSpan(tokenDuration + now.getTime)),
     Some(now),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -92,7 +91,7 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some({ (now: TimeSpan) + tokenDuration }),
+    Some(TimeSpan(tokenDuration + now.getTime)),
     Some(now),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)

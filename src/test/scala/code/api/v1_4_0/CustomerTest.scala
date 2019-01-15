@@ -1,18 +1,15 @@
 package code.api.v1_4_0
 
-import java.text.SimpleDateFormat
-
+import code.api.ErrorMessage
+import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJsonV140}
 import code.api.v2_0_0.{CreateCustomerJson, V200ServerSetup}
 import code.customer.Customer
-import code.model.BankId
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.Serialization._
-import code.api.util.APIUtil.OAuth._
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
+import net.liftweb.json.Serialization._
 
 class CustomerTest extends V200ServerSetup with DefaultUsers {
 
@@ -98,9 +95,8 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val secondResponsePost = makePostRequest(requestPost, write(customerPostJSON1))
       Then("We should get a 400")
       secondResponsePost.code should equal(400)
-      val error = for { JObject(o) <- secondResponsePost.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      error.toString contains (ErrorMessages.CustomerNumberAlreadyExists) should be (true)
+      secondResponsePost.body.extract[ErrorMessage].error should equal (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 1 customer")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON1.user_id).size should equal(1)
 
@@ -129,9 +125,8 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val secondResponsePost3 = makePostRequest(requestPost3, write(customerPostJSON3))
       Then("We should get a 400")
       secondResponsePost3.code should equal(400)
-      val error3 = for { JObject(o) <- secondResponsePost3.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
-      error3.toString contains (ErrorMessages.CustomerNumberAlreadyExists) should be (true) 
+      secondResponsePost3.body.extract[ErrorMessage].error should equal (ErrorMessages.CustomerNumberAlreadyExists)
       And("User is linked to 3 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON3.user_id).size should equal(3)
     }

@@ -10,7 +10,8 @@ object RemotedataSanityCheck extends ObpActorInit with SanityChecks {
 
   val cc = RemotedataSanityCheckCaseClasses
 
-  def remoteAkkaSanityCheck(remoteDataSecret: String): Box[Boolean] =
-    extractFutureToBox(actor ? cc.remoteAkkaSanityCheck(remoteDataSecret))
+  def remoteAkkaSanityCheck(remoteDataSecret: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.remoteAkkaSanityCheck(remoteDataSecret)).mapTo[Box[Boolean]]
+  )
 
 }

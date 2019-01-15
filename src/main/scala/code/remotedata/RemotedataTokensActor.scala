@@ -19,7 +19,7 @@ class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.getTokenByKey(key: String) =>
       logger.debug("getTokenByKey(" + key +")")
-      sender ! extractResult(mapper.getTokenByKey(key))
+      sender ! (mapper.getTokenByKey(key))
 
     case cc.getTokenByKeyFuture(key: String) =>
       logger.debug("getTokenByKeyFuture(" + key +")")
@@ -27,7 +27,7 @@ class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.getTokenByKeyAndType(key: String, tokenType: TokenType) =>
       logger.debug("getTokenByKeyAndType(" + key + ", " + tokenType + ")")
-      sender ! extractResult(mapper.getTokenByKeyAndType(key, tokenType))
+      sender ! (mapper.getTokenByKeyAndType(key, tokenType))
 
     case cc.getTokenByKeyAndTypeFuture(key: String, tokenType: TokenType) =>
       logger.debug("getTokenByKeyAndTypeFuture(" + key + ", " + tokenType + ")")
@@ -51,23 +51,23 @@ class RemotedataTokensActor extends Actor with ObpActorHelper with MdcLoggable {
                                     insertDate + ", " +
                                     tokenType + ", " +
                                     callbackUrl + ")")
-      sender ! extractResult(mapper.createToken(tokenType, consumerId, userId, key, secret, duration, expirationDate, insertDate, callbackUrl))
+      sender ! (mapper.createToken(tokenType, consumerId, userId, key, secret, duration, expirationDate, insertDate, callbackUrl))
 
     case cc.gernerateVerifier(id: Long) =>
       logger.debug("gernerateVerifier(" + id +")")
-      sender ! extractResult(mapper.gernerateVerifier(id))
+      sender ! (mapper.gernerateVerifier(id))
 
     case cc.updateToken(id: Long, userId: Long) =>
       logger.debug("updateToken(" + id + ", " + userId + ")")
-      sender ! extractResult(mapper.updateToken(id, userId))
+      sender ! (mapper.updateToken(id, userId))
 
     case cc.deleteToken(id: Long) =>
       logger.debug("deleteToken(" + id +")")
-      sender ! extractResult(mapper.deleteToken(id))
+      sender ! (mapper.deleteToken(id))
 
     case cc.deleteExpiredTokens(currentDate: Date) =>
       logger.debug("deleteExpiredTokens(" + currentDate +")")
-      sender ! extractResult(mapper.deleteExpiredTokens(currentDate))
+      sender ! (mapper.deleteExpiredTokens(currentDate))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
