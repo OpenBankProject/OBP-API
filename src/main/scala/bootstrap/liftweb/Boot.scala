@@ -496,26 +496,15 @@ class Boot extends MdcLoggable {
     }
   }
 
-  private def showException(le: Throwable): String = {
-    val ret = "Message: " + le.toString + "\n\t" +
-      le.getStackTrace.map(_.toString).mkString("\n\t") + "\n"
+  private def showExceptionAtJson(error: Throwable): String = {
+    val formattedError = "Message: " + error.toString  + error.getStackTrace.map(_.toString).mkString(" ")
 
-    val also = le.getCause match {
+    val formattedCause = error.getCause match {
       case null => ""
-      case sub: Throwable => "\nCaught and thrown by:\n" + showException(sub)
+      case cause: Throwable => "Caught and thrown by: " + showExceptionAtJson(cause)
     }
 
-    ret + also
-  }
-  private def showExceptionAtJson(le: Throwable): String = {
-    val ret = "Message: " + le.toString  + le.getStackTrace.map(_.toString).mkString(" ")
-
-    val also = le.getCause match {
-      case null => ""
-      case sub: Throwable => "Caught and thrown by: " + showExceptionAtJson(sub)
-    }
-
-    ret + also
+    formattedError + formattedCause
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
