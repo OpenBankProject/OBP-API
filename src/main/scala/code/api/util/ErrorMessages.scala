@@ -51,7 +51,8 @@ object ErrorMessages {
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
   val TooManyRequests = "OBP-10018: Too Many Requests."
   val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
-  val NotRegisteredUrl = "OBP-404: 404 Not Found. The server has not found anything matching the Request-URI.."
+  val InvalidUri = "OBP-404: 404 Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
+    "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
 
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023

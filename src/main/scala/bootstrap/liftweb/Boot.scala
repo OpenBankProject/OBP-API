@@ -454,7 +454,10 @@ class Boot extends MdcLoggable {
     }
     
     LiftRules.uriNotFound.prepend{
-      case (r, _) => NotFoundAsResponse(errorJsonResponse(s"${ErrorMessages.NotRegisteredUrl}Current Url is (${r.uri.toString})"))
+      case (r, _) => NotFoundAsResponse(errorJsonResponse(
+        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})", 
+        404)
+      )
     }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty ) {
