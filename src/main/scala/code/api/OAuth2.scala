@@ -151,6 +151,13 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   }
   
   object Google {
+    private def getClaim(name: String, idToken: String): Option[String] = {
+      val claim = JwtUtil.getClaim(name = name, jwtToken = idToken).asString()
+      claim match {
+        case null => None
+        case string => Some(string)
+      }
+    }
     def isIssuer(jwtToken: String): Boolean = {
       JwtUtil.getIssuer(jwtToken).map(_.contains("accounts.google.com")).getOrElse(false)
     }
@@ -177,7 +184,12 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     def getOrCreateResourceUserFuture(idToken: String): Future[Box[User]] = {
       val subject = JwtUtil.getSubject(idToken).getOrElse("")
       val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
-      Users.users.vend.getOrCreateUserByProviderIdFuture(provider = issuer, idGivenByProvider = subject)
+      Users.users.vend.getOrCreateUserByProviderIdFuture(
+        provider = issuer, 
+        idGivenByProvider = subject, 
+        name = getClaim(name = "name", idToken = idToken).orElse(Some(subject)),
+        email = getClaim(name = "email", idToken = idToken)
+      )
     }
     /** Old Style Endpoints
       * This function creates user based on "iss" and "sub" fields
@@ -194,8 +206,8 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
         Users.users.vend.createResourceUser( // Otherwise create a new one
           provider = issuer,
           providerId = Some(subject),
-          name = Some(subject),
-          email = None,
+          name = getClaim(name = "name", idToken = idToken).orElse(Some(subject)),
+          email = getClaim(name = "email", idToken = idToken),
           userId = None
         )
       }
