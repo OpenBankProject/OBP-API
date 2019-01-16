@@ -30,6 +30,8 @@ import code.api.util.{APIUtil, CallContext, ErrorMessages, JwtUtil}
 import code.model.User
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import com.nimbusds.jwt.JWTClaimsSet
+import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 
@@ -51,28 +53,6 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     valueOfAuthReqHeaderField
   }
 
-  private def verifyJwt(jwt: String) = {
-    APIUtil.getPropsAsBoolValue("oauth2.jwt.use.ssl", false) match {
-      case true =>
-        JwtUtil.verifyRsaSignedJwt(jwt)
-      case false =>
-        JwtUtil.verifyHmacSignedJwt(jwt)
-    }
-  }
-
-  private def validateAccessToken(accessToken: String) = {
-    APIUtil.getPropsValue("oauth2.jwk_set.url") match {
-      case Full(url) =>
-        JwtUtil.validateAccessToken(accessToken, url)
-      case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-        ParamFailure(a, b, c, apiFailure : APIFailure)
-      case Failure(msg, t, c) =>
-        Failure(msg, t, c)
-      case _ =>
-        Failure(ErrorMessages.Oauth2ThereIsNoUrlOfJwkSet)
-    }
-  }
-
   /*
     Method for Old Style Endpoints
    */
@@ -80,17 +60,32 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(sc)
-        validateAccessToken(value) match {
-          case Full(_) =>
-            val username = JwtUtil.getSubject(value).getOrElse("")
-            (Users.users.vend.getUserByUserName(username), Some(sc))
-          case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-            (ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc))
-          case Failure(msg, t, c) =>
-            (Failure(msg, t, c), Some(sc))
-          case _ =>
-            (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc))
+        if (Google.isIssuer(value)) {
+          Google.validateIdToken(value) match {
+            case Full(_) =>
+              val user = Google.getOrCreateResourceUser(value)
+              (user, Some(sc))
+            case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+              (ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc))
+            case Failure(msg, t, c) =>
+              (Failure(msg, t, c), Some(sc))
+            case _ =>
+              (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc))
+          }
+        } else {
+          MITREId.validateAccessToken(value) match {
+            case Full(_) =>
+              val username = JwtUtil.getSubject(value).getOrElse("")
+              (Users.users.vend.getUserByUserName(username), Some(sc))
+            case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+              (ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc))
+            case Failure(msg, t, c) =>
+              (Failure(msg, t, c), Some(sc))
+            case _ =>
+              (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc))
+          }
         }
+
       case false =>
         (Failure(ErrorMessages.Oauth2IsNotAllowed), Some(sc))
     }
@@ -102,40 +97,111 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(sc)
-        validateAccessToken(value) match {
-          case Full(_) =>
-            val username = JwtUtil.getSubject(value).getOrElse("")
-            for {
-              user <- Users.users.vend.getUserByUserNameFuture(username)
-            } yield {
-              (user, Some(sc))
-            }
-          case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-            Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc)))
-          case Failure(msg, t, c) =>
-            Future((Failure(msg, t, c), Some(sc)))
-          case _ =>
-            Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc)))
+        if (Google.isIssuer(value)) {
+          Google.validateIdToken(value) match {
+            case Full(_) =>
+              for {
+                user <-  Google.getOrCreateResourceUserFuture(value)
+              } yield {
+                (user, Some(sc))
+              }
+            case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+              Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc)))
+            case Failure(msg, t, c) =>
+              Future((Failure(msg, t, c), Some(sc)))
+            case _ =>
+              Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc)))
+          }
+        } else {
+          MITREId.validateAccessToken(value) match {
+            case Full(_) =>
+              val username = JwtUtil.getSubject(value).getOrElse("")
+              for {
+                user <- Users.users.vend.getUserByUserNameFuture(username)
+              } yield {
+                (user, Some(sc))
+              }
+            case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+              Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(sc)))
+            case Failure(msg, t, c) =>
+              Future((Failure(msg, t, c), Some(sc)))
+            case _ =>
+              Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(sc)))
+          }
         }
       case false =>
         Future((Failure(ErrorMessages.Oauth2IsNotAllowed), Some(sc)))
     }
   }
 
-  /**
-    * This function creates user based on "iss" and "sub" fields
-    * It is mapped in next way:
-    * iss => ResourceUser.provider_
-    * sub => ResourceUser.providerId
-    * @param cc CallContext
-    * @return Existing or New User
-    */
-  def getOrCreateResourceUserFuture(cc: CallContext): Future[Box[User]] = {
-    val value = getValueOfOAuh2HeaderField(cc)
-    val sub = JwtUtil.getSubject(value).getOrElse("")
-    val iss = JwtUtil.getIssuer(value).getOrElse("")
-    Users.users.vend.getOrCreateUserByProviderIdFuture(provider = iss, idGivenByProvider = sub)
+  
+  object MITREId {
+    def validateAccessToken(accessToken: String): Box[JWTClaimsSet] = {
+      APIUtil.getPropsValue("oauth2.jwk_set.url") match {
+        case Full(url) =>
+          JwtUtil.validateAccessToken(accessToken, url)
+        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+          ParamFailure(a, b, c, apiFailure : APIFailure)
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
+        case _ =>
+          Failure(ErrorMessages.Oauth2ThereIsNoUrlOfJwkSet)
+      }
+    }
   }
+  
+  object Google {
+    def isIssuer(jwtToken: String): Boolean = {
+      JwtUtil.getIssuer(jwtToken).map(_.contains("accounts.google.com")).getOrElse(false)
+    }
+    def validateIdToken(idToken: String): Box[IDTokenClaimsSet] = {
+      APIUtil.getPropsValue("oauth2.jwk_set.url") match {
+        case Full(url) =>
+          JwtUtil.validateIdToken(idToken, url)
+        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+          ParamFailure(a, b, c, apiFailure : APIFailure)
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
+        case _ =>
+          Failure(ErrorMessages.Oauth2ThereIsNoUrlOfJwkSet)
+      }
+    }
+    /** New Style Endpoints
+      * This function creates user based on "iss" and "sub" fields
+      * It is mapped in next way:
+      * iss => ResourceUser.provider_
+      * sub => ResourceUser.providerId
+      * @param idToken 
+      * @return an existing or a new user
+      */
+    def getOrCreateResourceUserFuture(idToken: String): Future[Box[User]] = {
+      val subject = JwtUtil.getSubject(idToken).getOrElse("")
+      val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
+      Users.users.vend.getOrCreateUserByProviderIdFuture(provider = issuer, idGivenByProvider = subject)
+    }
+    /** Old Style Endpoints
+      * This function creates user based on "iss" and "sub" fields
+      * It is mapped in next way:
+      * iss => ResourceUser.provider_
+      * sub => ResourceUser.providerId
+      * @param idToken 
+      * @return an existing or a new user
+      */
+    def getOrCreateResourceUser(idToken: String): Box[User] = {
+      val subject = JwtUtil.getSubject(idToken).getOrElse("")
+      val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
+      Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject).or { // Find a user
+        Users.users.vend.createResourceUser( // Otherwise create a new one
+          provider = issuer,
+          providerId = Some(subject),
+          name = Some(subject),
+          email = None,
+          userId = None
+        )
+      }
+    }
+  }
+  
 
 
 }
