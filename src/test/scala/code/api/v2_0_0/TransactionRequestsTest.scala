@@ -356,7 +356,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         response.code should equal(400)
 
         //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
-        val error: String = (response.body \ "error") match {
+        val error: String = (response.body \ "message") match {
           case JString(i) => i
           case _ => ""
         }
@@ -416,7 +416,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         response.code should equal(400)
 
         //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
-        val error: String = (response.body \ "error") match {
+        val error: String = (response.body \ "message") match {
           case JString(i) => i
           case _ => ""
         }

@@ -193,7 +193,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not get the list of the available views on a bank account due to insufficient privileges", API2_2, GetViews) {
@@ -205,7 +205,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
   feature("Create a view on a bank account - v2.2.0"){
@@ -235,7 +235,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not create a view on a bank account due to insufficient privileges", API2_2, PostView) {
@@ -248,7 +248,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not create a view because the bank account does not exist", API2_2, PostView) {
@@ -260,7 +260,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not create a view because the view already exists", API2_2, PostView) {
@@ -274,7 +274,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
     scenario("can not create the System View") {
@@ -286,7 +286,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -379,7 +379,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.code should equal(400)
 
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update a view on a bank account due to insufficient privileges", API2_2, PutView) {
@@ -397,7 +397,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       reply.code should equal(400)
 
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
     scenario("we can not update a System view on a bank account") {
@@ -417,7 +417,7 @@ class API2_2_0Test extends User1AllPrivileges with V220ServerSetup with DefaultU
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
   

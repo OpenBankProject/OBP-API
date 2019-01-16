@@ -304,7 +304,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           }
         case Full((s, accounts, callContextNew)) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
           logger.debug("CBS returned proper response")
-          Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
+          Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username, name = None, email = None) map {
             case Full(u) =>
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .

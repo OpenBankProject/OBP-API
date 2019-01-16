@@ -10,6 +10,7 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.BeforeAndAfter
 import code.api.util.ErrorMessages._
+import code.api.v1_2_1.ErrorMessage
 
 
 
@@ -246,11 +247,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   }
 
   private def assertResponse(response: APIResponse, expectedErrorMessage: String): Unit = {
-    response.body match {
-      case JObject(List(JField(name, JString(value)))) =>
-        name should equal("error")
-        value should startWith(expectedErrorMessage)
-      case _ => fail("Expected an error message")
-    }
+    response.body.extract[ErrorMessage].message should startWith(expectedErrorMessage)
   }
+  
 }

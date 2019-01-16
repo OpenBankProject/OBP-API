@@ -75,7 +75,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterSortDirectionError)
-      reply.body.extract[ErrorMessage].error contains  (ErrorMessages.FilterSortDirectionError)
+      reply.body.extract[ErrorMessage].message contains  (ErrorMessages.FilterSortDirectionError)
     }
     scenario("we get all the transactions sorted by ASC", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -157,7 +157,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterLimitError)
-      reply.body.extract[ErrorMessage].error contains (ErrorMessages.FilterLimitError)
+      reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterLimitError)
     }
     scenario("we don't get transactions due to wrong value (0) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -170,7 +170,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterLimitError)
-      reply.body.extract[ErrorMessage].error contains (ErrorMessages.FilterLimitError)
+      reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterLimitError)
     }
     scenario("we don't get transactions due to wrong value (-100) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -183,7 +183,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterLimitError)
-      reply.body.extract[ErrorMessage].error contains (ErrorMessages.FilterLimitError)
+      reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterLimitError)
     }
     scenario("we get only 5 transactions due to the limit parameter value", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -210,7 +210,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterDateFormatError)
-      reply.body.extract[ErrorMessage].error contains (ErrorMessages.FilterDateFormatError)
+      reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterDateFormatError)
     }
     scenario("we get transactions from a previous date with the right format", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -283,7 +283,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterDateFormatError)
-      reply.body.extract[ErrorMessage].error contains (ErrorMessages.FilterDateFormatError)
+      reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterDateFormatError)
     }
     scenario("we get transactions from a previous (to_date) date with the right format", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -348,7 +348,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterOffersetError)
-      reply.body.extract[ErrorMessage].error contains (ErrorMessages.FilterOffersetError)
+      reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterOffersetError)
     }
     scenario("we don't get transactions due to the (2000) for offset parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -375,7 +375,7 @@ class TransactionsTest extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("error should be " + ErrorMessages.FilterOffersetError)
-      reply.body.extract[ErrorMessage].error contains (ErrorMessages.FilterOffersetError)
+      reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterOffersetError)
     }
     scenario("we get only 5 transactions due to the offset parameter value", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -403,7 +403,7 @@ class TransactionsTest extends V300ServerSetup {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
+      compactRender(responseGet.body \ "message").replaceAll("\"", "") should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
     }}
 
 

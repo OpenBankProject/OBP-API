@@ -45,9 +45,10 @@ case class HostedBy(
   email : String,
   phone : String
 )
-case class ErrorMessage(
-  error : String
-)
+
+case class ErrorMessage(code: Int,
+                        message: String
+                       )
 case class SuccessMessage(
   success : String
 )

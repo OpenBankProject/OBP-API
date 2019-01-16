@@ -65,7 +65,7 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
 
@@ -79,7 +79,7 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateWebhook)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCreateWebhook)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateWebhook)
     }
 
     scenario("We will try to create the web hook with a proper Role " + canCreateWebhook + " but without proper trigger name", ApiEndpoint2, VersionOfApi) {
@@ -92,7 +92,7 @@ class WebhooksTest extends V310ServerSetup {
       response310.code should equal(400)
       val failMsg = IncorrectTriggerName + postJsonIncorrectTriggerName.trigger_name + ". Possible values are " + ApiTrigger.availableTriggers.sorted.mkString(", ")
       And("error should be " + failMsg)
-      response310.body.extract[ErrorMessage].error should include (failMsg)
+      response310.body.extract[ErrorMessage].message should include (failMsg)
     }
 
     scenario("We will try to create the web hook with a proper Role " + canCreateWebhook, ApiEndpoint2, VersionOfApi) {
@@ -117,7 +117,7 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
 
@@ -130,7 +130,7 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetWebhooks)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetWebhooks)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetWebhooks)
     }
     scenario("We will try to get web hooks with a proper Role " + canGetWebhooks, ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
@@ -154,7 +154,7 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanUpdateWebhook)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanUpdateWebhook)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanUpdateWebhook)
     }
     scenario("We will try to Update an Account Web Hook with a proper Role " + canUpdateWebhook, ApiEndpoint3, VersionOfApi) {
       val bankId = randomBankId

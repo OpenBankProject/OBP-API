@@ -117,7 +117,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("No Views") {
@@ -130,7 +130,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
   
@@ -162,7 +162,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("no views") {
@@ -174,7 +174,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("no existing account") {
@@ -185,7 +185,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("view already exists") {
@@ -198,7 +198,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
     scenario("can not create the System View") {
@@ -210,7 +210,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -303,7 +303,7 @@ class ViewsTests extends V300ServerSetup {
       reply.code should equal(400)
 
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update a view on a bank account due to insufficient privileges") {
@@ -320,7 +320,7 @@ class ViewsTests extends V300ServerSetup {
       reply.code should equal(400)
 
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
     scenario("we can not update a System view on a bank account") {
@@ -341,7 +341,7 @@ class ViewsTests extends V300ServerSetup {
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
   

@@ -42,20 +42,20 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
-  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
+  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Box[User] = {
     Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = idGivenByProvider).or { // Find a user
       Users.users.vend.createResourceUser( // Otherwise create a new one
         provider = provider,
         providerId = Some(idGivenByProvider),
-        name = Some(idGivenByProvider),
-        email = None,
+        name = name,
+        email = email,
         userId = None
       )
     }
   }
-  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]] = {
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Future[Box[User]] = {
     Future {
-      getOrCreateUserByProviderId(provider, idGivenByProvider)
+      getOrCreateUserByProviderId(provider, idGivenByProvider, name, email)
     }
   }
 

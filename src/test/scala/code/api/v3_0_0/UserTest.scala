@@ -26,7 +26,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responseGet.code should equal(400)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -38,7 +38,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
       Then("We should get a 200")
       responseGet.code should equal(403)
       And("We should get a message: " + UserHasMissingRoles + CanGetAnyUser)
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
   
   
@@ -69,7 +69,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get all user data without required role " + CanGetAnyUser){
@@ -80,7 +80,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get user data by USER_ID without required role " + CanGetAnyUser){
@@ -91,7 +91,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We try to get user data by USERNAME without required role " + CanGetAnyUser){
@@ -102,7 +102,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
 
     scenario("We create an user and get it by EMAIL and USER_ID") {
