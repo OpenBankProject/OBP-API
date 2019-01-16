@@ -63,7 +63,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
   feature("Get the Tax Residence of the Customer specified by  CUSTOMER_ID v3.1.0 - Unauthorized access") {
@@ -74,7 +74,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
   feature("Delete the Tax Residence of the Customer specified by a TAX_RESIDENCE_ID v3.1.0 - Unauthorized access") {
@@ -85,7 +85,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
 
@@ -98,7 +98,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateTaxResidence)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCreateTaxResidence)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateTaxResidence)
     }
     scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
@@ -108,7 +108,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + CustomerNotFoundByCustomerId)
-      response310.body.extract[ErrorMessage].error should startWith (CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
     scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence + " and an existing customer", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -160,7 +160,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetTaxResidence)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetTaxResidence)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetTaxResidence)
     }
     scenario("We will call the endpoint with the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
@@ -170,7 +170,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + CustomerNotFoundByCustomerId)
-      response310.body.extract[ErrorMessage].error should startWith (CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
   }
 
@@ -183,7 +183,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanDeleteTaxResidence)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanDeleteTaxResidence)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteTaxResidence)
     }
     scenario("We will call the endpoint with the proper Role " + canDeleteTaxResidence, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteTaxResidence.toString)
@@ -193,7 +193,7 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + CustomerNotFoundByCustomerId)
-      response310.body.extract[ErrorMessage].error should startWith (CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
   }
 

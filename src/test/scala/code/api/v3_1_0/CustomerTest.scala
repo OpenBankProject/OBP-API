@@ -75,7 +75,7 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
 
@@ -88,7 +88,7 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].error should equal (errorMsg)
+      response310.body.extract[ErrorMessage].message should equal (errorMsg)
     }
     scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -121,7 +121,7 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetCustomer)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetCustomer)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomer)
     }
     scenario("We will call the endpoint with the proper Role " + canGetCustomer, ApiEndpoint, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
@@ -131,7 +131,7 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + CustomerNotFoundByCustomerId)
-      response310.body.extract[ErrorMessage].error should startWith (CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
   }
 
@@ -143,7 +143,7 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
 
@@ -155,7 +155,7 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetCustomer)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetCustomer)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomer)
     }
     scenario("We will call the endpoint with the proper Role " + canGetCustomer, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
@@ -165,7 +165,7 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + CustomerNotFound)
-      response310.body.extract[ErrorMessage].error should startWith (CustomerNotFound)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFound)
     }
   }
 

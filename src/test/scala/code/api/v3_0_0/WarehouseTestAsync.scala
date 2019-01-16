@@ -39,7 +39,7 @@ class WarehouseTestAsync extends V300ServerSetupAsync with DefaultUsers {
       responsePost map {
         r =>
           r.code should equal(403)
-          compactRender(r.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanSearchWarehouse)
+          compactRender(r.body \ "message").replaceAll("\"", "") should equal(UserHasMissingRoles + CanSearchWarehouse)
       }
 
     }

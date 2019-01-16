@@ -32,7 +32,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       println(responsePut.body)
       responsePut.code should equal(403)
 
-      val error = (responsePut.body \ "error" ) match {
+      val error = (responsePut.body \ "message" ) match {
         case JString(i) => i
         case _ => ""
       }
@@ -54,7 +54,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responsePut.code should equal(400)
 
-      val error = (responsePut.body \ "error" ) match {
+      val error = (responsePut.body \ "message" ) match {
         case JString(i) => i
         case _ => ""
       }

@@ -25,7 +25,7 @@ class UserTests extends V210ServerSetup with User1AllPrivileges {
       Then("We should get a 400")
       responseGet.code should equal(400)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -37,7 +37,7 @@ class UserTests extends V210ServerSetup with User1AllPrivileges {
       Then("We should get a 200")
       responseGet.code should equal(403)
       And("We should get a message: " + ErrorMessages.UserHasMissingRoles)
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetAnyUser)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetAnyUser)
     }
   
   

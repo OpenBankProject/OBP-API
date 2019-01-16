@@ -2,7 +2,7 @@ package code.api.v2_1_0
 
 import java.util.UUID
 
-import code.api.ChargePolicy
+import code.api.{ChargePolicy, ErrorMessage}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.ErrorMessages._
@@ -302,8 +302,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         response.code should equal(400)
 
         Then("We should have the error message")
-        val error = for {JObject(o) <- response.body; JField("error", JString(error)) <- o} yield error
-        error should contain(ErrorMessages.UserNotLoggedIn)
+        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserNotLoggedIn)
 
       }
     }
@@ -324,7 +323,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         response.code should equal(400)
 
         Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-        val error: String = (response.body \ "error").values.toString
+        val error: String = (response.body \ "message").values.toString
         error should equal(ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       }
     }
@@ -368,10 +367,9 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         Then("we should get a 400 created code")
         response.code should equal(400)
-
-        Then("We should have the error message")
-        val error: List[String] = for {JObject(o) <- response.body; JField("error", JString(error)) <- o} yield error
-        error(0) should include(ErrorMessages.InvalidTransactionRequestType)
+        
+        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.InvalidTransactionRequestType)
+        
       }
     }
 

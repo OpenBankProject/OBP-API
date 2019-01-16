@@ -444,7 +444,7 @@ class Boot extends MdcLoggable {
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
-          Extraction.decompose(ErrorMessage(s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
           500
         )
       }
@@ -452,7 +452,7 @@ class Boot extends MdcLoggable {
         sendExceptionEmail(e)
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
-          Extraction.decompose(ErrorMessage(s"${ErrorMessages.InternalServerError}")),
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError}")),
           500
         )
       }

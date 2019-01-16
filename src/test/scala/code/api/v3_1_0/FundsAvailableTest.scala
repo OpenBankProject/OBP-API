@@ -59,7 +59,7 @@ class FundsAvailableTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
   }
 
@@ -75,7 +75,7 @@ class FundsAvailableTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCheckFundsAvailable)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCheckFundsAvailable)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCheckFundsAvailable)
     }
 
     scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " but without params", ApiEndpoint, VersionOfApi) {
@@ -90,19 +90,19 @@ class FundsAvailableTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + MissingQueryParams)
-      response310.body.extract[ErrorMessage].error should startWith (MissingQueryParams)
+      response310.body.extract[ErrorMessage].message should startWith (MissingQueryParams)
 
       val response310_amount = makeGetRequest(request310 <<? Map("amount" -> "1"))
       Then("We should get a 400")
       response310_amount.code should equal(400)
       And("error should be " + MissingQueryParams)
-      response310_amount.body.extract[ErrorMessage].error should startWith (MissingQueryParams)
+      response310_amount.body.extract[ErrorMessage].message should startWith (MissingQueryParams)
 
       val response310_ccy = makeGetRequest(request310 <<? Map("currency" -> "EUR"))
       Then("We should get a 400")
       response310_ccy.code should equal(400)
       And("error should be " + MissingQueryParams)
-      response310_ccy.body.extract[ErrorMessage].error should startWith (MissingQueryParams)
+      response310_ccy.body.extract[ErrorMessage].message should startWith (MissingQueryParams)
     }
 
     scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " and params", ApiEndpoint, VersionOfApi) {
@@ -122,14 +122,14 @@ class FundsAvailableTest extends V310ServerSetup {
       Then("We should get a 400")
       response310_invalic_ccy.code should equal(400)
       And("error should be " + InvalidISOCurrencyCode)
-      response310_invalic_ccy.body.extract[ErrorMessage].error should equal(InvalidISOCurrencyCode)
+      response310_invalic_ccy.body.extract[ErrorMessage].message should equal(InvalidISOCurrencyCode)
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params but amount is invalid")
       val response310_amount_ccy = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "bb"))
       Then("We should get a 400")
       response310_amount_ccy.code should equal(400)
       And("error should be " + InvalidAmount)
-      response310_amount_ccy.body.extract[ErrorMessage].error should startWith (InvalidAmount)
+      response310_amount_ccy.body.extract[ErrorMessage].message should startWith (InvalidAmount)
     }
   }
 
