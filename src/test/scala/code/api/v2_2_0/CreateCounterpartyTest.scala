@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
@@ -97,8 +98,7 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responsePost.code should equal(400)
 
-      val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error
-      error.toString contains (ErrorMessages.AccountNotFound) should be (true)
+      responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.AccountNotFound)
     }
 
     scenario("counterparty is not unique for name/bank_id/account_id/view_id") {
@@ -120,9 +120,8 @@ class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
 
       Then("We should get a 400 and check the error massage")
       responsePost.code should equal(400)
-
-      val error = for { JObject(o) <- responsePost.body; JField("error", JString(error)) <- o } yield error
-      error.toString contains  (ErrorMessages.CounterpartyAlreadyExists) should be (true)
+      
+      responsePost.body.extract[ErrorMessage].message should startWith(ErrorMessages.CounterpartyAlreadyExists)
 
     }
   }

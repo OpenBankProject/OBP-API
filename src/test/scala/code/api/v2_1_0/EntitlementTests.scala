@@ -24,7 +24,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responseGet.code should equal(400)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -46,7 +46,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responseGet.code should equal(400)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -61,7 +61,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
         Nil
       val requiredEntitlementsTxt = requiredEntitlements.mkString(" or ")
       And("We should get a message: " + s"$requiredEntitlementsTxt entitlements required")
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + requiredEntitlementsTxt)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + requiredEntitlementsTxt)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlementsByBankAndUser") {

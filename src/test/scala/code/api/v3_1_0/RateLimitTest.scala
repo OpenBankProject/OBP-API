@@ -77,7 +77,7 @@ class RateLimitTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canSetCallLimits, ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canSetCallLimits)
@@ -88,7 +88,7 @@ class RateLimitTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanSetCallLimits)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanSetCallLimits)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanSetCallLimits)
     }
     scenario("We will try to set calls limit per minute with a proper Role " + ApiRole.canSetCallLimits, ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
@@ -139,7 +139,7 @@ class RateLimitTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will try to get calls limit per minute without a proper Role " + ApiRole.canReadCallLimits, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)
@@ -150,7 +150,7 @@ class RateLimitTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanReadCallLimits)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanReadCallLimits)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanReadCallLimits)
     }
     scenario("We will try to get calls limit per minute with a proper Role " + ApiRole.canReadCallLimits, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 with a Role " + ApiRole.canReadCallLimits)

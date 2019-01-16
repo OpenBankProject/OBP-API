@@ -56,7 +56,7 @@ class RefreshUserTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanRefreshUser)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanRefreshUser)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanRefreshUser)
     }
     
     

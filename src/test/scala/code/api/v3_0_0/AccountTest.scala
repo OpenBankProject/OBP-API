@@ -39,7 +39,7 @@ class AccountTest extends V300ServerSetup {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      compactRender(responseGet.body \ "error").replaceAll("\"", "") should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
+      compactRender(responseGet.body \ "message").replaceAll("\"", "") should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
     }}
 
 

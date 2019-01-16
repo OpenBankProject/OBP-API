@@ -76,7 +76,7 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -85,7 +85,7 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateCustomer)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCreateCustomer)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateCustomer)
     }
 
     scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
@@ -95,7 +95,7 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -104,7 +104,7 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetCustomer)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetCustomer)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomer)
     }
 
     scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
@@ -114,7 +114,7 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will call the Delete endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -123,7 +123,7 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateCustomer)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCreateCustomer)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateCustomer)
     }
 
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
@@ -134,7 +134,7 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + CustomerNotFoundByCustomerId)
-      response310.body.extract[ErrorMessage].error should startWith (CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We try to create the customer v3.1.0")

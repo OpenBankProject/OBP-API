@@ -51,8 +51,8 @@ case class HostedBy(
 )
 case class RateLimiting(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
-case class ErrorMessage(
-  error : String
+case class ErrorMessage(code: Int,
+                        message : String
 )
 case class SuccessMessage(
   success : String

@@ -42,7 +42,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responsePut.code should equal(400)
       And("We should get a message: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
-      responsePut.body.extract[ErrorMessage].error should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
+      responsePut.body.extract[ErrorMessage].message should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
     }
 
     scenario("We try to get all roles with Authentication - Create Transaction Type...") {
@@ -113,7 +113,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       And("We should get a 400")
       responsePut2.code should equal(400)
       And("We should get a message: " + ErrorMessages.CreateTransactionTypeInsertError)
-      responsePut2.body.extract[ErrorMessage].error should equal (ErrorMessages.CreateTransactionTypeInsertError)
+      responsePut2.body.extract[ErrorMessage].message should equal (ErrorMessages.CreateTransactionTypeInsertError)
 
 
       Then("insert new data and We make the request")
@@ -131,7 +131,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       And("We should get a 400")
       responsePut3.code should equal(400)
       And("We should get a message: " + ErrorMessages.CreateTransactionTypeUpdateError)
-      responsePut3.body.extract[ErrorMessage].error should equal (ErrorMessages.CreateTransactionTypeUpdateError)
+      responsePut3.body.extract[ErrorMessage].message should equal (ErrorMessages.CreateTransactionTypeUpdateError)
     }
   }
   /**

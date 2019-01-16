@@ -1038,7 +1038,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1199,7 +1199,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1316,7 +1316,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1378,7 +1378,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not get the list of the available views on a bank account due to insufficient privileges", API1_2_1, GetViews){
@@ -1390,7 +1390,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
   feature("Create a view on a bank account"){
@@ -1420,7 +1420,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not create a view on a bank account due to insufficient privileges", API1_2_1, PostView){
@@ -1433,7 +1433,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not create a view because the bank account does not exist", API1_2_1, PostView){
@@ -1445,7 +1445,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not create a view because the view already exists", API1_2_1, PostView){
@@ -1459,7 +1459,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we are not allowed to create a view with an empty name") {
@@ -1481,7 +1481,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
     scenario("can not create the System View") {
@@ -1501,7 +1501,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1594,7 +1594,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal(400)
 
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update a view on a bank account due to insufficient privileges", API1_2_1, PutView){
@@ -1612,7 +1612,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal(400)
 
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
     scenario("we can not update a System view on a bank account") {
@@ -1632,7 +1632,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1685,7 +1685,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not delete a view on a bank account due to insufficient privileges", API1_2_1, DeleteView){
@@ -1698,7 +1698,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("We will not delete a view on a bank account because it does not exist", API1_2_1, PostView){
@@ -1710,7 +1710,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
     scenario("we can not delete a system view on a bank account", API1_2_1, DeleteView){
@@ -1721,7 +1721,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1768,7 +1768,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get one bank account permissions by using an other access token", API1_2_1, GetPermissions){
@@ -1780,7 +1780,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1811,7 +1811,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the permissions of a random user", API1_2_1, GetPermission){
@@ -1823,7 +1823,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -1854,7 +1854,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we cannot grant a user access to a view on an bank account because the view does not exist", API1_2_1, PostPermission){
@@ -1868,7 +1868,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -1884,7 +1884,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -1924,7 +1924,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we cannot grant a user access to a list of views on an bank account because they don't exist", API1_2_1, PostPermissions){
@@ -1938,7 +1938,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we cannot grant a user access to a list of views on an bank account because some views don't exist", API1_2_1, PostPermissions){
@@ -1953,7 +1953,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -1970,7 +1970,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -2207,7 +2207,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the other bank accounts of a bank account because the user does not have enough privileges", API1_2_1, GetCounterparties){
@@ -2219,7 +2219,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the other bank accounts of a bank account because the view does not exist", API1_2_1, GetCounterparties){
@@ -2231,7 +2231,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2262,7 +2262,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get one random other bank account of a bank account because the user does not have enough privileges", API1_2_1, GetCounterparty){
@@ -2276,7 +2276,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get one random other bank account of a bank account because the view does not exist", API1_2_1, GetCounterparty){
@@ -2289,7 +2289,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get one random other bank account of a bank account because the account does not exist", API1_2_1, GetCounterparty){
@@ -2302,7 +2302,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2332,7 +2332,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the metadata of one random other bank account because the user does not have enough privileges", API1_2_1, GetCounterpartyMetadata){
@@ -2346,7 +2346,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the metadata of one random other bank account because the view does not exist", API1_2_1, GetCounterpartyMetadata){
@@ -2360,7 +2360,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the metadata of one random other bank account because the account does not exist", API1_2_1, GetCounterpartyMetadata){
@@ -2373,7 +2373,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2402,7 +2402,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the public alias of one random other bank account because the user does not have enough privileges", API1_2_1, GetPublicAlias){
@@ -2416,7 +2416,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the public alias of one random other bank account because the view does not exist", API1_2_1, GetPublicAlias){
@@ -2430,7 +2430,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the public alias of one random other bank account because the account does not exist", API1_2_1, GetPublicAlias){
@@ -2444,7 +2444,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2479,7 +2479,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePublicAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2498,7 +2498,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePublicAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2517,7 +2517,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePublicAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2535,7 +2535,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2570,7 +2570,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePublicAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2589,7 +2589,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the public alias for a random other bank account because the account does not exist", API1_2_1, PutPublicAlias){
@@ -2603,7 +2603,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2697,7 +2697,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the private alias of one random other bank account because the user does not have enough privileges", API1_2_1, GetPrivateAlias){
@@ -2711,7 +2711,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the private alias of one random other bank account because the view does not exist", API1_2_1, GetPrivateAlias){
@@ -2725,7 +2725,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the private alias of one random other bank account because the account does not exist", API1_2_1, GetPrivateAlias){
@@ -2739,7 +2739,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2774,7 +2774,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2793,7 +2793,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2812,7 +2812,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2830,7 +2830,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2865,7 +2865,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
       val getReply = getThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterThePost : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2884,7 +2884,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the private alias for a random other bank account because the account does not exist", API1_2_1, PutPrivateAlias){
@@ -2898,7 +2898,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -2997,7 +2997,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the information should not be changed")
       val moreInfo = getMoreInfoForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomInfo should not equal (moreInfo)
@@ -3015,7 +3015,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the information should not be changed")
       val moreInfo = getMoreInfoForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomInfo should not equal (moreInfo)
@@ -3033,7 +3033,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the information should not be changed")
       val moreInfo = getMoreInfoForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomInfo should not equal (moreInfo)
@@ -3050,7 +3050,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3084,7 +3084,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the information should not be changed")
       val moreInfo = getMoreInfoForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomInfo should not equal (moreInfo)
@@ -3102,7 +3102,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the information for a random other bank account because the account does not exist", API1_2_1, PutMoreInfo){
@@ -3116,7 +3116,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3215,7 +3215,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the url should not be changed")
       val url = getUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3233,7 +3233,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the url should not be changed")
       val url = getUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3251,7 +3251,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the url should not be changed")
       val url = getUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3268,7 +3268,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3302,7 +3302,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the url should not be changed")
       val url = getUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3320,7 +3320,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the url for a random other bank account because the account does not exist", API1_2_1, PutURL){
@@ -3334,7 +3334,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3433,7 +3433,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image url should not be changed")
       val url = getImageUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomImageURL should not equal (url)
@@ -3451,7 +3451,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image url should not be changed")
       val url = getImageUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomImageURL should not equal (url)
@@ -3469,7 +3469,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image url should not be changed")
       val url = getImageUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomImageURL should not equal (url)
@@ -3486,7 +3486,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3520,7 +3520,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image url should not be changed")
       val url = getImageUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomImageURL should not equal (url)
@@ -3538,7 +3538,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the image url for a random other bank account because the account does not exist", API1_2_1, PutImageURL){
@@ -3552,7 +3552,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3651,7 +3651,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the open corporates url should not be changed")
       val url = getOpenCorporatesUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3669,7 +3669,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the open corporates url should not be changed")
       val url = getOpenCorporatesUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3687,7 +3687,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the open corporates url should not be changed")
       val url = getOpenCorporatesUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3704,7 +3704,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3738,7 +3738,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the open corporates url should not be changed")
       val url = getOpenCorporatesUrlForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       randomURL should not equal (url)
@@ -3756,7 +3756,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the open corporates url for a random other bank account because the account does not exist", API1_2_1, PutOpenCorporatesURL){
@@ -3770,7 +3770,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3870,7 +3870,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the corporate location for one random other bank account because the coordinates don't exist", API1_2_1, PostCorporateLocation){
@@ -3885,7 +3885,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the corporate location for a random other bank account because the user does not have enough privileges", API1_2_1, PostCorporateLocation){
@@ -3900,7 +3900,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the corporate location for a random other bank account because the view does not exist", API1_2_1, PostCorporateLocation){
@@ -3915,7 +3915,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the corporate location for a random other bank account because the account does not exist", API1_2_1, PostCorporateLocation){
@@ -3929,7 +3929,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -3964,7 +3964,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the corporate location for a random other bank account due to a missing token", API1_2_1, PutCorporateLocation){
@@ -3979,7 +3979,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the corporate location for a random other bank account because the user does not have enough privileges", API1_2_1, PutCorporateLocation){
@@ -3994,7 +3994,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the corporate location for a random other bank account because the account does not exist", API1_2_1, PutCorporateLocation){
@@ -4008,7 +4008,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -4108,7 +4108,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the physical location for a random other bank account due to a missing token", API1_2_1, PostPhysicalLocation){
@@ -4123,7 +4123,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the physical location for a random other bank account because the user does not have enough privileges", API1_2_1, PostPhysicalLocation){
@@ -4138,7 +4138,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the physical location for a random other bank account because the view does not exist", API1_2_1, PostPhysicalLocation){
@@ -4153,7 +4153,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the physical location for a random other bank account because the account does not exist", API1_2_1, PostPhysicalLocation){
@@ -4167,7 +4167,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -4202,7 +4202,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the physical location for a random other bank account due to a missing token", API1_2_1, PutPhysicalLocation){
@@ -4217,7 +4217,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the physical location for a random other bank account because the user does not have enough privileges", API1_2_1, PutPhysicalLocation){
@@ -4232,7 +4232,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the physical location for a random other bank account because the account does not exist", API1_2_1, PutPhysicalLocation){
@@ -4246,7 +4246,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -4768,7 +4768,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the narrative of one random transaction because the user does not have enough privileges", API1_2_1, GetNarrative){
@@ -4782,7 +4782,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the narrative of one random transaction because the view does not exist", API1_2_1, GetNarrative){
@@ -4796,7 +4796,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the narrative of one random transaction because the transaction does not exist", API1_2_1, GetNarrative){
@@ -4809,7 +4809,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -4844,7 +4844,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the narrative should not be added")
       val getReply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theNarrativeAfterThePost : TransactionNarrativeJSON = getReply.body.extract[TransactionNarrativeJSON]
@@ -4863,7 +4863,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the narrative should not be added")
       val getReply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theNarrativeAfterThePost : TransactionNarrativeJSON = getReply.body.extract[TransactionNarrativeJSON]
@@ -4882,7 +4882,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the narrative should not be added")
       val getReply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theNarrativeAfterThePost : TransactionNarrativeJSON = getReply.body.extract[TransactionNarrativeJSON]
@@ -4900,7 +4900,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -4935,7 +4935,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the narrative should not be changed")
       val getReply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val narrativeAfterThePost : TransactionNarrativeJSON = getReply.body.extract[TransactionNarrativeJSON]
@@ -4954,7 +4954,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the narrative should not be changed")
       val getReply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val narrativeAfterThePost : TransactionNarrativeJSON = getReply.body.extract[TransactionNarrativeJSON]
@@ -4973,7 +4973,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -5070,7 +5070,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the comments of one random transaction because the user does not have enough privileges", API1_2_1, GetComments){
@@ -5084,7 +5084,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the comments of one random transaction because the view does not exist", API1_2_1, GetComments){
@@ -5098,7 +5098,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the comments of one random transaction because the transaction does not exist", API1_2_1, GetComments){
@@ -5111,7 +5111,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -5149,7 +5149,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the comment should not be added")
       val getReply = getCommentsForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theCommentsAfterThePost = getReply.body.extract[TransactionCommentsJSON].comments
@@ -5173,7 +5173,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the comment should not be added")
       val getReply = getCommentsForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theCommentsAfterThePost = getReply.body.extract[TransactionCommentsJSON].comments
@@ -5196,7 +5196,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the comment should not be added")
       val getReply = getCommentsForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theCommentsAfterThePost = getReply.body.extract[TransactionCommentsJSON].comments
@@ -5218,7 +5218,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -5413,7 +5413,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the tags of one random transaction because the user does not have enough privileges", API1_2_1, GetTags){
@@ -5427,7 +5427,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the tags of one random transaction because the view does not exist", API1_2_1, GetTags){
@@ -5441,7 +5441,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the tags of one random transaction because the transaction does not exist", API1_2_1, GetTags){
@@ -5454,7 +5454,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -5491,7 +5491,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the tag should not be added")
       val getReply = getTagsForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theTagsAfterThePost = getReply.body.extract[TransactionTagsJSON].tags
@@ -5514,7 +5514,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the tag should not be added")
       val getReply = getTagsForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theTagsAfterThePost = getReply.body.extract[TransactionTagsJSON].tags
@@ -5537,7 +5537,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the tag should not be added")
       val getReply = getTagsForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theTagsAfterThePost = getReply.body.extract[TransactionTagsJSON].tags
@@ -5559,7 +5559,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -5753,7 +5753,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the images of one random transaction because the user does not have enough privileges", API1_2_1, GetImages){
@@ -5767,7 +5767,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the images of one random transaction because the view does not exist", API1_2_1, GetImages){
@@ -5781,7 +5781,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the images of one random transaction because the transaction does not exist", API1_2_1, GetImages){
@@ -5794,7 +5794,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -5831,7 +5831,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image should not be added")
       val getReply = getImagesForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theImagesAfterThePost = getReply.body.extract[TransactionImagesJSON].images
@@ -5854,7 +5854,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image should not be added")
       val getReply = getImagesForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theImagesAfterThePost = getReply.body.extract[TransactionImagesJSON].images
@@ -5877,7 +5877,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image should not be added")
       val getReply = getImagesForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
       val theImagesAfterThePost = getReply.body.extract[TransactionImagesJSON].images
@@ -5899,7 +5899,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -6096,7 +6096,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the where of one random transaction because the user does not have enough privileges", API1_2_1, GetWhere){
@@ -6112,7 +6112,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the where of one random transaction because the view does not exist", API1_2_1, GetWhere){
@@ -6128,7 +6128,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the where of one random transaction because the transaction does not exist", API1_2_1, GetWhere){
@@ -6141,7 +6141,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -6177,7 +6177,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the where for a random transaction due to a missing token", API1_2_1, PostWhere){
@@ -6192,7 +6192,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the where for a random transaction because the user does not have enough privileges", API1_2_1, PostWhere){
@@ -6207,7 +6207,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the where for a random transaction because the view does not exist", API1_2_1, PostWhere){
@@ -6222,7 +6222,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       postReply.code should equal (404)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not post the where for a random transaction because the transaction does not exist", API1_2_1, PostWhere){
@@ -6236,7 +6236,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       postReply.code should equal (400)
       And("we should get an error message")
-      postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -6271,7 +6271,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the where for a random transaction due to a missing token", API1_2_1, PutWhere){
@@ -6286,7 +6286,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the where for a random transaction because the user does not have enough privileges", API1_2_1, PutWhere){
@@ -6301,7 +6301,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not update the where for a random transaction because the transaction does not exist", API1_2_1, PutWhere){
@@ -6315,7 +6315,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       putReply.code should equal (400)
       And("we should get an error message")
-      putReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      putReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 
@@ -6481,7 +6481,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get get the other bank account of a random transaction because the user does not have enough privileges", API1_2_1, GetTransactionAccount){
@@ -6495,7 +6495,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get the other bank account of a random transaction because the view does not exist", API1_2_1, GetTransactionAccount){
@@ -6509,7 +6509,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
     scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){
@@ -6522,7 +6522,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
 }
