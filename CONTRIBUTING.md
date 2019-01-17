@@ -108,6 +108,33 @@ class FundsAvailableTest extends V310ServerSetup {
 }
 ``` 
 
+## Code Generation
+We support to generate the OBP-API code from the following three types of json. You can choose one of them as your own requirements. 
+
+    1 Choose one of the following types: type1 or type2 or type3
+    2 Modify the json file your selected,
+    3 Run the Main method according to your json file
+    4 Run/Restart OBP-API project.
+    5 Run API_Exploer project to test your new APIs. (click the Tag `APIBuilder B1)
+
+Here are the three types: 
+
+Type1: If you use `modelSource.json`, please run `APIBuilderModel.scala` main method
+```
+OBP-API/src/main/scala/code/api/APIBuilder/APIModelSource.json
+OBP-API/src/main/scala/code/api/APIBuilder/APIBuilderModel.scala
+```
+Type2: If you use `apisResource.json`, please run `APIBuilder.scala` main method
+```
+OBP-API/src/main/scala/code/api/APIBuilder/apiResourceDoc/apisResource.json
+OBP-API/src/main/scala/code/api/APIBuilder/apiResourceDoc/APIBuilder.scala
+```
+Type3: If you use `swaggerResource.json`, please run `APIBuilderSwagger.scala` main method
+```
+OBP-API/src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json
+OBP-API/src/main/scala/code/api/APIBuilder/swagger/APIBuilderSwagger.scala
+```
+
 ## Issues
 
 If would like to report an issue or suggest any kind of improvement please use Github Issues.
