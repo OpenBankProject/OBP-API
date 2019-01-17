@@ -477,18 +477,13 @@ display_internal_errors=false
 # -------------------------------------- Display internal errors --
 
 
-# -- OAuth 2 --------------------------------------------------------------------
+# -- OAuth 2 ---------------------------------------------------------------
 # Enable/Disable OAuth 2 workflow at a server instance
 # In case isn't defined default value is false
 # allow_oauth2_login=false
-# oauth2.token_secret=secret
-# Enable SSL for JWT
-# If set to true must set paths for the keystore locations
-# In case isn't defined default value is false
-# oauth2.jwt.use.ssl=false
 # URL of Public server JWK set used for validating bearer JWT access tokens
 # oauth2.jwk_set.url=http://localhost:8080/jwk.json
-# ----------------------------------------------------------- OAuth 2 -----------
+# ----------------------------------------------------------- OAuth 2 ------
 
 ## This property is used for documenting at Resource Doc. It may include the port also (but not /obp)
 ## (this needs to be a URL)
