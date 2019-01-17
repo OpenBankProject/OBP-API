@@ -19,6 +19,59 @@ Please comment your code ! :-) Imagine an engineer is trying to fix a production
 
 When naming variables use strict camel case e.g. use myUrl not myURL. This is so we can automatically convert from camelCase to snake_case for JSON output.
 
+## Writing an API endpoint
+
+```scala
+    resourceDocs += ResourceDoc(
+      getCustomersForUser,
+      implementedInApiVersion,
+      nameOf(getCustomersForUser),
+      "GET",
+      "/users/current/customers",
+      "Get Customers for Current User",
+      s"""Gets all Customers that are linked to a User.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
+      emptyObjectJson,
+      customerJsonV300,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle))
+
+
+
+    // This can be considered a reference new style endpoint.
+    // This is a partial function. The lazy value should have a meaningful name.
+    lazy val getCustomersForUser : OBPEndpoint = {
+      // This defines the URL path and method (GET) for which this partial function will accept the call.
+      case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        // We have the Call Context (cc) object (provided through the OBPEndpoint type)
+        // The Call Context contains the authorisation headers etc.
+        cc => {
+          for {
+            // Extract the user from the headers and get an updated callContext
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            // Now here is the business logic.
+            // Get The customers related to a user. Process the resonse which might be an Exception
+            (customers,callContext) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            // Create the JSON to return. We also return the callContext
+            (JSONFactory300.createCustomersJson(customers), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+```
+
 ## Writing tests
 
 When you write a test for an endpoint please tag it with a version and the endpoint.
