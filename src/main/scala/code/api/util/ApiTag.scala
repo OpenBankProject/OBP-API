@@ -51,6 +51,11 @@ object ApiTag {
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagNewStyle = ResourceDocTag("New-Style")
   val apiTagWebhook = ResourceDocTag("Webhook")
+  val apiTagPIS = ResourceDocTag("Payment Initiation Service (PIS)")
+  val apiTagPIIS = ResourceDocTag("Confirmation of Funds Service (PIIS)")
+  val apiTagAIS = ResourceDocTag("Account Information Service (AIS)")
+  val apiTagSigningBaskets = ResourceDocTag("Signing Baskets")
+  val apiTagCommonServices = ResourceDocTag("Common Services")
 }
 
 
