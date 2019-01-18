@@ -1,34 +1,29 @@
 /**
-  * Open Bank Project - API
-  * Copyright (C) 2011-2018, TESOBE Ltd
-  **
-  *This program is free software: you can redistribute it and/or modify
-  *it under the terms of the GNU Affero General Public License as published by
-  *the Free Software Foundation, either version 3 of the License, or
-  *(at your option) any later version.
-  **
-  *This program is distributed in the hope that it will be useful,
-  *but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  *GNU Affero General Public License for more details.
-  **
-  *You should have received a copy of the GNU Affero General Public License
-*along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  **
- *Email: contact@tesobe.com
-*TESOBE Ltd
-*Osloerstrasse 16/17
-*Berlin 13359, Germany
-  **
- *This product includes software developed at
-  *TESOBE (http://www.tesobe.com/)
-  * by
-  *Simon Redfern : simon AT tesobe DOT com
-  *Stefan Bethge : stefan AT tesobe DOT com
-  *Everett Sochowski : everett AT tesobe DOT com
-  *Ayoub Benali: ayoub AT tesobe DOT com
-  *
- */
+Open Bank Project - API
+Copyright (C) 2011-2018, TESOBE Ltd.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE Ltd.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
 
 package code.api.util
 
@@ -428,15 +423,15 @@ object APIUtil extends MdcLoggable {
         case _ =>
           httpCode
       }
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, code)
+    JsonResponse(Extraction.decompose(ErrorMessage(message = message, code = code)), getHeaders() ::: headers.list, Nil, code)
   }
 
   def notImplementedJsonResponse(message : String = ErrorMessages.NotImplemented, httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
+    JsonResponse(Extraction.decompose(ErrorMessage(message = message, code = httpCode)), getHeaders() ::: headers.list, Nil, httpCode)
 
 
   def oauthHeaderRequiredJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), getHeaders() ::: headers.list, Nil, 400)
+    JsonResponse(Extraction.decompose(ErrorMessage(message = "Authentication via OAuth is required", code = 400)), getHeaders() ::: headers.list, Nil, 400)
 
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {

@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
- */
+  */
 package code.api.v1_2_1
 
 import java.util.Date
@@ -51,8 +46,8 @@ case class HostedBy(
 )
 case class RateLimiting(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
-case class ErrorMessage(
-  error : String
+case class ErrorMessage(code: Int,
+                        message : String
 )
 case class SuccessMessage(
   success : String

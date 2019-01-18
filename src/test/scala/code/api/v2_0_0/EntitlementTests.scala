@@ -30,7 +30,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responseGet.code should equal(400)
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      responseGet.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -41,7 +41,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       Then("We should get a 40")
       responseGet.code should equal(403)
       And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      responseGet.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlements") {
@@ -63,7 +63,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       Then("We should get a 400")
       responseDelete.code should equal(400)
       And("We should get a message: " + ErrorMessages.UserNotSuperAdmin)
-      responseDelete.body.extract[ErrorMessage].error should equal (ErrorMessages.UserNotSuperAdmin)
+      responseDelete.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotSuperAdmin)
     }
   }
 

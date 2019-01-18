@@ -36,9 +36,9 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
       logger.debug("getUserByProviderIdFuture(" + provider +"," + idGivenByProvider +")")
       sender ! (mapper.getUserByProviderId(provider, idGivenByProvider))
 
-    case cc.getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String) =>
-      logger.debug("getOrCreateUserByProviderIdFuture(" + provider +"," + idGivenByProvider +")")
-      sender ! (mapper.getOrCreateUserByProviderId(provider, idGivenByProvider))
+    case cc.getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) =>
+      logger.debug("getOrCreateUserByProviderIdFuture(" + provider +"," + idGivenByProvider + name + email +")")
+      sender ! (mapper.getOrCreateUserByProviderId(provider, idGivenByProvider, name, email))
 
     case cc.getUserByUserId(userId: String) =>
       logger.debug("getUserByUserId(" + userId +")")

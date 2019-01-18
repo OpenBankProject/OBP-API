@@ -34,7 +34,7 @@ class WarehouseTest extends V300ServerSetup with DefaultUsers {
 
       And("We should get a 403")
       responsePost.code should equal(403)
-      compactRender(responsePost.body \ "error").replaceAll("\"", "") should equal(UserHasMissingRoles + CanSearchWarehouse)
+      compactRender(responsePost.body \ "message").replaceAll("\"", "") should equal(UserHasMissingRoles + CanSearchWarehouse)
     }
   }
   

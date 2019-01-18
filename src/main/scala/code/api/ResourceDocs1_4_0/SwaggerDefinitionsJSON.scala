@@ -458,7 +458,8 @@ object SwaggerDefinitionsJSON {
   )*/
 
   val errorMessage = ErrorMessage(
-    error = "String"
+    code = 500,
+    message = "Internal Server Error"
   )
 
   val postTransactionImageJSON = PostTransactionImageJSON(

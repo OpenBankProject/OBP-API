@@ -120,7 +120,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       And("We should get a 400")
       responsePut.code should equal(400)
       And("We should have the error massage")
-      val error: String = (responsePut.body \ "error") match {
+      val error: String = (responsePut.body \ "message") match {
         case JString(i) => i
         case _ => ""
       }

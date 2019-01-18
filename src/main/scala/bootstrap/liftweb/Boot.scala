@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
- */
+  */
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
@@ -444,7 +439,7 @@ class Boot extends MdcLoggable {
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
-          Extraction.decompose(ErrorMessage(s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
           500
         )
       }
@@ -452,7 +447,7 @@ class Boot extends MdcLoggable {
         sendExceptionEmail(e)
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
-          Extraction.decompose(ErrorMessage(s"${ErrorMessages.InternalServerError}")),
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError}")),
           500
         )
       }

@@ -260,7 +260,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
       Then("We should get a 400 and correct response jons format")
       response300.code should equal(400)
       response300.body.extract[BranchesJsonV300]
-      json.compactRender(response300.body \ "error").replaceAll("\"", "") should include (ErrorMessages.BranchesNotFound)
+      json.compactRender(response300.body \ "message").replaceAll("\"", "") should include (ErrorMessages.BranchesNotFound)
     }
    
   }
