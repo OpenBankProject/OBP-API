@@ -134,6 +134,9 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   }
   
   trait OAuth2Util {
+    
+    def urlOfJwkSets: Box[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
+    
     private def getClaim(name: String, idToken: String): Option[String] = {
       val claim = JwtUtil.getClaim(name = name, jwtToken = idToken).asString()
       claim match {
@@ -145,7 +148,7 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
       JwtUtil.getIssuer(jwtToken).map(_.contains("accounts.google.com")).getOrElse(false)
     }
     def validateIdToken(idToken: String): Box[IDTokenClaimsSet] = {
-      APIUtil.getPropsValue("oauth2.jwk_set.url") match {
+      urlOfJwkSets match {
         case Full(url) =>
           JwtUtil.validateIdToken(idToken, url)
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
@@ -243,8 +246,16 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
     }
   }
 
-  object Google extends OAuth2Util
-  
+  object Google extends OAuth2Util {
+    override def urlOfJwkSets: Box[String] = {
+      val url = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
+      url.map(_.toLowerCase()).map(_.contains("google")).getOrElse(false) match {
+        case true => url
+        case false => Failure(ErrorMessages.Oauth2CannotMatchIssuerAndJwksUriException)
+      }
+    }
+  }
 
+  
 
 }
