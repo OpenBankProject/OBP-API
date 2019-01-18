@@ -1351,8 +1351,8 @@ object Glossary {
 |
  |### An ID token's payload
 |
- |```
-|	{
+ |
+|		{
 |		"iss": "https://accounts.google.com",
 |		"azp": "407408718192.apps.googleusercontent.com",
 |		"aud": "407408718192.apps.googleusercontent.com",
@@ -1367,8 +1367,8 @@ object Glossary {
 |		"locale": "en",
 |		"iat": 1547705691,
 |		"exp": 1547709291
-|	}
-|```
+|		}
+|
 |
  |### Try a REST call using the authorization's header
 |		Using your favorite http client:
@@ -1381,35 +1381,35 @@ object Glossary {
 |
  |Headers:
 |
- |```
-|	Authorization: Bearer ID_TOKEN
-|```
+ |
+|		Authorization: Bearer ID_TOKEN
+|
 |
  |Here is it all together:
 |
- |```
+ |
 |
- |GET /obp/v3.0.0/users/current HTTP/1.1
-|Host: $getServerUrl
-|Authorization: Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA
-|Cache-Control: no-cache
+ |	GET /obp/v3.0.0/users/current HTTP/1.1
+|		Host: $getServerUrl
+|		Authorization: Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA
+|		Cache-Control: no-cache
 |
- |```
+ |
 |
  |CURL example:
 |
- |```
-|curl -X GET
-|$getServerUrl/obp/v3.0.0/users/current
-|-H 'Authorization: Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA'
-|-H 'Cache-Control: no-cache'
-|-H 'Postman-Token: aa812d04-eddd-4752-adb7-4d56b3a98f36'
+ |
+|		curl -X GET
+|		$getServerUrl/obp/v3.0.0/users/current
+|		-H 'Authorization: Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA'
+|		-H 'Cache-Control: no-cache'
+|		-H 'Postman-Token: aa812d04-eddd-4752-adb7-4d56b3a98f36'
 |
- |```
+ |
 |
  |And we get the response:
 |
- |```
+ |
 |		{
 |			"user_id": "6d411bce-50c1-4eb8-b8b0-3953e4211773",
 |			"email": "marko.milic.srbija@gmail.com",
@@ -1420,7 +1420,7 @@ object Glossary {
 |			"list": []
 |		}
 |		}
-|```
+|
 |
 |""")
 
