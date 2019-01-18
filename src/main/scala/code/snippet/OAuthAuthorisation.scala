@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -15,21 +15,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+Email: contact@tesobe.com
+TESOBE Ltd.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
-by
-Simon Redfern : simon AT tesobe DOT com
-Stefan Bethge : stefan AT tesobe DOT com
-Everett Sochowski : everett AT tesobe DOT com
-Ayoub Benali: ayoub AT tesobe DOT com
 
-
-TESOBE Ltd.
-Osloer Str. 16/17
-Berlin 13359, Germany
-Email: contact@tesobe.com
-
-*/
+  */
 
 
 package code.snippet
