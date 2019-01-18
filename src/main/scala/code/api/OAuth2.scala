@@ -63,19 +63,8 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
         if (Google.isIssuer(value)) {
           Google.applyRules(value, cc)
         } else {
-          MITREId.validateAccessToken(value) match {
-            case Full(_) =>
-              val username = JwtUtil.getSubject(value).getOrElse("")
-              (Users.users.vend.getUserByUserName(username), Some(cc))
-            case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-              (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
-            case Failure(msg, t, c) =>
-              (Failure(msg, t, c), Some(cc))
-            case _ =>
-              (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc))
-          }
+          MITREId.applyRules(value, cc)
         }
-
       case false =>
         (Failure(ErrorMessages.Oauth2IsNotAllowed), Some(cc))
     }
@@ -90,21 +79,7 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
         if (Google.isIssuer(value)) {
           Google.applyRulesFuture(value, cc)
         } else {
-          MITREId.validateAccessToken(value) match {
-            case Full(_) =>
-              val username = JwtUtil.getSubject(value).getOrElse("")
-              for {
-                user <- Users.users.vend.getUserByUserNameFuture(username)
-              } yield {
-                (user, Some(cc))
-              }
-            case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-              Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc)))
-            case Failure(msg, t, c) =>
-              Future((Failure(msg, t, c), Some(cc)))
-            case _ =>
-              Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc)))
-          }
+          MITREId.applyRulesFuture(value, cc)
         }
       case false =>
         Future((Failure(ErrorMessages.Oauth2IsNotAllowed), Some(cc)))
@@ -125,6 +100,37 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
           Failure(ErrorMessages.Oauth2ThereIsNoUrlOfJwkSet)
       }
     }
+    def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      validateAccessToken(value) match {
+        case Full(_) =>
+          val username = JwtUtil.getSubject(value).getOrElse("")
+          (Users.users.vend.getUserByUserName(username), Some(cc))
+        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+          (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
+        case Failure(msg, t, c) =>
+          (Failure(msg, t, c), Some(cc))
+        case _ =>
+          (Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc))
+      }
+    }
+    def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = {
+      validateAccessToken(value) match {
+        case Full(_) =>
+          val username = JwtUtil.getSubject(value).getOrElse("")
+          for {
+            user <- Users.users.vend.getUserByUserNameFuture(username)
+          } yield {
+            (user, Some(cc))
+          }
+        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
+          Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc)))
+        case Failure(msg, t, c) =>
+          Future((Failure(msg, t, c), Some(cc)))
+        case _ =>
+          Future((Failure(ErrorMessages.Oauth2IJwtCannotBeVerified), Some(cc)))
+      }
+    }
+    
   }
   
   trait OAuth2Util {
