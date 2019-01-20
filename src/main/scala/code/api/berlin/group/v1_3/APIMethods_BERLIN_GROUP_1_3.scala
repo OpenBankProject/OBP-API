@@ -32,7 +32,7 @@ trait APIMethods_BERLIN_GROUP_1_3 {
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
-    def endpointsOfBuilderAPI = 
+    def endpoints = 
       getAccountList ::
       getAccountBalances ::
       getTransactionList ::

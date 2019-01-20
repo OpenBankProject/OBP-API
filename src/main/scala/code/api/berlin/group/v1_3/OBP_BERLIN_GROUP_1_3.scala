@@ -50,7 +50,7 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1
   val version = ApiVersion.berlinGroupV1_3
   val versionStatus = "DRAFT"
 
-  val endpointsOf1_3 =  Implementations1_3.endpointsOfBuilderAPI 
+  val endpointsOf1_3 =  Implementations1_3.endpoints 
   
   val allResourceDocs = Implementations1_3.resourceDocs
   
