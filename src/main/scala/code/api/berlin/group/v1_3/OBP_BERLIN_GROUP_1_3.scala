@@ -32,6 +32,11 @@
 package code.api.berlin.group.v1_3
 
 import code.api.OBPRestHelper
+import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
+import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
+import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
+import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
+import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.ApiVersion
 import code.util.Helper.MdcLoggable
@@ -45,22 +50,36 @@ This file defines which endpoints from all the versions are available in v1
  */
 
 
-object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1_3 with MdcLoggable {
+object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1_3 with MdcLoggable 
+  with APIMethods_SigningBasketsApi 
+  with APIMethods_AccountInformationServiceAISApi 
+  with APIMethods_ConfirmationOfFundsServicePIISApi 
+  with APIMethods_PaymentInitiationServicePISApi
+  with APIMethods_CommonServicesApi{
 
   val version = ApiVersion.berlinGroupV1_3
   val versionStatus = "DRAFT"
 
-  val endpointsOf1_3 =  Implementations1_3.endpoints 
+  val endpointsOf1_3 =  Implementations1_3.endpoints ++ 
+    ImplementationsSigningBasketsApi.endpoints ++ 
+    ImplementationsAccountInformationServiceAISApi.endpoints ++ 
+    ImplementationsConfirmationOfFundsServicePIISApi.endpoints ++
+    ImplementationsPaymentInitiationServicePISApi.endpoints ++
+    ImplementationsCommonServicesApi.endpoints
   
-  val allResourceDocs = Implementations1_3.resourceDocs
+  val allResourceDocs = Implementations1_3.resourceDocs ++
+    ImplementationsSigningBasketsApi.resourceDocs ++ 
+    ImplementationsAccountInformationServiceAISApi.resourceDocs ++ 
+    ImplementationsConfirmationOfFundsServicePIISApi.resourceDocs ++
+    ImplementationsPaymentInitiationServicePISApi.resourceDocs ++
+    ImplementationsCommonServicesApi.resourceDocs
   
   def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf1_3, Implementations1_3.resourceDocs)
-
+  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf1_3, allResourceDocs)
 
   // Make them available for use!
   routes.foreach(route => {
