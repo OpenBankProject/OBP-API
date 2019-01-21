@@ -3,7 +3,7 @@
 
 ## A selection of links to get you started using the Open Bank Project platform and surrounding tools.
 
-## Note! *The latest version of this document is available at the glossary* [here](https://apiexplorersandbox.openbankproject.com/glossary#OBP.Cheat-Sheet)
+## Note! *An alternative version of this document is available at the glossary* [here](https://apiexplorersandbox.openbankproject.com/glossary#OBP.Cheat-Sheet)
 
 
 [OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
