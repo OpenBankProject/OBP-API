@@ -32,7 +32,7 @@ object Glossary {
 		def apply(title: String, description: String): GlossaryItem = {
 
 			// Convert markdown to HTML
-			val htmlDescription = PegdownOptions.convertMarkdownToHtml(description)
+			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(description)
 			
 			// Try and generate a plain text string (requires valid HTML)
 			val textDescription: String = try {

@@ -469,7 +469,7 @@ object JSONFactory300{
       title = glossaryItem.title,
       description = GlossaryDescriptionJsonV300 (
         markdown = glossaryItem.description.stripMargin, //.replaceAll("\n", ""),
-        html = PegdownOptions.convertMarkdownToHtml(glossaryItem.description.stripMargin)// .replaceAll("\n", "")
+        html = PegdownOptions.convertPegdownToHtmlTweaked(glossaryItem.description.stripMargin)// .replaceAll("\n", "")
       )
     )
   }

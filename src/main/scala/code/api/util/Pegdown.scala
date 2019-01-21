@@ -17,6 +17,17 @@ object PegdownOptions {
     val document = PARSER.parse(description.stripMargin)
     RENDERER.render(document)
   }
+  def convertPegdownToHtmlTweaked(description: String): String = {
+    val document = PARSER.parse(description.stripMargin)
+    RENDERER.render(document)
+      .replaceAll("&ldquo", "&quot")
+      .replaceAll("&rdquo", "&quot")
+      .replaceAll("&rsquo;", "'")
+      .replaceAll("&lsquo;;", "'")
+      .replaceAll("&amp;;", "&")
+      .replaceAll("&lsquo;", "'")
+      .replaceAll("&hellip;", "...")
+  }
   
   def convertMarkdownToHtml(description: String): String = {
     val options = new MutableDataSet()

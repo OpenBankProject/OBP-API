@@ -370,7 +370,7 @@ object JSONFactory1_4_0 {
       request_url = rd.requestUrl,
       summary = rd.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
-      description = PegdownOptions.convertMarkdownToHtml(rd.description.stripMargin), //.replaceAll("\n", ""),
+      description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin), //.replaceAll("\n", ""),
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
@@ -383,7 +383,7 @@ object JSONFactory1_4_0 {
       typed_success_response_body = createTypedBody(rd.successResponseBody),
       roles = rd.roles,
       is_featured = rd.isFeatured,
-      special_instructions = PegdownOptions.convertMarkdownToHtml(rd.specialInstructions.getOrElse("").stripMargin),
+      special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
       specified_url = rd.specifiedUrl.getOrElse("")
       )
   }
