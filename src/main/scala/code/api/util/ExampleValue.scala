@@ -41,7 +41,7 @@ object ExampleValue {
   val customerNumberExample = ConnectorField("5987953", s"The human friendly customer identifier that MUST uniquely identify the Customer at the Bank ID. Customer Number is NOT used in URLs.")
   glossaryItems += makeGlossaryItem("Adapter.customerNumber", customerNumberExample)
 
-
+  val labelExample = ConnectorField("My Account", s"A lable that describes the Account")
   val legalNameExample = ConnectorField("Eveline Tripman", s"The legal name of the Customer.")
   glossaryItems += makeGlossaryItem("Adapter.legalName", legalNameExample)
 
