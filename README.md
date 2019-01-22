@@ -36,7 +36,7 @@ This project is dual licensed under the AGPL V3 (see NOTICE) and commercial lice
 
 The project uses Maven 3 as its build tool.
 
-To compile and run jetty, install Maven 3 and execute:
+To compile and run jetty, install Maven 3, create your configuration in src/main/resources/props/default.props and execute:
 
         ./mvn.sh jetty:run
 
