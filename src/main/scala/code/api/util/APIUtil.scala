@@ -1871,7 +1871,7 @@ Returns a string showed to the developer
     if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField))  {
-      OAuth2Handshake.getUserFromOAuth2HeaderFuture(cc)
+      OAuth2Login.getUserFuture(cc)
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {

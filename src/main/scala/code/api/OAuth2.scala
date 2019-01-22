@@ -45,7 +45,7 @@ import scala.concurrent.Future
 * so they could authenticate their users.
 */
 
-object OAuth2Handshake extends RestHelper with MdcLoggable {
+object OAuth2Login extends RestHelper with MdcLoggable {
 
   private def getValueOfOAuh2HeaderField(sc: CallContext) = {
     val valueOfAuthReqHeaderField = sc.authReqHeaderField.getOrElse("")
@@ -58,7 +58,7 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   /*
     Method for Old Style Endpoints
    */
-  def getUserFromOAuth2Header(cc: CallContext): (Box[User], Option[CallContext]) = {
+  def getUser(cc: CallContext): (Box[User], Option[CallContext]) = {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(cc)
@@ -76,7 +76,7 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   /*
     Method for New Style Endpoints
    */
-  def getUserFromOAuth2HeaderFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def getUserFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(cc)
