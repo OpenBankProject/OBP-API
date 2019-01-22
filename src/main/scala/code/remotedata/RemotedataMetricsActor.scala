@@ -4,10 +4,11 @@ import java.util.Date
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.bankconnectors.OBPQueryParam
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 import akka.pattern.pipe
+import code.api.util.OBPQueryParam
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
@@ -22,7 +23,7 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
 
     case cc.saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String) =>
       logger.debug("saveMetric()")
-      sender ! extractResult(mapper.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, correlationId))
+      sender ! (mapper.saveMetric(userId, url, date, duration, userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb, correlationId))
 
 //    case cc.getAllGroupedByUrl() =>
 //      logger.debug("getAllGroupedByUrl()")
@@ -38,7 +39,7 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
 
     case cc.getAllMetrics(queryParams) =>
       logger.debug("getAllMetrics()")
-      sender ! extractResult(mapper.getAllMetrics(queryParams))
+      sender ! (mapper.getAllMetrics(queryParams))
 
     case cc.getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"RemotedataMetricsActor.getAllAggregateMetricsFuture($queryParams)")
@@ -54,7 +55,7 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       
     case cc.bulkDeleteMetrics() =>
       logger.debug("bulkDeleteMetrics()")
-      sender ! extractResult(mapper.bulkDeleteMetrics())
+      sender ! (mapper.bulkDeleteMetrics())
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

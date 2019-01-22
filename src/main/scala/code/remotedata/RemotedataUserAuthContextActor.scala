@@ -4,8 +4,6 @@ import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.context.{MappedUserAuthContextProvider, RemotedataUserAuthContextCaseClasses}
 import code.util.Helper.MdcLoggable
-import akka.pattern.pipe
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataUserAuthContextActor extends Actor with ObpActorHelper with MdcLoggable {
 

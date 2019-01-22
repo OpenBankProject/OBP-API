@@ -1859,7 +1859,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
@@ -1903,7 +1903,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
@@ -1945,7 +1945,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonDelete _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
@@ -1989,7 +1989,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
@@ -2034,7 +2034,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
@@ -2077,7 +2077,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonDelete _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, cc.user)
@@ -2265,7 +2265,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)" }
@@ -2302,7 +2302,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addNarrative <- Box(metadata.addOwnerComment) ?~ { s"$NoViewPermission can_add_owner_comment. Current ViewId($viewId)" }
@@ -2412,7 +2412,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addCommentFunc <- Box(metadata.addComment) ?~ { s"$NoViewPermission can_add_comment. Current ViewId($viewId)" }
@@ -2524,7 +2524,7 @@ trait APIMethods121 {
 
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             tagJson <- tryo{json.extract[PostTransactionTagJSON]} ?~ { s"$InvalidJsonFormat Check your Post Json Body." }
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addTagFunc <- Box(metadata.addTag) ?~ { s"$NoViewPermission can_add_tag. Current ViewId($viewId)" }
@@ -2635,7 +2635,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             imageJson <- tryo{json.extract[PostTransactionImageJSON]} ?~! InvalidJsonFormat
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc))
             addImageFunc <- Box(metadata.addImage) ?~ { s"$NoViewPermission can_add_image. Current ViewId($viewId)" }
@@ -2750,7 +2750,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
             addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }
@@ -2794,7 +2794,7 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            u <- cc.user
+            u <- cc.user ?~  UserNotLoggedIn
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, cc.user, Some(cc))
             addWhereTag <- Box(metadata.addWhereTag) ?~ { s"$NoViewPermission can_add_where_tag. Current ViewId($viewId)" }

@@ -27,18 +27,20 @@ import java.text.SimpleDateFormat
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.{Date, Locale, UUID}
+import java.util.Date
+import java.util.UUID.randomUUID
 
 import code.accountholder.AccountHolders
+import code.api.cache.Caching
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
-import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.fx.{FXRate, fx}
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.branches.Branches.{Branch, BranchT}
+import code.fx.FXRate
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -57,7 +59,7 @@ import code.transactionrequests.{MappedTransactionRequestTypeCharge, Transaction
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.google.common.cache.CacheBuilder
+import com.tesobe.CacheKeyFromArguments
 import com.tesobe.obp.transport.Pager
 import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}
 import net.liftweb.common._
@@ -67,15 +69,9 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.{List, Seq}
+import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
-import scala.concurrent.{Future, TimeoutException}
 import scala.language.postfixOps
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
-import scalacache.memoization._
-import java.util.UUID.randomUUID
-import code.api.cache.Caching
-import com.tesobe.CacheKeyFromArguments
 
 object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper with MdcLoggable {
 
@@ -330,7 +326,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
           } yield {
             val res = tryExtract[List[KafkaInboundAccount]](process(req)) match {
               case Full(a) => a
-              case Empty => List.empty
+              case _ => List.empty
             }
             logger.debug(s"JVMCompatible updateUserAccountViews got response ${res}")
             res

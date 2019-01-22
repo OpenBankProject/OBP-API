@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
-*/
+  */
 
 package code.snippet
 
@@ -86,13 +81,17 @@ class Login {
   }
 
 
+  import APIUtil.activeBrand
+
+
   // Used to display custom message to users when they login.
   // For instance we can use it to display example login on a sandbox
     def customiseLogin : CssSel = {
       val specialLoginInstructions  = scala.xml.Unparsed(APIUtil.getPropsValue("webui_login_page_special_instructions", ""))
       // In case we use Extraction.decompose
       implicit val formats = net.liftweb.json.DefaultFormats
-      "#login-special-instructions *" #> specialLoginInstructions
+      "#login-special-instructions *" #> specialLoginInstructions &
+      "#brand [value]" #> activeBrand
     }
 
 

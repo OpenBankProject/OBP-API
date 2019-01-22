@@ -1,7 +1,7 @@
 package code.atms
 
+import code.api.util.OBPLimit
 import code.atms.Atms.AtmT
-import code.bankconnectors.OBPLimit
 import code.model.BankId
 import code.setup.ServerSetup
 import net.liftweb.mapper.By
@@ -22,8 +22,9 @@ class MappedAtmsProviderTest extends ServerSetup {
     delete()
   }
 
-  def defaultSetup() =
-    new {
+  def defaultSetup() = new DefaultSetup()
+  
+  class DefaultSetup {
       val bankIdX = "some-bank-x"
       val bankIdY = "some-bank-y"
 

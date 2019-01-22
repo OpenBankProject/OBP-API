@@ -11,6 +11,7 @@ connector=mapped
 #connector=mongodb
 #connector=kafka
 #conenctor=kafka_vMar2017
+#connector=akka_vDec2018
 #connector=obpjvm
 #connector=...
 
@@ -238,6 +239,19 @@ BankMockKey=change_me
 
 
 ## Web interface configuration
+
+## IMPLEMENTING BANK SPECIFIC BRANDING ON ONE OBP INSTANCE ########################
+# Note, you can specify bank specific branding by appending _FOR_BRAND_<BANK_ID> to the standard props names
+# e.g.
+#webui_header_logo_left_url_FOR_BRAND_banku = https://static.openbankproject.com/images/sandbox/bank_u.png
+#webui_header_logo_left_url_FOR_BRAND_banky = https://static.openbankproject.com/images/sandbox/bank_y.png
+# And invoke by calling index etc with ?brand=<BANK_ID>
+# e.g. http://127.0.0.1:8080/?brand=x
+# For any properties that don't have a bank specific flavour, the standard props name will be used.
+####################################################################################
+
+
+
 webui_header_logo_left_url = /media/images/logo.png
 webui_header_logo_right_url =
 webui_index_page_about_section_background_image_url = /media/images/about-background.jpg
@@ -335,7 +349,7 @@ webui_agree_terms_url =
 
 
 
-# If we want to gather more informaiton about an Applicaiton / Startup fill this url and text
+# If we want to gather more information about an Application / Startup fill this url and text
 # Will be displayed on the post Consumer Registration page.
 #webui_post_consumer_registration_more_info_url =
 #webui_post_consumer_registration_more_info_text = Please tell us more your Application and / or Startup using this link.
@@ -393,7 +407,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ##########################
 
 
-## OpenId Connect can be used to retrieve User informaiton from an
+## OpenId Connect can be used to retrieve User information from an
 ## external OpenID Connect server.
 ## To use an external OpenID Connect server,
 ## you will need to change these values.
@@ -463,18 +477,13 @@ display_internal_errors=false
 # -------------------------------------- Display internal errors --
 
 
-# -- OAuth 2 --------------------------------------------------------------------
+# -- OAuth 2 ---------------------------------------------------------------
 # Enable/Disable OAuth 2 workflow at a server instance
 # In case isn't defined default value is false
 # allow_oauth2_login=false
-# oauth2.token_secret=secret
-# Enable SSL for JWT
-# If set to true must set paths for the keystore locations
-# In case isn't defined default value is false
-# oauth2.jwt.use.ssl=false
 # URL of Public server JWK set used for validating bearer JWT access tokens
 # oauth2.jwk_set.url=http://localhost:8080/jwk.json
-# ----------------------------------------------------------- OAuth 2 -----------
+# ----------------------------------------------------------- OAuth 2 ------
 
 ## This property is used for documenting at Resource Doc. It may include the port also (but not /obp)
 ## (this needs to be a URL)
@@ -523,3 +532,27 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # mapper_rules.create_foreign_keys=false
 # -----------------------------------------------
+
+# -- Akka connector --------------------------------------------
+# Define mapper rules
+# In case isn't defined default value is "127.0.0.1"
+# akka_connector.hostname=127.0.0.1
+# In case isn't defined default value is "2662"
+# akka_connector.port=2662
+# In case isn't defined default value is "INFO"
+# akka_connector.loglevel=INFO/DEBUG etc.
+# In case isn't defined default value is "akka-connector-actor"
+# akka_connector.name_of_actor=SOME_ACTOR_NAME
+# --------------------------------------------------------------
+
+# -- Scopes ---------------------------------------------
+# Scopes are a way to limit the APIs a Consumer can call.
+# In case isn't defined default value is "false"
+# require_scopes=false
+# -------------------------------------------------------
+
+# -- Database scheduler -----------------------------
+# Database scheduler interval in seconds.
+# Scheduler would not be started if delay is not set.
+database_messages_scheduler_interval=3600
+# ---------------------------------------------------

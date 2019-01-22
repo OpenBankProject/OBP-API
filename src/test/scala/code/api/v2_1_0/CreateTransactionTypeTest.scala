@@ -1,19 +1,15 @@
 package code.api.v2_1_0
 
+import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, CanCreateTransactionType, CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
+import code.api.util.ApiRole.CanCreateTransactionType
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v2_0_0.{CreateAccountJSON, TransactionTypeJsonV200}
-import code.entitlement.Entitlement
-import code.model.dataAccess.MappedBankAccount
-import code.model.{AmountOfMoney, BankId, TransactionTypeId}
+import code.api.v2_0_0.TransactionTypeJsonV200
+import code.model.TransactionTypeId
 import code.setup.DefaultUsers
 import code.transaction_types.MappedTransactionType
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization._
-import net.liftweb.util.TimeHelpers._
-import org.scalatest.BeforeAndAfter
 
 /**
   * Created by zhanghongwei on 17/11/16.
@@ -45,9 +41,8 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON))
       Then("We should get a 400")
       responsePut.code should equal(400)
-      val error = for {JObject(o) <- responsePut.body; JField("error", JString(error)) <- o} yield error
       And("We should get a message: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
-      error should contain(ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
+      responsePut.body.extract[ErrorMessage].message should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
     }
 
     scenario("We try to get all roles with Authentication - Create Transaction Type...") {
@@ -117,9 +112,8 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
       And("We should get a 400")
       responsePut2.code should equal(400)
-      val errorInsert = for {JObject(o) <- responsePut2.body; JField("error", JString(error)) <- o} yield error
       And("We should get a message: " + ErrorMessages.CreateTransactionTypeInsertError)
-      errorInsert.toString.contains(ErrorMessages.CreateTransactionTypeInsertError) should be (true)
+      responsePut2.body.extract[ErrorMessage].message should equal (ErrorMessages.CreateTransactionTypeInsertError)
 
 
       Then("insert new data and We make the request")
@@ -136,9 +130,8 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
       And("We should get a 400")
       responsePut3.code should equal(400)
-      val errorUpdate = for {JObject(o) <- responsePut3.body; JField("error", JString(error)) <- o} yield error
       And("We should get a message: " + ErrorMessages.CreateTransactionTypeUpdateError)
-      errorInsert.toString.contains(ErrorMessages.CreateTransactionTypeInsertError) should be (true)
+      responsePut3.body.extract[ErrorMessage].message should equal (ErrorMessages.CreateTransactionTypeUpdateError)
     }
   }
   /**

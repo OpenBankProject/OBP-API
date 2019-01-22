@@ -1,13 +1,12 @@
 package code.api.v2_0_0
 
+import code.api.ErrorMessage
+import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetEntitlementsForAnyUserAtAnyBank
+import code.api.util.ErrorMessages.{UserHasMissingRoles, _}
 import code.api.util.{ApiRole, ErrorMessages}
 import code.entitlement.Entitlement
-import net.liftweb.json.JsonAST._
-import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.setup.DefaultUsers
-import code.api.util.ErrorMessages._
 
 /**
   * Created by markom on 10/14/16.
@@ -30,9 +29,8 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-      error should contain (ErrorMessages.UserNotLoggedIn)
+      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotLoggedIn)
 
     }
 
@@ -42,9 +40,8 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 40")
       responseGet.code should equal(403)
-      val error = for { JObject(o) <- responseGet.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      error should contain (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlements") {
@@ -65,9 +62,8 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       val responseDelete = makeDeleteRequest(requestDelete)
       Then("We should get a 400")
       responseDelete.code should equal(400)
-      val error = for { JObject(o) <- responseDelete.body; JField("error", JString(error)) <- o } yield error
       And("We should get a message: " + ErrorMessages.UserNotSuperAdmin)
-      error should contain (ErrorMessages.UserNotSuperAdmin)
+      responseDelete.body.extract[ErrorMessage].message should equal (ErrorMessages.UserNotSuperAdmin)
     }
   }
 

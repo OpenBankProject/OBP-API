@@ -13,18 +13,22 @@ object RemotedataWhereTags extends ObpActorInit with WhereTags {
 
   val cc = RemotedataWhereTagsCaseClasses
 
-  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag] =
-      extractFutureToBox(actor ? cc.getWhereTagForTransaction(bankId, accountId, transactionId, viewId))
+  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag] = getValueFromFuture(
+      (actor ? cc.getWhereTagForTransaction(bankId, accountId, transactionId, viewId)).mapTo[Box[GeoTag]]
+  )
 
   def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-                 (userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean =
-      extractFuture(actor ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double))
+                 (userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = getValueFromFuture(
+      (actor ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserPrimaryKey, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)).mapTo[Boolean]
+  )
 
-  def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean =
-      extractFuture(actor ? cc.deleteWhereTag(bankId, accountId, transactionId, viewId))
+  def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean = getValueFromFuture(
+      (actor ? cc.deleteWhereTag(bankId, accountId, transactionId, viewId)).mapTo[Boolean]
+  )
 
-  def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean =
-      extractFuture(actor ? cc.bulkDeleteWhereTags(bankId, accountId))
+  def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
+      (actor ? cc.bulkDeleteWhereTags(bankId, accountId)).mapTo[Boolean]
+  )
 
 
 }

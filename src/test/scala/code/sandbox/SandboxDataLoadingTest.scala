@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,33 +16,26 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
   */
 package code.sandbox
 
-import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.util.ErrorMessages._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
-import code.accountholder.AccountHolders
-import code.api.util.{APIUtil, CallContext}
+import code.api.util.{APIUtil, OBPLimit}
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT, countOfAtms}
-import code.bankconnectors.{Connector, OBPLimit}
+import code.bankconnectors.Connector
 import code.branches.Branches
 import code.branches.Branches.{BranchId, BranchT, countOfBranches}
 import code.crm.CrmEvent
@@ -61,7 +54,6 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{JField, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Props
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 
 /*
@@ -92,13 +84,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //drop database tables before
     //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.foreach(_.bulkDelete_!!())
-    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
-      ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
-    } else {
-      Views.views.vend.bulkDeleteAllPermissionsAndViews()
-      Users.users.vend.bulkDeleteAllResourceUsers()
-      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
-    }
+    ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
   }
 
 

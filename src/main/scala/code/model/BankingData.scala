@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,28 +16,23 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
- */
+  */
 package code.model
 
 import java.util.Date
 
-import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.hasEntitlement
-import code.api.util.{APIUtil, ApiRole, CallContext, ErrorMessages}
-import code.bankconnectors.{Connector, OBPQueryParam}
+import code.api.util.APIUtil.unboxFullOrFail
+import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CallContext, ErrorMessages, OBPQueryParam}
+import code.bankconnectors.Connector
 import code.customer.Customer
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -47,14 +42,14 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.util.Helper
 import code.util.Helper.MdcLoggable
-import code.views.{MapperViews, Views}
+import code.views.Views
 import net.liftweb.common._
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonDSL._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Set}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.math.BigDecimal
 
@@ -524,6 +519,21 @@ trait BankAccount extends MdcLoggable {
     else
       viewNotAllowed(view)
   }
+  final def moderatedTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
+    if(APIUtil.hasAccess(view, user))
+      for{
+       (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext) map {
+         x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+       }
+      } yield {
+        view.moderateTransaction(transaction) match {
+          case Full(m) => Full((m, callContext))
+          case _ => Failure("Server error - moderateTransactionsWithSameAccount")
+        }
+      }
+    else
+      Future(viewNotAllowed(view))
+  }
 
   /*
    end views
@@ -538,6 +548,21 @@ trait BankAccount extends MdcLoggable {
       } yield (moderated, callContext)
     }
     else viewNotAllowed(view)
+  }  
+  final def getModeratedTransactionsFuture(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
+    if(APIUtil.hasAccess(view, user)) {
+      for {
+        (transactions, callContext)  <- Connector.connector.vend.getTransactionsFuture(bankId, accountId, callContext, queryParams: _*) map {
+          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+        }
+      } yield {
+        view.moderateTransactionsWithSameAccount(transactions) match {
+          case Full(m) => Full((m, callContext))
+          case _ => Failure("Server error - moderateTransactionsWithSameAccount")
+        }
+      }
+    }
+    else Future(viewNotAllowed(view))
   }
   
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.

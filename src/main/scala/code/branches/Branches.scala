@@ -4,11 +4,11 @@ package code.branches
 /* For branches */
 
 // Need to import these one by one because in same package!
-import code.bankconnectors.OBPQueryParam
-import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.api.util.OBPQueryParam
+import code.branches.Branches.{BranchId, BranchT}
 import code.common._
 import code.model.BankId
-import net.liftweb.common.{Box, Logger}
+import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
 object Branches extends SimpleInjector {
@@ -230,9 +230,6 @@ object Branches extends SimpleInjector {
                               saturday: OpeningTimes,
                               sunday: OpeningTimes
                             )
-
-
-  import code.common.Routing
 
 
 

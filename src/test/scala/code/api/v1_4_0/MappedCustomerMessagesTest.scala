@@ -1,20 +1,15 @@
 package code.api.v1_4_0
 
-import java.text.SimpleDateFormat
-import java.util.Date
-
-import code.api.util.{APIUtil, ApiRole}
-import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerJsonV140, CustomerMessagesJson}
-import code.customer.{Customer, MappedCustomerMessage, CustomerFaceImage}
-import code.model.BankId
-import code.usercustomerlinks.UserCustomerLink
 import code.api.util.APIUtil.OAuth._
+import code.api.util.{APIUtil, ApiRole}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerMessagesJson}
 import code.api.v2_0_0.CreateCustomerJson
+import code.customer.{Customer, MappedCustomerMessage}
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
-import net.liftweb.common.Box
+import code.usercustomerlinks.UserCustomerLink
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Serialization.write
-import net.liftweb.common.{Empty, Full}
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {

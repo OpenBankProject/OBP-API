@@ -1,38 +1,34 @@
 /**
-  * Open Bank Project - API
-  * Copyright (C) 2011-2018, TESOBE Ltd
-  **
-  *This program is free software: you can redistribute it and/or modify
-  *it under the terms of the GNU Affero General Public License as published by
-  *the Free Software Foundation, either version 3 of the License, or
-  *(at your option) any later version.
-  **
-  *This program is distributed in the hope that it will be useful,
-  *but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  *GNU Affero General Public License for more details.
-  **
-  *You should have received a copy of the GNU Affero General Public License
-*along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  **
- *Email: contact@tesobe.com
-*TESOBE Ltd
-*Osloerstrasse 16/17
-*Berlin 13359, Germany
-  **
- *This product includes software developed at
-  *TESOBE (http://www.tesobe.com/)
-  * by
-  *Simon Redfern : simon AT tesobe DOT com
-  *Stefan Bethge : stefan AT tesobe DOT com
-  *Everett Sochowski : everett AT tesobe DOT com
-  *Ayoub Benali: ayoub AT tesobe DOT com
-  *
- */
+Open Bank Project - API
+Copyright (C) 2011-2018, TESOBE Ltd.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE Ltd.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
 package code.setup
 
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 import java.util.TimeZone
+
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
@@ -72,9 +68,9 @@ trait SendServerRequests {
                       form_params: Map[String,String]
                      )
 
-  def encode_% (s: String) = java.net.URLEncoder.encode(s, org.apache.http.protocol.HTTP.UTF_8)
+  def encode_% (s: String) = java.net.URLEncoder.encode(s, StandardCharsets.UTF_8.name())
 
-  def decode_% (s: String) = java.net.URLDecoder.decode(s, org.apache.http.protocol.HTTP.UTF_8)
+  def decode_% (s: String) = java.net.URLDecoder.decode(s, StandardCharsets.UTF_8.name())
 
   //normalize to OAuth percent encoding
   def %% (str: String): String = {
@@ -178,7 +174,7 @@ trait SendServerRequests {
 
 
   private def ApiResponseCommonPart(req: Req) = {
-    for (response <- Http(req > as.Response(p => p)))
+    for (response <- Http.default(req > as.Response(p => p)))
       yield {
         val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
 

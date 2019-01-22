@@ -45,7 +45,7 @@ object NorthSideConsumer {
       Map[String, String](
         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> brokers,
         ConsumerConfig.GROUP_ID_CONFIG -> group,
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> KafkaConsumer.autoOffsetResetConfig,
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> OBPKafkaConsumer.autoOffsetResetConfig,
         ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> keyDeserealizer,
         ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> valueDeserealizer,
         "security.protocol" -> "SSL",
@@ -58,7 +58,7 @@ object NorthSideConsumer {
       Map[String, String](
         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> brokers,
         ConsumerConfig.GROUP_ID_CONFIG -> group,
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> KafkaConsumer.autoOffsetResetConfig,
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> OBPKafkaConsumer.autoOffsetResetConfig,
         ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> keyDeserealizer,
         ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> valueDeserealizer
       )

@@ -2,10 +2,10 @@ package code.api.v2_1_0
 
 import java.util.UUID
 
-import code.api.util.ErrorMessages._
-import code.api.ChargePolicy
+import code.api.{ChargePolicy, ErrorMessage}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
+import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
@@ -18,7 +18,6 @@ import code.transactionrequests.TransactionRequests.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.Serialization.write
-import net.liftweb.util.Props
 import org.scalatest.Tag
 
 class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
@@ -31,8 +30,9 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     })
   }
 
-  def defaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) =
-    new {
+  def defaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) = new DefaultSetup(transactionRequestTypeInput)
+  
+  class DefaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) {
 
       val sharedChargePolicy = ChargePolicy.withName("SHARED").toString
       var transactionRequestType: String = transactionRequestTypeInput
@@ -302,8 +302,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         response.code should equal(400)
 
         Then("We should have the error message")
-        val error = for {JObject(o) <- response.body; JField("error", JString(error)) <- o} yield error
-        error should contain(ErrorMessages.UserNotLoggedIn)
+        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserNotLoggedIn)
 
       }
     }
@@ -324,7 +323,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         response.code should equal(400)
 
         Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-        val error: String = (response.body \ "error").values.toString
+        val error: String = (response.body \ "message").values.toString
         error should equal(ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       }
     }
@@ -368,10 +367,9 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         Then("we should get a 400 created code")
         response.code should equal(400)
-
-        Then("We should have the error message")
-        val error: List[String] = for {JObject(o) <- response.body; JField("error", JString(error)) <- o} yield error
-        error(0) should include(ErrorMessages.InvalidTransactionRequestType)
+        
+        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.InvalidTransactionRequestType)
+        
       }
     }
 
@@ -1053,6 +1051,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
+  // TODO Make this tests functional
   /** notes: this is from V140, not the latest test, need to be fixed
   scenario("we can't make a payment of zero units of currency", Payments) {
     When("we try to make a payment with amount = 0")

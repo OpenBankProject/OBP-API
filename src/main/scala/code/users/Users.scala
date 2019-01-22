@@ -1,13 +1,12 @@
 package code.users
 
-import code.api.util.APIUtil
-import code.bankconnectors.OBPQueryParam
+import code.api.util.{APIUtil, OBPQueryParam}
 import code.entitlement.Entitlement
 import code.model.User
-import code.model.dataAccess.{ResourceUser, ResourceUserCaseClass}
+import code.model.dataAccess.ResourceUser
 import code.remotedata.RemotedataUsers
 import net.liftweb.common.Box
-import net.liftweb.util.{Props, SimpleInjector}
+import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -34,7 +33,7 @@ trait Users {
 
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
   def getUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]]
-  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]]
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Future[Box[User]]
 
   //resourceuser has two ids: id(Long)and userid_(String), this method use userid_(String)
   def getUserByUserId(userId : String) : Box[User]
@@ -69,7 +68,7 @@ class RemotedataUsersCaseClasses {
   case class getResourceUserByResourceUserIdFuture(id : Long)
   case class getUserByProviderId(provider : String, idGivenByProvider : String)
   case class getUserByProviderIdFuture(provider : String, idGivenByProvider : String)
-  case class getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String)
+  case class getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String])
   case class getUserByUserId(userId : String)
   case class getUserByUserIdFuture(userId : String)
   case class getUsersByUserIdsFuture(userId : List[String])

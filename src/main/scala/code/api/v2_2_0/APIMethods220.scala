@@ -247,6 +247,9 @@ trait APIMethods220 {
         cc =>
           for {
             (_, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx) {
+              checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canReadFx)
+            }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
               assert(isValidCurrencyISOCode(fromCurrencyCode))
@@ -374,6 +377,8 @@ trait APIMethods220 {
       "Get Message Docs",
       """These message docs provide example messages sent by OBP to the (Kafka) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
         | Integrators can use these messages to build Adapters that provide core banking services to OBP.
+        |
+        | Note: API Explorer provides a Message Docs page where these messages are displayed.
         | 
         | `CONNECTOR`:kafka_vMar2017 , kafka_vJune2017, kafka_vSept2018 ... 
       """.stripMargin,
@@ -721,7 +726,7 @@ trait APIMethods220 {
         InvalidAccountInitialBalance,
         InitialBalanceMustBeZero,
         InvalidAccountBalanceCurrency,
-        AccountIdAlreadyExsits,
+        AccountIdAlreadyExists,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -751,7 +756,7 @@ trait APIMethods220 {
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! InvalidAccountInitialBalance
             _ <- booleanToBox(0 == initialBalanceAsNumber) ?~! InitialBalanceMustBeZero
             currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
-            _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExsits)
+            _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExists)
             bankAccount <- Connector.connector.vend.createSandboxBankAccount(
               bankId,
               accountId,

@@ -1,26 +1,27 @@
 package code.bankconnectors
 
-import java.util.{Date, UUID}
+import java.util.Date
 
+import code.accountapplication.AccountApplication
 import code.accountholder.{AccountHolders, MapperAccountHolders}
-import code.customeraddress.CustomerAddress
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountId
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages, NewStyle}
+import code.api.util._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.api.v3_1_0._
 import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
+import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.context.UserAuthContext
 import code.customer._
+import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
@@ -40,15 +41,14 @@ import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.{BCrypt, Helpers, Props, SimpleInjector}
+import net.liftweb.util.{BCrypt, Helpers, SimpleInjector}
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.math.BigInt
 import scala.util.Random
-import scala.concurrent.duration._
 
 /*
 So we can switch between different sources of resources e.g.
@@ -65,11 +65,10 @@ Could consider a Map of ("resourceType" -> "provider") - this could tell us whic
  */
 
 object Connector extends SimpleInjector {
-
-  import scala.reflect.runtime.universe._
   def getConnectorInstance(connectorVersion: String):Connector = {
     connectorVersion match {
       case "mapped" => LocalMappedConnector
+      case "akka_vDec2018" => AkkaConnector_vDec2018
       case "mongodb" => LocalRecordConnector
       case "obpjvm" => ObpJvmMappedConnector
       case "kafka" => KafkaMappedConnector
@@ -90,41 +89,6 @@ object Connector extends SimpleInjector {
   }
 
 }
-
-class OBPQueryParam
-trait OBPOrder { def orderValue : Int }
-object OBPOrder {
-  def apply(s: Option[String]): OBPOrder = s match {
-    case Some("asc") => OBPAscending
-    case Some("ASC")=> OBPAscending
-    case _ => OBPDescending
-  }
-}
-object OBPAscending extends OBPOrder { def orderValue = 1 }
-object OBPDescending extends OBPOrder { def orderValue = -1}
-case class OBPLimit(value: Int) extends OBPQueryParam
-case class OBPOffset(value: Int) extends OBPQueryParam
-case class OBPFromDate(value: Date) extends OBPQueryParam
-case class OBPToDate(value: Date) extends OBPQueryParam
-case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
-case class OBPConsumerId(value: String) extends OBPQueryParam
-case class OBPUserId(value: String) extends OBPQueryParam
-case class OBPBankId(value: String) extends OBPQueryParam
-case class OBPAccountId(value: String) extends OBPQueryParam
-case class OBPUrl(value: String) extends OBPQueryParam
-case class OBPAppName(value: String) extends OBPQueryParam
-case class OBPExcludeAppNames(values: List[String]) extends OBPQueryParam
-case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
-case class OBPImplementedInVersion(value: String) extends OBPQueryParam
-case class OBPVerb(value: String) extends OBPQueryParam
-case class OBPAnon(value: Boolean) extends OBPQueryParam
-case class OBPCorrelationId(value: String) extends OBPQueryParam
-case class OBPDuration(value: Long) extends OBPQueryParam
-case class OBPExcludeUrlPatterns(values: List[String]) extends OBPQueryParam
-case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam
-case class OBPFunctionName(value: String) extends OBPQueryParam
-case class OBPConnectorName(value: String) extends OBPQueryParam
-case class OBPEmpty() extends OBPQueryParam
 
 //Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
 case class InboundUser(
@@ -217,6 +181,7 @@ trait Connector extends MdcLoggable{
   }
   
   def getAdapterInfo(callContext: Option[CallContext]) : Box[(InboundAdapterInfoInternal, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
+  def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(Failure(NotImplemented + "getAdapterInfoFuture"))
 
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
@@ -350,6 +315,7 @@ trait Connector extends MdcLoggable{
   def getCoreBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]]= Future {Failure(NotImplemented + currentMethodName)}
 
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[(BankAccount, Option[CallContext])]= Failure(NotImplemented + currentMethodName)
+  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Future[Box[(BankAccount, Option[CallContext])]] = Future {Failure(NotImplemented + currentMethodName)}
 
   /**
     * This method is just return an empty account to AccountType.
@@ -400,6 +366,8 @@ trait Connector extends MdcLoggable{
 
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
+  def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId,viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {(Failure(NotImplemented + currentMethodName), callContext)}
+
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]= {
     getTransactions(bankId, accountID, None, queryParams: _*).map(_._1)
   }
@@ -407,9 +375,17 @@ trait Connector extends MdcLoggable{
   //TODO, here is a problem for return value `List[Transaction]`, this is a normal class, not a trait. It is a big class, 
   // it contains thisAccount(BankAccount object) and otherAccount(Counterparty object)
   def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[Transaction], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
+  def getTransactionsFuture(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = {
+    val result: Box[(List[Transaction], Option[CallContext])] = getTransactions(bankId, accountID, callContext, queryParams: _*)
+    Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
+  }
   def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])]= Failure(NotImplemented + currentMethodName)
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
+  def getTransactionFuture(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
+    val result: Box[(Transaction, Option[CallContext])] = getTransaction(bankId, accountID, transactionId, callContext)
+    Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
+  }
 
   def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(NotImplemented + currentMethodName)
   
@@ -1025,7 +1001,8 @@ trait Connector extends MdcLoggable{
                to = CounterpartyIdJson(counterpartyId.value), 
                value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount), 
                description = body.description,
-               charge_policy = transactionRequest.charge_policy)
+               charge_policy = transactionRequest.charge_policy,
+               future_date = transactionRequest.future_date)
   
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
              fromAccount,
@@ -1052,7 +1029,8 @@ trait Connector extends MdcLoggable{
               to = IbanJson(toCounterpartyIBan),
               value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
               description = body.description,
-              charge_policy = transactionRequest.charge_policy
+              charge_policy = transactionRequest.charge_policy,
+              future_date = transactionRequest.future_date
             )
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
@@ -1545,4 +1523,20 @@ trait Connector extends MdcLoggable{
     productAttributeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def createAccountApplication(
+    productCode: ProductCode,
+    userId: Option[String],
+    customerId: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[AccountApplication]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

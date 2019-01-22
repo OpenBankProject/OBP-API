@@ -1,9 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
-import code.bankconnectors.OBPQueryParam
+import code.api.util.{ErrorMessages, OBPQueryParam}
 import code.branches.Branches._
 import code.branches.{Branches, BranchesProvider}
 import code.common._
@@ -262,7 +260,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
       Then("We should get a 400 and correct response jons format")
       response300.code should equal(400)
       response300.body.extract[BranchesJsonV300]
-      json.compactRender(response300.body \ "error").replaceAll("\"", "") should include (ErrorMessages.BranchesNotFound)
+      json.compactRender(response300.body \ "message").replaceAll("\"", "") should include (ErrorMessages.BranchesNotFound)
     }
    
   }

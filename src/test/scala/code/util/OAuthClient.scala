@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
- */
+  */
 
 package code.util
 
@@ -43,7 +38,7 @@ import org.apache.http.client.utils.URLEncodedUtils
 import org.openqa.selenium._
 import org.openqa.selenium.htmlunit.HtmlUnitDriver
 import code.api.oauth1a.OauthParams._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 sealed trait Provider {
   val name : String
@@ -144,12 +139,12 @@ object OAuthClient extends MdcLoggable {
     element.submit()
 
     //get redirect urls oauth_verifier
-    val params = URLEncodedUtils.parse(new URI(webdriver.getCurrentUrl()), "UTF-8")
+    val params = URLEncodedUtils.parse(new URI(webdriver.getCurrentUrl()), "UTF-8").asScala
     var verifier : Box[String] = Empty
     params.foreach(p => {
       if (p.getName() == "redirectUrl") {
-        val decoded = URLDecoder.decode(p.getValue())
-        val params = URLEncodedUtils.parse(new URI(decoded), "UTF-8")
+        val decoded = URLDecoder.decode(p.getValue(), "UTF-8")
+        val params = URLEncodedUtils.parse(new URI(decoded), "UTF-8").asScala
         params.foreach(p => {
           if (p.getName() == VerifierName) {
             verifier = Full(p.getValue())

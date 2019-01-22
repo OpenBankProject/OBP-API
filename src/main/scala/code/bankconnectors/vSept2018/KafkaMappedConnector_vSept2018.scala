@@ -25,12 +25,13 @@ Berlin 13359, Germany
 
 import java.text.SimpleDateFormat
 import java.util.UUID.randomUUID
+
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util._
 import code.api.v3_1_0.CardObjectJson
 import code.atms.Atms.AtmId
 import code.bankconnectors._
@@ -52,6 +53,7 @@ import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
 import net.liftweb.util.Helpers.{now, tryo}
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -62,6 +64,7 @@ import code.api.util.ExampleValue._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
 import code.context.UserAuthContextProvider
+import code.metadata.counterparties.CounterpartyTrait
 import code.users.Users
 import net.liftweb
 import net.liftweb.json
@@ -286,6 +289,42 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         Failure(ErrorMessages.UnknownError)
     }
 
+    res
+  }
+  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+    val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
+
+    logger.debug(s"Kafka getAdapterInfoFuture Req says:  is: $req")
+
+    val future = for {
+      res <- processToFuture[OutboundGetAdapterInfo](req) map {
+        f =>
+          try {
+            f.extract[InboundAdapterInfo]
+          } catch {
+            case e: Exception =>
+              val received = liftweb.json.compactRender(f)
+              val expected = SchemaFor[InboundAdapterInfo]().toString(false)
+              val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+              sendOutboundAdapterError(err)
+              throw new MappingException(err, e)
+          }
+      } map {
+        x => x.data
+      }
+    } yield {
+      Full(res)
+    }
+
+    val res = future map {
+      case Full(list) if (list.errorCode=="") =>
+        Full(list, callContext)
+      case Full(list) if (list.errorCode!="") =>
+        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    logger.debug(s"Kafka getAdapterInfoFuture says res is $res")
     res
   }
 
@@ -871,6 +910,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getBankAccount")
+
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) =
+    Future {
+      checkBankAccountExists(bankId, accountId, callContext)
+    }
   
   messageDocs += MessageDoc(
     process = "obp.get.coreBankAccounts",
@@ -1653,6 +1697,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getCounterparties")
+  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
+    (getCounterparties(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
+  }
   
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyByCounterpartyId",

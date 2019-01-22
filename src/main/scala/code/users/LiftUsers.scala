@@ -1,17 +1,16 @@
 package code.users
 
-import code.api.GatewayLogin.gateway
-import code.bankconnectors.{OBPLimit, OBPOffset, OBPQueryParam}
+import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.entitlement.Entitlement
-import net.liftweb.common.{Box, Full}
 import code.model.User
 import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object LiftUsers extends Users with MdcLoggable{
 
@@ -43,20 +42,20 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
-  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
+  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Box[User] = {
     Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = idGivenByProvider).or { // Find a user
       Users.users.vend.createResourceUser( // Otherwise create a new one
-        provider = gateway,
+        provider = provider,
         providerId = Some(idGivenByProvider),
-        name = Some(idGivenByProvider),
-        email = None,
+        name = name,
+        email = email,
         userId = None
       )
     }
   }
-  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]] = {
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Future[Box[User]] = {
     Future {
-      getOrCreateUserByProviderId(provider, idGivenByProvider)
+      getOrCreateUserByProviderId(provider, idGivenByProvider, name, email)
     }
   }
 

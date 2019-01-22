@@ -62,7 +62,8 @@ object TransactionRequests extends SimpleInjector {
     val other_account_routing_address : String,
     val other_bank_routing_scheme : String,
     val other_bank_routing_address : String,
-    val is_beneficiary :Boolean
+    val is_beneficiary :Boolean,
+    val future_date :Option[String] = None
 
   )
 

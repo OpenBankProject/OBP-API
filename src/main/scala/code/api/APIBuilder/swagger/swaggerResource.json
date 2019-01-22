@@ -1,0 +1,213 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Open Bank Project API",
+    "description": "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences.",
+    "contact": {
+      "name": "TESOBE Ltd. / Open Bank Project",
+      "url": "https://openbankproject.com",
+      "email": "contact@tesobe.com"
+    },
+    "version": "b1"
+  },
+  "paths": {
+    "/templates": {
+      "get": {
+        "tags": [
+          "API-Builder"
+        ],
+        "summary": "Get Templates",
+        "description": "Return All my templates. Authentication is Mandatory.",
+        "operationId": "vb1-GetTemplates",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Templates"
+                },
+                "examples": {
+                  "foo": {
+                    "value": {
+                      "templates": [
+                        {
+                          "author": "Chinua Achebe",
+                          "pages": 209,
+                          "points": 1.3
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorUserNotLoggedIn"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "API-Builder"
+        ],
+        "summary": "Create Template",
+        "description": "Create template. Authentication is Mandatory.",
+        "operationId": "vb1-CreateTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorUserNotLoggedIn"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/templates/{template_id}": {
+      "get": {
+        "tags": [
+          "API-Builder"
+        ],
+        "summary": "Get Template",
+        "description": "Return one template. Authentication is Mandatory.",
+        "operationId": "vb1-GetTemplate",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorUserNotLoggedIn"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "API-Builder"
+        ],
+        "summary": "Delete Template",
+        "description": "Delete template. Authentication is Mandatory.",
+        "operationId": "vb1-DeleteTemplate",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorUserNotLoggedIn"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorUserNotLoggedIn": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "OBP-20001: User not logged in. Authentication is required!"
+          }
+        }
+      },
+      "Templates": {
+        "required": [
+          "templates"
+        ],
+        "properties": {
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Template"
+            }
+          }
+        }
+      },
+      "Template": {
+        "required": [
+          "author",
+          "pages",
+          "points"
+        ],
+        "properties": {
+          "author": {
+            "type": "string",
+            "example": "Chinua Achebe"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int32",
+            "example": "209"
+          },
+          "points": {
+            "type": "number",
+            "format": "double",
+            "example": "2.99"
+          }
+        }
+      }
+    }
+  }
+}

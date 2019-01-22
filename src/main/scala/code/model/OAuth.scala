@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
- */
+  */
 package code.model
 import java.util.{Date, UUID}
 
@@ -46,6 +41,7 @@ import net.liftweb.mapper.{LongKeyedMetaMapper, _}
 import net.liftweb.util.Helpers.{now, _}
 import net.liftweb.util.{FieldError, Helpers, Props}
 import code.util.Helper.MdcLoggable
+import com.github.dwickern.macros.NameOf
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -71,7 +67,7 @@ object TokenType {
 }
 
 
-object MappedConsumersProvider extends ConsumersProvider {
+object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
 
   override def getConsumerByPrimaryIdFuture(id: Long): Future[Box[Consumer]] = {
     Future(
@@ -339,6 +335,15 @@ object MappedConsumersProvider extends ConsumersProvider {
         }
     }
   }
+  
+  override def populateMissingUUIDs(): Boolean = {
+    logger.warn("Executed script: MappedConsumersProvider." + NameOf.nameOf(populateMissingUUIDs))
+    for {
+      consumer <- Consumer.findAll(NullRef(Consumer.consumerId))
+    } yield {
+      consumer.consumerId(APIUtil.generateUUID()).save()
+    }
+  }.forall(_ == true)
 
 }
 

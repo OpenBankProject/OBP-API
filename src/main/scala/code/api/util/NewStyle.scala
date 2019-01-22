@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.accountapplication.AccountApplication
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
@@ -13,7 +14,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.bankconnectors.{Connector, OBPQueryParam, ObpApiLoopback}
+import code.bankconnectors.{Connector, ObpApiLoopback}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
@@ -32,9 +33,10 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
+import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -43,6 +45,10 @@ object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.publicAccountsAtOneBank), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.privateAccountsAtOneBank), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.corePrivateAccountsAtOneBank), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
@@ -131,7 +137,11 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createProductAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProductAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateProductAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteProductAttribute), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.deleteProductAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createAccountApplication), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getAccountApplications), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getAccountApplication), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateAccountApplicationStatus), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -187,10 +197,9 @@ object NewStyle {
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
-      Future { Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map {
+      Connector.connector.vend.checkBankAccountExistsFuture(bankId, accountId, callContext) } map {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
       }
-    }
 
     def moderatedBankAccount(account: BankAccount, view: View, user: Box[User]) = Future {
       account.moderatedBankAccount(view, user)
@@ -291,11 +300,9 @@ object NewStyle {
     }
 
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
-      Future {
-        Connector.connector.vend.getAdapterInfo(callContext)
-      } map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
-      }
+        Connector.connector.vend.getAdapterInfoFuture(callContext) map {
+          unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+        }
     }
 
     def getEntitlementsByUserId(userId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
@@ -305,9 +312,9 @@ object NewStyle {
     }
 
     def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): OBPReturnType[List[CounterpartyTrait]] = {
-      Future(Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext)) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+      Connector.connector.vend.getCounterpartiesFuture(bankId,accountId,viewId, callContext) map { i=>
+        (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
     }
 
     def getMetadata(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyMetadata] = {
@@ -572,7 +579,80 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
-        
+
+    def createAccountApplication(
+                                  productCode: ProductCode,
+                                  userId: Option[String],
+                                  customerId: Option[String],
+                                  callContext: Option[CallContext]
+                                ): OBPReturnType[AccountApplication] =
+      Connector.connector.vend.createAccountApplication(productCode, userId, customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, CreateAccountApplicationError, 400), i._2)
+      }
+
+
+    def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[List[AccountApplication]] =
+      Connector.connector.vend.getAllAccountApplication(callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+      }
+
+    def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[AccountApplication] =
+      Connector.connector.vend.getAccountApplicationById(accountApplicationId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$AccountApplicationNotFound Current Account-Application-Id($accountApplicationId)", 400), i._2)
+      }
+
+    def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[AccountApplication] =
+      Connector.connector.vend.updateAccountApplicationStatus(accountApplicationId, status, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateAccountApplicationStatusError  Current Account-Application-Id($accountApplicationId)", 400), i._2)
+      }
+
+    def findUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[User]] = Future {
+      val userList = userIds.filterNot(StringUtils.isBlank).distinct.map(User.findByUserId).collect {
+        case Full(user) => user
+      }
+      (userList, callContext)
+    }
+
+    def createSandboxBankAccount(
+      bankId: BankId,
+      accountId: AccountId,
+      accountType: String,
+      accountLabel: String,
+      currency: String,
+      initialBalance: BigDecimal,
+      accountHolderName: String,
+      branchId: String,
+      accountRoutingScheme: String,
+      accountRoutingAddress: String, 
+      callContext: Option[CallContext]
+    ): OBPReturnType[BankAccount] = Future {
+      Connector.connector.vend.createSandboxBankAccount(
+        bankId: BankId,
+        accountId: AccountId,
+        accountType: String,
+        accountLabel: String,
+        currency: String,
+        initialBalance: BigDecimal,
+        accountHolderName: String,
+        branchId: String,
+        accountRoutingScheme: String,
+        accountRoutingAddress: String
+      )} map {
+        i => (unboxFullOrFail(i, callContext, UnknownError, 400), callContext)
+      }
+
+    def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
+      val customerList = customerIds.filterNot(StringUtils.isBlank).distinct
+        .map(Consumers.consumers.vend.getConsumerByConsumerIdFuture)
+      Future.foldLeft(customerList)(List.empty[Customer]) { (prev, next) =>
+         next match {
+           case Full(customer:Customer) => customer :: prev
+           case _ => prev
+        }
+      } map {
+        (_, callContext)
+      }
+    }
   }
 
 }

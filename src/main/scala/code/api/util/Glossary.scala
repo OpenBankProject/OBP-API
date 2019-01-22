@@ -85,101 +85,205 @@ object Glossary {
 
 
 
+
+	glossaryItems += GlossaryItem(
+		title = "Cheat Sheet",
+		description =
+			s"""
+				 |## A selection of links to get you started using the Open Bank Project API platform, applications and tools.
+				 				 |
+				 |[OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
+				 				 |
+				 |[OBP API Contributing](https://github.com/OpenBankProject/OBP-API/blob/develop/CONTRIBUTING.md)
+				 				 |
+				 |[Access Control](/glossary#API.Access-Control)
+				 				 |
+|[Versioning](https://github.com/OpenBankProject/OBP-API/wiki/API-Versioning)
+|
+ |[Authentication](https://github.com/OpenBankProject/OBP-API/wiki/Authentication)
+|
+				 |[Interfaces](/glossary#API.Interfaces)
+				 				 |
+				 |[Endpoints](https://apiexplorersandbox.openbankproject.com)
+				 				 |
+				 |[Glossary](/glossary)
+				 				 |
+				 |[Access Control](/glossary#API.Access-Control)
+				 				 |
+				 |[OBP Kafka](/glossary#Adapter.Kafka.Intro)
+				 				 |
+				 |[OBP Akka](/glossary#Adapter.Akka.Intro)
+				 				 |
+				 |[API Explorer](https://github.com/OpenBankProject/API-Explorer/blob/develop/README.md)
+				 				 |
+				 |[API Manager](https://github.com/OpenBankProject/API-Manager/blob/master/README.md)
+				 				 |
+				 |[API Tester](https://github.com/OpenBankProject/API-Tester/blob/master/README.md)
+				 				 |
+
+				 				 |
+""")
+
+
+
+
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Adapter.Akka.Intro",
+		description =
+			s"""
+				 |## Use Akka as an interface between OBP and your Core Banking System (CBS).
+|
+|For an introduction to Akka see [here](https://akka.io/)
+|
+|The OBP Akka interface allows integrators to write Java or Scala Adapters (any JVM language with Akka support)
+|respond to requests for data and services from OBP.
+|
+|For the message definitions see [here](/message-docs?connector=akka_vDec2018)
+|
+|This glossary item is Work In Progress.
+|
+""")
+
+
+
 	glossaryItems += GlossaryItem(
 		title = "Adapter.Kafka.Intro",
 		description =
 				s"""
-					|## Brief introduction to using Kafka as the interface layer between OBP and your Core Banking System (CBS).
-					|### Prerequesites
+					|## Use Kafka as an interface between OBP and your Core Banking System (CBS).
+|
+|
+|For an introduction to Kafka see [here](https://kafka.apache.org/)
+|
+					|### Installation Prerequisites
 					|
 					|
-					 |* We assume you have OBP-API running and it is connected to a working Kafka installation.
-						| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+					|* You have OBP-API running and it is connected to a Kafka installation.
+					| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+					|
+					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
+					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
+					|
+|### Create a Customer User and an Admin User
 |
-					|* We assume you have API Explorer running (the application serving this page) but its not necessary - (you could use a REST client)
-					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not nessessary (you could use a REST client  / API Explorer instead).
-					|* You should register a User that you want to use to call the API. Let's call this user Jane.
-|* You will need another user that will have the roles required for the following steps. Let's call this user CarolaAdmin.
-					 |* Use <a href="/index#vv3_1_0-createUserAuthContext">Create Auth Context</a> to add a “token” to the User who while request accounts.
-						|This token which could be a CUSTOMER_NUMBER is sent inside the AuthInfo object to Kafka
-					 |* OR Use Create Customer and Create User Customer Link (note that Create Auth Context is preferred)
-					 |
-					 |Then its time to configure or program your Adapter to consume, and respond to, the messages OBP will send to Kafka.
+|* Register a User who will use the API as a Customer.
+|* Register another User that will use the API as an Admin. The Admin user will need some Roles. See [here](/index#vv2_0_0-addEntitlement). You can bootstrap an Admin user by editing the Props file. See the README for that.
 |
-| We suggest they are implemented in the following order:
+|### Add some authentication context to the Customer User
 |
+|* As the Admin User, use the [Create Auth Context](/index#vv3_1_0-createUserAuthContext) endpoint to add one or more attributes to the Customer User.
+|For instance you could add the name/value pair CUSTOMER_NUMBER/889763 and this will be sent to the Adapter / CBS inside the AuthInfo object.
+|
+|
+|Now you should be able to use the [Get Auth Contexts](/index#vv3_1_0-getUserAuthContexts) endpoint to see the data you added.
+|
+|### Write or Build an Adapter to respond to the following messages.
+|
+| When getting started, we suggest that you implement the messages in the following order:
 |
  |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
  |
-					 |* ${messageDocLink("obp.get.AdapterInfo")}
-					 |* ${messageDocLink("obp.get.Banks")}
-					 |* ${messageDocLink("obp.get.Bank")}
-					 |
- |2) Get Accounts
+ |* ${messageDocLink("obp.get.AdapterInfo")}
  |
-					 |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
-					 |* ${messageDocLink("obp.get.coreBankAccounts")}
-					 |* ${messageDocLink("obp.check.BankAccountExists")}
-					 |* ${messageDocLink("obp.get.Accounts")}
-					 |* ${messageDocLink("obp.get.Account")}
-					 |
- |3) Get Transactions
+ |Now you should be able to use the [Adapter Info](/index#vv3_0_0-getAdapter) endpoint
+ |
+ |* ${messageDocLink("obp.get.Banks")}
+ |
+|Now you should be able to use the [Get Banks](/index#vv3_0_0-getBanks) endpoint
+|
+ |* ${messageDocLink("obp.get.Bank")}
+ |
+ |Now you should be able to use the [Get Bank](/index#vv3_0_0-bankById) endpoint
+ |
+ |
+ |2) Customers for logged in User
+ |
+ |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
+|
+ |Now you should be able to use the [Get Customers](/index#vv3_0_0-getCustomersForUser) endpoint.
+ |
+ |
+ |3) Get Accounts
+ |
+ |* ${messageDocLink("obp.check.BankAccountExists")}
+ |* ${messageDocLink("obp.get.coreBankAccounts")}
+ |* ${messageDocLink("obp.get.Accounts")}
+ |
+ | The above messages should enable at least the following endpoints:
+ |
+ |* [Get Accounts Held](http://localhost:8082/index#vv3_0_0-getAccountsHeld)
+ |* [Get Account IDs](/index#vv3_0_0-getPrivateAccountIdsbyBankId)
+ |* [Get Accounts - Minimal](index#vv3_0_0-privateAccountsAtOneBank)
+ |
+ |4) Get Account
+ |
+ |* ${messageDocLink("obp.get.Account")}
+ |
+| The above message should enable at least the following endpoints:
+|
+ |* [Get Account by Id - Core](/index#vv3_0_0-getCoreAccountById)
+ |* [Get Account by Id - Full](/index#vv3_0_0-getPrivateAccountById)
+ |
+ |5) Get Transactions
  |
 					 |* ${messageDocLink("obp.get.Transactions")}
 					 |* ${messageDocLink("obp.get.Transaction")}
 					 |
- |4) Manage Counterparties
+ |6) Manage Counterparties
  |
 					 |* ${messageDocLink("obp.get.counterparties")}
 					 |* ${messageDocLink("obp.get.CounterpartyByCounterpartyId")}
 					 |* ${messageDocLink("obp.create.Counterparty")}
 					 |
- |5) Get Transaction Request Types
+ |7) Get Transaction Request Types
  |
 					 |* This is configured using OBP Props - No messages required
 					 |
- |6) Get Challenge Threshold (CBS)
+ |8) Get Challenge Threshold (CBS)
  |
 					 |* ${messageDocLink("obp.get.getChallengeThreshold")}
 					 |
- |7)  Make Payment (used by Create Transaction Request)
+ |9)  Make Payment (used by Create Transaction Request)
  |
 					 |* ${messageDocLink("obp.get.makePaymentv210")}
  						|* This also requires 8,9,10 for high value payments.
 					 |
- |8) Get Transaction Requests.
+ |10) Get Transaction Requests.
  |
 					 |* ${messageDocLink("obp.get.transactionRequests210")}
 					 |
- |9) Generate Security Challenges (CBS)
+ |11) Generate Security Challenges (CBS)
  |
 					 |* ${messageDocLink("obp.create.Challenge")}
 					 |
- |10) Answer Security Challenges (Validate)
+ |12) Answer Security Challenges (Validate)
  |
 					 |* Optional / Internal OBP (No additional messages required)
 					 |
- |11) Manage Counterparty Metadata
+ |13) Manage Counterparty Metadata
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |12) Get Entitlements
+ |14) Get Entitlements
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |13) Manage Roles
+ |15) Manage Roles
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |14) Manage Entitlements
+ |16) Manage Entitlements
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |15) Manage Views
+ |17) Manage Views
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |16) Manage Transaction Metadata
+ |18) Manage Transaction Metadata
  |
 					 |* Internal OBP (No additional messages required)
 					 |
@@ -224,12 +328,64 @@ object Glossary {
 		title = "API.Interfaces",
 		description =
 				s"""
-					 |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/48845997-413e0780-ed9e-11e8-86c5-e5ce510c140c.png"></img>
+					 |<img width="468" alt="OBP Interfaces Image" src="https://user-images.githubusercontent.com/485218/49711990-9ef99d00-fc42-11e8-8cb4-cc68bab74703.png"></img>
 					 |
   |
   |
  |"""
 	)
+
+	glossaryItems += GlossaryItem(
+		title = "API.Timeouts",
+		description =
+				s"""
+					 |<img width="1403" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50471858-b52f8900-09b6-11e9-9888-454e6d41907c.png"></img>
+					 |
+           |
+           |
+           |"""
+	)
+
+
+	glossaryItems += GlossaryItem(
+		title = "API.Access Control",
+		description =
+			s"""
+|
+|Access Control is achieved via the following mechanisms in OBP:
+|
+|* APIs are enabled in Props. See the README.md
+|
+|* Consumers (Apps) are granted access to Roles and Views via Scopes (WIP)
+|
+|See [here](/index#group-Scope) for related endpoints and documentation.
+|
+|* Users are granted access to System or Bank Roles via Entitlements.
+|
+|See [here](/index#group-Role) for related endpoints and documentation.
+|
+|Users may request Entitlement Requests [here](/index#vv3_0_0-addEntitlementRequest)
+|
+|Entitlements and Entitlement Requests can be managed in the OBP API Manager.
+|
+|* Users are granted access to Customer Accounts, Transactions and Payments via Views.
+|
+|See [here](/index#group-View) for related endpoints and documentation.
+|
+|User Views can be managed via the OBP Sofit Consent App.
+|
+|
+				 					 |<img width="468" alt="OBP Access Control Image" src="https://user-images.githubusercontent.com/485218/49863122-e6795800-fdff-11e8-9b05-bba99e2c72da.png"></img>
+				 					 |
+				 |
+  |
+ |"""
+	)
+
+
+
+
+
 
 
 	  glossaryItems += GlossaryItem(
@@ -357,7 +513,7 @@ object Glossary {
 		title = "User.provider_id",
 		description =
 		  """
-			|The id of the user given by the authenticaiton provider.
+			|The id of the user given by the authentication provider.
 		  """)
 
 	  glossaryItems += GlossaryItem(
@@ -1171,6 +1327,104 @@ object Glossary {
         |    curl -v -H 'Authorization: Bearer eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImNsaWVudCIsImlzcyI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDgwXC9vcGVuaWQtY29ubmVjdC1zZXJ2ZXItd2ViYXBwXC8iLCJleHAiOjE1MTk1MDMxODAsImlhdCI6MTUxOTQ5OTU4MCwianRpIjoiMmFmZjNhNGMtZjY5Zi00ZWM1LWE2MzEtYWUzMGYyYzQ4MjZiIn0.NwlK2EJKutaybB4YyEhuwb231ZNkD-BEwhScadcWWn8PFftjVyjqjD5_BwSiWHHa_QaESNPdZugAnF4I2DxtXmpir_x2fB2ch888AzXw6CgTT482I16m1jpL-2iSlQk1D-ZW6fJ2Qemdi3x2V13Xgt9PBvk5CsUukJ8SSqTPbSNNER9Nq2dlS-qQfg61TzhPkuuXDlmCQ3b8QHgUf6UnCfee1jRaohHQoCvJJJubmUI3dY0Df1ynTodTTZm4J1TV6Wp6ZhsPkQVmdBAUsE5kIFqADaE179lldh86-97bVHGU5a4aTYRRKoTPDltt1NvY5XJrjLCgZH8AEW7mOHz9mw' $getServerUrl/obp/v3.0.0/users/current
         |
 			""")
+
+
+
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "OAuth 2 with Google",
+		description =
+			s"""
+|
+|$oauth2EnabledMessage
+|
+|## OpenID Connect with Google
+|
+ |### Introduction
+|Google's OAuth 2.0 APIs can be used for both authentication and authorization. This document describes our OAuth 2.0 implementation for authentication, which conforms to the OpenID Connect specification, and is OpenID Certified.
+|For complete documentation please refer to the official doc's page: [OpenID Connect](https://developers.google.com/identity/protocols/OpenIDConnect)
+|
+ |### Obtain OAuth 2.0 credentials
+|Please refer to the official doc's page: [OpenID Connect](https://developers.google.com/identity/protocols/OpenIDConnect)
+|
+ |### An ID token's payload
+|
+ |
+|		{
+|		"iss": "https://accounts.google.com",
+|		"azp": "407408718192.apps.googleusercontent.com",
+|		"aud": "407408718192.apps.googleusercontent.com",
+|		"sub": "113966854245780892959",
+|		"email": "marko.milic.srbija@gmail.com",
+|		"email_verified": true,
+|		"at_hash": "nGKRToKNnVA28H6MhwXBxw",
+|		"name": "Marko Milić",
+|		"picture": "https://lh5.googleusercontent.com/-Xd44hnJ6TDo/AAAAAAAAAAI/AAAAAAAAAAA/AKxrwcadwzhm4N4tWk5E8Avxi-ZK6ks4qg/s96-c/photo.jpg",
+|		"given_name": "Marko",
+|		"family_name": "Milić",
+|		"locale": "en",
+|		"iat": 1547705691,
+|		"exp": 1547709291
+|		}
+|
+|
+ |### Try a REST call using the authorization's header
+|		Using your favorite http client:
+|
+ |		GET /obp/v3.0.0/users/current
+|
+ |Body
+|
+ |Leave Empty!
+|
+ |Headers:
+|
+ |
+|		Authorization: Bearer ID_TOKEN
+|
+|
+ |Here is it all together:
+|
+ |
+|
+ |	GET /obp/v3.0.0/users/current HTTP/1.1
+|		Host: $getServerUrl
+|		Authorization: Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA
+|		Cache-Control: no-cache
+|
+ |
+|
+ |CURL example:
+|
+ |
+|		curl -X GET
+|		$getServerUrl/obp/v3.0.0/users/current
+|		-H 'Authorization: Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjA4ZDMyNDVjNjJmODZiNjM2MmFmY2JiZmZlMWQwNjk4MjZkZDFkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkFvYVNGQTlVTTdCSGg3YWZYNGp2TmciLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUt4cndjYWR3emhtNE40dFdrNUU4QXZ4aS1aSzZrczRxZy9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTQ3NzExMTE1LCJleHAiOjE1NDc3MTQ3MTV9.MKsyecCSKS4Y0C8R4JP0J0d2Oa-xahvMAbtfFrGHncTm8xBgeaNb50XSJn20ak1YyA8hZiRP2M3el0f4eIVQZsMMa22MrwaiL8pLb1zGfawDLPb1RvOmoCWTDJGc_s1qQMlyc21Wenr9rjuu1bQCerGTYM6M0Aq-Uu_GT0lCEjz5WVDI5xDUf4Mhdi8HYq7UQ1kGz1gQFiBm5nI3_xtYm75EfXFeDg3TejaMmy36NpgtwN_vwpHByoHE5BoTl2J55rJ2creZZ7CmtZttm-9HsT6v1vxT8zi0RXObFrZSk-LgfF0tJQcGZ5LXQZL0yMKXPQVFIMCg8J0Gg7l_QACkCA'
+|		-H 'Cache-Control: no-cache'
+|		-H 'Postman-Token: aa812d04-eddd-4752-adb7-4d56b3a98f36'
+|
+ |
+|
+ |And we get the response:
+|
+ |
+|		{
+|			"user_id": "6d411bce-50c1-4eb8-b8b0-3953e4211773",
+|			"email": "marko.milic.srbija@gmail.com",
+|			"provider_id": "113966854245780892959",
+|			"provider": "https://accounts.google.com",
+|			"username": "Marko Milić",
+|			"entitlements": {
+|			"list": []
+|		}
+|		}
+|
+|
+|""")
+
+
 
 
 	val gatewayLoginEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false))

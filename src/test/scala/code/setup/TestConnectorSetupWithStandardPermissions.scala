@@ -2,15 +2,14 @@ package code.setup
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil
+import code.api.util.ErrorMessages._
 import code.model._
 import code.model.dataAccess._
 import code.views.Views
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.mongodb._
+import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{DefaultConnectionIdentifier, Props}
-import code.api.util.ErrorMessages._
 
 /**
  * Handles setting up views and permissions and account holders using ViewImpls, ViewPrivileges,
@@ -55,11 +54,6 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
     ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    } else {
-      Views.views.vend.bulkDeleteAllPermissionsAndViews()
-      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
-    }
   }
 }

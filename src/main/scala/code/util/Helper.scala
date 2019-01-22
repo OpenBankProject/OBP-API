@@ -263,6 +263,13 @@ object Helper{
       case _ => "unknown"
     }
   }
+  
+  def getAkkaConnectorHostname(): String = {
+    APIUtil.getPropsValue("akka_connector.hostname", "") match {
+      case s: String if s.nonEmpty => s.replaceAll("\\/", "").replaceAll("\\.", "-")
+      case _ => "unknown"
+    }
+  }
 
   def findAvailablePort(): Int = {
     val PORT_RANGE_MIN = 2552

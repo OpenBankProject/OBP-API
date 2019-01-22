@@ -31,7 +31,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiSession, CallContext, ErrorMessages}
+import code.api.util._
 import code.api.util.APIUtil._
 import code.api.v3_1_0.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
 import code.atms.Atms.{AtmId, AtmT}
@@ -50,6 +50,7 @@ import com.google.common.cache.CacheBuilder
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, _}
+import net.liftweb.json
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, MappingException, parse}
@@ -165,6 +166,47 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     
     res
   }
+  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+    val req = OutboundGetAdapterInfo(
+      AuthInfo(sessionId = callContext.get.correlationId),
+      DateWithSecondsExampleString
+    )
+
+    logger.debug(s"Kafka getAdapterInfoFuture Req says:  is: $req")
+
+    val future = for {
+      res <- processToFuture[OutboundGetAdapterInfo](req) map {
+        f =>
+          try {
+            f.extract[InboundAdapterInfo]
+          } catch {
+            case e: Exception =>
+              val received = json.compactRender(f)
+              val expected = SchemaFor[InboundAdapterInfo]().toString(false)
+              val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+              sendOutboundAdapterError(err)
+              throw new MappingException(err, e)
+          }
+      } map {
+        x => x.data
+      }
+    } yield {
+      Full(res)
+    }
+
+    val res = future map {
+      case Full(list) if (list.errorCode=="") =>
+        Full(list, callContext)
+      case Full(list) if (list.errorCode!="") =>
+        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+    logger.debug(s"Kafka getAdapterInfoFuture says res is $res")
+    res
+  }
+  
+  
   
   messageDocs += MessageDoc(
     process = "obp.get.Banks",
@@ -645,6 +687,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getBankAccount")
+
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) =
+    Future {
+      checkBankAccountExists(bankId, accountId, callContext)
+    }
   
   messageDocs += MessageDoc(
     process = "obp.get.coreBankAccounts",
@@ -1327,14 +1374,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         val res = box match {
           case Full((data, status, callContext)) if (status.errorCode=="")  =>
             //For consistency with sandbox mode, we need combine obp transactions in database and adapter transactions
-            val transancitonRequests = for{
+            val transactionRequests = for{
               adapterTransactionRequests <- Full(data)
               //TODO, this will cause performance issue, we need limit the number of transaction requests.
               obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$ConnectorEmptyResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
             } yield {
               adapterTransactionRequests ::: obpTransactionRequests
             }
-            transancitonRequests.map(transactionRequests =>(transactionRequests, callContext))
+            transactionRequests.map(transactionRequests =>(transactionRequests, callContext))
           case Full((data, status, _)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
@@ -1434,6 +1481,9 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getCounterparties")
+  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
+    (getCounterparties(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
+  }
   
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyByCounterpartyId",

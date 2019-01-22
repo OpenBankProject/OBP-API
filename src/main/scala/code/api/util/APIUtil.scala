@@ -1,34 +1,29 @@
 /**
-  * Open Bank Project - API
-  * Copyright (C) 2011-2018, TESOBE Ltd
-  **
-  *This program is free software: you can redistribute it and/or modify
-  *it under the terms of the GNU Affero General Public License as published by
-  *the Free Software Foundation, either version 3 of the License, or
-  *(at your option) any later version.
-  **
-  *This program is distributed in the hope that it will be useful,
-  *but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  *GNU Affero General Public License for more details.
-  **
-  *You should have received a copy of the GNU Affero General Public License
-*along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  **
- *Email: contact@tesobe.com
-*TESOBE Ltd
-*Osloerstrasse 16/17
-*Berlin 13359, Germany
-  **
- *This product includes software developed at
-  *TESOBE (http://www.tesobe.com/)
-  * by
-  *Simon Redfern : simon AT tesobe DOT com
-  *Stefan Bethge : stefan AT tesobe DOT com
-  *Everett Sochowski : everett AT tesobe DOT com
-  *Ayoub Benali: ayoub AT tesobe DOT com
-  *
- */
+Open Bank Project - API
+Copyright (C) 2011-2018, TESOBE Ltd.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE Ltd.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
 
 package code.api.util
 
@@ -79,6 +74,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.reflect.ClassTag
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable {
@@ -427,15 +423,15 @@ object APIUtil extends MdcLoggable {
         case _ =>
           httpCode
       }
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, code)
+    JsonResponse(Extraction.decompose(ErrorMessage(message = message, code = code)), getHeaders() ::: headers.list, Nil, code)
   }
 
   def notImplementedJsonResponse(message : String = ErrorMessages.NotImplemented, httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), getHeaders() ::: headers.list, Nil, httpCode)
+    JsonResponse(Extraction.decompose(ErrorMessage(message = message, code = httpCode)), getHeaders() ::: headers.list, Nil, httpCode)
 
 
   def oauthHeaderRequiredJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), getHeaders() ::: headers.list, Nil, 400)
+    JsonResponse(Extraction.decompose(ErrorMessage(message = "Authentication via OAuth is required", code = 400)), getHeaders() ::: headers.list, Nil, 400)
 
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
@@ -457,6 +453,10 @@ object APIUtil extends MdcLoggable {
       case _ => false
     }
   }
+
+
+
+
 
   /** enforce the password.
     * The rules :
@@ -1032,7 +1032,7 @@ object APIUtil extends MdcLoggable {
                           implementedInApiVersion: ApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
-                          requestUrl: String, // The URL (includes implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+                          requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                           description: String, // Longer description (originally taken from github wiki)
                           exampleRequestBody: scala.Product, // An example of the body required (maybe empty)
@@ -1042,7 +1042,8 @@ object APIUtil extends MdcLoggable {
                           tags: List[ResourceDocTag],
                           roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
-                          specialInstructions: Option[String] = None
+                          specialInstructions: Option[String] = None,
+                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
   )
 
 
@@ -1297,6 +1298,20 @@ Returns a string showed to the developer
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }
+  def getConsumerPrimaryKey(callContext: Option[CallContext]): String = {
+    callContext match {
+      case Some(cc) =>
+        cc.consumer.map(_.id.get.toString).getOrElse("")
+      case _ =>
+        ""
+    }
+  }
+  def checkScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
+    REQUIRE_SCOPES match {
+      case false => true // if the props require_scopes == false, we do not need to check the Scope stuff..
+      case true => !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
+    }
+  }
   
   // Function checks does a consumer specified by a parameter consumerId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does consumer has assigned at least one role from the list
@@ -1388,11 +1403,12 @@ Returns a string showed to the developer
 
 
   def saveConnectorMetric[R](blockOfCode: => R)(nameOfFunction: String = "")(implicit nameOfConnector: String): R = {
+    val t0 = System.currentTimeMillis()
+    // call-by-name
     val result = blockOfCode
+    val t1 = System.currentTimeMillis()
+    
     if (getPropsAsBoolValue("write_connector_metrics", false)){
-      val t0 = System.currentTimeMillis()
-      // call-by-name
-      val t1 = System.currentTimeMillis()
       val correlationId = getCorrelationId()
       Future {
         ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(nameOfConnector, nameOfFunction, correlationId, now, t1 - t0)
@@ -1641,6 +1657,7 @@ Returns a string showed to the developer
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
+        case _ => logger.info(s"There is no ${version.toString}")
       }
 
       logger.info(s"${version.toString} was ENABLED")
@@ -1793,6 +1810,7 @@ Returns a string showed to the developer
         t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
       )
       in.onFail {
+        case Failure(null, _, _) => Full(reply.apply(errorJsonResponse(UnknownError)))
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
@@ -1801,7 +1819,7 @@ Returns a string showed to the developer
               Full((reply.apply(errorJsonResponse(msg))))
           }
         case _ =>
-          Full(reply.apply(errorJsonResponse("Error")))
+          Full(reply.apply(errorJsonResponse(UnknownError)))
       }
     })
   }
@@ -1934,6 +1952,20 @@ Returns a string showed to the developer
       fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
     }
   }
+
+  def unboxFuture[T](box: Box[Future[T]]): Future[Box[T]] = box match {
+    case Full(v) => v.map(Box !! _)
+    case other => Future(other.asInstanceOf[Box[T]])
+  }
+
+  def unboxOBPReturnType[T](box: Box[OBPReturnType[T]]): Future[Box[T]] = box match {
+    case Full(v) => v.map(Box !! _._1)
+    case other => Future(other.asInstanceOf[Box[T]])
+  }
+
+  def unboxOptionFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
+
+  def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
 
 
   /**
@@ -2167,7 +2199,13 @@ Returns a string showed to the developer
     * @return Decrypted value of a property
     */
   def getPropsValue(nameOfProperty: String): Box[String] = {
-    (Props.get(nameOfProperty), Props.get(nameOfProperty + ".is_encrypted"), Props.get(nameOfProperty + ".is_obfuscated") ) match {
+
+    val brandSpecificPropertyName = getBrandSpecificPropertyName(nameOfProperty)
+
+    logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $brandSpecificPropertyName")
+
+
+    (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
       case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
         val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
         Full(decryptedValueAsString)
@@ -2182,8 +2220,8 @@ Returns a string showed to the developer
       case (Empty, Empty, Empty) =>
         Empty
       case _ =>
-        logger.error(cannotDecryptValueOfProperty + nameOfProperty)
-        Failure(cannotDecryptValueOfProperty + nameOfProperty)
+        logger.error(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+        Failure(cannotDecryptValueOfProperty + brandSpecificPropertyName)
     }
   }
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
@@ -2204,6 +2242,58 @@ Returns a string showed to the developer
   }
   def getPropsAsLongValue(nameOfProperty: String, defaultValue: Long): Long = {
     getPropsAsLongValue(nameOfProperty) openOr(defaultValue)
+  }
+
+/*
+  Get any brand specified in url parameter or form field, validate it, and if all good, set the session
+  Else just return the session
+  Note there are Read and Write side effects here!
+*/
+  def activeBrand() : Option[String] = {
+
+    val brandParameter = "brand"
+
+    // Use brand in parameter (query or form)
+    val brand : Option[String] = S.param(brandParameter) match {
+      case Full(value) => {
+        // If found, and has a valid format, set the session.
+          if (isValidID(value)) {
+            S.setSessionAttribute(brandParameter, value)
+            logger.debug(s"activeBrand says: I found a $brandParameter param. $brandParameter session has been set to: ${S.getSessionAttribute(brandParameter)}")
+            Some(value)
+          } else {
+            logger.warn (s"activeBrand says: ${ErrorMessages.InvalidBankIdFormat}")
+            None
+          }
+      }
+      case _ =>  {
+        // Else look in the session
+        S.getSessionAttribute(brandParameter)
+      }
+    }
+    brand
+  }
+
+
+  /*
+  For bank specific branding and possibly other customisations, if we have an active brand (in url param, form field, session),
+  we will look for property_FOR_BRAND_<BANK_ID>
+  We also check that the property exists, else return the standard property name.
+  */
+  def getBrandSpecificPropertyName(nameOfProperty: String) : String = {
+    // If we have an active brand, construct a target property name to look for.
+    val brandSpecificPropertyName = activeBrand() match {
+      case Some(brand) => s"${nameOfProperty}_FOR_BRAND_${brand}"
+      case _ => nameOfProperty
+    }
+
+    // Check if the property actually exits, if not, return the default / standard property name
+    val propertyToUse = Props.get(brandSpecificPropertyName) match {
+      case Full(value) => brandSpecificPropertyName
+      case _ => nameOfProperty
+    }
+
+    propertyToUse
   }
 
 

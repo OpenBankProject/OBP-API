@@ -28,14 +28,14 @@ package code.api
 
 import java.util.Date
 
-import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util._
 import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, User}
 import code.token.Tokens
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import com.nimbusds.jwt.JWTClaimsSet
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
@@ -106,8 +106,13 @@ object DirectLogin extends RestHelper with MdcLoggable {
             message = ErrorMessages.UsernameHasBeenLocked
             httpCode = 401
         } else {
-          val claims = Map("" -> "")
-          val (token:String, secret:String) = generateTokenAndSecret(claims)
+          val jwtPayloadAsJson =
+            """{
+                 "":""
+               }"""
+
+          val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+          val (token:String, secret:String) = generateTokenAndSecret(jwtClaims)
 
           //Save the token that we have generated
           if (saveAuthorizationToken(directLoginParameters, token, secret, userId)) {
@@ -406,14 +411,12 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
   }
 
-  private def generateTokenAndSecret(claims: Map[String,String]) =
+  private def generateTokenAndSecret(claims: JWTClaimsSet): (String, String) =
   {
     // generate random string
     val secret_message = Helpers.randomString(40)
-    // jwt header
-    val header = JwtHeader("HS256")
     // generate jwt token
-    val token_message = JsonWebToken(header, JwtClaimsSet(claims), secret_message)
+    val token_message = CertificateUtil.jwtWithHmacProtection(claims, secret_message)
     (token_message, secret_message)
   }
 

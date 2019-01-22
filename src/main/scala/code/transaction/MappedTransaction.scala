@@ -5,6 +5,7 @@ import java.util.UUID
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, ApiTrigger}
 import code.bankconnectors.Connector
+import code.bankconnectors.LocalMappedConnector.getBankAccountCommon
 import code.model._
 import code.util._
 import code.webhook.WebhookActor
@@ -209,10 +210,19 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   }
 
   def toTransaction : Option[Transaction] = {
-    for {
-      acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
-      transaction <- toTransaction(acc)
-    } yield transaction
+    APIUtil.getPropsValue("connector") match {
+      case Full("akka_vDec2018") =>
+        for {
+          acc <- getBankAccountCommon(theBankId, theAccountId, None).map(_._1)
+          transaction <- toTransaction(acc)
+        } yield transaction
+      case _ =>
+        for {
+          acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
+          transaction <- toTransaction(acc)
+        } yield transaction
+    }
+    
   }
 
 }
@@ -222,16 +232,32 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
   override def afterSave = List(
     t =>
       tryo {
-        val eventId = APIUtil.generateUUID()
         val actor = ObpLookupSystem.getWebhookActor()
-        actor ! WebhookActor.Request(
-          ApiTrigger.onBalanceChange,
-          eventId,
-          t.theBankId.value,
-          t.theAccountId.value,
-          t.amount.get.toString,
-          t.newAccountBalance.get.toString
-        )
+        def getAmount(value: Long): String = {
+          Helper.smallestCurrencyUnitToBigDecimal(value, t.currency.get).toString() + " " + t.currency.get
+        }
+        def sendMessage(apiTrigger: ApiTrigger): Unit = {
+          actor ! WebhookActor.WebhookRequest(
+            apiTrigger,
+            APIUtil.generateUUID(),
+            t.theBankId.value,
+            t.theAccountId.value,
+            getAmount(t.amount.get),
+            getAmount(t.newAccountBalance.get)
+          )
+        }
+
+        t.amount.get match {
+          case amount if amount > 0 =>
+            sendMessage(ApiTrigger.onBalanceChange)
+            sendMessage(ApiTrigger.onCreditTransaction)
+          case amount if amount < 0 =>
+            sendMessage(ApiTrigger.onBalanceChange)
+            sendMessage(ApiTrigger.onDebitTransaction)
+          case _  => 
+            // Do not send anything
+        }
+        
     }
   )
 }

@@ -36,6 +36,7 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+import scala.language.postfixOps
 
 class UserAuthContextTest extends V310ServerSetup {
 
@@ -63,7 +64,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -72,7 +73,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateUserAuthContext)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanCreateUserAuthContext)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateUserAuthContext)
     }
 
     scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
@@ -82,7 +83,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -91,7 +92,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetUserAuthContext)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanGetUserAuthContext)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetUserAuthContext)
     }
 
     scenario("We will call the deleteUserAuthContexts endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
@@ -101,7 +102,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will call the deleteUserAuthContexts endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -110,7 +111,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanDeleteUserAuthContext)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanDeleteUserAuthContext)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteUserAuthContext)
     }
 
     scenario("We will call the deleteUserAuthContextById endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
@@ -120,7 +121,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will call the deleteUserAuthContextById endpoint without a proper role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -129,7 +130,7 @@ class UserAuthContextTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanDeleteUserAuthContext)
-      response310.body.extract[ErrorMessage].error should equal (UserHasMissingRoles + CanDeleteUserAuthContext)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteUserAuthContext)
     }
 
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
@@ -137,15 +138,15 @@ class UserAuthContextTest extends V310ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateUserAuthContext.toString)
       val requestUserAuthContext310 = (v3_1_0_Request / "users" / userId.value / "auth-context").POST <@(user1)
       val responseUserAuthContext310 = makePostRequest(requestUserAuthContext310, write(postUserAuthContextJson))
-      Then("We should get a 200")
-      responseUserAuthContext310.code should equal(200)
+      Then("We should get a 201")
+      responseUserAuthContext310.code should equal(201)
       val customerJson = responseUserAuthContext310.body.extract[UserAuthContextJson]
 
       When("We try to create the UserAuthContext v3.1.0")
       val successReq = (v3_1_0_Request / "users" / userId.value / "auth-context").POST <@(user1)
       val successRes = makePostRequest(successReq, write(postUserAuthContextJson2))
-      Then("We should get a 200")
-      successRes.code should equal(200)
+      Then("We should get a 201")
+      successRes.code should equal(201)
       successRes.body.extract[UserAuthContextJson]
 
       When("We try to make the GET request v3.1.0")

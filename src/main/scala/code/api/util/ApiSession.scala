@@ -34,6 +34,17 @@ case class CallContext(
                        `X-Rate-Limit-Remaining` : Long = -1,
                        `X-Rate-Limit-Reset` : Long = -1
                       ) {
+  
+  def removeResourceDocument: CallContext = this.copy(resourceDocument = None)
+
+  def toCallContextAkka: CallContextAkka = 
+    CallContextAkka(
+      userId = this.user.map(_.userId).toOption,
+      consumerId = this.consumer.map(_.consumerId.get).toOption,
+      correlationId = this.correlationId,
+      sessionId = this.sessionId
+    )
+  
   def toLight: CallContextLight = {
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
@@ -84,6 +95,12 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             `X-Rate-Limit-Limit` : Long = -1,
                             `X-Rate-Limit-Remaining` : Long = -1,
                             `X-Rate-Limit-Reset` : Long = -1
+                           )
+
+case class CallContextAkka(userId: Option[String] = None,
+                           consumerId: Option[String] = None,
+                           correlationId: String = "",
+                           sessionId: Option[String] = None,
                            )
 
 trait GatewayLoginParam

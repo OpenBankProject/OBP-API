@@ -29,14 +29,14 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common._
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
 import net.liftweb.util.Helpers.tryo
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -296,7 +296,7 @@ trait APIMethods300 {
         |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
         |
         |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
-        |This call provides balance and other account information via delegated authenticaiton using OAuth.
+        |This call provides balance and other account information via delegated authentication using OAuth.
         |
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""".stripMargin,
@@ -342,7 +342,7 @@ trait APIMethods300 {
         |
         |
         |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
-        |This call provides balance and other account information via delegated authenticaiton using OAuth.
+        |This call provides balance and other account information via delegated authentication using OAuth.
         |
         |${authenticationRequiredMessage(false)}
         |
@@ -660,21 +660,20 @@ trait APIMethods300 {
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
-          val res =
-            for {
-              (user, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
-              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-            } yield {
-              for {
-              //Note: error handling and messages for getTransactionParams are in the sub method
-                params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, callContext, params: _*)
-              } yield {
-                (createTransactionsJson(transactions), HttpCode.`200`(callContext))
-              }
+          for {
+            (user, callContext) <-  authorizeEndpoint(UserNotLoggedIn, cc)
+            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
+              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
             }
-          res map { fullBoxOrException(_) } map { unboxFull(_) }
+            //Note: error handling and messages for getTransactionParams are in the sub method
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params: _*) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            (createTransactionsJson(transactions), HttpCode.`200`(callContext))
+          }
       }
     }
 
@@ -740,7 +739,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result: esw.APIResponse <- esw.searchProxyAsyncV300(u.userId, indexPart, bodyPart)
           } yield {
-            (esw.parseResponse(result), HttpCode.`200`(callContext))
+            (esw.parseResponse(result), HttpCode.`201`(callContext))
           }
       }
     }
@@ -809,7 +808,7 @@ trait APIMethods300 {
             } map { unboxFull(_) }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
-            (esw.parseResponse(result), HttpCode.`200`(callContext))
+            (esw.parseResponse(result), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1011,7 +1010,7 @@ trait APIMethods300 {
             success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
           } yield {
             val json = JSONFactory300.createBranchJsonV300(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json), 201)
           }
       }
     }
@@ -1066,7 +1065,7 @@ trait APIMethods300 {
             success <- Connector.connector.vend.createOrUpdateAtm(atm)
           } yield {
             val json = JSONFactory300.createAtmJsonV300(success)
-            createdJsonResponse(Extraction.decompose(json))
+            createdJsonResponse(Extraction.decompose(json), 201)
           }
       }
     }
@@ -1189,6 +1188,8 @@ trait APIMethods300 {
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! branchesNotFoundLicense)
                 else Full(branchesWithLicense)
+              case Failure(msg, t, c) => Failure(msg, t, c)
+              case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
             } map { unboxFull(_) } map {
               branches =>
               // Before we slice we need to sort in order to keep consistent results
@@ -1310,6 +1311,8 @@ trait APIMethods300 {
                 val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
                 if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
                 else Full(branchesWithLicense)
+              case Failure(msg, t, c) => Failure(msg, t, c)
+              case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
             } map { unboxFull(_) } map {
               branch =>
                 // Before we slice we need to sort in order to keep consistent results
@@ -1612,7 +1615,7 @@ trait APIMethods300 {
       nameOf(addEntitlementRequest),
       "POST",
       "/entitlement-requests",
-      "Add Entitlement Request for a Logged User.",
+      "Add Entitlement Request for current User.",
       s"""Create Entitlement Request.
         |
         |Any logged in User can use this endpoint to request an Entitlement
@@ -1668,7 +1671,7 @@ trait APIMethods300 {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementRequestCannotBeAdded, 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
             } yield {
-              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`200`(callContext))
+              (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`201`(callContext))
             }
       }
     }
@@ -2056,7 +2059,7 @@ trait APIMethods300 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagScope, apiTagRole, apiTagNewStyle),
       Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)))
   
     lazy val addScope : OBPEndpoint = {
@@ -2105,7 +2108,7 @@ trait APIMethods300 {
             addedEntitlement <- Future {Scope.scope.vend.addScope(postedData.bank_id, consumerId, postedData.role_name)} map { unboxFull(_) }
             
           } yield {
-            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`200`(callContext))
+            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`201`(callContext))
           }
       }
     }
@@ -2128,7 +2131,7 @@ trait APIMethods300 {
       emptyObjectJson,
       List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
     lazy val deleteScope: OBPEndpoint = {
       case "consumers" :: consumerId :: "scope" :: scopeId :: Nil JsonDelete _ => {
@@ -2170,7 +2173,7 @@ trait APIMethods300 {
       scopeJsons,
       List(UserNotLoggedIn, UserNotSuperAdmin, EntitlementNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
   
     lazy val getScopes: OBPEndpoint = {
       case "consumers" :: consumerId :: "scopes" :: Nil JsonGet _ => {

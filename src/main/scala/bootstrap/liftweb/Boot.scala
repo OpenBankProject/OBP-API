@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,24 +16,20 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
- */
+  */
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
+import code.accountapplication.MappedAccountApplication
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -42,7 +38,7 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
-import code.api.util.APIUtil.enableVersionIfAllowed
+import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages, Migration}
 import code.atms.MappedAtm
 import code.bankconnectors.Connector
@@ -57,7 +53,7 @@ import code.customeraddress.MappedCustomerAddress
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
-import code.kafka.{KafkaConsumer, KafkaHelperActors}
+import code.kafka.{KafkaHelperActors, OBPKafkaConsumer}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -77,6 +73,7 @@ import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
+import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
@@ -93,6 +90,7 @@ import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
 import net.liftweb.http._
+import net.liftweb.json.Extraction
 import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
@@ -233,6 +231,12 @@ class Boot extends MdcLoggable {
     logger.debug(s"If you can read this, logging level is debug")
 
     val actorSystem = ObpActorSystem.startLocalActorSystem()
+    connector match {
+      case "akka_vDec2018" => 
+        // Start Actor system of Akka connector
+        ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
+      case _ => // Do nothing
+    }
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -326,12 +330,12 @@ class Boot extends MdcLoggable {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
       // Start North Side Consumer if it's not already started
-      KafkaConsumer.primaryConsumer.start()
+      OBPKafkaConsumer.primaryConsumer.start()
     }
 
-    if (!APIUtil.getPropsAsBoolValue("remotedata.enable", false)) {
+    if (APIUtil.getPropsAsBoolValue("use_akka", false) == true) {
       try {
-        logger.info(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) starting")
+        logger.info(s"RemotedataActors.startActors( ${actorSystem} ) starting")
         RemotedataActors.startActors(actorSystem)
       } catch {
         case ex: Exception => logger.warn(s"RemotedataActors.startLocalRemotedataWorkers( ${actorSystem} ) could not start: $ex")
@@ -430,25 +434,41 @@ class Boot extends MdcLoggable {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
 
+    implicit val formats = net.liftweb.json.DefaultFormats
     LiftRules.exceptionHandler.prepend{
-      //same as default LiftRules.exceptionHandler
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
-        XhtmlResponse((<html> <body>Exception occured while processing {r.uri}<pre>{showException(e)}</pre> </body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
-
+        JsonResponse(
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
+          500
+        )
       }
-      //same as default LiftRules.exceptionHandler, except that it also send an email notification
       case (_, r , e) => {
         sendExceptionEmail(e)
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
-        XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
+        JsonResponse(
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError}")),
+          500
+        )
       }
+    }
+    
+    LiftRules.uriNotFound.prepend{
+      case (r, _) => NotFoundAsResponse(errorJsonResponse(
+        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})", 
+        404)
+      )
     }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty ) {
       val delay = APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
       TransactionStatusScheduler.start(delay)
     }
+    APIUtil.getPropsAsLongValue("database_messages_scheduler_interval") match {
+      case Full(i) => DatabaseDriverScheduler.start(i)
+      case _ => // Do not start it
+    }
+    
 
     APIUtil.akkaSanityCheck() match {
       case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
@@ -460,24 +480,26 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    Migration.database.generateAndPopulateMissingCustomerUUIDs()
+    Migration.database.generateAndPopulateMissingConsumersUUIDs()
 
   }
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
+    if (APIUtil.getPropsAsBoolValue("remotedata.enable", false) == false) {
+      Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
+    }
   }
 
-  private def showException(le: Throwable): String = {
-    val ret = "Message: " + le.toString + "\n\t" +
-      le.getStackTrace.map(_.toString).mkString("\n\t") + "\n"
+  private def showExceptionAtJson(error: Throwable): String = {
+    val formattedError = "Message: " + error.toString  + error.getStackTrace.map(_.toString).mkString(" ")
 
-    val also = le.getCause match {
+    val formattedCause = error.getCause match {
       case null => ""
-      case sub: Throwable => "\nCaught and thrown by:\n" + showException(sub)
+      case cause: Throwable => "Caught and thrown by: " + showExceptionAtJson(cause)
     }
 
-    ret + also
+    formattedError + formattedCause
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
@@ -548,7 +570,8 @@ object ToSchemify {
     MappedUserScope,
     MappedTaxResidence,
     MappedCustomerAddress,
-    MappedUserAuthContext
+    MappedUserAuthContext,
+    MappedAccountApplication
   )
 
   // The following tables are accessed directly via Mapper / JDBC

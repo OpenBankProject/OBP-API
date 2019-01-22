@@ -1,27 +1,25 @@
 package code.sandbox
 
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.UUID
 
-import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.accountholder.AccountHolders
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
+import code.atms.Atms.AtmT
+import code.bankconnectors.Connector
+import code.branches.Branches.BranchT
 import code.crm.CrmEvent.CrmEvent
-import code.metadata.counterparties.{Counterparties, MapperCounterparties}
+import code.model._
+import code.model.dataAccess.ResourceUser
 import code.products.Products
 import code.products.Products.{Product, ProductCode}
-import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.model.dataAccess.ResourceUser
-import code.model._
-import code.branches.Branches.{Branch, BranchT}
-import code.atms.Atms.AtmT
 import code.users.Users
 import code.util.Helper
+import code.util.Helper.MdcLoggable
 import code.views.Views
 import net.liftweb.common._
-import net.liftweb.mapper.By
 import net.liftweb.util.SimpleInjector
-import code.util.Helper.MdcLoggable
 
 object OBPDataImport extends SimpleInjector {
 

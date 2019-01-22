@@ -59,7 +59,7 @@ class TransactionTest extends V310ServerSetup {
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].error should equal (UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
     scenario("We will Get Transaction by Id - user is logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")

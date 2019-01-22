@@ -4,7 +4,8 @@ import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.model.{CreateViewJson, Permission, UpdateViewJSON, _}
 import code.views.{RemotedataViewsCaseClasses, Views}
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.Box
+
 import scala.collection.immutable.List
 import scala.concurrent.Future
 
@@ -13,99 +14,129 @@ object RemotedataViews extends ObpActorInit with Views {
 
   val cc = RemotedataViewsCaseClasses
 
-  def addPermissions(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] =
-    extractFutureToBox(actor ? cc.addPermissions(views, user))
+  def addPermissions(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = getValueFromFuture(
+    (actor ? cc.addPermissions(views, user)).mapTo[Box[List[View]]]
+  )
 
-  def permission(account: BankIdAccountId, user: User): Box[Permission] =
-    extractFutureToBox(actor ? cc.permission(account, user))
+  def permission(account: BankIdAccountId, user: User): Box[Permission] = getValueFromFuture(
+    (actor ? cc.permission(account, user)).mapTo[Box[Permission]]
+  )
   
-  def getPermissionForUser(user: User): Box[Permission] =
-    extractFutureToBox(actor ? cc.getPermissionForUser(user))
+  def getPermissionForUser(user: User): Box[Permission] = getValueFromFuture(
+    (actor ? cc.getPermissionForUser(user)).mapTo[Box[Permission]]
+  )
 
-  def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] =
-    extractFutureToBox(actor ? cc.addPermission(viewIdBankIdAccountId, user))
+  def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = getValueFromFuture(
+    (actor ? cc.addPermission(viewIdBankIdAccountId, user)).mapTo[Box[View]]
+  )
   
-  def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean] =
-    extractFutureToBox(actor ? cc.revokePermission(viewIdBankIdAccountId, user))
+  def revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean] =  getValueFromFuture(
+    (actor ? cc.revokePermission(viewIdBankIdAccountId, user)).mapTo[Box[Boolean]]
+  )
 
-  def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] =
-    extractFutureToBox(actor ? cc.revokeAllPermissions(bankId, accountId, user))
+  def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = getValueFromFuture(
+    (actor ? cc.revokeAllPermissions(bankId, accountId, user)).mapTo[Box[Boolean]]
+  )
 
-  def view(viewId : ViewId, account: BankIdAccountId) : Box[View] =
-    extractFutureToBox(actor ? cc.view(viewId, account))
+  def view(viewId : ViewId, account: BankIdAccountId) : Box[View] = getValueFromFuture(
+    (actor ? cc.view(viewId, account)).mapTo[Box[View]]
+  )
 
-  def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] =
+  def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = 
     (actor ? cc.viewFuture(viewId, account)).mapTo[Box[View]]
 
-  def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] =
-    extractFutureToBox(actor ? cc.createView(bankAccountId, view))
+  def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = getValueFromFuture(
+    (actor ? cc.createView(bankAccountId, view)).mapTo[Box[View]]
+  )
 
-  def updateView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] =
-    extractFutureToBox(actor ? cc.updateView(bankAccountId, viewId, viewUpdateJson))
+  def updateView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = getValueFromFuture(
+    (actor ? cc.updateView(bankAccountId, viewId, viewUpdateJson)).mapTo[Box[View]]
+  )
 
-  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] =
-    extractFutureToBox(actor ? cc.removeView(viewId, bankAccountId))
+  def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] = getValueFromFuture(
+    (actor ? cc.removeView(viewId, bankAccountId)).mapTo[Box[Unit]]
+  )
 
-  def permissions(account : BankIdAccountId) : List[Permission] =
-    extractFuture(actor ? cc.permissions(account))
+  def permissions(account : BankIdAccountId) : List[Permission] = getValueFromFuture(
+    (actor ? cc.permissions(account)).mapTo[List[Permission]]
+  )
 
-  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] =
-    extractFuture(actor ? cc.viewsForAccount(bankAccountId))
+  def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = getValueFromFuture(
+    (actor ? cc.viewsForAccount(bankAccountId)).mapTo[List[View]]
+  )
   
-  def privateViewsUserCanAccess(user: User): List[View] =
-    extractFuture(actor ? cc.privateViewsUserCanAccess(user: User))
+  def privateViewsUserCanAccess(user: User): List[View] = getValueFromFuture(
+    (actor ? cc.privateViewsUserCanAccess(user: User)).mapTo[List[View]]
+  )
   
-  def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId): List[View] =
-    extractFuture(actor ? cc.privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId))
+  def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId): List[View] = getValueFromFuture(
+    (actor ? cc.privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)).mapTo[List[View]]
+  )
   
-  def publicViews : List[View] =
-    extractFuture(actor ? cc.publicViews())
+  def publicViews : List[View] = getValueFromFuture(
+    (actor ? cc.publicViews()).mapTo[List[View]]
+  )
   
-  def publicViewsForBank(bankId: BankId) : List[View] =
-    extractFuture(actor ? cc.publicViewsForBank(bankId: BankId))
+  def publicViewsForBank(bankId: BankId) : List[View] = getValueFromFuture(
+    (actor ? cc.publicViewsForBank(bankId: BankId)).mapTo[List[View]]
+  )
   
-  def firehoseViewsForBank(bankId: BankId, user : User): List[View] =
-    extractFuture(actor ? cc.firehoseViewsForBank(bankId: BankId, user : User))
+  def firehoseViewsForBank(bankId: BankId, user : User): List[View] = getValueFromFuture(
+    (actor ? cc.firehoseViewsForBank(bankId: BankId, user : User)).mapTo[List[View]]
+  )
 
-  def grantAccessToView(user : User, view : View): Boolean =
-    extractFuture(actor ? cc.grantAccessToView(user, view))
+  def grantAccessToView(user : User, view : View): Boolean = getValueFromFuture(
+    (actor ? cc.grantAccessToView(user, view)).mapTo[Boolean]
+  )
 
-  def getOwners(view: View) : Set[User] =
-    extractFuture(actor ? cc.getOwners(view))
+  def getOwners(view: View) : Set[User] = getValueFromFuture(
+    (actor ? cc.getOwners(view)).mapTo[Set[User]]
+  )
   
-  def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View] =
-    extractFutureToBox(actor ? cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String))
+  def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View] = getValueFromFuture(
+    (actor ? cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String)).mapTo[Box[View]]
+  )
   
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.getOrCreateOwnerView(bankId, accountId, description))
+  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
+    (actor ? cc.getOrCreateOwnerView(bankId, accountId, description)).mapTo[Box[View]]
+  )
   
-  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.getOrCreateFirehoseView(bankId, accountId, description))
+  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
+    (actor ? cc.getOrCreateFirehoseView(bankId, accountId, description)).mapTo[Box[View]]
+  )
   
-  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-    extractFutureToBox(actor ? cc.getOrCreatePublicView(bankId, accountId, description))
+  def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
+    (actor ? cc.getOrCreatePublicView(bankId, accountId, description)).mapTo[Box[View]]
+  )
 
-  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-   extractFutureToBox(actor ? cc.getOrCreateAccountantsView(bankId, accountId, description))
+  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
+   (actor ? cc.getOrCreateAccountantsView(bankId, accountId, description)).mapTo[Box[View]]
+  )
 
-  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] =
-   extractFutureToBox(actor ? cc.getOrCreateAuditorsView(bankId, accountId, description))
+  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
+   (actor ? cc.getOrCreateAuditorsView(bankId, accountId, description)).mapTo[Box[View]]
+  )
 
-  def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] =
-    extractFutureToBox(actor ? cc.createRandomView(bankId, accountId))
+  def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = getValueFromFuture(
+    (actor ? cc.createRandomView(bankId, accountId)).mapTo[Box[View]]
+  )
 
   // For tests
-  def bulkDeleteAllPermissionsAndViews(): Boolean =
-    extractFuture(actor ? cc.bulkDeleteAllPermissionsAndViews())
+  def bulkDeleteAllPermissionsAndViews(): Boolean = getValueFromFuture(
+    (actor ? cc.bulkDeleteAllPermissionsAndViews()).mapTo[Boolean]
+  )
 
-  def grantAccessToAllExistingViews(user : User): Boolean =
-    extractFuture(actor ? cc.grantAccessToAllExistingViews(user))
+  def grantAccessToAllExistingViews(user : User): Boolean = getValueFromFuture(
+    (actor ? cc.grantAccessToAllExistingViews(user)).mapTo[Boolean]
+  )
 
-  def removeAllViews(bankId: BankId, accountId: AccountId): Boolean =
-    extractFuture(actor ? cc.removeAllViews(bankId, accountId))
+  def removeAllViews(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
+    (actor ? cc.removeAllViews(bankId, accountId)).mapTo[Boolean]
+  )
 
-  def removeAllPermissions(bankId: BankId, accountId: AccountId): Boolean =
-    extractFuture(actor ? cc.removeAllViews(bankId, accountId))
+  def removeAllPermissions(bankId: BankId, accountId: AccountId): Boolean = getValueFromFuture(
+    (actor ? cc.removeAllViews(bankId, accountId)).mapTo[Boolean]
+  )
 
 
 }

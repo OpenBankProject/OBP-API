@@ -3,7 +3,6 @@ package code.remotedata
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.context.{RemotedataUserAuthContextCaseClasses, UserAuthContext, UserAuthContextProvider}
-import code.remotedata.RemotedataNonces.extractFutureToBox
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List
@@ -17,8 +16,9 @@ object RemotedataUserAuthContext extends ObpActorInit with UserAuthContextProvid
   def getUserAuthContexts(userId: String): Future[Box[List[UserAuthContext]]] =
     (actor ? cc.getUserAuthContexts(userId)).mapTo[Box[List[UserAuthContext]]]
   
-  def getUserAuthContextsBox(userId: String): Box[List[UserAuthContext]] =
-    extractFutureToBox(actor ? cc.getUserAuthContextsBox(userId))
+  def getUserAuthContextsBox(userId: String): Box[List[UserAuthContext]] = getValueFromFuture(
+    (actor ? cc.getUserAuthContextsBox(userId)).mapTo[Box[List[UserAuthContext]]]
+  )
 
   def createUserAuthContext(userId: String, key: String, value: String): Future[Box[UserAuthContext]] =
     (actor ? cc.createUserAuthContext(userId, key, value)).mapTo[Box[UserAuthContext]]

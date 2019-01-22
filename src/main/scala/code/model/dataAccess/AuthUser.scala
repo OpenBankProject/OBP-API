@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,42 +16,35 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
   */
 package code.model.dataAccess
 
-import code.api.util.ErrorMessages._
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util.ErrorMessages._
+import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, InboundAccountCommon, InboundUser}
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.mapper._
-import net.liftweb.util.Mailer.{BCC, From, Subject, To}
-import net.liftweb.util._
-import net.liftweb.util.Bindable
-
-import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
 import code.model._
 import code.users.Users
 import code.util.Helper
 import code.views.Views
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.mapper._
+import net.liftweb.util.Mailer.{BCC, From, Subject, To}
+import net.liftweb.util._
 
 import scala.collection.immutable.List
+import scala.xml.{NodeSeq, Text}
 
 
 /**
@@ -107,7 +100,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     override def setFromAny(f: Any): String = {
       f match {
         case a: Array[String] if (a.length == 2 && a(0) == a(1)) => {
-          passwordValue = a(0).toString;
+          passwordValue = a(0).toString
           if (isValidStrongPassword(passwordValue))
             invalidPw = false
           else {
@@ -116,8 +109,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
           }
           this.set(a(0))
         }
-        case l: List[String] if (l.length == 2 && l.head == l(1)) => {
-          passwordValue = l(0).toString;
+        case l: List[_] if (l.length == 2 && l.head.asInstanceOf[String] == l(1).asInstanceOf[String]) => {
+          passwordValue = l(0).asInstanceOf[String]
           if (isValidStrongPassword(passwordValue))
             invalidPw = false
           else {
@@ -125,7 +118,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
             invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
           }
           
-          this.set(l.head)
+          this.set(l.head.asInstanceOf[String])
         }
         case _ => {
           invalidPw = true;
@@ -614,6 +607,14 @@ import net.liftweb.util.Helpers._
       }
     }
   }
+
+
+
+def restoreSomeSessions(): Unit = {
+  activeBrand()
+}
+
+  override protected def capturePreLoginState(): () => Unit = () => {restoreSomeSessions}
 
   //overridden to allow a redirection if login fails
   /**
