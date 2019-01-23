@@ -35,13 +35,13 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     process(mapRequest)
   }
 
-  def process (request: Map[String, String]): JValue = getValueFromFuture(
-    (actor ? request).mapTo[JValue]
-  )
+  def process (request: Map[String, String]): JValue ={
+    extractFuture(actor ? request)
+  }
 
-  def processToBox[T](request: T): Box[JValue] = getValueFromFuture(
-    (actor ? request).mapTo[Box[JValue]]
-  )
+  def processToBox[T](request: T): Box[JValue] = {
+    extractFutureToBox(actor ? request)
+  }
 
   def processToFuture[T](request: T): Future[JValue] = {
     (actor ? request).mapTo[JValue]
