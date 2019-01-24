@@ -254,13 +254,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               case JField("requiresBankId", x) => JField("requires_bank_id", x)
             }
 
+            //This is only 
+            def removeJsonKeyAndKeepChildObject(json: JValue): JValue = json transform {
+              case JObject(List(JField("jvalueToCaseclass", JObject(x))))=> JObject(x)
+            }
+            
             /**
               * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
               */
             def replaceJsonValue(json: JValue): JValue = json transformField {
               case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
             }
-            successJsonResponse(replaceJsonValue(replaceJsonKey(Extraction.decompose(innerJson))))
+            successJsonResponse(replaceJsonValue(replaceJsonKey(removeJsonKeyAndKeepChildObject(Extraction.decompose(innerJson)))))
           }
           obpResourceDocJson
         }

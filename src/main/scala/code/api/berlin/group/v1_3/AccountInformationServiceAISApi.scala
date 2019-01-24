@@ -1,6 +1,7 @@
 package code.api.builder.AccountInformationServiceAISApi
 import java.util.UUID
 
+import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.builder.{APIBuilder_Connector, CreateTemplateJson, JsonFactory_APIBuilder}
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
@@ -27,6 +28,11 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
+    
+    //This is keep the same format @ `net.liftweb.http.rest.RestHelper.stringToSuper`
+    //implicitly change JValue to 
+    protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
+
     val endpoints =
       createConsent ::
       deleteConsent ::
@@ -56,9 +62,90 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents", 
        "Create consent",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""{
+  "access" : {
+    "balances" : [ {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    }, {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    } ],
+    "availableAccounts" : "allAccounts",
+    "accounts" : [ {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    }, {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    } ],
+    "transactions" : [ {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    }, {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    } ],
+    "allPsd2" : "allAccounts"
+  },
+  "combinedServiceIndicator" : false,
+  "validUntil" : "2020-12-31",
+  "recurringIndicator" : false,
+  "frequencyPerDay" : 4
+}""")),
+       """{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "consentId" : { },
+  "scaMethods" : "",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "self" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithTransactionAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "status" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "consentStatus" : { },
+  "message" : "message"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -82,9 +169,9 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents/CONSENTID", 
        "Delete Consent",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -108,9 +195,49 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/accounts", 
        "Read Account List",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "accounts" : [ {
+    "cashAccountType" : { },
+    "product" : "product",
+    "resourceId" : "resourceId",
+    "bban" : "BARC12345612345678",
+    "_links" : {
+      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "usage" : "PRIV",
+    "balances" : "",
+    "iban" : "FR7612345987650123456789014",
+    "linkedAccounts" : "linkedAccounts",
+    "name" : "name",
+    "currency" : "EUR",
+    "details" : "details",
+    "msisdn" : "+49 170 1234567",
+    "bic" : "AAAADEBBXXX",
+    "status" : { }
+  }, {
+    "cashAccountType" : { },
+    "product" : "product",
+    "resourceId" : "resourceId",
+    "bban" : "BARC12345612345678",
+    "_links" : {
+      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "usage" : "PRIV",
+    "balances" : "",
+    "iban" : "FR7612345987650123456789014",
+    "linkedAccounts" : "linkedAccounts",
+    "name" : "name",
+    "currency" : "EUR",
+    "details" : "details",
+    "msisdn" : "+49 170 1234567",
+    "bic" : "AAAADEBBXXX",
+    "status" : { }
+  } ]
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -134,9 +261,19 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/accounts/ACCOUNT_ID/balances", 
        "Read Balance",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "balances" : "",
+  "account" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -160,9 +297,47 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/card-accounts", 
        "Reads a list of card accounts",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "cardAccounts" : [ {
+    "balances" : "",
+    "product" : "product",
+    "resourceId" : "resourceId",
+    "maskedPan" : "123456xxxxxx1234",
+    "_links" : {
+      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "usage" : "PRIV",
+    "name" : "name",
+    "creditLimit" : {
+      "amount" : "123",
+      "currency" : "EUR"
+    },
+    "currency" : "EUR",
+    "details" : "details",
+    "status" : { }
+  }, {
+    "balances" : "",
+    "product" : "product",
+    "resourceId" : "resourceId",
+    "maskedPan" : "123456xxxxxx1234",
+    "_links" : {
+      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "usage" : "PRIV",
+    "name" : "name",
+    "creditLimit" : {
+      "amount" : "123",
+      "currency" : "EUR"
+    },
+    "currency" : "EUR",
+    "details" : "details",
+    "status" : { }
+  } ]
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -186,9 +361,19 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/card-accounts/ACCOUNT_ID/balances", 
        "Read card account balances",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "balances" : "",
+  "cardAccount" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -212,9 +397,33 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/card-accounts/ACCOUNT_ID/transactions", 
        "Read transaction list of an account",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "balances" : "",
+  "_links" : {
+    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "cardTransactions" : {
+    "booked" : "",
+    "_links" : {
+      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "pending" : ""
+  },
+  "cardAccount" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -238,9 +447,11 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents/CONSENTID/authorisations", 
        "Get Consent Authorisation Sub-Resources Request",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "authorisationIds" : ""
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -264,9 +475,64 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents/CONSENTID", 
        "Get Consent Request",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "access" : {
+    "balances" : [ {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    }, {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    } ],
+    "availableAccounts" : "allAccounts",
+    "accounts" : [ {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    }, {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    } ],
+    "transactions" : [ {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    }, {
+      "bban" : "BARC12345612345678",
+      "maskedPan" : "123456xxxxxx1234",
+      "iban" : "FR7612345987650123456789014",
+      "currency" : "EUR",
+      "msisdn" : "+49 170 1234567",
+      "pan" : "5409050000000000"
+    } ],
+    "allPsd2" : "allAccounts"
+  },
+  "consentStatus" : { },
+  "validUntil" : "2020-12-31",
+  "lastActionDate" : "2018-07-01",
+  "recurringIndicator" : false,
+  "frequencyPerDay" : 4
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -290,9 +556,11 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the consent authorisation.",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "scaStatus" : "psuAuthenticated"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -316,9 +584,11 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents/CONSENTID/status", 
        "Consent status request",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "consentStatus" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -342,9 +612,51 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/accounts/ACCOUNT_ID/transactions/RESOURCEID", 
        "Read Transaction Details",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "debtorAccount" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  },
+  "creditorName" : "Creditor Name",
+  "_links" : {
+    "transactionDetails" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "remittanceInformationStructured" : "remittanceInformationStructured",
+  "ultimateCreditor" : "Ultimate Creditor",
+  "bankTransactionCode" : "PMNT-RCDT-ESCT",
+  "debtorName" : "Debtor Name",
+  "valueDate" : "2000-01-23",
+  "endToEndId" : "endToEndId",
+  "transactionId" : "transactionId",
+  "ultimateDebtor" : "Ultimate Debtor",
+  "exchangeRate" : "",
+  "creditorAccount" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  },
+  "mandateId" : "mandateId",
+  "purposeCode" : { },
+  "transactionAmount" : {
+    "amount" : "123",
+    "currency" : "EUR"
+  },
+  "proprietaryBankTransactionCode" : { },
+  "bookingDate" : { },
+  "remittanceInformationUnstructured" : "remittanceInformationUnstructured",
+  "checkId" : "checkId",
+  "creditorId" : "creditorId",
+  "entryReference" : "entryReference"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -368,9 +680,33 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/accounts/ACCOUNT_ID/transactions/", 
        "Read transaction list of an account",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "balances" : "",
+  "_links" : {
+    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "transactions" : {
+    "booked" : "",
+    "_links" : {
+      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "account" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "pending" : ""
+  },
+  "account" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -394,9 +730,28 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/accounts/ACCOUNT_ID", 
        "Read Account Details",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "cashAccountType" : { },
+  "product" : "product",
+  "resourceId" : "resourceId",
+  "bban" : "BARC12345612345678",
+  "_links" : {
+    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "usage" : "PRIV",
+  "balances" : "",
+  "iban" : "FR7612345987650123456789014",
+  "linkedAccounts" : "linkedAccounts",
+  "name" : "name",
+  "currency" : "EUR",
+  "details" : "details",
+  "msisdn" : "+49 170 1234567",
+  "bic" : "AAAADEBBXXX",
+  "status" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -420,9 +775,27 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/card-accounts/ACCOUNT_ID", 
        "Reads details about a card account",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "balances" : "",
+  "product" : "product",
+  "resourceId" : "resourceId",
+  "maskedPan" : "123456xxxxxx1234",
+  "_links" : {
+    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "usage" : "PRIV",
+  "name" : "name",
+  "creditLimit" : {
+    "amount" : "123",
+    "currency" : "EUR"
+  },
+  "currency" : "EUR",
+  "details" : "details",
+  "status" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -446,9 +819,32 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents/CONSENTID/authorisations", 
        "Start the authorisation process for a consent",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
@@ -472,9 +868,9 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for consents",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )

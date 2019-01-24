@@ -1,6 +1,7 @@
 package code.api.builder.ConfirmationOfFundsServicePIISApi
 import java.util.UUID
 
+import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.builder.{APIBuilder_Connector, CreateTemplateJson, JsonFactory_APIBuilder}
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
@@ -26,7 +27,10 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
+
     implicit val formats = net.liftweb.json.DefaultFormats
+    protected implicit def JvalueToSuper(in: JValue): JvalueCaseClass = JvalueCaseClass(in)
+
     val endpoints =
       checkAvailabilityOfFunds ::
       Nil
@@ -40,9 +44,26 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
        "/v1/funds-confirmations", 
        "Confirmation of Funds Request",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""{
+  "payee" : "payee",
+  "instructedAmount" : {
+    "amount" : "123",
+    "currency" : "EUR"
+  },
+  "account" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  },
+  "cardNumber" : "cardNumber"
+}""")),
+       """{
+  "fundsAvailable" : true
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ConfirmationOfFundsServicePIISApi :: Nil
      )

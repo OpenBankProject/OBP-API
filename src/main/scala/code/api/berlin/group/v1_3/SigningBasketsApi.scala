@@ -1,6 +1,7 @@
 package code.api.builder.SigningBasketsApi
 import java.util.UUID
 
+import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.builder.{APIBuilder_Connector, CreateTemplateJson, JsonFactory_APIBuilder}
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
@@ -26,7 +27,10 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
+
     implicit val formats = net.liftweb.json.DefaultFormats
+    protected implicit def JvalueToSuper(in: JValue): JvalueCaseClass = JvalueCaseClass(in)
+
     val endpoints =
       createSigningBasket ::
       deleteSigningBasket ::
@@ -47,9 +51,50 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets", 
        "Create a signing basket resource",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""{
+  "consentIds" : "",
+  "paymentIds" : ""
+}""")),
+       """{
+  "basketId" : "1234-basket-567",
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "tppMessages" : [ {
+    "path" : "path",
+    "code" : { },
+    "text" : { },
+    "category" : { }
+  }, {
+    "path" : "path",
+    "code" : { },
+    "text" : { },
+    "category" : { }
+  } ],
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "self" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithTransactionAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "status" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "transactionStatus" : "ACCP",
+  "psuMessage" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )
@@ -73,9 +118,9 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID", 
        "Delete the signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )
@@ -99,9 +144,13 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID", 
        "Returns the content of an signing basket object.",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "transactionStatus" : "ACCP",
+  "payments" : "",
+  "consents" : ""
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )
@@ -125,9 +174,11 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Get Signing Basket Authorisation Sub-Resources Request",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "authorisationIds" : ""
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )
@@ -151,9 +202,11 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the signing basket authorisation",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "scaStatus" : "psuAuthenticated"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )
@@ -177,9 +230,11 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/status", 
        "Read the status of the signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "transactionStatus" : "RCVD"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )
@@ -203,9 +258,32 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Start the authorisation process for a signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )
@@ -229,9 +307,9 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
      )

@@ -1,6 +1,7 @@
 package code.api.builder.CommonServicesApi
 import java.util.UUID
 
+import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.builder.{APIBuilder_Connector, CreateTemplateJson, JsonFactory_APIBuilder}
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
@@ -26,7 +27,10 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
+
     implicit val formats = net.liftweb.json.DefaultFormats
+    protected implicit def JvalueToSuper(jvalueToCaseclass: JValue): JvalueCaseClass = JvalueCaseClass(jvalueToCaseclass)
+
     val endpoints =
       deleteSigningBasket ::
       getConsentScaStatus ::
@@ -55,9 +59,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID", 
        "Delete the signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -81,9 +85,11 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the consent authorisation.",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "scaStatus" : "psuAuthenticated"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -107,9 +113,11 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Read the SCA status of the payment cancellation's authorisation.",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "scaStatus" : "psuAuthenticated"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -133,9 +141,11 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Get Payment Initiation Authorisation Sub-Resources Request",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "authorisationIds" : ""
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -159,9 +169,11 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA Status of the payment authorisation",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "scaStatus" : "psuAuthenticated"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -185,9 +197,11 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Get Signing Basket Authorisation Sub-Resources Request",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "authorisationIds" : ""
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -211,9 +225,11 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the signing basket authorisation",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "scaStatus" : "psuAuthenticated"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -237,9 +253,11 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/status", 
        "Read the status of the signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "transactionStatus" : "RCVD"
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -263,9 +281,32 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/consents/CONSENTID/authorisations", 
        "Start the authorisation process for a consent",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -289,9 +330,32 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Start the authorisation process for a payment initiation",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -315,9 +379,32 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Start the authorisation process for the cancellation of the addressed payment",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -341,9 +428,32 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Start the authorisation process for a signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -367,9 +477,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for consents",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -393,9 +503,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Update PSU Data for payment initiation cancellation",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -419,9 +529,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Update PSU data for payment initiation",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )
@@ -445,9 +555,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for signing basket",
        "", 
-       emptyObjectJson, 
-       emptyObjectJson,
-       List(UserNotLoggedIn, UnknownError), 
+       JvalueToSuper(json.parse("""""")),
+       """""""",
+       List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
      )

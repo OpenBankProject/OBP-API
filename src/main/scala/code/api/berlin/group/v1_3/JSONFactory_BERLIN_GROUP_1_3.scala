@@ -7,8 +7,10 @@ import code.api.util.APIUtil
 import code.api.v2_1_0.IbanJson
 import code.model.{CoreAccount, ModeratedBankAccount, ModeratedTransaction}
 import code.transactionrequests.TransactionRequests.TransactionRequest
-
 import scala.collection.immutable.List
+import net.liftweb.json.JValue
+
+case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 object JSONFactory_BERLIN_GROUP_1_3 {
 
