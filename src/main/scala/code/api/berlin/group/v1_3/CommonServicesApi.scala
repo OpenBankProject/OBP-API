@@ -284,7 +284,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        JvalueToSuper(json.parse("""""")),
        JvalueToSuper(json.parse("""{
   "challengeData" : {
-    "otpMaxLength" : 0,
+    
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
@@ -333,7 +333,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        JvalueToSuper(json.parse("""""")),
        JvalueToSuper(json.parse("""{
   "challengeData" : {
-    "otpMaxLength" : 0,
+    
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
@@ -382,7 +382,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        JvalueToSuper(json.parse("""""")),
        JvalueToSuper(json.parse("""{
   "challengeData" : {
-    "otpMaxLength" : 0,
+    
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
@@ -431,7 +431,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        JvalueToSuper(json.parse("""""")),
        JvalueToSuper(json.parse("""{
   "challengeData" : {
-    "otpMaxLength" : 0,
+    
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",

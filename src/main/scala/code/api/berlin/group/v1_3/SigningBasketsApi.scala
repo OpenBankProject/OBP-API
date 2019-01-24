@@ -58,7 +58,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        JvalueToSuper(json.parse("""{
   "basketId" : "1234-basket-567",
   "challengeData" : {
-    "otpMaxLength" : 0,
+    
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
@@ -261,7 +261,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        JvalueToSuper(json.parse("""""")),
        JvalueToSuper(json.parse("""{
   "challengeData" : {
-    "otpMaxLength" : 0,
+    
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
