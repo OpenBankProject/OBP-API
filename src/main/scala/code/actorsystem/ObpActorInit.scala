@@ -20,6 +20,13 @@ trait ObpActorInit extends MdcLoggable{
   val TIMEOUT = (ACTOR_TIMEOUT seconds)
   implicit val timeout = Timeout(ACTOR_TIMEOUT * (1000 milliseconds))
 
+  /**
+    * This function extracts the payload from Future.
+    * It is used for Old Style Endpoints at Kafka connector.
+    * @param f The payload wrapped into Future
+    * @tparam T The type of the payload
+    * @return The payload
+    */
   def extractFuture[T](f: Future[Any]): T = {
     val r = f.map {
       case s: Set[_] => s.asInstanceOf[Set[T]]
@@ -30,6 +37,13 @@ trait ObpActorInit extends MdcLoggable{
     Await.result(r, TIMEOUT).asInstanceOf[T]
   }
 
+  /**
+    * This function extracts the payload from Future and wraps it to Box.
+    * It is used for Old Style Endpoints at Kafka connector.
+    * @param f The payload wrapped into Future
+    * @tparam T The type of the payload
+    * @return The payload wrapped into Box
+    */
   def extractFutureToBox[T](f: Future[Any]): Box[T] = {
     val r = f.map {
       case pf: ParamFailure[_] => Empty ~> pf

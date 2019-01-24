@@ -35,14 +35,34 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     process(mapRequest)
   }
 
+  /**
+    * This function is used for Old Style Endpoints.
+    * It processes Kafka's Outbound message to JValue.
+    * @param request The request we send to Kafka
+    * @return Kafka's Inbound message as JValue
+    */
   def process (request: Map[String, String]): JValue ={
     extractFuture(actor ? request)
   }
 
+  /**
+    * This function is used for Old Style Endpoints at Kafka connector.
+    * It processes Kafka's Outbound message to JValue wrapped into Box.
+    * @param request The request we send to Kafka
+    * @tparam T the type of the Outbound message
+    * @return Kafka's Inbound message as JValue wrapped into Box
+    */
   def processToBox[T](request: T): Box[JValue] = {
     extractFutureToBox(actor ? request)
   }
 
+  /**
+    * This function is used for Old Style Endpoints at Kafka connector.
+    * It processes Kafka's Outbound message to JValue wrapped into Box.
+    * @param request The request we send to Kafka
+    * @tparam T the type of the Outbound message
+    * @return Kafka's Inbound message as JValue wrapped into Future
+    */
   def processToFuture[T](request: T): Future[JValue] = {
     (actor ? request).mapTo[JValue]
   }
