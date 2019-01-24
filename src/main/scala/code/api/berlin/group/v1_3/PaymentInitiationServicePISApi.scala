@@ -27,9 +27,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-
     implicit val formats = net.liftweb.json.DefaultFormats
-    protected implicit def JvalueToSuper(in: JValue): JvalueCaseClass = JvalueCaseClass(in)
+    
+    protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints =
       cancelPayment ::
@@ -56,7 +56,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Payment Cancellation Request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -75,7 +75,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -101,9 +101,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Read the SCA status of the payment cancellation's authorisation.",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -129,7 +129,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Get Payment Information",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -155,9 +155,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Get Payment Initiation Authorisation Sub-Resources Request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "authorisationIds" : ""
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -183,7 +183,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -209,9 +209,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Read the SCA Status of the payment authorisation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -237,9 +237,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Payment initiation status request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "transactionStatus" : "ACCP"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -265,7 +265,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Payment initiation request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -291,7 +291,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Start the authorisation process for a payment initiation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -314,7 +314,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -340,7 +340,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Start the authorisation process for the cancellation of the addressed payment",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -363,7 +363,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -389,7 +389,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Update PSU Data for payment initiation cancellation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -415,7 +415,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "Update PSU data for payment initiation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil

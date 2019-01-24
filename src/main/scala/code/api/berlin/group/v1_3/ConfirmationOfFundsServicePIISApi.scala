@@ -27,9 +27,9 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-
     implicit val formats = net.liftweb.json.DefaultFormats
-    protected implicit def JvalueToSuper(in: JValue): JvalueCaseClass = JvalueCaseClass(in)
+    
+    protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints =
       checkAvailabilityOfFunds ::
@@ -60,9 +60,9 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
   },
   "cardNumber" : "cardNumber"
 }""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "fundsAvailable" : true
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ConfirmationOfFundsServicePIISApi :: Nil

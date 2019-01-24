@@ -29,8 +29,6 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
     
-    //This is keep the same format @ `net.liftweb.http.rest.RestHelper.stringToSuper`
-    //implicitly change JValue to 
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints =
@@ -117,7 +115,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   "recurringIndicator" : false,
   "frequencyPerDay" : 4
 }""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -144,7 +142,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   "chosenScaMethod" : "",
   "consentStatus" : { },
   "message" : "message"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -170,7 +168,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Delete Consent",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""",
+       JvalueToSuper(json.parse("""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -196,7 +194,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read Account List",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "accounts" : [ {
     "cashAccountType" : { },
     "product" : "product",
@@ -236,7 +234,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     "bic" : "AAAADEBBXXX",
     "status" : { }
   } ]
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -262,7 +260,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read Balance",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "balances" : "",
   "account" : {
     "bban" : "BARC12345612345678",
@@ -272,7 +270,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     "msisdn" : "+49 170 1234567",
     "pan" : "5409050000000000"
   }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -298,7 +296,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Reads a list of card accounts",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "cardAccounts" : [ {
     "balances" : "",
     "product" : "product",
@@ -336,7 +334,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     "details" : "details",
     "status" : { }
   } ]
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -362,7 +360,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read card account balances",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "balances" : "",
   "cardAccount" : {
     "bban" : "BARC12345612345678",
@@ -372,7 +370,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     "msisdn" : "+49 170 1234567",
     "pan" : "5409050000000000"
   }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -398,7 +396,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read transaction list of an account",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "balances" : "",
   "_links" : {
     "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
@@ -422,7 +420,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     "msisdn" : "+49 170 1234567",
     "pan" : "5409050000000000"
   }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -448,9 +446,9 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Get Consent Authorisation Sub-Resources Request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "authorisationIds" : ""
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -476,7 +474,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Get Consent Request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "access" : {
     "balances" : [ {
       "bban" : "BARC12345612345678",
@@ -531,7 +529,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   "lastActionDate" : "2018-07-01",
   "recurringIndicator" : false,
   "frequencyPerDay" : 4
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -557,9 +555,9 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read the SCA status of the consent authorisation.",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -585,9 +583,9 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Consent status request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "consentStatus" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -613,7 +611,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read Transaction Details",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "debtorAccount" : {
     "bban" : "BARC12345612345678",
     "maskedPan" : "123456xxxxxx1234",
@@ -655,7 +653,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   "checkId" : "checkId",
   "creditorId" : "creditorId",
   "entryReference" : "entryReference"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -681,7 +679,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read transaction list of an account",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "balances" : "",
   "_links" : {
     "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
@@ -705,7 +703,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     "msisdn" : "+49 170 1234567",
     "pan" : "5409050000000000"
   }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -731,7 +729,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Read Account Details",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "cashAccountType" : { },
   "product" : "product",
   "resourceId" : "resourceId",
@@ -750,7 +748,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   "msisdn" : "+49 170 1234567",
   "bic" : "AAAADEBBXXX",
   "status" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -776,7 +774,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Reads details about a card account",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "balances" : "",
   "product" : "product",
   "resourceId" : "resourceId",
@@ -794,7 +792,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   "currency" : "EUR",
   "details" : "details",
   "status" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -820,7 +818,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Start the authorisation process for a consent",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -843,7 +841,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -869,7 +867,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "Update PSU Data for consents",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil

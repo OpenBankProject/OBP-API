@@ -27,9 +27,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-
     implicit val formats = net.liftweb.json.DefaultFormats
-    protected implicit def JvalueToSuper(jvalueToCaseclass: JValue): JvalueCaseClass = JvalueCaseClass(jvalueToCaseclass)
+    
+    protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints =
       deleteSigningBasket ::
@@ -60,7 +60,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Delete the signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""",
+       JvalueToSuper(json.parse("""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -86,9 +86,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Read the SCA status of the consent authorisation.",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -114,9 +114,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Read the SCA status of the payment cancellation's authorisation.",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -142,9 +142,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Get Payment Initiation Authorisation Sub-Resources Request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "authorisationIds" : ""
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -170,9 +170,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Read the SCA Status of the payment authorisation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -198,9 +198,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Get Signing Basket Authorisation Sub-Resources Request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "authorisationIds" : ""
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -226,9 +226,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Read the SCA status of the signing basket authorisation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -254,9 +254,9 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Read the status of the signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "transactionStatus" : "RCVD"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -282,7 +282,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Start the authorisation process for a consent",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -305,7 +305,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -331,7 +331,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Start the authorisation process for a payment initiation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -354,7 +354,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -380,7 +380,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Start the authorisation process for the cancellation of the addressed payment",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -403,7 +403,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -429,7 +429,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Start the authorisation process for a signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -452,7 +452,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -478,7 +478,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Update PSU Data for consents",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -504,7 +504,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Update PSU Data for payment initiation cancellation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -530,7 +530,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Update PSU data for payment initiation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil
@@ -556,7 +556,7 @@ trait APIMethods_CommonServicesApi { self: RestHelper =>
        "Update PSU Data for signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        CommonServicesApi :: Nil

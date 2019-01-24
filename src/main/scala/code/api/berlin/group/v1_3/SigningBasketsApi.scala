@@ -27,9 +27,9 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-
     implicit val formats = net.liftweb.json.DefaultFormats
-    protected implicit def JvalueToSuper(in: JValue): JvalueCaseClass = JvalueCaseClass(in)
+    
+    protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints =
       createSigningBasket ::
@@ -55,7 +55,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
   "consentIds" : "",
   "paymentIds" : ""
 }""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "basketId" : "1234-basket-567",
   "challengeData" : {
     "otpMaxLength" : 0,
@@ -93,7 +93,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
@@ -119,7 +119,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "Delete the signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""",
+       JvalueToSuper(json.parse("""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
@@ -145,11 +145,11 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "Returns the content of an signing basket object.",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "transactionStatus" : "ACCP",
   "payments" : "",
   "consents" : ""
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
@@ -175,9 +175,9 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "Get Signing Basket Authorisation Sub-Resources Request",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "authorisationIds" : ""
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
@@ -203,9 +203,9 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "Read the SCA status of the signing basket authorisation",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
@@ -231,9 +231,9 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "Read the status of the signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "transactionStatus" : "RCVD"
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
@@ -259,7 +259,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "Start the authorisation process for a signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """{
+       JvalueToSuper(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -282,7 +282,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""",
+}""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
@@ -308,7 +308,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "Update PSU Data for signing basket",
        "", 
        JvalueToSuper(json.parse("""""")),
-       """""""",
+       JvalueToSuper(json.parse("""""""")),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        SigningBasketsApi :: Nil
