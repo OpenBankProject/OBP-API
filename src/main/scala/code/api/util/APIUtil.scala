@@ -1983,12 +1983,20 @@ Returns a string showed to the developer
 
     def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod) = {
       val limit = period match {
-        case PER_MINUTE => c.perMinuteCallLimit.get
-        case PER_HOUR   => c.perHourCallLimit.get
-        case PER_DAY    => c.perDayCallLimit.get
-        case PER_WEEK   => c.perWeekCallLimit.get
-        case PER_MONTH  => c.perMonthCallLimit.get
-        case PER_YEAR   => -1
+        case PER_SECOND => 
+          c.perSecondCallLimit.get
+        case PER_MINUTE => 
+          c.perMinuteCallLimit.get
+        case PER_HOUR   => 
+          c.perHourCallLimit.get
+        case PER_DAY    => 
+          c.perDayCallLimit.get
+        case PER_WEEK   => 
+          c.perWeekCallLimit.get
+        case PER_MONTH  => 
+          c.perMonthCallLimit.get
+        case PER_YEAR   => 
+          -1
       }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = z._1))
@@ -1998,12 +2006,20 @@ Returns a string showed to the developer
     def exceededRateLimit(c: Consumer, period: LimitCallPeriod) = {
       val remain = ttl(c.key.get, period)
       val limit = period match {
-        case PER_MINUTE => c.perMinuteCallLimit.get
-        case PER_HOUR   => c.perHourCallLimit.get
-        case PER_DAY    => c.perDayCallLimit.get
-        case PER_WEEK   => c.perWeekCallLimit.get
-        case PER_MONTH  => c.perMonthCallLimit.get
-        case PER_YEAR   => -1
+        case PER_SECOND => 
+          c.perSecondCallLimit.get
+        case PER_MINUTE => 
+          c.perMinuteCallLimit.get
+        case PER_HOUR   => 
+          c.perHourCallLimit.get
+        case PER_DAY    => 
+          c.perDayCallLimit.get
+        case PER_WEEK   => 
+          c.perWeekCallLimit.get
+        case PER_MONTH  => 
+          c.perMonthCallLimit.get
+        case PER_YEAR   => 
+          -1
       }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = remain))
@@ -2015,6 +2031,7 @@ Returns a string showed to the developer
         cc.consumer match {
           case Full(c) =>
             val checkLimits = List(
+              underConsumerLimits(c.key.get, PER_SECOND, c.perSecondCallLimit.get),
               underConsumerLimits(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),
               underConsumerLimits(c.key.get, PER_HOUR, c.perHourCallLimit.get),
               underConsumerLimits(c.key.get, PER_DAY, c.perDayCallLimit.get),
@@ -2022,18 +2039,21 @@ Returns a string showed to the developer
               underConsumerLimits(c.key.get, PER_MONTH, c.perMonthCallLimit.get)
             )
             checkLimits match {
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, exceededRateLimit(c, PER_MINUTE))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2 == false =>
-               (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, exceededRateLimit(c, PER_HOUR))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3 == false =>
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_SECOND, c.perSecondCallLimit.get), 429, exceededRateLimit(c, PER_SECOND))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2 == false =>
+               (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, exceededRateLimit(c, PER_MINUTE))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, exceededRateLimit(c, PER_HOUR))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perDayCallLimit.get), 429, exceededRateLimit(c, PER_DAY))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4 == false =>
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_WEEK, c.perWeekCallLimit.get), 429, exceededRateLimit(c, PER_WEEK))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5 == false =>
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MONTH, c.perMonthCallLimit.get), 429, exceededRateLimit(c, PER_MONTH))), x._2)
               case _ =>
                 val incrementCounters = List (
+                  incrementConsumerCounters(c.key.get, PER_SECOND, c.perSecondCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
                   incrementConsumerCounters(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
                   incrementConsumerCounters(c.key.get, PER_HOUR, c.perHourCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
                   incrementConsumerCounters(c.key.get, PER_DAY, c.perDayCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
@@ -2041,12 +2061,20 @@ Returns a string showed to the developer
                   incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1, PER_MINUTE))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2._1 > 0 => (x._1, setXRateLimits(c, x2, PER_HOUR))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3._1 > 0 => (x._1, setXRateLimits(c, x3, PER_DAY))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4._1 > 0 => (x._1, setXRateLimits(c, x4, PER_WEEK))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5._1 > 0 => (x._1, setXRateLimits(c, x5, PER_MONTH))
-                  case _                                              => (x._1, x._2)
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1._1 > 0 => 
+                    (x._1, setXRateLimits(c, x1, PER_SECOND))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2._1 > 0 => 
+                    (x._1, setXRateLimits(c, x1, PER_MINUTE))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3._1 > 0 => 
+                    (x._1, setXRateLimits(c, x2, PER_HOUR))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4._1 > 0 => 
+                    (x._1, setXRateLimits(c, x3, PER_DAY))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5._1 > 0 => 
+                    (x._1, setXRateLimits(c, x4, PER_WEEK))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6._1 > 0 => 
+                    (x._1, setXRateLimits(c, x5, PER_MONTH))
+                  case _  => 
+                    (x._1, x._2)
                 }
             }
           case _ => (x._1, x._2)

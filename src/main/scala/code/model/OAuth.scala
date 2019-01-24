@@ -225,17 +225,19 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   }
 
   override def updateConsumerCallLimits(id: Long,
+                                     perSecond: Option[String],
                                      perMinute: Option[String],
                                      perHour: Option[String],
                                      perDay: Option[String],
                                      perWeek: Option[String],
                                      perMonth: Option[String]): Future[Box[Consumer]] = {
     Future{
-      updateConsumerCallLimitsRemote(id, perMinute, perHour, perDay, perWeek, perMonth)
+      updateConsumerCallLimitsRemote(id, perSecond, perMinute, perHour, perDay, perWeek, perMonth)
     }
   }
 
   def updateConsumerCallLimitsRemote(id: Long,
+                                        perSecond: Option[String],
                                         perMinute: Option[String],
                                         perHour: Option[String],
                                         perDay: Option[String],
@@ -244,6 +246,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     val consumer = Consumer.find(By(Consumer.id, id))
     consumer match {
       case Full(c) => tryo {
+        perSecond match {
+          case Some(v) => c.perSecondCallLimit(v.toLong)
+          case None =>
+        }
         perMinute match {
           case Some(v) => c.perMinuteCallLimit(v.toLong)
           case None =>
@@ -427,6 +433,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   }
   object createdByUserId extends MappedString(this, 36)
 
+  object perSecondCallLimit extends MappedLong(this) {
+    override def defaultValue = -1
+  }
   object perMinuteCallLimit extends MappedLong(this) {
     override def defaultValue = -1
   }
