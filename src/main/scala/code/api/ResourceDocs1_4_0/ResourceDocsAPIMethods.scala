@@ -162,7 +162,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val activePlusLocalResourceDocs = ArrayBuffer[ResourceDoc]()
 
       activePlusLocalResourceDocs ++= activeResourceDocs
-      activePlusLocalResourceDocs ++= localResourceDocs
+      requestedApiVersion match
+      {
+        case ApiVersion.`apiBuilder` => ;
+        case ApiVersion.`ukOpenBankingV200` => ;
+        case ApiVersion.`berlinGroupV1_3` => ;
+        case ApiVersion.`berlinGroupV1` => ;
+        case _ => activePlusLocalResourceDocs ++= localResourceDocs
+      }
+//      activePlusLocalResourceDocs ++= localResourceDocs
 
 
       // Add any featured status and special instructions from Props
