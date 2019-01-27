@@ -44,7 +44,7 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
        "/v1/funds-confirmations", 
        "Confirmation of Funds Request",
        "", 
-       JvalueToSuper(json.parse("""{
+       json.parse("""{
   "payee" : "payee",
   "instructedAmount" : {
     "amount" : "123",
@@ -59,10 +59,10 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
     "pan" : "5409050000000000"
   },
   "cardNumber" : "cardNumber"
-}""")),
-       JvalueToSuper(json.parse("""{
+}"""),
+       json.parse("""{
   "fundsAvailable" : true
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ConfirmationOfFundsServicePIISApi :: Nil
@@ -74,7 +74,9 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "fundsAvailable" : true
+}"""), callContext)
            }
          }
        }

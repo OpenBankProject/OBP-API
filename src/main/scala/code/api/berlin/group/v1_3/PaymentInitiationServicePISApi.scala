@@ -55,10 +55,10 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Payment Cancellation Request",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""{
+       json.parse(""""""),
+       json.parse("""{
   "challengeData" : {
-    
+    "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
@@ -75,7 +75,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP"
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -87,7 +87,26 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "_links" : {
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "transactionStatus" : "ACCP"
+}"""), callContext)
            }
          }
        }
@@ -100,10 +119,10 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Read the SCA status of the payment cancellation's authorisation.",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""{
+       json.parse(""""""),
+       json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -115,7 +134,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "scaStatus" : "psuAuthenticated"
+}"""), callContext)
            }
          }
        }
@@ -128,8 +149,8 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Get Payment Information",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""""""")),
+       json.parse(""""""),
+       json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -141,7 +162,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse(""""""""), callContext)
            }
          }
        }
@@ -154,10 +175,10 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Get Payment Initiation Authorisation Sub-Resources Request",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""{
+       json.parse(""""""),
+       json.parse("""{
   "authorisationIds" : ""
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -169,7 +190,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "authorisationIds" : ""
+}"""), callContext)
            }
          }
        }
@@ -182,8 +205,8 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""""""")),
+       json.parse(""""""),
+       json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -195,7 +218,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse(""""""""), callContext)
            }
          }
        }
@@ -208,10 +231,10 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA Status of the payment authorisation",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""{
+       json.parse(""""""),
+       json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -223,7 +246,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "scaStatus" : "psuAuthenticated"
+}"""), callContext)
            }
          }
        }
@@ -236,10 +261,10 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status", 
        "Payment initiation status request",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""{
+       json.parse(""""""),
+       json.parse("""{
   "transactionStatus" : "ACCP"
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -251,7 +276,9 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "transactionStatus" : "ACCP"
+}"""), callContext)
            }
          }
        }
@@ -264,8 +291,8 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT", 
        "Payment initiation request",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""""""")),
+       json.parse(""""""),
+       json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -277,7 +304,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse(""""""""), callContext)
            }
          }
        }
@@ -290,10 +317,10 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Start the authorisation process for a payment initiation",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""{
+       json.parse(""""""),
+       json.parse("""{
   "challengeData" : {
-    
+    "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
@@ -314,7 +341,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -326,7 +353,30 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}"""), callContext)
            }
          }
        }
@@ -339,10 +389,10 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Start the authorisation process for the cancellation of the addressed payment",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""{
+       json.parse(""""""),
+       json.parse("""{
   "challengeData" : {
-    
+    "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
@@ -363,7 +413,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}""")),
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -375,7 +425,30 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse("""{
+  "challengeData" : {
+    "otpMaxLength" : 0,
+    "additionalInformation" : "additionalInformation",
+    "image" : "image",
+    "imageLink" : "http://example.com/aeiou",
+    "otpFormat" : "characters",
+    "data" : "data"
+  },
+  "scaMethods" : "",
+  "scaStatus" : "psuAuthenticated",
+  "_links" : {
+    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "chosenScaMethod" : "",
+  "psuMessage" : { }
+}"""), callContext)
            }
          }
        }
@@ -388,8 +461,8 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Update PSU Data for payment initiation cancellation",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""""""")),
+       json.parse(""""""),
+       json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -401,7 +474,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse(""""""""), callContext)
            }
          }
        }
@@ -414,8 +487,8 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Update PSU data for payment initiation",
        "", 
-       JvalueToSuper(json.parse("""""")),
-       JvalueToSuper(json.parse("""""""")),
+       json.parse(""""""),
+       json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        PaymentInitiationServicePISApi :: Nil
@@ -427,7 +500,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (NotImplemented, callContext)
+             (json.parse(""""""""), callContext)
            }
          }
        }
