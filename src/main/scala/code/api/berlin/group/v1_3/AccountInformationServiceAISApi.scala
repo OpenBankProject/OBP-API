@@ -1,14 +1,15 @@
 package code.api.builder.AccountInformationServiceAISApi
 
+import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import net.liftweb.json
 import net.liftweb.json._
-
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
+import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
 import code.model._
 import code.util.Helper
@@ -19,6 +20,7 @@ import net.liftweb.http.rest.RestHelper
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   val ImplementationsAccountInformationServiceAISApi = new Object() {
@@ -298,7 +300,18 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "", 
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
+  "balances" : [
+    {
+      "balanceAmount": {
+        "amount": "123",
+        "currency": "EUR"
+      },
+      "balanceType": "closingBooked",
+      "lastChangeDateTime": "2019-01-28T06:55:48.831Z",
+      "lastCommittedTransaction": "string",
+      "referenceDate": "string"
+    }
+  ],
   "account" : {
     "bban" : "BARC12345612345678",
     "maskedPan" : "123456xxxxxx1234",
@@ -314,14 +327,37 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
      )
 
      lazy val getBalances : OBPEndpoint = {
-       case "v1":: "accounts" :: account_id:: "balances" :: Nil JsonGet _ => {
+       case "v1":: "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-             } yield {
-             (json.parse("""{
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+            (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
+            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+          } yield {
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
+          (json.parse("""{
   "balances" : "",
-  "account" : {
+  "_links" : {
+    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "cardTransactions" : {
+    "booked" : "",
+    "_links" : {
+      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "pending" : ""
+  },
+  "cardAccount" : {
     "bban" : "BARC12345612345678",
     "maskedPan" : "123456xxxxxx1234",
     "iban" : "FR7612345987650123456789014",

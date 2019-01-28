@@ -5,8 +5,9 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.v2_1_0.IbanJson
-import code.model.{CoreAccount, ModeratedBankAccount, ModeratedTransaction}
+import code.model.{BankAccount, CoreAccount, ModeratedBankAccount, ModeratedTransaction}
 import code.transactionrequests.TransactionRequests.TransactionRequest
+
 import scala.collection.immutable.List
 import net.liftweb.json.JValue
 
@@ -55,19 +56,26 @@ object JSONFactory_BERLIN_GROUP_1_3 {
     currency : String,
     content : String
   )
-  case class ClosingBookedBody(
-    amount : AmountOfMoneyV13,
-    date: String //eg:  “2017-10-25”, this is not a valid datetime (not java.util.Date)
-  )
-  case class ExpectedBody(
-    amount : AmountOfMoneyV13,
-    lastActionDateTime: Date
-  )
   case class AccountBalance(
-    closingBooked: ClosingBookedBody,
-    expected: ExpectedBody
+    amount : AmountOfMoneyV13,
+    balanceType: String = "closingBooked",
+    lastChangeDateTime: String,
+    lastCommittedTransaction: String = "string",
+    referenceDate: String = "string",
+    
   )
-  case class AccountBalances(`balances`: List[AccountBalance])
+  case class BalanceAccount(
+    bban: String = "BARC12345612345678",
+    currency: String =  "EUR",
+    iban : String =  "FR7612345987650123456789014",
+    maskedPan: String =  "123456xxxxxx1234",
+    msisdn : String =  "+49 170 1234567",
+    pan: String ="5409050000000000"
+  )
+  case class AccountBalancesV13(
+    account:BalanceAccount,
+    `balances`: List[AccountBalance]
+  )
   
   case class TransactionsJsonV1(
     transactions_booked: List[TransactionJsonV1],
@@ -106,7 +114,7 @@ object JSONFactory_BERLIN_GROUP_1_3 {
     )
   }
 
-  def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccount, transactionRequests: List[TransactionRequest]) = {
+  def createAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest]) = {
     // get the latest end_date of `COMPLETED` transactionRequests
     val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
 
@@ -116,20 +124,23 @@ object JSONFactory_BERLIN_GROUP_1_3 {
     // get the SUM of the amount of all !`COMPLETED` transactionRequests
     val sumOfAllUncompletedTransactionrequests = transactionRequests.filter(_.status != "COMPLETED").map(_.body.value.amount).map(BigDecimal(_)).sum
     // sum of the unCompletedTransactions and the account.balance is the current expectd amount:
-    val sumOfAll = (BigDecimal(moderatedAccount.balance) + sumOfAllUncompletedTransactionrequests).toString()
+    val sumOfAll = (bankAccount.balance+ sumOfAllUncompletedTransactionrequests).toString()
 
-    AccountBalances(
-      AccountBalance(
-        closingBooked = ClosingBookedBody(
-          amount = AmountOfMoneyV13(currency = moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance),
-          date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)
+    AccountBalancesV13(
+      account = BalanceAccount(
+        currency = bankAccount.currency,
+        iban = bankAccount.iban.getOrElse("")
+      ),
+      `balances` = AccountBalance(
+        amount = AmountOfMoneyV13(
+          currency = bankAccount.currency,
+          content = bankAccount.balance.toString()
         ),
-        expected = ExpectedBody(
-          amount = AmountOfMoneyV13(currency = moderatedAccount.currency.getOrElse(""),
-                                    content = sumOfAll),
-          lastActionDateTime = latestUncompletedEndDate)
+        balanceType = bankAccount.accountType,
+        lastChangeDateTime = APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
+        lastCommittedTransaction = if(latestUncompletedEndDate ==null) null else latestUncompletedEndDate.toString
       ) :: Nil
-    )
+    ) 
   }
   
   def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJsonV1 = {
