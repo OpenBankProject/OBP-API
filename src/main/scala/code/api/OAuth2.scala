@@ -266,6 +266,11 @@ object OAuth2Login extends RestHelper with MdcLoggable {
 
   object Google extends OAuth2Util {
     val google = "google"
+    /**
+      * OpenID Connect Discovery.
+      * Google exposes OpenID Connect discovery documents ( https://YOUR_DOMAIN/.well-known/openid-configuration ). 
+      * These can be used to automatically configure applications.
+      */
     override def wellKnownOpenidConfiguration: URI = new URI("https://accounts.google.com/.well-known/openid-configuration")
     override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = google)
     def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = google)
@@ -273,6 +278,11 @@ object OAuth2Login extends RestHelper with MdcLoggable {
   
   object Yahoo extends OAuth2Util {
     val yahoo = "yahoo"
+    /**
+      * OpenID Connect Discovery.
+      * Yahoo exposes OpenID Connect discovery documents ( https://YOUR_DOMAIN/.well-known/openid-configuration ). 
+      * These can be used to automatically configure applications.
+      */
     override def wellKnownOpenidConfiguration: URI = new URI("https://login.yahoo.com/.well-known/openid-configuration")
     override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = yahoo)
     def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = yahoo)
