@@ -20,28 +20,47 @@ object JSONFactory_BERLIN_GROUP_1_3 {
   case class Balances(balances: String) extends links
   case class Transactions(trasactions: String) extends links
   case class ViewAccount(viewAccount: String) extends links
-  case class CoreAccountJsonV1(
-                                 id: String,
-                                 iban: String,
-                                 currency: String,
-                                 accountType: String,
-                                 cashAccountType: String,
-                                 _links: List[links],
-                                 name: String
-                               )
-
-  case class CoreAccountsJsonV1(`account-list`: List[CoreAccountJsonV1])
+  case class AdditionalProp1(additionalProp1: String) extends links
+  case class AdditionalProp2(additionalProp2: String) extends links
+  case class AdditionalProp3(additionalProp3: String) extends links
   
-  case class AmountOfMoneyV1(
+  case class CoreAccountBalancesJson(
+    balanceAmount:AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
+    balanceType: String = "closingBooked",
+    lastChangeDateTime: String = "2019-01-28T06:26:52.185Z",
+    referenceDate: String = "string",
+    lastCommittedTransaction: String = "string",
+  )
+  case class CoreAccountJsonV13(
+    resourceId: String,
+    iban: String,
+    bban: String ="BARC12345612345678",
+    msisdn: String ="+49 170 1234567",
+    currency: String,
+    name: String,
+    product: String ="string",
+    cashAccountType: String,
+    status: String="enabled",
+    bic: String,
+    linkedAccounts: String ="string",
+    usage: String ="PRIV",
+    details: String ="string",
+    balances: CoreAccountBalancesJson = CoreAccountBalancesJson(),
+    _links: List[links],
+  )
+
+  case class CoreAccountsJsonV13(accounts: List[CoreAccountJsonV13])
+  
+  case class AmountOfMoneyV13(
     currency : String,
     content : String
   )
   case class ClosingBookedBody(
-    amount : AmountOfMoneyV1,
+    amount : AmountOfMoneyV13,
     date: String //eg:  “2017-10-25”, this is not a valid datetime (not java.util.Date)
   )
   case class ExpectedBody(
-    amount : AmountOfMoneyV1,
+    amount : AmountOfMoneyV13,
     lastActionDateTime: Date
   )
   case class AccountBalance(
@@ -60,22 +79,29 @@ object JSONFactory_BERLIN_GROUP_1_3 {
     transactionId: String,
     creditorName: String,
     creditorAccount: IbanJson,
-    amount: AmountOfMoneyV1,
+    amount: AmountOfMoneyV13,
     bookingDate: Date,
     valueDate: Date,
     remittanceInformationUnstructured: String
   )
 
-  def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV1 = {
-    CoreAccountsJsonV1(coreAccounts.map(
-      x => CoreAccountJsonV1(
-        id = x.id,
+  def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
+    CoreAccountsJsonV13(coreAccounts.map(
+      x => CoreAccountJsonV13(
+        resourceId = x.id,
         iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else "",
         currency = "",
-        accountType = "",
+        name = x.label,
+        status = "",
         cashAccountType = "",
-        _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") :: Transactions(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/transactions") :: Nil,
-        name = x.label)
+        bic="",
+        _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") 
+          :: Transactions(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/transactions") 
+          :: AdditionalProp1("/v1/payments/sepa-credit-transfers/1234-wertiq-983")
+          :: AdditionalProp2("/v1/payments/sepa-credit-transfers/1234-wertiq-983")
+          :: AdditionalProp3("/v1/payments/sepa-credit-transfers/1234-wertiq-983")
+          :: Nil
+        )
        )
     )
   }
@@ -95,12 +121,12 @@ object JSONFactory_BERLIN_GROUP_1_3 {
     AccountBalances(
       AccountBalance(
         closingBooked = ClosingBookedBody(
-          amount = AmountOfMoneyV1(currency = moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance),
+          amount = AmountOfMoneyV13(currency = moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance),
           date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)
         ),
         expected = ExpectedBody(
-          amount = AmountOfMoneyV1(currency = moderatedAccount.currency.getOrElse(""),
-          content = sumOfAll),
+          amount = AmountOfMoneyV13(currency = moderatedAccount.currency.getOrElse(""),
+                                    content = sumOfAll),
           lastActionDateTime = latestUncompletedEndDate)
       ) :: Nil
     )
@@ -111,7 +137,7 @@ object JSONFactory_BERLIN_GROUP_1_3 {
       transactionId = transaction.id.value,
       creditorName = "",
       creditorAccount = IbanJson(APIUtil.stringOptionOrNull(transaction.bankAccount.get.iban)),
-      amount = AmountOfMoneyV1(APIUtil.stringOptionOrNull(transaction.currency), transaction.amount.get.toString()),
+      amount = AmountOfMoneyV13(APIUtil.stringOptionOrNull(transaction.currency), transaction.amount.get.toString()),
       bookingDate = transaction.startDate.get,
       valueDate = transaction.finishDate.get,
       remittanceInformationUnstructured = APIUtil.stringOptionOrNull(transaction.description)
@@ -123,7 +149,7 @@ object JSONFactory_BERLIN_GROUP_1_3 {
       transactionId = transactionRequest.id.value,
       creditorName = transactionRequest.name,
       creditorAccount = IbanJson(transactionRequest.from.account_id),
-      amount = AmountOfMoneyV1(transactionRequest.charge.value.currency, transactionRequest.charge.value.amount),
+      amount = AmountOfMoneyV13(transactionRequest.charge.value.currency, transactionRequest.charge.value.amount),
       bookingDate = transactionRequest.start_date,
       valueDate = transactionRequest.end_date,
       remittanceInformationUnstructured = transactionRequest.body.description

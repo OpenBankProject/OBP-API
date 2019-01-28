@@ -1,25 +1,24 @@
 package code.api.builder.AccountInformationServiceAISApi
-import java.util.UUID
 
 import code.api.berlin.group.v1_3.JvalueCaseClass
-import code.api.builder.{APIBuilder_Connector, CreateTemplateJson, JsonFactory_APIBuilder}
-import code.api.builder.JsonFactory_APIBuilder._
-import code.api.util.APIUtil._
-import code.api.util.ApiTag._
-import code.api.util.ApiVersion
+import net.liftweb.json
+import net.liftweb.json._
+
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
+import code.api.util.APIUtil.{defaultBankId, _}
+import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
+import code.api.util.ApiTag._
+import code.bankconnectors.Connector
+import code.model._
+import code.util.Helper
+import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json
-import net.liftweb.json.Extraction._
-import net.liftweb.json._
-import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
   val ImplementationsAccountInformationServiceAISApi = new Object() {
@@ -271,50 +270,21 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        case "v1":: "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-             } yield {
-             (json.parse("""{
-  "accounts" : [ {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  }, {
-    "cashAccountType" : { },
-    "product" : "product",
-    "resourceId" : "resourceId",
-    "bban" : "BARC12345612345678",
-    "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "usage" : "PRIV",
-    "balances" : "",
-    "iban" : "FR7612345987650123456789014",
-    "linkedAccounts" : "linkedAccounts",
-    "name" : "name",
-    "currency" : "EUR",
-    "details" : "details",
-    "msisdn" : "+49 170 1234567",
-    "bic" : "AAAADEBBXXX",
-    "status" : { }
-  } ]
-}"""), callContext)
-           }
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+  
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+  
+            bankId = BankId(defaultBankId)
+  
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+  
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            
+            Full((coreAccounts,callContext1)) <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
+            
+          } yield {
+            (JSONFactory_BERLIN_GROUP_1_3.createTransactionListJSON(coreAccounts), callContext)
+          }
          }
        }
             
