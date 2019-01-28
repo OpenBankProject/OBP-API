@@ -581,6 +581,7 @@ trait APIMethods310 {
             consumer <- NewStyle.function.getConsumerByPrimaryId(consumerIdToLong, callContext)
             updatedConsumer <- Consumers.consumers.vend.updateConsumerCallLimits(
               consumer.id.get,
+              Some(postJson.per_second_call_limit),
               Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit),
               Some(postJson.per_day_call_limit),

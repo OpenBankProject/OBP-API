@@ -2,14 +2,12 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
-import code.api.Constant._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
+import code.api.util.{APIUtil, ApiVersion, ErrorMessages, PegdownOptions}
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
-import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.ListMap
 import scala.reflect.runtime.currentMirror
@@ -182,10 +180,6 @@ object SwaggerJSONFactory {
     }
 
     implicit val formats = DefaultFormats
-    
-    // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
-    val PegDownProcessorTimeout: Long = 1000*20
-    val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
 
     val infoTitle = "Open Bank Project API"
     val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences."
@@ -303,7 +297,7 @@ object SwaggerJSONFactory {
           OperationObjectJson(
             tags = rd.tags.map(_.tag),
             summary = rd.summary,
-            description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
+            description = PegdownOptions.convertPegdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             operationId =
               rd.partialFunctionName match {
                 //No longer need this special case since all transaction request Resource Docs have explicit URL

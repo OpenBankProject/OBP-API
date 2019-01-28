@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api
 
+import java.net.URI
+
 import code.api.util.{APIUtil, CallContext, ErrorMessages, JwtUtil}
 import code.model.User
 import code.users.Users
@@ -43,7 +45,7 @@ import scala.concurrent.Future
 * so they could authenticate their users.
 */
 
-object OAuth2Handshake extends RestHelper with MdcLoggable {
+object OAuth2Login extends RestHelper with MdcLoggable {
 
   private def getValueOfOAuh2HeaderField(sc: CallContext) = {
     val valueOfAuthReqHeaderField = sc.authReqHeaderField.getOrElse("")
@@ -56,12 +58,14 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   /*
     Method for Old Style Endpoints
    */
-  def getUserFromOAuth2Header(cc: CallContext): (Box[User], Option[CallContext]) = {
+  def getUser(cc: CallContext): (Box[User], Option[CallContext]) = {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(cc)
         if (Google.isIssuer(value)) {
           Google.applyRules(value, cc)
+        } else if (Yahoo.isIssuer(value)) {
+          Yahoo.applyRules(value, cc)
         } else {
           MITREId.applyRules(value, cc)
         }
@@ -72,12 +76,14 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   /*
     Method for New Style Endpoints
    */
-  def getUserFromOAuth2HeaderFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def getUserFuture(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
     APIUtil.getPropsAsBoolValue("allow_oauth2_login", true) match {
       case true =>
         val value = getValueOfOAuh2HeaderField(cc)
         if (Google.isIssuer(value)) {
           Google.applyRulesFuture(value, cc)
+        } else if (Yahoo.isIssuer(value)) {
+          Yahoo.applyRulesFuture(value, cc)
         } else {
           MITREId.applyRulesFuture(value, cc)
         }
@@ -135,7 +141,19 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   
   trait OAuth2Util {
     
+    def wellKnownOpenidConfiguration: URI
+    
     def urlOfJwkSets: Box[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
+
+    def checkUrlOfJwkSets(identityProvider: String) = {
+      val url: List[String] = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url").toList
+      val jwksUris: List[String] = url.map(_.toLowerCase()).map(_.split(",").toList).flatten
+      val jwksUri = jwksUris.filter(_.contains(identityProvider))
+      jwksUri match {
+        case x :: _ => Full(x)
+        case Nil => Failure(ErrorMessages.Oauth2CannotMatchIssuerAndJwksUriException)
+      }
+    }
     
     private def getClaim(name: String, idToken: String): Option[String] = {
       val claim = JwtUtil.getClaim(name = name, jwtToken = idToken).asString()
@@ -144,8 +162,8 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
         case string => Some(string)
       }
     }
-    def isIssuer(jwtToken: String): Boolean = {
-      JwtUtil.getIssuer(jwtToken).map(_.contains("accounts.google.com")).getOrElse(false)
+    def isIssuer(jwtToken: String, identityProvider: String): Boolean = {
+      JwtUtil.getIssuer(jwtToken).map(_.contains(identityProvider)).getOrElse(false)
     }
     def validateIdToken(idToken: String): Box[IDTokenClaimsSet] = {
       urlOfJwkSets match {
@@ -247,15 +265,27 @@ object OAuth2Handshake extends RestHelper with MdcLoggable {
   }
 
   object Google extends OAuth2Util {
-    override def urlOfJwkSets: Box[String] = {
-      val url = APIUtil.getPropsValue(nameOfProperty = "oauth2.jwk_set.url")
-      url.map(_.toLowerCase()).map(_.contains("google")).getOrElse(false) match {
-        case true => url
-        case false => Failure(ErrorMessages.Oauth2CannotMatchIssuerAndJwksUriException)
-      }
-    }
+    val google = "google"
+    /**
+      * OpenID Connect Discovery.
+      * Google exposes OpenID Connect discovery documents ( https://YOUR_DOMAIN/.well-known/openid-configuration ). 
+      * These can be used to automatically configure applications.
+      */
+    override def wellKnownOpenidConfiguration: URI = new URI("https://accounts.google.com/.well-known/openid-configuration")
+    override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = google)
+    def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = google)
   }
-
   
+  object Yahoo extends OAuth2Util {
+    val yahoo = "yahoo"
+    /**
+      * OpenID Connect Discovery.
+      * Yahoo exposes OpenID Connect discovery documents ( https://YOUR_DOMAIN/.well-known/openid-configuration ). 
+      * These can be used to automatically configure applications.
+      */
+    override def wellKnownOpenidConfiguration: URI = new URI("https://login.yahoo.com/.well-known/openid-configuration")
+    override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = yahoo)
+    def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = yahoo)
+  }
 
 }

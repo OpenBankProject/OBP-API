@@ -475,11 +475,12 @@ redis_port=YOUR_REDIS_PORT, In case isn't defined default value is 6379
 ```
 Next types are supported:
 ```
-1. per minute
-2. per hour
-3. per day
-4. per week
-5. per month
+1. per second
+2. per minute
+3. per hour
+4. per day
+5. per week
+6. per month
 ```    
 If you exced rate limit per minute for instance you will get the response:
 ```json
@@ -498,7 +499,7 @@ Description of the headers above:
 2. `X-Rate-Limit-Remaining` - The number of remaining requests in the current period
 3. `X-Rate-Limit-Reset` - The number of seconds left in the current period
 
-Please note that first will be checked `per minute` call limit then `per hour` etc.
+Please note that first will be checked `per second` call limit then `per minute` etc.
 
 Info about rate limiting availibility at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/root. Response we are interested in looks lke:
 ```json

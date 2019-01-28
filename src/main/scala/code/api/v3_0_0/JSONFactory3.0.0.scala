@@ -29,7 +29,7 @@ package code.api.v3_0_0
 import java.lang
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, PegdownOptions}
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2_1.JSONFactory._
@@ -48,7 +48,6 @@ import code.model.dataAccess.ResourceUser
 import code.scope.Scope
 import code.views.Views
 import net.liftweb.common.{Box, Full}
-import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.List
 
@@ -459,14 +458,7 @@ object JSONFactory300{
   // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
   // But we don't want to have to escape underscores (\_) in our documentation
   // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
-  // PegDown seems to be feature rich and ignores underscores in words by default.
-
-  // We return html rather than markdown to the consumer so they don't have to bother with these questions.
-  // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
-  val PegDownProcessorTimeout: Long = 1000*20
-  val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
-
-
+  // We return html rather than markdown to the consumer so they don't have to bother with these questions. 
 
   def createGlossaryItemsJsonV300(glossaryItems: List[GlossaryItem]) : GlossaryItemsJsonV300 = {
     GlossaryItemsJsonV300(glossary_items = glossaryItems.map(createGlossaryItemJsonV300))
@@ -475,8 +467,9 @@ object JSONFactory300{
   def createGlossaryItemJsonV300(glossaryItem : GlossaryItem) : GlossaryItemJsonV300 = {
     GlossaryItemJsonV300(
       title = glossaryItem.title,
-      description = GlossaryDescriptionJsonV300 (markdown = glossaryItem.description.stripMargin, //.replaceAll("\n", ""),
-                                                  html = pegDownProcessor.markdownToHtml(glossaryItem.description.stripMargin)// .replaceAll("\n", "")
+      description = GlossaryDescriptionJsonV300 (
+        markdown = glossaryItem.description.stripMargin, //.replaceAll("\n", ""),
+        html = PegdownOptions.convertPegdownToHtmlTweaked(glossaryItem.description.stripMargin)// .replaceAll("\n", "")
       )
     )
   }
