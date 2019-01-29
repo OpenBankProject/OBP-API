@@ -528,30 +528,159 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "", 
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "cardTransactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+                      "account": {
+                        "iban": "FR7612345987650123456789014",
+                        "bban": "BARC12345612345678",
+                        "pan": "5409050000000000",
+                        "maskedPan": "123456xxxxxx1234",
+                        "msisdn": "+49 170 1234567",
+                        "currency": "EUR"
+                      },
+                      "transactions": {
+                        "booked": [
+                          {
+                            "transactionId": "string",
+                            "entryReference": "string",
+                            "endToEndId": "string",
+                            "mandateId": "string",
+                            "checkId": "string",
+                            "creditorId": "string",
+                            "bookingDate": "string",
+                            "valueDate": "string",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "123"
+                            },
+                            "exchangeRate": [
+                              {
+                                "sourceCurrency": "EUR",
+                                "rate": "string",
+                                "unitCurrency": "string",
+                                "targetCurrency": "EUR",
+                                "rateDate": "string",
+                                "rateContract": "string"
+                              }
+                            ],
+                            "creditorName": "Creditor Name",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateCreditor": "Ultimate Creditor",
+                            "debtorName": "Debtor Name",
+                            "debtorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateDebtor": "Ultimate Debtor",
+                            "remittanceInformationUnstructured": "string",
+                            "remittanceInformationStructured": "string",
+                            "purposeCode": "BKDF",
+                            "bankTransactionCode": "PMNT-RCDT-ESCT",
+                            "proprietaryBankTransactionCode": "string",
+                            "_links": {
+                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                            }
+                          }
+                        ],
+                        "pending": [
+                          {
+                            "transactionId": "string",
+                            "entryReference": "string",
+                            "endToEndId": "string",
+                            "mandateId": "string",
+                            "checkId": "string",
+                            "creditorId": "string",
+                            "bookingDate": "string",
+                            "valueDate": "string",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "123"
+                            },
+                            "exchangeRate": [
+                              {
+                                "sourceCurrency": "EUR",
+                                "rate": "string",
+                                "unitCurrency": "string",
+                                "targetCurrency": "EUR",
+                                "rateDate": "string",
+                                "rateContract": "string"
+                              }
+                            ],
+                            "creditorName": "Creditor Name",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateCreditor": "Ultimate Creditor",
+                            "debtorName": "Debtor Name",
+                            "debtorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateDebtor": "Ultimate Debtor",
+                            "remittanceInformationUnstructured": "string",
+                            "remittanceInformationStructured": "string",
+                            "purposeCode": "BKDF",
+                            "bankTransactionCode": "PMNT-RCDT-ESCT",
+                            "proprietaryBankTransactionCode": "string",
+                            "_links": {
+                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                            }
+                          }
+                        ],
+                        "_links": {
+                          "account": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "first": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "next": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "previous": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "last": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                        }
+                      },
+                      "balances": [
+                        {
+                          "balanceAmount": {
+                            "currency": "EUR",
+                            "amount": "123"
+                          },
+                          "balanceType": "closingBooked",
+                          "lastChangeDateTime": "2019-01-28T13:32:26.290Z",
+                          "referenceDate": "string",
+                          "lastCommittedTransaction": "string"
+                        }
+                      ],
+                      "_links": {
+                        "download": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
@@ -564,30 +693,159 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "cardTransactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""), callContext)
+                      "account": {
+                        "iban": "FR7612345987650123456789014",
+                        "bban": "BARC12345612345678",
+                        "pan": "5409050000000000",
+                        "maskedPan": "123456xxxxxx1234",
+                        "msisdn": "+49 170 1234567",
+                        "currency": "EUR"
+                      },
+                      "transactions": {
+                        "booked": [
+                          {
+                            "transactionId": "string",
+                            "entryReference": "string",
+                            "endToEndId": "string",
+                            "mandateId": "string",
+                            "checkId": "string",
+                            "creditorId": "string",
+                            "bookingDate": "string",
+                            "valueDate": "string",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "123"
+                            },
+                            "exchangeRate": [
+                              {
+                                "sourceCurrency": "EUR",
+                                "rate": "string",
+                                "unitCurrency": "string",
+                                "targetCurrency": "EUR",
+                                "rateDate": "string",
+                                "rateContract": "string"
+                              }
+                            ],
+                            "creditorName": "Creditor Name",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateCreditor": "Ultimate Creditor",
+                            "debtorName": "Debtor Name",
+                            "debtorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateDebtor": "Ultimate Debtor",
+                            "remittanceInformationUnstructured": "string",
+                            "remittanceInformationStructured": "string",
+                            "purposeCode": "BKDF",
+                            "bankTransactionCode": "PMNT-RCDT-ESCT",
+                            "proprietaryBankTransactionCode": "string",
+                            "_links": {
+                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                            }
+                          }
+                        ],
+                        "pending": [
+                          {
+                            "transactionId": "string",
+                            "entryReference": "string",
+                            "endToEndId": "string",
+                            "mandateId": "string",
+                            "checkId": "string",
+                            "creditorId": "string",
+                            "bookingDate": "string",
+                            "valueDate": "string",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "123"
+                            },
+                            "exchangeRate": [
+                              {
+                                "sourceCurrency": "EUR",
+                                "rate": "string",
+                                "unitCurrency": "string",
+                                "targetCurrency": "EUR",
+                                "rateDate": "string",
+                                "rateContract": "string"
+                              }
+                            ],
+                            "creditorName": "Creditor Name",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateCreditor": "Ultimate Creditor",
+                            "debtorName": "Debtor Name",
+                            "debtorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateDebtor": "Ultimate Debtor",
+                            "remittanceInformationUnstructured": "string",
+                            "remittanceInformationStructured": "string",
+                            "purposeCode": "BKDF",
+                            "bankTransactionCode": "PMNT-RCDT-ESCT",
+                            "proprietaryBankTransactionCode": "string",
+                            "_links": {
+                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                            }
+                          }
+                        ],
+                        "_links": {
+                          "account": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "first": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "next": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "previous": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "last": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                        }
+                      },
+                      "balances": [
+                        {
+                          "balanceAmount": {
+                            "currency": "EUR",
+                            "amount": "123"
+                          },
+                          "balanceType": "closingBooked",
+                          "lastChangeDateTime": "2019-01-28T13:32:26.290Z",
+                          "referenceDate": "string",
+                          "lastCommittedTransaction": "string"
+                        }
+                      ],
+                      "_links": {
+                        "download": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                      }
+                    }"""), callContext)
            }
          }
        }
@@ -933,72 +1191,201 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        apiVersion, 
        "getTransactionList",
        "GET", 
-       "/v1/accounts/ACCOUNT_ID/transactions/", 
+       "/v1/accounts/ACCOUNT_ID/transactions", 
        "Read transaction list of an account",
        "", 
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "transactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "account" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+                      "account": {
+                        "iban": "FR7612345987650123456789014",
+                        "bban": "BARC12345612345678",
+                        "pan": "5409050000000000",
+                        "maskedPan": "123456xxxxxx1234",
+                        "msisdn": "+49 170 1234567",
+                        "currency": "EUR"
+                      },
+                      "transactions": {
+                        "booked": [
+                          {
+                            "transactionId": "string",
+                            "entryReference": "string",
+                            "endToEndId": "string",
+                            "mandateId": "string",
+                            "checkId": "string",
+                            "creditorId": "string",
+                            "bookingDate": "string",
+                            "valueDate": "string",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "123"
+                            },
+                            "exchangeRate": [
+                              {
+                                "sourceCurrency": "EUR",
+                                "rate": "string",
+                                "unitCurrency": "string",
+                                "targetCurrency": "EUR",
+                                "rateDate": "string",
+                                "rateContract": "string"
+                              }
+                            ],
+                            "creditorName": "Creditor Name",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateCreditor": "Ultimate Creditor",
+                            "debtorName": "Debtor Name",
+                            "debtorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateDebtor": "Ultimate Debtor",
+                            "remittanceInformationUnstructured": "string",
+                            "remittanceInformationStructured": "string",
+                            "purposeCode": "BKDF",
+                            "bankTransactionCode": "PMNT-RCDT-ESCT",
+                            "proprietaryBankTransactionCode": "string",
+                            "_links": {
+                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                            }
+                          }
+                        ],
+                        "pending": [
+                          {
+                            "transactionId": "string",
+                            "entryReference": "string",
+                            "endToEndId": "string",
+                            "mandateId": "string",
+                            "checkId": "string",
+                            "creditorId": "string",
+                            "bookingDate": "string",
+                            "valueDate": "string",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "123"
+                            },
+                            "exchangeRate": [
+                              {
+                                "sourceCurrency": "EUR",
+                                "rate": "string",
+                                "unitCurrency": "string",
+                                "targetCurrency": "EUR",
+                                "rateDate": "string",
+                                "rateContract": "string"
+                              }
+                            ],
+                            "creditorName": "Creditor Name",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateCreditor": "Ultimate Creditor",
+                            "debtorName": "Debtor Name",
+                            "debtorAccount": {
+                              "iban": "FR7612345987650123456789014",
+                              "bban": "BARC12345612345678",
+                              "pan": "5409050000000000",
+                              "maskedPan": "123456xxxxxx1234",
+                              "msisdn": "+49 170 1234567",
+                              "currency": "EUR"
+                            },
+                            "ultimateDebtor": "Ultimate Debtor",
+                            "remittanceInformationUnstructured": "string",
+                            "remittanceInformationStructured": "string",
+                            "purposeCode": "BKDF",
+                            "bankTransactionCode": "PMNT-RCDT-ESCT",
+                            "proprietaryBankTransactionCode": "string",
+                            "_links": {
+                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                            }
+                          }
+                        ],
+                        "_links": {
+                          "account": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "first": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "next": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "previous": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "last": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                          "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                        }
+                      },
+                      "balances": [
+                        {
+                          "balanceAmount": {
+                            "currency": "EUR",
+                            "amount": "123"
+                          },
+                          "balanceType": "closingBooked",
+                          "lastChangeDateTime": "2019-01-28T13:32:26.290Z",
+                          "referenceDate": "string",
+                          "lastCommittedTransaction": "string"
+                        }
+                      ],
+                      "_links": {
+                        "download": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+                        "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: Nil
      )
 
      lazy val getTransactionList : OBPEndpoint = {
-       case "v1":: "accounts" :: account_id:: "transactions" :: Nil JsonGet _ => {
+       case "v1":: "accounts" :: AccountId(account_id):: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-             } yield {
-             (json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "transactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "account" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""), callContext)
-           }
+
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+
+            bankId = BankId(defaultBankId)
+
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
+
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+
+            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            } yield {
+              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(transactions, transactionRequests), callContext)
+            }
          }
        }
             
