@@ -138,6 +138,43 @@ footer #copyright {
 	background-repeat: no-repeat;
 	font-size: 17px;
 }
+
+@media only screen and (min-width: 500px) and (max-width: 550px) {
+.container {max-width: 500px;}
+  #main-about {
+    background-repeat:repeat-y;
+    background-size:500px;
+   }
+}
+@media only screen and (min-width: 450px) and (max-width: 500px) {
+.container {max-width: 450px;}
+  #main-about {
+    background-repeat:repeat-y;
+    background-size:450px;
+   }
+}
+@media only screen and (min-width: 400px) and (max-width: 450px) {
+.container {max-width: 400px;}
+  #main-about {
+    background-repeat:repeat-y;
+    background-size:400px;
+   }
+}
+@media only screen and (min-width: 350px) and (max-width: 400px) {
+  .container {max-width: 350px;}
+  #main-about {
+    background-repeat:repeat-y;
+    background-size:350px;
+  }
+}
+@media only screen and (max-width: 350px) {
+  .container {max-width: 300px;}
+  #main-about {
+    background-repeat:repeat-y;
+    background-size: 300px;
+  }
+}
+
 #main-about h1 {
 	color: white;
 }
