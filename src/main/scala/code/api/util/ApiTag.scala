@@ -56,6 +56,7 @@ object ApiTag {
   val AccountInformationServiceAISApi = ResourceDocTag("Account Information Service (AIS)")
   val SigningBasketsApi = ResourceDocTag("Signing Baskets")
   val CommonServicesApi = ResourceDocTag("Common Services")
+  val apiTagDummyData = ResourceDocTag("Dummy-Data")
 }
 
 

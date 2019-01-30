@@ -165,7 +165,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val createConsent : OBPEndpoint = {
@@ -218,7 +218,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val deleteConsent : OBPEndpoint = {
@@ -466,7 +466,7 @@ respectively the OAuth2 access token.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getCardAccount : OBPEndpoint = {
@@ -548,7 +548,7 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
@@ -793,7 +793,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
@@ -879,7 +879,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
@@ -963,7 +963,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
@@ -993,7 +993,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getConsentStatus : OBPEndpoint = {
@@ -1068,7 +1068,7 @@ This call is only available on transactions as reported in a JSON format.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
@@ -1375,7 +1375,7 @@ Give detailed information about the addressed account together with balance info
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
@@ -1443,7 +1443,7 @@ access token.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val readCardAccount : OBPEndpoint = {
@@ -1541,7 +1541,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
@@ -1630,7 +1630,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {

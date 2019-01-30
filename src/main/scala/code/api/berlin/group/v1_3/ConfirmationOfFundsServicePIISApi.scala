@@ -64,7 +64,7 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       ConfirmationOfFundsServicePIISApi :: Nil
+       ConfirmationOfFundsServicePIISApi :: apiTagDummyData :: Nil
      )
 
      lazy val checkAvailabilityOfFunds : OBPEndpoint = {

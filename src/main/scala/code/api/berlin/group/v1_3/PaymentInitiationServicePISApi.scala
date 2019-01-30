@@ -89,7 +89,7 @@ The response to this DELETE command will tell the TPP whether the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val cancelPayment : OBPEndpoint = {
@@ -137,7 +137,7 @@ The response to this DELETE command will tell the TPP whether the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
@@ -165,7 +165,7 @@ The response to this DELETE command will tell the TPP whether the
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
@@ -196,7 +196,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
@@ -225,7 +225,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getPaymentInitiationCancellationAuthorisationInformation : OBPEndpoint = {
@@ -254,7 +254,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
@@ -284,7 +284,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
@@ -357,7 +357,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val initiatePayment : OBPEndpoint = {
@@ -438,7 +438,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val startPaymentAuthorisation : OBPEndpoint = {
@@ -542,7 +542,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
@@ -631,7 +631,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -695,7 +695,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: Nil
+       PaymentInitiationServicePISApi :: apiTagDummyData :: Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {

@@ -97,7 +97,7 @@ The resource identifications of these transactions are contained in the  payload
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData :: Nil
      )
 
      lazy val createSigningBasket : OBPEndpoint = {
@@ -166,7 +166,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData ::  Nil
      )
 
      lazy val deleteSigningBasket : OBPEndpoint = {
@@ -196,7 +196,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getSigningBasket : OBPEndpoint = {
@@ -231,7 +231,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getSigningBasketAuthorisation : OBPEndpoint = {
@@ -262,7 +262,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getSigningBasketScaStatus : OBPEndpoint = {
@@ -293,7 +293,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getSigningBasketStatus : OBPEndpoint = {
@@ -376,7 +376,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData ::  Nil
      )
 
      lazy val startSigningBasketAuthorisation : OBPEndpoint = {
@@ -465,7 +465,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: Nil
+       SigningBasketsApi :: apiTagDummyData ::  Nil
      )
 
      lazy val updateSigningBasketPsuData : OBPEndpoint = {
