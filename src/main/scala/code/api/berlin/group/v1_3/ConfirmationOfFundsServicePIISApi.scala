@@ -28,7 +28,6 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
-    
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints =
@@ -43,7 +42,7 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
        "POST", 
        "/v1/funds-confirmations", 
        "Confirmation of Funds Request",
-       "", 
+       """Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by IBAN and TPP respectively""", 
        json.parse("""{
   "payee" : "payee",
   "instructedAmount" : {

@@ -60,7 +60,26 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "POST", 
        "/v1/consents", 
        "Create consent",
-       "", 
+       """This method create a consent resource, defining access rights to dedicated accounts of 
+a given PSU-ID. These accounts are addressed explicitly in the method as 
+parameters as a core function.
+
+**Side Effects**
+When this Consent Request is a request where the "recurringIndicator" equals "true", 
+and if it exists already a former consent for recurring access on account information 
+for the addressed PSU, then the former consent automatically expires as soon as the new 
+consent request is authorised by the PSU.
+
+Optional Extension:
+As an option, an ASPSP might optionally accept a specific access right on the access on all psd2 related services for all available accounts. 
+
+As another option an ASPSP might optionally also accept a command, where only access rights are inserted without mentioning the addressed account. 
+The relation to accounts is then handled afterwards between PSU and ASPSP. 
+This option is not supported for the Embedded SCA Approach. 
+As a last option, an ASPSP might in addition accept a command with access rights
+  * to see the list of available payment accounts or
+  * to see the list of available payment accounts with balances.
+""", 
        json.parse("""{
   "access" : {
     "balances" : [ {
@@ -194,7 +213,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "DELETE", 
        "/v1/consents/CONSENTID", 
        "Delete Consent",
-       "", 
+       """The TPP can delete an account information consent object if needed.""", 
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
@@ -220,7 +239,23 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/accounts", 
        "Read Account List",
-       "", 
+       """Read the identifiers of the available payment account together with 
+booking balance information, depending on the consent granted.
+
+It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
+The addressed list of accounts depends then on the PSU ID and the stored consent addressed by consentId, 
+respectively the OAuth2 access token. 
+
+Returns all identifiers of the accounts, to which an account access has been granted to through 
+the /consents endpoint by the PSU. 
+In addition, relevant information about the accounts and hyperlinks to corresponding account 
+information resources are provided if a related consent has been already granted.
+
+Remark: Note that the /consents endpoint optionally offers to grant an access on all available 
+payment accounts of a PSU. 
+In this case, this endpoint will deliver the information about all available payment accounts 
+of the PSU at this ASPSP.
+""", 
        json.parse(""""""),
        json.parse("""{
   "accounts" : [ {
@@ -297,7 +332,14 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/accounts/ACCOUNT_ID/balances", 
        "Read Balance",
-       "", 
+       """Reads account data from a given account addressed by "account-id". 
+
+**Remark:** This account-id can be a tokenised identification due to data protection reason since the path 
+information might be logged on intermediary servers within the ASPSP sphere. 
+This account-id then can be retrieved by the "GET Account List" call.
+
+The account-id is constant at least throughout the lifecycle of a given consent.
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : [
@@ -377,7 +419,11 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/card-accounts", 
        "Reads a list of card accounts",
-       "", 
+       """Reads a list of card accounts with additional information, e.g. balance information. 
+It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
+The addressed list of card accounts depends then on the PSU ID and the stored consent addressed by consentId, 
+respectively the OAuth2 access token. 
+""", 
        json.parse(""""""),
        json.parse("""{
   "cardAccounts" : [ {
@@ -479,7 +525,15 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/card-accounts/ACCOUNT_ID/balances", 
        "Read card account balances",
-       "", 
+       """Reads balance data from a given card account addressed by 
+"account-id". 
+
+Remark: This account-id can be a tokenised identification due 
+to data protection reason since the path information might be 
+logged on intermediary servers within the ASPSP sphere. 
+This account-id then can be retrieved by the 
+"GET Card Account List" call
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -525,7 +579,8 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/card-accounts/ACCOUNT_ID/transactions", 
        "Read transaction list of an account",
-       "", 
+       """Reads account data from a given card account addressed by "account-id".
+""", 
        json.parse(""""""),
        json.parse("""{
                       "account": {
@@ -687,166 +742,37 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
-       case "card-accounts" :: account_id:: "transactions" :: Nil JsonGet _ => {
+       case "card-accounts" :: AccountId(account_id):: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-             } yield {
-             (json.parse("""{
-                      "account": {
-                        "iban": "FR7612345987650123456789014",
-                        "bban": "BARC12345612345678",
-                        "pan": "5409050000000000",
-                        "maskedPan": "123456xxxxxx1234",
-                        "msisdn": "+49 170 1234567",
-                        "currency": "EUR"
-                      },
-                      "transactions": {
-                        "booked": [
-                          {
-                            "transactionId": "string",
-                            "entryReference": "string",
-                            "endToEndId": "string",
-                            "mandateId": "string",
-                            "checkId": "string",
-                            "creditorId": "string",
-                            "bookingDate": "string",
-                            "valueDate": "string",
-                            "transactionAmount": {
-                              "currency": "EUR",
-                              "amount": "123"
-                            },
-                            "exchangeRate": [
-                              {
-                                "sourceCurrency": "EUR",
-                                "rate": "string",
-                                "unitCurrency": "string",
-                                "targetCurrency": "EUR",
-                                "rateDate": "string",
-                                "rateContract": "string"
-                              }
-                            ],
-                            "creditorName": "Creditor Name",
-                            "creditorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateCreditor": "Ultimate Creditor",
-                            "debtorName": "Debtor Name",
-                            "debtorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateDebtor": "Ultimate Debtor",
-                            "remittanceInformationUnstructured": "string",
-                            "remittanceInformationStructured": "string",
-                            "purposeCode": "BKDF",
-                            "bankTransactionCode": "PMNT-RCDT-ESCT",
-                            "proprietaryBankTransactionCode": "string",
-                            "_links": {
-                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                            }
-                          }
-                        ],
-                        "pending": [
-                          {
-                            "transactionId": "string",
-                            "entryReference": "string",
-                            "endToEndId": "string",
-                            "mandateId": "string",
-                            "checkId": "string",
-                            "creditorId": "string",
-                            "bookingDate": "string",
-                            "valueDate": "string",
-                            "transactionAmount": {
-                              "currency": "EUR",
-                              "amount": "123"
-                            },
-                            "exchangeRate": [
-                              {
-                                "sourceCurrency": "EUR",
-                                "rate": "string",
-                                "unitCurrency": "string",
-                                "targetCurrency": "EUR",
-                                "rateDate": "string",
-                                "rateContract": "string"
-                              }
-                            ],
-                            "creditorName": "Creditor Name",
-                            "creditorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateCreditor": "Ultimate Creditor",
-                            "debtorName": "Debtor Name",
-                            "debtorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateDebtor": "Ultimate Debtor",
-                            "remittanceInformationUnstructured": "string",
-                            "remittanceInformationStructured": "string",
-                            "purposeCode": "BKDF",
-                            "bankTransactionCode": "PMNT-RCDT-ESCT",
-                            "proprietaryBankTransactionCode": "string",
-                            "_links": {
-                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                            }
-                          }
-                        ],
-                        "_links": {
-                          "account": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "first": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "next": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "previous": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "last": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                        }
-                      },
-                      "balances": [
-                        {
-                          "balanceAmount": {
-                            "currency": "EUR",
-                            "amount": "123"
-                          },
-                          "balanceType": "closingBooked",
-                          "lastChangeDateTime": "2019-01-28T13:32:26.290Z",
-                          "referenceDate": "string",
-                          "lastCommittedTransaction": "string"
-                        }
-                      ],
-                      "_links": {
-                        "download": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                      }
-                    }"""), callContext)
-           }
+
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+
+            bankId = BankId(defaultBankId)
+
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
+
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+
+            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            } yield {
+              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(transactions, transactionRequests), callContext)
+            }
          }
        }
             
@@ -857,7 +783,10 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/consents/CONSENTID/authorisations", 
        "Get Consent Authorisation Sub-Resources Request",
-       "", 
+       """Return a list of all authorisation subresources IDs which have been created.
+
+This function returns an array of hyperlinks to all generated authorisation sub-resources.
+""", 
        json.parse(""""""),
        json.parse("""{
   "authorisationIds" : ""
@@ -887,7 +816,10 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/consents/CONSENTID", 
        "Get Consent Request",
-       "", 
+       """Returns the content of an account information consent object. 
+This is returning the data for the TPP especially in cases, 
+where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
+""", 
        json.parse(""""""),
        json.parse("""{
   "access" : {
@@ -1023,7 +955,8 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the consent authorisation.",
-       "", 
+       """This method returns the SCA status of a consent initiation's authorisation sub-resource.
+""", 
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -1053,7 +986,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/consents/CONSENTID/status", 
        "Consent status request",
-       "", 
+       """Read the status of an account information consent resource.""", 
        json.parse(""""""),
        json.parse("""{
   "consentStatus" : { }
@@ -1083,7 +1016,12 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/accounts/ACCOUNT_ID/transactions/RESOURCEID", 
        "Read Transaction Details",
-       "", 
+       """Reads transaction details from a given transaction addressed by "resourceId" on a given account addressed by "account-id". 
+This call is only available on transactions as reported in a JSON format.
+
+**Remark:** Please note that the PATH might be already given in detail by the corresponding entry of the response of the 
+"Read Transaction List" call within the _links subfield.
+""", 
        json.parse(""""""),
        json.parse("""{
   "debtorAccount" : {
@@ -1191,9 +1129,14 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        apiVersion, 
        "getTransactionList",
        "GET", 
-       "/v1/accounts/ACCOUNT_ID/transactions", 
+       "/v1/accounts/ACCOUNT_ID/transactions/", 
        "Read transaction list of an account",
-       "", 
+       """Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter 
+"bookingStatus" together with balances.
+
+For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo". 
+The ASPSP might add balance information, if transaction lists without balances are not supported.
+""", 
        json.parse(""""""),
        json.parse("""{
                       "account": {
@@ -1396,7 +1339,19 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/v1/accounts/ACCOUNT_ID", 
        "Read Account Details",
-       "", 
+       """Reads details about an account, with balances where required. 
+It is assumed that a consent of the PSU to 
+this access is already given and stored on the ASPSP system. 
+The addressed details of this account depends then on the stored consent addressed by consentId, 
+respectively the OAuth2 access token.
+
+**NOTE:** The account-id can represent a multicurrency account. 
+In this case the currency code is set to "XXX".
+
+Give detailed information about the addressed account.
+
+Give detailed information about the addressed account together with balance information
+""", 
        json.parse(""""""),
        json.parse("""{
   "cashAccountType" : { },
@@ -1460,7 +1415,12 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "GET", 
        "/card-accounts/ACCOUNT_ID", 
        "Reads details about a card account",
-       "", 
+       """Reads details about a card account. 
+It is assumed that a consent of the PSU to this access is already given 
+and stored on the ASPSP system. The addressed details of this account depends 
+then on the stored consent addressed by consentId, respectively the OAuth2 
+access token.
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -1522,7 +1482,38 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "POST", 
        "/v1/consents/CONSENTID/authorisations", 
        "Start the authorisation process for a consent",
-       "", 
+       """Create an authorisation sub-resource and start the authorisation process of a consent. 
+The message might in addition transmit authentication and authorisation related data.
+
+his method is iterated n times for a n times SCA authorisation in a 
+corporate context, each creating an own authorisation sub-endpoint for 
+the corresponding PSU authorising the consent.
+
+The ASPSP might make the usage of this access method unnecessary, 
+since the related authorisation resource will be automatically created by 
+the ASPSP after the submission of the consent data with the first POST consents call.
+
+The start authorisation process is a process which is needed for creating a new authorisation 
+or cancellation sub-resource. 
+
+This applies in the following scenarios:
+
+  * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding Payment 
+    Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
+    The 'startAuthorisation' hyperlink can transport more information about data which needs to be 
+    uploaded by using the extended forms.
+    * 'startAuthorisationWithPsuIdentfication', 
+    * 'startAuthorisationWithPsuAuthentication' #TODO
+    * 'startAuthorisationWithAuthentciationMethodSelection' 
+  * The related payment initiation cannot yet be executed since a multilevel SCA is mandated.
+  * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding 
+    Payment Cancellation Response that an explicit start of the authorisation process is needed by the TPP. 
+    The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded 
+    by using the extended forms as indicated above.
+  * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
+    executing the cancellation.
+  * The signing basket needs to be authorised yet.
+""", 
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -1594,7 +1585,47 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "PUT", 
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for consents",
-       "", 
+       """This method update PSU data on the consents  resource if needed. 
+It may authorise a consent within the Embedded SCA Approach where needed.
+
+Independently from the SCA Approach it supports e.g. the selection of 
+the authentication method and a non-SCA PSU authentication.
+
+This methods updates PSU data on the cancellation authorisation resource if needed. 
+
+There are several possible Update PSU Data requests in the context of a consent request if needed, 
+which depends on the SCA approach:
+
+* Redirect SCA Approach:
+  A specific Update PSU Data Request is applicable for 
+    * the selection of authentication methods, before choosing the actual SCA approach.
+* Decoupled SCA Approach:
+  A specific Update PSU Data Request is only applicable for
+  * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
+  * the selection of authentication methods.
+* Embedded SCA Approach: 
+  The Update PSU Data Request might be used 
+  * to add credentials as a first factor authentication data of the PSU and
+  * to select the authentication method and
+  * transaction authorisation.
+
+The SCA Approach might depend on the chosen SCA method. 
+For that reason, the following possible Update PSU Data request can apply to all SCA approaches:
+
+* Select an SCA method in case of several SCA methods are available for the customer.
+
+There are the following request types on this access path:
+  * Update PSU Identification
+  * Update PSU Authentication
+  * Select PSU Autorization Method 
+    WARNING: This method need a reduced header, 
+    therefore many optional elements are not present. 
+    Maybe in a later version the access path will change.
+  * Transaction Authorisation
+    WARNING: This method need a reduced header, 
+    therefore many optional elements are not present. 
+    Maybe in a later version the access path will change.
+""", 
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
