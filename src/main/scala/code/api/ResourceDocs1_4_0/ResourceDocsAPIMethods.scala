@@ -5,6 +5,7 @@ import java.util.UUID.randomUUID
 import code.api.builder.OBP_APIBuilder
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -114,6 +115,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.allResourceDocs
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
+        case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.allResourceDocs
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
@@ -131,6 +133,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
+        case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.routes
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
@@ -159,7 +162,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val activePlusLocalResourceDocs = ArrayBuffer[ResourceDoc]()
 
       activePlusLocalResourceDocs ++= activeResourceDocs
-      activePlusLocalResourceDocs ++= localResourceDocs
+      requestedApiVersion match
+      {
+        case ApiVersion.`apiBuilder` => ;
+        case ApiVersion.`ukOpenBankingV200` => ;
+        case ApiVersion.`berlinGroupV1_3` => ;
+        case ApiVersion.`berlinGroupV1` => ;
+        case _ => activePlusLocalResourceDocs ++= localResourceDocs
+      }
+//      activePlusLocalResourceDocs ++= localResourceDocs
 
 
       // Add any featured status and special instructions from Props
@@ -172,6 +183,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         x <- activePlusLocalResourceDocs
         // This is the "implemented in" url
         url = x.implementedInApiVersion match {
+          case ApiVersion.`berlinGroupV1_3` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`apiBuilder` =>  s"/api-builder/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
@@ -182,6 +194,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),
           requestUrl = url,
           specifiedUrl = x.implementedInApiVersion match {
+            case ApiVersion.`berlinGroupV1_3` =>  Some(url)
             case ApiVersion.`berlinGroupV1` =>  Some(url)
             case ApiVersion.`ukOpenBankingV200` =>  Some(url)
             case ApiVersion.`apiBuilder` =>  Some(url)
@@ -249,13 +262,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               case JField("requiresBankId", x) => JField("requires_bank_id", x)
             }
 
+            //This is only 
+            def removeJsonKeyAndKeepChildObject(json: JValue): JValue = json transform {
+              case JObject(List(JField("jvalueToCaseclass", JObject(x))))=> JObject(x)
+            }
+            
             /**
               * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
               */
             def replaceJsonValue(json: JValue): JValue = json transformField {
               case JField("role", JString(x)) => JField("role", JString(x.substring("ApiRole$".length)))
             }
-            successJsonResponse(replaceJsonValue(replaceJsonKey(Extraction.decompose(innerJson))))
+            successJsonResponse(replaceJsonValue(replaceJsonKey(removeJsonKeyAndKeepChildObject(Extraction.decompose(innerJson)))))
           }
           obpResourceDocJson
         }
