@@ -1727,6 +1727,7 @@ trait APIMethods310 {
               postedData.postcode,
               postedData.country_code,
               postedData.state,
+              postedData.type_or_purpose,
               callContext)
           } yield {
             (JSONFactory310.createAddress(address), HttpCode.`201`(callContext))

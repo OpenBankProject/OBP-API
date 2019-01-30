@@ -31,6 +31,7 @@ trait CustomerAddressProvider {
                     state: String,
                     postcode: String,
                     countryCode: String,
+                    typeOrPurpose: String,
                     status: String
                 ): Future[Box[CustomerAddress]]
   def deleteAddress(customerAddressId: String): Future[Box[Boolean]]
@@ -48,6 +49,7 @@ trait CustomerAddress {
   def postcode: String
   def countryCode: String
   def status: String
+  def typeOrPurpose: String
   def insertDate: Date
 }
 
@@ -63,6 +65,7 @@ class RemotedataCustomerAddressCaseClasses {
                            state: String,
                            postcode: String,
                            countryCode: String,
+                           typeOrPurpose: String,
                            status: String
                        )
   case class deleteAddress(customerAddressId: String)

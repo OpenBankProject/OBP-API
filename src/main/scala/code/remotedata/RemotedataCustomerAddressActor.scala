@@ -27,6 +27,7 @@ class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcL
                       state: String,
                       postcode: String,
                       countryCode: String,
+                      typeOrPurpose: String,
                       status: String) =>
       logger.debug("createAddress(" + customerId + ", " + line1 + ", " + line2 + ")")
       mapper.createAddress(customerId,
@@ -38,6 +39,7 @@ class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcL
                            state,
                            postcode,
                            countryCode,
+                           typeOrPurpose,
                            status) pipeTo sender
 
     case cc.deleteAddress(customerAddressId: String) =>

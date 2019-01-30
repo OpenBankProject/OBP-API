@@ -288,6 +288,7 @@ case class PostCustomerAddressJsonV310(
                                 postcode: String,
                                 //ISO_3166-1_alpha-2
                                 country_code: String,
+                                type_or_purpose: String,
                                 status: String
                               )
 
@@ -303,6 +304,7 @@ case class CustomerAddressJsonV310(
                             postcode: String,
                             //ISO_3166-1_alpha-2
                             country_code: String,
+                            type_or_purpose: String,
                             status: String,
                             insert_date: Date
                           )
@@ -545,6 +547,7 @@ object JSONFactory310{
       state = address.state,
       postcode = address.postcode,
       country_code = address.countryCode,
+      type_or_purpose = address.typeOrPurpose,
       status = address.status,
       insert_date = address.insertDate
     )

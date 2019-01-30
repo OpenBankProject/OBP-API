@@ -1852,6 +1852,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      state: String,
                                      postcode: String,
                                      countryCode: String,
+                                     typeOrPurpose: String,
                                      status: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] =
     CustomerAddress.address.vend.createAddress(
@@ -1864,6 +1865,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       state,
       postcode,
       countryCode,
+      typeOrPurpose,
       status) map {
       (_, callContext)
     }
