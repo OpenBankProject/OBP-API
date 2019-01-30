@@ -1869,7 +1869,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle))
 
     lazy val refreshUser : OBPEndpoint = {
       case "users" :: userId :: "refresh" :: Nil JsonPost _ => {
