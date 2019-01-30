@@ -1,6 +1,7 @@
 package code.remotedata
 
 import akka.actor.Actor
+import akka.pattern.pipe
 import code.actorsystem.ObpActorHelper
 import code.api.util.OBPQueryParam
 import code.model.dataAccess.ResourceUser
@@ -8,6 +9,7 @@ import code.users.{LiftUsers, RemotedataUsersCaseClasses}
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
 
@@ -38,7 +40,7 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
 
     case cc.getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) =>
       logger.debug("getOrCreateUserByProviderIdFuture(" + provider +"," + idGivenByProvider + name + email +")")
-      sender ! (mapper.getOrCreateUserByProviderId(provider, idGivenByProvider, name, email))
+      (mapper.getOrCreateUserByProviderIdFuture(provider, idGivenByProvider, name, email)) pipeTo sender
 
     case cc.getUserByUserId(userId: String) =>
       logger.debug("getUserByUserId(" + userId +")")

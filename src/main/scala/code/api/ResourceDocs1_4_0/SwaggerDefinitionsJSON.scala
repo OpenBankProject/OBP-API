@@ -2916,6 +2916,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val callLimitPostJson = CallLimitPostJson(
+    per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
     per_day_call_limit ="-1",
@@ -2923,6 +2924,7 @@ object SwaggerDefinitionsJSON {
     per_month_call_limit = "-1"
   )
   val callLimitJson = CallLimitJson(
+    per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
     per_hour_call_limit = "-1",
     per_day_call_limit ="-1",
