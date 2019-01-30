@@ -67,7 +67,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val deleteSigningBasket : OBPEndpoint = {
@@ -96,7 +96,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
@@ -127,7 +127,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
@@ -160,7 +160,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
@@ -191,7 +191,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
@@ -224,7 +224,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getSigningBasketAuthorisation : OBPEndpoint = {
@@ -255,7 +255,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getSigningBasketScaStatus : OBPEndpoint = {
@@ -286,7 +286,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val getSigningBasketStatus : OBPEndpoint = {
@@ -368,7 +368,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
@@ -472,7 +472,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val startPaymentAuthorisation : OBPEndpoint = {
@@ -576,7 +576,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::  Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
@@ -680,7 +680,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::   Nil
      )
 
      lazy val startSigningBasketAuthorisation : OBPEndpoint = {
@@ -769,7 +769,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::   Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
@@ -835,7 +835,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::   Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -899,7 +899,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::   Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
@@ -965,7 +965,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: Nil
+       CommonServicesApi :: apiTagDummyData ::   Nil
      )
 
      lazy val updateSigningBasketPsuData : OBPEndpoint = {
