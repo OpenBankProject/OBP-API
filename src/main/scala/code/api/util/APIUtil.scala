@@ -42,7 +42,7 @@ import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
-import code.api.util.ApiTag.{ResourceDocTag, apiTagDummyData}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagMockedData}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
@@ -2397,6 +2397,10 @@ Returns a string showed to the developer
     */
   def generateUUID(): String = UUID.randomUUID().toString
   
-  def dummyDataText(isDummyData: Boolean) = if (isDummyData) "**NOTE: This endpoint currently only returns example data.**" else "**NOTE: This endpoint returns OBP data.**"
+  def mockedDataText(isMockedData: Boolean) = 
+    if (isMockedData) 
+      "**NOTE: This endpoint currently only returns example data.**" 
+    else 
+      "**NOTE: This endpoint returns OBP data.**"
 
 }

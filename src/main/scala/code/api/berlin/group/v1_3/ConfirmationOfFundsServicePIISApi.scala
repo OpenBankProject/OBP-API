@@ -43,7 +43,7 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
        "POST", 
        "/v1/funds-confirmations", 
        "Confirmation of Funds Request",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by IBAN and TPP respectively""", 
        json.parse("""{
   "payee" : "payee",
@@ -66,7 +66,7 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       ConfirmationOfFundsServicePIISApi :: apiTagDummyData :: Nil
+       ConfirmationOfFundsServicePIISApi :: apiTagMockedData :: Nil
      )
 
      lazy val checkAvailabilityOfFunds : OBPEndpoint = {

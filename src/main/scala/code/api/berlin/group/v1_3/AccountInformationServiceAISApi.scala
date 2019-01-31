@@ -59,7 +59,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        "POST", 
        "/v1/consents", 
        "Create consent",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             This method create a consent resource, defining access rights to dedicated accounts of 
 a given PSU-ID. These accounts are addressed explicitly in the method as 
 parameters as a core function.
@@ -165,7 +165,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val createConsent : OBPEndpoint = {
@@ -213,13 +213,13 @@ As a last option, an ASPSP might in addition accept a command with access rights
        "DELETE", 
        "/v1/consents/CONSENTID", 
        "Delete Consent",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             The TPP can delete an account information consent object if needed.""", 
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val deleteConsent : OBPEndpoint = {
@@ -240,7 +240,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        "GET", 
        "/v1/accounts", 
        "Read Account List",
-       s"""${dummyDataText(false)}
+       s"""${mockedDataText(false)}
             Read the identifiers of the available payment account together with 
 booking balance information, depending on the consent granted.
 
@@ -302,7 +302,7 @@ of the PSU at this ASPSP.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -334,7 +334,7 @@ of the PSU at this ASPSP.
        "GET", 
        "/v1/accounts/ACCOUNT_ID/balances", 
        "Read Balance",
-       s"""${dummyDataText(false)}
+       s"""${mockedDataText(false)}
             Reads account data from a given account addressed by "account-id". 
 
 **Remark:** This account-id can be a tokenised identification due to data protection reason since the path 
@@ -357,7 +357,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getBalances : OBPEndpoint = {
@@ -386,7 +386,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
        "GET", 
        "/card-accounts", 
        "Reads a list of card accounts",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Reads a list of card accounts with additional information, e.g. balance information. 
 It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
 The addressed list of card accounts depends then on the PSU ID and the stored consent addressed by consentId, 
@@ -434,7 +434,7 @@ respectively the OAuth2 access token.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccount : OBPEndpoint = {
@@ -493,7 +493,7 @@ respectively the OAuth2 access token.
        "GET", 
        "/card-accounts/ACCOUNT_ID/balances", 
        "Read card account balances",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Reads balance data from a given card account addressed by 
 "account-id". 
 
@@ -517,7 +517,7 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
@@ -548,7 +548,7 @@ This account-id then can be retrieved by the
        "GET", 
        "/card-accounts/ACCOUNT_ID/transactions", 
        "Read transaction list of an account",
-       s"""${dummyDataText(false)}
+       s"""${mockedDataText(false)}
             Reads account data from a given card account addressed by "account-id".
 """, 
        json.parse(""""""),
@@ -579,7 +579,7 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
@@ -624,7 +624,7 @@ This account-id then can be retrieved by the
        "GET", 
        "/v1/consents/CONSENTID/authorisations", 
        "Get Consent Authorisation Sub-Resources Request",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Return a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
@@ -635,7 +635,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
@@ -658,7 +658,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "GET", 
        "/v1/consents/CONSENTID", 
        "Get Consent Request",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Returns the content of an account information consent object. 
 This is returning the data for the TPP especially in cases, 
 where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
@@ -722,7 +722,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
@@ -798,7 +798,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        "GET", 
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the consent authorisation.",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             This method returns the SCA status of a consent initiation's authorisation sub-resource.
 """, 
        json.parse(""""""),
@@ -807,7 +807,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
@@ -830,7 +830,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        "GET", 
        "/v1/consents/CONSENTID/status", 
        "Consent status request",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Read the status of an account information consent resource.""", 
        json.parse(""""""),
        json.parse("""{
@@ -838,7 +838,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentStatus : OBPEndpoint = {
@@ -861,7 +861,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        "GET", 
        "/v1/accounts/ACCOUNT_ID/transactions/RESOURCEID", 
        "Read Transaction Details",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Reads transaction details from a given transaction addressed by "resourceId" on a given account addressed by "account-id". 
 This call is only available on transactions as reported in a JSON format.
 
@@ -914,7 +914,7 @@ This call is only available on transactions as reported in a JSON format.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
@@ -977,7 +977,7 @@ This call is only available on transactions as reported in a JSON format.
        "GET", 
        "/v1/accounts/ACCOUNT_ID/transactions/", 
        "Read transaction list of an account",
-       s"""${dummyDataText(false)}
+       s"""${mockedDataText(false)}
             Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter 
 "bookingStatus" together with balances.
 
@@ -1012,7 +1012,7 @@ The ASPSP might add balance information, if transaction lists without balances a
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val getTransactionList : OBPEndpoint = {
@@ -1057,7 +1057,7 @@ The ASPSP might add balance information, if transaction lists without balances a
        "GET", 
        "/v1/accounts/ACCOUNT_ID", 
        "Read Account Details",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Reads details about an account, with balances where required. 
 It is assumed that a consent of the PSU to 
 this access is already given and stored on the ASPSP system. 
@@ -1094,7 +1094,7 @@ Give detailed information about the addressed account together with balance info
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
@@ -1134,7 +1134,7 @@ Give detailed information about the addressed account together with balance info
        "GET", 
        "/card-accounts/ACCOUNT_ID", 
        "Reads details about a card account",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Reads details about a card account. 
 It is assumed that a consent of the PSU to this access is already given 
 and stored on the ASPSP system. The addressed details of this account depends 
@@ -1163,7 +1163,7 @@ access token.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val readCardAccount : OBPEndpoint = {
@@ -1202,7 +1202,7 @@ access token.
        "POST", 
        "/v1/consents/CONSENTID/authorisations", 
        "Start the authorisation process for a consent",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Create an authorisation sub-resource and start the authorisation process of a consent. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -1262,7 +1262,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
@@ -1306,7 +1306,7 @@ This applies in the following scenarios:
        "PUT", 
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for consents",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             This method update PSU data on the consents  resource if needed. 
 It may authorise a consent within the Embedded SCA Approach where needed.
 
@@ -1352,7 +1352,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
+       AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {

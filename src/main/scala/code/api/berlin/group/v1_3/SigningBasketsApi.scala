@@ -50,7 +50,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "POST", 
        "/v1/signing-baskets", 
        "Create a signing basket resource",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Create a signing basket resource for authorising several transactions with one SCA method. 
 The resource identifications of these transactions are contained in the  payload of this access method
 """, 
@@ -99,7 +99,7 @@ The resource identifications of these transactions are contained in the  payload
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val createSigningBasket : OBPEndpoint = {
@@ -158,7 +158,7 @@ The resource identifications of these transactions are contained in the  payload
        "DELETE", 
        "/v1/signing-baskets/BASKETID", 
        "Delete the signing basket",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Delete the signing basket structure as long as no (partial) authorisation has yet been applied. 
 The undlerying transactions are not affected by this deletion.
 
@@ -169,7 +169,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val deleteSigningBasket : OBPEndpoint = {
@@ -190,7 +190,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        "GET", 
        "/v1/signing-baskets/BASKETID", 
        "Returns the content of an signing basket object.",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Returns the content of an signing basket object.""", 
        json.parse(""""""),
        json.parse("""{
@@ -200,7 +200,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasket : OBPEndpoint = {
@@ -225,7 +225,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        "GET", 
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Get Signing Basket Authorisation Sub-Resources Request",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
@@ -236,7 +236,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketAuthorisation : OBPEndpoint = {
@@ -259,7 +259,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "GET", 
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the signing basket authorisation",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             This method returns the SCA status of a signing basket's authorisation sub-resource.
 """, 
        json.parse(""""""),
@@ -268,7 +268,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketScaStatus : OBPEndpoint = {
@@ -291,7 +291,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "GET", 
        "/v1/signing-baskets/BASKETID/status", 
        "Read the status of the signing basket",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Returns the status of a signing basket object. 
 """, 
        json.parse(""""""),
@@ -300,7 +300,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketStatus : OBPEndpoint = {
@@ -323,7 +323,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "POST", 
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Start the authorisation process for a signing basket",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             Create an authorisation sub-resource and start the authorisation process of a signing basket. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -384,7 +384,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val startSigningBasketAuthorisation : OBPEndpoint = {
@@ -428,7 +428,7 @@ This applies in the following scenarios:
        "PUT", 
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for signing basket",
-       s"""${dummyDataText(true)}
+       s"""${mockedDataText(true)}
             This method update PSU data on the signing basket resource if needed. 
 It may authorise a igning basket within the Embedded SCA Approach where needed.
 
@@ -474,7 +474,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       SigningBasketsApi :: apiTagDummyData :: Nil
+       SigningBasketsApi :: apiTagMockedData :: Nil
      )
 
      lazy val updateSigningBasketPsuData : OBPEndpoint = {
