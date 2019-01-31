@@ -39,6 +39,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
+import scala.collection.immutable.List
+
 class CustomerAddressTest extends V310ServerSetup {
 
   override def beforeAll(): Unit = {
@@ -65,7 +67,7 @@ class CustomerAddressTest extends V310ServerSetup {
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
-  val postCustomerAddressJson = SwaggerDefinitionsJSON.postCustomerAddressJsonV310
+  val postCustomerAddressJson = SwaggerDefinitionsJSON.postCustomerAddressJsonV310.copy(tags = List("mailing", "home"))
   lazy val bankId = randomBankId
 
   feature("Add/Get/Delete Customer Address v3.1.0") {
@@ -159,6 +161,7 @@ class CustomerAddressTest extends V310ServerSetup {
       successGetRes.code should equal(200)
       val addresses = successGetRes.body.extract[CustomerAddressesJsonV310]
       val customerAddressId = addresses.addresses.map(_.customer_address_id).headOption.getOrElse("CUSTOMER_ADDRESS_ID")
+      addresses.addresses.flatMap(_.tags).sorted shouldBe  List("mailing", "home").sorted
 
       When("We try to make the DELETE request v3.1.0")
       val successDeleteReq = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "addresses" / customerAddressId).DELETE <@(user1)

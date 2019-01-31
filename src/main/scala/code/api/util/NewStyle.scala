@@ -261,7 +261,7 @@ object NewStyle {
                               postcode: String,
                               countryCode: String,
                               status: String,
-                              typeOrPurpose: String,
+                              tags: String,
                               callContext: Option[CallContext]): OBPReturnType[CustomerAddress] = {
       Connector.connector.vend.createCustomerAddress(
         customerId,
@@ -273,7 +273,7 @@ object NewStyle {
         state,
         postcode,
         countryCode,
-        typeOrPurpose,
+        tags,
         status,
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)

@@ -279,34 +279,34 @@ case class EntitlementJSonsV310(list: List[EntitlementJsonV310])
 
 
 case class PostCustomerAddressJsonV310(
-                                line_1: String,
-                                line_2: String,
-                                line_3: String,
-                                city: String,
-                                county: String,
-                                state: String,
-                                postcode: String,
-                                //ISO_3166-1_alpha-2
-                                country_code: String,
-                                type_or_purpose: String,
-                                status: String
+                                        line_1: String,
+                                        line_2: String,
+                                        line_3: String,
+                                        city: String,
+                                        county: String,
+                                        state: String,
+                                        postcode: String,
+                                        //ISO_3166-1_alpha-2
+                                        country_code: String,
+                                        tags: List[String],
+                                        status: String
                               )
 
 case class CustomerAddressJsonV310(
-                            customer_address_id: String,
-                            customer_id: String,
-                            line_1: String,
-                            line_2: String,
-                            line_3: String,
-                            city: String,
-                            county: String,
-                            state: String,
-                            postcode: String,
-                            //ISO_3166-1_alpha-2
-                            country_code: String,
-                            type_or_purpose: String,
-                            status: String,
-                            insert_date: Date
+                                    customer_address_id: String,
+                                    customer_id: String,
+                                    line_1: String,
+                                    line_2: String,
+                                    line_3: String,
+                                    city: String,
+                                    county: String,
+                                    state: String,
+                                    postcode: String,
+                                    //ISO_3166-1_alpha-2
+                                    country_code: String,
+                                    tags: List[String],
+                                    status: String,
+                                    insert_date: Date
                           )
 case class CustomerAddressesJsonV310(addresses: List[CustomerAddressJsonV310])
 case class ObpApiLoopbackJson(
@@ -547,7 +547,7 @@ object JSONFactory310{
       state = address.state,
       postcode = address.postcode,
       country_code = address.countryCode,
-      type_or_purpose = address.typeOrPurpose,
+      tags = address.tags.split(",").toList,
       status = address.status,
       insert_date = address.insertDate
     )

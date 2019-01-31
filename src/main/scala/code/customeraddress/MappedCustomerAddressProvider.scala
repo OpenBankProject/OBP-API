@@ -28,7 +28,7 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
                              state: String,
                              postcode: String,
                              countryCode: String,
-                             typeOrPurpose: String,
+                             tags: String,
                              status: String
                 ): Future[Box[CustomerAddress]] = Future {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
@@ -46,7 +46,7 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
           .mCountryCode(countryCode)
           .mPostCode(postcode)
           .mStatus(status)
-          .mTypeOrPurpose(typeOrPurpose)
+          .mTags(tags)
           .saveMe())
       case Empty =>
         Empty ?~! ErrorMessages.CustomerNotFoundByCustomerId
@@ -80,10 +80,8 @@ class MappedCustomerAddress extends CustomerAddress with LongKeyedMapper[MappedC
   object mState extends MappedString(this, 255)
   object mCountryCode extends MappedString(this, 2)
   object mPostCode extends MappedString(this, 20)
-  object mTypeOrPurpose extends MappedString(this, 20)
-  object mStatus extends MediumString(this) {
-    override def defaultValue: String = "mailing"
-  }
+  object mTags extends MappedString(this, 20)
+  object mStatus extends MediumString(this)
 
   override def customerId: String = mCustomerId.obj.map(_.mCustomerId.get).getOrElse("")
   override def customerAddressId: String = mCustomerAddressId.get
@@ -96,7 +94,7 @@ class MappedCustomerAddress extends CustomerAddress with LongKeyedMapper[MappedC
   override def postcode: String = mPostCode.get
   override def countryCode: String = mCountryCode.get
   override def status: String = mState.get
-  override def typeOrPurpose: String = mTypeOrPurpose.get
+  override def tags: String = mTags.get
   override def insertDate: Date = createdAt.get
 
 }

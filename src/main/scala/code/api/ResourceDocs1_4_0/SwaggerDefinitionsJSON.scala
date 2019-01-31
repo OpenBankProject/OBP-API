@@ -1328,7 +1328,7 @@ object SwaggerDefinitionsJSON {
     postcode = "13359",
     //ISO_3166-1_alpha-2
     country_code = "DE",
-    type_or_purpose = "mailing",
+    tags = List("mailing", "home"),
     status = "OK",
     insert_date = DateWithDayExampleObject
   )
@@ -1344,7 +1344,7 @@ object SwaggerDefinitionsJSON {
     postcode = "13359",
     //ISO_3166-1_alpha-2
     country_code = "DE",
-    type_or_purpose = "mailing",
+    tags = List("mailing", "home"),
     status = "OK"
   )
   
