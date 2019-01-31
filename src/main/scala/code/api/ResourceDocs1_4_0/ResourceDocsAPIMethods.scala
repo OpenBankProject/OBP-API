@@ -261,8 +261,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               case JField("jsonClass", x) => JField("role", x)
               case JField("requiresBankId", x) => JField("requires_bank_id", x)
             }
-
-            //This is only 
+  
+            /**
+              * This is only used for remove `JvalueCaseClass` in JValue.
+              * @`implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)`
+              * For SwaggerCodeGen-obp, need to change String --> JValue implicitly.
+              * There will introduce the new key `JvalueCaseClass` in JValue. 
+              * So in GetResourceDoc API, we need remove it.
+              */
             def removeJsonKeyAndKeepChildObject(json: JValue): JValue = json transform {
               case JObject(List(JField("jvalueToCaseclass", JObject(x))))=> JObject(x)
             }
