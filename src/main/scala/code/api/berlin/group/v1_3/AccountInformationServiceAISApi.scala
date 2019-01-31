@@ -57,7 +57,7 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
        apiVersion, 
        nameOf(createConsent),
        "POST", 
-       "/v1/consents", 
+       "/consents", 
        "Create consent",
        s"""${mockedDataText(true)}
 This method create a consent resource, defining access rights to dedicated accounts of 
@@ -169,7 +169,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
      )
 
      lazy val createConsent : OBPEndpoint = {
-       case "v1":: "consents" :: Nil JsonPost _ => {
+       case "consents" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -211,7 +211,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        apiVersion, 
        nameOf(deleteConsent),
        "DELETE", 
-       "/v1/consents/CONSENTID", 
+       "/consents/CONSENTID", 
        "Delete Consent",
        s"""${mockedDataText(true)}
             The TPP can delete an account information consent object if needed.""", 
@@ -223,7 +223,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
      )
 
      lazy val deleteConsent : OBPEndpoint = {
-       case "v1":: "consents" :: consentid :: Nil JsonDelete _ => {
+       case "consents" :: consentid :: Nil JsonDelete _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -238,7 +238,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        apiVersion, 
        nameOf(getAccountList),
        "GET", 
-       "/v1/accounts", 
+       "/accounts", 
        "Read Account List",
        s"""${mockedDataText(false)}
 Read the identifiers of the available payment account together with 
@@ -306,7 +306,7 @@ of the PSU at this ASPSP.
      )
 
      lazy val getAccountList : OBPEndpoint = {
-       case "v1":: "accounts" :: Nil JsonGet _ => {
+       case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -332,7 +332,7 @@ of the PSU at this ASPSP.
        apiVersion, 
        nameOf(getBalances),
        "GET", 
-       "/v1/accounts/ACCOUNT_ID/balances", 
+       "/accounts/ACCOUNT_ID/balances", 
        "Read Balance",
        s"""${mockedDataText(false)}
 Reads account data from a given account addressed by "account-id". 
@@ -361,7 +361,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
      )
 
      lazy val getBalances : OBPEndpoint = {
-       case "v1":: "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
+       case "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -622,7 +622,7 @@ Reads account data from a given card account addressed by "account-id".
        apiVersion, 
        nameOf(getConsentAuthorisation),
        "GET", 
-       "/v1/consents/CONSENTID/authorisations", 
+       "/consents/CONSENTID/authorisations", 
        "Get Consent Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
 Return a list of all authorisation subresources IDs which have been created.
@@ -639,7 +639,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
-       case "v1":: "consents" :: consentid:: "authorisations" :: Nil JsonGet _ => {
+       case "consents" :: consentid:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -656,7 +656,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        apiVersion, 
        nameOf(getConsentInformation),
        "GET", 
-       "/v1/consents/CONSENTID", 
+       "/consents/CONSENTID", 
        "Get Consent Request",
        s"""${mockedDataText(true)}
 Returns the content of an account information consent object. 
@@ -726,7 +726,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
-       case "v1":: "consents" :: consentid :: Nil JsonGet _ => {
+       case "consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -796,7 +796,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        apiVersion, 
        nameOf(getConsentScaStatus),
        "GET", 
-       "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the consent authorisation.",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
@@ -811,7 +811,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
-       case "v1":: "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
+       case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -828,7 +828,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        apiVersion, 
        nameOf(getConsentStatus),
        "GET", 
-       "/v1/consents/CONSENTID/status", 
+       "/consents/CONSENTID/status", 
        "Consent status request",
        s"""${mockedDataText(true)}
             Read the status of an account information consent resource.""", 
@@ -842,7 +842,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
      )
 
      lazy val getConsentStatus : OBPEndpoint = {
-       case "v1":: "consents" :: consentid:: "status" :: Nil JsonGet _ => {
+       case "consents" :: consentid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -859,7 +859,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        apiVersion, 
        nameOf(getTransactionDetails),
        "GET", 
-       "/v1/accounts/ACCOUNT_ID/transactions/RESOURCEID", 
+       "/accounts/ACCOUNT_ID/transactions/RESOURCEID", 
        "Read Transaction Details",
        s"""${mockedDataText(true)}
 Reads transaction details from a given transaction addressed by "resourceId" on a given account addressed by "account-id". 
@@ -918,7 +918,7 @@ This call is only available on transactions as reported in a JSON format.
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
-       case "v1":: "accounts" :: account_id:: "transactions" :: resourceid :: Nil JsonGet _ => {
+       case "accounts" :: account_id:: "transactions" :: resourceid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -975,7 +975,7 @@ This call is only available on transactions as reported in a JSON format.
        apiVersion, 
        nameOf(getTransactionList),
        "GET", 
-       "/v1/accounts/ACCOUNT_ID/transactions/", 
+       "/accounts/ACCOUNT_ID/transactions/", 
        "Read transaction list of an account",
        s"""${mockedDataText(false)}
 Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter "bookingStatus" together with balances.
@@ -1015,7 +1015,7 @@ The ASPSP might add balance information, if transaction lists without balances a
      )
 
      lazy val getTransactionList : OBPEndpoint = {
-       case "v1":: "accounts" :: AccountId(account_id):: "transactions" :: Nil JsonGet _ => {
+       case "accounts" :: AccountId(account_id):: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
 
@@ -1054,7 +1054,7 @@ The ASPSP might add balance information, if transaction lists without balances a
        apiVersion, 
        nameOf(readAccountDetails),
        "GET", 
-       "/v1/accounts/ACCOUNT_ID", 
+       "/accounts/ACCOUNT_ID", 
        "Read Account Details",
        s"""${mockedDataText(true)}
 Reads details about an account, with balances where required. 
@@ -1097,7 +1097,7 @@ Give detailed information about the addressed account together with balance info
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
-       case "v1":: "accounts" :: account_id :: Nil JsonGet _ => {
+       case "accounts" :: account_id :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -1199,7 +1199,7 @@ access token.
        apiVersion, 
        nameOf(startConsentAuthorisation),
        "POST", 
-       "/v1/consents/CONSENTID/authorisations", 
+       "/consents/CONSENTID/authorisations", 
        "Start the authorisation process for a consent",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process of a consent. 
@@ -1265,7 +1265,7 @@ This applies in the following scenarios:
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
-       case "v1":: "consents" :: consentid:: "authorisations" :: Nil JsonPost _ => {
+       case "consents" :: consentid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -1303,7 +1303,7 @@ This applies in the following scenarios:
        apiVersion, 
        nameOf(updateConsentsPsuData),
        "PUT", 
-       "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for consents",
        s"""${mockedDataText(true)}
 This method update PSU data on the consents  resource if needed. 
@@ -1355,7 +1355,7 @@ There are the following request types on this access path:
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
-       case "v1":: "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
+       case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)

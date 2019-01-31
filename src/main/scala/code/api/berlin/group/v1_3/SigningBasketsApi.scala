@@ -48,7 +48,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        apiVersion, 
        nameOf(createSigningBasket),
        "POST", 
-       "/v1/signing-baskets", 
+       "/signing-baskets", 
        "Create a signing basket resource",
        s"""${mockedDataText(true)}
 Create a signing basket resource for authorising several transactions with one SCA method. 
@@ -103,7 +103,7 @@ The resource identifications of these transactions are contained in the  payload
      )
 
      lazy val createSigningBasket : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: Nil JsonPost _ => {
+       case "signing-baskets" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -156,7 +156,7 @@ The resource identifications of these transactions are contained in the  payload
        apiVersion, 
        nameOf(deleteSigningBasket),
        "DELETE", 
-       "/v1/signing-baskets/BASKETID", 
+       "/signing-baskets/BASKETID", 
        "Delete the signing basket",
        s"""${mockedDataText(true)}
 Delete the signing basket structure as long as no (partial) authorisation has yet been applied. 
@@ -173,7 +173,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
      )
 
      lazy val deleteSigningBasket : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: basketid :: Nil JsonDelete _ => {
+       case "signing-baskets" :: basketid :: Nil JsonDelete _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -188,7 +188,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        apiVersion, 
        nameOf(getSigningBasket),
        "GET", 
-       "/v1/signing-baskets/BASKETID", 
+       "/signing-baskets/BASKETID", 
        "Returns the content of an signing basket object.",
        s"""${mockedDataText(true)}
 Returns the content of an signing basket object.""", 
@@ -204,7 +204,7 @@ Returns the content of an signing basket object.""",
      )
 
      lazy val getSigningBasket : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: basketid :: Nil JsonGet _ => {
+       case "signing-baskets" :: basketid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -223,7 +223,7 @@ Returns the content of an signing basket object.""",
        apiVersion, 
        nameOf(getSigningBasketAuthorisation),
        "GET", 
-       "/v1/signing-baskets/BASKETID/authorisations", 
+       "/signing-baskets/BASKETID/authorisations", 
        "Get Signing Basket Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
 Read a list of all authorisation subresources IDs which have been created.
@@ -240,7 +240,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      )
 
      lazy val getSigningBasketAuthorisation : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: basketid:: "authorisations" :: Nil JsonGet _ => {
+       case "signing-baskets" :: basketid:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -257,7 +257,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        apiVersion, 
        nameOf(getSigningBasketScaStatus),
        "GET", 
-       "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
+       "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the signing basket authorisation",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a signing basket's authorisation sub-resource.
@@ -272,7 +272,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
      )
 
      lazy val getSigningBasketScaStatus : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: basketid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
+       case "signing-baskets" :: basketid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -289,7 +289,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
        apiVersion, 
        nameOf(getSigningBasketStatus),
        "GET", 
-       "/v1/signing-baskets/BASKETID/status", 
+       "/signing-baskets/BASKETID/status", 
        "Read the status of the signing basket",
        s"""${mockedDataText(true)}
 Returns the status of a signing basket object. 
@@ -304,7 +304,7 @@ Returns the status of a signing basket object.
      )
 
      lazy val getSigningBasketStatus : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: basketid:: "status" :: Nil JsonGet _ => {
+       case "signing-baskets" :: basketid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -321,7 +321,7 @@ Returns the status of a signing basket object.
        apiVersion, 
        nameOf(startSigningBasketAuthorisation),
        "POST", 
-       "/v1/signing-baskets/BASKETID/authorisations", 
+       "/signing-baskets/BASKETID/authorisations", 
        "Start the authorisation process for a signing basket",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process of a signing basket. 
@@ -388,7 +388,7 @@ This applies in the following scenarios:
      )
 
      lazy val startSigningBasketAuthorisation : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: basketid:: "authorisations" :: Nil JsonPost _ => {
+       case "signing-baskets" :: basketid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -426,7 +426,7 @@ This applies in the following scenarios:
        apiVersion, 
        nameOf(updateSigningBasketPsuData),
        "PUT", 
-       "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
+       "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for signing basket",
        s"""${mockedDataText(true)}
 This method update PSU data on the signing basket resource if needed. 
@@ -478,7 +478,7 @@ There are the following request types on this access path:
      )
 
      lazy val updateSigningBasketPsuData : OBPEndpoint = {
-       case "v1":: "signing-baskets" :: basketid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
+       case "signing-baskets" :: basketid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)

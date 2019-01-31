@@ -41,7 +41,7 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
        apiVersion, 
        nameOf(checkAvailabilityOfFunds),
        "POST", 
-       "/v1/funds-confirmations", 
+       "/funds-confirmations", 
        "Confirmation of Funds Request",
        s"""${mockedDataText(true)}
 Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by IBAN and TPP respectively""", 
@@ -70,7 +70,7 @@ Creates a confirmation of funds request at the ASPSP. Checks whether a specific 
      )
 
      lazy val checkAvailabilityOfFunds : OBPEndpoint = {
-       case "v1":: "funds-confirmations" :: Nil JsonPost _ => {
+       case "funds-confirmations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)

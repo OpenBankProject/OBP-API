@@ -52,7 +52,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        apiVersion, 
        nameOf(cancelPayment),
        "DELETE", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Payment Cancellation Request",
        s"""${mockedDataText(true)}
 This method initiates the cancellation of a payment. 
@@ -95,7 +95,7 @@ The response to this DELETE command will tell the TPP whether the
      )
 
      lazy val cancelPayment : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid :: Nil JsonDelete _ => {
+       case payment_service :: payment_product :: paymentid :: Nil JsonDelete _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -129,7 +129,7 @@ The response to this DELETE command will tell the TPP whether the
        apiVersion, 
        nameOf(getPaymentCancellationScaStatus),
        "GET", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Read the SCA status of the payment cancellation's authorisation.",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
@@ -144,7 +144,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonGet _ => {
+       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -161,7 +161,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        apiVersion, 
        nameOf(getPaymentInformation),
        "GET", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Get Payment Information",
        s"""${mockedDataText(true)}
 Returns the content of a payment object""", 
@@ -173,7 +173,7 @@ Returns the content of a payment object""",
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid :: Nil JsonGet _ => {
+       case payment_service :: payment_product :: paymentid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -188,7 +188,7 @@ Returns the content of a payment object""",
        apiVersion, 
        nameOf(getPaymentInitiationAuthorisation),
        "GET", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Get Payment Initiation Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
 Read a list of all authorisation subresources IDs which have been created.
@@ -205,7 +205,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonGet _ => {
+       case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -222,7 +222,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        apiVersion, 
        nameOf(getPaymentInitiationCancellationAuthorisationInformation),
        "GET", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
        s"""${mockedDataText(true)}
 Retrieve a list of all created cancellation authorisation sub-resources.
@@ -235,7 +235,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
      )
 
      lazy val getPaymentInitiationCancellationAuthorisationInformation : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonGet _ => {
+       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -250,7 +250,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        apiVersion, 
        nameOf(getPaymentInitiationScaStatus),
        "GET", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA Status of the payment authorisation",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
@@ -265,7 +265,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
+       case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -282,7 +282,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        apiVersion, 
        nameOf(getPaymentInitiationStatus),
        "GET", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status", 
        "Payment initiation status request",
        s"""${mockedDataText(true)}
 Check the transaction status of a payment initiation.""", 
@@ -296,7 +296,7 @@ Check the transaction status of a payment initiation.""",
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "status" :: Nil JsonGet _ => {
+       case payment_service :: payment_product :: paymentid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -313,7 +313,7 @@ Check the transaction status of a payment initiation.""",
        apiVersion, 
        nameOf(initiatePayment),
        "POST", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT", 
        "Payment initiation request",
        s"""${mockedDataText(true)}
 This method is used to initiate a payment at the ASPSP.
@@ -370,7 +370,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
      )
 
      lazy val initiatePayment : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: Nil JsonPost _ => {
+       case payment_service :: payment_product :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -385,7 +385,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
        apiVersion, 
        nameOf(startPaymentAuthorisation),
        "POST", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Start the authorisation process for a payment initiation",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process. 
@@ -452,7 +452,7 @@ This applies in the following scenarios:
      )
 
      lazy val startPaymentAuthorisation : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonPost _ => {
+       case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -490,7 +490,7 @@ This applies in the following scenarios:
        apiVersion, 
        nameOf(startPaymentInitiationCancellationAuthorisation),
        "POST", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Start the authorisation process for the cancellation of the addressed payment",
        s"""${mockedDataText(true)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
@@ -557,7 +557,7 @@ This applies in the following scenarios:
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonPost _ => {
+       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -595,7 +595,7 @@ This applies in the following scenarios:
        apiVersion, 
        nameOf(updatePaymentCancellationPsuData),
        "PUT", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Update PSU Data for payment initiation cancellation",
        s"""${mockedDataText(true)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
@@ -647,7 +647,7 @@ There are the following request types on this access path:
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonPut _ => {
+       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonPut _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
@@ -662,7 +662,7 @@ There are the following request types on this access path:
        apiVersion, 
        nameOf(updatePaymentPsuData),
        "PUT", 
-       "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Update PSU data for payment initiation",
        s"""${mockedDataText(true)}
 This methods updates PSU data on the authorisation resource if needed. 
@@ -712,7 +712,7 @@ There are the following request types on this access path:
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
-       case "v1" :: payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
+       case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
