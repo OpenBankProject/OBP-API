@@ -55,7 +55,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Payment Cancellation Request",
        s"""${mockedDataText(true)}
-            This method initiates the cancellation of a payment. 
+This method initiates the cancellation of a payment. 
 Depending on the payment-service, the payment-product and the ASPSP's implementation, 
 this TPP call might be sufficient to cancel a payment. 
 If an authorisation of the payment cancellation is mandated by the ASPSP, 
@@ -132,7 +132,7 @@ The response to this DELETE command will tell the TPP whether the
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Read the SCA status of the payment cancellation's authorisation.",
        s"""${mockedDataText(true)}
-            This method returns the SCA status of a payment initiation's authorisation sub-resource.
+This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """, 
        json.parse(""""""),
        json.parse("""{
@@ -164,7 +164,7 @@ The response to this DELETE command will tell the TPP whether the
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Get Payment Information",
        s"""${mockedDataText(true)}
-            Returns the content of a payment object""", 
+Returns the content of a payment object""", 
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
@@ -191,7 +191,7 @@ The response to this DELETE command will tell the TPP whether the
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Get Payment Initiation Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
-            Read a list of all authorisation subresources IDs which have been created.
+Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """, 
@@ -225,7 +225,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
        s"""${mockedDataText(true)}
-            Retrieve a list of all created cancellation authorisation sub-resources.
+Retrieve a list of all created cancellation authorisation sub-resources.
 """, 
        json.parse(""""""),
        json.parse(""""""""),
@@ -253,7 +253,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA Status of the payment authorisation",
        s"""${mockedDataText(true)}
-            This method returns the SCA status of a payment initiation's authorisation sub-resource.
+This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """, 
        json.parse(""""""),
        json.parse("""{
@@ -285,7 +285,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status", 
        "Payment initiation status request",
        s"""${mockedDataText(true)}
-            Check the transaction status of a payment initiation.""", 
+Check the transaction status of a payment initiation.""", 
        json.parse(""""""),
        json.parse("""{
   "transactionStatus" : "ACCP"
@@ -316,7 +316,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT", 
        "Payment initiation request",
        s"""${mockedDataText(true)}
-            This method is used to initiate a payment at the ASPSP.
+This method is used to initiate a payment at the ASPSP.
 
 ## Variants of Payment Initiation Requests
 
@@ -388,7 +388,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Start the authorisation process for a payment initiation",
        s"""${mockedDataText(true)}
-            Create an authorisation sub-resource and start the authorisation process. 
+Create an authorisation sub-resource and start the authorisation process. 
 The message might in addition transmit authentication and authorisation related data. 
 
 This method is iterated n times for a n times SCA authorisation in a 
@@ -493,7 +493,7 @@ This applies in the following scenarios:
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Start the authorisation process for the cancellation of the addressed payment",
        s"""${mockedDataText(true)}
-            Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
+Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
 The message might in addition transmit authentication and authorisation related data.
 
 This method is iterated n times for a n times SCA authorisation in a 
@@ -598,7 +598,7 @@ This applies in the following scenarios:
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Update PSU Data for payment initiation cancellation",
        s"""${mockedDataText(true)}
-            This method updates PSU data on the cancellation authorisation resource if needed. 
+This method updates PSU data on the cancellation authorisation resource if needed. 
 It may authorise a cancellation of the payment within the Embedded SCA Approach where needed.
 
 Independently from the SCA Approach it supports e.g. the selection of 
@@ -665,7 +665,7 @@ There are the following request types on this access path:
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Update PSU data for payment initiation",
        s"""${mockedDataText(true)}
-            This methods updates PSU data on the authorisation resource if needed. 
+This methods updates PSU data on the authorisation resource if needed. 
 It may authorise a payment within the Embedded SCA Approach where needed.
 
 Independently from the SCA Approach it supports e.g. the selection of 

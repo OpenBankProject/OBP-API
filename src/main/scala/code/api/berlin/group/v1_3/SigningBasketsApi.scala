@@ -42,7 +42,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
       updateSigningBasketPsuData ::
       Nil
 
-            
+
      resourceDocs += ResourceDoc(
        createSigningBasket, 
        apiVersion, 
@@ -51,7 +51,7 @@ trait APIMethods_SigningBasketsApi { self: RestHelper =>
        "/v1/signing-baskets", 
        "Create a signing basket resource",
        s"""${mockedDataText(true)}
-            Create a signing basket resource for authorising several transactions with one SCA method. 
+Create a signing basket resource for authorising several transactions with one SCA method. 
 The resource identifications of these transactions are contained in the  payload of this access method
 """, 
        json.parse("""{
@@ -159,7 +159,7 @@ The resource identifications of these transactions are contained in the  payload
        "/v1/signing-baskets/BASKETID", 
        "Delete the signing basket",
        s"""${mockedDataText(true)}
-            Delete the signing basket structure as long as no (partial) authorisation has yet been applied. 
+Delete the signing basket structure as long as no (partial) authorisation has yet been applied. 
 The undlerying transactions are not affected by this deletion.
 
 Remark: The signing basket as such is not deletable after a first (partial) authorisation has been applied. 
@@ -191,7 +191,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        "/v1/signing-baskets/BASKETID", 
        "Returns the content of an signing basket object.",
        s"""${mockedDataText(true)}
-            Returns the content of an signing basket object.""", 
+Returns the content of an signing basket object.""", 
        json.parse(""""""),
        json.parse("""{
   "transactionStatus" : "ACCP",
@@ -226,7 +226,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Get Signing Basket Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
-            Read a list of all authorisation subresources IDs which have been created.
+Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """, 
@@ -260,7 +260,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the signing basket authorisation",
        s"""${mockedDataText(true)}
-            This method returns the SCA status of a signing basket's authorisation sub-resource.
+This method returns the SCA status of a signing basket's authorisation sub-resource.
 """, 
        json.parse(""""""),
        json.parse("""{
@@ -292,7 +292,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "/v1/signing-baskets/BASKETID/status", 
        "Read the status of the signing basket",
        s"""${mockedDataText(true)}
-            Returns the status of a signing basket object. 
+Returns the status of a signing basket object. 
 """, 
        json.parse(""""""),
        json.parse("""{
@@ -324,7 +324,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "/v1/signing-baskets/BASKETID/authorisations", 
        "Start the authorisation process for a signing basket",
        s"""${mockedDataText(true)}
-            Create an authorisation sub-resource and start the authorisation process of a signing basket. 
+Create an authorisation sub-resource and start the authorisation process of a signing basket. 
 The message might in addition transmit authentication and authorisation related data.
 
 This method is iterated n times for a n times SCA authorisation in a 
@@ -429,7 +429,7 @@ This applies in the following scenarios:
        "/v1/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for signing basket",
        s"""${mockedDataText(true)}
-            This method update PSU data on the signing basket resource if needed. 
+This method update PSU data on the signing basket resource if needed. 
 It may authorise a igning basket within the Embedded SCA Approach where needed.
 
 Independently from the SCA Approach it supports e.g. the selection of 

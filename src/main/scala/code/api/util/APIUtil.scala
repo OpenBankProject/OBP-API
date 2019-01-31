@@ -2399,8 +2399,12 @@ Returns a string showed to the developer
   
   def mockedDataText(isMockedData: Boolean) = 
     if (isMockedData) 
-      "**NOTE: This endpoint currently only returns example data.**" 
+      """**NOTE: This endpoint currently only returns example data.**
+        |
+      """.stripMargin
     else 
-      "**NOTE: This endpoint returns OBP data.**"
+      """
+        |
+      """.stripMargin
 
 }
