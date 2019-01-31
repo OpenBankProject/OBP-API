@@ -40,8 +40,9 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
-import code.api.util.ApiTag.ResourceDocTag
+import code.api.util.ApiTag.{ResourceDocTag, apiTagMockedData}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
@@ -1655,6 +1656,7 @@ Returns a string showed to the developer
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
+        case ApiVersion.`berlinGroupV1_3` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1_3)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case _ => logger.info(s"There is no ${version.toString}")
@@ -2394,5 +2396,11 @@ Returns a string showed to the developer
     * @return UUID as a String value
     */
   def generateUUID(): String = UUID.randomUUID().toString
+  
+  def mockedDataText(isMockedData: Boolean) = 
+    if (isMockedData) 
+      "**NOTE: This endpoint currently only returns example data.**" 
+    else 
+      "**NOTE: This endpoint returns OBP data.**"
 
 }

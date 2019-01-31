@@ -458,7 +458,17 @@ object JSONFactory1_4_0 {
         case Some(i: Double)               => "\""  + key + """": {"type":"number"}"""
         case List(i: Double, _*)           => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
-        
+        //BigInt
+        case i: BigInt                     => "\""  + key + """": {"type":"integer"}"""
+        case Some(i: BigInt)               => "\""  + key + """": {"type":"integer"}"""
+        case List(i: BigInt, _*)           => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
+        case Some(List(i: BigInt, _*))     => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
+        // BigDecimal
+        case i: BigDecimal                 => "\""  + key + """": {"type":"number"}"""
+        case Some(i: BigDecimal)           => "\""  + key + """": {"type":"number"}"""
+        case List(i: BigDecimal, _*)       => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
+        case Some(List(i: BigDecimal, _*)) => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
+
         //List case classes.  
         case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
         case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)
@@ -469,7 +479,7 @@ object JSONFactory1_4_0 {
         //Single object
         case Some(f)                       => "\""  + key + """":""" +translateEntity(f,false)
         case null                          => "\""  + key + """":{"type":"null"}"""
-        case f                             => "\""  + key + """":""" +translateEntity(f,false)
+        case f                             => "\""  + key + """":""" +translateEntity(f,f.getClass().isArray())
         // TODO resolve the warning patterns after a variable pattern cannot match (SLS 8.1.1)
         // case _ => "unknown"
       }
