@@ -1,21 +1,22 @@
 package code.api.builder.PaymentInitiationServicePISApi
-import java.util.UUID
 
+import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
-import code.api.builder.{APIBuilder_Connector, CreateTemplateJson, JsonFactory_APIBuilder}
-import code.api.builder.JsonFactory_APIBuilder._
-import code.api.util.APIUtil._
-import code.api.util.ApiTag._
-import code.api.util.ApiVersion
+import net.liftweb.json
+import net.liftweb.json._
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
+import code.api.util.APIUtil.{defaultBankId, _}
+import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
+import code.api.util.ApiTag._
+import code.api.util.NewStyle.HttpCode
+import code.bankconnectors.Connector
+import code.model._
+import code.util.Helper
+import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json
-import net.liftweb.json.Extraction._
-import net.liftweb.json._
-import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.tryo
-
+import com.github.dwickern.macros.NameOf.nameOf
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,7 +31,7 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
     implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
-    val endpoints =
+    val endpoints = 
       cancelPayment ::
       getPaymentCancellationScaStatus ::
       getPaymentInformation ::
@@ -49,11 +50,12 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
      resourceDocs += ResourceDoc(
        cancelPayment, 
        apiVersion, 
-       "cancelPayment",
+       nameOf(cancelPayment),
        "DELETE", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Payment Cancellation Request",
-       """This method initiates the cancellation of a payment. 
+       s"""${dummyDataText(true)}
+            This method initiates the cancellation of a payment. 
 Depending on the payment-service, the payment-product and the ASPSP's implementation, 
 this TPP call might be sufficient to cancel a payment. 
 If an authorisation of the payment cancellation is mandated by the ASPSP, 
@@ -125,11 +127,12 @@ The response to this DELETE command will tell the TPP whether the
      resourceDocs += ResourceDoc(
        getPaymentCancellationScaStatus, 
        apiVersion, 
-       "getPaymentCancellationScaStatus",
+       nameOf(getPaymentCancellationScaStatus),
        "GET", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Read the SCA status of the payment cancellation's authorisation.",
-       """This method returns the SCA status of a payment initiation's authorisation sub-resource.
+       s"""${dummyDataText(true)}
+            This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """, 
        json.parse(""""""),
        json.parse("""{
@@ -156,11 +159,12 @@ The response to this DELETE command will tell the TPP whether the
      resourceDocs += ResourceDoc(
        getPaymentInformation, 
        apiVersion, 
-       "getPaymentInformation",
+       nameOf(getPaymentInformation),
        "GET", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
        "Get Payment Information",
-       """Returns the content of a payment object""", 
+       s"""${dummyDataText(true)}
+            Returns the content of a payment object""", 
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
@@ -182,11 +186,12 @@ The response to this DELETE command will tell the TPP whether the
      resourceDocs += ResourceDoc(
        getPaymentInitiationAuthorisation, 
        apiVersion, 
-       "getPaymentInitiationAuthorisation",
+       nameOf(getPaymentInitiationAuthorisation),
        "GET", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Get Payment Initiation Authorisation Sub-Resources Request",
-       """Read a list of all authorisation subresources IDs which have been created.
+       s"""${dummyDataText(true)}
+            Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """, 
@@ -215,11 +220,12 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      resourceDocs += ResourceDoc(
        getPaymentInitiationCancellationAuthorisationInformation, 
        apiVersion, 
-       "getPaymentInitiationCancellationAuthorisationInformation",
+       nameOf(getPaymentInitiationCancellationAuthorisationInformation),
        "GET", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
-       """Retrieve a list of all created cancellation authorisation sub-resources.
+       s"""${dummyDataText(true)}
+            Retrieve a list of all created cancellation authorisation sub-resources.
 """, 
        json.parse(""""""),
        json.parse(""""""""),
@@ -242,11 +248,12 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      resourceDocs += ResourceDoc(
        getPaymentInitiationScaStatus, 
        apiVersion, 
-       "getPaymentInitiationScaStatus",
+       nameOf(getPaymentInitiationScaStatus),
        "GET", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA Status of the payment authorisation",
-       """This method returns the SCA status of a payment initiation's authorisation sub-resource.
+       s"""${dummyDataText(true)}
+            This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """, 
        json.parse(""""""),
        json.parse("""{
@@ -273,11 +280,12 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      resourceDocs += ResourceDoc(
        getPaymentInitiationStatus, 
        apiVersion, 
-       "getPaymentInitiationStatus",
+       nameOf(getPaymentInitiationStatus),
        "GET", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status", 
        "Payment initiation status request",
-       """Check the transaction status of a payment initiation.""", 
+       s"""${dummyDataText(true)}
+            Check the transaction status of a payment initiation.""", 
        json.parse(""""""),
        json.parse("""{
   "transactionStatus" : "ACCP"
@@ -303,11 +311,12 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      resourceDocs += ResourceDoc(
        initiatePayment, 
        apiVersion, 
-       "initiatePayment",
+       nameOf(initiatePayment),
        "POST", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT", 
        "Payment initiation request",
-       """This method is used to initiate a payment at the ASPSP.
+       s"""${dummyDataText(true)}
+            This method is used to initiate a payment at the ASPSP.
 
 ## Variants of Payment Initiation Requests
 
@@ -374,11 +383,12 @@ In these cases, first an authorisation sub-resource has to be generated followin
      resourceDocs += ResourceDoc(
        startPaymentAuthorisation, 
        apiVersion, 
-       "startPaymentAuthorisation",
+       nameOf(startPaymentAuthorisation),
        "POST", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
        "Start the authorisation process for a payment initiation",
-       """Create an authorisation sub-resource and start the authorisation process. 
+       s"""${dummyDataText(true)}
+            Create an authorisation sub-resource and start the authorisation process. 
 The message might in addition transmit authentication and authorisation related data. 
 
 This method is iterated n times for a n times SCA authorisation in a 
@@ -478,11 +488,12 @@ This applies in the following scenarios:
      resourceDocs += ResourceDoc(
        startPaymentInitiationCancellationAuthorisation, 
        apiVersion, 
-       "startPaymentInitiationCancellationAuthorisation",
+       nameOf(startPaymentInitiationCancellationAuthorisation),
        "POST", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
        "Start the authorisation process for the cancellation of the addressed payment",
-       """Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
+       s"""${dummyDataText(true)}
+            Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
 The message might in addition transmit authentication and authorisation related data.
 
 This method is iterated n times for a n times SCA authorisation in a 
@@ -582,11 +593,12 @@ This applies in the following scenarios:
      resourceDocs += ResourceDoc(
        updatePaymentCancellationPsuData, 
        apiVersion, 
-       "updatePaymentCancellationPsuData",
+       nameOf(updatePaymentCancellationPsuData),
        "PUT", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
        "Update PSU Data for payment initiation cancellation",
-       """This method updates PSU data on the cancellation authorisation resource if needed. 
+       s"""${dummyDataText(true)}
+            This method updates PSU data on the cancellation authorisation resource if needed. 
 It may authorise a cancellation of the payment within the Embedded SCA Approach where needed.
 
 Independently from the SCA Approach it supports e.g. the selection of 
@@ -648,11 +660,12 @@ There are the following request types on this access path:
      resourceDocs += ResourceDoc(
        updatePaymentPsuData, 
        apiVersion, 
-       "updatePaymentPsuData",
+       nameOf(updatePaymentPsuData),
        "PUT", 
        "/v1/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
        "Update PSU data for payment initiation",
-       """This methods updates PSU data on the authorisation resource if needed. 
+       s"""${dummyDataText(true)}
+            This methods updates PSU data on the authorisation resource if needed. 
 It may authorise a payment within the Embedded SCA Approach where needed.
 
 Independently from the SCA Approach it supports e.g. the selection of 

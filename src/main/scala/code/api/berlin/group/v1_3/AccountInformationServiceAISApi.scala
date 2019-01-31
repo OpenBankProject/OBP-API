@@ -16,7 +16,7 @@ import code.util.Helper
 import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-
+import com.github.dwickern.macros.NameOf.nameOf
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,10 +29,9 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
     implicit val formats = net.liftweb.json.DefaultFormats
-    
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
-    val endpoints =
+    val endpoints = 
       createConsent ::
       deleteConsent ::
       getAccountList ::
@@ -56,11 +55,12 @@ trait APIMethods_AccountInformationServiceAISApi { self: RestHelper =>
      resourceDocs += ResourceDoc(
        createConsent, 
        apiVersion, 
-       "createConsent",
+       nameOf(createConsent),
        "POST", 
        "/v1/consents", 
        "Create consent",
-       """This method create a consent resource, defining access rights to dedicated accounts of 
+       s"""${dummyDataText(true)}
+            This method create a consent resource, defining access rights to dedicated accounts of 
 a given PSU-ID. These accounts are addressed explicitly in the method as 
 parameters as a core function.
 
@@ -209,11 +209,12 @@ As a last option, an ASPSP might in addition accept a command with access rights
      resourceDocs += ResourceDoc(
        deleteConsent, 
        apiVersion, 
-       "deleteConsent",
+       nameOf(deleteConsent),
        "DELETE", 
        "/v1/consents/CONSENTID", 
        "Delete Consent",
-       """The TPP can delete an account information consent object if needed.""", 
+       s"""${dummyDataText(true)}
+            The TPP can delete an account information consent object if needed.""", 
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
@@ -235,11 +236,12 @@ As a last option, an ASPSP might in addition accept a command with access rights
      resourceDocs += ResourceDoc(
        getAccountList, 
        apiVersion, 
-       "getAccountList",
+       nameOf(getAccountList),
        "GET", 
        "/v1/accounts", 
        "Read Account List",
-       """Read the identifiers of the available payment account together with 
+       s"""${dummyDataText(false)}
+            Read the identifiers of the available payment account together with 
 booking balance information, depending on the consent granted.
 
 It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
@@ -300,7 +302,7 @@ of the PSU at this ASPSP.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -328,11 +330,12 @@ of the PSU at this ASPSP.
      resourceDocs += ResourceDoc(
        getBalances, 
        apiVersion, 
-       "getBalances",
+       nameOf(getBalances),
        "GET", 
        "/v1/accounts/ACCOUNT_ID/balances", 
        "Read Balance",
-       """Reads account data from a given account addressed by "account-id". 
+       s"""${dummyDataText(false)}
+            Reads account data from a given account addressed by "account-id". 
 
 **Remark:** This account-id can be a tokenised identification due to data protection reason since the path 
 information might be logged on intermediary servers within the ASPSP sphere. 
@@ -342,18 +345,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 """, 
        json.parse(""""""),
        json.parse("""{
-  "balances" : [
-    {
-      "balanceAmount": {
-        "amount": "123",
-        "currency": "EUR"
-      },
-      "balanceType": "closingBooked",
-      "lastChangeDateTime": "2019-01-28T06:55:48.831Z",
-      "lastCommittedTransaction": "string",
-      "referenceDate": "string"
-    }
-  ],
+  "balances" : "",
   "account" : {
     "bban" : "BARC12345612345678",
     "maskedPan" : "123456xxxxxx1234",
@@ -365,7 +357,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getBalances : OBPEndpoint = {
@@ -383,31 +375,6 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             } map { unboxFull(_) }
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount, transactionRequests), HttpCode.`200`(callContext))
-          (json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "cardTransactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""), callContext)
            }
          }
        }
@@ -415,11 +382,12 @@ The account-id is constant at least throughout the lifecycle of a given consent.
      resourceDocs += ResourceDoc(
        getCardAccount, 
        apiVersion, 
-       "getCardAccount",
+       nameOf(getCardAccount),
        "GET", 
        "/card-accounts", 
        "Reads a list of card accounts",
-       """Reads a list of card accounts with additional information, e.g. balance information. 
+       s"""${dummyDataText(true)}
+            Reads a list of card accounts with additional information, e.g. balance information. 
 It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
 The addressed list of card accounts depends then on the PSU ID and the stored consent addressed by consentId, 
 respectively the OAuth2 access token. 
@@ -521,11 +489,12 @@ respectively the OAuth2 access token.
      resourceDocs += ResourceDoc(
        getCardAccountBalances, 
        apiVersion, 
-       "getCardAccountBalances",
+       nameOf(getCardAccountBalances),
        "GET", 
        "/card-accounts/ACCOUNT_ID/balances", 
        "Read card account balances",
-       """Reads balance data from a given card account addressed by 
+       s"""${dummyDataText(true)}
+            Reads balance data from a given card account addressed by 
 "account-id". 
 
 Remark: This account-id can be a tokenised identification due 
@@ -575,170 +544,42 @@ This account-id then can be retrieved by the
      resourceDocs += ResourceDoc(
        getCardAccountTransactionList, 
        apiVersion, 
-       "getCardAccountTransactionList",
+       nameOf(getCardAccountTransactionList),
        "GET", 
        "/card-accounts/ACCOUNT_ID/transactions", 
        "Read transaction list of an account",
-       """Reads account data from a given card account addressed by "account-id".
+       s"""${dummyDataText(false)}
+            Reads account data from a given card account addressed by "account-id".
 """, 
        json.parse(""""""),
        json.parse("""{
-                      "account": {
-                        "iban": "FR7612345987650123456789014",
-                        "bban": "BARC12345612345678",
-                        "pan": "5409050000000000",
-                        "maskedPan": "123456xxxxxx1234",
-                        "msisdn": "+49 170 1234567",
-                        "currency": "EUR"
-                      },
-                      "transactions": {
-                        "booked": [
-                          {
-                            "transactionId": "string",
-                            "entryReference": "string",
-                            "endToEndId": "string",
-                            "mandateId": "string",
-                            "checkId": "string",
-                            "creditorId": "string",
-                            "bookingDate": "string",
-                            "valueDate": "string",
-                            "transactionAmount": {
-                              "currency": "EUR",
-                              "amount": "123"
-                            },
-                            "exchangeRate": [
-                              {
-                                "sourceCurrency": "EUR",
-                                "rate": "string",
-                                "unitCurrency": "string",
-                                "targetCurrency": "EUR",
-                                "rateDate": "string",
-                                "rateContract": "string"
-                              }
-                            ],
-                            "creditorName": "Creditor Name",
-                            "creditorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateCreditor": "Ultimate Creditor",
-                            "debtorName": "Debtor Name",
-                            "debtorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateDebtor": "Ultimate Debtor",
-                            "remittanceInformationUnstructured": "string",
-                            "remittanceInformationStructured": "string",
-                            "purposeCode": "BKDF",
-                            "bankTransactionCode": "PMNT-RCDT-ESCT",
-                            "proprietaryBankTransactionCode": "string",
-                            "_links": {
-                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                            }
-                          }
-                        ],
-                        "pending": [
-                          {
-                            "transactionId": "string",
-                            "entryReference": "string",
-                            "endToEndId": "string",
-                            "mandateId": "string",
-                            "checkId": "string",
-                            "creditorId": "string",
-                            "bookingDate": "string",
-                            "valueDate": "string",
-                            "transactionAmount": {
-                              "currency": "EUR",
-                              "amount": "123"
-                            },
-                            "exchangeRate": [
-                              {
-                                "sourceCurrency": "EUR",
-                                "rate": "string",
-                                "unitCurrency": "string",
-                                "targetCurrency": "EUR",
-                                "rateDate": "string",
-                                "rateContract": "string"
-                              }
-                            ],
-                            "creditorName": "Creditor Name",
-                            "creditorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateCreditor": "Ultimate Creditor",
-                            "debtorName": "Debtor Name",
-                            "debtorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateDebtor": "Ultimate Debtor",
-                            "remittanceInformationUnstructured": "string",
-                            "remittanceInformationStructured": "string",
-                            "purposeCode": "BKDF",
-                            "bankTransactionCode": "PMNT-RCDT-ESCT",
-                            "proprietaryBankTransactionCode": "string",
-                            "_links": {
-                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                            }
-                          }
-                        ],
-                        "_links": {
-                          "account": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "first": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "next": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "previous": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "last": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                        }
-                      },
-                      "balances": [
-                        {
-                          "balanceAmount": {
-                            "currency": "EUR",
-                            "amount": "123"
-                          },
-                          "balanceType": "closingBooked",
-                          "lastChangeDateTime": "2019-01-28T13:32:26.290Z",
-                          "referenceDate": "string",
-                          "lastCommittedTransaction": "string"
-                        }
-                      ],
-                      "_links": {
-                        "download": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                      }
-                    }"""),
+  "balances" : "",
+  "_links" : {
+    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "cardTransactions" : {
+    "booked" : "",
+    "_links" : {
+      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "pending" : ""
+  },
+  "cardAccount" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  }
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
@@ -779,11 +620,12 @@ This account-id then can be retrieved by the
      resourceDocs += ResourceDoc(
        getConsentAuthorisation, 
        apiVersion, 
-       "getConsentAuthorisation",
+       nameOf(getConsentAuthorisation),
        "GET", 
        "/v1/consents/CONSENTID/authorisations", 
        "Get Consent Authorisation Sub-Resources Request",
-       """Return a list of all authorisation subresources IDs which have been created.
+       s"""${dummyDataText(true)}
+            Return a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """, 
@@ -812,11 +654,12 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      resourceDocs += ResourceDoc(
        getConsentInformation, 
        apiVersion, 
-       "getConsentInformation",
+       nameOf(getConsentInformation),
        "GET", 
        "/v1/consents/CONSENTID", 
        "Get Consent Request",
-       """Returns the content of an account information consent object. 
+       s"""${dummyDataText(true)}
+            Returns the content of an account information consent object. 
 This is returning the data for the TPP especially in cases, 
 where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
 """, 
@@ -951,11 +794,12 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
      resourceDocs += ResourceDoc(
        getConsentScaStatus, 
        apiVersion, 
-       "getConsentScaStatus",
+       nameOf(getConsentScaStatus),
        "GET", 
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the consent authorisation.",
-       """This method returns the SCA status of a consent initiation's authorisation sub-resource.
+       s"""${dummyDataText(true)}
+            This method returns the SCA status of a consent initiation's authorisation sub-resource.
 """, 
        json.parse(""""""),
        json.parse("""{
@@ -982,11 +826,12 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
      resourceDocs += ResourceDoc(
        getConsentStatus, 
        apiVersion, 
-       "getConsentStatus",
+       nameOf(getConsentStatus),
        "GET", 
        "/v1/consents/CONSENTID/status", 
        "Consent status request",
-       """Read the status of an account information consent resource.""", 
+       s"""${dummyDataText(true)}
+            Read the status of an account information consent resource.""", 
        json.parse(""""""),
        json.parse("""{
   "consentStatus" : { }
@@ -1012,11 +857,12 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
      resourceDocs += ResourceDoc(
        getTransactionDetails, 
        apiVersion, 
-       "getTransactionDetails",
+       nameOf(getTransactionDetails),
        "GET", 
        "/v1/accounts/ACCOUNT_ID/transactions/RESOURCEID", 
        "Read Transaction Details",
-       """Reads transaction details from a given transaction addressed by "resourceId" on a given account addressed by "account-id". 
+       s"""${dummyDataText(true)}
+            Reads transaction details from a given transaction addressed by "resourceId" on a given account addressed by "account-id". 
 This call is only available on transactions as reported in a JSON format.
 
 **Remark:** Please note that the PATH might be already given in detail by the corresponding entry of the response of the 
@@ -1127,11 +973,12 @@ This call is only available on transactions as reported in a JSON format.
      resourceDocs += ResourceDoc(
        getTransactionList, 
        apiVersion, 
-       "getTransactionList",
+       nameOf(getTransactionList),
        "GET", 
        "/v1/accounts/ACCOUNT_ID/transactions/", 
        "Read transaction list of an account",
-       """Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter 
+       s"""${dummyDataText(false)}
+            Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter 
 "bookingStatus" together with balances.
 
 For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo". 
@@ -1139,162 +986,33 @@ The ASPSP might add balance information, if transaction lists without balances a
 """, 
        json.parse(""""""),
        json.parse("""{
-                      "account": {
-                        "iban": "FR7612345987650123456789014",
-                        "bban": "BARC12345612345678",
-                        "pan": "5409050000000000",
-                        "maskedPan": "123456xxxxxx1234",
-                        "msisdn": "+49 170 1234567",
-                        "currency": "EUR"
-                      },
-                      "transactions": {
-                        "booked": [
-                          {
-                            "transactionId": "string",
-                            "entryReference": "string",
-                            "endToEndId": "string",
-                            "mandateId": "string",
-                            "checkId": "string",
-                            "creditorId": "string",
-                            "bookingDate": "string",
-                            "valueDate": "string",
-                            "transactionAmount": {
-                              "currency": "EUR",
-                              "amount": "123"
-                            },
-                            "exchangeRate": [
-                              {
-                                "sourceCurrency": "EUR",
-                                "rate": "string",
-                                "unitCurrency": "string",
-                                "targetCurrency": "EUR",
-                                "rateDate": "string",
-                                "rateContract": "string"
-                              }
-                            ],
-                            "creditorName": "Creditor Name",
-                            "creditorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateCreditor": "Ultimate Creditor",
-                            "debtorName": "Debtor Name",
-                            "debtorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateDebtor": "Ultimate Debtor",
-                            "remittanceInformationUnstructured": "string",
-                            "remittanceInformationStructured": "string",
-                            "purposeCode": "BKDF",
-                            "bankTransactionCode": "PMNT-RCDT-ESCT",
-                            "proprietaryBankTransactionCode": "string",
-                            "_links": {
-                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                            }
-                          }
-                        ],
-                        "pending": [
-                          {
-                            "transactionId": "string",
-                            "entryReference": "string",
-                            "endToEndId": "string",
-                            "mandateId": "string",
-                            "checkId": "string",
-                            "creditorId": "string",
-                            "bookingDate": "string",
-                            "valueDate": "string",
-                            "transactionAmount": {
-                              "currency": "EUR",
-                              "amount": "123"
-                            },
-                            "exchangeRate": [
-                              {
-                                "sourceCurrency": "EUR",
-                                "rate": "string",
-                                "unitCurrency": "string",
-                                "targetCurrency": "EUR",
-                                "rateDate": "string",
-                                "rateContract": "string"
-                              }
-                            ],
-                            "creditorName": "Creditor Name",
-                            "creditorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateCreditor": "Ultimate Creditor",
-                            "debtorName": "Debtor Name",
-                            "debtorAccount": {
-                              "iban": "FR7612345987650123456789014",
-                              "bban": "BARC12345612345678",
-                              "pan": "5409050000000000",
-                              "maskedPan": "123456xxxxxx1234",
-                              "msisdn": "+49 170 1234567",
-                              "currency": "EUR"
-                            },
-                            "ultimateDebtor": "Ultimate Debtor",
-                            "remittanceInformationUnstructured": "string",
-                            "remittanceInformationStructured": "string",
-                            "purposeCode": "BKDF",
-                            "bankTransactionCode": "PMNT-RCDT-ESCT",
-                            "proprietaryBankTransactionCode": "string",
-                            "_links": {
-                              "transactionDetails": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                              "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                            }
-                          }
-                        ],
-                        "_links": {
-                          "account": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "first": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "next": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "previous": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "last": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                          "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                        }
-                      },
-                      "balances": [
-                        {
-                          "balanceAmount": {
-                            "currency": "EUR",
-                            "amount": "123"
-                          },
-                          "balanceType": "closingBooked",
-                          "lastChangeDateTime": "2019-01-28T13:32:26.290Z",
-                          "referenceDate": "string",
-                          "lastCommittedTransaction": "string"
-                        }
-                      ],
-                      "_links": {
-                        "download": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp1": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp2": "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-                        "additionalProp3": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-                      }
-                    }"""),
+  "balances" : "",
+  "_links" : {
+    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+  },
+  "transactions" : {
+    "booked" : "",
+    "_links" : {
+      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "account" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
+      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    },
+    "pending" : ""
+  },
+  "account" : {
+    "bban" : "BARC12345612345678",
+    "maskedPan" : "123456xxxxxx1234",
+    "iban" : "FR7612345987650123456789014",
+    "currency" : "EUR",
+    "msisdn" : "+49 170 1234567",
+    "pan" : "5409050000000000"
+  }
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       AccountInformationServiceAISApi :: Nil
+       AccountInformationServiceAISApi :: apiTagDummyData :: Nil
      )
 
      lazy val getTransactionList : OBPEndpoint = {
@@ -1335,11 +1053,12 @@ The ASPSP might add balance information, if transaction lists without balances a
      resourceDocs += ResourceDoc(
        readAccountDetails, 
        apiVersion, 
-       "readAccountDetails",
+       nameOf(readAccountDetails),
        "GET", 
        "/v1/accounts/ACCOUNT_ID", 
        "Read Account Details",
-       """Reads details about an account, with balances where required. 
+       s"""${dummyDataText(true)}
+            Reads details about an account, with balances where required. 
 It is assumed that a consent of the PSU to 
 this access is already given and stored on the ASPSP system. 
 The addressed details of this account depends then on the stored consent addressed by consentId, 
@@ -1411,11 +1130,12 @@ Give detailed information about the addressed account together with balance info
      resourceDocs += ResourceDoc(
        readCardAccount, 
        apiVersion, 
-       "readCardAccount",
+       nameOf(readCardAccount),
        "GET", 
        "/card-accounts/ACCOUNT_ID", 
        "Reads details about a card account",
-       """Reads details about a card account. 
+       s"""${dummyDataText(true)}
+            Reads details about a card account. 
 It is assumed that a consent of the PSU to this access is already given 
 and stored on the ASPSP system. The addressed details of this account depends 
 then on the stored consent addressed by consentId, respectively the OAuth2 
@@ -1478,11 +1198,12 @@ access token.
      resourceDocs += ResourceDoc(
        startConsentAuthorisation, 
        apiVersion, 
-       "startConsentAuthorisation",
+       nameOf(startConsentAuthorisation),
        "POST", 
        "/v1/consents/CONSENTID/authorisations", 
        "Start the authorisation process for a consent",
-       """Create an authorisation sub-resource and start the authorisation process of a consent. 
+       s"""${dummyDataText(true)}
+            Create an authorisation sub-resource and start the authorisation process of a consent. 
 The message might in addition transmit authentication and authorisation related data.
 
 his method is iterated n times for a n times SCA authorisation in a 
@@ -1581,11 +1302,12 @@ This applies in the following scenarios:
      resourceDocs += ResourceDoc(
        updateConsentsPsuData, 
        apiVersion, 
-       "updateConsentsPsuData",
+       nameOf(updateConsentsPsuData),
        "PUT", 
        "/v1/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for consents",
-       """This method update PSU data on the consents  resource if needed. 
+       s"""${dummyDataText(true)}
+            This method update PSU data on the consents  resource if needed. 
 It may authorise a consent within the Embedded SCA Approach where needed.
 
 Independently from the SCA Approach it supports e.g. the selection of 

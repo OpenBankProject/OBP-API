@@ -2397,8 +2397,6 @@ Returns a string showed to the developer
     */
   def generateUUID(): String = UUID.randomUUID().toString
   
-  def onlyReturnsDummyData(obpEndpoint: OBPEndpoint, resourceDocs: ArrayBuffer[ResourceDoc]) = resourceDocs.find(_.partialFunction == obpEndpoint).map(_.tags.contains(apiTagDummyData)).getOrElse(false)
-    
-  def dummyDataText(obpEndpoint: OBPEndpoint, resourceDocs: ArrayBuffer[ResourceDoc]) = if (onlyReturnsDummyData(obpEndpoint, resourceDocs)) "This endpoint currently only returns example data. " else ""
+  def dummyDataText(isDummyData: Boolean) = if (isDummyData) "This endpoint currently only returns example data." else ""
 
 }
