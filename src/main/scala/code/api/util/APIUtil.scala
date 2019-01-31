@@ -2397,6 +2397,6 @@ Returns a string showed to the developer
     */
   def generateUUID(): String = UUID.randomUUID().toString
   
-  def dummyDataText(isDummyData: Boolean) = if (isDummyData) "This endpoint currently only returns example data." else ""
+  def dummyDataText(isDummyData: Boolean) = if (isDummyData) "**NOTE: This endpoint currently only returns example data.**" else "**NOTE: This endpoint returns OBP data.**"
 
 }
