@@ -2343,7 +2343,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)("", u.userId, createProductEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductJsonV310]
@@ -2364,7 +2364,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory220.createProductJson(success), HttpCode.`200`(callContext))
+            (JSONFactory220.createProductJson(success), HttpCode.`201`(callContext))
           }
           
       }
