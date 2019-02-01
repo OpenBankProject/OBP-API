@@ -11,6 +11,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_1_0.JSONFactory210
+import code.api.v2_2_0.{JSONFactory220, ProductJsonV220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -2304,6 +2305,77 @@ trait APIMethods310 {
           }
       }
     }
+
+    
+    
+    val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
+    val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
+
+    resourceDocs += ResourceDoc(
+      createProduct,
+      implementedInApiVersion,
+      "createProduct",
+      "PUT",
+      "/banks/BANK_ID/products/CODE",
+      "Create Product",
+      s"""Create or Update Product for the Bank.
+         |
+         |${authenticationRequiredMessage(true) }
+         |
+         |$createProductEntitlementsRequiredText
+         |""",
+      productJsonV310,
+      productJsonV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagProduct),
+      Some(List(canCreateProduct, canCreateProductAtAnyBank))
+    )
+
+    lazy val createProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)("", u.userId, createProductEntitlements)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
+            product <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductJsonV310]
+            }
+            success <- Future(Connector.connector.vend.createOrUpdateProduct(
+              bankId = product.bank_id,
+              code = productCode.value,
+              name = product.name,
+              category = product.category,
+              family = product.family,
+              superFamily = product.super_family,
+              moreInfoUrl = product.more_info_url,
+              details = product.details,
+              description = product.description,
+              metaLicenceId = product.meta.license.id,
+              metaLicenceName = product.meta.license.name
+            )) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+          } yield {
+            (JSONFactory220.createProductJson(success), HttpCode.`200`(callContext))
+          }
+          
+      }
+    }
+    
+    
+    
+    
+    
+    
+    
 
   }
 }

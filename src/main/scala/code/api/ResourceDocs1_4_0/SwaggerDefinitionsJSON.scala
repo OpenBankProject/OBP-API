@@ -2318,6 +2318,17 @@ object SwaggerDefinitionsJSON {
     description = "Description",
     meta = metaJson
   )
+  val productJsonV310 = ProductJsonV310(
+    bank_id = "bankid123",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
+    meta = metaJson
+  )
 
 
 

@@ -35,7 +35,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson}
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
@@ -356,6 +356,16 @@ case class AccountApplicationsJsonV310(account_applications: List[AccountApplica
 
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
+
+case class ProductJsonV310(bank_id: String,
+                           name : String,
+                           category: String,
+                           family : String,
+                           super_family : String,
+                           more_info_url: String,
+                           details: String,
+                           description: String,
+                           meta : MetaJsonV140)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
