@@ -39,10 +39,11 @@ import code.api._
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages, Migration}
+import code.api.util._
 import code.atms.MappedAtm
 import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
+import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
@@ -482,6 +483,8 @@ class Boot extends MdcLoggable {
     }
 
     Migration.database.generateAndPopulateMissingConsumersUUIDs()
+
+    Glossary.glossaryItems
 
   }
 

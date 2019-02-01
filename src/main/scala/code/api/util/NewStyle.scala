@@ -141,7 +141,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createAccountApplication), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAccountApplications), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAccountApplication), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateAccountApplicationStatus), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateAccountApplicationStatus), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createProduct), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -261,6 +262,7 @@ object NewStyle {
                               postcode: String,
                               countryCode: String,
                               status: String,
+                              tags: String,
                               callContext: Option[CallContext]): OBPReturnType[CustomerAddress] = {
       Connector.connector.vend.createCustomerAddress(
         customerId,
@@ -272,6 +274,7 @@ object NewStyle {
         state,
         postcode,
         countryCode,
+        tags,
         status,
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
