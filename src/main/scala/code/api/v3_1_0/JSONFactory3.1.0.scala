@@ -35,7 +35,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson}
+import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
@@ -279,32 +279,34 @@ case class EntitlementJSonsV310(list: List[EntitlementJsonV310])
 
 
 case class PostCustomerAddressJsonV310(
-                                line_1: String,
-                                line_2: String,
-                                line_3: String,
-                                city: String,
-                                county: String,
-                                state: String,
-                                postcode: String,
-                                //ISO_3166-1_alpha-2
-                                country_code: String,
-                                status: String
+                                        line_1: String,
+                                        line_2: String,
+                                        line_3: String,
+                                        city: String,
+                                        county: String,
+                                        state: String,
+                                        postcode: String,
+                                        //ISO_3166-1_alpha-2
+                                        country_code: String,
+                                        tags: List[String],
+                                        status: String
                               )
 
 case class CustomerAddressJsonV310(
-                            customer_address_id: String,
-                            customer_id: String,
-                            line_1: String,
-                            line_2: String,
-                            line_3: String,
-                            city: String,
-                            county: String,
-                            state: String,
-                            postcode: String,
-                            //ISO_3166-1_alpha-2
-                            country_code: String,
-                            status: String,
-                            insert_date: Date
+                                    customer_address_id: String,
+                                    customer_id: String,
+                                    line_1: String,
+                                    line_2: String,
+                                    line_3: String,
+                                    city: String,
+                                    county: String,
+                                    state: String,
+                                    postcode: String,
+                                    //ISO_3166-1_alpha-2
+                                    country_code: String,
+                                    tags: List[String],
+                                    status: String,
+                                    insert_date: Date
                           )
 case class CustomerAddressesJsonV310(addresses: List[CustomerAddressJsonV310])
 case class ObpApiLoopbackJson(
@@ -354,6 +356,16 @@ case class AccountApplicationsJsonV310(account_applications: List[AccountApplica
 
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
+
+case class ProductJsonV310(bank_id: String,
+                           name : String,
+                           category: String,
+                           family : String,
+                           super_family : String,
+                           more_info_url: String,
+                           details: String,
+                           description: String,
+                           meta : MetaJsonV140)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -545,6 +557,7 @@ object JSONFactory310{
       state = address.state,
       postcode = address.postcode,
       country_code = address.countryCode,
+      tags = address.tags.split(",").toList,
       status = address.status,
       insert_date = address.insertDate
     )
