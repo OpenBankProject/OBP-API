@@ -2333,6 +2333,16 @@ trait APIMethods310 {
       "Create Product",
       s"""Create or Update Product for the Bank.
          |
+         |
+         |Typical Super Family values / Asset classes are:
+         |
+         |Debt
+         |Equity
+         |FX
+         |Commodity
+         |Derivative
+         |
+         |
          |${authenticationRequiredMessage(true) }
          |
          |$createProductEntitlementsRequiredText
