@@ -56,6 +56,41 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
         Failure(ErrorMessages.UnknownError)
     }
   }
+  override def updateAddress(customerAddressId: String,
+                             line1: String,
+                             line2: String,
+                             line3: String,
+                             city: String,
+                             county: String,
+                             state: String,
+                             postcode: String,
+                             countryCode: String,
+                             tags: String,
+                             status: String
+                ): Future[Box[CustomerAddress]] = Future {
+    val id: Box[MappedCustomerAddress] = MappedCustomerAddress.find(By(MappedCustomerAddress.mCustomerAddressId, customerAddressId))
+    id match {
+      case Full(address) =>
+        tryo(address
+          .mLine1(line1)
+          .mLine2(line2)
+          .mLine3(line3)
+          .mCity(city)
+          .mCounty(county)
+          .mState(state)
+          .mCountryCode(countryCode)
+          .mPostCode(postcode)
+          .mStatus(status)
+          .mTags(tags)
+          .saveMe())
+      case Empty =>
+        Empty ?~! ErrorMessages.CustomerAddressNotFound
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+  }
   
   override def deleteAddress(customerAddressId: String): Future[Box[Boolean]] = Future {
     MappedCustomerAddress.find(By(MappedCustomerAddress.mCustomerAddressId, customerAddressId)) match {

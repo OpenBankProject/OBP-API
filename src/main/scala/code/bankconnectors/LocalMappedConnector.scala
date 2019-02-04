@@ -1869,6 +1869,32 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       status) map {
       (_, callContext)
     }
+  override def updateCustomerAddress(customerAddressId: String,
+                                     line1: String,
+                                     line2: String,
+                                     line3: String,
+                                     city: String,
+                                     county: String,
+                                     state: String,
+                                     postcode: String,
+                                     countryCode: String,
+                                     tags: String,
+                                     status: String,
+                                     callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] =
+    CustomerAddress.address.vend.updateAddress(
+      customerAddressId,
+      line1,
+      line2,
+      line3,
+      city,
+      county,
+      state,
+      postcode,
+      countryCode,
+      tags,
+      status) map {
+      (_, callContext)
+    }
   override def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
     CustomerAddress.address.vend.deleteAddress(customerAddressId) map {
       (_, callContext)
