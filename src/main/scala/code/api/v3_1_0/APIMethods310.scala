@@ -29,7 +29,7 @@ import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -2428,9 +2428,18 @@ trait APIMethods310 {
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostPutProductJsonV310]
             }
+            parentProductCode <- product.parent_product_code.nonEmpty match {
+              case false => 
+                Future(Empty)
+              case true =>
+                Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
+                  getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                }
+            }
             success <- Future(Connector.connector.vend.createOrUpdateProduct(
               bankId = product.bank_id,
               code = productCode.value,
+              parentProductCode = parentProductCode.map(_.code.value).toOption,
               name = product.name,
               category = product.category,
               family = product.family,
@@ -2444,7 +2453,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory220.createProductJson(success), HttpCode.`201`(callContext))
+            (JSONFactory310.createProductJson(success), HttpCode.`201`(callContext))
           }
           
       }

@@ -613,6 +613,7 @@ trait APIMethods220 {
             success <- Connector.connector.vend.createOrUpdateProduct(
                 bankId = product.bank_id,
                 code = product.code,
+                parentProductCode = None, 
                 name = product.name,
                 category = product.category,
                 family = product.family,

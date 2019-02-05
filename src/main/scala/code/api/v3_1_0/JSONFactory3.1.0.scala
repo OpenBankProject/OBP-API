@@ -361,6 +361,7 @@ case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_av
 
 case class PostPutProductJsonV310(bank_id: String,
                                   name : String,
+                                  parent_product_code : String,
                                   category: String,
                                   family : String,
                                   super_family : String,
@@ -659,17 +660,17 @@ object JSONFactory310{
   }
   def createProductJson(product: Product) : ProductJsonV310 = {
     ProductJsonV310(
-      product.bankId.toString,
-      product.code.value,
-      product.parentProductCode.value,
-      product.name,
-      product.category,
-      product.family,
-      product.superFamily,
-      product.moreInfoUrl,
-      product.details,
-      product.description,
-      createMetaJson(product.meta))
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      category = product.category,
+      family = product.family,
+      super_family = product.superFamily,
+      more_info_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta))
   }
 
 }
