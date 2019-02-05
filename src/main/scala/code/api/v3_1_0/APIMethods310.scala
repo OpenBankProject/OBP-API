@@ -1737,6 +1737,63 @@ trait APIMethods310 {
     }
 
 
+
+    resourceDocs += ResourceDoc(
+      updateCustomerAddress,
+      implementedInApiVersion,
+      nameOf(updateCustomerAddress),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/address/CUSTOMER_ADDRESS_ID",
+      "Update the Address of an Customer",
+      s"""Update an Address of the Customer specified by CUSTOMER_ADDRESS_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      postCustomerAddressJsonV310,
+      customerAddressJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val updateCustomerAddress : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" :: customerAddressId ::  Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateCustomer)(bankId.value, u.userId, canCreateCustomer)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerAddressJsonV310 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerAddressJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (address, callContext) <- NewStyle.function.updateCustomerAddress(
+              customerAddressId,
+              postedData.line_1,
+              postedData.line_2,
+              postedData.line_3,
+              postedData.city,
+              postedData.county,
+              postedData.state,
+              postedData.postcode,
+              postedData.country_code,
+              postedData.state,
+              postedData.tags.mkString(","),
+              callContext)
+          } yield {
+            (JSONFactory310.createAddress(address), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
     resourceDocs += ResourceDoc(
       getCustomerAddresses,
       implementedInApiVersion,
@@ -2366,7 +2423,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)("", u.userId, createProductEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductJsonV310]
@@ -2387,7 +2444,7 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory220.createProductJson(success), HttpCode.`200`(callContext))
+            (JSONFactory220.createProductJson(success), HttpCode.`201`(callContext))
           }
           
       }
