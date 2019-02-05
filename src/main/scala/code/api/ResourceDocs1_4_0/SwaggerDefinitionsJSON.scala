@@ -2318,7 +2318,7 @@ object SwaggerDefinitionsJSON {
     description = "Description",
     meta = metaJson
   )
-  val productJsonV310 = ProductJsonV310(
+  val postPutProductJsonV310 = PostPutProductJsonV310(
     bank_id = "bankid123",
     name = "product name",
     category = "category",

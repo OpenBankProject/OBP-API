@@ -59,14 +59,15 @@ class ProductTest extends V310ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProduct))
-  
-  val postPutProductJsonV310 = SwaggerDefinitionsJSON.productJsonV310
-  lazy val bankId = randomBankId
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getProduct))
+
+  lazy val testBankId = randomBankId
+  lazy val postPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId)
 
   feature("Create Product v3.1.0") {
     scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "products" / "CODE").PUT
+      val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT
       val response310 = makePutRequest(request310, write(postPutProductJsonV310))
       Then("We should get a 400")
       response310.code should equal(400)
@@ -75,7 +76,7 @@ class ProductTest extends V310ServerSetup {
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "products" / "CODE").PUT <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
       val response310 = makePutRequest(request310, write(postPutProductJsonV310))
       Then("We should get a 403")
       response310.code should equal(403)
@@ -85,10 +86,10 @@ class ProductTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
     }
 
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateProduct.toString)
+    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
       When("We try to create a product v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "products" / "CODE").PUT <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
       val response310 = makePutRequest(request310, write(postPutProductJsonV310))
       Then("We should get a 201")
       response310.code should equal(201)
@@ -102,6 +103,13 @@ class ProductTest extends V310ServerSetup {
       product.more_info_url shouldBe postPutProductJsonV310.more_info_url
       product.details shouldBe postPutProductJsonV310.details
       product.description shouldBe postPutProductJsonV310.description
+
+
+      val requestGet310 = (v3_1_0_Request / "banks" / product.bank_id / "products" / product.code ).GET <@(user1)
+      val responseGet310 = makeGetRequest(requestGet310)
+      Then("We should get a 200")
+      responseGet310.code should equal(200)
+      responseGet310.body.extract[ProductJsonV310]
     }
   }
 

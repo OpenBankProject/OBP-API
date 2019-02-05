@@ -2404,7 +2404,7 @@ trait APIMethods310 {
          |
          |$createProductEntitlementsRequiredText
          |""",
-      productJsonV310,
+      postPutProductJsonV310,
       productJsonV220,
       List(
         UserNotLoggedIn,
@@ -2426,7 +2426,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[ProductJsonV310]
+              json.extract[PostPutProductJsonV310]
             }
             success <- Future(Connector.connector.vend.createOrUpdateProduct(
               bankId = product.bank_id,
@@ -2449,9 +2449,60 @@ trait APIMethods310 {
           
       }
     }
+
+
+    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
     
-    
-    
+    resourceDocs += ResourceDoc(
+      getProduct,
+      implementedInApiVersion,
+      "getProduct",
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
+         |
+         |* Name
+         |* Code
+         |* Category
+         |* Family
+         |* Super Family
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+      emptyObjectJson,
+      productJsonV210,
+      List(
+        UserNotLoggedIn,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagProduct)
+    )
+
+    lazy val getProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (user, callContext) <- 
+              getProductsIsPublic match {
+                case true => authorizeEndpoint(UserNotLoggedIn, cc)
+                case false => Future((None, Some(cc)))
+              }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
+            }
+          } yield {
+            org.scalameta.logger.elem(product)
+            (JSONFactory310.createProductJson(product), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
     
     
     

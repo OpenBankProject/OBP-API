@@ -194,7 +194,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           // Implementations2_1_0.getAtm :: //now in V300
                           // Implementations2_1_0.getBranch :: //now in V300
                           Implementations2_1_0.updateBranch ::
-                          Implementations2_1_0.getProduct ::
+                          // Implementations2_1_0.getProduct ::
                           Implementations2_1_0.getProducts ::
                           // Implementations2_1_0.createCustomer ::
                           Implementations2_1_0.getCustomersForCurrentUserAtBank ::
@@ -325,6 +325,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.updateAccountApplicationStatus ::
                           Implementations3_1_0.createProduct ::
                           Implementations3_1_0.updateCustomerAddress ::
+                          Implementations3_1_0.getProduct ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
