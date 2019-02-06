@@ -380,6 +380,7 @@ case class ProductJsonV310(bank_id: String,
                            details: String,
                            description: String,
                            meta : MetaJsonV140)
+case class ProductsJsonV310 (products : List[ProductJsonV310])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -671,6 +672,9 @@ object JSONFactory310{
       details = product.details,
       description = product.description,
       meta = createMetaJson(product.meta))
+  }
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV310 = {
+    ProductsJsonV310(productsList.map(createProductJson))
   }
 
 }

@@ -59,6 +59,7 @@ class ProductTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProduct))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getProduct))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getProducts))
 
   lazy val testBankId = randomBankId
   lazy val parentPostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId, parent_product_code ="")
@@ -85,7 +86,7 @@ class ProductTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
     }
 
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       // Create
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
       When("We try to create a product v3.1.0")
@@ -130,6 +131,15 @@ class ProductTest extends V310ServerSetup {
       childProduct.more_info_url shouldBe childPostPutProductJsonV310.more_info_url
       childProduct.details shouldBe childPostPutProductJsonV310.details
       childProduct.description shouldBe childPostPutProductJsonV310.description
+
+
+      // Get
+      val requestGetAll310 = (v3_1_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
+      val responseGetAll310 = makeGetRequest(requestGetAll310)
+      Then("We should get a 200")
+      responseGetAll310.code should equal(200)
+      val products: ProductsJsonV310 = responseGetAll310.body.extract[ProductsJsonV310]
+      products.products.size shouldBe 2
     }
   }
 
