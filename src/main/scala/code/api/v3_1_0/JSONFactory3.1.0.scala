@@ -27,32 +27,33 @@ Berlin 13359, Germany
 package code.api.v3_1_0
 
 import java.lang
-import java.util.{Date, Objects}
+import java.util.Date
 
 import code.accountapplication.AccountApplication
-import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
-import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
+import code.api.v2_1_0.JSONFactory210.createLicenseJson
+import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
-import code.common.Address
+import code.common.Meta
+import code.context.UserAuthContext
+import code.customer.Customer
+import code.customeraddress.CustomerAddress
+import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
+import code.productattribute.ProductAttribute.ProductAttribute
+import code.products.Products.Product
+import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-import code.customer.Customer
-import code.context.UserAuthContext
-import code.entitlement.Entitlement
-import code.model.dataAccess.ResourceUser
-import code.productattribute.ProductAttribute.ProductAttribute
-import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,
@@ -357,7 +358,19 @@ case class AccountApplicationsJsonV310(account_applications: List[AccountApplica
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
+case class PostPutProductJsonV310(bank_id: String,
+                                  name : String,
+                                  parent_product_code : String,
+                                  category: String,
+                                  family : String,
+                                  super_family : String,
+                                  more_info_url: String,
+                                  details: String,
+                                  description: String,
+                                  meta : MetaJsonV140)
 case class ProductJsonV310(bank_id: String,
+                           code : String,
+                           parent_product_code : String,
                            name : String,
                            category: String,
                            family : String,
@@ -366,6 +379,7 @@ case class ProductJsonV310(bank_id: String,
                            details: String,
                            description: String,
                            meta : MetaJsonV140)
+case class ProductsJsonV310 (products : List[ProductJsonV310])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -639,6 +653,27 @@ object JSONFactory310{
       createAccountApplicationJson(x, user, customer)
     }
     AccountApplicationsJsonV310(applicationList)
+  }
+
+  def createMetaJson(meta: Meta) : MetaJsonV140 = {
+    MetaJsonV140(createLicenseJson(meta.license))
+  }
+  def createProductJson(product: Product) : ProductJsonV310 = {
+    ProductJsonV310(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      category = product.category,
+      family = product.family,
+      super_family = product.superFamily,
+      more_info_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta))
+  }
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV310 = {
+    ProductsJsonV310(productsList.map(createProductJson))
   }
 
 }

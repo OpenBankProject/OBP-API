@@ -36,6 +36,7 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+
 import scala.language.postfixOps
 
 class UserAuthContextTest extends V310ServerSetup {

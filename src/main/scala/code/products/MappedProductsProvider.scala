@@ -29,6 +29,7 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 
   object mBankId extends UUIDString(this) // combination of this
   object mCode extends MappedString(this, 50)   // and this is unique
+  object mParentProductCode extends MappedString(this, 50)   // and this is unique
 
   object mName extends MappedString(this, 125)
 
@@ -50,6 +51,7 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   override def bankId: BankId = BankId(mBankId.get)
 
   override def code: ProductCode = ProductCode(mCode.get)
+  override def parentProductCode: ProductCode = ProductCode(mParentProductCode.get)
   override def name: String = mName.get
 
   override def category: String = mCategory.get

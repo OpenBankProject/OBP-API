@@ -1482,6 +1482,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def createOrUpdateProduct(bankId : String,
                                      code : String,
+                                     parentProductCode : Option[String],
                                      name : String,
                                      category : String,
                                      family : String,
@@ -1496,6 +1497,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getProduct(BankId(bankId), ProductCode(code)) match {
       case Full(mappedProduct) =>
         tryo {
+          parentProductCode match {
+            case Some(ppc) => mappedProduct.mParentProductCode(ppc)
+            case None =>
+          }
           mappedProduct.mName(name)
           .mCode (code)
           .mBankId(bankId)
@@ -1512,8 +1517,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         } ?~! ErrorMessages.UpdateProductError
       case _ =>
         tryo {
-          MappedProduct.create
-            .mName(name)
+          val product = MappedProduct.create
+          product.mName(name)
             .mCode (code)
             .mBankId(bankId)
             .mName(name)
@@ -1525,7 +1530,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mDescription(description)
             .mLicenseId(metaLicenceId)
             .mLicenseName(metaLicenceName)
-            .saveMe()
+          parentProductCode match {
+            case Some(ppc) => product.mParentProductCode(ppc)
+            case None =>
+          }
+          product.saveMe()
         } ?~! ErrorMessages.CreateProductError
     }
 

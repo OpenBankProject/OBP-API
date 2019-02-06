@@ -11,7 +11,6 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_1_0.JSONFactory210
-import code.api.v2_2_0.{JSONFactory220, ProductJsonV220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -29,7 +28,7 @@ import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -2404,7 +2403,7 @@ trait APIMethods310 {
          |
          |$createProductEntitlementsRequiredText
          |""",
-      productJsonV310,
+      postPutProductJsonV310,
       productJsonV220,
       List(
         UserNotLoggedIn,
@@ -2426,11 +2425,20 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
             failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[ProductJsonV310]
+              json.extract[PostPutProductJsonV310]
+            }
+            parentProductCode <- product.parent_product_code.nonEmpty match {
+              case false => 
+                Future(Empty)
+              case true =>
+                Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
+                  getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                }
             }
             success <- Future(Connector.connector.vend.createOrUpdateProduct(
               bankId = product.bank_id,
               code = productCode.value,
+              parentProductCode = parentProductCode.map(_.code.value).toOption,
               name = product.name,
               category = product.category,
               family = product.family,
@@ -2444,16 +2452,115 @@ trait APIMethods310 {
               unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
             }
           } yield {
-            (JSONFactory220.createProductJson(success), HttpCode.`201`(callContext))
+            (JSONFactory310.createProductJson(success), HttpCode.`201`(callContext))
           }
           
       }
     }
+
+
+    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
     
-    
-    
-    
-    
+    resourceDocs += ResourceDoc(
+      getProduct,
+      implementedInApiVersion,
+      "getProduct",
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
+         |
+         |* Name
+         |* Code
+         |* Category
+         |* Family
+         |* Super Family
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+      emptyObjectJson,
+      productJsonV210,
+      List(
+        UserNotLoggedIn,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagProduct)
+    )
+
+    lazy val getProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (_, callContext) <- 
+              getProductsIsPublic match {
+                case true => authorizeEndpoint(UserNotLoggedIn, cc)
+                case false => Future((None, Some(cc)))
+              }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
+            }
+          } yield {
+            (JSONFactory310.createProductJson(product), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getProducts,
+      implementedInApiVersion,
+      "getProducts",
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Bank Products",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+         |
+         |* Name
+         |* Code
+         |* Category
+         |* Family
+         |* Super Family
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+      emptyObjectJson,
+      productsJsonV210,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagProduct)
+    )
+
+    lazy val getProducts : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (_, callContext) <-
+              getProductsIsPublic match {
+                case true => authorizeEndpoint(UserNotLoggedIn, cc)
+                case false => Future((None, Some(cc)))
+              }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            products <- Future(Connector.connector.vend.getProducts(bankId)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
+            }
+          } yield {
+            (JSONFactory310.createProductsJson(products), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
     
     
 
