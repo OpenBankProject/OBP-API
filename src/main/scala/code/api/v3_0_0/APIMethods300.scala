@@ -15,7 +15,6 @@ import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
 import code.atms.Atms.AtmId
 import code.bankconnectors._
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers

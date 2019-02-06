@@ -27,34 +27,33 @@ Berlin 13359, Germany
 package code.api.v3_1_0
 
 import java.lang
-import java.util.{Date, Objects}
+import java.util.Date
 
 import code.accountapplication.AccountApplication
-import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
-import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
+import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
-import code.common.{Address, Meta}
+import code.common.Meta
+import code.context.UserAuthContext
+import code.customer.Customer
+import code.customeraddress.CustomerAddress
+import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
+import code.productattribute.ProductAttribute.ProductAttribute
+import code.products.Products.Product
+import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-import code.customer.Customer
-import code.context.UserAuthContext
-import code.entitlement.Entitlement
-import code.model.dataAccess.ResourceUser
-import code.productattribute.ProductAttribute.ProductAttribute
-import code.products.Products.Product
-import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,

@@ -31,12 +31,11 @@ import java.util.Date
 
 import code.actorsystem.ObpActorConfig
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{AdapterImplementation, MessageDoc}
+import code.api.util.APIUtil.MessageDoc
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.atms.Atms.{Atm, AtmId, AtmT}
-import net.liftweb.json.JsonAST.JValue
 import code.branches.Branches._
 import code.common.{Address, Location, Meta}
 import code.customer.Customer
@@ -48,6 +47,7 @@ import code.model.{CounterpartyMetadata, _}
 import code.products.Products.Product
 import code.users.Users
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.List
 
