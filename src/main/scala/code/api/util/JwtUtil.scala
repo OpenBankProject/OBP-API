@@ -66,9 +66,8 @@ object JwtUtil {
     *
     * @return True or False
     */
-  def verifyHmacSignedJwt(jwtToken: String): Boolean = {
+  def verifyHmacSignedJwt(jwtToken: String, sharedSecret: String): Boolean = {
     val signedJWT = SignedJWT.parse(jwtToken)
-    val sharedSecret = APIUtil.getPropsValue("oauth2.token_secret", "")
     val verifier = new MACVerifier(sharedSecret)
     signedJWT.verify(verifier)
   }

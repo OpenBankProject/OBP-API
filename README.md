@@ -36,7 +36,7 @@ This project is dual licensed under the AGPL V3 (see NOTICE) and commercial lice
 
 The project uses Maven 3 as its build tool.
 
-To compile and run jetty, install Maven 3 and execute:
+To compile and run jetty, install Maven 3, create your configuration in src/main/resources/props/default.props and execute:
 
         ./mvn.sh jetty:run
 
@@ -452,31 +452,7 @@ You can obfuscate passwords in the props file the same way as for jetty:
    *  db.url=OBF:fdsafdsakwaetcetcetc
 
 ## Code Generation
-We support to generate the OBP-API code from the following three types of json. You can choose one of them as your own requirements. 
-
-    1 Choose one of the following types: type1 or type2 or type3
-    2 Modify the json file your selected,
-    3 Run the Main method according to your json file
-    4 Run/Restart OBP-API project.
-    5 Run API_Exploer project to test your new APIs. (click the Tag `APIBuilder B1)
-
-Here are the three types: 
-
-Type1: If you use `modelSource.json`, please run `APIBuilderModel.scala` main method
-```
-OBP-API/src/main/scala/code/api/APIBuilder/APIModelSource.json
-OBP-API/src/main/scala/code/api/APIBuilder/APIBuilderModel.scala
-```
-Type2: If you use `apisResource.json`, please run `APIBuilder.scala` main method
-```
-OBP-API/src/main/scala/code/api/APIBuilder/apiResourceDoc/apisResource.json
-OBP-API/src/main/scala/code/api/APIBuilder/apiResourceDoc/APIBuilder.scala
-```
-Type3: If you use `swaggerResource.json`, please run `APIBuilderSwagger.scala` main method
-```
-OBP-API/src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json
-OBP-API/src/main/scala/code/api/APIBuilder/swagger/APIBuilderSwagger.scala
-```
+Please refer to the [Code Generation](https://github.com/OpenBankProject/OBP-API/blob/develop/CONTRIBUTING.md##code-generation) for links
 
 ## Using jetty password obfuscation with props file
 
@@ -499,11 +475,12 @@ redis_port=YOUR_REDIS_PORT, In case isn't defined default value is 6379
 ```
 Next types are supported:
 ```
-1. per minute
-2. per hour
-3. per day
-4. per week
-5. per month
+1. per second
+2. per minute
+3. per hour
+4. per day
+5. per week
+6. per month
 ```    
 If you exced rate limit per minute for instance you will get the response:
 ```json
@@ -522,7 +499,7 @@ Description of the headers above:
 2. `X-Rate-Limit-Remaining` - The number of remaining requests in the current period
 3. `X-Rate-Limit-Reset` - The number of seconds left in the current period
 
-Please note that first will be checked `per minute` call limit then `per hour` etc.
+Please note that first will be checked `per second` call limit then `per minute` etc.
 
 Info about rate limiting availibility at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/root. Response we are interested in looks lke:
 ```json
@@ -547,6 +524,28 @@ There are 3 API's endpoint related to webhooks:
 1. `POST ../banks/BANK_ID/account-web-hooks` - Create an Account Webhook
 2. `PUT ../banks/BANK_ID/account-web-hooks` - Enable/Disable an Account Webhook
 3. `GET ../management/banks/BANK_ID/account-web-hooks` - Get Account Webhooks
+---
+## OAuth 2.0
+In order to enable an OAuth2 workflow at an instance of OBP-API backend app you need to setup next props:
+```
+# -- OAuth 2 ---------------------------------------------------------------
+# Enable/Disable OAuth 2 workflow at a server instance
+# In case isn't defined default value is false
+# allow_oauth2_login=false
+# URL of Public server JWK set used for validating bearer JWT access tokens
+# oauth2.jwk_set.url=http://localhost:8080/jwk.json
+# ----------------------------------------------------------- OAuth 2 ------
+
+OpenID Connect is supported.
+Tested Identity providers: Google, MITREId.
+
+```
+### Example for Google's OAuth 2.0 implementation for authentication, which conforms to the OpenID Connect specification
+```
+allow_oauth2_login=true
+oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs
+```
+---
    
 ## Scala / Lift
 

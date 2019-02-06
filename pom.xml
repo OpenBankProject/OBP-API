@@ -211,11 +211,6 @@
       <version>1.5.0</version>
     </dependency>
     <dependency>
-      <groupId>org.pegdown</groupId>
-      <artifactId>pegdown</artifactId>
-      <version>1.6.0</version>
-    </dependency>
-    <dependency>
       <groupId>com.tokbox</groupId>
       <artifactId>opentok-server-sdk</artifactId>
       <version>3.0.0-beta.2</version>
@@ -372,6 +367,11 @@
       <groupId>com.nimbusds</groupId>
       <artifactId>oauth2-oidc-sdk</artifactId>
       <version>5.17.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.vladsch.flexmark</groupId>
+      <artifactId>flexmark-all</artifactId>
+      <version>0.40.8</version>
     </dependency>
 
   </dependencies>

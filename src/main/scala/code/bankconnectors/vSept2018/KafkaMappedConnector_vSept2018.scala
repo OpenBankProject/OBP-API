@@ -183,6 +183,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     List(internalBasicCustomerExample),
     List(internalBasicUserExample)
   )
+  val accountRoutingExample = AccountRouting("AccountNumber",accountNumberExample.value)
   val authViewExample = AuthView(viewBasicExample, accountBasicExample)
   val authViewsExample = List(authViewExample)
   val basicCustomerExample = BasicCustomer(customerIdExample.value,customerNumberExample.value,legalNameExample.value)
@@ -920,20 +921,27 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     process = "obp.get.coreBankAccounts",
     messageFormat = messageFormat,
     description = "Get bank Accounts available to the User (without Metadata)",
-    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccountbyAccountID.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccountbyAccountID.getClass.getSimpleName).response),
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCoreBankAccounts.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCoreBankAccounts.getClass.getSimpleName).response),
     exampleOutboundMessage = decompose(
-      OutboundGetAccountbyAccountID(
+      OutboundGetCoreBankAccounts(
         authInfoExample,
-        bankIdExample.value,
-        accountIdExample.value
+        List(BankIdAccountId(BankId(bankIdExample.value),
+        AccountId(accountIdExample.value))
       )
-    ),
+    )),
     exampleInboundMessage = decompose(
-      InboundGetAccountbyAccountID(
+      InboundGetCoreBankAccounts(
         inboundAuthInfoExample,
-        statusExample, 
-        Some(inboundAccountSept2018Example))),
+        List(InternalInboundCoreAccount(
+          errorCodeExample, 
+          inboundStatusMessagesExample,
+          accountIdExample.value,
+          labelExample.value,
+          bankIdExample.value,
+          accountTypeExample.value,
+          List(accountRoutingExample)
+          )))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
   override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{

@@ -10,10 +10,11 @@ import scala.collection.immutable
 
 object RateLimitPeriod extends Enumeration {
   type LimitCallPeriod = Value
-  val PER_MINUTE, PER_HOUR, PER_DAY, PER_WEEK, PER_MONTH, PER_YEAR = Value
+  val PER_SECOND, PER_MINUTE, PER_HOUR, PER_DAY, PER_WEEK, PER_MONTH, PER_YEAR = Value
 
   def toSeconds(period: LimitCallPeriod): Long = {
     period match {
+      case PER_SECOND => 1
       case PER_MINUTE => 60
       case PER_HOUR   => 60 * 60
       case PER_DAY    => 60 * 60 * 24
@@ -25,6 +26,7 @@ object RateLimitPeriod extends Enumeration {
 
   def toString(period: LimitCallPeriod): String = {
     period match {
+      case PER_SECOND => "PER_SECOND"
       case PER_MINUTE => "PER_MINUTE"
       case PER_HOUR   => "PER_HOUR"
       case PER_DAY    => "PER_DAY"
@@ -35,6 +37,7 @@ object RateLimitPeriod extends Enumeration {
   }
   def humanReadable(period: LimitCallPeriod): String = {
     period match {
+      case PER_SECOND => "per second"
       case PER_MINUTE => "per minute"
       case PER_HOUR   => "per hour"
       case PER_DAY    => "per day"
@@ -170,6 +173,7 @@ object RateLimitUtil extends MdcLoggable {
     }
 
     if(isRedisAvailable()) {
+      getInfo(consumerKey, RateLimitPeriod.PER_SECOND) ::
       getInfo(consumerKey, RateLimitPeriod.PER_MINUTE) ::
       getInfo(consumerKey, RateLimitPeriod.PER_HOUR) ::
       getInfo(consumerKey, RateLimitPeriod.PER_DAY) ::

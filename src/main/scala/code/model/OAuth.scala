@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd
+Copyright (C) 2011-2018, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE Ltd
-Osloerstrasse 16/17
+TESOBE Ltd.
+Osloer Strasse 16/17
 Berlin 13359, Germany
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
 
- */
+  */
 package code.model
 import java.util.{Date, UUID}
 
@@ -230,17 +225,19 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   }
 
   override def updateConsumerCallLimits(id: Long,
+                                     perSecond: Option[String],
                                      perMinute: Option[String],
                                      perHour: Option[String],
                                      perDay: Option[String],
                                      perWeek: Option[String],
                                      perMonth: Option[String]): Future[Box[Consumer]] = {
     Future{
-      updateConsumerCallLimitsRemote(id, perMinute, perHour, perDay, perWeek, perMonth)
+      updateConsumerCallLimitsRemote(id, perSecond, perMinute, perHour, perDay, perWeek, perMonth)
     }
   }
 
   def updateConsumerCallLimitsRemote(id: Long,
+                                        perSecond: Option[String],
                                         perMinute: Option[String],
                                         perHour: Option[String],
                                         perDay: Option[String],
@@ -249,6 +246,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     val consumer = Consumer.find(By(Consumer.id, id))
     consumer match {
       case Full(c) => tryo {
+        perSecond match {
+          case Some(v) => c.perSecondCallLimit(v.toLong)
+          case None =>
+        }
         perMinute match {
           case Some(v) => c.perMinuteCallLimit(v.toLong)
           case None =>
@@ -432,6 +433,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   }
   object createdByUserId extends MappedString(this, 36)
 
+  object perSecondCallLimit extends MappedLong(this) {
+    override def defaultValue = -1
+  }
   object perMinuteCallLimit extends MappedLong(this) {
     override def defaultValue = -1
   }

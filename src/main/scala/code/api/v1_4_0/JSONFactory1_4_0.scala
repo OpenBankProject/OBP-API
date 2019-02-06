@@ -3,9 +3,8 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.ApiRole
+import code.api.util.{ApiRole, PegdownOptions}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v3_0_0.BranchJsonV300
 import code.atms.Atms.AtmT
 import code.branches.Branches.BranchT
 import code.common._
@@ -17,9 +16,7 @@ import code.transactionrequests.TransactionRequestTypeCharge
 import code.transactionrequests.TransactionRequests.{TransactionRequest, _}
 import net.liftweb.common.Full
 import net.liftweb.json
-import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JValue
-import org.pegdown.PegDownProcessor
 
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
@@ -365,12 +362,7 @@ object JSONFactory1_4_0 {
     // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
     // But we don't want to have to escape underscores (\_) in our documentation
     // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
-    // PegDown seems to be feature rich and ignores underscores in words by default.
-
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
-    // Set the timeout: https://github.com/sirthias/pegdown#parsing-timeouts
-    val PegDownProcessorTimeout: Long = 1000*20
-    val pegDownProcessor : PegDownProcessor = new PegDownProcessor(PegDownProcessorTimeout)
 
     ResourceDocJson(
       operation_id = s"v${rd.implementedInApiVersion.toString}-${rd.partialFunctionName.toString}",
@@ -378,7 +370,7 @@ object JSONFactory1_4_0 {
       request_url = rd.requestUrl,
       summary = rd.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
-      description = pegDownProcessor.markdownToHtml(rd.description.stripMargin), //.replaceAll("\n", ""),
+      description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin), //.replaceAll("\n", ""),
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
@@ -391,7 +383,7 @@ object JSONFactory1_4_0 {
       typed_success_response_body = createTypedBody(rd.successResponseBody),
       roles = rd.roles,
       is_featured = rd.isFeatured,
-      special_instructions = pegDownProcessor.markdownToHtml(rd.specialInstructions.getOrElse("").stripMargin),
+      special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
       specified_url = rd.specifiedUrl.getOrElse("")
       )
   }
@@ -466,7 +458,17 @@ object JSONFactory1_4_0 {
         case Some(i: Double)               => "\""  + key + """": {"type":"number"}"""
         case List(i: Double, _*)           => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
         case Some(List(i: Double, _*))     => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
-        
+        //BigInt
+        case i: BigInt                     => "\""  + key + """": {"type":"integer"}"""
+        case Some(i: BigInt)               => "\""  + key + """": {"type":"integer"}"""
+        case List(i: BigInt, _*)           => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
+        case Some(List(i: BigInt, _*))     => "\""  + key + """": {"type": "array","items": {"type": "integer"}}"""
+        // BigDecimal
+        case i: BigDecimal                 => "\""  + key + """": {"type":"number"}"""
+        case Some(i: BigDecimal)           => "\""  + key + """": {"type":"number"}"""
+        case List(i: BigDecimal, _*)       => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
+        case Some(List(i: BigDecimal, _*)) => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
+
         //List case classes.  
         case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
         case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)
@@ -477,7 +479,7 @@ object JSONFactory1_4_0 {
         //Single object
         case Some(f)                       => "\""  + key + """":""" +translateEntity(f,false)
         case null                          => "\""  + key + """":{"type":"null"}"""
-        case f                             => "\""  + key + """":""" +translateEntity(f,false)
+        case f                             => "\""  + key + """":""" +translateEntity(f,f.getClass().isArray())
         // TODO resolve the warning patterns after a variable pattern cannot match (SLS 8.1.1)
         // case _ => "unknown"
       }

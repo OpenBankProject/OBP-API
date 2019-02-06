@@ -135,6 +135,7 @@ object ErrorMessages {
   val Oauth2ParseException = "OBP-20205: Parse error. "
   val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. "
   val Oauth2JOSEException = "OBP-20207: Javascript Object Signing and Encryption (JOSE) exception. "
+  val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
 
   val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
   val MissingQueryParams = "OBP-20055: These query parameters are missing: "

@@ -871,7 +871,7 @@ trait APIMethods220 {
         cc => {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics), s"$CanGetConnectorMetrics entitlement required")
+            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics), s"$UserHasMissingRoles+$CanGetConnectorMetrics entitlement required")
             httpParams <- createHttpParamsByUrl(cc.url)
             obpQueryParams <- createQueriesByHttpParams(httpParams)
             metrics <- Full(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))

@@ -1,34 +1,29 @@
 /**
-  * Open Bank Project - API
-  * Copyright (C) 2011-2018, TESOBE Ltd
-  **
-  *This program is free software: you can redistribute it and/or modify
-  *it under the terms of the GNU Affero General Public License as published by
-  *the Free Software Foundation, either version 3 of the License, or
-  *(at your option) any later version.
-  **
-  *This program is distributed in the hope that it will be useful,
-  *but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  *GNU Affero General Public License for more details.
-  **
-  *You should have received a copy of the GNU Affero General Public License
-*along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  **
- *Email: contact@tesobe.com
-*TESOBE Ltd
-*Osloerstrasse 16/17
-*Berlin 13359, Germany
-  **
- *This product includes software developed at
-  *TESOBE (http://www.tesobe.com/)
-  * by
-  *Simon Redfern : simon AT tesobe DOT com
-  *Stefan Bethge : stefan AT tesobe DOT com
-  *Everett Sochowski : everett AT tesobe DOT com
-  *Ayoub Benali: ayoub AT tesobe DOT com
-  *
- */
+Open Bank Project - API
+Copyright (C) 2011-2018, TESOBE Ltd.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE Ltd.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
 
 package code.api.util
 
@@ -45,8 +40,9 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
+import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
-import code.api.util.ApiTag.ResourceDocTag
+import code.api.util.ApiTag.{ResourceDocTag, apiTagMockedData}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
@@ -1660,6 +1656,7 @@ Returns a string showed to the developer
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
+        case ApiVersion.`berlinGroupV1_3` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1_3)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case _ => logger.info(s"There is no ${version.toString}")
@@ -1876,7 +1873,7 @@ Returns a string showed to the developer
     if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField))  {
-      OAuth2Handshake.getUserFromOAuth2HeaderFuture(cc)
+      OAuth2Login.getUserFuture(cc)
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
     } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
@@ -1988,12 +1985,20 @@ Returns a string showed to the developer
 
     def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod) = {
       val limit = period match {
-        case PER_MINUTE => c.perMinuteCallLimit.get
-        case PER_HOUR   => c.perHourCallLimit.get
-        case PER_DAY    => c.perDayCallLimit.get
-        case PER_WEEK   => c.perWeekCallLimit.get
-        case PER_MONTH  => c.perMonthCallLimit.get
-        case PER_YEAR   => -1
+        case PER_SECOND => 
+          c.perSecondCallLimit.get
+        case PER_MINUTE => 
+          c.perMinuteCallLimit.get
+        case PER_HOUR   => 
+          c.perHourCallLimit.get
+        case PER_DAY    => 
+          c.perDayCallLimit.get
+        case PER_WEEK   => 
+          c.perWeekCallLimit.get
+        case PER_MONTH  => 
+          c.perMonthCallLimit.get
+        case PER_YEAR   => 
+          -1
       }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = z._1))
@@ -2003,12 +2008,20 @@ Returns a string showed to the developer
     def exceededRateLimit(c: Consumer, period: LimitCallPeriod) = {
       val remain = ttl(c.key.get, period)
       val limit = period match {
-        case PER_MINUTE => c.perMinuteCallLimit.get
-        case PER_HOUR   => c.perHourCallLimit.get
-        case PER_DAY    => c.perDayCallLimit.get
-        case PER_WEEK   => c.perWeekCallLimit.get
-        case PER_MONTH  => c.perMonthCallLimit.get
-        case PER_YEAR   => -1
+        case PER_SECOND => 
+          c.perSecondCallLimit.get
+        case PER_MINUTE => 
+          c.perMinuteCallLimit.get
+        case PER_HOUR   => 
+          c.perHourCallLimit.get
+        case PER_DAY    => 
+          c.perDayCallLimit.get
+        case PER_WEEK   => 
+          c.perWeekCallLimit.get
+        case PER_MONTH  => 
+          c.perMonthCallLimit.get
+        case PER_YEAR   => 
+          -1
       }
       x._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
         .map(_.copy(`X-Rate-Limit-Reset` = remain))
@@ -2020,6 +2033,7 @@ Returns a string showed to the developer
         cc.consumer match {
           case Full(c) =>
             val checkLimits = List(
+              underConsumerLimits(c.key.get, PER_SECOND, c.perSecondCallLimit.get),
               underConsumerLimits(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),
               underConsumerLimits(c.key.get, PER_HOUR, c.perHourCallLimit.get),
               underConsumerLimits(c.key.get, PER_DAY, c.perDayCallLimit.get),
@@ -2027,18 +2041,21 @@ Returns a string showed to the developer
               underConsumerLimits(c.key.get, PER_MONTH, c.perMonthCallLimit.get)
             )
             checkLimits match {
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1 == false =>
-                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, exceededRateLimit(c, PER_MINUTE))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2 == false =>
-               (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, exceededRateLimit(c, PER_HOUR))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3 == false =>
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_SECOND, c.perSecondCallLimit.get), 429, exceededRateLimit(c, PER_SECOND))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2 == false =>
+               (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MINUTE, c.perMinuteCallLimit.get), 429, exceededRateLimit(c, PER_MINUTE))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3 == false =>
+                (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_HOUR, c.perHourCallLimit.get), 429, exceededRateLimit(c, PER_HOUR))), x._2)
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_DAY, c.perDayCallLimit.get), 429, exceededRateLimit(c, PER_DAY))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4 == false =>
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_WEEK, c.perWeekCallLimit.get), 429, exceededRateLimit(c, PER_WEEK))), x._2)
-              case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5 == false =>
+              case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6 == false =>
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsg(PER_MONTH, c.perMonthCallLimit.get), 429, exceededRateLimit(c, PER_MONTH))), x._2)
               case _ =>
                 val incrementCounters = List (
+                  incrementConsumerCounters(c.key.get, PER_SECOND, c.perSecondCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
                   incrementConsumerCounters(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
                   incrementConsumerCounters(c.key.get, PER_HOUR, c.perHourCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
                   incrementConsumerCounters(c.key.get, PER_DAY, c.perDayCallLimit.get),  // Responses other than the 429 status code MUST be stored by a cache.
@@ -2046,12 +2063,20 @@ Returns a string showed to the developer
                   incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x1._1 > 0 => (x._1, setXRateLimits(c, x1, PER_MINUTE))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x2._1 > 0 => (x._1, setXRateLimits(c, x2, PER_HOUR))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x3._1 > 0 => (x._1, setXRateLimits(c, x3, PER_DAY))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x4._1 > 0 => (x._1, setXRateLimits(c, x4, PER_WEEK))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: Nil if x5._1 > 0 => (x._1, setXRateLimits(c, x5, PER_MONTH))
-                  case _                                              => (x._1, x._2)
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1._1 > 0 => 
+                    (x._1, setXRateLimits(c, x1, PER_SECOND))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2._1 > 0 => 
+                    (x._1, setXRateLimits(c, x1, PER_MINUTE))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3._1 > 0 => 
+                    (x._1, setXRateLimits(c, x2, PER_HOUR))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4._1 > 0 => 
+                    (x._1, setXRateLimits(c, x3, PER_DAY))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5._1 > 0 => 
+                    (x._1, setXRateLimits(c, x4, PER_WEEK))
+                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6._1 > 0 => 
+                    (x._1, setXRateLimits(c, x5, PER_MONTH))
+                  case _  => 
+                    (x._1, x._2)
                 }
             }
           case _ => (x._1, x._2)
@@ -2371,5 +2396,15 @@ Returns a string showed to the developer
     * @return UUID as a String value
     */
   def generateUUID(): String = UUID.randomUUID().toString
+  
+  def mockedDataText(isMockedData: Boolean) = 
+    if (isMockedData) 
+      """**NOTE: This endpoint currently only returns example data.**
+        |
+      """.stripMargin
+    else 
+      """
+        |
+      """.stripMargin
 
 }
