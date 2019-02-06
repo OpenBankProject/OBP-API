@@ -48,11 +48,11 @@ trait APIMethods_PaymentInitiationServicePISApi { self: RestHelper =>
 
             
      resourceDocs += ResourceDoc(
-       cancelPayment, 
-       apiVersion, 
+       cancelPayment,
+       apiVersion,
        nameOf(cancelPayment),
-       "DELETE", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
+       "DELETE",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Payment Cancellation Request",
        s"""${mockedDataText(true)}
 This method initiates the cancellation of a payment. 
@@ -67,7 +67,7 @@ The response to this DELETE command will tell the TPP whether the
   * access method was rejected
   * access method was successful, or
   * access method is generally applicable, but further authorisation processes are needed.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -90,8 +90,8 @@ The response to this DELETE command will tell the TPP whether the
   "transactionStatus" : "ACCP"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val cancelPayment : OBPEndpoint = {
@@ -125,22 +125,22 @@ The response to this DELETE command will tell the TPP whether the
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentCancellationScaStatus, 
-       apiVersion, 
+       getPaymentCancellationScaStatus,
+       apiVersion,
        nameOf(getPaymentCancellationScaStatus),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
        "Read the SCA status of the payment cancellation's authorisation.",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
@@ -157,19 +157,19 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentInformation, 
-       apiVersion, 
+       getPaymentInformation,
+       apiVersion,
        nameOf(getPaymentInformation),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Get Payment Information",
        s"""${mockedDataText(true)}
-Returns the content of a payment object""", 
+Returns the content of a payment object""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
@@ -184,24 +184,24 @@ Returns the content of a payment object""",
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentInitiationAuthorisation, 
-       apiVersion, 
+       getPaymentInitiationAuthorisation,
+       apiVersion,
        nameOf(getPaymentInitiationAuthorisation),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
        "Get Payment Initiation Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
 Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "authorisationIds" : ""
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
@@ -218,20 +218,20 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentInitiationCancellationAuthorisationInformation, 
-       apiVersion, 
+       getPaymentInitiationCancellationAuthorisationInformation,
+       apiVersion,
        nameOf(getPaymentInitiationCancellationAuthorisationInformation),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
        "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
        s"""${mockedDataText(true)}
 Retrieve a list of all created cancellation authorisation sub-resources.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationCancellationAuthorisationInformation : OBPEndpoint = {
@@ -246,22 +246,22 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentInitiationScaStatus, 
-       apiVersion, 
+       getPaymentInitiationScaStatus,
+       apiVersion,
        nameOf(getPaymentInitiationScaStatus),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID",
        "Read the SCA Status of the payment authorisation",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
@@ -278,21 +278,21 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentInitiationStatus, 
-       apiVersion, 
+       getPaymentInitiationStatus,
+       apiVersion,
        nameOf(getPaymentInitiationStatus),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status",
        "Payment initiation status request",
        s"""${mockedDataText(true)}
-Check the transaction status of a payment initiation.""", 
+Check the transaction status of a payment initiation.""",
        json.parse(""""""),
        json.parse("""{
   "transactionStatus" : "ACCP"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
@@ -309,11 +309,11 @@ Check the transaction status of a payment initiation.""",
        }
             
      resourceDocs += ResourceDoc(
-       initiatePayment, 
-       apiVersion, 
+       initiatePayment,
+       apiVersion,
        nameOf(initiatePayment),
-       "POST", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT", 
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT",
        "Payment initiation request",
        s"""${mockedDataText(true)}
 This method is used to initiate a payment at the ASPSP.
@@ -361,12 +361,12 @@ response message of a Payment Initation Request for a payment, where multiple au
 Also if any data is needed for the next action, like selecting an SCA method is not supported in the response, 
 since all starts of the multiple authorisations are fully equal. 
 In these cases, first an authorisation sub-resource has to be generated following the 'startAuthorisation' link.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val initiatePayment : OBPEndpoint = {
@@ -381,11 +381,11 @@ In these cases, first an authorisation sub-resource has to be generated followin
        }
             
      resourceDocs += ResourceDoc(
-       startPaymentAuthorisation, 
-       apiVersion, 
+       startPaymentAuthorisation,
+       apiVersion,
        nameOf(startPaymentAuthorisation),
-       "POST", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
        "Start the authorisation process for a payment initiation",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process. 
@@ -420,7 +420,7 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -447,8 +447,8 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentAuthorisation : OBPEndpoint = {
@@ -486,11 +486,11 @@ This applies in the following scenarios:
        }
             
      resourceDocs += ResourceDoc(
-       startPaymentInitiationCancellationAuthorisation, 
-       apiVersion, 
+       startPaymentInitiationCancellationAuthorisation,
+       apiVersion,
        nameOf(startPaymentInitiationCancellationAuthorisation),
-       "POST", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment",
        s"""${mockedDataText(true)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
@@ -525,7 +525,7 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -552,8 +552,8 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
@@ -591,11 +591,11 @@ This applies in the following scenarios:
        }
             
      resourceDocs += ResourceDoc(
-       updatePaymentCancellationPsuData, 
-       apiVersion, 
+       updatePaymentCancellationPsuData,
+       apiVersion,
        nameOf(updatePaymentCancellationPsuData),
-       "PUT", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
        "Update PSU Data for payment initiation cancellation",
        s"""${mockedDataText(true)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
@@ -638,12 +638,12 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -658,11 +658,11 @@ There are the following request types on this access path:
        }
             
      resourceDocs += ResourceDoc(
-       updatePaymentPsuData, 
-       apiVersion, 
+       updatePaymentPsuData,
+       apiVersion,
        nameOf(updatePaymentPsuData),
-       "PUT", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID",
        "Update PSU data for payment initiation",
        s"""${mockedDataText(true)}
 This methods updates PSU data on the authorisation resource if needed. 
@@ -703,12 +703,12 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       PaymentInitiationServicePISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {

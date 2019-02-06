@@ -51,12 +51,17 @@ object ApiTag {
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagNewStyle = ResourceDocTag("New-Style")
   val apiTagWebhook = ResourceDocTag("Webhook")
-  val PaymentInitiationServicePISApi = ResourceDocTag("Payment Initiation Service (PIS)")
-  val ConfirmationOfFundsServicePIISApi = ResourceDocTag("Confirmation of Funds Service (PIIS)")
-  val AccountInformationServiceAISApi = ResourceDocTag("Account Information Service (AIS)")
-  val SigningBasketsApi = ResourceDocTag("Signing Baskets")
-  val CommonServicesApi = ResourceDocTag("Common Services")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
+  
+  
+  
+  
+  //Note: the followings are for the code generator!
+  val apiTagPaymentInitiationServicePIS = ResourceDocTag("Payment Initiation Service (PIS)")
+  val apiTagConfirmationOfFundsServicePIIS = ResourceDocTag("Confirmation of Funds Service (PIIS)")
+  val apiTagAccountInformationServiceAIS = ResourceDocTag("Account Information Service (AIS)")
+  val apiTagSigningBaskets = ResourceDocTag("Signing Baskets")
+  val apiTagCommonServices = ResourceDocTag("Common Services")
 }
 
 
