@@ -23,7 +23,7 @@ import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.productattribute.ProductAttribute.ProductAttributeType
-import code.products.Products.ProductCode
+import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
@@ -2506,6 +2506,64 @@ trait APIMethods310 {
             }
           } yield {
             (JSONFactory310.createProductJson(product), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getProductBucket,
+      implementedInApiVersion,
+      "getProductBucket",
+      "GET",
+      "/banks/BANK_ID/product-bucket/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
+         |
+         |* Name
+         |* Code
+         |* Category
+         |* Family
+         |* Super Family
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+      emptyObjectJson,
+      childProductBucketJsonV310,
+      List(
+        UserNotLoggedIn,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagProduct)
+    )
+
+    lazy val getProductBucket: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "product-bucket" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        def getProductBucket(bankId : BankId, productCode : ProductCode): List[Product] = {
+          Connector.connector.vend.getProduct(bankId, productCode) match {
+            case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductBucket(p.bankId, p.parentProductCode)
+            case Full(p) => List(p)
+            case _ => List()
+          }
+        }
+        cc => {
+          for {
+            (_, callContext) <-
+              getProductsIsPublic match {
+                case true => authorizeEndpoint(UserNotLoggedIn, cc)
+                case false => Future((None, Some(cc)))
+              }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
+            }
+            product <- Future(getProductBucket(bankId, productCode))
+          } yield {
+            (JSONFactory310.createProductBucketJson(product, productCode.value), HttpCode.`200`(callContext))
           }
         }
       }
