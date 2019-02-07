@@ -20,8 +20,7 @@ object ClassScanUtils {
     Class.forName(className).getDeclaredField("MODULE$").get(null).asInstanceOf[U]
   }
   def getImplementClass[T:TypeTag](clazz: Class[T]) = {
-    //finder.getClasses().filter(_.implements(clazz.getName)).map(_.name).map(companion[T](_)).toList
-    List(OBP_BERLIN_GROUP_1_3)
+    finder.getClasses().filter(_.implements(clazz.getName)).map(_.name).map(companion[T](_)).toList
   }
   private[this] def getClassPath(clazz: Class[_]) = {
     val classFile = "/" + clazz.getName.replace('.', '/') + ".class"

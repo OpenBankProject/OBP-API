@@ -51,10 +51,10 @@ This file defines which endpoints from all the versions are available in v1
  */
 object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
-  override val apiVersion = ScannedApiVersion("berlin-group", "ScannedApiVersion", "BG PSD2 API")
+  override val apiVersion = ScannedApiVersion("berlin-group", "BG PSD2 API", "1.3 Dec 20th 2018")
   val versionStatus = "DRAFT"
 
-  private val endpoints =
+  private[this] val endpoints =
     APIMethods_AccountInformationServiceAISApi.endpoints ++
     APIMethods_CommonServicesApi.endpoints ++
     APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
@@ -68,7 +68,7 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedA
       APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
       APIMethods_SigningBasketsApi.resourceDocs
   
-  private def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
+  private[this] def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
