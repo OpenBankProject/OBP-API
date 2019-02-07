@@ -10,6 +10,14 @@ sealed trait ApiVersion {
   }
 }
 
+case class ScannedApiVersion(urlPrefix: String, appName: String, appVersion: String) extends ApiVersion{
+  override def toString() = {
+    val version = appVersion.replaceAll(".*?(\\b\\d+\\..+?\\b).*", "$1")
+    val name = appName.replaceFirst("(?i)api", "").trim.replaceAll("\\s+", "_")
+    name+"_"+version
+  }
+}
+
 object ApiVersion {
   case class V1_0() extends ApiVersion
   lazy val v1_0 = V1_0()

@@ -50,31 +50,26 @@ This file defines which endpoints from all the versions are available in v1
  */
 
 
-object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1_3 with MdcLoggable 
-  with APIMethods_SigningBasketsApi 
-  with APIMethods_AccountInformationServiceAISApi 
-  with APIMethods_ConfirmationOfFundsServicePIISApi 
-  with APIMethods_PaymentInitiationServicePISApi
-  with APIMethods_CommonServicesApi{
+object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable {
 
   val version = ApiVersion.berlinGroupV1_3
   val versionStatus = "DRAFT"
 
-  val endpointsOf1_3 = // Implementations1_3.endpoints ++ 
-    ImplementationsSigningBasketsApi.endpoints ++ 
-    ImplementationsAccountInformationServiceAISApi.endpoints ++ 
-    ImplementationsConfirmationOfFundsServicePIISApi.endpoints ++
-    ImplementationsPaymentInitiationServicePISApi.endpoints ++
-    ImplementationsCommonServicesApi.endpoints
+  private val endpointsOf1_3 = // Implementations1_3.endpoints ++
+    APIMethods_AccountInformationServiceAISApi.endpoints ++
+    APIMethods_CommonServicesApi.endpoints ++
+    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
+    APIMethods_PaymentInitiationServicePISApi.endpoints ++
+    APIMethods_SigningBasketsApi.endpoints
   
   val allResourceDocs = //Implementations1_3.resourceDocs ++
-    ImplementationsSigningBasketsApi.resourceDocs ++ 
-    ImplementationsAccountInformationServiceAISApi.resourceDocs ++ 
-    ImplementationsConfirmationOfFundsServicePIISApi.resourceDocs ++
-    ImplementationsPaymentInitiationServicePISApi.resourceDocs ++
-    ImplementationsCommonServicesApi.resourceDocs
+    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
+      APIMethods_CommonServicesApi.resourceDocs ++
+      APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
+      APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
+      APIMethods_SigningBasketsApi.resourceDocs
   
-  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
+  private def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
