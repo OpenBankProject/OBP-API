@@ -1,0 +1,350 @@
+package code.api.UKOpenBanking.v3_1_0
+
+import code.api.APIFailureNewStyle
+import code.api.berlin.group.v1_3.JvalueCaseClass
+import net.liftweb.json
+import net.liftweb.json._
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
+import code.api.util.APIUtil.{defaultBankId, _}
+import code.api.util.{ApiVersion, NewStyle}
+import code.api.util.ErrorMessages._
+import code.api.util.ApiTag._
+import code.api.util.NewStyle.HttpCode
+import code.bankconnectors.Connector
+import code.model._
+import code.util.Helper
+import code.views.Views
+import net.liftweb.common.Full
+import net.liftweb.http.rest.RestHelper
+import com.github.dwickern.macros.NameOf.nameOf
+import scala.collection.immutable.Nil
+import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+trait APIMethods_BalancesApi { self: RestHelper =>
+  val ImplementationsBalancesApi = new Object() {
+    val apiVersion: ApiVersion = ApiVersion.berlinGroupV1_3
+    val resourceDocs = ArrayBuffer[ResourceDoc]()
+    val apiRelations = ArrayBuffer[ApiRelation]()
+    val codeContext = CodeContext(resourceDocs, apiRelations)
+    implicit val formats = net.liftweb.json.DefaultFormats
+    protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
+
+    val endpoints = 
+      getAccountsAccountIdBalances ::
+      getBalances ::
+      Nil
+
+            
+     resourceDocs += ResourceDoc(
+       getAccountsAccountIdBalances, 
+       apiVersion, 
+       nameOf(getAccountsAccountIdBalances),
+       "GET", 
+       "/accounts/ACCOUNTID/balances", 
+       "Get Balances",
+       s"""${mockedDataText(true)}
+""", 
+       json.parse(""""""),
+       json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Balance" : [ {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    }, {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    } ]
+  }
+}"""),
+       List(UserNotLoggedIn, UnknownError),
+       Catalogs(notCore, notPSD2, notOBWG), 
+       apiTagBalances :: apiTagMockedData :: Nil
+     )
+
+     lazy val getAccountsAccountIdBalances : OBPEndpoint = {
+       case "accounts" :: accountid:: "balances" :: Nil JsonGet _ => {
+         cc =>
+           for {
+             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             } yield {
+             (json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Balance" : [ {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    }, {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    } ]
+  }
+}"""), callContext)
+           }
+         }
+       }
+            
+     resourceDocs += ResourceDoc(
+       getBalances, 
+       apiVersion, 
+       nameOf(getBalances),
+       "GET", 
+       "/balances", 
+       "Get Balances",
+       s"""${mockedDataText(true)}
+""", 
+       json.parse(""""""),
+       json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Balance" : [ {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    }, {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    } ]
+  }
+}"""),
+       List(UserNotLoggedIn, UnknownError),
+       Catalogs(notCore, notPSD2, notOBWG), 
+       apiTagBalances :: apiTagMockedData :: Nil
+     )
+
+     lazy val getBalances : OBPEndpoint = {
+       case "balances" :: Nil JsonGet _ => {
+         cc =>
+           for {
+             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             } yield {
+             (json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Balance" : [ {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    }, {
+      "Type" : { },
+      "AccountId" : { },
+      "CreditLine" : [ {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      }, {
+        "Type" : { },
+        "Included" : true,
+        "Amount" : {
+          "Amount" : { },
+          "Currency" : "Currency"
+        }
+      } ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "DateTime" : "2000-01-23T04:56:07.000+00:00"
+    } ]
+  }
+}"""), callContext)
+           }
+         }
+       }
+
+  }
+}
+
+
+
