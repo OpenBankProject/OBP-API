@@ -1,10 +1,9 @@
 package code.api.builder.SigningBasketsApi
 
 import code.api.APIFailureNewStyle
-import code.api.berlin.group.v1_3.JvalueCaseClass
+import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import net.liftweb.json
 import net.liftweb.json._
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
@@ -17,13 +16,14 @@ import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
+
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_SigningBasketsApi extends RestHelper {
-    val apiVersion: ApiVersion = ApiVersion.berlinGroupV1_3
+    val apiVersion: ApiVersion = OBP_BERLIN_GROUP_1_3.version
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)

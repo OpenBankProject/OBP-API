@@ -38,31 +38,30 @@ import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_Confirmatio
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{APIUtil, ApiVersion, ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
 
-import scala.collection.immutable.Nil
+import scala.collection.mutable.ArrayBuffer
+
 
 
 
 /*
 This file defines which endpoints from all the versions are available in v1
  */
+object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
-
-object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable {
-
-  val version = ApiVersion.berlinGroupV1_3
+  override val apiVersion = ScannedApiVersion("berlin-group", "ScannedApiVersion", "BG PSD2 API")
   val versionStatus = "DRAFT"
 
-  private val endpointsOf1_3 = // Implementations1_3.endpoints ++
+  private val endpoints =
     APIMethods_AccountInformationServiceAISApi.endpoints ++
     APIMethods_CommonServicesApi.endpoints ++
     APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
     APIMethods_PaymentInitiationServicePISApi.endpoints ++
     APIMethods_SigningBasketsApi.endpoints
-  
-  val allResourceDocs = //Implementations1_3.resourceDocs ++
+
+  override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
     APIMethods_AccountInformationServiceAISApi.resourceDocs ++
       APIMethods_CommonServicesApi.resourceDocs ++
       APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
@@ -74,13 +73,12 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable {
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf1_3, allResourceDocs)
+  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("berlin-group" / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
+    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
-
 }
