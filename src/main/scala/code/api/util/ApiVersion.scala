@@ -56,6 +56,13 @@ object ApiVersion {
     // override def toString() = "uk_v2.0.0" // TODO don't want to confuse with OBP
   }
   lazy val ukOpenBankingV200 = UKOpenBankingV200()
+  
+  case class UKOpenBankingV310() extends ApiVersion {
+    override def toString() = "v3_1"
+    // override def toString() = "uk_v2.0.0" // TODO don't want to confuse with OBP
+  }
+  lazy val ukOpenBankingV310 = UKOpenBankingV310()
+  
   case class OpenIdConnect1() extends ApiVersion
   lazy val openIdConnect1 = OpenIdConnect1()
   case class Sandbox() extends ApiVersion
@@ -89,6 +96,7 @@ object ApiVersion {
       berlinGroupV1 ::
       berlinGroupV1_3 ::
       ukOpenBankingV200 ::
+      ukOpenBankingV310 ::
       apiBuilder::
       Nil
 

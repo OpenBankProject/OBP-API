@@ -4,6 +4,7 @@ import java.util.UUID.randomUUID
 
 import code.api.builder.OBP_APIBuilder
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.cache.Caching
@@ -115,6 +116,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.allResourceDocs
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
+        case ApiVersion.`ukOpenBankingV310`     => OBP_UKOpenBanking_310.allResourceDocs
         case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.allResourceDocs
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
@@ -133,6 +135,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
+        case ApiVersion.`ukOpenBankingV310`     => OBP_UKOpenBanking_310.routes
         case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.routes
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
@@ -166,6 +169,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       {
         case ApiVersion.`apiBuilder` => ;
         case ApiVersion.`ukOpenBankingV200` => ;
+        case ApiVersion.`ukOpenBankingV310` => ;
         case ApiVersion.`berlinGroupV1_3` => ;
         case ApiVersion.`berlinGroupV1` => ;
         case _ => activePlusLocalResourceDocs ++= localResourceDocs
@@ -186,6 +190,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           case ApiVersion.`berlinGroupV1_3` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
+          case ApiVersion.`ukOpenBankingV310` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`apiBuilder` =>  s"/api-builder/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           // We add the /obp/vX prefix here
           case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
@@ -197,6 +202,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case ApiVersion.`berlinGroupV1_3` =>  Some(url)
             case ApiVersion.`berlinGroupV1` =>  Some(url)
             case ApiVersion.`ukOpenBankingV200` =>  Some(url)
+            case ApiVersion.`ukOpenBankingV310` =>  Some(url)
             case ApiVersion.`apiBuilder` =>  Some(url)
             // We add the /obp/vX prefix here - but this is the requested API version by the resource docs endpoint. i.e. we know this endpoint
             // is also available here as well as the requestUrl. See the resource doc for resource doc!

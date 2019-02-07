@@ -39,6 +39,7 @@ import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
@@ -1658,6 +1659,7 @@ Returns a string showed to the developer
         case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
         case ApiVersion.`berlinGroupV1_3` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1_3)
         case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
+        case ApiVersion.`ukOpenBankingV310` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_310)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case _ => logger.info(s"There is no ${version.toString}")
       }
