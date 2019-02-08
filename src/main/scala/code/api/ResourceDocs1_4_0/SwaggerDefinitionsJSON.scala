@@ -3050,7 +3050,6 @@ object SwaggerDefinitionsJSON {
   val refresUserJson = RefreshUserJson("10 ms")
   
   val productAttributeJson = ProductAttributeJson(
-    bank_id = "123",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"

@@ -1999,12 +1999,14 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanAddProductAttribute)(bankId, u.userId, canAddProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
-              BankId(postedData.bank_id),
+              BankId(bankId),
               ProductCode(productCode),
               None,
               postedData.name,
@@ -2048,6 +2050,8 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetProductAttribute)(bankId, u.userId, canGetProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (productAttribute, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
             
           } yield {
@@ -2087,12 +2091,14 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateProductAttribute)(bankId, u.userId, canUpdateProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
-              BankId(postedData.bank_id),
+              BankId(bankId),
               ProductCode(productCode),
               Some(productAttributeId),
               postedData.name,
@@ -2136,9 +2142,11 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanDeleteProductAttribute)(bankId, u.userId, canDeleteProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (productAttribute, callContext) <- NewStyle.function.deleteProductAttribute(productAttributeId, callContext)
           } yield {
-            (JsRaw(""), HttpCode.`204`(callContext))
+            (Full(productAttribute), HttpCode.`204`(callContext))
           }
       }
     }

@@ -321,7 +321,6 @@ case class RefreshUserJson(
 )
 
 case class ProductAttributeJson(
-  bank_id: String,
   name: String,
   `type`: String,
   value: String,
