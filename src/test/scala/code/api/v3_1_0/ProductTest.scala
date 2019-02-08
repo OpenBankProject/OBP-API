@@ -34,6 +34,7 @@ import code.api.util.ErrorMessages._
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.json.{Extraction, prettyRender}
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -60,9 +61,10 @@ class ProductTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProduct))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getProduct))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getProducts))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getProductBucket))
 
   lazy val testBankId = randomBankId
-  lazy val parentPostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId, parent_product_code ="")
+  lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId, parent_product_code ="")
 
   feature("Create Product v3.1.0") {
     scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
@@ -86,25 +88,35 @@ class ProductTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
     }
 
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
-      // Create
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+    def createProduct(code: String, json: PostPutProductJsonV310) = {
       When("We try to create a product v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PARENT_CODE").PUT <@(user1)
-      val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
+      val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+      val response310 = makePutRequest(request310, write(json))
       Then("We should get a 201")
       response310.code should equal(201)
       val product = response310.body.extract[ProductJsonV310]
-      product.code shouldBe "PARENT_CODE"
-      product.parent_product_code shouldBe ""
-      product.bank_id shouldBe parentPostPutProductJsonV310.bank_id
-      product.name shouldBe parentPostPutProductJsonV310.name
-      product.category shouldBe parentPostPutProductJsonV310.category
-      product.super_family shouldBe parentPostPutProductJsonV310.super_family
-      product.family shouldBe parentPostPutProductJsonV310.family
-      product.more_info_url shouldBe parentPostPutProductJsonV310.more_info_url
-      product.details shouldBe parentPostPutProductJsonV310.details
-      product.description shouldBe parentPostPutProductJsonV310.description
+      product.code shouldBe code
+      product.parent_product_code shouldBe json.parent_product_code
+      product.bank_id shouldBe json.bank_id
+      product.name shouldBe json.name
+      product.category shouldBe json.category
+      product.super_family shouldBe json.super_family
+      product.family shouldBe json.family
+      product.more_info_url shouldBe json.more_info_url
+      product.details shouldBe json.details
+      product.description shouldBe json.description
+      product
+    }
+
+    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+      
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      
+      // Create an grandparent
+      val grandparent: ProductJsonV310 = createProduct(code = "GRANDPARENT_CODE", json = parentPostPutProductJsonV310)
+      
+      // Create an parent
+      val product: ProductJsonV310 = createProduct(code = "PARENT_CODE", json = parentPostPutProductJsonV310.copy(parent_product_code = grandparent.code))
 
       // Get
       val requestGet310 = (v3_1_0_Request / "banks" / product.bank_id / "products" / product.code ).GET <@(user1)
@@ -113,25 +125,9 @@ class ProductTest extends V310ServerSetup {
       responseGet310.code should equal(200)
       responseGet310.body.extract[ProductJsonV310]
       
-      // Create
+      // Create an child
       val childPostPutProductJsonV310 = parentPostPutProductJsonV310.copy(parent_product_code = product.code)
-      When("We try to create a product v3.1.0")
-      val createChildRequest310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CHILD_CODE").PUT <@(user1)
-      val createChildResponse310 = makePutRequest(createChildRequest310, write(childPostPutProductJsonV310))
-      Then("We should get a 201")
-      createChildResponse310.code should equal(201)
-      val childProduct = createChildResponse310.body.extract[ProductJsonV310]
-      childProduct.code shouldBe "CHILD_CODE"
-      childProduct.parent_product_code shouldBe "PARENT_CODE"
-      childProduct.bank_id shouldBe childPostPutProductJsonV310.bank_id
-      childProduct.name shouldBe childPostPutProductJsonV310.name
-      childProduct.category shouldBe childPostPutProductJsonV310.category
-      childProduct.super_family shouldBe childPostPutProductJsonV310.super_family
-      childProduct.family shouldBe childPostPutProductJsonV310.family
-      childProduct.more_info_url shouldBe childPostPutProductJsonV310.more_info_url
-      childProduct.details shouldBe childPostPutProductJsonV310.details
-      childProduct.description shouldBe childPostPutProductJsonV310.description
-
+      createProduct(code = "CHILD_CODE", json = childPostPutProductJsonV310)
 
       // Get
       val requestGetAll310 = (v3_1_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
@@ -139,7 +135,16 @@ class ProductTest extends V310ServerSetup {
       Then("We should get a 200")
       responseGetAll310.code should equal(200)
       val products: ProductsJsonV310 = responseGetAll310.body.extract[ProductsJsonV310]
-      products.products.size shouldBe 2
+      products.products.size shouldBe 3
+      
+      // Get bucket
+      val requestGetBucket310 = (v3_1_0_Request / "banks" / product.bank_id / "product-bucket" / "CHILD_CODE").GET <@(user1)
+      val responseGetBucket310 = makeGetRequest(requestGetBucket310)
+      Then("We should get a 200")
+      org.scalameta.logger.elem(responseGetBucket310)
+      responseGetBucket310.code should equal(200)
+      val productBucket: ProductBucketJsonV310 = responseGetBucket310.body.extract[ProductBucketJsonV310]
+      org.scalameta.logger.elem(prettyRender(Extraction.decompose(productBucket)))
     }
   }
 

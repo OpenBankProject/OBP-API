@@ -380,6 +380,18 @@ case class ProductJsonV310(bank_id: String,
                            description: String,
                            meta : MetaJsonV140)
 case class ProductsJsonV310 (products : List[ProductJsonV310])
+case class ProductBucketJsonV310 (bank_id: String,
+                                  code : String,
+                                  name : String,
+                                  category: String,
+                                  family : String,
+                                  super_family : String,
+                                  more_info_url: String,
+                                  details: String,
+                                  description: String,
+                                  meta : MetaJsonV140,
+                                  parent_product: Option[ProductBucketJsonV310],
+                                 )
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -675,5 +687,63 @@ object JSONFactory310{
   def createProductsJson(productsList: List[Product]) : ProductsJsonV310 = {
     ProductsJsonV310(productsList.map(createProductJson))
   }
+  
+  def createProductBucketJson(product: Product, productBucket: Option[ProductBucketJsonV310]): ProductBucketJsonV310 = {
+    ProductBucketJsonV310(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product = productBucket,
+      name = product.name,
+      category = product.category,
+      family = product.family,
+      super_family = product.superFamily,
+      more_info_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta)
+    )
+  }
+
+  def createProductBucketJson(productsList: List[Product], rootProductCode: String): ProductBucketJsonV310 = {
+    def getProductBucket(list: List[Product], code: String): Option[ProductBucketJsonV310] = {
+      productsList.filter(_.code.value == code) match {
+       case x :: Nil =>
+         Some(
+           ProductBucketJsonV310(
+             bank_id = x.bankId.toString,
+             code = x.code.value,
+             parent_product = getProductBucket(productsList, x.parentProductCode.value),
+             name = x.name,
+             category = x.category,
+             family = x.family,
+             super_family = x.superFamily,
+             more_info_url = x.moreInfoUrl,
+             details = x.details,
+             description = x.description,
+             meta = createMetaJson(x.meta)
+           )
+         )
+        case Nil =>
+          None
+      }
+    }
+
+    val rootElement = productsList.filter(_.code.value == rootProductCode).head
+    ProductBucketJsonV310(
+      bank_id = rootElement.bankId.toString,
+      code = rootElement.code.value,
+      parent_product = getProductBucket(productsList, rootElement.parentProductCode.value),
+      name = rootElement.name,
+      category = rootElement.category,
+      family = rootElement.family,
+      super_family = rootElement.superFamily,
+      more_info_url = rootElement.moreInfoUrl,
+      details = rootElement.details,
+      description = rootElement.description,
+      meta = createMetaJson(rootElement.meta)
+    )
+  }
+
+  
 
 }
