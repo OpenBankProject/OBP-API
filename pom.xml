@@ -373,7 +373,12 @@
       <artifactId>flexmark-all</artifactId>
       <version>0.40.8</version>
     </dependency>
-
+    <!--scala utils, for type scan-->
+    <dependency>
+      <groupId>org.clapper</groupId>
+      <artifactId>classutil_${scala.version}</artifactId>
+      <version>1.4.0</version>
+    </dependency>
   </dependencies>
 
   <build>
