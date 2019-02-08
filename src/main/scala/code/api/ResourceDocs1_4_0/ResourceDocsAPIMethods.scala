@@ -117,7 +117,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.allResourceDocs
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
         case ApiVersion.`ukOpenBankingV310`     => OBP_UKOpenBanking_310.allResourceDocs
-        case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.allResourceDocs
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
@@ -137,7 +136,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
         case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
         case ApiVersion.`ukOpenBankingV310`     => OBP_UKOpenBanking_310.routes
-        case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.routes
         case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
@@ -172,7 +170,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.`apiBuilder` => ;
         case ApiVersion.`ukOpenBankingV200` => ;
         case ApiVersion.`ukOpenBankingV310` => ;
-        case ApiVersion.`berlinGroupV1_3` => ;
         case ApiVersion.`berlinGroupV1` => ;
         case version: ScannedApiVersion => ;
         case _ => activePlusLocalResourceDocs ++= localResourceDocs

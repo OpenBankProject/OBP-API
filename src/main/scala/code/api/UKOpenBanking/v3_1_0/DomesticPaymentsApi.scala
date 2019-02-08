@@ -23,7 +23,7 @@ import scala.concurrent.Future
 
 trait APIMethods_DomesticPaymentsApi { self: RestHelper =>
   val ImplementationsDomesticPaymentsApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.berlinGroupV1_3
+    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
