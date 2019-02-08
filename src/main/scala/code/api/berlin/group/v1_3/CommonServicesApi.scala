@@ -50,11 +50,11 @@ object APIMethods_CommonServicesApi extends RestHelper {
 
             
      resourceDocs += ResourceDoc(
-       deleteSigningBasket, 
-       apiVersion, 
+       deleteSigningBasket,
+       apiVersion,
        nameOf(deleteSigningBasket),
-       "DELETE", 
-       "/signing-baskets/BASKETID", 
+       "DELETE",
+       "/signing-baskets/BASKETID",
        "Delete the signing basket",
        s"""${mockedDataText(true)}
 Delete the signing basket structure as long as no (partial) authorisation has yet been applied. 
@@ -62,12 +62,12 @@ The undlerying transactions are not affected by this deletion.
 
 Remark: The signing basket as such is not deletable after a first (partial) authorisation has been applied. 
 Nevertheless, single transactions might be cancelled on an individual basis on the XS2A interface.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val deleteSigningBasket : OBPEndpoint = {
@@ -82,22 +82,22 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        }
             
      resourceDocs += ResourceDoc(
-       getConsentScaStatus, 
-       apiVersion, 
+       getConsentScaStatus,
+       apiVersion,
        nameOf(getConsentScaStatus),
-       "GET", 
-       "/consents/CONSENTID/authorisations/AUTHORISATIONID", 
+       "GET",
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Read the SCA status of the consent authorisation.",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
@@ -114,22 +114,22 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentCancellationScaStatus, 
-       apiVersion, 
+       getPaymentCancellationScaStatus,
+       apiVersion,
        nameOf(getPaymentCancellationScaStatus),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
        "Read the SCA status of the payment cancellation's authorisation.",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
@@ -146,24 +146,24 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentInitiationAuthorisation, 
-       apiVersion, 
+       getPaymentInitiationAuthorisation,
+       apiVersion,
        nameOf(getPaymentInitiationAuthorisation),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
        "Get Payment Initiation Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
 Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "authorisationIds" : ""
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
@@ -180,22 +180,22 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        }
             
      resourceDocs += ResourceDoc(
-       getPaymentInitiationScaStatus, 
-       apiVersion, 
+       getPaymentInitiationScaStatus,
+       apiVersion,
        nameOf(getPaymentInitiationScaStatus),
-       "GET", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
+       "GET",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID",
        "Read the SCA Status of the payment authorisation",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
@@ -212,24 +212,24 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        }
             
      resourceDocs += ResourceDoc(
-       getSigningBasketAuthorisation, 
-       apiVersion, 
+       getSigningBasketAuthorisation,
+       apiVersion,
        nameOf(getSigningBasketAuthorisation),
-       "GET", 
-       "/signing-baskets/BASKETID/authorisations", 
+       "GET",
+       "/signing-baskets/BASKETID/authorisations",
        "Get Signing Basket Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
             Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "authorisationIds" : ""
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketAuthorisation : OBPEndpoint = {
@@ -246,22 +246,22 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        }
             
      resourceDocs += ResourceDoc(
-       getSigningBasketScaStatus, 
-       apiVersion, 
+       getSigningBasketScaStatus,
+       apiVersion,
        nameOf(getSigningBasketScaStatus),
-       "GET", 
-       "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
+       "GET",
+       "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID",
        "Read the SCA status of the signing basket authorisation",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a signing basket's authorisation sub-resource.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketScaStatus : OBPEndpoint = {
@@ -278,22 +278,22 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
        }
             
      resourceDocs += ResourceDoc(
-       getSigningBasketStatus, 
-       apiVersion, 
+       getSigningBasketStatus,
+       apiVersion,
        nameOf(getSigningBasketStatus),
-       "GET", 
-       "/signing-baskets/BASKETID/status", 
+       "GET",
+       "/signing-baskets/BASKETID/status",
        "Read the status of the signing basket",
        s"""${mockedDataText(true)}
 Returns the status of a signing basket object. 
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "transactionStatus" : "RCVD"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketStatus : OBPEndpoint = {
@@ -310,11 +310,11 @@ Returns the status of a signing basket object.
        }
             
      resourceDocs += ResourceDoc(
-       startConsentAuthorisation, 
-       apiVersion, 
+       startConsentAuthorisation,
+       apiVersion,
        nameOf(startConsentAuthorisation),
-       "POST", 
-       "/consents/CONSENTID/authorisations", 
+       "POST",
+       "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process of a consent. 
@@ -348,7 +348,7 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -375,8 +375,8 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
@@ -414,11 +414,11 @@ This applies in the following scenarios:
        }
             
      resourceDocs += ResourceDoc(
-       startPaymentAuthorisation, 
-       apiVersion, 
+       startPaymentAuthorisation,
+       apiVersion,
        nameOf(startPaymentAuthorisation),
-       "POST", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations", 
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
        "Start the authorisation process for a payment initiation",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process. 
@@ -453,7 +453,7 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -480,8 +480,8 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentAuthorisation : OBPEndpoint = {
@@ -519,11 +519,11 @@ This applies in the following scenarios:
        }
             
      resourceDocs += ResourceDoc(
-       startPaymentInitiationCancellationAuthorisation, 
-       apiVersion, 
+       startPaymentInitiationCancellationAuthorisation,
+       apiVersion,
        nameOf(startPaymentInitiationCancellationAuthorisation),
-       "POST", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations", 
+       "POST",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment",
        s"""${mockedDataText(true)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
@@ -558,7 +558,7 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -585,8 +585,8 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
@@ -624,11 +624,11 @@ This applies in the following scenarios:
        }
             
      resourceDocs += ResourceDoc(
-       startSigningBasketAuthorisation, 
-       apiVersion, 
+       startSigningBasketAuthorisation,
+       apiVersion,
        nameOf(startSigningBasketAuthorisation),
-       "POST", 
-       "/signing-baskets/BASKETID/authorisations", 
+       "POST",
+       "/signing-baskets/BASKETID/authorisations",
        "Start the authorisation process for a signing basket",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process of a signing basket. 
@@ -663,7 +663,7 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""", 
+""",
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -690,8 +690,8 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val startSigningBasketAuthorisation : OBPEndpoint = {
@@ -729,11 +729,11 @@ This applies in the following scenarios:
        }
             
      resourceDocs += ResourceDoc(
-       updateConsentsPsuData, 
-       apiVersion, 
+       updateConsentsPsuData,
+       apiVersion,
        nameOf(updateConsentsPsuData),
-       "PUT", 
-       "/consents/CONSENTID/authorisations/AUTHORISATIONID", 
+       "PUT",
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Update PSU Data for consents",
        s"""${mockedDataText(true)}
 This method update PSU data on the consents  resource if needed. 
@@ -776,12 +776,12 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
@@ -796,11 +796,11 @@ There are the following request types on this access path:
        }
             
      resourceDocs += ResourceDoc(
-       updatePaymentCancellationPsuData, 
-       apiVersion, 
+       updatePaymentCancellationPsuData,
+       apiVersion,
        nameOf(updatePaymentCancellationPsuData),
-       "PUT", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID", 
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
        "Update PSU Data for payment initiation cancellation",
        s"""${mockedDataText(true)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
@@ -843,12 +843,12 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -863,11 +863,11 @@ There are the following request types on this access path:
        }
             
      resourceDocs += ResourceDoc(
-       updatePaymentPsuData, 
-       apiVersion, 
+       updatePaymentPsuData,
+       apiVersion,
        nameOf(updatePaymentPsuData),
-       "PUT", 
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID", 
+       "PUT",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID",
        "Update PSU data for payment initiation",
        s"""${mockedDataText(true)}
 This methods updates PSU data on the authorisation resource if needed. 
@@ -908,12 +908,12 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
@@ -928,11 +928,11 @@ There are the following request types on this access path:
        }
             
      resourceDocs += ResourceDoc(
-       updateSigningBasketPsuData, 
-       apiVersion, 
+       updateSigningBasketPsuData,
+       apiVersion,
        nameOf(updateSigningBasketPsuData),
-       "PUT", 
-       "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID", 
+       "PUT",
+       "/signing-baskets/BASKETID/authorisations/AUTHORISATIONID",
        "Update PSU Data for signing basket",
        s"""${mockedDataText(true)}
 This method update PSU data on the signing basket resource if needed. 
@@ -975,12 +975,12 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
-""", 
+""",
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       CommonServicesApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagCommonServices :: apiTagMockedData :: Nil
      )
 
      lazy val updateSigningBasketPsuData : OBPEndpoint = {

@@ -51,12 +51,40 @@ object ApiTag {
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagNewStyle = ResourceDocTag("New-Style")
   val apiTagWebhook = ResourceDocTag("Webhook")
-  val PaymentInitiationServicePISApi = ResourceDocTag("Payment Initiation Service (PIS)")
-  val ConfirmationOfFundsServicePIISApi = ResourceDocTag("Confirmation of Funds Service (PIIS)")
-  val AccountInformationServiceAISApi = ResourceDocTag("Account Information Service (AIS)")
-  val SigningBasketsApi = ResourceDocTag("Signing Baskets")
-  val CommonServicesApi = ResourceDocTag("Common Services")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
+  
+  
+  
+  
+  //Note: the followings are for the code generator -- BerlinGroupV1.3
+  val apiTagPaymentInitiationServicePIS = ResourceDocTag("Payment Initiation Service (PIS)")
+  val apiTagConfirmationOfFundsServicePIIS = ResourceDocTag("Confirmation of Funds Service (PIIS)")
+  val apiTagAccountInformationServiceAIS = ResourceDocTag("Account Information Service (AIS)")
+  val apiTagSigningBaskets = ResourceDocTag("Signing Baskets")
+  val apiTagCommonServices = ResourceDocTag("Common Services")
+  
+  //Note: the followings are for the code generator -- UKOpenBankingV3.1.0
+  val apiTagAccountAccess = ResourceDocTag("UK-AccountAccess")
+  val apiTagAccounts = ResourceDocTag("UK-Accounts")
+  val apiTagBalances = ResourceDocTag("UK-Balances")
+  val apiTagBeneficiaries = ResourceDocTag("UK-Beneficiaries ")
+  val apiTagDirectDebits = ResourceDocTag("UK-DirectDebits")
+  val apiTagDomesticPayments = ResourceDocTag("UK-DomesticPayments")
+  val apiTagDomesticScheduledPayments = ResourceDocTag("UK-DomesticScheduledPayments")
+  val apiTagDomesticStandingOrders = ResourceDocTag("UK-DomesticStandingOrders")
+  val apiTagFilePayments = ResourceDocTag("UK-FilePayments")
+  val apiTagFundsConfirmations = ResourceDocTag("UK-FundsConfirmations")
+  val apiTagInternationalPayments = ResourceDocTag("UK-InternationalPayments ")
+  val apiTagInternationalScheduledPayments = ResourceDocTag("UK-InternationalScheduledPayments")
+  val apiTagInternationalStandingOrders = ResourceDocTag("UK-InternationalStandingOrders")
+  val apiTagOffers = ResourceDocTag("UK-Offers")
+  val apiTagPartys = ResourceDocTag("UK-Partys")
+  val apiTagProducts = ResourceDocTag("UK-Products")
+  val apiTagScheduledPayments = ResourceDocTag("UK-ScheduledPayments")
+  val apiTagStandingOrders = ResourceDocTag("UK-StandingOrders")
+  val apiTagStatements = ResourceDocTag("UK-Statements")
+  val apiTagTransactions = ResourceDocTag("UK-Transactions")
+  
 }
 
 
