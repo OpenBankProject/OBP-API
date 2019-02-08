@@ -270,6 +270,7 @@ class Boot extends MdcLoggable {
     }
 
     // Add the various API versions
+    ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed)
     enableVersionIfAllowed(ApiVersion.v1_2_1)
     enableVersionIfAllowed(ApiVersion.v1_3_0)
     enableVersionIfAllowed(ApiVersion.v1_4_0)
@@ -279,11 +280,9 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v3_0_0)
     enableVersionIfAllowed(ApiVersion.v3_1_0)
     enableVersionIfAllowed(ApiVersion.berlinGroupV1)
-    enableVersionIfAllowed(ApiVersion.berlinGroupV1_3)
     enableVersionIfAllowed(ApiVersion.ukOpenBankingV200)
     enableVersionIfAllowed(ApiVersion.ukOpenBankingV310)
     enableVersionIfAllowed(ApiVersion.apiBuilder)
-
 
     // TODO Wrap these with enableVersionIfAllowed as well
     //add management apis
