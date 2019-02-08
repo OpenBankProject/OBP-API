@@ -23,13 +23,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_AccountInformationServiceAISApi extends RestHelper {
-    val apiVersion: ApiVersion = OBP_BERLIN_GROUP_1_3.version
+    val apiVersion: ApiVersion =  OBP_BERLIN_GROUP_1_3.version
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
-    val endpoints =
+    val endpoints = 
       createConsent ::
       deleteConsent ::
       getAccountList ::
@@ -49,35 +48,35 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
       updateConsentsPsuData ::
       Nil
 
-
+            
      resourceDocs += ResourceDoc(
-       createConsent,
-       apiVersion,
+       createConsent, 
+       apiVersion, 
        nameOf(createConsent),
-       "POST",
-       "/consents",
+       "POST", 
+       "/consents", 
        "Create consent",
        s"""${mockedDataText(true)}
-This method create a consent resource, defining access rights to dedicated accounts of
-a given PSU-ID. These accounts are addressed explicitly in the method as
+This method create a consent resource, defining access rights to dedicated accounts of 
+a given PSU-ID. These accounts are addressed explicitly in the method as 
 parameters as a core function.
 
 **Side Effects**
-When this Consent Request is a request where the "recurringIndicator" equals "true",
-and if it exists already a former consent for recurring access on account information
-for the addressed PSU, then the former consent automatically expires as soon as the new
+When this Consent Request is a request where the "recurringIndicator" equals "true", 
+and if it exists already a former consent for recurring access on account information 
+for the addressed PSU, then the former consent automatically expires as soon as the new 
 consent request is authorised by the PSU.
 
 Optional Extension:
-As an option, an ASPSP might optionally accept a specific access right on the access on all psd2 related services for all available accounts.
+As an option, an ASPSP might optionally accept a specific access right on the access on all psd2 related services for all available accounts. 
 
-As another option an ASPSP might optionally also accept a command, where only access rights are inserted without mentioning the addressed account.
-The relation to accounts is then handled afterwards between PSU and ASPSP.
-This option is not supported for the Embedded SCA Approach.
+As another option an ASPSP might optionally also accept a command, where only access rights are inserted without mentioning the addressed account. 
+The relation to accounts is then handled afterwards between PSU and ASPSP. 
+This option is not supported for the Embedded SCA Approach. 
 As a last option, an ASPSP might in addition accept a command with access rights
   * to see the list of available payment accounts or
   * to see the list of available payment accounts with balances.
-""",
+""", 
        json.parse("""{
   "access" : {
     "balances" : [ {
@@ -162,7 +161,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
   "message" : "message"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -203,20 +202,20 @@ As a last option, an ASPSP might in addition accept a command with access rights
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       deleteConsent,
-       apiVersion,
+       deleteConsent, 
+       apiVersion, 
        nameOf(deleteConsent),
-       "DELETE",
-       "/consents/CONSENTID",
+       "DELETE", 
+       "/consents/CONSENTID", 
        "Delete Consent",
        s"""${mockedDataText(true)}
-            The TPP can delete an account information consent object if needed.""",
+            The TPP can delete an account information consent object if needed.""", 
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -230,13 +229,13 @@ As a last option, an ASPSP might in addition accept a command with access rights
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getAccountList,
-       apiVersion,
+       getAccountList, 
+       apiVersion, 
        nameOf(getAccountList),
-       "GET",
-       "/accounts",
+       "GET", 
+       "/accounts", 
        "Read Account List",
        s"""${mockedDataText(false)}
 Read the identifiers of the available payment account together with 
@@ -255,7 +254,7 @@ Remark: Note that the /consents endpoint optionally offers to grant an access on
 payment accounts of a PSU. 
 In this case, this endpoint will deliver the information about all available payment accounts 
 of the PSU at this ASPSP.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "accounts" : [ {
@@ -299,7 +298,7 @@ of the PSU at this ASPSP.
   } ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -308,29 +307,29 @@ of the PSU at this ASPSP.
          cc =>
            for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-
+  
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-
+  
             bankId = BankId(defaultBankId)
-
+  
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
+  
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-
+            
             Full((coreAccounts,callContext1)) <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
-
+            
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createTransactionListJSON(coreAccounts), callContext)
           }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getBalances,
-       apiVersion,
+       getBalances, 
+       apiVersion, 
        nameOf(getBalances),
-       "GET",
-       "/accounts/ACCOUNT_ID/balances",
+       "GET", 
+       "/accounts/ACCOUNT_ID/balances", 
        "Read Balance",
        s"""${mockedDataText(false)}
 Reads account data from a given account addressed by "account-id". 
@@ -340,7 +339,7 @@ information might be logged on intermediary servers within the ASPSP sphere.
 This account-id then can be retrieved by the "GET Account List" call.
 
 The account-id is constant at least throughout the lifecycle of a given consent.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -354,7 +353,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -376,20 +375,20 @@ The account-id is constant at least throughout the lifecycle of a given consent.
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getCardAccount,
-       apiVersion,
+       getCardAccount, 
+       apiVersion, 
        nameOf(getCardAccount),
-       "GET",
-       "/card-accounts",
+       "GET", 
+       "/card-accounts", 
        "Reads a list of card accounts",
        s"""${mockedDataText(true)}
 Reads a list of card accounts with additional information, e.g. balance information. 
 It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
 The addressed list of card accounts depends then on the PSU ID and the stored consent addressed by consentId, 
 respectively the OAuth2 access token. 
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "cardAccounts" : [ {
@@ -431,7 +430,7 @@ respectively the OAuth2 access token.
   } ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -483,13 +482,13 @@ respectively the OAuth2 access token.
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getCardAccountBalances,
-       apiVersion,
+       getCardAccountBalances, 
+       apiVersion, 
        nameOf(getCardAccountBalances),
-       "GET",
-       "/card-accounts/ACCOUNT_ID/balances",
+       "GET", 
+       "/card-accounts/ACCOUNT_ID/balances", 
        "Read card account balances",
        s"""${mockedDataText(true)}
 Reads balance data from a given card account addressed by 
@@ -500,7 +499,7 @@ to data protection reason since the path information might be
 logged on intermediary servers within the ASPSP sphere. 
 This account-id then can be retrieved by the 
 "GET Card Account List" call
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -514,7 +513,7 @@ This account-id then can be retrieved by the
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -538,17 +537,17 @@ This account-id then can be retrieved by the
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getCardAccountTransactionList,
-       apiVersion,
+       getCardAccountTransactionList, 
+       apiVersion, 
        nameOf(getCardAccountTransactionList),
-       "GET",
-       "/card-accounts/ACCOUNT_ID/transactions",
+       "GET", 
+       "/card-accounts/ACCOUNT_ID/transactions", 
        "Read transaction list of an account",
        s"""${mockedDataText(false)}
 Reads account data from a given card account addressed by "account-id".
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -576,7 +575,7 @@ Reads account data from a given card account addressed by "account-id".
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -595,7 +594,7 @@ Reads account data from a given card account addressed by "account-id".
 
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
 
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
 
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
@@ -614,25 +613,25 @@ Reads account data from a given card account addressed by "account-id".
             }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getConsentAuthorisation,
-       apiVersion,
+       getConsentAuthorisation, 
+       apiVersion, 
        nameOf(getConsentAuthorisation),
-       "GET",
-       "/consents/CONSENTID/authorisations",
+       "GET", 
+       "/consents/CONSENTID/authorisations", 
        "Get Consent Authorisation Sub-Resources Request",
        s"""${mockedDataText(true)}
 Return a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "authorisationIds" : ""
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -648,19 +647,19 @@ This function returns an array of hyperlinks to all generated authorisation sub-
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getConsentInformation,
-       apiVersion,
+       getConsentInformation, 
+       apiVersion, 
        nameOf(getConsentInformation),
-       "GET",
-       "/consents/CONSENTID",
+       "GET", 
+       "/consents/CONSENTID", 
        "Get Consent Request",
        s"""${mockedDataText(true)}
 Returns the content of an account information consent object. 
 This is returning the data for the TPP especially in cases, 
 where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "access" : {
@@ -719,7 +718,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
   "frequencyPerDay" : 4
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -788,23 +787,23 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getConsentScaStatus,
-       apiVersion,
+       getConsentScaStatus, 
+       apiVersion, 
        nameOf(getConsentScaStatus),
-       "GET",
-       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
+       "GET", 
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Read the SCA status of the consent authorisation.",
        s"""${mockedDataText(true)}
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "scaStatus" : "psuAuthenticated"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -820,22 +819,22 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getConsentStatus,
-       apiVersion,
+       getConsentStatus, 
+       apiVersion, 
        nameOf(getConsentStatus),
-       "GET",
-       "/consents/CONSENTID/status",
+       "GET", 
+       "/consents/CONSENTID/status", 
        "Consent status request",
        s"""${mockedDataText(true)}
-            Read the status of an account information consent resource.""",
+            Read the status of an account information consent resource.""", 
        json.parse(""""""),
        json.parse("""{
   "consentStatus" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -851,13 +850,13 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getTransactionDetails,
-       apiVersion,
+       getTransactionDetails, 
+       apiVersion, 
        nameOf(getTransactionDetails),
-       "GET",
-       "/accounts/ACCOUNT_ID/transactions/RESOURCEID",
+       "GET", 
+       "/accounts/ACCOUNT_ID/transactions/RESOURCEID", 
        "Read Transaction Details",
        s"""${mockedDataText(true)}
 Reads transaction details from a given transaction addressed by "resourceId" on a given account addressed by "account-id". 
@@ -865,7 +864,7 @@ This call is only available on transactions as reported in a JSON format.
 
 **Remark:** Please note that the PATH might be already given in detail by the corresponding entry of the response of the 
 "Read Transaction List" call within the _links subfield.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "debtorAccount" : {
@@ -911,7 +910,7 @@ This call is only available on transactions as reported in a JSON format.
   "entryReference" : "entryReference"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -967,20 +966,20 @@ This call is only available on transactions as reported in a JSON format.
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       getTransactionList,
-       apiVersion,
+       getTransactionList, 
+       apiVersion, 
        nameOf(getTransactionList),
-       "GET",
-       "/accounts/ACCOUNT_ID/transactions/",
+       "GET", 
+       "/accounts/ACCOUNT_ID/transactions/", 
        "Read transaction list of an account",
        s"""${mockedDataText(false)}
 Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter "bookingStatus" together with balances.
 
 For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo". 
 The ASPSP might add balance information, if transaction lists without balances are not supported.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -1008,7 +1007,7 @@ The ASPSP might add balance information, if transaction lists without balances a
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -1027,7 +1026,7 @@ The ASPSP might add balance information, if transaction lists without balances a
 
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
 
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
 
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
@@ -1046,13 +1045,13 @@ The ASPSP might add balance information, if transaction lists without balances a
             }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       readAccountDetails,
-       apiVersion,
+       readAccountDetails, 
+       apiVersion, 
        nameOf(readAccountDetails),
-       "GET",
-       "/accounts/ACCOUNT_ID",
+       "GET", 
+       "/accounts/ACCOUNT_ID", 
        "Read Account Details",
        s"""${mockedDataText(true)}
 Reads details about an account, with balances where required. 
@@ -1067,7 +1066,7 @@ In this case the currency code is set to "XXX".
 Give detailed information about the addressed account.
 
 Give detailed information about the addressed account together with balance information
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "cashAccountType" : { },
@@ -1090,7 +1089,7 @@ Give detailed information about the addressed account together with balance info
   "status" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -1123,13 +1122,13 @@ Give detailed information about the addressed account together with balance info
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       readCardAccount,
-       apiVersion,
+       readCardAccount, 
+       apiVersion, 
        nameOf(readCardAccount),
-       "GET",
-       "/card-accounts/ACCOUNT_ID",
+       "GET", 
+       "/card-accounts/ACCOUNT_ID", 
        "Reads details about a card account",
        s"""${mockedDataText(true)}
 Reads details about a card account. 
@@ -1137,7 +1136,7 @@ It is assumed that a consent of the PSU to this access is already given
 and stored on the ASPSP system. The addressed details of this account depends 
 then on the stored consent addressed by consentId, respectively the OAuth2 
 access token.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -1159,7 +1158,7 @@ access token.
   "status" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -1191,13 +1190,13 @@ access token.
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       startConsentAuthorisation,
-       apiVersion,
+       startConsentAuthorisation, 
+       apiVersion, 
        nameOf(startConsentAuthorisation),
-       "POST",
-       "/consents/CONSENTID/authorisations",
+       "POST", 
+       "/consents/CONSENTID/authorisations", 
        "Start the authorisation process for a consent",
        s"""${mockedDataText(true)}
 Create an authorisation sub-resource and start the authorisation process of a consent. 
@@ -1231,7 +1230,7 @@ This applies in the following scenarios:
   * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
     executing the cancellation.
   * The signing basket needs to be authorised yet.
-""",
+""", 
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -1258,7 +1257,7 @@ This applies in the following scenarios:
   "psuMessage" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -1295,13 +1294,13 @@ This applies in the following scenarios:
            }
          }
        }
-
+            
      resourceDocs += ResourceDoc(
-       updateConsentsPsuData,
-       apiVersion,
+       updateConsentsPsuData, 
+       apiVersion, 
        nameOf(updateConsentsPsuData),
-       "PUT",
-       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
+       "PUT", 
+       "/consents/CONSENTID/authorisations/AUTHORISATIONID", 
        "Update PSU Data for consents",
        s"""${mockedDataText(true)}
 This method update PSU data on the consents  resource if needed. 
@@ -1344,11 +1343,11 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
-""",
+""", 
        json.parse(""""""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
+       Catalogs(notCore, notPSD2, notOBWG), 
        AccountInformationServiceAISApi :: apiTagMockedData :: Nil
      )
 
@@ -1362,6 +1361,7 @@ There are the following request types on this access path:
            }
          }
        }
+
 }
 
 

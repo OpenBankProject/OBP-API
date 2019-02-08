@@ -2,12 +2,8 @@ package code.util
 
 import java.io.File
 
-import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
-import code.model.dataAccess.ViewImpl
-import net.liftweb.mapper.LongKeyedMapper
 import org.apache.commons.lang3.StringUtils
-import org.clapper.classutil.ClassInfo
-import org.clapper.classutil.ClassFinder
+import org.clapper.classutil.{ClassFinder, ClassInfo}
 
 import scala.reflect.runtime.universe.TypeTag
 
