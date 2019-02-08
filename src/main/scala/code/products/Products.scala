@@ -21,6 +21,7 @@ object Products extends SimpleInjector {
 
   trait Product {
     def code : ProductCode
+    def parentProductCode : ProductCode
     def bankId : BankId
     def name : String
     def category: String

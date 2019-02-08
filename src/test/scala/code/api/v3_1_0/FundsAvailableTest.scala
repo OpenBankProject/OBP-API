@@ -27,9 +27,9 @@ package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{ApiRole, ApiVersion}
 import code.api.util.ApiRole.{CanCheckFundsAvailable, canCheckFundsAvailable}
 import code.api.util.ErrorMessages._
+import code.api.util.{ApiRole, ApiVersion}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf

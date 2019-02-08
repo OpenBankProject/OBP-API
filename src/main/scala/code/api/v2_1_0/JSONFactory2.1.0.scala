@@ -40,13 +40,12 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.APIMetric
-import code.model.{Consumer, _}
 import code.model.dataAccess.ResourceUser
+import code.model.{Consumer, _}
 import code.products.Products.Product
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
 

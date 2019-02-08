@@ -1224,6 +1224,7 @@ trait Connector extends MdcLoggable{
   def createOrUpdateProduct(
                              bankId : String,
                              code : String,
+                             parentProductCode : Option[String],
                              name : String,
                              category : String,
                              family : String,

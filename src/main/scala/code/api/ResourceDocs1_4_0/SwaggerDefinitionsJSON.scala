@@ -2090,6 +2090,47 @@ object SwaggerDefinitionsJSON {
   )
 
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
+
+
+  val grandparentProductBucketJsonV310 = ProductBucketJsonV310(
+    bank_id="testBank2",
+    code="GRANDPARENT_CODE",
+    name="product name",
+    category="category",
+    family="family",
+    super_family="super family",
+    more_info_url="www.example.com/prod1/more-info.html",
+    details="Details",
+    description="Description",
+    meta = metaJson,
+    parent_product=None
+  )
+  val parentProductBucketJsonV310 = ProductBucketJsonV310(
+    bank_id="testBank2",
+    code="PARENT_CODE",
+    name="product name",
+    category="category",
+    family="family",
+    super_family="super family",
+    more_info_url="www.example.com/prod1/more-info.html",
+    details="Details",
+    description="Description",
+    meta = metaJson,
+    parent_product=Some(grandparentProductBucketJsonV310)
+  )
+  val childProductBucketJsonV310 = ProductBucketJsonV310(
+    bank_id="testBank2",
+    code="CHILD_CODE",
+    name="product name",
+    category="category",
+    family="family",
+    super_family="super family",
+    more_info_url="www.example.com/prod1/more-info.html",
+    details="Details",
+    description="Description",
+    meta = metaJson,
+    parent_product=Some(parentProductBucketJsonV310)
+  )
   
   
   val postCounterpartyBespokeJson = PostCounterpartyBespokeJson(
@@ -2318,9 +2359,10 @@ object SwaggerDefinitionsJSON {
     description = "Description",
     meta = metaJson
   )
-  val productJsonV310 = ProductJsonV310(
+  val postPutProductJsonV310 = PostPutProductJsonV310(
     bank_id = "bankid123",
     name = "product name",
+    parent_product_code = "parent product name",
     category = "category",
     family = "family",
     super_family = "super family",

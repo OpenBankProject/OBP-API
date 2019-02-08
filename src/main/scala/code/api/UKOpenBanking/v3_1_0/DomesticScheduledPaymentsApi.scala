@@ -17,7 +17,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 trait APIMethods_DomesticScheduledPaymentsApi { self: RestHelper =>
   val ImplementationsDomesticScheduledPaymentsApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.berlinGroupV1_3
+    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
