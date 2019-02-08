@@ -2404,7 +2404,7 @@ trait APIMethods310 {
          |$createProductEntitlementsRequiredText
          |""",
       postPutProductJsonV310,
-      productJsonV220,
+      productJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -2472,6 +2472,7 @@ trait APIMethods310 {
          |
          |* Name
          |* Code
+         |* Parent Product Code
          |* Category
          |* Family
          |* Super Family
@@ -2481,7 +2482,7 @@ trait APIMethods310 {
          |* License the data under this endpoint is released under
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      productJsonV210,
+      productJsonV310,
       List(
         UserNotLoggedIn,
         ProductNotFoundByProductCode,
@@ -2522,6 +2523,7 @@ trait APIMethods310 {
          |
          |* Name
          |* Code
+         |* Parent Product Code
          |* Category
          |* Family
          |* Super Family
@@ -2580,6 +2582,7 @@ trait APIMethods310 {
          |
          |* Name
          |* Code
+         |* Parent Product Code
          |* Category
          |* Family
          |* Super Family
@@ -2589,7 +2592,7 @@ trait APIMethods310 {
          |* License the data under this endpoint is released under
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      productsJsonV210,
+      productsJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
