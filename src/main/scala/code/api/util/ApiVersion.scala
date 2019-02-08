@@ -14,7 +14,8 @@ case class ScannedApiVersion(urlPrefix: String, appName: String, appVersion: Str
   override def toString() = {
     val version = appVersion.replaceAll(".*?(\\b\\d+\\..+?\\b).*", "$1")
     val name = appName.replaceFirst("(?i)api", "").trim.replaceAll("\\s+", "_")
-    name+"_"+version
+    //TODO the version name role will cooperate with API-Explorer, current name role is temporary.
+    (name+"_"+version).replaceAll("^_|_$|(v)_", "$1") // avoid starts with _ or end with _, and avoid v_ e.g: v_1.3
   }
 }
 
