@@ -2429,9 +2429,9 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostPutProductJsonV310 "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostPutProductJsonV310]
             }
