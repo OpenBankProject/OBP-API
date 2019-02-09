@@ -5,7 +5,7 @@ import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
+import code.api.util.{ApiTag, ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -63,7 +63,7 @@ Creates a confirmation of funds request at the ASPSP. Checks whether a specific 
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagConfirmationOfFundsServicePIIS :: apiTagMockedData :: Nil
+       ApiTag("Confirmation of Funds Service (PIIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val checkAvailabilityOfFunds : OBPEndpoint = {

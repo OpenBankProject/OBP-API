@@ -5,7 +5,7 @@ import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
+import code.api.util.{ApiTag, ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -67,7 +67,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val deleteSigningBasket : OBPEndpoint = {
@@ -97,7 +97,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
@@ -129,7 +129,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
@@ -163,7 +163,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
@@ -195,7 +195,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
@@ -229,7 +229,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketAuthorisation : OBPEndpoint = {
@@ -261,7 +261,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketScaStatus : OBPEndpoint = {
@@ -293,7 +293,7 @@ Returns the status of a signing basket object.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val getSigningBasketStatus : OBPEndpoint = {
@@ -376,7 +376,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
@@ -481,7 +481,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentAuthorisation : OBPEndpoint = {
@@ -586,7 +586,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
@@ -691,7 +691,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val startSigningBasketAuthorisation : OBPEndpoint = {
@@ -781,7 +781,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
@@ -848,7 +848,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -913,7 +913,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
@@ -980,7 +980,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagCommonServices :: apiTagMockedData :: Nil
+       ApiTag("Common Services") :: apiTagMockedData :: Nil
      )
 
      lazy val updateSigningBasketPsuData : OBPEndpoint = {

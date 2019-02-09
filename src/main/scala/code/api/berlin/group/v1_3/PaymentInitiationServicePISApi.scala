@@ -5,7 +5,7 @@ import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
+import code.api.util.{ApiTag, ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -88,7 +88,7 @@ The response to this DELETE command will tell the TPP whether the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val cancelPayment : OBPEndpoint = {
@@ -137,7 +137,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
@@ -166,7 +166,7 @@ Returns the content of a payment object""",
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
@@ -198,7 +198,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
@@ -228,7 +228,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationCancellationAuthorisationInformation : OBPEndpoint = {
@@ -258,7 +258,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
@@ -289,7 +289,7 @@ Check the transaction status of a payment initiation.""",
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
@@ -363,7 +363,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val initiatePayment : OBPEndpoint = {
@@ -445,7 +445,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentAuthorisation : OBPEndpoint = {
@@ -550,7 +550,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
@@ -640,7 +640,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -705,7 +705,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagPaymentInitiationServicePIS :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {

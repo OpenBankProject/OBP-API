@@ -1,5 +1,7 @@
 package code.api.util
 
+import scala.collection.mutable.{Map => MutableMap}
+
 object ApiTag {
   // Used to tag Resource Docs
   case class ResourceDocTag(tag: String)
@@ -52,16 +54,7 @@ object ApiTag {
   val apiTagNewStyle = ResourceDocTag("New-Style")
   val apiTagWebhook = ResourceDocTag("Webhook")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
-  
-  
-  
-  
-  //Note: the followings are for the code generator -- BerlinGroupV1.3
-  val apiTagPaymentInitiationServicePIS = ResourceDocTag("Payment Initiation Service (PIS)")
-  val apiTagConfirmationOfFundsServicePIIS = ResourceDocTag("Confirmation of Funds Service (PIIS)")
-  val apiTagAccountInformationServiceAIS = ResourceDocTag("Account Information Service (AIS)")
-  val apiTagSigningBaskets = ResourceDocTag("Signing Baskets")
-  val apiTagCommonServices = ResourceDocTag("Common Services")
+
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0
   val apiTagAccountAccess = ResourceDocTag("UK-AccountAccess")
@@ -84,7 +77,16 @@ object ApiTag {
   val apiTagStandingOrders = ResourceDocTag("UK-StandingOrders")
   val apiTagStatements = ResourceDocTag("UK-Statements")
   val apiTagTransactions = ResourceDocTag("UK-Transactions")
-  
+
+  private[this] val tagNameSymbolMapTag: MutableMap[String, ResourceDocTag] = MutableMap()
+
+  /**
+    * get a ResourceDocTag by tag symbol string, if not exists, create one with the symbol
+    * @param tagSymbol tag content
+    * @return exists or created ResourceDocTags
+    */
+  def apply(tagSymbol: String): ResourceDocTag =  this.tagNameSymbolMapTag.getOrElseUpdate(tagSymbol, ResourceDocTag(tagSymbol))
+
 }
 
 
