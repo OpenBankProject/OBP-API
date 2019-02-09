@@ -10,12 +10,21 @@ sealed trait ApiVersion {
   }
 }
 
+/**
+  * this version object created according swagger file info.title and info.version
+  * @param urlPrefix api url prefix part, not include "/"
+  * @param appName parsed from swagger file info.title, is appName variable in swagger-codegen
+  * @param appVersion parsed from swagger file infor.version, is version variable in wagger-codegen
+  */
 case class ScannedApiVersion(urlPrefix: String, appName: String, appVersion: String) extends ApiVersion{
   override def toString() = {
+    // extract number part of version, e.g "here is version 1.3 final" -> "1.3"
     val version = appVersion.replaceAll(".*?(\\b\\d+\\..+?\\b).*", "$1")
+    // extract name from appName, e.g: "The customer api" -> "The_customer"
     val name = appName.replaceFirst("(?i)api", "").trim.replaceAll("\\s+", "_")
     //TODO the version name role will cooperate with API-Explorer, current name role is temporary.
-    (name+"_"+version).replaceAll("^_|_$|(v)_", "$1") // avoid starts with _ or end with _, and avoid v_ e.g: v_1.3
+    // avoid starts with _ or end with _, and avoid v_ e.g: v_1.3
+    (name+"_"+version).replaceAll("^_|_$|(v)_", "$1")
   }
 }
 
@@ -101,7 +110,7 @@ object ApiVersion {
       ukOpenBankingV200 ::
       ukOpenBankingV310 ::
       apiBuilder::
-      ScannedApis.versionMapScannedApis.keysIterator.toList
+      ScannedApis.versionMapScannedApis.keysIterator.toList // all the scanned version
 
   def valueOf(value: String): ApiVersion = {
     versions.filter(_.vDottedApiVersion == value) match {

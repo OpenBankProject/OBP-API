@@ -6,6 +6,9 @@ import net.liftweb.http.LiftRules
 
 import scala.collection.mutable.ArrayBuffer
 
+/**
+  * any object extends this trait will be scanned and register the allResourceDocs and routes
+  */
 trait ScannedApis extends LiftRules.DispatchPF {
   val apiVersion: ScannedApiVersion
   lazy val version: ApiVersion = this.apiVersion
@@ -15,5 +18,8 @@ trait ScannedApis extends LiftRules.DispatchPF {
 }
 
 object ScannedApis {
-  lazy val versionMapScannedApis: Map[ScannedApiVersion, ScannedApis] = ClassScanUtils.getImplementClass(classOf[ScannedApis]).map(it=> (it.apiVersion, it)).toMap
+  /**
+    * this map value are all scanned objects those extends ScannedApiVersion, the key is it apiVersion field
+    */
+  lazy val versionMapScannedApis: Map[ScannedApiVersion, ScannedApis] = ClassScanUtils.getSubTypeObjects(classOf[ScannedApis]).map(it=> (it.apiVersion, it)).toMap
 }
