@@ -51,12 +51,7 @@ object ApiVersion {
   case class Sandbox() extends ApiVersion
   lazy val sandbox = Sandbox()
   
-  case class APIBuilder() extends ApiVersion {
-    override def toString() = "b1"
-    //override def toString() = "api_builder_v1" // TODO don't want to confuse with OBP
-  }
-  lazy val apiBuilder = APIBuilder()
-
+  lazy val apiBuilder = ScannedApiVersion("api-builder","obp","b1")
 
   val scabbedApis = ScannedApis.versionMapScannedApis.keysIterator.toList
   private val versions =
@@ -90,6 +85,7 @@ object ApiVersion {
       case v2_2_0.fullyQualifiedVersion => v2_2_0.apiShortVersion
       case v3_0_0.fullyQualifiedVersion => v3_0_0.apiShortVersion
       case v3_1_0.fullyQualifiedVersion => v3_1_0.apiShortVersion
+      case apiBuilder.fullyQualifiedVersion => apiBuilder.apiShortVersion
       case version if(scabbedApis.map(_.fullyQualifiedVersion).contains(version))
         =>scabbedApis.filter(_.fullyQualifiedVersion==version).head.apiShortVersion
       case _=> value
