@@ -47,6 +47,29 @@ header .logo-xs img {
 header #logo-right {
 	text-align: right;
 }
+
+#logo-left-xs {
+    max-width: 50%;
+    min-width: 50%;
+    vertical-align: baseline;
+    padding:3%;
+    padding-left: 10%;
+}
+#td-logo-left-xs {
+    vertical-align: middle;
+    text-align: left;
+}
+#logo-right-xs {
+    max-width: 50%;
+    min-width: 50%;
+    padding:3%;
+    padding-right: 10%;
+}
+#td-logo-right-xs {
+    vertical-align: middle;
+    text-align: right;
+}
+
 header #header-decoration {
 	background-color: #53C4EF;
 	height: 35px;
