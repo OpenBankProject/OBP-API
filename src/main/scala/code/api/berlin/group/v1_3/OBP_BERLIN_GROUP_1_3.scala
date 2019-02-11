@@ -38,54 +38,47 @@ import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_Confirmatio
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{APIUtil, ApiVersion, ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
 
-import scala.collection.immutable.Nil
+import scala.collection.mutable.ArrayBuffer
+
 
 
 
 /*
 This file defines which endpoints from all the versions are available in v1
  */
+object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
-
-object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1_3 with MdcLoggable 
-  with APIMethods_SigningBasketsApi 
-  with APIMethods_AccountInformationServiceAISApi 
-  with APIMethods_ConfirmationOfFundsServicePIISApi 
-  with APIMethods_PaymentInitiationServicePISApi
-  with APIMethods_CommonServicesApi{
-
-  val version = ApiVersion.berlinGroupV1_3
+  override val apiVersion = ScannedApiVersion("berlin-group", "v", "1.3 Dec 20th 2018")
   val versionStatus = "DRAFT"
 
-  val endpointsOf1_3 = // Implementations1_3.endpoints ++ 
-    ImplementationsSigningBasketsApi.endpoints ++ 
-    ImplementationsAccountInformationServiceAISApi.endpoints ++ 
-    ImplementationsConfirmationOfFundsServicePIISApi.endpoints ++
-    ImplementationsPaymentInitiationServicePISApi.endpoints ++
-    ImplementationsCommonServicesApi.endpoints
+  private[this] val endpoints =
+    APIMethods_AccountInformationServiceAISApi.endpoints ++
+    APIMethods_CommonServicesApi.endpoints ++
+    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
+    APIMethods_PaymentInitiationServicePISApi.endpoints ++
+    APIMethods_SigningBasketsApi.endpoints
+
+  override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
+    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
+      APIMethods_CommonServicesApi.resourceDocs ++
+      APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
+      APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
+      APIMethods_SigningBasketsApi.resourceDocs
   
-  val allResourceDocs = //Implementations1_3.resourceDocs ++
-    ImplementationsSigningBasketsApi.resourceDocs ++ 
-    ImplementationsAccountInformationServiceAISApi.resourceDocs ++ 
-    ImplementationsConfirmationOfFundsServicePIISApi.resourceDocs ++
-    ImplementationsPaymentInitiationServicePISApi.resourceDocs ++
-    ImplementationsCommonServicesApi.resourceDocs
-  
-  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
+  private[this] def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf1_3, allResourceDocs)
+  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("berlin-group" / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
+    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
-
 }

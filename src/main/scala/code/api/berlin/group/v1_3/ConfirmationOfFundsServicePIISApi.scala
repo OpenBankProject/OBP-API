@@ -1,10 +1,9 @@
 package code.api.builder.ConfirmationOfFundsServicePIISApi
 
 import code.api.APIFailureNewStyle
-import code.api.berlin.group.v1_3.JvalueCaseClass
+import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import net.liftweb.json
 import net.liftweb.json._
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
@@ -17,18 +16,16 @@ import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
+
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
-  val ImplementationsConfirmationOfFundsServicePIISApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.berlinGroupV1_3
+object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
+    val apiVersion: ApiVersion =  OBP_BERLIN_GROUP_1_3.version
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -37,14 +34,14 @@ trait APIMethods_ConfirmationOfFundsServicePIISApi { self: RestHelper =>
 
             
      resourceDocs += ResourceDoc(
-       checkAvailabilityOfFunds, 
-       apiVersion, 
+       checkAvailabilityOfFunds,
+       apiVersion,
        nameOf(checkAvailabilityOfFunds),
-       "POST", 
-       "/funds-confirmations", 
+       "POST",
+       "/funds-confirmations",
        "Confirmation of Funds Request",
        s"""${mockedDataText(true)}
-Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by IBAN and TPP respectively""", 
+Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by IBAN and TPP respectively""",
        json.parse("""{
   "payee" : "payee",
   "instructedAmount" : {
@@ -65,8 +62,8 @@ Creates a confirmation of funds request at the ASPSP. Checks whether a specific 
   "fundsAvailable" : true
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ConfirmationOfFundsServicePIISApi :: apiTagMockedData :: Nil
+       Catalogs(notCore, notPSD2, notOBWG),
+       apiTagConfirmationOfFundsServicePIIS :: apiTagMockedData :: Nil
      )
 
      lazy val checkAvailabilityOfFunds : OBPEndpoint = {
@@ -82,7 +79,6 @@ Creates a confirmation of funds request at the ASPSP. Checks whether a specific 
          }
        }
 
-  }
 }
 
 
