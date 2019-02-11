@@ -51,7 +51,7 @@ This file defines which endpoints from all the versions are available in v1
  */
 object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
-  override val apiVersion = ScannedApiVersion("berlin-group", "v", "1.3 Dec 20th 2018")
+  override val apiVersion = ScannedApiVersion("berlin-group", "BG", "v1.3")
   val versionStatus = "DRAFT"
 
   private[this] val endpoints =

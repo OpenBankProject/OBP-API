@@ -19,12 +19,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait APIMethods_BERLIN_GROUP_1 {
-  //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
-  self: RestHelper =>
-
-  val Implementations1 = new Object() {
-    val implementedInApiVersion: ApiVersion = ApiVersion.berlinGroupV1
+object APIMethods_BERLIN_GROUP_1 extends RestHelper{
+    val implementedInApiVersion: ApiVersion = OBP_BERLIN_GROUP_1.apiVersion
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
@@ -177,10 +173,5 @@ trait APIMethods_BERLIN_GROUP_1 {
             }
       }
     }
-  }
 
-}
-
-
-object APIMethods_BERLIN_GROUP_1 {
 }

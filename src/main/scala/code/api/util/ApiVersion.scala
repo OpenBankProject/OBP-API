@@ -46,11 +46,6 @@ object ApiVersion {
   val v3_0_0 = ScannedApiVersion(ApiPathZero,"obp","v3.0.0") 
   val v3_1_0 = ScannedApiVersion(ApiPathZero,"obp","v3.1.0") 
 
-  case class BerlinGroupV1()  extends ApiVersion {
-    override def toString() = "v1"
-    //override def toString() = "berlin_group_v1" // TODO don't want to confuse with OBP
-  }
-  lazy val berlinGroupV1 = BerlinGroupV1()
   case class UKOpenBankingV200()  extends ApiVersion {
     override def toString() = "v2_0"
     // override def toString() = "uk_v2.0.0" // TODO don't want to confuse with OBP
@@ -82,7 +77,6 @@ object ApiVersion {
       bankMockApi ::
       openIdConnect1 ::
       sandbox ::
-      berlinGroupV1 ::
       ukOpenBankingV200 ::
       apiBuilder::
       ScannedApis.versionMapScannedApis.keysIterator.toList
