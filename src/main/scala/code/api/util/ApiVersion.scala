@@ -46,11 +46,6 @@ object ApiVersion {
   val v3_0_0 = ScannedApiVersion(ApiPathZero,"obp","v3.0.0") 
   val v3_1_0 = ScannedApiVersion(ApiPathZero,"obp","v3.1.0") 
 
-  case class UKOpenBankingV200()  extends ApiVersion {
-    override def toString() = "v2_0"
-    // override def toString() = "uk_v2.0.0" // TODO don't want to confuse with OBP
-  }
-  lazy val ukOpenBankingV200 = UKOpenBankingV200()
   case class OpenIdConnect1() extends ApiVersion
   lazy val openIdConnect1 = OpenIdConnect1()
   case class Sandbox() extends ApiVersion
@@ -63,6 +58,7 @@ object ApiVersion {
   lazy val apiBuilder = APIBuilder()
 
 
+  val scabbedApis = ScannedApis.versionMapScannedApis.keysIterator.toList
   private val versions =
       v1_2_1 ::
       v1_3_0 ::
@@ -77,9 +73,8 @@ object ApiVersion {
       bankMockApi ::
       openIdConnect1 ::
       sandbox ::
-      ukOpenBankingV200 ::
       apiBuilder::
-      ScannedApis.versionMapScannedApis.keysIterator.toList
+      scabbedApis
 
   def valueOf(value: String): ApiVersion = {
     
@@ -95,6 +90,8 @@ object ApiVersion {
       case v2_2_0.fullyQualifiedVersion => v2_2_0.apiShortVersion
       case v3_0_0.fullyQualifiedVersion => v3_0_0.apiShortVersion
       case v3_1_0.fullyQualifiedVersion => v3_1_0.apiShortVersion
+      case version if(scabbedApis.map(_.fullyQualifiedVersion).contains(version))
+        =>scabbedApis.filter(_.fullyQualifiedVersion==version).head.apiShortVersion
       case _=> value
     }
     
