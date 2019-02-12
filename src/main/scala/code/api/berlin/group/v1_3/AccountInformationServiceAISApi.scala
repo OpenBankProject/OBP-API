@@ -5,7 +5,7 @@ import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
+import code.api.util.{ApiTag, ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -162,7 +162,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val createConsent : OBPEndpoint = {
@@ -216,7 +216,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val deleteConsent : OBPEndpoint = {
@@ -299,7 +299,7 @@ of the PSU at this ASPSP.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -354,7 +354,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getBalances : OBPEndpoint = {
@@ -431,7 +431,7 @@ respectively the OAuth2 access token.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccount : OBPEndpoint = {
@@ -514,7 +514,7 @@ This account-id then can be retrieved by the
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
@@ -576,7 +576,7 @@ Reads account data from a given card account addressed by "account-id".
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
@@ -632,7 +632,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
@@ -719,7 +719,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
@@ -804,7 +804,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
@@ -835,7 +835,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getConsentStatus : OBPEndpoint = {
@@ -911,7 +911,7 @@ This call is only available on transactions as reported in a JSON format.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
@@ -1008,7 +1008,7 @@ The ASPSP might add balance information, if transaction lists without balances a
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val getTransactionList : OBPEndpoint = {
@@ -1090,7 +1090,7 @@ Give detailed information about the addressed account together with balance info
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
@@ -1159,7 +1159,7 @@ access token.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val readCardAccount : OBPEndpoint = {
@@ -1258,7 +1258,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
@@ -1348,7 +1348,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       apiTagAccountInformationServiceAIS :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
