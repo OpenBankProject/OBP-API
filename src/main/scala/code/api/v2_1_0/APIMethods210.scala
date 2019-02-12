@@ -71,7 +71,7 @@ trait APIMethods210 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: util.ApiVersion = util.ApiVersion.v2_1_0 // was String "2_1_0"
+    val apiVersion = util.ApiVersion.v2_1_0 // was String "2_1_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
 

@@ -20,7 +20,7 @@ import scala.concurrent.Future
 
 object APIMethods_UKOpenBanking_200 extends RestHelper{
 
-    val implementedInApiVersion: ApiVersion = OBP_UKOpenBanking_200.apiVersion
+    val implementedInApiVersion = OBP_UKOpenBanking_200.apiVersion
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()

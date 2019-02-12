@@ -13,8 +13,9 @@ sealed trait ApiVersion {
 }
 
 /**
-  * 
-  * @param urlPrefix : eg: `obp` or 'berlin-group`` 
+  * We need more fields for the versions. now, we support many standards: UKOpenBanking, BerlinGroup.
+  * For each standard, we need its own `fullyQualifiedVersion`
+  * @param urlPrefix : eg: `obp` or 'berlin`-group`` 
   * @param apiStandard eg: obp or `BG` or `UK`
   * @param apiShortVersion eg: `v1.2.1` or `v2.0`
   *                     

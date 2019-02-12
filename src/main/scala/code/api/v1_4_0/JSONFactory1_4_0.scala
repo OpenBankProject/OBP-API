@@ -365,7 +365,7 @@ object JSONFactory1_4_0 {
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
 
     ResourceDocJson(
-      operation_id = s"${rd.implementedInApiVersion.toString}-${rd.partialFunctionName.toString}",
+      operation_id = s"${rd.implementedInApiVersion.fullyQualifiedVersion}-${rd.partialFunctionName.toString}",
       request_verb = rd.requestVerb,
       request_url = rd.requestUrl,
       summary = rd.summary,

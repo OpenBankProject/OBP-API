@@ -55,7 +55,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     val emptyObjectJson = EmptyClassJson()
     // val statedApiVersion : String = "1_4_0"
 
-    val implementedInApiVersion : ApiVersion = ApiVersion.v1_4_0
+    val implementedInApiVersion = ApiVersion.v1_4_0
 
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat

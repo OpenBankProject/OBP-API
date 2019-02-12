@@ -16,7 +16,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 trait APIMethods_APIBuilder { self: RestHelper =>
   val ImplementationsBuilderAPI = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.apiBuilder
+    val apiVersion = ApiVersion.apiBuilder
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)

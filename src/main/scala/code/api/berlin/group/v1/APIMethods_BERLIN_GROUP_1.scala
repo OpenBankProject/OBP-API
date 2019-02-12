@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_BERLIN_GROUP_1 extends RestHelper{
-    val implementedInApiVersion: ApiVersion = OBP_BERLIN_GROUP_1.apiVersion
+    val implementedInApiVersion = OBP_BERLIN_GROUP_1.apiVersion
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
