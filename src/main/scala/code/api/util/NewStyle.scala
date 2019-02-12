@@ -590,6 +590,20 @@ object NewStyle {
           i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
+
+    def getProductAttributesByBankAndCode(
+                                           bank: BankId,
+                                           productCode: ProductCode,
+                                           callContext: Option[CallContext]
+                                         ): OBPReturnType[List[ProductAttribute]] = {
+      Connector.connector.vend.getProductAttributesByBankAndCode(
+        bank: BankId,
+        productCode: ProductCode,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
     
     def getProductAttributeById(
       productAttributeId: String,

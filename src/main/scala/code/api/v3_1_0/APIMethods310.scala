@@ -2513,8 +2513,9 @@ trait APIMethods310 {
             product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
             }
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
           } yield {
-            (JSONFactory310.createProductJson(product), HttpCode.`200`(callContext))
+            (JSONFactory310.createProductJson(product, productAttributes), HttpCode.`200`(callContext))
           }
         }
       }

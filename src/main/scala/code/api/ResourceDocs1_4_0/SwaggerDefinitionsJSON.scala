@@ -2092,20 +2092,7 @@ object SwaggerDefinitionsJSON {
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
 
 
-  val productJsonV310 = ProductJsonV310(
-    bank_id = "gh.29.uk",
-    code = "child",
-    parent_product_code = "parent",
-    name = "product name",
-    category = "category",
-    family = "family",
-    super_family = "super family",
-    more_info_url = "www.example.com/prod1/more-info.html",
-    details = "Details",
-    description = "Description",
-    meta = metaJson
-  )
-  val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
+
 
   val grandparentProductTreeJsonV310 = ProductTreeJsonV310(
     bank_id="testBank2",
@@ -3083,6 +3070,22 @@ object SwaggerDefinitionsJSON {
 
   val accountApplicationsJsonV310 = AccountApplicationsJsonV310(List(accountApplicationResponseJson))
 
+  val productJsonV310 = ProductJsonV310(
+    bank_id = "gh.29.uk",
+    code = "child",
+    parent_product_code = "parent",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
+    meta = metaJson,
+    Some(List(productAttributeResponseJson))
+  )
+  val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

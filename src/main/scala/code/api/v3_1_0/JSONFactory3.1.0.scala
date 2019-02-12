@@ -377,7 +377,8 @@ case class ProductJsonV310(bank_id: String,
                            more_info_url: String,
                            details: String,
                            description: String,
-                           meta : MetaJsonV140)
+                           meta : MetaJsonV140,
+                           product_attributes: Option[List[ProductAttributeResponseJson]])
 case class ProductsJsonV310 (products : List[ProductJsonV310])
 case class ProductTreeJsonV310(bank_id: String,
                                code : String,
@@ -635,6 +636,10 @@ object JSONFactory310{
        `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
+  def createProductAttributesJson(productAttributes: List[ProductAttribute]): List[ProductAttributeResponseJson] = {
+    productAttributes.map(createProductAttributeJson)
+  }
+  
   def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[User], customer: Box[Customer]): AccountApplicationResponseJson = {
 
     val userJson = user.map(u => ResourceUserJSON(
@@ -669,6 +674,22 @@ object JSONFactory310{
   def createMetaJson(meta: Meta) : MetaJsonV140 = {
     MetaJsonV140(createLicenseJson(meta.license))
   }
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute]) : ProductJsonV310 = {
+    ProductJsonV310(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      category = product.category,
+      family = product.family,
+      super_family = product.superFamily,
+      more_info_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      product_attributes = Some(createProductAttributesJson(productAttributes))
+    )
+  }
   def createProductJson(product: Product) : ProductJsonV310 = {
     ProductJsonV310(
       bank_id = product.bankId.toString,
@@ -681,7 +702,8 @@ object JSONFactory310{
       more_info_url = product.moreInfoUrl,
       details = product.details,
       description = product.description,
-      meta = createMetaJson(product.meta))
+      meta = createMetaJson(product.meta),
+      None)
   }
   def createProductsJson(productsList: List[Product]) : ProductsJsonV310 = {
     ProductsJsonV310(productsList.map(createProductJson))
