@@ -2528,7 +2528,10 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/product-tree/PRODUCT_CODE",
       "Get Bank Product",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
+      s"""Returns information about a particular financial product specified by BANK_ID and PRODUCT_CODE
+         |and also the parent product(s) recursively as specified by parent_product_code.
+         |
+         |Each product includes the following information.
          |
          |* Name
          |* Code
@@ -2539,7 +2542,10 @@ trait APIMethods310 {
          |* More info URL
          |* Description
          |* Terms and Conditions
-         |* License the data under this endpoint is released under
+         |* License: The licence under which this product data is released. Licence can be an Open Data licence such as Open Data Commons Public Domain Dedication and License (PDDL) or Copyright etc.
+         |
+         |
+         |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       childProductTreeJsonV310,
