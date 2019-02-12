@@ -1533,6 +1533,13 @@ trait Connector extends MdcLoggable{
       productAttributeId: String,
       callContext: Option[CallContext]
     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getProductAttributesByBankAndCode(
+                                         bank: BankId,
+                                         productCode: ProductCode,
+                                         callContext: Option[CallContext]
+                                       ): OBPReturnType[Box[List[ProductAttribute]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
   
   def deleteProductAttribute(
     productAttributeId: String,

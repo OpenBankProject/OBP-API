@@ -1999,12 +1999,14 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanAddProductAttribute)(bankId, u.userId, canAddProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
-              BankId(postedData.bank_id),
+              BankId(bankId),
               ProductCode(productCode),
               None,
               postedData.name,
@@ -2048,6 +2050,8 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetProductAttribute)(bankId, u.userId, canGetProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (productAttribute, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
             
           } yield {
@@ -2087,12 +2091,14 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanUpdateProductAttribute)(bankId, u.userId, canUpdateProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
-              BankId(postedData.bank_id),
+              BankId(bankId),
               ProductCode(productCode),
               Some(productAttributeId),
               postedData.name,
@@ -2136,9 +2142,11 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanDeleteProductAttribute)(bankId, u.userId, canDeleteProductAttribute)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             (productAttribute, callContext) <- NewStyle.function.deleteProductAttribute(productAttributeId, callContext)
           } yield {
-            (JsRaw(""), HttpCode.`204`(callContext))
+            (Full(productAttribute), HttpCode.`204`(callContext))
           }
       }
     }
@@ -2404,7 +2412,7 @@ trait APIMethods310 {
          |$createProductEntitlementsRequiredText
          |""",
       postPutProductJsonV310,
-      productJsonV220,
+      productJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -2421,9 +2429,9 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountApplicationUpdateStatusJson "
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostPutProductJsonV310 "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostPutProductJsonV310]
             }
@@ -2472,6 +2480,7 @@ trait APIMethods310 {
          |
          |* Name
          |* Code
+         |* Parent Product Code
          |* Category
          |* Family
          |* Super Family
@@ -2481,7 +2490,7 @@ trait APIMethods310 {
          |* License the data under this endpoint is released under
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      productJsonV210,
+      productJsonV310,
       List(
         UserNotLoggedIn,
         ProductNotFoundByProductCode,
@@ -2504,24 +2513,26 @@ trait APIMethods310 {
             product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
             }
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
           } yield {
-            (JSONFactory310.createProductJson(product), HttpCode.`200`(callContext))
+            (JSONFactory310.createProductJson(product, productAttributes), HttpCode.`200`(callContext))
           }
         }
       }
     }
 
     resourceDocs += ResourceDoc(
-      getProductBucket,
+      getProductTree,
       implementedInApiVersion,
-      "getProductBucket",
+      "getProductTree",
       "GET",
-      "/banks/BANK_ID/product-bucket/PRODUCT_CODE",
+      "/banks/BANK_ID/product-tree/PRODUCT_CODE",
       "Get Bank Product",
       s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
          |
          |* Name
          |* Code
+         |* Parent Product Code
          |* Category
          |* Family
          |* Super Family
@@ -2531,7 +2542,7 @@ trait APIMethods310 {
          |* License the data under this endpoint is released under
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      childProductBucketJsonV310,
+      childProductTreeJsonV310,
       List(
         UserNotLoggedIn,
         ProductNotFoundByProductCode,
@@ -2541,11 +2552,11 @@ trait APIMethods310 {
       List(apiTagProduct)
     )
 
-    lazy val getProductBucket: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "product-bucket" :: ProductCode(productCode) :: Nil JsonGet _ => {
-        def getProductBucket(bankId : BankId, productCode : ProductCode): List[Product] = {
+    lazy val getProductTree: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "product-tree" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        def getProductTre(bankId : BankId, productCode : ProductCode): List[Product] = {
           Connector.connector.vend.getProduct(bankId, productCode) match {
-            case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductBucket(p.bankId, p.parentProductCode)
+            case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductTre(p.bankId, p.parentProductCode)
             case Full(p) => List(p)
             case _ => List()
           }
@@ -2561,9 +2572,9 @@ trait APIMethods310 {
             _ <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
             }
-            product <- Future(getProductBucket(bankId, productCode))
+            product <- Future(getProductTre(bankId, productCode))
           } yield {
-            (JSONFactory310.createProductBucketJson(product, productCode.value), HttpCode.`200`(callContext))
+            (JSONFactory310.createProductTreeJson(product, productCode.value), HttpCode.`200`(callContext))
           }
         }
       }
@@ -2580,6 +2591,7 @@ trait APIMethods310 {
          |
          |* Name
          |* Code
+         |* Parent Product Code
          |* Category
          |* Family
          |* Super Family
@@ -2589,7 +2601,7 @@ trait APIMethods310 {
          |* License the data under this endpoint is released under
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      productsJsonV210,
+      productsJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,

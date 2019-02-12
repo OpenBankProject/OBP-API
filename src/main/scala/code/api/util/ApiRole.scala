@@ -221,7 +221,19 @@ object ApiRole {
   lazy val canUpdateAccountApplications = CanUpdateAccountApplications()
   
   case class CanReadFx(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canReadFx = CanReadFx()
+  lazy val canReadFx = CanReadFx() 
+  
+  case class CanUpdateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateProductAttribute = CanUpdateProductAttribute()
+  
+  case class CanGetProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetProductAttribute = CanGetProductAttribute()
+  
+  case class CanDeleteProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteProductAttribute = CanDeleteProductAttribute()
+  
+  case class CanAddProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddProductAttribute = CanAddProductAttribute()
 
   private val roles =
       canSearchAllTransactions ::
@@ -296,6 +308,10 @@ object ApiRole {
       canGetAccountApplications::
       canUpdateAccountApplications::
       canReadFx::
+        canUpdateProductAttribute ::
+        canGetProductAttribute ::
+        canDeleteProductAttribute ::
+        canAddProductAttribute ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

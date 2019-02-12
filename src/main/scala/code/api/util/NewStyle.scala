@@ -146,7 +146,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerAddress), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProductBucket), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -588,6 +588,20 @@ object NewStyle {
         callContext: Option[CallContext]
       ) map {
           i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+
+    def getProductAttributesByBankAndCode(
+                                           bank: BankId,
+                                           productCode: ProductCode,
+                                           callContext: Option[CallContext]
+                                         ): OBPReturnType[List[ProductAttribute]] = {
+      Connector.connector.vend.getProductAttributesByBankAndCode(
+        bank: BankId,
+        productCode: ProductCode,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
     

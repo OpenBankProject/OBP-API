@@ -61,7 +61,7 @@ class ProductTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProduct))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getProduct))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getProducts))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getProductBucket))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getProductTree))
 
   lazy val testBankId = randomBankId
   lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId, parent_product_code ="")
@@ -137,14 +137,14 @@ class ProductTest extends V310ServerSetup {
       val products: ProductsJsonV310 = responseGetAll310.body.extract[ProductsJsonV310]
       products.products.size shouldBe 3
       
-      // Get bucket
-      val requestGetBucket310 = (v3_1_0_Request / "banks" / product.bank_id / "product-bucket" / "CHILD_CODE").GET <@(user1)
-      val responseGetBucket310 = makeGetRequest(requestGetBucket310)
+      // Get tree
+      val requestGetTree310 = (v3_1_0_Request / "banks" / product.bank_id / "product-tree" / "CHILD_CODE").GET <@(user1)
+      val responseGetTree310 = makeGetRequest(requestGetTree310)
       Then("We should get a 200")
-      org.scalameta.logger.elem(responseGetBucket310)
-      responseGetBucket310.code should equal(200)
-      val productBucket: ProductBucketJsonV310 = responseGetBucket310.body.extract[ProductBucketJsonV310]
-      org.scalameta.logger.elem(prettyRender(Extraction.decompose(productBucket)))
+      org.scalameta.logger.elem(responseGetTree310)
+      responseGetTree310.code should equal(200)
+      val productTree: ProductTreeJsonV310 = responseGetTree310.body.extract[ProductTreeJsonV310]
+      org.scalameta.logger.elem(prettyRender(Extraction.decompose(productTree)))
     }
   }
 
