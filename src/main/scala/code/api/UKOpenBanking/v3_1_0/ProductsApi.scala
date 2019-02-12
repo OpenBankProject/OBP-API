@@ -21,14 +21,13 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.util.ApiTag
 
-trait APIMethods_ProductsApi { self: RestHelper =>
-  val ImplementationsProductsApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
+object APIMethods_ProductsApi extends RestHelper {
+    val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -49,7 +48,7 @@ trait APIMethods_ProductsApi { self: RestHelper =>
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagProducts :: apiTagMockedData :: Nil
+       ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
      lazy val getAccountsAccountIdProduct : OBPEndpoint = {
@@ -70,12 +69,13 @@ trait APIMethods_ProductsApi { self: RestHelper =>
        "GET", 
        "/products", 
        "Get Products",
-       s"""${mockedDataText(true)}""", 
+       s"""${mockedDataText(true)}
+""", 
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagProducts :: apiTagMockedData :: Nil
+       ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
      lazy val getProducts : OBPEndpoint = {
@@ -89,7 +89,6 @@ trait APIMethods_ProductsApi { self: RestHelper =>
          }
        }
 
-  }
 }
 
 
