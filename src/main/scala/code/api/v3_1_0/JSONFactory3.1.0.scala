@@ -708,22 +708,6 @@ object JSONFactory310{
   def createProductsJson(productsList: List[Product]) : ProductsJsonV310 = {
     ProductsJsonV310(productsList.map(createProductJson))
   }
-  
-  def createProductTreeJson(product: Product, productTree: Option[ProductTreeJsonV310]): ProductTreeJsonV310 = {
-    ProductTreeJsonV310(
-      bank_id = product.bankId.toString,
-      code = product.code.value,
-      parent_product = productTree,
-      name = product.name,
-      category = product.category,
-      family = product.family,
-      super_family = product.superFamily,
-      more_info_url = product.moreInfoUrl,
-      details = product.details,
-      description = product.description,
-      meta = createMetaJson(product.meta)
-    )
-  }
 
   def createProductTreeJson(productsList: List[Product], rootProductCode: String): ProductTreeJsonV310 = {
     def getProductTree(list: List[Product], code: String): Option[ProductTreeJsonV310] = {
