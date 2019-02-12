@@ -2231,27 +2231,34 @@ Returns a string showed to the developer
     val brandSpecificPropertyName = getBrandSpecificPropertyName(nameOfProperty)
 
     logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $brandSpecificPropertyName")
-
-
-    (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
-      case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
-        val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
-        Full(decryptedValueAsString)
-      case (Full(property), Full(isEncrypted), Empty)  if isEncrypted == "false" =>
-        Full(property)
-      case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "true" =>
-        Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
-      case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "false" =>
-        Full(property)
-      case (Full(property), Empty,Empty) =>
-        Full(property)
-      case (Empty, Empty, Empty) =>
-        Empty
-      case _ =>
-        logger.error(cannotDecryptValueOfProperty + brandSpecificPropertyName)
-        Failure(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+    
+    //All the property will first check from system environment, if not find then from the liftweb props file 
+    //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
+    val sysEnvironmentPropertyName = brandSpecificPropertyName.replace('.', '_').toUpperCase()
+    val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
+    sysEnvironmentPropertyValue match {
+      case Full(_) => sysEnvironmentPropertyValue
+      case _  =>
+        (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
+          case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
+            val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
+            Full(decryptedValueAsString)
+          case (Full(property), Full(isEncrypted), Empty)  if isEncrypted == "false" =>
+            Full(property)
+          case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "true" =>
+            Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
+          case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "false" =>
+            Full(property)
+          case (Full(property), Empty,Empty) =>
+            Full(property)
+          case (Empty, Empty, Empty) =>
+            Empty
+          case _ =>
+            logger.error(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+            Failure(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+        }
     }
-  }
+  } 
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
     getPropsValue(nameOfProperty) openOr(defaultValue)
   }

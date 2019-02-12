@@ -27,32 +27,33 @@ Berlin 13359, Germany
 package code.api.v3_1_0
 
 import java.lang
-import java.util.{Date, Objects}
+import java.util.Date
 
 import code.accountapplication.AccountApplication
-import code.customeraddress.CustomerAddress
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
-import code.api.v2_1_0.{CustomerCreditRatingJSON, CustomerJsonV210, ResourceUserJSON}
+import code.api.v2_1_0.JSONFactory210.createLicenseJson
+import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
-import code.common.Address
+import code.common.Meta
+import code.context.UserAuthContext
+import code.customer.Customer
+import code.customeraddress.CustomerAddress
+import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
+import code.productattribute.ProductAttribute.ProductAttribute
+import code.products.Products.Product
+import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-import code.customer.Customer
-import code.context.UserAuthContext
-import code.entitlement.Entitlement
-import code.model.dataAccess.ResourceUser
-import code.productattribute.ProductAttribute.ProductAttribute
-import code.taxresidence.TaxResidence
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,
@@ -320,7 +321,6 @@ case class RefreshUserJson(
 )
 
 case class ProductAttributeJson(
-  bank_id: String,
   name: String,
   `type`: String,
   value: String,
@@ -357,7 +357,19 @@ case class AccountApplicationsJsonV310(account_applications: List[AccountApplica
 
 case class RateLimitingInfoV310(enabled: Boolean, technology: String, service_available: Boolean, is_active: Boolean)
 
+case class PostPutProductJsonV310(bank_id: String,
+                                  name : String,
+                                  parent_product_code : String,
+                                  category: String,
+                                  family : String,
+                                  super_family : String,
+                                  more_info_url: String,
+                                  details: String,
+                                  description: String,
+                                  meta : MetaJsonV140)
 case class ProductJsonV310(bank_id: String,
+                           code : String,
+                           parent_product_code : String,
                            name : String,
                            category: String,
                            family : String,
@@ -365,7 +377,21 @@ case class ProductJsonV310(bank_id: String,
                            more_info_url: String,
                            details: String,
                            description: String,
-                           meta : MetaJsonV140)
+                           meta : MetaJsonV140,
+                           product_attributes: Option[List[ProductAttributeResponseJson]])
+case class ProductsJsonV310 (products : List[ProductJsonV310])
+case class ProductTreeJsonV310(bank_id: String,
+                               code : String,
+                               name : String,
+                               category: String,
+                               family : String,
+                               super_family : String,
+                               more_info_url: String,
+                               details: String,
+                               description: String,
+                               meta : MetaJsonV140,
+                               parent_product: Option[ProductTreeJsonV310],
+                                 )
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -610,6 +636,10 @@ object JSONFactory310{
        `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
+  def createProductAttributesJson(productAttributes: List[ProductAttribute]): List[ProductAttributeResponseJson] = {
+    productAttributes.map(createProductAttributeJson)
+  }
+  
   def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[User], customer: Box[Customer]): AccountApplicationResponseJson = {
 
     val userJson = user.map(u => ResourceUserJSON(
@@ -640,5 +670,85 @@ object JSONFactory310{
     }
     AccountApplicationsJsonV310(applicationList)
   }
+
+  def createMetaJson(meta: Meta) : MetaJsonV140 = {
+    MetaJsonV140(createLicenseJson(meta.license))
+  }
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute]) : ProductJsonV310 = {
+    ProductJsonV310(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      category = product.category,
+      family = product.family,
+      super_family = product.superFamily,
+      more_info_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      product_attributes = Some(createProductAttributesJson(productAttributes))
+    )
+  }
+  def createProductJson(product: Product) : ProductJsonV310 = {
+    ProductJsonV310(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      category = product.category,
+      family = product.family,
+      super_family = product.superFamily,
+      more_info_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      None)
+  }
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV310 = {
+    ProductsJsonV310(productsList.map(createProductJson))
+  }
+
+  def createProductTreeJson(productsList: List[Product], rootProductCode: String): ProductTreeJsonV310 = {
+    def getProductTree(list: List[Product], code: String): Option[ProductTreeJsonV310] = {
+      productsList.filter(_.code.value == code) match {
+       case x :: Nil =>
+         Some(
+           ProductTreeJsonV310(
+             bank_id = x.bankId.toString,
+             code = x.code.value,
+             parent_product = getProductTree(productsList, x.parentProductCode.value),
+             name = x.name,
+             category = x.category,
+             family = x.family,
+             super_family = x.superFamily,
+             more_info_url = x.moreInfoUrl,
+             details = x.details,
+             description = x.description,
+             meta = createMetaJson(x.meta)
+           )
+         )
+        case Nil =>
+          None
+      }
+    }
+
+    val rootElement = productsList.filter(_.code.value == rootProductCode).head
+    ProductTreeJsonV310(
+      bank_id = rootElement.bankId.toString,
+      code = rootElement.code.value,
+      parent_product = getProductTree(productsList, rootElement.parentProductCode.value),
+      name = rootElement.name,
+      category = rootElement.category,
+      family = rootElement.family,
+      super_family = rootElement.superFamily,
+      more_info_url = rootElement.moreInfoUrl,
+      details = rootElement.details,
+      description = rootElement.description,
+      meta = createMetaJson(rootElement.meta)
+    )
+  }
+
+  
 
 }

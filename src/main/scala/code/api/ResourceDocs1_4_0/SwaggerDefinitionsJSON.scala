@@ -2090,6 +2090,49 @@ object SwaggerDefinitionsJSON {
   )
 
   val productsJsonV210 = ProductsJsonV210(products = List(productJsonV210))
+
+
+
+
+  val grandparentProductTreeJsonV310 = ProductTreeJsonV310(
+    bank_id="testBank2",
+    code="GRANDPARENT_CODE",
+    name="product name",
+    category="category",
+    family="family",
+    super_family="super family",
+    more_info_url="www.example.com/prod1/more-info.html",
+    details="Details",
+    description="Description",
+    meta = metaJson,
+    parent_product=None
+  )
+  val parentProductTreeJsonV310 = ProductTreeJsonV310(
+    bank_id="testBank2",
+    code="PARENT_CODE",
+    name="product name",
+    category="category",
+    family="family",
+    super_family="super family",
+    more_info_url="www.example.com/prod1/more-info.html",
+    details="Details",
+    description="Description",
+    meta = metaJson,
+    parent_product=Some(grandparentProductTreeJsonV310)
+  )
+  val childProductTreeJsonV310 = ProductTreeJsonV310(
+    bank_id="testBank2",
+    code="CHILD_CODE",
+    name="product name",
+    category="category",
+    family="family",
+    super_family="super family",
+    more_info_url="www.example.com/prod1/more-info.html",
+    details="Details",
+    description="Description",
+    meta = metaJson,
+    parent_product=Some(parentProductTreeJsonV310)
+  )
   
   
   val postCounterpartyBespokeJson = PostCounterpartyBespokeJson(
@@ -2318,9 +2361,10 @@ object SwaggerDefinitionsJSON {
     description = "Description",
     meta = metaJson
   )
-  val productJsonV310 = ProductJsonV310(
+  val postPutProductJsonV310 = PostPutProductJsonV310(
     bank_id = "bankid123",
     name = "product name",
+    parent_product_code = "parent product name",
     category = "category",
     family = "family",
     super_family = "super family",
@@ -2993,7 +3037,6 @@ object SwaggerDefinitionsJSON {
   val refresUserJson = RefreshUserJson("10 ms")
   
   val productAttributeJson = ProductAttributeJson(
-    bank_id = "123",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
@@ -3027,6 +3070,22 @@ object SwaggerDefinitionsJSON {
 
   val accountApplicationsJsonV310 = AccountApplicationsJsonV310(List(accountApplicationResponseJson))
 
+  val productJsonV310 = ProductJsonV310(
+    bank_id = "gh.29.uk",
+    code = "child",
+    parent_product_code = "parent",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
+    meta = metaJson,
+    Some(List(productAttributeResponseJson))
+  )
+  val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

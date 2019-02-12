@@ -29,9 +29,9 @@ package code.api.v3_0_0
 import java.lang
 import java.util.Date
 
-import code.api.util.{APIUtil, PegdownOptions}
 import code.api.util.APIUtil._
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.{APIUtil, PegdownOptions}
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0._

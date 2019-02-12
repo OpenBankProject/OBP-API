@@ -142,7 +142,11 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getAccountApplications), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getAccountApplication), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateAccountApplicationStatus), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createProduct), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createProduct), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerAddress), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -266,6 +270,34 @@ object NewStyle {
                               callContext: Option[CallContext]): OBPReturnType[CustomerAddress] = {
       Connector.connector.vend.createCustomerAddress(
         customerId,
+        line1,
+        line2,
+        line3,
+        city,
+        county,
+        state,
+        postcode,
+        countryCode,
+        tags,
+        status,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    def updateCustomerAddress(customerAddressId: String,
+                              line1: String,
+                              line2: String,
+                              line3: String,
+                              city: String,
+                              county: String,
+                              state: String,
+                              postcode: String,
+                              countryCode: String,
+                              status: String,
+                              tags: String,
+                              callContext: Option[CallContext]): OBPReturnType[CustomerAddress] = {
+      Connector.connector.vend.updateCustomerAddress(
+        customerAddressId,
         line1,
         line2,
         line3,
@@ -556,6 +588,20 @@ object NewStyle {
         callContext: Option[CallContext]
       ) map {
           i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+
+    def getProductAttributesByBankAndCode(
+                                           bank: BankId,
+                                           productCode: ProductCode,
+                                           callContext: Option[CallContext]
+                                         ): OBPReturnType[List[ProductAttribute]] = {
+      Connector.connector.vend.getProductAttributesByBankAndCode(
+        bank: BankId,
+        productCode: ProductCode,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
       }
     }
     

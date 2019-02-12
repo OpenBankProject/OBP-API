@@ -41,6 +41,29 @@ class RemotedataCustomerAddressActor extends Actor with ObpActorHelper with MdcL
                            countryCode,
                            tags,
                            status) pipeTo sender
+    case cc.updateAddress(customeraddressId: String,
+                      line1: String,
+                      line2: String,
+                      line3: String,
+                      city: String,
+                      county: String,
+                      state: String,
+                      postcode: String,
+                      countryCode: String,
+                      tags: String,
+                      status: String) =>
+      logger.debug("updateAddress(" + customeraddressId + ", " + line1 + ", " + line2 + ")")
+      mapper.updateAddress(customeraddressId,
+                           line1,
+                           line2,
+                           line3,
+                           city,
+                           county,
+                           state,
+                           postcode,
+                           countryCode,
+                           tags,
+                           status) pipeTo sender
 
     case cc.deleteAddress(customerAddressId: String) =>
       logger.debug("deleteAddress(" + customerAddressId + ")")

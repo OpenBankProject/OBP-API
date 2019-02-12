@@ -1482,6 +1482,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def createOrUpdateProduct(bankId : String,
                                      code : String,
+                                     parentProductCode : Option[String],
                                      name : String,
                                      category : String,
                                      family : String,
@@ -1496,6 +1497,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getProduct(BankId(bankId), ProductCode(code)) match {
       case Full(mappedProduct) =>
         tryo {
+          parentProductCode match {
+            case Some(ppc) => mappedProduct.mParentProductCode(ppc)
+            case None =>
+          }
           mappedProduct.mName(name)
           .mCode (code)
           .mBankId(bankId)
@@ -1512,8 +1517,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         } ?~! ErrorMessages.UpdateProductError
       case _ =>
         tryo {
-          MappedProduct.create
-            .mName(name)
+          val product = MappedProduct.create
+          product.mName(name)
             .mCode (code)
             .mBankId(bankId)
             .mName(name)
@@ -1525,7 +1530,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mDescription(description)
             .mLicenseId(metaLicenceId)
             .mLicenseName(metaLicenceName)
-            .saveMe()
+          parentProductCode match {
+            case Some(ppc) => product.mParentProductCode(ppc)
+            case None =>
+          }
+          product.saveMe()
         } ?~! ErrorMessages.CreateProductError
     }
 
@@ -1869,6 +1878,32 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       status) map {
       (_, callContext)
     }
+  override def updateCustomerAddress(customerAddressId: String,
+                                     line1: String,
+                                     line2: String,
+                                     line3: String,
+                                     city: String,
+                                     county: String,
+                                     state: String,
+                                     postcode: String,
+                                     countryCode: String,
+                                     tags: String,
+                                     status: String,
+                                     callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] =
+    CustomerAddress.address.vend.updateAddress(
+      customerAddressId,
+      line1,
+      line2,
+      line3,
+      city,
+      county,
+      state,
+      postcode,
+      countryCode,
+      tags,
+      status) map {
+      (_, callContext)
+    }
   override def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
     CustomerAddress.address.vend.deleteAddress(customerAddressId) map {
       (_, callContext)
@@ -1947,6 +1982,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       attributType: ProductAttributeType.Value,
       value: String ) map{
         (_, callContext)
+    }
+  
+  override def getProductAttributesByBankAndCode(
+                                                  bank: BankId,
+                                                  productCode: ProductCode,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ProductAttribute]]] = 
+    ProductAttribute.productAttributeProvider.vend.getProductAttributesFromProvider(bank: BankId, productCode: ProductCode) map {
+      (_, callContext)
     }
   
   override def getProductAttributeById(

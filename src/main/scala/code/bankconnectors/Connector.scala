@@ -1224,6 +1224,7 @@ trait Connector extends MdcLoggable{
   def createOrUpdateProduct(
                              bankId : String,
                              code : String,
+                             parentProductCode : Option[String],
                              name : String,
                              category : String,
                              family : String,
@@ -1455,6 +1456,19 @@ trait Connector extends MdcLoggable{
                             tags: String,
                             status: String,
                             callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = Future{(Failure(NotImplemented + currentMethodName+"createCustomerAddress in Connector!"), callContext)}
+  
+  def updateCustomerAddress(customerAddressId: String,
+                            line1: String,
+                            line2: String,
+                            line3: String,
+                            city: String,
+                            county: String,
+                            state: String,
+                            postcode: String,
+                            countryCode: String,
+                            tags: String,
+                            status: String,
+                            callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = Future{(Failure(NotImplemented + currentMethodName+"updateCustomerAddress in Connector!"), callContext)}
   def deleteCustomerAddress(customerAddressd : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName+"deleteCustomerAddress in Connector!"), callContext)}
 
   def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] = Future{(Failure(NotImplemented + currentMethodName+"postTaxResidence in Connector!"), callContext)}
@@ -1519,6 +1533,13 @@ trait Connector extends MdcLoggable{
       productAttributeId: String,
       callContext: Option[CallContext]
     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getProductAttributesByBankAndCode(
+                                         bank: BankId,
+                                         productCode: ProductCode,
+                                         callContext: Option[CallContext]
+                                       ): OBPReturnType[Box[List[ProductAttribute]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
   
   def deleteProductAttribute(
     productAttributeId: String,
