@@ -146,7 +146,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerAddress), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProductBucket), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {

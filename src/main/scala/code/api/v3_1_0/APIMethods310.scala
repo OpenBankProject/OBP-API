@@ -2521,11 +2521,11 @@ trait APIMethods310 {
     }
 
     resourceDocs += ResourceDoc(
-      getProductBucket,
+      getProductTree,
       implementedInApiVersion,
-      "getProductBucket",
+      "getProductTree",
       "GET",
-      "/banks/BANK_ID/product-bucket/PRODUCT_CODE",
+      "/banks/BANK_ID/product-tree/PRODUCT_CODE",
       "Get Bank Product",
       s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
          |
@@ -2541,7 +2541,7 @@ trait APIMethods310 {
          |* License the data under this endpoint is released under
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
-      childProductBucketJsonV310,
+      childProductTreeJsonV310,
       List(
         UserNotLoggedIn,
         ProductNotFoundByProductCode,
@@ -2551,11 +2551,11 @@ trait APIMethods310 {
       List(apiTagProduct)
     )
 
-    lazy val getProductBucket: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "product-bucket" :: ProductCode(productCode) :: Nil JsonGet _ => {
-        def getProductBucket(bankId : BankId, productCode : ProductCode): List[Product] = {
+    lazy val getProductTree: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "product-tree" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        def getProductTre(bankId : BankId, productCode : ProductCode): List[Product] = {
           Connector.connector.vend.getProduct(bankId, productCode) match {
-            case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductBucket(p.bankId, p.parentProductCode)
+            case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductTre(p.bankId, p.parentProductCode)
             case Full(p) => List(p)
             case _ => List()
           }
@@ -2571,9 +2571,9 @@ trait APIMethods310 {
             _ <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
             }
-            product <- Future(getProductBucket(bankId, productCode))
+            product <- Future(getProductTre(bankId, productCode))
           } yield {
-            (JSONFactory310.createProductBucketJson(product, productCode.value), HttpCode.`200`(callContext))
+            (JSONFactory310.createProductTreeJson(product, productCode.value), HttpCode.`200`(callContext))
           }
         }
       }

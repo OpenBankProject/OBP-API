@@ -2107,7 +2107,7 @@ object SwaggerDefinitionsJSON {
   )
   val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
 
-  val grandparentProductBucketJsonV310 = ProductBucketJsonV310(
+  val grandparentProductTreeJsonV310 = ProductTreeJsonV310(
     bank_id="testBank2",
     code="GRANDPARENT_CODE",
     name="product name",
@@ -2120,7 +2120,7 @@ object SwaggerDefinitionsJSON {
     meta = metaJson,
     parent_product=None
   )
-  val parentProductBucketJsonV310 = ProductBucketJsonV310(
+  val parentProductTreeJsonV310 = ProductTreeJsonV310(
     bank_id="testBank2",
     code="PARENT_CODE",
     name="product name",
@@ -2131,9 +2131,9 @@ object SwaggerDefinitionsJSON {
     details="Details",
     description="Description",
     meta = metaJson,
-    parent_product=Some(grandparentProductBucketJsonV310)
+    parent_product=Some(grandparentProductTreeJsonV310)
   )
-  val childProductBucketJsonV310 = ProductBucketJsonV310(
+  val childProductTreeJsonV310 = ProductTreeJsonV310(
     bank_id="testBank2",
     code="CHILD_CODE",
     name="product name",
@@ -2144,7 +2144,7 @@ object SwaggerDefinitionsJSON {
     details="Details",
     description="Description",
     meta = metaJson,
-    parent_product=Some(parentProductBucketJsonV310)
+    parent_product=Some(parentProductTreeJsonV310)
   )
   
   
