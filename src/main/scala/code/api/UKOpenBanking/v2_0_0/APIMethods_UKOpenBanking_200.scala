@@ -18,12 +18,9 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait APIMethods_UKOpenBanking_200 {
-  //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
-  self: RestHelper =>
+object APIMethods_UKOpenBanking_200 extends RestHelper{
 
-  val ImplementationsUKOpenBanking200 = new Object() {
-    val implementedInApiVersion: ApiVersion = ApiVersion.ukOpenBankingV200 // was noV
+    val implementedInApiVersion = OBP_UKOpenBanking_200.apiVersion
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
@@ -238,9 +235,6 @@ trait APIMethods_UKOpenBanking_200 {
           }
       }
     }
-
-  }
-
 }
 
 

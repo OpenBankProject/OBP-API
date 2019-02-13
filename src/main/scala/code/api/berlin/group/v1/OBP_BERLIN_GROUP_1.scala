@@ -28,8 +28,9 @@ package code.api.berlin.group.v1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{ApiVersion, ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
+import code.api.berlin.group.v1.APIMethods_BERLIN_GROUP_1._
 
 import scala.collection.immutable.Nil
 
@@ -40,32 +41,33 @@ This file defines which endpoints from all the versions are available in v1
  */
 
 
-object OBP_BERLIN_GROUP_1 extends OBPRestHelper with APIMethods_BERLIN_GROUP_1 with MdcLoggable {
+object OBP_BERLIN_GROUP_1 extends OBPRestHelper with MdcLoggable with ScannedApis{
 
-  val version = ApiVersion.berlinGroupV1
+  override val apiVersion = ScannedApiVersion("berlin-group", "BG", "v1")
   val versionStatus = "DRAFT"
 
-  val endpointsOf1 =  
-    Implementations1.getAccountList ::
-    Implementations1.getAccountBalances ::
-    Implementations1.getTransactionList ::
+  val allEndpoints =  
+    getAccountList ::
+    getAccountBalances ::
+    getAccountBalances ::
+    getTransactionList ::
     Nil
   
-  val allResourceDocs = Implementations1.resourceDocs
+  override val allResourceDocs = resourceDocs
   
   def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf1, Implementations1.resourceDocs)
+  override val routes : List[OBPEndpoint] = getAllowedEndpoints(allEndpoints,resourceDocs)
 
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("berlin-group" / version.toString).oPrefix{route}, findResourceDoc(route))
+    oauthServe((apiVersion.urlPrefix / apiVersion.toString).oPrefix{route}, findResourceDoc(route))
   })
 
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+  logger.info(s"version $apiVersion has been run! There are ${routes.length} routes.")
 
 }

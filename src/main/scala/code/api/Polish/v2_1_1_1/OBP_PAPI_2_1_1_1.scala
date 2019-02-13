@@ -29,17 +29,17 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.berlin.group.v1_3
+package code.api.Polish.v2_1_1_1
 
 import code.api.OBPRestHelper
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
-import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
-import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
-import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{APIUtil, ApiVersion, ScannedApiVersion, ScannedApis}
+import code.api.util.{ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
+
+import code.api.Polish.v2_1_1_1.APIMethods_AISApi
+import code.api.Polish.v2_1_1_1.APIMethods_ASApi
+import code.api.Polish.v2_1_1_1.APIMethods_CAFApi
+import code.api.Polish.v2_1_1_1.APIMethods_PISApi
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -49,25 +49,23 @@ import scala.collection.mutable.ArrayBuffer
 /*
 This file defines which endpoints from all the versions are available in v1
  */
-object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
-
-  override val apiVersion = ScannedApiVersion("berlin-group", "BG", "v1.3")
+object OBP_PAPI_2_1_1_1 extends OBPRestHelper with MdcLoggable with ScannedApis {
+  //please modify these three parameter if it is not correct.
+  override val apiVersion = ScannedApiVersion("polish-api", "PAPI", "v2.1.1.1")
   val versionStatus = "DRAFT"
 
   private[this] val endpoints =
-    APIMethods_AccountInformationServiceAISApi.endpoints ++
-    APIMethods_CommonServicesApi.endpoints ++
-    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
-    APIMethods_PaymentInitiationServicePISApi.endpoints ++
-    APIMethods_SigningBasketsApi.endpoints
+    APIMethods_AISApi.endpoints ++
+    APIMethods_ASApi.endpoints ++
+    APIMethods_CAFApi.endpoints ++
+    APIMethods_PISApi.endpoints 
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
-    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
-      APIMethods_CommonServicesApi.resourceDocs ++
-      APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
-      APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
-      APIMethods_SigningBasketsApi.resourceDocs
-  
+    APIMethods_AISApi.resourceDocs ++
+    APIMethods_ASApi.resourceDocs ++
+    APIMethods_CAFApi.resourceDocs ++
+    APIMethods_PISApi.resourceDocs 
+
   private[this] def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }

@@ -21,14 +21,13 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.util.ApiTag
 
-trait APIMethods_BeneficiariesApi { self: RestHelper =>
-  val ImplementationsBeneficiariesApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
+object APIMethods_BeneficiariesApi extends RestHelper {
+    val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -119,7 +118,7 @@ trait APIMethods_BeneficiariesApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagBeneficiaries :: apiTagMockedData :: Nil
+       ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 
      lazy val getAccountsAccountIdBeneficiaries : OBPEndpoint = {
@@ -284,7 +283,7 @@ trait APIMethods_BeneficiariesApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagBeneficiaries :: apiTagMockedData :: Nil
+       ApiTag("Beneficiaries") :: apiTagMockedData :: Nil
      )
 
      lazy val getBeneficiaries : OBPEndpoint = {
@@ -367,7 +366,6 @@ trait APIMethods_BeneficiariesApi { self: RestHelper =>
          }
        }
 
-  }
 }
 
 

@@ -48,7 +48,7 @@ trait APIMethods310 {
   
   class Implementations310 {
 
-    val implementedInApiVersion: ApiVersion = ApiVersion.v3_1_0
+    val implementedInApiVersion = ApiVersion.v3_1_0
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()

@@ -1,27 +1,33 @@
-package code.api.builder.DomesticScheduledPaymentsApi
+package code.api.UKOpenBanking.v3_1_0
 
+import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
-import code.api.util.APIUtil._
-import code.api.util.ApiTag._
-import code.api.util.ApiVersion
-import code.api.util.ErrorMessages._
-import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.Full
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
-
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
+import code.api.util.APIUtil.{defaultBankId, _}
+import code.api.util.{ApiVersion, NewStyle}
+import code.api.util.ErrorMessages._
+import code.api.util.ApiTag._
+import code.api.util.NewStyle.HttpCode
+import code.bankconnectors.Connector
+import code.model._
+import code.util.Helper
+import code.views.Views
+import net.liftweb.common.Full
+import net.liftweb.http.rest.RestHelper
+import com.github.dwickern.macros.NameOf.nameOf
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.util.ApiTag
 
-trait APIMethods_DomesticScheduledPaymentsApi { self: RestHelper =>
-  val ImplementationsDomesticScheduledPaymentsApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
+object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
+    val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -138,7 +144,7 @@ trait APIMethods_DomesticScheduledPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagDomesticScheduledPayments :: apiTagMockedData :: Nil
+       ApiTag("Domestic Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val createDomesticScheduledPaymentConsents : OBPEndpoint = {
@@ -339,7 +345,7 @@ trait APIMethods_DomesticScheduledPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagDomesticScheduledPayments :: apiTagMockedData :: Nil
+       ApiTag("Domestic Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val createDomesticScheduledPayments : OBPEndpoint = {
@@ -540,7 +546,7 @@ trait APIMethods_DomesticScheduledPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagDomesticScheduledPayments :: apiTagMockedData :: Nil
+       ApiTag("Domestic Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val getDomesticScheduledPaymentConsentsConsentId : OBPEndpoint = {
@@ -741,7 +747,7 @@ trait APIMethods_DomesticScheduledPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagDomesticScheduledPayments :: apiTagMockedData :: Nil
+       ApiTag("Domestic Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val getDomesticScheduledPaymentsDomesticScheduledPaymentId : OBPEndpoint = {
@@ -836,7 +842,6 @@ trait APIMethods_DomesticScheduledPaymentsApi { self: RestHelper =>
          }
        }
 
-  }
 }
 
 

@@ -54,7 +54,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion : ApiVersion = ApiVersion.v1_4_0 // was noV i.e.  "1_4_0"
+    val apiVersion = ApiVersion.v1_4_0 // was noV i.e.  "1_4_0"
     val apiVersionStatus : String = "STABLE"
 
     resourceDocs += ResourceDoc(

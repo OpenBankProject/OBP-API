@@ -21,14 +21,13 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.util.ApiTag
 
-trait APIMethods_BalancesApi { self: RestHelper =>
-  val ImplementationsBalancesApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
+object APIMethods_BalancesApi extends RestHelper {
+    val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -113,7 +112,7 @@ trait APIMethods_BalancesApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagBalances :: apiTagMockedData :: Nil
+       ApiTag("Balances") :: apiTagMockedData :: Nil
      )
 
      lazy val getAccountsAccountIdBalances : OBPEndpoint = {
@@ -266,7 +265,7 @@ trait APIMethods_BalancesApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagBalances :: apiTagMockedData :: Nil
+       ApiTag("Balances") :: apiTagMockedData :: Nil
      )
 
      lazy val getBalances : OBPEndpoint = {
@@ -343,7 +342,6 @@ trait APIMethods_BalancesApi { self: RestHelper =>
          }
        }
 
-  }
 }
 
 

@@ -32,101 +32,85 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.OBPRestHelper
-import code.api.builder.DomesticPaymentsApi.APIMethods_DomesticPaymentsApi
-import code.api.builder.DomesticScheduledPaymentsApi.APIMethods_DomesticScheduledPaymentsApi
-import code.api.builder.DomesticStandingOrdersApi.APIMethods_DomesticStandingOrdersApi
-import code.api.builder.FilePaymentsApi.APIMethods_FilePaymentsApi
-import code.api.builder.FundsConfirmationsApi.APIMethods_FundsConfirmationsApi
-import code.api.builder.InternationalPaymentsApi.APIMethods_InternationalPaymentsApi
-import code.api.builder.InternationalScheduledPaymentsApi.APIMethods_InternationalScheduledPaymentsApi
-import code.api.builder.InternationalStandingOrdersApi.APIMethods_InternationalStandingOrdersApi
+import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
+import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
+import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
+import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
+import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{APIUtil, ApiVersion, ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
 
-import scala.collection.immutable.Nil
+import code.api.UKOpenBanking.v3_1_0.APIMethods_FundsConfirmationsApi
+
+import scala.collection.mutable.ArrayBuffer
+
 
 
 
 /*
 This file defines which endpoints from all the versions are available in v1
  */
-
-
-object OBP_UKOpenBanking_310 extends OBPRestHelper with MdcLoggable 
-  with APIMethods_AccountAccessApi
-  with APIMethods_AccountsApi
-  with APIMethods_BalancesApi
-  with APIMethods_BeneficiariesApi
-  with APIMethods_DirectDebitsApi
-  with APIMethods_OffersApi
-  with APIMethods_PartysApi
-  with APIMethods_ProductsApi
-  with APIMethods_ScheduledPaymentsApi
-  with APIMethods_StandingOrdersApi
-  with APIMethods_StatementsApi
-  with APIMethods_TransactionsApi
-  with APIMethods_DomesticPaymentsApi
-  with APIMethods_DomesticScheduledPaymentsApi
-  with APIMethods_DomesticStandingOrdersApi
-  with APIMethods_FilePaymentsApi
-  with APIMethods_InternationalPaymentsApi
-  with APIMethods_InternationalScheduledPaymentsApi
-  with APIMethods_InternationalStandingOrdersApi
-  with APIMethods_FundsConfirmationsApi{
-
-  val version = ApiVersion.ukOpenBankingV310
+object OBP_UKOpenBanking_310 extends OBPRestHelper with MdcLoggable with ScannedApis {
+  //please modify these three parameter if it is not correct.
+  override val apiVersion = ScannedApiVersion("open-banking", "UK", "v3.1")
   val versionStatus = "DRAFT"
 
-  val endpointsOf1_3 = 
-    ImplementationsAccountAccessApi.endpoints ++
-    ImplementationsAccountsApi.endpoints ++
-    ImplementationsBalancesApi.endpoints ++
-    ImplementationsBeneficiariesApi.endpoints ++
-    ImplementationsDirectDebitsApi.endpoints ++
-    ImplementationsOffersApi.endpoints ++
-    ImplementationsPartysApi.endpoints ++
-    ImplementationsProductsApi.endpoints ++
-    ImplementationsDomesticPaymentsApi.endpoints ++
-    ImplementationsDomesticScheduledPaymentsApi.endpoints ++
-    ImplementationsDomesticStandingOrdersApi.endpoints ++
-    ImplementationsFilePaymentsApi.endpoints ++
-    ImplementationsInternationalPaymentsApi.endpoints ++
-    ImplementationsInternationalScheduledPaymentsApi.endpoints ++
-    ImplementationsInternationalStandingOrdersApi.endpoints ++
-    ImplementationsFundsConfirmationsApi.endpoints 
-  
-  val allResourceDocs =
-    ImplementationsAccountAccessApi.resourceDocs ++
-    ImplementationsAccountsApi.resourceDocs ++
-    ImplementationsBalancesApi.resourceDocs ++
-    ImplementationsBeneficiariesApi.resourceDocs ++
-    ImplementationsDirectDebitsApi.resourceDocs ++
-    ImplementationsOffersApi.resourceDocs ++
-    ImplementationsPartysApi.resourceDocs ++
-    ImplementationsProductsApi.resourceDocs ++
-    ImplementationsScheduledPaymentsApi.resourceDocs ++ 
-    ImplementationsDomesticPaymentsApi.resourceDocs ++           
-    ImplementationsDomesticScheduledPaymentsApi.resourceDocs ++  
-    ImplementationsDomesticStandingOrdersApi.resourceDocs ++     
-    ImplementationsFilePaymentsApi.resourceDocs ++               
-    ImplementationsInternationalPaymentsApi.resourceDocs ++      
-    ImplementationsInternationalScheduledPaymentsApi.resourceDocs ++
-    ImplementationsInternationalStandingOrdersApi.resourceDocs ++ 
-    ImplementationsFundsConfirmationsApi.resourceDocs   
-  
-  def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
+  private[this] val endpoints =
+    APIMethods_AccountAccessApi.endpoints ++
+    APIMethods_AccountsApi.endpoints ++
+    APIMethods_BalancesApi.endpoints ++
+    APIMethods_BeneficiariesApi.endpoints ++
+    APIMethods_DirectDebitsApi.endpoints ++
+    APIMethods_DomesticPaymentsApi.endpoints ++
+    APIMethods_DomesticScheduledPaymentsApi.endpoints ++
+    APIMethods_DomesticStandingOrdersApi.endpoints ++
+    APIMethods_FilePaymentsApi.endpoints ++
+    APIMethods_FundsConfirmationsApi.endpoints ++
+    APIMethods_InternationalPaymentsApi.endpoints ++
+    APIMethods_InternationalScheduledPaymentsApi.endpoints ++
+    APIMethods_InternationalStandingOrdersApi.endpoints ++
+    APIMethods_OffersApi.endpoints ++
+    APIMethods_PartysApi.endpoints ++
+    APIMethods_ProductsApi.endpoints ++
+    APIMethods_ScheduledPaymentsApi.endpoints ++
+    APIMethods_StandingOrdersApi.endpoints ++
+    APIMethods_StatementsApi.endpoints ++
+    APIMethods_TransactionsApi.endpoints
+
+  override val allResourceDocs: ArrayBuffer[ResourceDoc] =
+    APIMethods_AccountAccessApi.resourceDocs ++
+    APIMethods_AccountsApi.resourceDocs ++
+    APIMethods_BalancesApi.resourceDocs ++
+    APIMethods_BeneficiariesApi.resourceDocs ++
+    APIMethods_DirectDebitsApi.resourceDocs ++
+    APIMethods_DomesticPaymentsApi.resourceDocs ++
+    APIMethods_DomesticScheduledPaymentsApi.resourceDocs ++
+    APIMethods_DomesticStandingOrdersApi.resourceDocs ++
+    APIMethods_FilePaymentsApi.resourceDocs ++
+    APIMethods_FundsConfirmationsApi.resourceDocs ++
+    APIMethods_InternationalPaymentsApi.resourceDocs ++
+    APIMethods_InternationalScheduledPaymentsApi.resourceDocs ++
+    APIMethods_InternationalStandingOrdersApi.resourceDocs ++
+    APIMethods_OffersApi.resourceDocs ++
+    APIMethods_PartysApi.resourceDocs ++
+    APIMethods_ProductsApi.resourceDocs ++
+    APIMethods_ScheduledPaymentsApi.resourceDocs ++
+    APIMethods_StandingOrdersApi.resourceDocs ++
+    APIMethods_StatementsApi.resourceDocs ++
+    APIMethods_TransactionsApi.resourceDocs
+
+  private[this] def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf1_3, allResourceDocs)
+  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("open-banking" / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
+    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
-
 }

@@ -1,4 +1,4 @@
-package code.api.builder.InternationalPaymentsApi
+package code.api.UKOpenBanking.v3_1_0
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
@@ -21,14 +21,13 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.util.ApiTag
 
-trait APIMethods_InternationalPaymentsApi { self: RestHelper =>
-  val ImplementationsInternationalPaymentsApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
+object APIMethods_InternationalPaymentsApi extends RestHelper {
+    val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -180,7 +179,7 @@ trait APIMethods_InternationalPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagInternationalPayments :: apiTagMockedData :: Nil
+       ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val createInternationalPaymentConsents : OBPEndpoint = {
@@ -450,7 +449,7 @@ trait APIMethods_InternationalPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagInternationalPayments :: apiTagMockedData :: Nil
+       ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val createInternationalPayments : OBPEndpoint = {
@@ -720,7 +719,7 @@ trait APIMethods_InternationalPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagInternationalPayments :: apiTagMockedData :: Nil
+       ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val getInternationalPaymentConsentsConsentId : OBPEndpoint = {
@@ -893,7 +892,7 @@ trait APIMethods_InternationalPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagInternationalPayments :: apiTagMockedData :: Nil
+       ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val getInternationalPaymentConsentsConsentIdFundsConfirmation : OBPEndpoint = {
@@ -1055,7 +1054,7 @@ trait APIMethods_InternationalPaymentsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagInternationalPayments :: apiTagMockedData :: Nil
+       ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
      lazy val getInternationalPaymentsInternationalPaymentId : OBPEndpoint = {
@@ -1185,7 +1184,6 @@ trait APIMethods_InternationalPaymentsApi { self: RestHelper =>
          }
        }
 
-  }
 }
 
 

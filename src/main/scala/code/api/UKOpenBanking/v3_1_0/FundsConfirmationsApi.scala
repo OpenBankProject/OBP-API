@@ -1,9 +1,10 @@
-package code.api.builder.FundsConfirmationsApi
+package code.api.UKOpenBanking.v3_1_0
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import net.liftweb.json
 import net.liftweb.json._
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
 import code.api.util.APIUtil.{defaultBankId, _}
 import code.api.util.{ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
@@ -20,14 +21,13 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.util.ApiTag
 
-trait APIMethods_FundsConfirmationsApi { self: RestHelper =>
-  val ImplementationsFundsConfirmationsApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
+object APIMethods_FundsConfirmationsApi extends RestHelper {
+    val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -76,7 +76,7 @@ trait APIMethods_FundsConfirmationsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagFundsConfirmations :: apiTagMockedData :: Nil
+       ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
      lazy val createFundsConfirmationConsents : OBPEndpoint = {
@@ -151,7 +151,7 @@ trait APIMethods_FundsConfirmationsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagFundsConfirmations :: apiTagMockedData :: Nil
+       ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
      lazy val createFundsConfirmations : OBPEndpoint = {
@@ -201,7 +201,7 @@ trait APIMethods_FundsConfirmationsApi { self: RestHelper =>
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagFundsConfirmations :: apiTagMockedData :: Nil
+       ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
      lazy val deleteFundsConfirmationConsentsConsentId : OBPEndpoint = {
@@ -253,7 +253,7 @@ trait APIMethods_FundsConfirmationsApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagFundsConfirmations :: apiTagMockedData :: Nil
+       ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
      )
 
      lazy val getFundsConfirmationConsentsConsentId : OBPEndpoint = {
@@ -292,7 +292,6 @@ trait APIMethods_FundsConfirmationsApi { self: RestHelper =>
          }
        }
 
-  }
 }
 
 

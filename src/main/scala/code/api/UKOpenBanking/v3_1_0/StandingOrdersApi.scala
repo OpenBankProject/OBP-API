@@ -21,14 +21,13 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.util.ApiTag
 
-trait APIMethods_StandingOrdersApi { self: RestHelper =>
-  val ImplementationsStandingOrdersApi = new Object() {
-    val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV310
+object APIMethods_StandingOrdersApi extends RestHelper {
+    val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
-    val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
@@ -129,7 +128,7 @@ trait APIMethods_StandingOrdersApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagStandingOrders :: apiTagMockedData :: Nil
+       ApiTag("Standing Orders") :: apiTagMockedData :: Nil
      )
 
      lazy val getAccountsAccountIdStandingOrders : OBPEndpoint = {
@@ -314,7 +313,7 @@ trait APIMethods_StandingOrdersApi { self: RestHelper =>
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
-       apiTagStandingOrders :: apiTagMockedData :: Nil
+       ApiTag("Standing Orders") :: apiTagMockedData :: Nil
      )
 
      lazy val getStandingOrders : OBPEndpoint = {
@@ -407,7 +406,6 @@ trait APIMethods_StandingOrdersApi { self: RestHelper =>
          }
        }
 
-  }
 }
 
 
