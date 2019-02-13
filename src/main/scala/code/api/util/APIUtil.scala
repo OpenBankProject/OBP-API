@@ -1030,7 +1030,7 @@ object APIUtil extends MdcLoggable {
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
-                          implementedInApiVersion: ApiVersion, // TODO: Use ApiVersion enumeration instead of string
+                          implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                           requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
@@ -1655,10 +1655,8 @@ Returns a string showed to the developer
         case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
-        case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
-        case ApiVersion.`berlinGroupV1_3` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1_3)
-        case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
+        case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")
       }
 
@@ -2233,27 +2231,34 @@ Returns a string showed to the developer
     val brandSpecificPropertyName = getBrandSpecificPropertyName(nameOfProperty)
 
     logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $brandSpecificPropertyName")
-
-
-    (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
-      case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
-        val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
-        Full(decryptedValueAsString)
-      case (Full(property), Full(isEncrypted), Empty)  if isEncrypted == "false" =>
-        Full(property)
-      case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "true" =>
-        Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
-      case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "false" =>
-        Full(property)
-      case (Full(property), Empty,Empty) =>
-        Full(property)
-      case (Empty, Empty, Empty) =>
-        Empty
-      case _ =>
-        logger.error(cannotDecryptValueOfProperty + brandSpecificPropertyName)
-        Failure(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+    
+    //All the property will first check from system environment, if not find then from the liftweb props file 
+    //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
+    val sysEnvironmentPropertyName = brandSpecificPropertyName.replace('.', '_').toUpperCase()
+    val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
+    sysEnvironmentPropertyValue match {
+      case Full(_) => sysEnvironmentPropertyValue
+      case _  =>
+        (Props.get(brandSpecificPropertyName), Props.get(brandSpecificPropertyName + ".is_encrypted"), Props.get(brandSpecificPropertyName + ".is_obfuscated") ) match {
+          case (Full(base64PropsValue), Full(isEncrypted), Empty)  if isEncrypted == "true" =>
+            val decryptedValueAsString = RSAUtil.decrypt(base64PropsValue)
+            Full(decryptedValueAsString)
+          case (Full(property), Full(isEncrypted), Empty)  if isEncrypted == "false" =>
+            Full(property)
+          case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "true" =>
+            Full(org.eclipse.jetty.util.security.Password.deobfuscate(property))
+          case (Full(property),Empty, Full(isObfuscated)) if isObfuscated == "false" =>
+            Full(property)
+          case (Full(property), Empty,Empty) =>
+            Full(property)
+          case (Empty, Empty, Empty) =>
+            Empty
+          case _ =>
+            logger.error(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+            Failure(cannotDecryptValueOfProperty + brandSpecificPropertyName)
+        }
     }
-  }
+  } 
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
     getPropsValue(nameOfProperty) openOr(defaultValue)
   }

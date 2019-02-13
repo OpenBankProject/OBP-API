@@ -25,6 +25,7 @@ object RemotedataCustomerAddress extends ObpActorInit with CustomerAddressProvid
                     state: String,
                     postcode: String,
                     countryCode: String,
+                    tags: String,
                     status: String): Future[Box[CustomerAddress]] =
     (actor ? cc.createAddress(customerId,
       line1,
@@ -35,6 +36,30 @@ object RemotedataCustomerAddress extends ObpActorInit with CustomerAddressProvid
       state,
       postcode,
       countryCode,
+      tags,
+      status)).mapTo[Box[CustomerAddress]]
+
+  def updateAddress(customerAddressId: String,
+                    line1: String,
+                    line2: String,
+                    line3: String,
+                    city: String,
+                    county: String,
+                    state: String,
+                    postcode: String,
+                    countryCode: String,
+                    tags: String,
+                    status: String): Future[Box[CustomerAddress]] =
+    (actor ? cc.updateAddress(customerAddressId,
+      line1,
+      line2,
+      line3,
+      city,
+      county,
+      state,
+      postcode,
+      countryCode,
+      tags,
       status)).mapTo[Box[CustomerAddress]]
 
 

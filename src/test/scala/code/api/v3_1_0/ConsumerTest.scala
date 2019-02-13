@@ -27,11 +27,9 @@ package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanGetConsumers
-import code.api.util.ErrorMessages.{ConsumerNotFoundByConsumerId, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{ApiRole, ApiVersion}
+import code.api.util.ApiVersion
+import code.api.util.ErrorMessages.UserNotLoggedIn
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
 

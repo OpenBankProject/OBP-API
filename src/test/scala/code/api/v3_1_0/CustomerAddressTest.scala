@@ -39,6 +39,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
+import scala.collection.immutable.List
+
 class CustomerAddressTest extends V310ServerSetup {
 
   override def beforeAll(): Unit = {
@@ -62,10 +64,11 @@ class CustomerAddressTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createCustomerAddress))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCustomerAddresses))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.deleteCustomerAddress))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.updateCustomerAddress))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
-  val postCustomerAddressJson = SwaggerDefinitionsJSON.postCustomerAddressJsonV310
+  val postCustomerAddressJson = SwaggerDefinitionsJSON.postCustomerAddressJsonV310.copy(tags = List("mailing", "home"))
   lazy val bankId = randomBankId
 
   feature("Add/Get/Delete Customer Address v3.1.0") {
@@ -126,7 +129,7 @@ class CustomerAddressTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateCustomer)
     }
 
-    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We try to create a customer address with non existing customer v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST <@(user1)
@@ -149,7 +152,15 @@ class CustomerAddressTest extends V310ServerSetup {
       val successRes = makePostRequest(successReq, write(postCustomerAddressJson))
       Then("We should get a 201")
       successRes.code should equal(201)
-      successRes.body.extract[CustomerAddressJsonV310]
+      val customerAddress = successRes.body.extract[CustomerAddressJsonV310]
+      
+      When("We try to update the customer address v3.1.0")
+      val successUpdateReq = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "address" / customerAddress.customer_address_id).PUT <@(user1)
+      val successUpdateRes = makePutRequest(successUpdateReq, write(postCustomerAddressJson.copy(city = "Novi Sad")))
+      Then("We should get a 200")
+      successUpdateRes.code should equal(200)
+      val address = successUpdateRes.body.extract[CustomerAddressJsonV310]
+      address.city shouldBe "Novi Sad"
 
       When("We try to make the GET request v3.1.0")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
@@ -159,6 +170,7 @@ class CustomerAddressTest extends V310ServerSetup {
       successGetRes.code should equal(200)
       val addresses = successGetRes.body.extract[CustomerAddressesJsonV310]
       val customerAddressId = addresses.addresses.map(_.customer_address_id).headOption.getOrElse("CUSTOMER_ADDRESS_ID")
+      addresses.addresses.flatMap(_.tags).sorted shouldBe  List("mailing", "home").sorted
 
       When("We try to make the DELETE request v3.1.0")
       val successDeleteReq = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "addresses" / customerAddressId).DELETE <@(user1)

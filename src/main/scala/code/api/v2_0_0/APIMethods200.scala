@@ -1,9 +1,9 @@
 package code.api.v2_0_0
 
-import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
 import code.TransactionTypes.TransactionType
+import code.api.APIFailure
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -15,7 +15,6 @@ import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFacto
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
-import code.api.{APIFailure, APIFailureNewStyle}
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
@@ -120,7 +119,7 @@ trait APIMethods200 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: ApiVersion = ApiVersion.v2_0_0 // was String "2_0_0"
+    val apiVersion = ApiVersion.v2_0_0 // was String "2_0_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
 

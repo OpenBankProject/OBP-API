@@ -31,8 +31,21 @@ trait CustomerAddressProvider {
                     state: String,
                     postcode: String,
                     countryCode: String,
+                    tags: String,
                     status: String
                 ): Future[Box[CustomerAddress]]
+  def updateAddress(customerAddressId: String,
+                    line1: String,
+                    line2: String,
+                    line3: String,
+                    city: String,
+                    county: String,
+                    state: String,
+                    postcode: String,
+                    countryCode: String,
+                    tags: String,
+                    status: String
+                   ): Future[Box[CustomerAddress]]
   def deleteAddress(customerAddressId: String): Future[Box[Boolean]]
 }
 
@@ -48,12 +61,25 @@ trait CustomerAddress {
   def postcode: String
   def countryCode: String
   def status: String
+  def tags: String
   def insertDate: Date
 }
 
 
 class RemotedataCustomerAddressCaseClasses {
   case class getAddress(customerId: String)
+  case class updateAddress(customerAddressId: String,
+                           line1: String,
+                           line2: String,
+                           line3: String,
+                           city: String,
+                           county: String,
+                           state: String,
+                           postcode: String,
+                           countryCode: String,
+                           tags: String,
+                           status: String
+                       )
   case class createAddress(customerId: String,
                            line1: String,
                            line2: String,
@@ -63,6 +89,7 @@ class RemotedataCustomerAddressCaseClasses {
                            state: String,
                            postcode: String,
                            countryCode: String,
+                           tags: String,
                            status: String
                        )
   case class deleteAddress(customerAddressId: String)

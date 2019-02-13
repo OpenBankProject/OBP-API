@@ -62,33 +62,22 @@ Berlin 13359, Germany
 			<div id="cookie-ipaddress-concurrent-logins" data-lift="WebUI.concurrentLoginsCookiesCheck"></div>
 
 			<div id="top-text" data-lift="WebUI.topText"></div>
-
-			<div class="row">
-				<div class="col-xs-12 col-sm-1"></div>
-				<div class="col-xs-12 col-sm-5">
-					<div class="logo hidden-xs" id="logo-left" data-lift="WebUI.headerLogoLeft">
-						<a href="/"><img src=""></a>
-					</div>
-					<div class="visible-xs">
-						<div class="logo-xs" id="logo-left-xs" data-lift="WebUI.headerLogoLeft">
-							<a href="/"><img src=""></a>
+			<table id="table-header">
+				<tr class="row">
+					<td></td>
+					<td id="td-logo-left-xs">
+						<div data-lift="WebUI.headerLogoLeft">
+							<a href="/"><img src="" id="logo-left-xs" align="left"></a>
 						</div>
-					</div>
-				</div>
-				<div class="col-xs-12 col-sm-5">
-					<div class="hidden-xs">
-						<div class="logo" id="logo-right" data-lift="WebUI.headerLogoRight">
-							<a href="/"><img src=""></a>
+					</td>
+					<td id="td-logo-right-xs">
+						<div data-lift="WebUI.headerLogoRight">
+							<a href="/"><img src="" id="logo-right-xs" align="right"></a>
 						</div>
-					</div>
-					<div class="visible-xs">
-						<div class="logo-xs" id="logo-right-xs" data-lift="WebUI.headerLogoRight">
-							<a href="/"><img src=""></a>
-						</div>
-					</div>
-				</div>
-				<div class="col-xs-12 col-sm-1"></div>
-			</div>
+					</td>
+					<td></td>
+				</tr>
+			</table>
 
 			<div id="messages-container" data-lift="Msgs"></div>
 			<script>

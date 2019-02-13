@@ -39,10 +39,11 @@ import code.api._
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages, Migration}
+import code.api.util._
 import code.atms.MappedAtm
 import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
+import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.crm.MappedCrmEvent
@@ -269,6 +270,7 @@ class Boot extends MdcLoggable {
     }
 
     // Add the various API versions
+    ScannedApis.versionMapScannedApis.keys.foreach(enableVersionIfAllowed) // process all scanned apis versions
     enableVersionIfAllowed(ApiVersion.v1_2_1)
     enableVersionIfAllowed(ApiVersion.v1_3_0)
     enableVersionIfAllowed(ApiVersion.v1_4_0)
@@ -277,11 +279,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v2_2_0)
     enableVersionIfAllowed(ApiVersion.v3_0_0)
     enableVersionIfAllowed(ApiVersion.v3_1_0)
-    enableVersionIfAllowed(ApiVersion.berlinGroupV1)
-    enableVersionIfAllowed(ApiVersion.berlinGroupV1_3)
-    enableVersionIfAllowed(ApiVersion.ukOpenBankingV200)
     enableVersionIfAllowed(ApiVersion.apiBuilder)
-
 
     // TODO Wrap these with enableVersionIfAllowed as well
     //add management apis
@@ -482,6 +480,8 @@ class Boot extends MdcLoggable {
     }
 
     Migration.database.generateAndPopulateMissingConsumersUUIDs()
+
+    Glossary.glossaryItems
 
   }
 

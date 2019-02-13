@@ -27,7 +27,6 @@ import code.metrics.APIMetrics
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.sandbox.SandboxData
-import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
@@ -39,7 +38,6 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Await
 // Makes JValue assignment to Nil work
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -56,7 +54,6 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -71,7 +68,7 @@ trait APIMethods210 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val apiVersion: util.ApiVersion = util.ApiVersion.v2_1_0 // was String "2_1_0"
+    val apiVersion = util.ApiVersion.v2_1_0 // was String "2_1_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
 

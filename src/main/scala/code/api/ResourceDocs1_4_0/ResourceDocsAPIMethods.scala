@@ -10,7 +10,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ApiVersion}
+import code.api.util.{APIUtil, ApiVersion, ScannedApiVersion, ScannedApis}
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
@@ -55,7 +55,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     val emptyObjectJson = EmptyClassJson()
     // val statedApiVersion : String = "1_4_0"
 
-    val implementedInApiVersion : ApiVersion = ApiVersion.v1_4_0
+    val implementedInApiVersion = ApiVersion.v1_4_0
 
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
@@ -114,9 +114,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.allResourceDocs
-        case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
-        case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.allResourceDocs
-        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
@@ -125,6 +122,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
+        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis(version).allResourceDocs
         case _ => ArrayBuffer.empty[ResourceDoc]
       }
 
@@ -132,9 +130,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
-        case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
-        case ApiVersion.`berlinGroupV1_3`     => OBP_BERLIN_GROUP_1_3.routes
-        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
@@ -143,6 +138,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
         case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
         case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
+        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis(version).routes
         case _                 => Nil
       }
 
@@ -165,9 +161,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       requestedApiVersion match
       {
         case ApiVersion.`apiBuilder` => ;
-        case ApiVersion.`ukOpenBankingV200` => ;
-        case ApiVersion.`berlinGroupV1_3` => ;
-        case ApiVersion.`berlinGroupV1` => ;
+        case version: ScannedApiVersion => ;
         case _ => activePlusLocalResourceDocs ++= localResourceDocs
       }
 //      activePlusLocalResourceDocs ++= localResourceDocs
@@ -183,23 +177,19 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         x <- activePlusLocalResourceDocs
         // This is the "implemented in" url
         url = x.implementedInApiVersion match {
-          case ApiVersion.`berlinGroupV1_3` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`apiBuilder` =>  s"/api-builder/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           // We add the /obp/vX prefix here
+          case version: ScannedApiVersion => s"/${version.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
         }
         y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),
           requestUrl = url,
           specifiedUrl = x.implementedInApiVersion match {
-            case ApiVersion.`berlinGroupV1_3` =>  Some(url)
-            case ApiVersion.`berlinGroupV1` =>  Some(url)
-            case ApiVersion.`ukOpenBankingV200` =>  Some(url)
             case ApiVersion.`apiBuilder` =>  Some(url)
             // We add the /obp/vX prefix here - but this is the requested API version by the resource docs endpoint. i.e. we know this endpoint
             // is also available here as well as the requestUrl. See the resource doc for resource doc!
+            case version: ScannedApiVersion =>  Some(url)
             case _ =>  Some(s"/obp/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}")
           }
 

@@ -14,7 +14,7 @@ trait CustomAPIMethods300 {
     
     def endpointsOfCustom3_0_0 = createTransactionRequestTransferToReferenceAccountCustom :: Nil
     
-    val apiVersion: ApiVersion = ApiVersion.v3_0_0
+    val apiVersion = ApiVersion.v3_0_0
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)

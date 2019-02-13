@@ -1,14 +1,11 @@
 package code.api.v2_2_0
 
-import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.Date
 
-import code.actorsystem.ObpActorConfig
-import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiTag._
 import code.api.util.ApiRole._
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -16,17 +13,15 @@ import code.api.v1_2_1.{CreateViewJsonV121, UpdateViewJsonV121}
 import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
-import code.bankconnectors.vMar2017.JsonFactory_vMar2017
 import code.consumer.Consumers
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
-import code.metrics.{ConnectorMetric, ConnectorMetricsProvider}
+import code.metrics.ConnectorMetricsProvider
 import code.model.dataAccess.BankAccountCreation
 import code.model.{BankId, ViewId, _}
 import code.util.Helper
 import code.util.Helper._
 import code.views.Views
 import net.liftweb.common.Full
-import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
@@ -48,7 +43,7 @@ trait APIMethods220 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val implementedInApiVersion: ApiVersion = ApiVersion.v2_2_0 // was String "2_2_0"
+    val implementedInApiVersion = ApiVersion.v2_2_0 // was String "2_2_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
@@ -613,6 +608,7 @@ trait APIMethods220 {
             success <- Connector.connector.vend.createOrUpdateProduct(
                 bankId = product.bank_id,
                 code = product.code,
+                parentProductCode = None, 
                 name = product.name,
                 category = product.category,
                 family = product.family,
