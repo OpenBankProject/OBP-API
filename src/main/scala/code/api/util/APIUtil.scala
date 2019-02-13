@@ -39,7 +39,6 @@ import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
-import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
@@ -1031,7 +1030,7 @@ object APIUtil extends MdcLoggable {
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction : OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
-                          implementedInApiVersion: ApiVersion, // TODO: Use ApiVersion enumeration instead of string
+                          implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                           requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
@@ -1656,9 +1655,6 @@ Returns a string showed to the developer
         case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
-        case ApiVersion.`berlinGroupV1` => LiftRules.statelessDispatch.append(OBP_BERLIN_GROUP_1)
-        case ApiVersion.`ukOpenBankingV200` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_200)
-        case ApiVersion.`ukOpenBankingV310` => LiftRules.statelessDispatch.append(OBP_UKOpenBanking_310)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")

@@ -23,7 +23,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
-    val apiVersion: ApiVersion =  OBP_BERLIN_GROUP_1_3.version
+    val apiVersion =  OBP_BERLIN_GROUP_1_3.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)

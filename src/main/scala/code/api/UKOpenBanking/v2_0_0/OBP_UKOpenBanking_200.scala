@@ -28,11 +28,11 @@ package code.api.UKOpenBanking.v2_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.Nil
-
+import code.api.UKOpenBanking.v2_0_0.APIMethods_UKOpenBanking_200._
 
 
 /*
@@ -40,32 +40,32 @@ This file defines which endpoints from all the versions are available in v1
  */
 
 
-object OBP_UKOpenBanking_200 extends OBPRestHelper with APIMethods_UKOpenBanking_200 with MdcLoggable {
+object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with ScannedApis{
 
-  val version = ApiVersion.ukOpenBankingV200
+  override val apiVersion = ScannedApiVersion("open-banking", "UK", "v2.0")
   val versionStatus = "DRAFT"
 
-  val endpointsOf200 = 
-      ImplementationsUKOpenBanking200.getAccountList :: 
-      ImplementationsUKOpenBanking200.getAccountTransactions :: 
-      ImplementationsUKOpenBanking200.getAccount :: 
-      ImplementationsUKOpenBanking200.getAccountBalances :: 
-      ImplementationsUKOpenBanking200.getBalances :: 
-      Nil
+  val allEndpoints = 
+    getAccountList :: 
+    getAccountTransactions :: 
+    getAccount :: 
+    getAccountBalances :: 
+    getBalances :: 
+    Nil
   
-  val allResourceDocs = ImplementationsUKOpenBanking200.resourceDocs
+  override val allResourceDocs = resourceDocs
   
   def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)
   }
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpointsOf200, ImplementationsUKOpenBanking200.resourceDocs)
+  override val routes : List[OBPEndpoint] = getAllowedEndpoints(allEndpoints,resourceDocs)
 
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("open-banking" / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
+    oauthServe((apiVersion.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")

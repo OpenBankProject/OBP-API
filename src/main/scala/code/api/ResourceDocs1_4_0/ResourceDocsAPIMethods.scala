@@ -4,7 +4,6 @@ import java.util.UUID.randomUUID
 
 import code.api.builder.OBP_APIBuilder
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
-import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.cache.Caching
@@ -56,7 +55,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     val emptyObjectJson = EmptyClassJson()
     // val statedApiVersion : String = "1_4_0"
 
-    val implementedInApiVersion : ApiVersion = ApiVersion.v1_4_0
+    val implementedInApiVersion = ApiVersion.v1_4_0
 
     implicit val formats = new Formats {
       val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
@@ -115,9 +114,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.allResourceDocs
-        case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.allResourceDocs
-        case ApiVersion.`ukOpenBankingV310`     => OBP_UKOpenBanking_310.allResourceDocs
-        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.allResourceDocs
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
@@ -134,9 +130,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
-        case ApiVersion.`ukOpenBankingV200`     => OBP_UKOpenBanking_200.routes
-        case ApiVersion.`ukOpenBankingV310`     => OBP_UKOpenBanking_310.routes
-        case ApiVersion.`berlinGroupV1`     => OBP_BERLIN_GROUP_1.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
@@ -168,9 +161,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       requestedApiVersion match
       {
         case ApiVersion.`apiBuilder` => ;
-        case ApiVersion.`ukOpenBankingV200` => ;
-        case ApiVersion.`ukOpenBankingV310` => ;
-        case ApiVersion.`berlinGroupV1` => ;
         case version: ScannedApiVersion => ;
         case _ => activePlusLocalResourceDocs ++= localResourceDocs
       }
@@ -187,9 +177,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         x <- activePlusLocalResourceDocs
         // This is the "implemented in" url
         url = x.implementedInApiVersion match {
-          case ApiVersion.`berlinGroupV1` =>  s"/berlin-group/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case ApiVersion.`ukOpenBankingV200` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case ApiVersion.`ukOpenBankingV310` =>  s"/open-banking/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           case ApiVersion.`apiBuilder` =>  s"/api-builder/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
           // We add the /obp/vX prefix here
           case version: ScannedApiVersion => s"/${version.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
@@ -199,9 +186,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),
           requestUrl = url,
           specifiedUrl = x.implementedInApiVersion match {
-            case ApiVersion.`berlinGroupV1` =>  Some(url)
-            case ApiVersion.`ukOpenBankingV200` =>  Some(url)
-            case ApiVersion.`ukOpenBankingV310` =>  Some(url)
             case ApiVersion.`apiBuilder` =>  Some(url)
             // We add the /obp/vX prefix here - but this is the requested API version by the resource docs endpoint. i.e. we know this endpoint
             // is also available here as well as the requestUrl. See the resource doc for resource doc!
