@@ -194,7 +194,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.createTransactionType ::
                           // Implementations2_1_0.getAtm :: //now in V300
                           // Implementations2_1_0.getBranch :: //now in V300
-                          Implementations2_1_0.updateBranch ::
+//                          Implementations2_1_0.updateBranch ::
                           Implementations2_1_0.getProduct ::
                           Implementations2_1_0.getProducts ::
                           Implementations2_1_0.createCustomer ::
@@ -241,6 +241,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.createBranch ::
                           Implementations3_0_0.getBranches ::
                           Implementations3_0_0.getBranch ::
+                          Implementations3_0_0.updateBranch ::
                           Implementations3_0_0.createAtm ::
                           Implementations3_0_0.getAtm ::
                           Implementations3_0_0.getAtms ::

@@ -1289,6 +1289,21 @@ object SwaggerDefinitionsJSON {
   val branchJsonV300: BranchJsonV300 = createBranchJsonV300 (branch)
   val branchesJsonV300 = BranchesJsonV300(branches = List(branchJsonV300))
 
+  val postBranchJsonV300 = PostBranchJsonV300(
+    branchJsonV300.bank_id,
+    branchJsonV300.name,
+    branchJsonV300.address,
+    branchJsonV300.location,
+    branchJsonV300.meta,
+    branchJsonV300.lobby,
+    branchJsonV300.drive_up,
+    branchJsonV300.branch_routing,
+    branchJsonV300.is_accessible,
+    branchJsonV300.accessibleFeatures,
+    branchJsonV300.branch_type,
+    branchJsonV300.more_info,
+    branchJsonV300.phone_number 
+  )
 
 
 
