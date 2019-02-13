@@ -334,6 +334,13 @@ case class ProductAttributeResponseJson(
   `type`: String,
   value: String,
 )
+case class ProductAttributeResponseWithoutBankIdJson(
+  product_code: String,
+  product_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+)
 
 case class AccountApplicationJson(
   product_code: String,
@@ -378,7 +385,7 @@ case class ProductJsonV310(bank_id: String,
                            details: String,
                            description: String,
                            meta : MetaJsonV140,
-                           product_attributes: Option[List[ProductAttributeResponseJson]])
+                           product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]])
 case class ProductsJsonV310 (products : List[ProductJsonV310])
 case class ProductTreeJsonV310(bank_id: String,
                                code : String,
@@ -636,8 +643,17 @@ object JSONFactory310{
        `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
-  def createProductAttributesJson(productAttributes: List[ProductAttribute]): List[ProductAttributeResponseJson] = {
-    productAttributes.map(createProductAttributeJson)
+  def createProductAttributesJson(productAttributes: List[ProductAttribute]): List[ProductAttributeResponseWithoutBankIdJson] = {
+    productAttributes.map(
+      productAttribute => 
+      ProductAttributeResponseWithoutBankIdJson(
+        product_code = productAttribute.productCode.value,
+        product_attribute_id = productAttribute.productAttributeId,
+        name = productAttribute.name,
+        `type` = productAttribute.attributeType.toString,
+        value = productAttribute.value,
+      )
+    )
   }
   
   def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[User], customer: Box[Customer]): AccountApplicationResponseJson = {

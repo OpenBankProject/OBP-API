@@ -2122,7 +2122,7 @@ object SwaggerDefinitionsJSON {
   )
   val childProductTreeJsonV310 = ProductTreeJsonV310(
     bank_id="testBank2",
-    code="CHILD_CODE",
+    code="PRODUCT_CODE",
     name="product name",
     category="category",
     family="family",
@@ -3041,8 +3041,7 @@ object SwaggerDefinitionsJSON {
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
   )
-  val productAttributeResponseJson = ProductAttributeResponseJson(
-    bank_id = "123",
+  val productAttributeResponseJson = ProductAttributeResponseWithoutBankIdJson(
     product_code = "saving1",
     product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
@@ -3072,7 +3071,7 @@ object SwaggerDefinitionsJSON {
 
   val productJsonV310 = ProductJsonV310(
     bank_id = "gh.29.uk",
-    code = "child",
+    code = "product_code",
     parent_product_code = "parent",
     name = "product name",
     category = "category",
