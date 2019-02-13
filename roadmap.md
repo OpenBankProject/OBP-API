@@ -14,12 +14,14 @@ If you have a particular requirement or would like to comment or help us specify
 
 
 
-## Upcoming developments
+## Current developments
 
-*   Web Hooks (on balance change etc.)
+### Enhanced support for Berlin Group, STET, UK Open Banking and Polish APIs
+
 
 ## Completed developments (most recent first)
 
+### Web Hooks (on balance change etc.)
 
 
 ### Message Docs

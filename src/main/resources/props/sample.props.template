@@ -260,7 +260,7 @@ webui_index_page_about_section_text = <p class="about-text"> \
                                       </p>
 
 # Top text appears on default.html For branding next to logo(s)
-webui_top_text=""
+webui_top_text=
 
 
 
