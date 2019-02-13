@@ -18,6 +18,10 @@ If you have a particular requirement or would like to comment or help us specify
 * Use Product Attributes as a template when creating Account Attributes
 
 * Additional Consent models
+## Current developments
+
+### Enhanced support for Berlin Group, STET, UK Open Banking and Polish APIs
+
 
 * Enhanced support for Berlin Group, STET, UK Open Banking and Polish APIs e.g.
  [Berlin Group](https://apiexplorersandbox.openbankproject.com/?version=BGv3.1) and [STET](https://apiexplorersandbox.openbankproject.com/?version=STETv1.4)
