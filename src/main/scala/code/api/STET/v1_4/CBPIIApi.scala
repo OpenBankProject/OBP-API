@@ -82,7 +82,7 @@ The ASPSP answers with a structure embedding the original request and the result
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }

@@ -160,9 +160,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       activePlusLocalResourceDocs ++= activeResourceDocs
       requestedApiVersion match
       {
-        case ApiVersion.`apiBuilder` => ;
-        case version: ScannedApiVersion => ;
-        case _ => activePlusLocalResourceDocs ++= localResourceDocs
+        // only `obp` standard show the `localResouceDocs`
+        case version: ScannedApiVersion if(version.apiStandard =="obp") => activePlusLocalResourceDocs ++= localResourceDocs
+        // all other standards only show their own apis. 
+        case _ => ;
       }
 //      activePlusLocalResourceDocs ++= localResourceDocs
 

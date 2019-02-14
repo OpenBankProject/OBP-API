@@ -225,7 +225,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }

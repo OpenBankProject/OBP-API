@@ -175,7 +175,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }
