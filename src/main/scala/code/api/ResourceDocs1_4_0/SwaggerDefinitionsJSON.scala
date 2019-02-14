@@ -2374,7 +2374,7 @@ object SwaggerDefinitionsJSON {
     meta = metaJson
   )
 
-
+  val putProductCollectionsV310 = PutProductCollectionsV310("A", List("B", "C", "D"))
 
 
 

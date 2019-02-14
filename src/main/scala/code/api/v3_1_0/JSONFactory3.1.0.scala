@@ -399,6 +399,7 @@ case class ProductTreeJsonV310(bank_id: String,
                                meta : MetaJsonV140,
                                parent_product: Option[ProductTreeJsonV310],
                                  )
+case class PutProductCollectionsV310(parent_product_code: String, children_product_codes: List[String])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =

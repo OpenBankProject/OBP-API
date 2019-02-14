@@ -72,6 +72,8 @@ import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.model._
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
+import code.productcollection.MappedProductCollection
+import code.productcollectionitem.MappedProductCollectionItem
 import code.products.MappedProduct
 import code.remotedata.RemotedataActors
 import code.scheduler.DatabaseDriverScheduler
@@ -572,7 +574,9 @@ object ToSchemify {
     MappedTaxResidence,
     MappedCustomerAddress,
     MappedUserAuthContext,
-    MappedAccountApplication
+    MappedAccountApplication,
+    MappedProductCollection,
+    MappedProductCollectionItem
   )
 
   // The following tables are accessed directly via Mapper / JDBC

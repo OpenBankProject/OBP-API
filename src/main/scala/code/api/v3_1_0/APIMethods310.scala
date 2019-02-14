@@ -23,6 +23,7 @@ import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.productattribute.ProductAttribute.ProductAttributeType
+import code.productcollection.ProductCollection
 import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.util.Helper
@@ -2637,8 +2638,66 @@ trait APIMethods310 {
         }
       }
     }
-    
-    
+
+
+
+
+
+
+
+
+
+    resourceDocs += ResourceDoc(
+      createProductCollections,
+      implementedInApiVersion,
+      "createProductCollections",
+      "PUT",
+      "/banks/BANK_ID/product-collections/COLLECTION_CODE",
+      "Create Product Collections",
+      s"""Create or Update Product Collections for the Bank.
+         |
+         |
+         |${authenticationRequiredMessage(true) }
+         |
+         |$createProductEntitlementsRequiredText
+         |""",
+      putProductCollectionsV310,
+      productJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagProduct),
+      Some(List(canCreateProduct, canCreateProductAtAnyBank))
+    )
+
+    lazy val createProductCollections: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "product-collections" :: collectionCode :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductCollectionsV310 "
+            product <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutProductCollectionsV310]
+            }
+            success: (List[ProductCollection], Option[CallContext]) <- NewStyle.function.getOrCreateProductCollection(
+              collectionCode,
+              product.children_product_codes,
+              callContext
+            )
+          } yield {
+            (success._1, HttpCode.`201`(callContext))
+          }
+
+      }
+    }
+
+
+
 
   }
 }
