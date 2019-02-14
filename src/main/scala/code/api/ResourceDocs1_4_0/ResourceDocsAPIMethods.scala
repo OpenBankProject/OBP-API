@@ -187,11 +187,11 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     specialInstructions = getSpecialInstructions(x.partialFunctionName),
           requestUrl = url,
           specifiedUrl = x.implementedInApiVersion match {
-            case ApiVersion.`apiBuilder` =>  Some(url)
             // We add the /obp/vX prefix here - but this is the requested API version by the resource docs endpoint. i.e. we know this endpoint
             // is also available here as well as the requestUrl. See the resource doc for resource doc!
-            case version: ScannedApiVersion =>  Some(url)
-            case _ =>  Some(s"/obp/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}")
+            case version: ScannedApiVersion if(version.apiStandard =="obp") =>  Some(s"/obp/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}")
+            //for other standard apis, there is no need to map the version. because each version only contains its own apis, do not mix for now.
+            case _ =>  Some(url)
           }
 
         )
