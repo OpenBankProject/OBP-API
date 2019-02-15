@@ -2061,18 +2061,18 @@ Returns a string showed to the developer
                   incrementConsumerCounters(c.key.get, PER_MONTH, c.perMonthCallLimit.get)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1._1 > 0 => 
-                    (x._1, setXRateLimits(c, x1, PER_SECOND))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x2._1 > 0 => 
-                    (x._1, setXRateLimits(c, x1, PER_MINUTE))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x3._1 > 0 => 
-                    (x._1, setXRateLimits(c, x2, PER_HOUR))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x4._1 > 0 => 
-                    (x._1, setXRateLimits(c, x3, PER_DAY))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x5._1 > 0 => 
-                    (x._1, setXRateLimits(c, x4, PER_WEEK))
-                  case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x6._1 > 0 => 
-                    (x._1, setXRateLimits(c, x5, PER_MONTH))
+                  case first :: _ :: _ :: _ :: _ :: _ :: Nil if first._1 > 0 => 
+                    (x._1, setXRateLimits(c, first, PER_SECOND))
+                  case _ :: second :: _ :: _ :: _ :: _ :: Nil if second._1 > 0 => 
+                    (x._1, setXRateLimits(c, second, PER_MINUTE))
+                  case _ :: _ :: third :: _ :: _ :: _ :: Nil if third._1 > 0 => 
+                    (x._1, setXRateLimits(c, third, PER_HOUR))
+                  case _ :: _ :: _ :: fourth :: _ :: _ :: Nil if fourth._1 > 0 => 
+                    (x._1, setXRateLimits(c, fourth, PER_DAY))
+                  case _ :: _ :: _ :: _ :: fifth :: _ :: Nil if fifth._1 > 0 => 
+                    (x._1, setXRateLimits(c, fifth, PER_WEEK))
+                  case _ :: _ :: _ :: _ :: _ :: sixth :: Nil if sixth._1 > 0 => 
+                    (x._1, setXRateLimits(c, sixth, PER_MONTH))
                   case _  => 
                     (x._1, x._2)
                 }
