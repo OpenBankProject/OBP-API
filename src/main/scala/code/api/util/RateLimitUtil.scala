@@ -84,7 +84,10 @@ object RateLimitUtil extends MdcLoggable {
       jedis.set(uuid, "10")
       jedis.exists(uuid) == true
     } catch {
-      case e : Throwable => false
+      case e : Throwable =>
+        logger.warn("------------| RateLimitUtil.isRedisAvailable |------------")
+        logger.warn(e)
+        false
     }
   }
 
