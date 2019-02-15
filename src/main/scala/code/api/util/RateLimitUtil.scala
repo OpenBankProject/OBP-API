@@ -51,18 +51,30 @@ object RateLimitPeriod extends Enumeration {
 object RateLimitUtil extends MdcLoggable {
 
   val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
+  val inMemoryMode = APIUtil.getPropsAsBoolValue("use_consumer_limits_in_memory_mode", false)
 
   lazy val jedis = Props.mode match {
     case Props.RunModes.Test  =>
-      import ai.grakn.redismock.RedisServer
-      import redis.clients.jedis.Jedis
-      val server = RedisServer.newRedisServer // bind to a random port
-      server.start()
-      new Jedis(server.getHost, server.getBindPort)
+      startMockedRedis(mode="Test")
     case _ =>
-      val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
-      val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
-      new Jedis(url, port)
+      if(inMemoryMode == true) {
+        startMockedRedis(mode="In-Memory")
+      } else {
+        val port = APIUtil.getPropsAsIntValue("redis_port", 6379)
+        val url = APIUtil.getPropsValue("redis_address", "127.0.0.1")
+        new Jedis(url, port)
+      }
+  }
+
+  private def startMockedRedis(mode: String): Jedis = {
+    import ai.grakn.redismock.RedisServer
+    import redis.clients.jedis.Jedis
+    val server = RedisServer.newRedisServer // bind to a random port
+    server.start()
+    logger.info(msg = "-------------| Mocked Redis instance has been run in " + mode + " mode") 
+    logger.info(msg = "-------------| at host: " + server.getHost)
+    logger.info(msg = "-------------| at port: " + server.getBindPort)
+    new Jedis(server.getHost, server.getBindPort)
   }
 
   def isRedisAvailable() = {
