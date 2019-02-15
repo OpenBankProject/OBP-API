@@ -30,6 +30,7 @@ import code.model.dataAccess.ResourceUser
 import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.ProductCollection
+import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.{Product, ProductCode}
 import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -1563,6 +1564,14 @@ trait Connector extends MdcLoggable{
   def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
 
-  def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
+  def getOrCreateProductCollection(collectionCode: String, 
+                                   productCodes: List[String], 
+                                   callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getOrCreateProductCollectionItem(collectionCode: String,
+                                       memberProductCodes: List[String],
+                                       callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
 }

@@ -34,6 +34,7 @@ import code.model.{TransactionRequestType, _}
 import code.productattribute.ProductAttribute
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.{MappedProductCollectionProvider, ProductCollection}
+import code.productcollectionitem.ProductCollectionItem
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.taxresidence
@@ -2037,6 +2038,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override  def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
     ProductCollection.productCollection.vend.getOrCreateProductCollection(collectionCode, productCodes) map {
+      (_, callContext)
+    }  
+  override  def getOrCreateProductCollectionItem(collectionCode: String,
+                                                 memberProductCodes: List[String],
+                                                 callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
+    ProductCollectionItem.productCollectionItem.vend.getOrCreateProductCollectionItem(collectionCode, memberProductCodes) map {
       (_, callContext)
     }
 

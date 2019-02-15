@@ -20,7 +20,7 @@ object ProductCollectionItem extends SimpleInjector {
 
 trait ProductCollectionItemProvider {
   def getProductCollectionItems(collectionCode: String): Future[Box[List[ProductCollectionItem]]]
-  def getOrCreateProductCollection(collectionCode: String, productCodes: List[String]): Future[Box[List[ProductCollectionItem]]]
+  def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String]): Future[Box[List[ProductCollectionItem]]]
 }
 
 trait ProductCollectionItem {

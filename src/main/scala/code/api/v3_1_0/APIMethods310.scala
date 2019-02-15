@@ -2679,18 +2679,24 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanMaintainProductCollection)(bankId.value, u.userId, canMaintainProductCollection)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductCollectionsV310 "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutProductCollectionsV310]
             }
-            success: (List[ProductCollection], Option[CallContext]) <- NewStyle.function.getOrCreateProductCollection(
+            (productCollection, callContext) <- NewStyle.function.getOrCreateProductCollection(
+              collectionCode,
+              List(product.parent_product_code),
+              callContext
+            )
+            (productCollectionItems, callContext) <- NewStyle.function.getOrCreateProductCollectionItems(
               collectionCode,
               product.children_product_codes,
               callContext
             )
           } yield {
-            (success._1, HttpCode.`201`(callContext))
+            (createProductCollectionsJson(productCollection, productCollectionItems), HttpCode.`201`(callContext))
           }
 
       }

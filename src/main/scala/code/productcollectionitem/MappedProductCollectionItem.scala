@@ -11,7 +11,7 @@ object MappedProductCollectionItemProvider extends ProductCollectionItemProvider
   override def getProductCollectionItems(collectionCode: String) = Future {
     tryo(MappedProductCollectionItem.findAll(By(MappedProductCollectionItem.mCollectionCode, collectionCode)))
   }
-  override def getOrCreateProductCollection(collectionCode: String, productCodes: List[String]): Future[Box[List[ProductCollectionItem]]] = Future {
+  override def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String]): Future[Box[List[ProductCollectionItem]]] = Future {
     tryo {
       val deleted =
         for {
@@ -21,7 +21,7 @@ object MappedProductCollectionItemProvider extends ProductCollectionItemProvider
       deleted.forall(_ == true) match {
         case true =>
           for {
-            productCode <- productCodes
+            productCode <- memberProductCodes
           } yield {
             MappedProductCollectionItem
               .create

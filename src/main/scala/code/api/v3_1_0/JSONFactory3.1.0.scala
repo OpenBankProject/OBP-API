@@ -48,6 +48,8 @@ import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
 import code.productattribute.ProductAttribute.ProductAttribute
+import code.productcollection.ProductCollection
+import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.Product
 import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
@@ -400,6 +402,13 @@ case class ProductTreeJsonV310(bank_id: String,
                                parent_product: Option[ProductTreeJsonV310],
                                  )
 case class PutProductCollectionsV310(parent_product_code: String, children_product_codes: List[String])
+
+
+case class ProductCollectionItemJsonV310(member_product_code: String)
+case class ProductCollectionJsonV310(collection_code: String, 
+                                     product_code: String,
+                                     items: List[ProductCollectionItemJsonV310])
+case class ProductCollectionsJsonV310(product_collection : List[ProductCollectionJsonV310])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -763,6 +772,21 @@ object JSONFactory310{
       details = rootElement.details,
       description = rootElement.description,
       meta = createMetaJson(rootElement.meta)
+    )
+  }
+
+
+  def createProductCollectionsJson(productsList: List[ProductCollection], 
+                                   productCollectionItems: List[ProductCollectionItem]): ProductCollectionsJsonV310 = {
+    ProductCollectionsJsonV310(
+      productsList.map(
+        pc => 
+          ProductCollectionJsonV310(
+            pc.collectionCode, 
+            pc.productCode,
+            productCollectionItems.map(y => ProductCollectionItemJsonV310(y.memberProductCode))
+          )
+      )
     )
   }
 
