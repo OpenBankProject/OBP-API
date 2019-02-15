@@ -3,7 +3,7 @@ package code.api.v3_0_0
 import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, branchJsonV300, _}
 import code.api.util.APIUtil.{canGetAtm, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -1014,7 +1014,71 @@ trait APIMethods300 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      updateBranch,
+      implementedInApiVersion,
+      nameOf(updateBranch),
+      "PUT",
+      "/banks/BANK_ID/branches/BRANCH_ID",
+      "Update Branch",
+      s"""Update an existing branch for a bank account (Authenticated access).
+          |
+         |${authenticationRequiredMessage(true) }
+          |
+         |$createBranchEntitlementsRequiredText
+          |""",
+      postBranchJsonV300,
+      branchJsonV300,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InsufficientAuthorisationToCreateBranch,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagBranch),
+      Some(List(canCreateBranch, canCreateBranchAtAnyBank))
+    )
 
+    lazy val updateBranch: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId)::  Nil JsonPut json -> _  => {
+        cc =>
+          for {
+            u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
+            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            _ <- booleanToBox(
+              hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
+              ||
+              hasEntitlement("", u.userId, canCreateBranchAtAnyBank) == true
+              , createBranchEntitlementsRequiredText
+            )
+            postBranchJsonV300 <- tryo {json.extract[PostBranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + PostBranchJsonV300.toString()}
+            branchJsonV300 = BranchJsonV300(
+              id = branchId.value, 
+              postBranchJsonV300.bank_id,
+              postBranchJsonV300.name,
+              postBranchJsonV300.address,
+              postBranchJsonV300.location,
+              postBranchJsonV300.meta,
+              postBranchJsonV300.lobby,
+              postBranchJsonV300.drive_up,
+              postBranchJsonV300.branch_routing,
+              postBranchJsonV300.is_accessible,
+              postBranchJsonV300.accessibleFeatures,
+              postBranchJsonV300.branch_type,
+              postBranchJsonV300.more_info,
+              postBranchJsonV300.phone_number)
+            _ <- booleanToBox(branchJsonV300.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
+            branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
+            success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
+          } yield {
+            val json = JSONFactory300.createBranchJsonV300(success)
+            createdJsonResponse(Extraction.decompose(json), 201)
+          }
+      }
+    }
+    
+    
     val createAtmEntitlementsRequiredForSpecificBank = canCreateAtm ::  Nil
     val createAtmEntitlementsRequiredForAnyBank = canCreateAtmAtAnyBank ::  Nil
 

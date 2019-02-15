@@ -42,24 +42,22 @@ object APIMethods_CBPIIApi extends RestHelper {
        "/funds-confirmations", 
        "Payment coverage check request (CBPII)",
        s"""${mockedDataText(true)}
-&lt;h3&gt;Description&lt;/h3&gt;
+            ### Description
+
 The CBPII can ask an ASPSP to check if a given amount can be covered by the liquidity that is available on a PSU cash account or payment card.
-&lt;h3&gt;Prerequisites&lt;/h3&gt;
-&lt;ul&gt;
-  &lt;li&gt;The TPP has been registered by the Registration Authority for the CBPII role&lt;/li&gt;
-  &lt;li&gt;The TPP and the PSU have a contract that has been registered by the ASPSP&lt;/li&gt;
-  &lt;ul&gt;
-    &lt;li&gt;At this step, the ASPSP has delivered an &quot;Authorization Code&quot;, a &quot;Resource Owner Password&quot; or a &quot;Client Credential&quot; OAUTH2 access token to the TPP (cf. § 3.4.2).&lt;/li&gt;
-    &lt;li&gt;Each ASPSP has to implement either the &quot;Authorization Code&quot;/&quot;Resource Owner Password&quot; or the &quot;Client Credential&quot; OAUTH2 access token model.&lt;/li&gt;
-    &lt;li&gt;Doing this, it will edit the [security] section on this path in order to specify which model it has chosen&lt;/li&gt;
-  &lt;/ul&gt;
-  &lt;li&gt;The TPP and the ASPSP have successfully processed a mutual check and authentication &lt;/li&gt;
-  &lt;li&gt;The TPP has presented its OAUTH2 &quot;Authorization Code&quot;, &quot;Resource Owner Password&quot; or &quot;Client Credential&quot; access token which allows the ASPSP to identify the relevant PSU.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Business flow&lt;/h3&gt;
-The CBPII requests the ASPSP for a payment coverage check against either a bank account or a card primary identifier.
-The ASPSP answers with a structure embedding the original request and the result as a Boolean.      
-""", 
+
+### Prerequisites
+
+* The TPP has been registered by the Registration Authority for the CBPII role
+* The TPP and the PSU have a contract that has been registered by the ASPSP
+* The TPP and the ASPSP have successfully processed a mutual check and authentication
+* The TPP has presented its OAUTH2 "Authorization Code", "Resource Owner Password" or "Client Credential" access token which allows the ASPSP to identify the relevant PSU.
+
+### Business flow
+
+The CBPII requests the ASPSP for a payment coverage check against either a bank account or a card primary identifier. The ASPSP answers with a structure embedding the original request and the result as a Boolean.
+
+            """,
        json.parse("""{
   "paymentCoverageRequestId" : "MyCoverage123456",
   "instructedAmount" : {
