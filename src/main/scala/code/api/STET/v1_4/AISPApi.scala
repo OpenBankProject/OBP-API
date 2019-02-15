@@ -84,7 +84,7 @@ object APIMethods_AISPApi extends RestHelper {
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }
@@ -131,7 +131,7 @@ object APIMethods_AISPApi extends RestHelper {
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }
@@ -181,7 +181,7 @@ object APIMethods_AISPApi extends RestHelper {
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }
@@ -236,7 +236,7 @@ object APIMethods_AISPApi extends RestHelper {
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }
@@ -279,7 +279,7 @@ object APIMethods_AISPApi extends RestHelper {
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }
@@ -324,7 +324,7 @@ object APIMethods_AISPApi extends RestHelper {
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }

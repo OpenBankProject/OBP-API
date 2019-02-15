@@ -132,7 +132,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }

@@ -1863,7 +1863,7 @@ Requests OAuth2 authorization code based One-time authorization code issued by E
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
              } yield {
-             (json.parse(""""""), callContext)
+             (NotImplemented, callContext)
            }
          }
        }
