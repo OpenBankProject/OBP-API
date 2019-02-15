@@ -274,7 +274,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
@@ -322,7 +322,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
 
           } yield {
@@ -336,7 +336,7 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
@@ -349,7 +349,7 @@ trait APIMethods200 {
       case "bank" :: "accounts" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
@@ -391,7 +391,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
@@ -2076,7 +2076,7 @@ trait APIMethods200 {
       case "entitlements" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg = UserNotSuperAdmin) {
               isSuperAdmin(u.userId)
             }

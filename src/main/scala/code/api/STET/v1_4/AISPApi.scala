@@ -82,7 +82,7 @@ object APIMethods_AISPApi extends RestHelper {
        case "accounts" :: accountresourceid:: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -129,7 +129,7 @@ object APIMethods_AISPApi extends RestHelper {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -179,7 +179,7 @@ object APIMethods_AISPApi extends RestHelper {
        case "accounts" :: accountresourceid:: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -234,7 +234,7 @@ object APIMethods_AISPApi extends RestHelper {
        case "consents" :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -277,7 +277,7 @@ object APIMethods_AISPApi extends RestHelper {
        case "end-user-identity" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -322,7 +322,7 @@ object APIMethods_AISPApi extends RestHelper {
        case "trusted-beneficiaries" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }

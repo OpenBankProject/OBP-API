@@ -425,7 +425,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
             (bank, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)

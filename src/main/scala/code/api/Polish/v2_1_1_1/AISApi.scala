@@ -65,7 +65,7 @@ Removes consent""",
        case "accounts":: "v2_1_1.1":: "deleteConsent" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -123,7 +123,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getAccount" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -207,7 +207,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getAccounts" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -270,7 +270,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getHolds" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -364,7 +364,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getTransactionDetail" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "baseInfo" : "",
@@ -453,7 +453,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getTransactionsCancelled" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -502,7 +502,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getTransactionsDone" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -551,7 +551,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getTransactionsPending" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -600,7 +600,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getTransactionsRejected" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -649,7 +649,7 @@ User identification based on access token""",
        case "accounts":: "v2_1_1.1":: "getTransactionsScheduled" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {

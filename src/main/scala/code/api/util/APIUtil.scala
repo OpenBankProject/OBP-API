@@ -2087,7 +2087,7 @@ Returns a string showed to the developer
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def authorizeEndpoint(emptyUserErrorMsg: String, cc: CallContext): OBPReturnType[Box[User]] = {
+  def authorizedAccess(emptyUserErrorMsg: String, cc: CallContext): OBPReturnType[Box[User]] = {
     getUserAndSessionContextFuture(cc) map {
       x => underCallLimits(x)
     } map {
@@ -2097,7 +2097,7 @@ Returns a string showed to the developer
   /**
     * This function is used to factor out common code at endpoints regarding Authorized access
     */
-  def authorizeEndpoint(cc: CallContext): OBPReturnType[Box[User]] = {
+  def authorizedAccess(cc: CallContext): OBPReturnType[Box[User]] = {
     getUserAndSessionContextFuture(cc)
   }
 

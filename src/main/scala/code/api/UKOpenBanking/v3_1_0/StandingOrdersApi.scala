@@ -135,7 +135,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
        case "accounts" :: accountid:: "standing-orders" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -320,7 +320,7 @@ object APIMethods_StandingOrdersApi extends RestHelper {
        case "standing-orders" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {

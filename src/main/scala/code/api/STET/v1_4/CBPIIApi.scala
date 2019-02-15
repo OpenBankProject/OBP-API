@@ -80,7 +80,7 @@ The ASPSP answers with a structure embedding the original request and the result
        case "funds-confirmations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }

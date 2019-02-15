@@ -83,7 +83,7 @@ object APIMethods_PISPApi extends RestHelper {
        case "payment-requests" :: paymentrequestresourceid:: "confirmation" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -273,7 +273,7 @@ Case of the PSU neither gives nor denies his/her consent, the Cancellation Reque
        case "payment-requests" :: paymentrequestresourceid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "appliedAuthenticationApproach" : {
@@ -338,7 +338,7 @@ The status information must be available during at least 30 calendar days after 
        case "payment-requests" :: paymentrequestresourceid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -693,7 +693,7 @@ The following use cases can be applied:
        case "payment-requests" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
