@@ -145,7 +145,8 @@ trait APIMethods310 {
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
       "Create Credit Limit Order Request",
-      """Create credit limit order request
+      s"""${mockedDataText(true)}
+        |Create credit limit order request
         |""",
       creditLimitRequestJson,
       creditLimitOrderResponseJson,
@@ -171,7 +172,8 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests",
       "Get Credit Limit Order Requests ",
-      """Get Credit Limit Order Requests 
+      s"""${mockedDataText(true)}
+        |Get Credit Limit Order Requests 
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
@@ -197,7 +199,8 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/credit_limit/requests/REQUEST_ID",
       "Get Credit Limit Order Request By Request Id",
-      """Get Credit Limit Order Request By Request Id
+      s"""${mockedDataText(true)}
+        Get Credit Limit Order Request By Request Id
         |""",
       emptyObjectJson,
       creditLimitOrderJson,
