@@ -220,7 +220,7 @@ class WebUI extends MdcLoggable{
   def supportPlatformLink: CssSel = {
     val supportplatformlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))
         ".support-platform-link a [href]" #> supportplatformlink &
-          ".support-platform-link a *" #> supportplatformlink // .toString().replace("http://","").replace("http://", "")
+          ".support-platform-link a *" #> supportplatformlink.toString().replace("https://","").replace("http://", "")
   }
 
 
