@@ -1464,7 +1464,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle))
 
     lazy val deleteUserAuthContexts : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: Nil JsonDelete _ => {
@@ -1487,7 +1487,7 @@ trait APIMethods310 {
       nameOf(deleteUserAuthContextById),
       "DELETE",
       "/users/USER_ID/auth-context/USER_AUTH_CONTEXT_ID",
-      "Delete User AuthContext",
+      "Delete User Auth Context",
       s"""Delete a User AuthContext of the User specified by USER_AUTH_CONTEXT_ID.
          |
          |
@@ -1502,7 +1502,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle))
 
     lazy val deleteUserAuthContextById : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: userAuthContextId :: Nil JsonDelete _ => {
