@@ -367,6 +367,22 @@ case class BranchJsonV300(
                            phone_number : String
                          )
 
+case class PostBranchJsonV300(
+                           bank_id: String,
+                           name: String,
+                           address: AddressJsonV300,
+                           location: LocationJsonV140,
+                           meta: MetaJsonV140,
+                           lobby: LobbyJsonV330,
+                           drive_up: DriveUpJsonV330,
+                           branch_routing: BranchRoutingJsonV141,
+                           // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
+                           is_accessible : String,
+                           accessibleFeatures: String,
+                           branch_type : String,
+                           more_info : String,
+                           phone_number : String
+                         )
 
 
 case class BranchesJsonV300(branches : List[BranchJsonV300])
