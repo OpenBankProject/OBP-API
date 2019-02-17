@@ -61,7 +61,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "get Checkbook orders",
-      """Get all checkbook orders""",
+      s"""${mockedDataText(true)}Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,
       List(
@@ -72,7 +72,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagNewStyle :: Nil)
 
     lazy val getCheckbookOrders : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "checkbook"  :: "orders" :: Nil JsonGet req => {
@@ -101,7 +101,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/credit_cards/orders",
       "Get status of Credit Card order ",
-      """Get status of Credit Card orders
+      s"""${mockedDataText(true)}Get status of Credit Card orders
         |Get all orders
         |""",
       emptyObjectJson,
@@ -114,7 +114,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagCard :: apiTagNewStyle :: Nil)
 
     lazy val getStatusOfCreditCardOrder : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "credit_cards"  :: "orders" :: Nil JsonGet req => {
