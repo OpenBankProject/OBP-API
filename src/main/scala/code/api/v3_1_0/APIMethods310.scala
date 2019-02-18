@@ -62,7 +62,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "get Checkbook orders",
-      """Get all checkbook orders""",
+      s"""${mockedDataText(true)}Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,
       List(
@@ -73,7 +73,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagNewStyle :: Nil)
 
     lazy val getCheckbookOrders : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "checkbook"  :: "orders" :: Nil JsonGet req => {
@@ -102,7 +102,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/credit_cards/orders",
       "Get status of Credit Card order ",
-      """Get status of Credit Card orders
+      s"""${mockedDataText(true)}Get status of Credit Card orders
         |Get all orders
         |""",
       emptyObjectJson,
@@ -115,7 +115,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagCard :: apiTagNewStyle :: Nil)
 
     lazy val getStatusOfCreditCardOrder : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "credit_cards"  :: "orders" :: Nil JsonGet req => {
@@ -1479,7 +1479,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle))
 
     lazy val deleteUserAuthContexts : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: Nil JsonDelete _ => {
@@ -1502,7 +1502,7 @@ trait APIMethods310 {
       nameOf(deleteUserAuthContextById),
       "DELETE",
       "/users/USER_ID/auth-context/USER_AUTH_CONTEXT_ID",
-      "Delete User AuthContext",
+      "Delete User Auth Context",
       s"""Delete a User AuthContext of the User specified by USER_AUTH_CONTEXT_ID.
          |
          |
@@ -1517,7 +1517,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle))
 
     lazy val deleteUserAuthContextById : OBPEndpoint = {
       case "users" :: userId :: "auth-context" :: userAuthContextId :: Nil JsonDelete _ => {
