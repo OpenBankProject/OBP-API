@@ -2230,7 +2230,7 @@ Returns a string showed to the developer
 
     val brandSpecificPropertyName = getBrandSpecificPropertyName(nameOfProperty)
 
-    logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $brandSpecificPropertyName")
+//    logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $brandSpecificPropertyName")
     
     //All the property will first check from system environment, if not find then from the liftweb props file 
     //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
