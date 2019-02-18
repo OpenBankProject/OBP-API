@@ -946,7 +946,8 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
           cc =>
             for {
-              _ <- NewStyle.function.getBank(bankId, Some(cc))
+              (_, callContext) <- anonymousAccess(cc)
+              _ <- NewStyle.function.getBank(bankId, callContext)
               (ai, cc) <- Future(Connector.connector.vend.getAdapterInfo(Some(cc))) map {
                 unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
               }
@@ -2280,7 +2281,8 @@ trait APIMethods300 {
       case "banks" :: Nil JsonGet _ => {
         cc =>
           for {
-            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+            (_, callContext) <- anonymousAccess(cc)
+            (banks, callContext) <- NewStyle.function.getBanks(callContext)
           } yield 
             (JSONFactory300.createBanksJson(banks), HttpCode.`200`(callContext))
       }
@@ -2311,7 +2313,8 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (bank, callContext) <- NewStyle.function.getBank(bankId, Some(cc))
+            (_, callContext) <- anonymousAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield
             (JSONFactory.createBankJSON(bank), HttpCode.`200`(callContext))
       }

@@ -429,7 +429,8 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for {
-            (bank, callContext) <- NewStyle.function.getBank(bankId, Some(cc))
+            (_, callContext) <- anonymousAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
             val publicViewsForBank = Views.views.vend.publicViewsForBank(bank.bankId)
             val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicViewsForBank), publicViewsForBank)

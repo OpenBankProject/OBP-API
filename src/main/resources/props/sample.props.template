@@ -519,6 +519,8 @@ featured_apis=elasticSearchWarehouseV300
 # use_consumer_limits=false
 # In case isn't defined default value is "false"
 # use_consumer_limits_in_memory_mode=false
+# In case isn't defined default value is 60
+# user_consumer_limit_anonymous_access=100
 # redis_address=127.0.0.1
 # redis_port=6379
 # -----------------------------------------------------

@@ -162,7 +162,11 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`201`(Some(cc)))}
+          for { 
+            (_, callContext) <- anonymousAccess(cc)
+          } yield { 
+            (JSONFactory310.createCreditLimitOrderResponseJson(), HttpCode.`201`(callContext))
+          }
       }
     }
     
@@ -189,7 +193,11 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(cc))}
+           for { 
+             (_, callContext) <- anonymousAccess(cc)
+           } yield {
+             (JSONFactory310.getCreditLimitOrderResponseJson(), HttpCode.`200`(callContext))
+           }
       }
     }
 
@@ -216,7 +224,11 @@ trait APIMethods310 {
 //            banksBox <- Connector.connector.vend.getBanksFuture()
 //            banks <- unboxFullAndWrapIntoFuture{ banksBox }
 //          } yield
-           Future{ (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(cc))}
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+          } yield {
+            (JSONFactory310.getCreditLimitOrderByRequestIdResponseJson(), HttpCode.`200`(callContext))
+          }
       }
     }
     
@@ -1058,7 +1070,8 @@ trait APIMethods310 {
       case "adapter" :: Nil JsonGet _ => {
         cc =>
           for {
-            (ai,cc) <- NewStyle.function.getAdapterInfo(Some(cc))
+            (_, callContext) <- anonymousAccess(cc)
+            (ai,cc) <- NewStyle.function.getAdapterInfo(callContext)
           } yield {
             (createAdapterInfoJson(ai), HttpCode.`200`(cc))
           }
@@ -1274,7 +1287,8 @@ trait APIMethods310 {
       case "rate-limiting" :: Nil JsonGet _ => {
         cc =>
           for {
-            rateLimiting <- NewStyle.function.tryons("", 400, Some(cc)) {
+            (_, callContext) <- anonymousAccess(cc)
+            rateLimiting <- NewStyle.function.tryons("", 400, callContext) {
               val useConsumerLimits = RateLimitUtil.useConsumerLimits
               val isRedisAvailable = RateLimitUtil.isRedisAvailable()
               val isActive = if(useConsumerLimits == true && isRedisAvailable == true) true else false
@@ -1905,7 +1919,8 @@ trait APIMethods310 {
       case "connector" :: "loopback" :: Nil JsonGet _ => {
         cc =>
           for {
-            (obpApiLoopback, callContext) <- NewStyle.function.getObpApiLoopback(Some(cc))
+            (_, callContext) <- anonymousAccess(cc)
+            (obpApiLoopback, callContext) <- NewStyle.function.getObpApiLoopback(callContext)
           } yield {
             (createObpApiLoopbackJson(obpApiLoopback), HttpCode.`200`(callContext))
           }
@@ -2511,7 +2526,7 @@ trait APIMethods310 {
             (_, callContext) <- 
               getProductsIsPublic match {
                 case true => authorizedAccess(UserNotLoggedIn, cc)
-                case false => Future((None, Some(cc)))
+                case false => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
@@ -2576,7 +2591,7 @@ trait APIMethods310 {
             (_, callContext) <-
               getProductsIsPublic match {
                 case true => authorizedAccess(UserNotLoggedIn, cc)
-                case false => Future((None, Some(cc)))
+                case false => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
@@ -2629,7 +2644,7 @@ trait APIMethods310 {
             (_, callContext) <-
               getProductsIsPublic match {
                 case true => authorizedAccess(UserNotLoggedIn, cc)
-                case false => Future((None, Some(cc)))
+                case false => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             products <- Future(Connector.connector.vend.getProducts(bankId)) map {
