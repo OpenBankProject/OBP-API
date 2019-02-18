@@ -672,7 +672,7 @@ trait APIMethods310 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/funds-available",
       "Check Available Funds",
       """Check Available Funds
-        |Possible custom URL parameters for pagination:
+        |Mandatory URL parameters:
         |
         |* amount=NUMBER
         |* currency=STRING
