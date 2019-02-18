@@ -471,7 +471,12 @@ There are two supported modes:
    *  In-Memory
    *  Redis
    
-It is assumed that you have a Redis instance if you wan to use the functionality in multi node architecture. 
+It is assumed that you have some Redis instance if you wan to use the functionality in multi node architecture.
+
+To set up Rate Limiting in case of In-Memory mode edit your props file in next way:
+```
+use_consumer_limits_in_memory_mode=true
+``` 
 
 We apply Rate Limiting for two type of access:
    *  Authorized
