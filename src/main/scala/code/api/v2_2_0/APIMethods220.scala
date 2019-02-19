@@ -751,6 +751,7 @@ trait APIMethods220 {
             accountLabel <- tryo(jsonBody.label) //?~! ErrorMessages.InvalidAccountLabel
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! InvalidAccountInitialBalance
             _ <- booleanToBox(0 == initialBalanceAsNumber) ?~! InitialBalanceMustBeZero
+            _ <- booleanToBox(isValidCurrencyISOCode(jsonBody.balance.currency), InvalidISOCurrencyCode)
             currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
             _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExists)
             bankAccount <- Connector.connector.vend.createSandboxBankAccount(
