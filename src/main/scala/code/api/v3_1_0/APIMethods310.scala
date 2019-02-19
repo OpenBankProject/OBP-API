@@ -702,6 +702,9 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- Helper.booleanToFuture(failMsg = ViewDoesNotPermitAccess + " You need the view canQueryAvailableFunds.") {
+              view.canQueryAvailableFunds
+            }
             httpParams: List[HTTPParam] <- NewStyle.function.createHttpParams(cc.url)
             _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
               httpParams.exists(_.name == amount)
