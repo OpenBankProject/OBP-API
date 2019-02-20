@@ -186,7 +186,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       implementedInVersion = implementedInVersion,
       verb = verb,
       correlationId = correlationId,
-      url = url
+      url = url,
+      ipAddress = getRemoteIpAddress()
     )
     if(newStyleEndpoints(rd)) {
       fn(cc)

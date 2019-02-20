@@ -74,7 +74,7 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
        case "signing-baskets" :: basketid :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -104,7 +104,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -136,7 +136,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -170,7 +170,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "authorisationIds" : ""
@@ -202,7 +202,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -236,7 +236,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        case "signing-baskets" :: basketid:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "authorisationIds" : ""
@@ -268,7 +268,7 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
        case "signing-baskets" :: basketid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -300,7 +300,7 @@ Returns the status of a signing basket object.
        case "signing-baskets" :: basketid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "transactionStatus" : "RCVD"
@@ -383,7 +383,7 @@ This applies in the following scenarios:
        case "consents" :: consentid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -488,7 +488,7 @@ This applies in the following scenarios:
        case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -593,7 +593,7 @@ This applies in the following scenarios:
        case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -698,7 +698,7 @@ This applies in the following scenarios:
        case "signing-baskets" :: basketid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -788,7 +788,7 @@ There are the following request types on this access path:
        case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -855,7 +855,7 @@ There are the following request types on this access path:
        case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -920,7 +920,7 @@ There are the following request types on this access path:
        case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -987,7 +987,7 @@ There are the following request types on this access path:
        case "signing-baskets" :: basketid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }

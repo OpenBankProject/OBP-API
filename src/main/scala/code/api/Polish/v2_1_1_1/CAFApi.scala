@@ -72,7 +72,7 @@ Confirming the availability on the payers account of the amount necessary to exe
        case "confirmation":: "v2_1_1.1":: "getConfirmationOfFunds" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "fundsAvailable" : true,

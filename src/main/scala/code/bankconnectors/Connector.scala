@@ -29,6 +29,8 @@ import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
 import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
+import code.productcollection.ProductCollection
+import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.{Product, ProductCode}
 import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -41,7 +43,8 @@ import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.{BCrypt, Helpers, SimpleInjector}
+import net.liftweb.util.{Helpers, SimpleInjector}
+import org.mindrot.jbcrypt.BCrypt
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
@@ -1561,4 +1564,15 @@ trait Connector extends MdcLoggable{
 
   def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getOrCreateProductCollection(collectionCode: String, 
+                                   productCodes: List[String], 
+                                   callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getOrCreateProductCollectionItem(collectionCode: String,
+                                       memberProductCodes: List[String],
+                                       callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
 }

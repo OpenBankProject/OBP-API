@@ -30,9 +30,13 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCheckFundsAvailable, canCheckFundsAvailable}
 import code.api.util.ErrorMessages._
 import code.api.util.{ApiRole, ApiVersion}
+import code.api.v1_2_1.{CreateViewJsonV121, ViewJSONV121}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
+import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.json.Serialization.write
+import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
 class FundsAvailableTest extends V310ServerSetup {
@@ -46,6 +50,23 @@ class FundsAvailableTest extends V310ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.checkFundsAvailable))
+
+  def getThirdPartyAppView(bankId: String, accountId: String) = postView(bankId, accountId, randomView(true, "")).body.extract[ViewJSONV121]
+  def randomView(isPublic: Boolean, alias: String) : CreateViewJsonV121 = {
+    val viewFields = List("can_query_available_funds", "can_see_transaction_this_bank_account")
+    CreateViewJsonV121(
+      name = "_"+randomString(3),//Now, all created views should start with `_`.
+      description = randomString(3),
+      is_public = isPublic,
+      which_alias_to_use=alias,
+      hide_metadata_if_alias_used = false,
+      allowed_actions = viewFields
+    )
+  }
+  def postView(bankId: String, accountId: String, view: CreateViewJsonV121): APIResponse = {
+    val request = (baseRequest / "obp" / "v1.2.1" / "banks" / bankId / "accounts" / accountId / "views").POST <@(user1)
+    makePostRequest(request, write(view))
+  }
 
   feature("Check available funds v3.1.0 - Unauthorized access")
   {
@@ -81,11 +102,11 @@ class FundsAvailableTest extends V310ServerSetup {
     scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " but without params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = randomViewPermalink(bankId, bankAccount)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCheckFundsAvailable.toString)
+      
 
       When("We make a request v3.1.0 without a Role " + canCheckFundsAvailable + " but without all params")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "funds-available").GET <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / getThirdPartyAppView(bankId, bankAccount.id).id / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
@@ -108,13 +129,13 @@ class FundsAvailableTest extends V310ServerSetup {
     scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " and params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = randomViewPermalink(bankId, bankAccount)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCheckFundsAvailable.toString)
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "funds-available").GET <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / getThirdPartyAppView(bankId, bankAccount.id).id / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "1"))
       Then("We should get a 200")
+      org.scalameta.logger.elem(response310)
       response310.code should equal(200)
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params but currency is invalid")

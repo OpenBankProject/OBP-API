@@ -7,7 +7,7 @@ import code.accountapplication.AccountApplication
 import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, saveConnectorMetric, stringOrNull}
+import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
@@ -33,6 +33,8 @@ import code.model.dataAccess._
 import code.model.{TransactionRequestType, _}
 import code.productattribute.ProductAttribute
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
+import code.productcollection.{MappedProductCollectionProvider, ProductCollection}
+import code.productcollectionitem.ProductCollectionItem
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.taxresidence
@@ -76,19 +78,35 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = Future {
+  override def getChallengeThreshold(bankId: String, 
+                                     accountId: String, 
+                                     viewId: String, 
+                                     transactionRequestType: String, 
+                                     currency: String, 
+                                     userId: String, 
+                                     userName: String, 
+                                     callContext: Option[CallContext]): Future[(Box[AmountOfMoney], Option[CallContext])] = Future {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
-
-    // TODO constrain this to supported currencies.
-    val thresholdCurrency = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
+    
+    val thresholdCurrency: String = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
     logger.debug(s"thresholdCurrency is $thresholdCurrency")
-
-    val rate = fx.exchangeRate(thresholdCurrency, currency)
-    val convertedThreshold = fx.convert(threshold, rate)
-    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
+    isValidCurrencyISOCode(thresholdCurrency)match {
+      case true =>
+        fx.exchangeRate(thresholdCurrency, currency) match {
+          case rate@Some(_) =>
+            val convertedThreshold = fx.convert(threshold, rate)
+            logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+            (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
+          case _ =>
+            val msg = s"$InvalidCurrency The requested currency conversion (${thresholdCurrency} to ${currency}) is not supported."
+            (Failure(msg), callContext)
+        }
+      case false =>
+        val msg =s"$InvalidISOCurrencyCode ${thresholdCurrency}"
+        (Failure(msg), callContext)
+    }
   }
 
   /**
@@ -2031,6 +2049,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
     AccountApplication.accountApplication.vend.updateStatus(accountApplicationId, status) map {
+      (_, callContext)
+    }
+  
+  override  def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
+    ProductCollection.productCollection.vend.getOrCreateProductCollection(collectionCode, productCodes) map {
+      (_, callContext)
+    }  
+  override  def getOrCreateProductCollectionItem(collectionCode: String,
+                                                 memberProductCodes: List[String],
+                                                 callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
+    ProductCollectionItem.productCollectionItem.vend.getOrCreateProductCollectionItem(collectionCode, memberProductCodes) map {
       (_, callContext)
     }
 

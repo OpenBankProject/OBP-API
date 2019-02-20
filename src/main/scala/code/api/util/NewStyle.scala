@@ -25,6 +25,8 @@ import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
+import code.productcollection.ProductCollection
+import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.ProductCode
 import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -146,7 +148,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerAddress), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createProductCollections), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -702,6 +705,23 @@ object NewStyle {
         (_, callContext)
       }
     }
+
+    def getOrCreateProductCollection(collectionCode: String, 
+                                     productCodes: List[String], 
+                                     callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
+      Connector.connector.vend.getOrCreateProductCollection(collectionCode, productCodes, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateAccountApplicationStatusError  Current Account-Application-Id($collectionCode)", 400), i._2)
+      }
+    }
+    def getOrCreateProductCollectionItems(collectionCode: String,
+                                          memberProductCodes: List[String],
+                                          callContext: Option[CallContext]): OBPReturnType[List[ProductCollectionItem]] = {
+      Connector.connector.vend.getOrCreateProductCollectionItem(collectionCode, memberProductCodes, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateAccountApplicationStatusError  Current Account-Application-Id($collectionCode)", 400), i._2)
+      }
+    }
+      
+    
   }
 
 }

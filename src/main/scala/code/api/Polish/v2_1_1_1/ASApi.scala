@@ -943,7 +943,7 @@ Requests OAuth2 authorization code""",
        case "auth":: "v2_1_1.1":: "authorize" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "responseHeader" : {
@@ -1861,7 +1861,7 @@ Requests OAuth2 authorization code based One-time authorization code issued by E
        case "auth":: "v2_1_1.1":: "authorizeExt" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -2838,7 +2838,7 @@ Requests OAuth2 access token value""",
        case "auth":: "v2_1_1.1":: "token" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "access_token" : "access_token",

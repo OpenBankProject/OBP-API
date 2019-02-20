@@ -17,6 +17,7 @@ case class CallContext(
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
                        consumer: Box[Consumer] = Empty,
+                       ipAddress: String = "",
                        resourceDocument: Option[ResourceDoc] = None,
                        startTime: Option[Date] = Some(Helpers.now),
                        endTime: Option[Date] = None,
