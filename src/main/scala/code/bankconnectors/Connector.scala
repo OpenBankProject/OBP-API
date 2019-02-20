@@ -43,7 +43,8 @@ import code.views.Views
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.{BCrypt, Helpers, SimpleInjector}
+import net.liftweb.util.{Helpers, SimpleInjector}
+import org.mindrot.jbcrypt.BCrypt
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
