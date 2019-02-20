@@ -250,7 +250,40 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
 
             """,
        json.parse(""""""),
-       json.parse(""""""),
+       json.parse("""{
+                    |  "transactions": [
+                    |    {
+                    |      "entryReference": "AF5T2",
+                    |      "transactionAmount": {
+                    |        "currency": "EUR",
+                    |        "amount": "12.25"
+                    |      },
+                    |      "creditDebitIndicator": "CRDT",
+                    |      "status": "BOOK",
+                    |      "bookingDate": "2018-02-12",
+                    |      "remittanceInformation": [
+                    |        "SEPA CREDIT TRANSFER from PSD2Company"
+                    |      ]
+                    |    }
+                    |  ],
+                    |  "_links": {
+                    |    "self": {
+                    |      "href": "v1/accounts/Alias1/transactions"
+                    |    },
+                    |    "parent-list": {
+                    |      "href": "v1/accounts"
+                    |    },
+                    |    "balances": {
+                    |      "href": "v1/accounts/Alias1/balances"
+                    |    },
+                    |    "last": {
+                    |      "href": "v1/accounts/sAlias1/transactions?page=last"
+                    |    },
+                    |    "next": {
+                    |      "href": "v1/accounts/Alias1/transactions?page=3"
+                    |    }
+                    |  }
+                    |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
@@ -261,9 +294,32 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
          cc =>
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-             } yield {
-             (NotImplemented, callContext)
-           }
+            
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+            
+            bankId = BankId(defaultBankId)
+            
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(accountresourceid), callContext)
+            
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+            
+            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+          
+            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+            
+            } yield {
+              (createTransactionsJson(transactions, transactionRequests), callContext)
+            }
          }
        }
             

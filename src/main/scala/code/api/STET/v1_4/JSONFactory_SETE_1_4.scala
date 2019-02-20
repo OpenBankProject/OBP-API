@@ -2,6 +2,7 @@ package code.api.STET.v1_4
 
 import java.util.Date
 
+import code.api.STET.v1_4.JSONFactory_STET_1_4.{TransactionLastLink, TransactionNextLink}
 import code.api.util.APIUtil
 import code.api.v2_1_0.IbanJson
 import code.model.{BankAccount, CoreAccount, ModeratedBankAccount, ModeratedTransaction}
@@ -52,6 +53,19 @@ object JSONFactory_STET_1_4 {
     `parent-list`: Href= Href("v1/accounts"),
   ) extends Links
   
+  case class TransactionBalanceLink(
+    href: Href= Href("v1/accounts"),
+  ) extends Links
+  
+  case class TransactionLastLink(
+    href: Href= Href("v1/accounts"),
+  ) extends Links
+  
+  case class TransactionNextLink(
+    href: Href= Href("v1/accounts"),
+  ) extends Links
+  
+  
   case class TransactionsLinks(
     transactions: Href= Href("v1/accounts/Alias1/transactions"),
   ) extends Links
@@ -89,19 +103,23 @@ object JSONFactory_STET_1_4 {
   )
   
   case class TransactionsJsonV1(
-    transactions_booked: List[TransactionJsonV1],
-    transactions_pending: List[TransactionJsonV1],
-    _links: List[ViewAccount]
+    transactions: List[TransactionJsonV1],
+    _links: List[Links]= List(
+      Self(Href("v1/accounts/Alias1/transactions")),
+      ParentList(Href("v1/accounts")),
+      TransactionBalanceLink(Href("v1/accounts/Alias1/balances")),
+      TransactionLastLink(Href("v1/accounts/sAlias1/transactions?page=last")),
+      TransactionNextLink(Href("v1/accounts/Alias1/transactions?page=3"))
+    )
   )
   
   case class TransactionJsonV1(
-    transactionId: String,
-    creditorName: String,
-    creditorAccount: IbanJson,
-    amount: AmountOfMoneyV1,
+    entryReference: String,
+    creditDebitIndicator: String,
+    transactionAmount: AmountOfMoneyV1,
     bookingDate: Date,
-    valueDate: Date,
-    remittanceInformationUnstructured: String
+    status: String,
+    remittanceInformation: List[String]
   )
 
   def createTransactionListJSON(accounts: List[BankAccount]): AccountsJsonV1 = 
@@ -133,33 +151,31 @@ object JSONFactory_STET_1_4 {
   
   def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJsonV1 = {
     TransactionJsonV1(
-      transactionId = transaction.id.value,
-      creditorName = "",
-      creditorAccount = IbanJson(APIUtil.stringOptionOrNull(transaction.bankAccount.get.iban)),
-      amount = AmountOfMoneyV1(APIUtil.stringOptionOrNull(transaction.currency), transaction.amount.get.toString()),
+      entryReference = transaction.id.value,
+      creditDebitIndicator = "",
+      transactionAmount = AmountOfMoneyV1(APIUtil.stringOptionOrNull(transaction.currency),transaction.amount.get.toString()),
       bookingDate = transaction.startDate.get,
-      valueDate = transaction.finishDate.get,
-      remittanceInformationUnstructured = APIUtil.stringOptionOrNull(transaction.description)
+      status = "COMPLETED",
+      remittanceInformation = List(APIUtil.stringOptionOrNull(transaction.description))
     )
   }
   
   def createTransactionFromRequestJSON(transactionRequest : TransactionRequest) : TransactionJsonV1 = {
     TransactionJsonV1(
-      transactionId = transactionRequest.id.value,
-      creditorName = transactionRequest.name,
-      creditorAccount = IbanJson(transactionRequest.from.account_id),
-      amount = AmountOfMoneyV1(transactionRequest.charge.value.currency, transactionRequest.charge.value.amount),
+      entryReference = transactionRequest.id.value,
+      creditDebitIndicator = transactionRequest.name,
+      transactionAmount = AmountOfMoneyV1(transactionRequest.charge.value.currency,transactionRequest.charge.value.amount),
       bookingDate = transactionRequest.start_date,
-      valueDate = transactionRequest.end_date,
-      remittanceInformationUnstructured = transactionRequest.body.description
+      status = "BOOK",
+      remittanceInformation = List(transactionRequest.body.description)
     )
   }
   
   def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonV1 = {
+      val transactions_booked: List[TransactionJsonV1] = transactions.map(createTransactionJSON)
+      val transactions_pending: List[TransactionJsonV1] =transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON)
     TransactionsJsonV1(
-      transactions_booked =transactions.map(createTransactionJSON),
-      transactions_pending =transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON),
-      _links = ViewAccount(s"/${OBP_STET_1_4.version}/accounts/${transactionRequests.head.from.account_id}/balances")::Nil
+      transactions = transactions_booked:::transactions_pending:::Nil
     )
   }
 
