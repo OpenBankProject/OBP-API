@@ -7,7 +7,7 @@ import code.accountapplication.AccountApplication
 import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, saveConnectorMetric, stringOrNull}
+import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
@@ -89,18 +89,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
-
-    // TODO constrain this to supported currencies.
-    val thresholdCurrency = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
-    logger.debug(s"thresholdCurrency is $thresholdCurrency")
     
-    fx.exchangeRate(thresholdCurrency, currency) match {
-      case rate@Some(_) =>
-        val convertedThreshold = fx.convert(threshold, rate)
-        logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-        (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
-      case _ =>
-        val msg = s"$InvalidCurrency The requested currency conversion (${thresholdCurrency} to ${currency}) is not supported."
+    val thresholdCurrency: String = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
+    logger.debug(s"thresholdCurrency is $thresholdCurrency")
+    isValidCurrencyISOCode(thresholdCurrency)match {
+      case true =>
+        fx.exchangeRate(thresholdCurrency, currency) match {
+          case rate@Some(_) =>
+            val convertedThreshold = fx.convert(threshold, rate)
+            logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+            (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
+          case _ =>
+            val msg = s"$InvalidCurrency The requested currency conversion (${thresholdCurrency} to ${currency}) is not supported."
+            (Failure(msg), callContext)
+        }
+      case false =>
+        val msg =s"$InvalidISOCurrencyCode ${thresholdCurrency}"
         (Failure(msg), callContext)
     }
   }
