@@ -27,12 +27,11 @@ package code.api.v3_1_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCheckFundsAvailable, canCheckFundsAvailable}
+import code.api.util.ApiRole.canCheckFundsAvailable
+import code.api.util.ApiVersion
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, ApiVersion}
 import code.api.v1_2_1.{CreateViewJsonV121, ViewJSONV121}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.entitlement.Entitlement
 import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
@@ -86,26 +85,11 @@ class FundsAvailableTest extends V310ServerSetup {
 
   feature("Check available funds v3.1.0 - Authorized access")
   {
-    scenario("We will check available funds without a proper Role " + canCheckFundsAvailable, ApiEndpoint, VersionOfApi) {
+    scenario("We will check available funds without params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      val view = randomViewPermalink(bankId, bankAccount)
-      When("We make a request v3.1.0 without a Role " + canCheckFundsAvailable)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "funds-available").GET <@(user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 403")
-      response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanCheckFundsAvailable)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCheckFundsAvailable)
-    }
 
-    scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " but without params", ApiEndpoint, VersionOfApi) {
-      val bankId = randomBankId
-      val bankAccount = randomPrivateAccount(bankId)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCheckFundsAvailable.toString)
-      
-
-      When("We make a request v3.1.0 without a Role " + canCheckFundsAvailable + " but without all params")
+      When("We make a request v3.1.0 without all params")
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / getThirdPartyAppView(bankId, bankAccount.id).id / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
@@ -126,10 +110,9 @@ class FundsAvailableTest extends V310ServerSetup {
       response310_ccy.body.extract[ErrorMessage].message should startWith (MissingQueryParams)
     }
 
-    scenario("We will check available funds with a proper Role " + canCheckFundsAvailable + " and params", ApiEndpoint, VersionOfApi) {
+    scenario("We will check available funds and params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCheckFundsAvailable.toString)
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params")
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / getThirdPartyAppView(bankId, bankAccount.id).id / "funds-available").GET <@(user1)
@@ -138,14 +121,14 @@ class FundsAvailableTest extends V310ServerSetup {
       org.scalameta.logger.elem(response310)
       response310.code should equal(200)
 
-      When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params but currency is invalid")
+      When("We make a request v3.1.0 with all params but currency is invalid")
       val response310_invalic_ccy = makeGetRequest(request310 <<? Map("currency" -> "eur", "amount" -> "1"))
       Then("We should get a 400")
       response310_invalic_ccy.code should equal(400)
       And("error should be " + InvalidISOCurrencyCode)
       response310_invalic_ccy.body.extract[ErrorMessage].message should equal(InvalidISOCurrencyCode)
 
-      When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params but amount is invalid")
+      When("We make a request v3.1.0 with all params but amount is invalid")
       val response310_amount_ccy = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "bb"))
       Then("We should get a 400")
       response310_amount_ccy.code should equal(400)
