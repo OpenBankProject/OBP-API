@@ -22,6 +22,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.util.ApiTag
+import code.api.STET.v1_4.JSONFactory_STET_1_4._
 
 object APIMethods_AISPApi extends RestHelper {
     val apiVersion =  OBP_STET_1_4.apiVersion
@@ -117,7 +118,47 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
 
             """,
        json.parse(""""""),
-       json.parse(""""""),
+       json.parse("""{
+                    |  "accounts": [
+                    |    {
+                    |      "resourceId": "Alias1",
+                    |      "bicFi": "BNKAFRPPXXX",
+                    |      "name": "Compte de Mr et Mme Dupont",
+                    |      "usage": "PRIV",
+                    |      "cashAccountType": "CACC",
+                    |      "currency": "EUR",
+                    |      "psuStatus": "Co-account Holder",
+                    |      "_links": {
+                    |        "balances": {
+                    |          "href": "v1/accounts/Alias1/balances"
+                    |        },
+                    |        "transactions": {
+                    |          "href": "v1/accounts/Alias1/transactions"
+                    |        }
+                    |      }
+                    |    }
+                    |  ],
+                    |  "_links": {
+                    |    "self": {
+                    |      "href": "v1/accounts?page=2"
+                    |    },
+                    |    "first": {
+                    |      "href": "v1/accounts"
+                    |    },
+                    |    "last": {
+                    |      "href": "v1/accounts?page=last",
+                    |      "templated": true
+                    |    },
+                    |    "next": {
+                    |      "href": "v1/accounts?page=3",
+                    |      "templated": true
+                    |    },
+                    |    "prev": {
+                    |      "href": "v1/accounts",
+                    |      "templated": true
+                    |    }
+                    |  }
+                    |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
@@ -125,12 +166,23 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
 
      lazy val accountsGet : OBPEndpoint = {
        case "accounts" :: Nil JsonGet _ => {
-         cc =>
+         cc => 
            for {
              (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
-             } yield {
-             (NotImplemented, callContext)
-           }
+  
+              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+    
+              bankId = BankId(defaultBankId)
+    
+              (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+    
+              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+              
+              Full(accounts) <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts,callContext)}
+              
+            } yield {
+              (createTransactionListJSON(accounts), callContext)
+            }
          }
        }
             
