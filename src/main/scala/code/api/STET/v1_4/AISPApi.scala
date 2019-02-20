@@ -22,6 +22,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.util.ApiTag
+import code.api.STET.v1_4.JSONFactory_STET_1_4._
 
 object APIMethods_AISPApi extends RestHelper {
     val apiVersion =  OBP_STET_1_4.apiVersion
@@ -74,7 +75,31 @@ The ASPSP answers by providing a list of balances on this account.
 
             """,
        json.parse(""""""),
-       json.parse(""""""),
+       json.parse("""{
+                    |  "balances": [
+                    |    {
+                    |      "name": "Solde comptable au 12/01/2017",
+                    |      "balanceAmount": {
+                    |        "currency": "EUR",
+                    |        "amount": "123.45"
+                    |      },
+                    |      "balanceType": "CLBD",
+                    |      "lastCommittedTransaction": "A452CH"
+                    |    }
+                    |  ],
+                    |  "_links": {
+                    |    "self": {
+                    |      "href": "v1/accounts/Alias1/balances-report"
+                    |    },
+                    |    "parent-list": {
+                    |      "href": "v1/accounts"
+                    |    },
+                    |    "transactions": {
+                    |      "href": "v1/accounts/Alias1/transactions"
+                    |    }
+                    |  }
+                    |}
+                    |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
@@ -82,14 +107,22 @@ The ASPSP answers by providing a list of balances on this account.
 
      lazy val accountsBalancesGet : OBPEndpoint = {
        case "accounts" :: accountresourceid:: "balances" :: Nil JsonGet _ => {
-         cc =>
+         cc => 
            for {
              (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
-             } yield {
-             (NotImplemented, callContext)
-           }
-         }
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountresourceid), callContext)
+             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
+             moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u))} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
+          } yield {
+             (createAccountBalanceJSON(moderatedAccount), HttpCode.`200`(callContext))
+          }
        }
+     }
             
      resourceDocs += ResourceDoc(
        accountsGet, 
@@ -117,7 +150,47 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
 
             """,
        json.parse(""""""),
-       json.parse(""""""),
+       json.parse("""{
+                    |  "accounts": [
+                    |    {
+                    |      "resourceId": "Alias1",
+                    |      "bicFi": "BNKAFRPPXXX",
+                    |      "name": "Compte de Mr et Mme Dupont",
+                    |      "usage": "PRIV",
+                    |      "cashAccountType": "CACC",
+                    |      "currency": "EUR",
+                    |      "psuStatus": "Co-account Holder",
+                    |      "_links": {
+                    |        "balances": {
+                    |          "href": "v1/accounts/Alias1/balances"
+                    |        },
+                    |        "transactions": {
+                    |          "href": "v1/accounts/Alias1/transactions"
+                    |        }
+                    |      }
+                    |    }
+                    |  ],
+                    |  "_links": {
+                    |    "self": {
+                    |      "href": "v1/accounts?page=2"
+                    |    },
+                    |    "first": {
+                    |      "href": "v1/accounts"
+                    |    },
+                    |    "last": {
+                    |      "href": "v1/accounts?page=last",
+                    |      "templated": true
+                    |    },
+                    |    "next": {
+                    |      "href": "v1/accounts?page=3",
+                    |      "templated": true
+                    |    },
+                    |    "prev": {
+                    |      "href": "v1/accounts",
+                    |      "templated": true
+                    |    }
+                    |  }
+                    |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
@@ -125,12 +198,23 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
 
      lazy val accountsGet : OBPEndpoint = {
        case "accounts" :: Nil JsonGet _ => {
-         cc =>
+         cc => 
            for {
              (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
-             } yield {
-             (NotImplemented, callContext)
-           }
+  
+              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+    
+              bankId = BankId(defaultBankId)
+    
+              (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+    
+              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+              
+              Full(accounts) <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts,callContext)}
+              
+            } yield {
+              (createTransactionListJSON(accounts), callContext)
+            }
          }
        }
             
@@ -166,7 +250,40 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
 
             """,
        json.parse(""""""),
-       json.parse(""""""),
+       json.parse("""{
+                    |  "transactions": [
+                    |    {
+                    |      "entryReference": "AF5T2",
+                    |      "transactionAmount": {
+                    |        "currency": "EUR",
+                    |        "amount": "12.25"
+                    |      },
+                    |      "creditDebitIndicator": "CRDT",
+                    |      "status": "BOOK",
+                    |      "bookingDate": "2018-02-12",
+                    |      "remittanceInformation": [
+                    |        "SEPA CREDIT TRANSFER from PSD2Company"
+                    |      ]
+                    |    }
+                    |  ],
+                    |  "_links": {
+                    |    "self": {
+                    |      "href": "v1/accounts/Alias1/transactions"
+                    |    },
+                    |    "parent-list": {
+                    |      "href": "v1/accounts"
+                    |    },
+                    |    "balances": {
+                    |      "href": "v1/accounts/Alias1/balances"
+                    |    },
+                    |    "last": {
+                    |      "href": "v1/accounts/sAlias1/transactions?page=last"
+                    |    },
+                    |    "next": {
+                    |      "href": "v1/accounts/Alias1/transactions?page=3"
+                    |    }
+                    |  }
+                    |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("AISP") :: apiTagMockedData :: Nil
@@ -177,9 +294,32 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
-             } yield {
-             (NotImplemented, callContext)
-           }
+            
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+            
+            bankId = BankId(defaultBankId)
+            
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(accountresourceid), callContext)
+            
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+            
+            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+          
+            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+            
+            } yield {
+              (createTransactionsJson(transactions, transactionRequests), callContext)
+            }
          }
        }
             
