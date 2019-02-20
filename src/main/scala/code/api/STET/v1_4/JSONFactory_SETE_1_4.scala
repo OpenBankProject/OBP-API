@@ -13,10 +13,10 @@ object JSONFactory_STET_1_4 {
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
-  trait links
-  case class Balances(balances: String) extends links
-  case class Transactions(trasactions: String) extends links
-  case class ViewAccount(viewAccount: String) extends links
+  trait Links
+  case class Balances(balances: String) extends Links
+  case class Transactions(trasactions: String) extends Links
+  case class ViewAccount(viewAccount: String) extends Links
   case class CoreAccountJsonV1(
                                  resourceId: String,
                                  bicFi: String,
@@ -27,30 +27,38 @@ object JSONFactory_STET_1_4 {
                                  usage: String="PRIV",
                                  psuStatus: String="Co-account Holder",
                                )
-  case class Href(href: String) extends links
+  case class Href(href: String) extends Links
   
-  case class Self(self: Href= Href("v1/accounts?page=2")) extends links
+  case class Self(self: Href= Href("v1/accounts?page=2")) extends Links
   
-  case class First(self: Href= Href("v1/accounts")) extends links
+  case class First(self: Href= Href("v1/accounts")) extends Links
   
   case class Last(
     href: Href= Href("v1/accounts?page=last"),
     templated: Boolean = true
-  ) extends links
+  ) extends Links
 
   case class Next(
     href: Href= Href("v1/accounts?page=3"),
     templated: Boolean = true
-  ) extends links
+  ) extends Links
   
   case class Prev(
     href: Href= Href("v1/accounts"),
     templated: Boolean = true
-  ) extends links
+  ) extends Links
+  
+  case class ParentList(
+    `parent-list`: Href= Href("v1/accounts"),
+  ) extends Links
+  
+  case class TransactionsLinks(
+    transactions: Href= Href("v1/accounts/Alias1/transactions"),
+  ) extends Links
   
   case class AccountsJsonV1(
     accounts: List[CoreAccountJsonV1],
-    _links: List[links]
+    _links: List[Links]
   )
   
   case class AmountOfMoneyV1(
@@ -66,10 +74,19 @@ object JSONFactory_STET_1_4 {
     lastActionDateTime: Date
   )
   case class AccountBalance(
-    closingBooked: ClosingBookedBody,
-    expected: ExpectedBody
+    name:String,
+    balanceAmount: AmountOfMoneyV1,
+    balanceType:String,
+    lastCommittedTransaction: String
   )
-  case class AccountBalances(`balances`: List[AccountBalance])
+  case class AccountBalances(
+    `balances`: List[AccountBalance],
+    _links: List[Links] = List(
+      Self(Href("v1/accounts/Alias1/balances-report")),
+      ParentList(Href("v1/accounts")),
+      TransactionsLinks(Href("v1/accounts/Alias1/transactions"))
+    )
+  )
   
   case class TransactionsJsonV1(
     transactions_booked: List[TransactionJsonV1],
@@ -101,29 +118,16 @@ object JSONFactory_STET_1_4 {
       _links=List(Self(), First(), Last(), Next(), Prev())
     )
   
-  def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccount, transactionRequests: List[TransactionRequest]) = {
-    // get the latest end_date of `COMPLETED` transactionRequests
-    val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
-
-    //get the latest end_date of !`COMPLETED` transactionRequests
-    val latestUncompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status != "COMPLETED").map(_.end_date).headOption.getOrElse(null)
-
-    // get the SUM of the amount of all !`COMPLETED` transactionRequests
-    val sumOfAllUncompletedTransactionrequests = transactionRequests.filter(_.status != "COMPLETED").map(_.body.value.amount).map(BigDecimal(_)).sum
-    // sum of the unCompletedTransactions and the account.balance is the current expectd amount:
-    val sumOfAll = (BigDecimal(moderatedAccount.balance) + sumOfAllUncompletedTransactionrequests).toString()
-
+  def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccount) = {
     AccountBalances(
-      AccountBalance(
-        closingBooked = ClosingBookedBody(
-          amount = AmountOfMoneyV1(currency = moderatedAccount.currency.getOrElse(""), content = moderatedAccount.balance),
-          date = APIUtil.DateWithDayFormat.format(latestCompletedEndDate)
-        ),
-        expected = ExpectedBody(
-          amount = AmountOfMoneyV1(currency = moderatedAccount.currency.getOrElse(""),
-          content = sumOfAll),
-          lastActionDateTime = latestUncompletedEndDate)
-      ) :: Nil
+      `balances`= List(
+        AccountBalance(
+          name = "Solde comptable au 12/01/2017",
+          balanceAmount = AmountOfMoneyV1(moderatedAccount.currency.getOrElse(""),moderatedAccount.balance),
+          balanceType= moderatedAccount.accountType.getOrElse(""),
+          lastCommittedTransaction="A452CH"
+        )
+      )
     )
   }
   
