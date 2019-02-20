@@ -123,11 +123,12 @@ class ProductTest extends V310ServerSetup {
       val responseGet310 = makeGetRequest(requestGet310)
       Then("We should get a 200")
       responseGet310.code should equal(200)
-      responseGet310.body.extract[ProductJsonV310]
+      val product1 = responseGet310.body.extract[ProductJsonV310]
+      org.scalameta.logger.elem(prettyRender(Extraction.decompose(product1)))
       
       // Create an child
       val childPostPutProductJsonV310 = parentPostPutProductJsonV310.copy(parent_product_code = product.code)
-      createProduct(code = "CHILD_CODE", json = childPostPutProductJsonV310)
+      createProduct(code = "PRODUCT_CODE", json = childPostPutProductJsonV310)
 
       // Get
       val requestGetAll310 = (v3_1_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
@@ -138,10 +139,9 @@ class ProductTest extends V310ServerSetup {
       products.products.size shouldBe 3
       
       // Get tree
-      val requestGetTree310 = (v3_1_0_Request / "banks" / product.bank_id / "product-tree" / "CHILD_CODE").GET <@(user1)
+      val requestGetTree310 = (v3_1_0_Request / "banks" / product.bank_id / "product-tree" / "PRODUCT_CODE").GET <@(user1)
       val responseGetTree310 = makeGetRequest(requestGetTree310)
       Then("We should get a 200")
-      org.scalameta.logger.elem(responseGetTree310)
       responseGetTree310.code should equal(200)
       val productTree: ProductTreeJsonV310 = responseGetTree310.body.extract[ProductTreeJsonV310]
       org.scalameta.logger.elem(prettyRender(Extraction.decompose(productTree)))

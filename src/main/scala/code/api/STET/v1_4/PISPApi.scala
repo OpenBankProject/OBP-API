@@ -82,7 +82,7 @@ In REDIRECT and DECOUPLED approach, this confirmation is not a prerequisite to t
        case "payment-requests" :: paymentrequestresourceid:: "confirmation" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -233,7 +233,7 @@ Since the modification request needs a PSU authentication before committing, the
        case "payment-requests" :: paymentrequestresourceid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "appliedAuthenticationApproach" : {
@@ -299,7 +299,7 @@ The status information must be available during at least 30 calendar days after 
        case "payment-requests" :: paymentrequestresourceid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -542,7 +542,7 @@ When the chosen authentication approach within the ASPSP answers is set to "EMBE
        case "payment-requests" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }

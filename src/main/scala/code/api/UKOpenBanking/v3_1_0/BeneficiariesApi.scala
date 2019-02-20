@@ -125,7 +125,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
        case "accounts" :: accountid:: "beneficiaries" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -290,7 +290,7 @@ object APIMethods_BeneficiariesApi extends RestHelper {
        case "beneficiaries" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {

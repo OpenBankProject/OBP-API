@@ -95,7 +95,7 @@ The response to this DELETE command will tell the TPP whether the
        case payment_service :: payment_product :: paymentid :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -144,7 +144,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -173,7 +173,7 @@ Returns the content of a payment object""",
        case payment_service :: payment_product :: paymentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -205,7 +205,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "authorisationIds" : ""
@@ -235,7 +235,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -265,7 +265,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -296,7 +296,7 @@ Check the transaction status of a payment initiation.""",
        case payment_service :: payment_product :: paymentid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "transactionStatus" : "ACCP"
@@ -370,7 +370,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
        case payment_service :: payment_product :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -452,7 +452,7 @@ This applies in the following scenarios:
        case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -557,7 +557,7 @@ This applies in the following scenarios:
        case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -647,7 +647,7 @@ There are the following request types on this access path:
        case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }
@@ -712,7 +712,7 @@ There are the following request types on this access path:
        case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }

@@ -48,6 +48,8 @@ import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
 import code.productattribute.ProductAttribute.ProductAttribute
+import code.productcollection.ProductCollection
+import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.Product
 import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
@@ -334,6 +336,13 @@ case class ProductAttributeResponseJson(
   `type`: String,
   value: String,
 )
+case class ProductAttributeResponseWithoutBankIdJson(
+  product_code: String,
+  product_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+)
 
 case class AccountApplicationJson(
   product_code: String,
@@ -378,7 +387,7 @@ case class ProductJsonV310(bank_id: String,
                            details: String,
                            description: String,
                            meta : MetaJsonV140,
-                           product_attributes: Option[List[ProductAttributeResponseJson]])
+                           product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]])
 case class ProductsJsonV310 (products : List[ProductJsonV310])
 case class ProductTreeJsonV310(bank_id: String,
                                code : String,
@@ -392,6 +401,14 @@ case class ProductTreeJsonV310(bank_id: String,
                                meta : MetaJsonV140,
                                parent_product: Option[ProductTreeJsonV310],
                                  )
+case class PutProductCollectionsV310(parent_product_code: String, children_product_codes: List[String])
+
+
+case class ProductCollectionItemJsonV310(member_product_code: String)
+case class ProductCollectionJsonV310(collection_code: String, 
+                                     product_code: String,
+                                     items: List[ProductCollectionItemJsonV310])
+case class ProductCollectionsJsonV310(product_collection : List[ProductCollectionJsonV310])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -636,8 +653,17 @@ object JSONFactory310{
        `type` = productAttribute.attributeType.toString,
        value = productAttribute.value,
        )
-  def createProductAttributesJson(productAttributes: List[ProductAttribute]): List[ProductAttributeResponseJson] = {
-    productAttributes.map(createProductAttributeJson)
+  def createProductAttributesJson(productAttributes: List[ProductAttribute]): List[ProductAttributeResponseWithoutBankIdJson] = {
+    productAttributes.map(
+      productAttribute => 
+      ProductAttributeResponseWithoutBankIdJson(
+        product_code = productAttribute.productCode.value,
+        product_attribute_id = productAttribute.productAttributeId,
+        name = productAttribute.name,
+        `type` = productAttribute.attributeType.toString,
+        value = productAttribute.value,
+      )
+    )
   }
   
   def createAccountApplicationJson(accountApplication: AccountApplication, user: Box[User], customer: Box[Customer]): AccountApplicationResponseJson = {
@@ -746,6 +772,21 @@ object JSONFactory310{
       details = rootElement.details,
       description = rootElement.description,
       meta = createMetaJson(rootElement.meta)
+    )
+  }
+
+
+  def createProductCollectionsJson(productsList: List[ProductCollection], 
+                                   productCollectionItems: List[ProductCollectionItem]): ProductCollectionsJsonV310 = {
+    ProductCollectionsJsonV310(
+      productsList.map(
+        pc => 
+          ProductCollectionJsonV310(
+            pc.collectionCode, 
+            pc.productCode,
+            productCollectionItems.map(y => ProductCollectionItemJsonV310(y.memberProductCode))
+          )
+      )
     )
   }
 

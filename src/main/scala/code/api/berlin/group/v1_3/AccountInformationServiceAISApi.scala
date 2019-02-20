@@ -169,7 +169,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        case "consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -223,7 +223,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        case "consents" :: consentid :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -306,7 +306,7 @@ of the PSU at this ASPSP.
        case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
   
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
   
@@ -361,7 +361,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
        case "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
@@ -438,7 +438,7 @@ respectively the OAuth2 access token.
        case "card-accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "cardAccounts" : [ {
@@ -521,7 +521,7 @@ This account-id then can be retrieved by the
        case "card-accounts" :: account_id:: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "balances" : "",
@@ -584,7 +584,7 @@ Reads account data from a given card account addressed by "account-id".
          cc =>
            for {
 
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
 
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
 
@@ -639,7 +639,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        case "consents" :: consentid:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "authorisationIds" : ""
@@ -726,7 +726,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        case "consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "access" : {
@@ -811,7 +811,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -842,7 +842,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        case "consents" :: consentid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "consentStatus" : { }
@@ -918,7 +918,7 @@ This call is only available on transactions as reported in a JSON format.
        case "accounts" :: account_id:: "transactions" :: resourceid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "debtorAccount" : {
@@ -1016,7 +1016,7 @@ The ASPSP might add balance information, if transaction lists without balances a
          cc =>
            for {
 
-            (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
 
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
 
@@ -1097,7 +1097,7 @@ Give detailed information about the addressed account together with balance info
        case "accounts" :: account_id :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "cashAccountType" : { },
@@ -1166,7 +1166,7 @@ access token.
        case "card-accounts" :: account_id :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "balances" : "",
@@ -1265,7 +1265,7 @@ This applies in the following scenarios:
        case "consents" :: consentid:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -1355,7 +1355,7 @@ There are the following request types on this access path:
        case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse(""""""""), callContext)
            }

@@ -169,7 +169,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        case "international-standing-order-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -406,7 +406,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        case "international-standing-orders" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -643,7 +643,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        case "international-standing-order-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -880,7 +880,7 @@ object APIMethods_InternationalStandingOrdersApi extends RestHelper {
        case "international-standing-orders" :: internationalstandingorderpaymentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {

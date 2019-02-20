@@ -188,7 +188,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        case "international-scheduled-payment-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -461,7 +461,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        case "international-scheduled-payments" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -734,7 +734,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        case "international-scheduled-payment-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -909,7 +909,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        case "international-scheduled-payment-consents" :: consentid:: "funds-confirmation" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -1072,7 +1072,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        case "international-scheduled-payments" :: internationalscheduledpaymentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {

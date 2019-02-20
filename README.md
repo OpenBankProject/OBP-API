@@ -467,12 +467,40 @@ You can obfuscate passwords in the props file the same way as for jetty:
 
 ## Rate Limiting
 We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this fie: https://github.com/OpenBankProject/OBP-API/blob/develop/src/main/scala/code/api/util/NewStyle.scala. 
-It is assumed that you have a Redis instance if you wan to use the functionality. In order to make it work edit your props file in next way:
+There are two supported modes:
+   *  In-Memory
+   *  Redis
+   
+It is assumed that you have some Redis instance if you wan to use the functionality in multi node architecture.
+
+To set up Rate Limiting in case of In-Memory mode edit your props file in next way:
+```
+use_consumer_limits_in_memory_mode=true
+``` 
+
+We apply Rate Limiting for two type of access:
+   *  Authorized
+   *  Anonymouse
+
+Te set up Rate Limiting in case of the anonymose access edit your props file in next way:
+```
+user_consumer_limit_anonymous_access=100, In case isn't defined default value is 60
+```
+   
+Te set up Rate Limiting in case of the authorized access use these endpoints
+1. `GET ../management/consumers/CONSUMER_ID/consumer/calls_limit` - Get Call Limits for a Consumer
+2. `PUT ../management/consumers/CONSUMER_ID/consumer/calls_limit` - Set Calls Limit for a Consumer
+
+
+In order to make it work edit your props file in next way:
+
 ```
 use_consumer_limits=false, In case isn't defined default value is "false"
 redis_address=YOUR_REDIS_URL_ADDRESS, In case isn't defined default value is 127.0.0.1
 redis_port=YOUR_REDIS_PORT, In case isn't defined default value is 6379
 ```
+
+
 Next types are supported:
 ```
 1. per second
@@ -501,7 +529,7 @@ Description of the headers above:
 
 Please note that first will be checked `per second` call limit then `per minute` etc.
 
-Info about rate limiting availibility at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/root. Response we are interested in looks lke:
+Info about rate limiting availability at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/root. Response we are interested in looks lke:
 ```json
 {
   ...

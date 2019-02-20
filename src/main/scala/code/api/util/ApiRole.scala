@@ -234,6 +234,9 @@ object ApiRole {
   
   case class CanAddProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canAddProductAttribute = CanAddProductAttribute()
+  
+  case class CanMaintainProductCollection(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canMaintainProductCollection = CanMaintainProductCollection()
 
   private val roles =
       canSearchAllTransactions ::
@@ -312,6 +315,7 @@ object ApiRole {
         canGetProductAttribute ::
         canDeleteProductAttribute ::
         canAddProductAttribute ::
+        canMaintainProductCollection ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

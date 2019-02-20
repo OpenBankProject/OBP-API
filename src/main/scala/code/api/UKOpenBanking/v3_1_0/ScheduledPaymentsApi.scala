@@ -111,7 +111,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
        case "accounts" :: accountid:: "scheduled-payments" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -248,7 +248,7 @@ object APIMethods_ScheduledPaymentsApi extends RestHelper {
        case "scheduled-payments" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizeEndpoint(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
              } yield {
              (json.parse("""{
   "Meta" : {
