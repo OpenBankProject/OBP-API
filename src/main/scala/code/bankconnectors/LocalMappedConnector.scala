@@ -78,7 +78,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]) = Future {
+  override def getChallengeThreshold(bankId: String, 
+                                     accountId: String, 
+                                     viewId: String, 
+                                     transactionRequestType: String, 
+                                     currency: String, 
+                                     userId: String, 
+                                     userName: String, 
+                                     callContext: Option[CallContext]): Future[(Box[AmountOfMoney], Option[CallContext])] = Future {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
     logger.debug(s"threshold is $threshold")
@@ -86,11 +93,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     // TODO constrain this to supported currencies.
     val thresholdCurrency = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
     logger.debug(s"thresholdCurrency is $thresholdCurrency")
-
-    val rate = fx.exchangeRate(thresholdCurrency, currency)
-    val convertedThreshold = fx.convert(threshold, rate)
-    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
+    
+    fx.exchangeRate(thresholdCurrency, currency) match {
+      case rate@Some(_) =>
+        val convertedThreshold = fx.convert(threshold, rate)
+        logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+        (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
+      case _ =>
+        val msg = s"$InvalidCurrency The requested currency conversion (${thresholdCurrency} to ${currency}) is not supported."
+        (Failure(msg), callContext)
+    }
   }
 
   /**
