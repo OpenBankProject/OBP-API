@@ -16,16 +16,27 @@ If you have a particular requirement or would like to comment or help us specify
 
 ## Current developments
 
+
 ### Enhanced support for Berlin Group, STET, UK Open Banking and Polish APIs
 
+Latest status of other API standards can be viewed on the
 
 ## Completed developments (most recent first)
 
-### Web Hooks (on balance change etc.)
 
 
-### Message Docs
-Message Docs (which define Core Banking System Kafka messages) are now avilalbe independent of the connector being used on the API instance. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v2_2_0-getMessageDocs) 
+### Version 3.1.0
+Many new endpoints and updated endpoints from previous versions. See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv3.1.0&ignoredefcat=true) and search for Implemented in 3_1_0
+
+
+### Message Docs (for Akka)
+Message Docs (which define Core Banking System Akka messages) are now avilalbe independent of the connector being used on the API instance. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v2_2_0-getMessageDocs)
+
+### Webhooks (on balance change etc.)
+Account holders can define Webhooks on their accounts which can call services on balance change etc.
+
+### Message Docs (for Kafka)
+Message Docs (which define Core Banking System Kafka messages) are now available independent of the connector being used on the API instance. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v2_2_0-getMessageDocs)
 
 ### Endpoint config and cleanup
 Endpoints can now be enabled / disabled explicitly using Props file.

@@ -38,7 +38,7 @@ object ApiVersion {
   lazy val bankMockApi = BankMockApi()
   
   //OBP Standard 
-  val v1_2_1 = ScannedApiVersion(ApiPathZero,"obp","v1.2.1")
+  val v1_2_1 = ScannedApiVersion(ApiPathZero,"obp","v1.2.1") // Can we use upper case here. e.g. OBP ? This would make it clearer.
   val v1_3_0 = ScannedApiVersion(ApiPathZero,"obp","v1.3.0") 
   val v1_4_0 = ScannedApiVersion(ApiPathZero,"obp","v1.4.0") 
   val v2_0_0 = ScannedApiVersion(ApiPathZero,"obp","v2.0.0") 
@@ -74,7 +74,7 @@ object ApiVersion {
 
   def valueOf(value: String): ApiVersion = {
     
-    //This `match` is used for compatibility. Before we do not take care for the BerlinGroup and UKOpenBanking versions carefully. 
+    //This `match` is used for compatibility. Previously we did not take care about BerlinGroup and UKOpenBanking versions carefully (since they didn't exist back in the day).
     // eg: v1 ==BGv1, v1.3 ==BGv1.3, v2.0 == UKv2.0
     // Now, we use the BerlinGroup standard version in OBP. But we need still make sure old version system is working.
     val compatibilityVersion = value match {
