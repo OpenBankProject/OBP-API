@@ -2428,6 +2428,10 @@ trait APIMethods310 {
          |Commodity
          |Derivative
          |
+         |You can create a product hierarchy using parent_product_code
+         |
+         |Note: You can create product buckets using the Product Collections endpoint.
+         |
          |
          |${authenticationRequiredMessage(true) }
          |
@@ -2677,6 +2681,13 @@ trait APIMethods310 {
       "Create Product Collections",
       s"""Create or Update Product Collections for the Bank.
          |
+         |Use these Product Collections to create Product "Buckets"
+         |
+         |A Product can exist in many Buckets (Collections)
+         |
+         |A Bucket (Collection) can contain many Products.
+         |
+         |Note: You can define Product hierarchy using parent_produt_code in Product.
          |
          |${authenticationRequiredMessage(true) }
          |
