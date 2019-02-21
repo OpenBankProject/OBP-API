@@ -153,7 +153,7 @@ trait APIMethods310 {
       creditLimitOrderResponseJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagCustomer :: apiTagNewStyle :: Nil)
 
     lazy val createCreditLimitRequest : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonPost json -> _  => {
@@ -184,7 +184,7 @@ trait APIMethods310 {
       creditLimitOrderJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagCustomer :: Nil)
 
     lazy val getCreditLimitRequests : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonGet req => {
@@ -215,7 +215,7 @@ trait APIMethods310 {
       creditLimitOrderJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagCustomer :: apiTagNewStyle :: Nil)
 
     lazy val getCreditLimitRequestByRequestId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: requestId :: Nil JsonGet req => {
