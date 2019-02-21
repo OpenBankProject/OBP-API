@@ -61,7 +61,7 @@ trait APIMethods310 {
       nameOf(getCheckbookOrders),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
-      "get Checkbook orders",
+      "Get Checkbook orders",
       s"""${mockedDataText(true)}Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,

@@ -706,6 +706,8 @@ trait APIMethods220 {
         |
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
+        |The type field should be a product_code from Product.
+        |
         |Note: The Amount must be zero.""".stripMargin,
       createAccountJSONV220,
       createAccountJSONV220,
