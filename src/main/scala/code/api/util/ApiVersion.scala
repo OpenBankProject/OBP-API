@@ -38,21 +38,21 @@ object ApiVersion {
   lazy val bankMockApi = BankMockApi()
   
   //OBP Standard 
-  val v1_2_1 = ScannedApiVersion(ApiPathZero,"obp","v1.2.1") // Can we use upper case here. e.g. OBP ? This would make it clearer.
-  val v1_3_0 = ScannedApiVersion(ApiPathZero,"obp","v1.3.0") 
-  val v1_4_0 = ScannedApiVersion(ApiPathZero,"obp","v1.4.0") 
-  val v2_0_0 = ScannedApiVersion(ApiPathZero,"obp","v2.0.0") 
-  val v2_1_0 = ScannedApiVersion(ApiPathZero,"obp","v2.1.0") 
-  val v2_2_0 = ScannedApiVersion(ApiPathZero,"obp","v2.2.0") 
-  val v3_0_0 = ScannedApiVersion(ApiPathZero,"obp","v3.0.0") 
-  val v3_1_0 = ScannedApiVersion(ApiPathZero,"obp","v3.1.0") 
+  val v1_2_1 = ScannedApiVersion(ApiPathZero,"OBP","v1.2.1")
+  val v1_3_0 = ScannedApiVersion(ApiPathZero,"OBP","v1.3.0")
+  val v1_4_0 = ScannedApiVersion(ApiPathZero,"OBP","v1.4.0")
+  val v2_0_0 = ScannedApiVersion(ApiPathZero,"OBP","v2.0.0")
+  val v2_1_0 = ScannedApiVersion(ApiPathZero,"OBP","v2.1.0")
+  val v2_2_0 = ScannedApiVersion(ApiPathZero,"OBP","v2.2.0")
+  val v3_0_0 = ScannedApiVersion(ApiPathZero,"OBP","v3.0.0")
+  val v3_1_0 = ScannedApiVersion(ApiPathZero,"OBP","v3.1.0")
 
   case class OpenIdConnect1() extends ApiVersion
   lazy val openIdConnect1 = OpenIdConnect1()
   case class Sandbox() extends ApiVersion
   lazy val sandbox = Sandbox()
   
-  lazy val apiBuilder = ScannedApiVersion("api-builder","obp","b1")
+  lazy val apiBuilder = ScannedApiVersion("api-builder","obp","b1") // replace "obp" with "builder" or something.
 
   val scabbedApis = ScannedApis.versionMapScannedApis.keysIterator.toList
   private val versions =
