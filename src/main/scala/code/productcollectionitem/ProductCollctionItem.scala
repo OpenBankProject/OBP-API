@@ -1,6 +1,7 @@
 package code.productcollectionitem
 
 import code.api.util.APIUtil
+import code.remotedata.RemotedataProductCollectionItem
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -14,7 +15,7 @@ object ProductCollectionItem extends SimpleInjector {
   def buildOne: ProductCollectionItemProvider =
     APIUtil.getPropsAsBoolValue("use_akka", false) match {
       case false  => MappedProductCollectionItemProvider
-      // case true => RemotedataCustomerAddress     // We will use Akka as a middleware
+      case true => RemotedataProductCollectionItem   // We will use Akka as a middleware
     }
 }
 
@@ -27,3 +28,10 @@ trait ProductCollectionItem {
   def collectionCode: String
   def memberProductCode: String
 }
+
+class RemotedataProductCollectionItemCaseClasses {
+  case class getProductCollectionItems(collectionCode: String)
+  case class getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String])
+}
+
+object RemotedataProductCollectionItemCaseClasses extends RemotedataProductCollectionItemCaseClasses
