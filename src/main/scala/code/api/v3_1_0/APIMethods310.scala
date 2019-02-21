@@ -1075,7 +1075,7 @@ trait APIMethods310 {
             (_, callContext) <- anonymousAccess(cc)
             (ai,cc) <- NewStyle.function.getAdapterInfo(callContext)
           } yield {
-            (createAdapterInfoJson(ai), HttpCode.`200`(cc))
+            (createAdapterInfoJson(ai), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1291,13 +1291,18 @@ trait APIMethods310 {
           for {
             (_, callContext) <- anonymousAccess(cc)
             rateLimiting <- NewStyle.function.tryons("", 400, callContext) {
-              val useConsumerLimits = RateLimitUtil.useConsumerLimits
-              val isRedisAvailable = RateLimitUtil.isRedisAvailable()
-              val isActive = if(useConsumerLimits == true && isRedisAvailable == true) true else false
-              RateLimiting(useConsumerLimits, "REDIS", isRedisAvailable, isActive)
+              RateLimitUtil.inMemoryMode match {
+                case true =>
+                  val isActive = if(RateLimitUtil.useConsumerLimits == true) true else false
+                  RateLimiting(RateLimitUtil.useConsumerLimits, "In-Memory", true, isActive)
+                case false =>
+                  val isRedisAvailable = RateLimitUtil.isRedisAvailable()
+                  val isActive = if(RateLimitUtil.useConsumerLimits == true && isRedisAvailable == true) true else false
+                  RateLimiting(RateLimitUtil.useConsumerLimits, "REDIS", isRedisAvailable, isActive)
+              }
             }
           } yield {
-            (createRateLimitingInfo(rateLimiting), HttpCode.`200`(cc))
+            (createRateLimitingInfo(rateLimiting), HttpCode.`200`(callContext))
           }
       }
     }
