@@ -482,14 +482,14 @@ We apply Rate Limiting for two type of access:
    *  Authorized
    *  Anonymouse
 
-Te set up Rate Limiting in case of the anonymose access edit your props file in next way:
+To set up Rate Limiting in case of the anonymose access edit your props file in next way:
 ```
 user_consumer_limit_anonymous_access=100, In case isn't defined default value is 60
 ```
    
 Te set up Rate Limiting in case of the authorized access use these endpoints
 1. `GET ../management/consumers/CONSUMER_ID/consumer/calls_limit` - Get Call Limits for a Consumer
-2. `PUT ../management/consumers/CONSUMER_ID/consumer/calls_limit` - Set Calls Limit for a Consumer
+2. `PUT ../management/consumers/CONSUMER_ID/consumer/calls_limit` - Set Call Limits for a Consumer
 
 
 In order to make it work edit your props file in next way:
@@ -529,16 +529,13 @@ Description of the headers above:
 
 Please note that first will be checked `per second` call limit then `per minute` etc.
 
-Info about rate limiting availability at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/root. Response we are interested in looks lke:
+Info about rate limiting availability at some instance can be found over next API endpoint: https://apisandbox.openbankproject.com/obp/v3.1.0/rate-limiting. Response we are interested in looks lke:
 ```json
 {
-  ...
-  ,
-  "rate_limiting":{
-    "enabled":true,
-    "redis_available":true,
-    "is_active":true
-  }
+  "enabled": false,
+  "technology": "REDIS",
+  "service_available": false,
+  "is_active": false
 }
 ```
 
