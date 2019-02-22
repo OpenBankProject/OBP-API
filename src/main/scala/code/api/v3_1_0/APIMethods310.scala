@@ -551,11 +551,12 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(callsLimit),
       "PUT",
-      "/management/consumers/CONSUMER_ID/consumer/calls_limit",
+      "/management/consumers/CONSUMER_ID/consumer/call-limits",
       "Set Calls Limit for a Consumer",
       s"""
          |Set the API call limits for a Consumer:
          |
+         |Per Second
          |Per Minute
          |Per Hour
          |Per Week
@@ -584,7 +585,7 @@ trait APIMethods310 {
     // TODO change URL to /../call-limits
 
     lazy val callsLimit : OBPEndpoint = {
-      case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonPut json -> _ => {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <-  authorizedAccess(UserNotLoggedIn, cc)
@@ -613,14 +614,13 @@ trait APIMethods310 {
     }
 
 
-
-    // TODO Change endpoint to ../call-limits
+    
     resourceDocs += ResourceDoc(
       getCallsLimit,
       implementedInApiVersion,
       nameOf(getCallsLimit),
       "GET",
-      "/management/consumers/CONSUMER_ID/consumer/calls_limit",
+      "/management/consumers/CONSUMER_ID/consumer/call-limits",
       "Get Call Limits for a Consumer",
       s"""
          |Get Calls limits per Consumer.
@@ -643,10 +643,9 @@ trait APIMethods310 {
       Some(List(canSetCallLimits)))
 
 
-
-    // TODO Change endpoint to ../call-limits
+    
     lazy val getCallsLimit : OBPEndpoint = {
-      case "management" :: "consumers" :: consumerId :: "consumer" :: "calls_limit" :: Nil JsonGet _ => {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <-  authorizedAccess(UserNotLoggedIn, cc)

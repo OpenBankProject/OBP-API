@@ -1197,7 +1197,7 @@ trait APIMethods200 {
 
     import net.liftweb.json.Extraction._
     import net.liftweb.json.JsonAST._
-    val exchangeRates = prettyRender(decompose(fx.exchangeRates))
+    val exchangeRates = prettyRender(decompose(fx.fallbackExchangeRates))
 
     resourceDocs += ResourceDoc(
       createTransactionRequest,

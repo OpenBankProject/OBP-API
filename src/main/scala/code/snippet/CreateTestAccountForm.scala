@@ -73,7 +73,7 @@ object CreateTestAccountForm{
    */
   def createAccount(accountId : AccountId, bankId : BankId, accountType: String, accountLabel: String, currency : String, initialBalance : String) : Box[BankAccount] =  {
 
-    val currencies = code.fx.fx.exchangeRates.keys.toList
+    val currencies = code.fx.fx.fallbackExchangeRates.keys.toList
 
     if(accountId.value == "") Failure("Account id cannot be empty")
     else if(bankId.value == "") Failure("Bank id cannot be empty")

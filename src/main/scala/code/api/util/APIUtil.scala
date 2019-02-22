@@ -1982,7 +1982,7 @@ Returns a string showed to the developer
     import util.RateLimitPeriod._
     import util.RateLimitUtil._
     val perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 60)
-    def composeMsg(period: LimitCallPeriod, limit: Long) = TooManyRequests + s"We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for this Consumer."
+    def composeMsg(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitPeriod.humanReadable(period)} for this Consumer."
 
     def setXRateLimits(c: Consumer, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
       val limit = period match {
@@ -2053,7 +2053,6 @@ Returns a string showed to the developer
       case Some(cc) =>
         cc.consumer match {
           case Full(c) => // Authorized access
-            org.scalameta.logger.elem(c)
             val checkLimits = List(
               underConsumerLimits(c.key.get, PER_SECOND, c.perSecondCallLimit.get),
               underConsumerLimits(c.key.get, PER_MINUTE, c.perMinuteCallLimit.get),

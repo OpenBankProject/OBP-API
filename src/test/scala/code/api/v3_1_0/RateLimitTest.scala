@@ -74,7 +74,7 @@ class RateLimitTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT
       val response310 = makePutRequest(request310, write(callLimitJson1))
       Then("We should get a 400")
       response310.code should equal(400)
@@ -85,7 +85,7 @@ class RateLimitTest extends V310ServerSetup {
       When("We make a request v3.1.0 without a Role " + ApiRole.canSetCallLimits)
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
       val response310 = makePutRequest(request310, write(callLimitJson1))
       Then("We should get a 403")
       response310.code should equal(403)
@@ -97,7 +97,7 @@ class RateLimitTest extends V310ServerSetup {
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimits.toString)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
       val response310 = makePutRequest(request310, write(callLimitJson1))
       Then("We should get a 200")
       response310.code should equal(200)
@@ -109,7 +109,7 @@ class RateLimitTest extends V310ServerSetup {
         val Some((c, _)) = user1
         val consumerId: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanSetCallLimits.toString)
-        val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").PUT <@(user1)
+        val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
         val response01 = makePutRequest(request310, write(callLimitJson2))
         Then("We should get a 200")
         response01.code should equal(200)
@@ -136,7 +136,7 @@ class RateLimitTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").GET
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
@@ -147,7 +147,7 @@ class RateLimitTest extends V310ServerSetup {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").GET <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -159,7 +159,7 @@ class RateLimitTest extends V310ServerSetup {
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanReadCallLimits.toString)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "calls_limit").GET <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
       response310.code should equal(200)
