@@ -1,6 +1,7 @@
 package code.api.util
 
 import code.accountapplication.AccountApplication
+import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
@@ -149,7 +150,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createProductCollections), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createProductCollections), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -632,6 +634,31 @@ object NewStyle {
       }
     }
 
+
+    def createOrUpdateAccountAttribute(
+                                        bankId: BankId,
+                                        accountId: AccountId,
+                                        productCode: ProductCode,
+                                        accountAttributeId: Option[String],
+                                        name: String,
+                                        attributeType: AccountAttributeType.Value,
+                                        value: String,
+                                        callContext: Option[CallContext]
+                                      ): OBPReturnType[AccountAttribute] = {
+      Connector.connector.vend.createOrUpdateAccountAttribute(
+        bankId: BankId,
+        accountId: AccountId,
+        productCode: ProductCode,
+        accountAttributeId: Option[String],
+        name: String,
+        attributeType: AccountAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+      }
+    }
+    
     def createAccountApplication(
                                   productCode: ProductCode,
                                   userId: Option[String],

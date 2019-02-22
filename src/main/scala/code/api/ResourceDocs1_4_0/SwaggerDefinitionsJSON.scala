@@ -3064,6 +3064,23 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23"
   )
 
+  val accountAttributeJson = AccountAttributeJson(
+    bank_id = "123",
+    account_id = "456",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23"
+  )  
+  val accountAttributeResponseJson = AccountAttributeResponseJson(
+    bank_id = "123",
+    account_id = "456",
+    product_code = "saving1",
+    account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23"
+  )
+
   val accountApplicationJson = AccountApplicationJson(
     product_code = "saveing1",
     user_id = Some("123"),

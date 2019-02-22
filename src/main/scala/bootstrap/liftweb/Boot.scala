@@ -30,6 +30,7 @@ import java.io.{File, FileInputStream}
 import java.util.{Locale, TimeZone}
 
 import code.accountapplication.MappedAccountApplication
+import code.accountattribute.MappedAccountAttribute
 import code.accountholder.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -576,7 +577,8 @@ object ToSchemify {
     MappedUserAuthContext,
     MappedAccountApplication,
     MappedProductCollection,
-    MappedProductCollectionItem
+    MappedProductCollectionItem,
+    MappedAccountAttribute
   )
 
   // The following tables are accessed directly via Mapper / JDBC

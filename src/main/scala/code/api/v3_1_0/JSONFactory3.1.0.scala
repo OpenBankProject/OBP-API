@@ -30,6 +30,7 @@ import java.lang
 import java.util.Date
 
 import code.accountapplication.AccountApplication
+import code.accountattribute.AccountAttribute.AccountAttribute
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
@@ -358,6 +359,26 @@ case class AccountApplicationResponseJson(
   date_of_application: Date,
   status: String
 )
+
+case class AccountAttributeJson(
+  bank_id: String,
+  account_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+)
+
+
+case class AccountAttributeResponseJson(
+  bank_id: String,
+  account_id: String,
+  product_code: String,
+  account_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String
+)
+case class AccountAttributesResponseJson(list: List[AccountAttributeResponseJson])
 
 case class AccountApplicationUpdateStatusJson(status: String)
 
@@ -790,6 +811,19 @@ object JSONFactory310{
     )
   }
 
-  
+  def createAccountAttributeJson(accountAttribute: AccountAttribute) : AccountAttributeResponseJson = {
+    AccountAttributeResponseJson(
+      bank_id = accountAttribute.bankId.value,
+      account_id = accountAttribute.accountId.value,
+      product_code = accountAttribute.productCode.value,
+      account_attribute_id = accountAttribute.accountAttributeId,
+      name = accountAttribute.name,
+      `type` = accountAttribute.attributeType.toString,
+      value = accountAttribute.value
+    )
+  }
+  def createAccountAttributesJson(productsList: List[AccountAttribute]) : AccountAttributesResponseJson = {
+    AccountAttributesResponseJson(productsList.map(createAccountAttributeJson))
+  }
 
 }
