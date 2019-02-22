@@ -13,7 +13,7 @@ object fx extends MdcLoggable {
   // Make this easier
 
   //get data from : http://www.xe.com/de/currencyconverter/convert/?Amount=1&From=AUD&To=EUR
-  val exchangeRates = {
+  val fallbackExchangeRates = {
   Map(
     "GBP" -> Map("EUR" -> 1.16278,     "USD" -> 1.24930,     "JPY" -> 141.373,     "AED" -> 4.58882,   "INR" -> 84.0950,    "KRW" -> 1433.92,   "XAF" -> 762.826,  "JOD" -> 0.936707,    "ILS" -> 4.70020,   "AUD" -> 1.63992   ,"HKD" -> 10.1468 ),
     "EUR" -> Map("GBP" -> 0.860011,    "USD" -> 1.07428,     "JPY" -> 121.567,     "AED" -> 3.94594,   "INR" -> 72.3136,    "KRW" -> 1233.03,   "XAF" -> 655.957,  "JOD" -> 0.838098,    "ILS" -> 4.20494,   "AUD" -> 1.49707   ,"HKD" -> 8.88926 ),
@@ -47,7 +47,7 @@ object fx extends MdcLoggable {
       //logger.debug(s"fromAmount is $fromAmount, toCurrency is ${toCurrency}")
       val rate: Option[Double] = try {
         // Get the translated name out of the map
-        Some(exchangeRates.get(fromCurrency).get(toCurrency))
+        Some(fallbackExchangeRates.get(fromCurrency).get(toCurrency))
 
 
       }
