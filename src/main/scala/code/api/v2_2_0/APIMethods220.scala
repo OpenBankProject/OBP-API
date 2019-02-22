@@ -14,6 +14,7 @@ import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
 import code.consumer.Consumers
+import code.fx.{MappedFXRate, fx}
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metrics.ConnectorMetricsProvider
 import code.model.dataAccess.BankAccountCreation
@@ -21,7 +22,7 @@ import code.model.{BankId, ViewId, _}
 import code.util.Helper
 import code.util.Helper._
 import code.views.Views
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
@@ -253,6 +254,27 @@ trait APIMethods220 {
               assert(isValidCurrencyISOCode(toCurrencyCode))
             }
             fxRate <- Future(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode)) map {
+              fallbackFxRate => 
+                fallbackFxRate match {
+                  case Empty =>
+                    val rate = fx.exchangeRate(fromCurrencyCode, toCurrencyCode)
+                    val inverseRate = fx.exchangeRate(toCurrencyCode, fromCurrencyCode)
+                    (rate, inverseRate) match {
+                      case (Some(r), Some(ir)) =>
+                        Full(
+                          MappedFXRate.create
+                            .mBankId(bankId.value)
+                            .mFromCurrencyCode(fromCurrencyCode)
+                            .mToCurrencyCode(toCurrencyCode)
+                            .mConversionValue(r)
+                            .mInverseConversionValue(ir)
+                            .mEffectiveDate(new Date())
+                        )
+                      case _ => fallbackFxRate
+                    }
+                  case _ => fallbackFxRate
+                }
+            } map {
               unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported,400)
             }
           } yield {
