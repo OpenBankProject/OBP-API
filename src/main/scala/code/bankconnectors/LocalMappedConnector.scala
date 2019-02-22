@@ -4,6 +4,8 @@ import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 
 import code.accountapplication.AccountApplication
+import code.accountattribute.AccountAttribute
+import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -2026,6 +2028,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ProductAttribute.productAttributeProvider.vend.deleteProductAttribute(productAttributeId: String) map {
       (_, callContext)
     }
+
+  override def createOrUpdateAccountAttribute(
+                                               bankId: BankId,
+                                               accountId: AccountId,
+                                               productCode: ProductCode,
+                                               accountAttributeId: Option[String],
+                                               name: String,
+                                               attributType: AccountAttributeType.Value,
+                                               value: String,
+                                               callContext: Option[CallContext]
+                                             ): OBPReturnType[Box[AccountAttribute]] = {
+    AccountAttribute.accountAttributeProvider.vend.createOrUpdateAccountAttribute(bankId: BankId,
+                                                                                  accountId: AccountId,
+                                                                                  productCode: ProductCode,
+                                                                                  accountAttributeId: Option[String],
+                                                                                  name: String,
+                                                                                  attributType: AccountAttributeType.Value,
+                                                                                  value: String) map { (_, callContext) }
+  }
+
 
   override def createAccountApplication(
     productCode: ProductCode,

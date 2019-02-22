@@ -329,6 +329,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getProducts ::
                           Implementations3_1_0.getProductTree ::
                           Implementations3_1_0.createProductCollections ::
+                          Implementations3_1_0.createAccountAttribute ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
