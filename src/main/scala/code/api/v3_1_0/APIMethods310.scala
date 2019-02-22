@@ -62,7 +62,7 @@ trait APIMethods310 {
       nameOf(getCheckbookOrders),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
-      "get Checkbook orders",
+      "Get Checkbook orders",
       s"""${mockedDataText(true)}Get all checkbook orders""",
       emptyObjectJson,
       checkbookOrdersJson,
@@ -154,7 +154,7 @@ trait APIMethods310 {
       creditLimitOrderResponseJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagCustomer :: apiTagNewStyle :: Nil)
 
     lazy val createCreditLimitRequest : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonPost json -> _  => {
@@ -185,7 +185,7 @@ trait APIMethods310 {
       creditLimitOrderJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: Nil)
+      apiTagCustomer :: Nil)
 
     lazy val getCreditLimitRequests : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonGet req => {
@@ -216,7 +216,7 @@ trait APIMethods310 {
       creditLimitOrderJson,
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagCustomer :: apiTagNewStyle :: Nil)
 
     lazy val getCreditLimitRequestByRequestId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: requestId :: Nil JsonGet req => {
@@ -2433,6 +2433,10 @@ trait APIMethods310 {
          |Commodity
          |Derivative
          |
+         |You can create a product hierarchy using parent_product_code
+         |
+         |Note: You can create product buckets using the Product Collections endpoint.
+         |
          |
          |${authenticationRequiredMessage(true) }
          |
@@ -2763,6 +2767,13 @@ trait APIMethods310 {
       "Create Product Collections",
       s"""Create or Update Product Collections for the Bank.
          |
+         |Use these Product Collections to create Product "Buckets"
+         |
+         |A Product can exist in many Buckets (Collections)
+         |
+         |A Bucket (Collection) can contain many Products.
+         |
+         |Note: You can define Product hierarchy using parent_produt_code in Product.
          |
          |${authenticationRequiredMessage(true) }
          |

@@ -16,16 +16,109 @@ If you have a particular requirement or would like to comment or help us specify
 
 ## Current developments
 
+
 ### Enhanced support for Berlin Group, STET, UK Open Banking and Polish APIs
 
+We are evolving our support for multiple Open Banking API standards e.g.
+
+* [Berlin Group](https://apiexplorersandbox.openbankproject.com/?version=BGv3.1)
+
+* [STET](https://apiexplorersandbox.openbankproject.com/?version=STETv1.4)
 
 ## Completed developments (most recent first)
 
-### Web Hooks (on balance change etc.)
+
+### Version 3.1.0
+50 new and updated endpoints. Major new functionality includes:
+
+* Webhooks
+* Rate limiting and Throttling.
+* Extended Customer information
+* Account Applications
+* Product Attributes and Hierarchy
+* Product Collections
+* User Auth Context
+
+See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv3.1.0&ignoredefcat=true&implemented_here=true) for details.
 
 
-### Message Docs
-Message Docs (which define Core Banking System Kafka messages) are now avilalbe independent of the connector being used on the API instance. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v2_2_0-getMessageDocs) 
+    API
+        Get API Configuration
+        Get Adapter Info (general)
+        Get Connector Status (Loopback)
+        Get Rate Limiting Info
+    Account
+        Check Available Funds
+        get Checkbook orders
+    Account Application
+        Create Account Application
+        Get Account Application by Id
+        Get Account Applications
+        Update Account Application Status
+    Account Firehose
+        Get Firehose Customers
+    Card
+        Get status of Credit Card order
+    Consumer
+        Get Call Limits for a Consumer
+        Get Consumers (logged in User)
+        Set Calls Limit for a Consumer
+    Customer
+        Add Address to Customer
+        Add Tax Residence to Customer
+        Create Credit Limit Order Request
+        Create Customer.
+        Delete Customer Address
+        Delete Tax Residence
+        Get Credit Limit Order Request By Request Id
+        Get Credit Limit Order Requests
+        Get Customer Addresses
+        Get Customer by CUSTOMER_ID
+        Get Customer by CUSTOMER_NUMBER
+        Get Tax Residences of Customer
+        Update the Address of an Customer
+    Metric
+        Get Top APIs
+        Get Top Consumers
+    Product
+        Create Product
+        Create Product Attribute
+        Create Product Collections
+        Delete Product Attribute
+        Get Bank Product
+        Get Bank Product
+        Get Bank Products
+        Get Product Attribute
+        Update Product Attribute
+    Role
+        Get all Entitlements
+    Transaction
+        Get Transaction by Id.
+    Transaction Request
+        Get Transaction Requests.
+    User
+        Create User Auth Context
+        Delete User Auth Context
+        Delete User's Auth Contexts
+        Get User Auth Contexts
+        Get User Lock Status
+        Refresh User.
+        Unlock the user
+    Webhook
+        Create an Account Webhook
+        Enable/Disable an Account Webhook
+        Get Account Webhooks
+
+
+See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv3.1.0&ignoredefcat=true) for all OBP v3.1 APIS
+
+
+### Message Docs (for Akka)
+Message Docs (which define Core Banking System Akka messages) are now available independent of the connector being used on the API instance. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v2_2_0-getMessageDocs)
+
+
+### Message Docs (for Kafka)
+Message Docs (which define Core Banking System Kafka messages) are now available independent of the connector being used on the API instance. See [here](https://apiexplorersandbox.openbankproject.com/?ignoredefcat=true&tags=#v2_2_0-getMessageDocs)
 
 ### Endpoint config and cleanup
 Endpoints can now be enabled / disabled explicitly using Props file.
@@ -245,7 +338,6 @@ Intended features:
 *   Overdrafts (limit, interest rate, approval date, utilization)
 *   Loans (size, reason, interest rate, approval date, utilization)
 *   Mortgages (size, reason, property, details)
-*   Applications and status of the above
 
 ### Version C
 

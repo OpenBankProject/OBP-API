@@ -53,7 +53,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val localResourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson = EmptyClassJson()
-    // val statedApiVersion : String = "1_4_0"
 
     val implementedInApiVersion = ApiVersion.v1_4_0
 
@@ -446,8 +445,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       cc =>{
        for {
         (showCore, showPSD2, showOBWG, tags, partialFunctions) <- Full(getParams())
-         requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
-         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
+         requestedApiVersion <- tryo {ApiVersion.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
+         _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
          json <- getResourceDocsObpCached(showCore, showPSD2, showOBWG, requestedApiVersion, tags, partialFunctions)
         } yield {
           json

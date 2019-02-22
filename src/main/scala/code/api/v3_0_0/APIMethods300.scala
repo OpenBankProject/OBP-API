@@ -49,7 +49,7 @@ trait APIMethods300 {
 
   val Implementations3_0_0 = new Object() {
 
-    val implementedInApiVersion = ApiVersion.v3_0_0 // was noV
+    val implementedInApiVersion = ApiVersion.v3_0_0
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()

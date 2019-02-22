@@ -43,7 +43,7 @@ trait APIMethods220 {
     val apiRelations = ArrayBuffer[ApiRelation]()
 
     val emptyObjectJson = EmptyClassJson()
-    val implementedInApiVersion = ApiVersion.v2_2_0 // was String "2_2_0"
+    val implementedInApiVersion = ApiVersion.v2_2_0
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
@@ -705,6 +705,8 @@ trait APIMethods220 {
         |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
         |
         |If USER_ID is not specified the account will be owned by the logged in User.
+        |
+        |The type field should be a product_code from Product.
         |
         |Note: The Amount must be zero.""".stripMargin,
       createAccountJSONV220,
