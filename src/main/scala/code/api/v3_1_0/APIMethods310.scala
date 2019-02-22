@@ -2,6 +2,7 @@ package code.api.v3_1_0
 
 import java.util.UUID
 
+import code.accountattribute.AccountAttribute.AccountAttributeType
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -1075,7 +1076,7 @@ trait APIMethods310 {
             (_, callContext) <- anonymousAccess(cc)
             (ai,cc) <- NewStyle.function.getAdapterInfo(callContext)
           } yield {
-            (createAdapterInfoJson(ai), HttpCode.`200`(cc))
+            (createAdapterInfoJson(ai), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1291,13 +1292,18 @@ trait APIMethods310 {
           for {
             (_, callContext) <- anonymousAccess(cc)
             rateLimiting <- NewStyle.function.tryons("", 400, callContext) {
-              val useConsumerLimits = RateLimitUtil.useConsumerLimits
-              val isRedisAvailable = RateLimitUtil.isRedisAvailable()
-              val isActive = if(useConsumerLimits == true && isRedisAvailable == true) true else false
-              RateLimiting(useConsumerLimits, "REDIS", isRedisAvailable, isActive)
+              RateLimitUtil.inMemoryMode match {
+                case true =>
+                  val isActive = if(RateLimitUtil.useConsumerLimits == true) true else false
+                  RateLimiting(RateLimitUtil.useConsumerLimits, "In-Memory", true, isActive)
+                case false =>
+                  val isRedisAvailable = RateLimitUtil.isRedisAvailable()
+                  val isActive = if(RateLimitUtil.useConsumerLimits == true && isRedisAvailable == true) true else false
+                  RateLimiting(RateLimitUtil.useConsumerLimits, "REDIS", isRedisAvailable, isActive)
+              }
             }
           } yield {
-            (createRateLimitingInfo(rateLimiting), HttpCode.`200`(cc))
+            (createRateLimitingInfo(rateLimiting), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2664,6 +2670,87 @@ trait APIMethods310 {
     }
 
 
+
+
+
+
+    val accountAttributeGeneralInfo =
+      s"""
+         |Account Attributes are used to describe a financial Product with a list of typed key value pairs.
+         |
+         |Each Account Attribute is linked to its Account by ACCOUNT_ID
+         |
+         |
+       """.stripMargin
+
+    resourceDocs += ResourceDoc(
+      createAccountAttribute,
+      implementedInApiVersion,
+      nameOf(createAccountAttribute),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/products/CODE/attribute",
+      "Create Account Attribute",
+      s""" Create Account Attribute
+         |
+         |$accountAttributeGeneralInfo
+         |
+         |Typical account attributes might be:
+         |
+         |ISIN (for International bonds)
+         |VKN (for German bonds)
+         |REDCODE (markit short code for credit derivative)
+         |LOAN_ID (e.g. used for Anacredit reporting)
+         |
+         |ISSUE_DATE (When the bond was issued in the market)
+         |MATURITY_DATE (End of life time of a product)
+         |TRADABLE
+         |
+         |See [FPML](http://www.fpml.org/) for more examples.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountAttributeJson,
+      accountAttributeResponseJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val createAccountAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            _  <- Future(Connector.connector.vend.getProduct(BankId(bankId), ProductCode(productCode))) map {
+              getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + productCode + "}", 400)
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountAttributeJson]
+            }
+            (accountAttribute, callContext) <- NewStyle.function.createOrUpdateAccountAttribute(
+              BankId(bankId),
+              AccountId(accountId),
+              ProductCode(productCode),
+              None,
+              postedData.name,
+              AccountAttributeType.withName(postedData.`type`),
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createAccountAttributeJson(accountAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
 
 
 

@@ -952,7 +952,7 @@ trait APIMethods300 {
                 unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
               }
             } yield {
-              (createAdapterInfoJson(ai), cc)
+              (createAdapterInfoJson(ai), callContext)
             }
       }
     }

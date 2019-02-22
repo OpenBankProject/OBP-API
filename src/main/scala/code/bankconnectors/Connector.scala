@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.Date
 
 import code.accountapplication.AccountApplication
+import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -1548,6 +1549,18 @@ trait Connector extends MdcLoggable{
     productAttributeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+
+  def createOrUpdateAccountAttribute(
+      bankId: BankId,
+      accountId: AccountId,
+      productCode: ProductCode,
+      productAttributeId: Option[String],
+      name: String,
+      attributType: AccountAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+  ): OBPReturnType[Box[AccountAttribute]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
 
   def createAccountApplication(
     productCode: ProductCode,

@@ -147,8 +147,17 @@ object RateLimitUtil extends MdcLoggable {
                 jedis.setex(key, seconds, "1")
                 (seconds, 1)
               case _ => // otherwise increment the counter
-                val cnt = jedis.incr(key)
-                (ttl, cnt)
+                // TODO redis-mock has a bug "INCR clears TTL" 
+                inMemoryMode match {
+                  case true =>
+                    val cnt: Long = jedis.get(key).toLong + 1
+                    jedis.setex(key, ttl, String.valueOf(cnt))
+                    (ttl, cnt)
+                  case false =>
+                    val cnt = jedis.incr(key)
+                    (ttl, cnt)
+                }
+                
             }
         }
       } catch {
