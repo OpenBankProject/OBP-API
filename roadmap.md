@@ -39,7 +39,7 @@ We are evolving our support for multiple Open Banking API standards e.g.
 * Product Collections
 * User Auth Context
 
-See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv3.1.0&ignoredefcat=true&implemented_here=true) for details.
+See [here](https://apiexplorersandbox.openbankproject.com/?version=OBPv3.1.0&ignoredefcat=true&native=true) for details.
 
 
     API
