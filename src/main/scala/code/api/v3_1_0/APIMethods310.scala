@@ -2680,7 +2680,7 @@ trait APIMethods310 {
       "Create Product Collections",
       s"""Create or Update Product Collections for the Bank.
          |
-         |Use these Product Collections to create Product "Buckets"
+         |Use Product Collections to create Product "Baskets", "Portfolios", "Indices", "Collections", "Underlyings-lists", "Buckets" etc. etc.
          |
          |A Product can exist in many Buckets (Collections)
          |

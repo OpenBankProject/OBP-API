@@ -12,7 +12,7 @@ Thus, the OBP API abstracts away the peculiarities of each core banking system s
 
 Our tag line is: Bank as a Platform. Transparency as an Asset.
 
-The API uses OAuth 1.0 authentication.
+The API supports OAuth 1.0a, OAuth 2 and other authentication methods. See [here](https://github.com/OpenBankProject/OBP-API/wiki/Authentication) for more information.
 
 The project roadmap is available [here.](https://github.com/OpenBankProject/OBP-API/blob/develop/roadmap.md)
 
