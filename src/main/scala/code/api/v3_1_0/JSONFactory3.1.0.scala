@@ -431,6 +431,9 @@ case class ProductCollectionJsonV310(collection_code: String,
                                      items: List[ProductCollectionItemJsonV310])
 case class ProductCollectionsJsonV310(product_collection : List[ProductCollectionJsonV310])
 
+case class ProductCollectionJsonTreeV310(collection_code: String,
+                                         products: List[ProductJsonV310])
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -808,6 +811,14 @@ object JSONFactory310{
             productCollectionItems.map(y => ProductCollectionItemJsonV310(y.memberProductCode))
           )
       )
+    )
+  }
+  def createProductCollectionsTreeJson(list: List[(ProductCollectionItem, Product, List[ProductAttribute])]): ProductCollectionJsonTreeV310 = {
+    val products = list.map(pc => createProductJson(pc._2, pc._3))
+    val collectionCode = list.map(_._1.collectionCode).headOption.getOrElse("")
+    ProductCollectionJsonTreeV310(
+      collectionCode,
+      products
     )
   }
 

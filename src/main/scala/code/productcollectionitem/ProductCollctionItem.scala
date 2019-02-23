@@ -1,6 +1,8 @@
 package code.productcollectionitem
 
 import code.api.util.APIUtil
+import code.productattribute.ProductAttribute.ProductAttribute
+import code.products.MappedProduct
 import code.remotedata.RemotedataProductCollectionItem
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
@@ -20,6 +22,7 @@ object ProductCollectionItem extends SimpleInjector {
 }
 
 trait ProductCollectionItemProvider {
+  def getProductCollectionItemsTree(collectionCode: String, bankId: String): Future[Box[List[(ProductCollectionItem, MappedProduct, List[ProductAttribute])]]]
   def getProductCollectionItems(collectionCode: String): Future[Box[List[ProductCollectionItem]]]
   def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String]): Future[Box[List[ProductCollectionItem]]]
 }
@@ -30,6 +33,7 @@ trait ProductCollectionItem {
 }
 
 class RemotedataProductCollectionItemCaseClasses {
+  case class getProductCollectionItemsTree(collectionCode: String, bankId: String)
   case class getProductCollectionItems(collectionCode: String)
   case class getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String])
 }

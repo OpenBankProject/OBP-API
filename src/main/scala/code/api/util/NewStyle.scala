@@ -28,7 +28,7 @@ import code.model._
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.ProductCollection
 import code.productcollectionitem.ProductCollectionItem
-import code.products.Products.ProductCode
+import code.products.Products.{Product, ProductCode}
 import code.taxresidence.TaxResidence
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequest
@@ -150,7 +150,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createProductCollections), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createProductCollection), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString)
   )
 
@@ -737,14 +738,33 @@ object NewStyle {
                                      productCodes: List[String], 
                                      callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
       Connector.connector.vend.getOrCreateProductCollection(collectionCode, productCodes, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$UpdateAccountApplicationStatusError  Current Account-Application-Id($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+      }
+    }
+    def getProductCollection(collectionCode: String, 
+                             callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
+      Connector.connector.vend.getProductCollection(collectionCode, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getOrCreateProductCollectionItems(collectionCode: String,
                                           memberProductCodes: List[String],
                                           callContext: Option[CallContext]): OBPReturnType[List[ProductCollectionItem]] = {
       Connector.connector.vend.getOrCreateProductCollectionItem(collectionCode, memberProductCodes, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$UpdateAccountApplicationStatusError  Current Account-Application-Id($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+      }
+    }
+    def getProductCollectionItems(collectionCode: String,
+                                          callContext: Option[CallContext]): OBPReturnType[List[ProductCollectionItem]] = {
+      Connector.connector.vend.getProductCollectionItem(collectionCode, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+      }
+    }
+    def getProductCollectionItemsTree(collectionCode: String, 
+                                      bankId: String,
+                                      callContext: Option[CallContext]): OBPReturnType[List[(ProductCollectionItem, Product, List[ProductAttribute])]] = {
+      Connector.connector.vend.getProductCollectionItemsTree(collectionCode, bankId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
       
