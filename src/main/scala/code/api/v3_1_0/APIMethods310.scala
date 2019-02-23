@@ -2758,7 +2758,7 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       createProductCollection,
       implementedInApiVersion,
-      "createProductCollections",
+      nameOf(createProductCollection),
       "PUT",
       "/banks/BANK_ID/product-collections/COLLECTION_CODE",
       "Create Product Collections",
@@ -2831,11 +2831,11 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getProductCollection,
       implementedInApiVersion,
-      "getProductCollections",
+      nameOf(getProductCollection),
       "GET",
       "/banks/BANK_ID/product-collections/COLLECTION_CODE",
-      "Get Product Collections",
-      s"""Returns information about the financial product collections offered by a bank specified by BANK_ID including:
+      "Get Product Collection",
+      s"""Returns information about the financial Product Collection specified by BANK_ID and COLLECTION_CODE:
          |
           """,
       emptyObjectJson,
