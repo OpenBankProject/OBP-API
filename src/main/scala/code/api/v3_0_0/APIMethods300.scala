@@ -465,6 +465,8 @@ trait APIMethods300 {
          |
          |To be shown on the list, each Account must have a firehose View linked to it.
          |
+         |A firehose view has is_firehose = true
+         |
          |For VIEW_ID try 'owner'
          |
          |

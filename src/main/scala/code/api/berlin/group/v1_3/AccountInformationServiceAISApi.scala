@@ -972,7 +972,7 @@ This call is only available on transactions as reported in a JSON format.
        apiVersion,
        nameOf(getTransactionList),
        "GET",
-       "/accounts/ACCOUNT_ID/transactions/",
+       "/accounts/ACCOUNT_ID/transactions",
        "Read transaction list of an account",
        s"""${mockedDataText(false)}
 Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter "bookingStatus" together with balances.
