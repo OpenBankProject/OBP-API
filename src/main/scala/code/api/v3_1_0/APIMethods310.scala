@@ -2715,7 +2715,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagAccount, apiTagNewStyle))
 
     lazy val createAccountAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attribute" :: Nil JsonPost json -> _=> {
