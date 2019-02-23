@@ -8,9 +8,9 @@ import net.liftweb.mapper._
 
 object MappedKycMediasProvider extends KycMediaProvider {
 
-  override def getKycMedias(customerNumber: String): List[MappedKycMedia] = {
+  override def getKycMedias(customerId: String): List[MappedKycMedia] = {
     MappedKycMedia.findAll(
-      By(MappedKycMedia.mCustomerNumber, customerNumber),
+      By(MappedKycMedia.mCustomerId,customerId),
       OrderBy(MappedKycMedia.updatedAt, Descending))
   }
 
