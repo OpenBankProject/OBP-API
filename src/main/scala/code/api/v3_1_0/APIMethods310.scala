@@ -2800,6 +2800,14 @@ trait APIMethods310 {
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutProductCollectionsV310]
             }
+            products <- Future(Connector.connector.vend.getProducts(bankId)) map {
+              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+            }
+            _ <- Helper.booleanToFuture(ProductNotFoundByProductCode + " {" + (product.parent_product_code :: product.children_product_codes).mkString(", ") + "}") {
+              val existingCodes = products.map(_.code.value)
+              val codes = product.parent_product_code :: product.children_product_codes
+              codes.forall(i => existingCodes.contains(i))
+            }
             (productCollection, callContext) <- NewStyle.function.getOrCreateProductCollection(
               collectionCode,
               List(product.parent_product_code),

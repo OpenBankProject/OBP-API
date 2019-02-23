@@ -27,7 +27,7 @@ package code.api.v3_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanMaintainProductCollection
+import code.api.util.ApiRole.{CanCreateProduct, CanMaintainProductCollection}
 import code.api.util.ApiVersion
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
@@ -57,10 +57,36 @@ class ProductCollectionTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProductCollections))
 
   lazy val testBankId = randomBankId
-  lazy val putProductCollectionsV310 = SwaggerDefinitionsJSON.putProductCollectionsV310
+  lazy val putProductCollectionsV310 = SwaggerDefinitionsJSON.putProductCollectionsV310.copy(parent_product_code = "A", children_product_codes = List("B", "C", "D"))
+
+  lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(bank_id = testBankId, parent_product_code ="")
+  def createProduct(code: String, json: PostPutProductJsonV310) = {
+    When("We try to create a product v3.1.0")
+    val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+    val response310 = makePutRequest(request310, write(json))
+    Then("We should get a 201")
+    response310.code should equal(201)
+    val product = response310.body.extract[ProductJsonV310]
+    product.code shouldBe code
+    product.parent_product_code shouldBe json.parent_product_code
+    product.bank_id shouldBe json.bank_id
+    product.name shouldBe json.name
+    product.category shouldBe json.category
+    product.super_family shouldBe json.super_family
+    product.family shouldBe json.family
+    product.more_info_url shouldBe json.more_info_url
+    product.details shouldBe json.details
+    product.description shouldBe json.description
+    product
+  }
 
   feature("Create Product Collections v3.1.0") {
     scenario("We will call the endpoint with a user credentials", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      createProduct(code = "A", json = parentPostPutProductJsonV310)
+      createProduct(code = "B", json = parentPostPutProductJsonV310)
+      createProduct(code = "C", json = parentPostPutProductJsonV310)
+      createProduct(code = "D", json = parentPostPutProductJsonV310)
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanMaintainProductCollection.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId / "product-collections" / "A portfolio of car loans is a ABS").PUT <@ (user1)
