@@ -17,7 +17,7 @@ object KycMedias extends SimpleInjector {
 
 trait KycMediaProvider {
 
-  def getKycMedias(customerNumber: String) : List[KycMedia]
+  def getKycMedias(customerId: String) : List[KycMedia]
 
   def addKycMedias(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String) : Box[KycMedia]
 

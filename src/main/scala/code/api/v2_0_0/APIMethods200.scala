@@ -497,7 +497,7 @@ trait APIMethods200 {
             _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(customer.number)
+            val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(customerId)
             val json = JSONFactory200.createKycMediasJSON(kycMedias)
             successJsonResponse(Extraction.decompose(json))
           }
