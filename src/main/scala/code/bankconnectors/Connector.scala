@@ -1582,10 +1582,22 @@ trait Connector extends MdcLoggable{
                                    productCodes: List[String], 
                                    callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def getProductCollection(collectionCode: String,
+                           callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
 
   def getOrCreateProductCollectionItem(collectionCode: String,
                                        memberProductCodes: List[String],
                                        callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  def getProductCollectionItem(collectionCode: String,
+                               callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}  
+  
+  def getProductCollectionItemsTree(collectionCode: String, 
+                                    bankId: String,
+                                    callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
   
 }

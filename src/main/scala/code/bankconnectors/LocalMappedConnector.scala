@@ -2077,11 +2077,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override  def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
     ProductCollection.productCollection.vend.getOrCreateProductCollection(collectionCode, productCodes) map {
       (_, callContext)
-    }  
+    } 
+  
+  override  def getProductCollection(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
+    ProductCollection.productCollection.vend.getProductCollection(collectionCode) map {
+      (_, callContext)
+    } 
+  
   override  def getOrCreateProductCollectionItem(collectionCode: String,
                                                  memberProductCodes: List[String],
                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
     ProductCollectionItem.productCollectionItem.vend.getOrCreateProductCollectionItem(collectionCode, memberProductCodes) map {
+      (_, callContext)
+    }
+  
+  override  def getProductCollectionItem(collectionCode: String,
+                                         callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] =
+    ProductCollectionItem.productCollectionItem.vend.getProductCollectionItems(collectionCode) map {
+      pci => (pci, callContext)
+    }  
+  override def getProductCollectionItemsTree(collectionCode: String, 
+                                              bankId: String,
+                                              callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] =
+    ProductCollectionItem.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map {
       (_, callContext)
     }
 

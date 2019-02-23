@@ -24,14 +24,12 @@ import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.productattribute.ProductAttribute.ProductAttributeType
-import code.productcollection.ProductCollection
 import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
@@ -2816,6 +2814,44 @@ trait APIMethods310 {
             (createProductCollectionsJson(productCollection, productCollectionItems), HttpCode.`201`(callContext))
           }
 
+      }
+    }
+
+
+
+
+    resourceDocs += ResourceDoc(
+      getProductCollections,
+      implementedInApiVersion,
+      "getProductCollections",
+      "GET",
+      "/banks/BANK_ID/product-collections/COLLECTION_CODE",
+      "Get Product Collections",
+      s"""Returns information about the financial product collections offered by a bank specified by BANK_ID including:
+         |
+          """,
+      emptyObjectJson,
+      productsJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagProduct)
+    )
+
+    lazy val getProductCollections : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "product-collections" :: collectionCode :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (_, callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (payload, callContext) <- NewStyle.function.getProductCollectionItemsTree(collectionCode, bankId.value, callContext)
+          } yield {
+            (createProductCollectionsTreeJson(payload), HttpCode.`200`(callContext))
+          }
+        }
       }
     }
 

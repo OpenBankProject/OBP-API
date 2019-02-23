@@ -20,6 +20,10 @@ class RemotedataProductCollectionItemActor extends Actor with ObpActorHelper wit
       logger.debug("getProductCollectionItems(" + collectionCode + ")")
       mapper.getProductCollectionItems(collectionCode) pipeTo sender
       
+    case cc.getProductCollectionItemsTree(collectionCode: String, bankId: String) =>
+      logger.debug("getProductCollectionItems(" + collectionCode + ", " + bankId + ")")
+      mapper.getProductCollectionItemsTree(collectionCode, bankId) pipeTo sender
+      
     case cc.getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String]) =>
       logger.debug("getOrCreateProductCollectionItem(" + collectionCode +  ", " + memberProductCodes + ")")
       mapper.getOrCreateProductCollectionItem(collectionCode, memberProductCodes) pipeTo sender

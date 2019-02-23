@@ -1,5 +1,8 @@
 package code.productcollectionitem
 
+import code.productAttributeattribute.MappedProductAttribute
+import code.productattribute.ProductAttribute.ProductAttribute
+import code.products.MappedProduct
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -11,6 +14,26 @@ object MappedProductCollectionItemProvider extends ProductCollectionItemProvider
   override def getProductCollectionItems(collectionCode: String) = Future {
     tryo(MappedProductCollectionItem.findAll(By(MappedProductCollectionItem.mCollectionCode, collectionCode)))
   }
+
+  override def getProductCollectionItemsTree(collectionCode: String, bankId: String) = Future {
+    tryo {
+      MappedProductCollectionItem.findAll(By(MappedProductCollectionItem.mCollectionCode, collectionCode)) map {
+        productCollectionItem =>
+          val product = MappedProduct.find(
+            By(MappedProduct.mBankId, bankId), 
+            By(MappedProduct.mCode, productCollectionItem.mMemberProductCode.get)
+          ).openOrThrowException("There is no product")
+          val attributes: List[MappedProductAttribute] = MappedProductAttribute.findAll(
+            By(MappedProductAttribute.mBankId, bankId),
+            By(MappedProductAttribute.mCode, product.code.value)
+          )
+          val xxx: (ProductCollectionItem, MappedProduct, List[ProductAttribute]) = (productCollectionItem, product, attributes)
+          xxx
+      }
+    }
+  }
+  
+  
   override def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String]): Future[Box[List[ProductCollectionItem]]] = Future {
     tryo {
       val deleted =
