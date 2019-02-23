@@ -2761,16 +2761,16 @@ trait APIMethods310 {
       nameOf(createProductCollection),
       "PUT",
       "/banks/BANK_ID/product-collections/COLLECTION_CODE",
-      "Create Product Collections",
-      s"""Create or Update Product Collections for the Bank.
+      "Create Product Collection",
+      s"""Create or Update a Product Collection at the Bank.
          |
          |Use Product Collections to create Product "Baskets", "Portfolios", "Indices", "Collections", "Underlyings-lists", "Buckets" etc. etc.
          |
-         |A Product can exist in many Buckets (Collections)
+         |A Product can exist in many Collections
          |
-         |A Bucket (Collection) can contain many Products.
+         |A Collection can contain many Products.
          |
-         |Note: You can define Product hierarchy using parent_produt_code in Product.
+         |Note: You can define a Product hierarchy (so that child Products inherit attributes of their parent Product) using the parent_product_code in Product.
          |
          |${authenticationRequiredMessage(true) }
          |
@@ -2786,7 +2786,7 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagProduct),
-      Some(List(canCreateProduct, canCreateProductAtAnyBank))
+      Some(List(canMaintainProductCollection))
     )
 
     lazy val createProductCollection: OBPEndpoint = {
