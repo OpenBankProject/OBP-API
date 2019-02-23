@@ -150,8 +150,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createProductCollections), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProductCollections), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createProductCollection), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString)
   )
 
@@ -738,7 +738,7 @@ object NewStyle {
                                      productCodes: List[String], 
                                      callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
       Connector.connector.vend.getOrCreateProductCollection(collectionCode, productCodes, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current Account-Application-Id($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getProductCollection(collectionCode: String, 

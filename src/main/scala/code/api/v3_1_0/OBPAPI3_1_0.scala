@@ -328,8 +328,8 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getProduct ::
                           Implementations3_1_0.getProducts ::
                           Implementations3_1_0.getProductTree ::
-                          Implementations3_1_0.createProductCollections ::
-                          Implementations3_1_0.getProductCollections ::
+                          Implementations3_1_0.createProductCollection ::
+                          Implementations3_1_0.getProductCollection ::
                           Implementations3_1_0.createAccountAttribute ::
                           Nil
   

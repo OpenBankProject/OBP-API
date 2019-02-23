@@ -54,7 +54,7 @@ class ProductCollectionTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProductCollections))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProductCollection))
 
   lazy val testBankId = randomBankId
   lazy val putProductCollectionsV310 = SwaggerDefinitionsJSON.putProductCollectionsV310.copy(parent_product_code = "A", children_product_codes = List("B", "C", "D"))

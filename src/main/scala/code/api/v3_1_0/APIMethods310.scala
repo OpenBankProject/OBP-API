@@ -2756,7 +2756,7 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      createProductCollections,
+      createProductCollection,
       implementedInApiVersion,
       "createProductCollections",
       "PUT",
@@ -2789,7 +2789,7 @@ trait APIMethods310 {
       Some(List(canCreateProduct, canCreateProductAtAnyBank))
     )
 
-    lazy val createProductCollections: OBPEndpoint = {
+    lazy val createProductCollection: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "product-collections" :: collectionCode :: Nil JsonPut json -> _ => {
         cc =>
           for {
@@ -2829,7 +2829,7 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      getProductCollections,
+      getProductCollection,
       implementedInApiVersion,
       "getProductCollections",
       "GET",
@@ -2849,7 +2849,7 @@ trait APIMethods310 {
       List(apiTagProduct)
     )
 
-    lazy val getProductCollections : OBPEndpoint = {
+    lazy val getProductCollection : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "product-collections" :: collectionCode :: Nil JsonGet _ => {
         cc => {
           for {
