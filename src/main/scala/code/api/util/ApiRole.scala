@@ -5,6 +5,28 @@ sealed trait ApiRole{
   override def toString() = getClass().getSimpleName
 }
 
+
+/** API Roles
+  *
+  * As a convention, Roles should start with one of:
+  *
+  * Can
+  *   Create (in preference to Add)
+  *   Get (in preference to Read)
+  *   Update
+  *   Delete
+  *   Maintain
+  *   Search
+  *   Enable
+  *   Disable
+  *
+  * If requiresBankId is true, its a bank specific Role else applies to all banks.
+  *
+  */
+
+// Remember to add to the list of roles below
+
+
 object ApiRole {
 
   case class CanSearchAllTransactions(requiresBankId: Boolean = false) extends ApiRole
@@ -55,8 +77,8 @@ object ApiRole {
   case class CanGetSocialMediaHandles(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetSocialMediaHandles = CanGetSocialMediaHandles()
   
-  case class CanAddCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canAddCustomerAddress = CanAddCustomerAddress()
+  case class CanCreateCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerAddress = CanCreateCustomerAddress()
   
   case class CanDeleteCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteCustomerAddress = CanDeleteCustomerAddress()
@@ -241,8 +263,8 @@ object ApiRole {
   case class CanDeleteProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteProductAttribute = CanDeleteProductAttribute()
   
-  case class CanAddProductAttribute(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canAddProductAttribute = CanAddProductAttribute()
+  case class CanCreateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateProductAttribute = CanCreateProductAttribute() // TODO rename to create...
   
   case class CanMaintainProductCollection(requiresBankId: Boolean = true) extends ApiRole
   lazy val canMaintainProductCollection = CanMaintainProductCollection()
@@ -259,6 +281,9 @@ object ApiRole {
       canCreateCustomerAtAnyBank ::
       canCreateUserCustomerLink ::
       canCreateUserCustomerLinkAtAnyBank ::
+      canCreateCustomerAddress ::
+      canGetCustomerAddress ::
+      canDeleteCustomerAddress ::
       canCreateAccount ::
       canGetAnyUser ::
       canCreateAnyTransactionRequest ::
@@ -323,7 +348,7 @@ object ApiRole {
         canUpdateProductAttribute ::
         canGetProductAttribute ::
         canDeleteProductAttribute ::
-        canAddProductAttribute ::
+        canCreateProductAttribute ::
         canMaintainProductCollection ::
       Nil
 

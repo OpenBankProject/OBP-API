@@ -71,7 +71,7 @@ class ProductAttributeTest extends V310ServerSetup {
   feature("Create/Get, Update/Get and Delete/Get Product Attribute v3.1.0") {
     scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanAddProductAttribute.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
       When("We make a request v3.1.0")
       val requestCreate310 = createProductAttributeEndpoint.POST <@(user1)
       val responseCreate310 = makePostRequest(requestCreate310, write(postProductAttributeJson))
@@ -126,7 +126,7 @@ class ProductAttributeTest extends V310ServerSetup {
       val response310 = makePostRequest(request310, write(postProductAttributeJson))
       Then("We should get a 403")
       response310.code should equal(403)
-      val createProductEntitlementsRequiredText = UserHasMissingRoles + canAddProductAttribute
+      val createProductEntitlementsRequiredText = UserHasMissingRoles + canCreateProductAttribute
       And("error should be " + createProductEntitlementsRequiredText)
       response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
     }

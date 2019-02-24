@@ -1727,7 +1727,7 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canAddCustomerAddress)))
+      Some(List(canCreateCustomerAddress)))
 
     lazy val createCustomerAddress : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" ::  Nil JsonPost  json -> _ => {
@@ -1735,7 +1735,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanAddCustomerAddress)(bankId.value, u.userId, canAddCustomerAddress)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateCustomerAddress)(bankId.value, u.userId, canCreateCustomerAddress)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerAddressJsonV310 "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerAddressJsonV310]
@@ -2025,14 +2025,16 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductAttribute))
+    )
 
     lazy val createProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attribute" :: Nil JsonPost json -> _=> {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanAddProductAttribute)(bankId, u.userId, canAddProductAttribute)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateProductAttribute)(bankId, u.userId, canCreateProductAttribute)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
