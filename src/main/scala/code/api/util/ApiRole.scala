@@ -54,6 +54,15 @@ object ApiRole {
 
   case class CanGetSocialMediaHandles(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetSocialMediaHandles = CanGetSocialMediaHandles()
+  
+  case class CanAddCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAddCustomerAddress = CanAddCustomerAddress()
+  
+  case class CanDeleteCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerAddress = CanDeleteCustomerAddress()
+  
+  case class CanGetCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerAddress = CanGetCustomerAddress()
 
   case class CanCreateSandbox(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateSandbox = CanCreateSandbox()

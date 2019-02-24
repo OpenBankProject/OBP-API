@@ -1560,7 +1560,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canCreateTaxResidence)))
 
     lazy val createTaxResidence : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax-residence" ::  Nil JsonPost  json -> _ => {
@@ -1725,7 +1726,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canAddCustomerAddress)))
 
     lazy val createCustomerAddress : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" ::  Nil JsonPost  json -> _ => {
@@ -1733,7 +1735,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateCustomer)(bankId.value, u.userId, canCreateCustomer)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanAddCustomerAddress)(bankId.value, u.userId, canAddCustomerAddress)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerAddressJsonV310 "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerAddressJsonV310]
@@ -1837,7 +1839,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAddress)))
 
     lazy val getCustomerAddresses : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "address" ::  Nil JsonGet _ => {
@@ -1845,7 +1848,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomer)(bankId.value, u.userId, canGetCustomer)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanGetCustomerAddress)(bankId.value, u.userId, canGetCustomerAddress)
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (customers, callContext) <- NewStyle.function.getCustomerAddress(customerId, callContext)
           } yield {
@@ -1876,7 +1879,8 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerAddress)))
 
     lazy val deleteCustomerAddress : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "addresses" :: customerAddressId :: Nil JsonDelete _ => {
@@ -1884,7 +1888,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + CanCreateCustomer)(bankId.value, u.userId, canCreateCustomer)
+            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles + canDeleteCustomerAddress)(bankId.value, u.userId, canDeleteCustomerAddress)
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (address, callContext) <- NewStyle.function.deleteCustomerAddress(customerAddressId, callContext)
           } yield {
