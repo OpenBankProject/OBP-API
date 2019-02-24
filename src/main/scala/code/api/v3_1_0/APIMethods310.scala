@@ -2006,6 +2006,11 @@ trait APIMethods310 {
          |
          |See [FPML](http://www.fpml.org/) for more examples.
          |
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -2407,6 +2412,17 @@ trait APIMethods310 {
       }
     }
 
+
+    val productHiearchyAndCollectionNote =
+      """
+        |
+        |Product hiearchy vs Product Collections:
+        |
+        |* You can define a hierarchy of products - so that a child Product inherits attributes of its parent Product -  using the parent_product_code in Product.
+        |
+        |* You can define a collection (also known as baskets or buckets) of products using Product Collections.
+        |
+      """.stripMargin
     
     
     val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
@@ -2430,14 +2446,12 @@ trait APIMethods310 {
          |Commodity
          |Derivative
          |
-         |You can create a product hierarchy using parent_product_code
-         |
-         |Note: You can create product buckets using the Product Collections endpoint.
+          |$productHiearchyAndCollectionNote
          |
          |
          |${authenticationRequiredMessage(true) }
          |
-         |$createProductEntitlementsRequiredText
+         |
          |""",
       postPutProductJsonV310,
       productJsonV310,
@@ -2504,7 +2518,7 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/products/PRODUCT_CODE",
       "Get Bank Product",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
          |
          |* Name
          |* Code
@@ -2516,6 +2530,7 @@ trait APIMethods310 {
          |* Description
          |* Terms and Conditions
          |* License the data under this endpoint is released under
+         |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       productJsonV310,
@@ -2552,12 +2567,12 @@ trait APIMethods310 {
     resourceDocs += ResourceDoc(
       getProductTree,
       implementedInApiVersion,
-      "getProductTree",
+      nameOf(getProductTree),
       "GET",
       "/banks/BANK_ID/product-tree/PRODUCT_CODE",
-      "Get Bank Product",
+      "Get Product Tree",
       s"""Returns information about a particular financial product specified by BANK_ID and PRODUCT_CODE
-         |and also the parent product(s) recursively as specified by parent_product_code.
+         |and it's parent product(s) recursively as specified by parent_product_code.
          |
          |Each product includes the following information.
          |
@@ -2620,7 +2635,7 @@ trait APIMethods310 {
       "getProducts",
       "GET",
       "/banks/BANK_ID/products",
-      "Get Bank Products",
+      "Get Products",
       s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
          |
          |* Name
@@ -2766,15 +2781,20 @@ trait APIMethods310 {
          |
          |Use Product Collections to create Product "Baskets", "Portfolios", "Indices", "Collections", "Underlyings-lists", "Buckets" etc. etc.
          |
-         |A Product can exist in many Collections
+         |There is a many to many relationship between Products and Product Collections:
          |
-         |A Collection can contain many Products.
+         |* A Product can exist in many Collections
          |
-         |Note: You can define a Product hierarchy (so that child Products inherit attributes of their parent Product) using the parent_product_code in Product.
+         |* A Collection can contain many Products.
          |
+         |A collection has collection code, one parent Product and one or more child Products.
+         |
+         |
+         |$productHiearchyAndCollectionNote
+
          |${authenticationRequiredMessage(true) }
          |
-         |$createProductEntitlementsRequiredText
+         |
          |""",
       putProductCollectionsV310,
       productJsonV310,
@@ -2785,7 +2805,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProduct),
+      List(apiTagProductCollection, apiTagProduct),
       Some(List(canMaintainProductCollection))
     )
 
@@ -2846,7 +2866,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProduct)
+      List(apiTagProductCollection, apiTagProduct)
     )
 
     lazy val getProductCollection : OBPEndpoint = {
