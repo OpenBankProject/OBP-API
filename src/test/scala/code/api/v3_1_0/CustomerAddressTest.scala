@@ -72,7 +72,7 @@ class CustomerAddressTest extends V310ServerSetup {
   lazy val bankId = randomBankId
 
   feature("Add/Get/Delete Customer Address v3.1.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
@@ -81,14 +81,14 @@ class CustomerAddressTest extends V310ServerSetup {
       And("error should be " + UserNotLoggedIn)
       response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST <@(user1)
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
       Then("We should get a 403")
       response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanCreateCustomer)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateCustomer)
+      And("error should be " + UserHasMissingRoles + CanCreateCustomerAddress)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateCustomerAddress)
     }
 
     scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
@@ -106,8 +106,8 @@ class CustomerAddressTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanGetCustomer)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomer)
+      And("error should be " + UserHasMissingRoles + CanGetCustomerAddress)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomerAddress)
     }
 
     scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
@@ -125,8 +125,8 @@ class CustomerAddressTest extends V310ServerSetup {
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanCreateCustomer)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateCustomer)
+      And("error should be " + UserHasMissingRoles + CanDeleteCustomerAddress)
+      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteCustomerAddress)
     }
 
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
