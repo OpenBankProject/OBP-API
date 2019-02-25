@@ -264,7 +264,7 @@ object ApiRole {
   lazy val canDeleteProductAttribute = CanDeleteProductAttribute()
   
   case class CanCreateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canCreateProductAttribute = CanCreateProductAttribute() // TODO rename to create...
+  lazy val canCreateProductAttribute = CanCreateProductAttribute()
   
   case class CanMaintainProductCollection(requiresBankId: Boolean = true) extends ApiRole
   lazy val canMaintainProductCollection = CanMaintainProductCollection()
@@ -363,5 +363,57 @@ object ApiRole {
   }
 
   def availableRoles: List[String] = roles.map(_.toString)
+
+}
+
+object Util {
+  
+  def checkWrongDefinedNames: List[List[Unit]] = {
+    import scala.meta._
+    val source: Source = new java.io.File("src/main/scala/code/api/util/ApiRole.scala").parse[Source].get
+
+    val allowedPrefixes = 
+      List(
+        "CanCreate",
+        "CanGet", 
+        "CanUpdate", 
+        "CanDelete", 
+        "CanMaintain", 
+        "CanSearch", 
+        "CanEnable", 
+        "CanDisable"
+      )
+    val allowedExistingNames = 
+      List(
+        "CanQueryOtherUser",
+        "CanAddSocialMediaHandle", 
+        "CanReadMetrics", 
+        "CanUseFirehoseAtAnyBank", 
+        "CanReadAggregateMetrics", 
+        "CanUnlockUser", 
+        "CanReadUserLockedStatus", 
+        "CanReadCallLimits", 
+        "CanCheckFundsAvailable", 
+        "CanRefreshUser", 
+        "CanReadFx", 
+        "CanSetCallLimits"
+      )
+    
+    val allowed = allowedPrefixes ::: allowedExistingNames
+
+    source.collect {
+      case obj: Defn.Object if obj.name.value == "ApiRole" =>
+        obj.collect {
+          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == true => 
+            // OK
+          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == false => 
+            println("INCORRECT - " + c)
+        }
+    }
+  }
+
+  def main (args: Array[String]): Unit = {
+    checkWrongDefinedNames
+  }
 
 }
