@@ -405,10 +405,14 @@ object NewStyle {
 
 
     def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
-      Helper.booleanToFuture(failMsg) {
+      Helper.booleanToFuture(failMsg + role.toString()) {
         code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
       }
     }
+    def hasEntitlement(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
+      hasEntitlement(UserHasMissingRoles + role.toString())(bankId, userId, role)
+    }
+    
     def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
       Helper.booleanToFuture(failMsg) {
         code.api.util.APIUtil.hasAtLeastOneEntitlement(bankId, userId, role)
