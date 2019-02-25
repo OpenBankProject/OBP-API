@@ -10,7 +10,7 @@ sealed trait ApiRole{
   *
   * As a convention, Roles should start with one of:
   *
-  *   Can
+  * Can
   *   Create (in preference to Add)
   *   Get (in preference to Read)
   *   Update
@@ -372,14 +372,41 @@ object Util {
     import scala.meta._
     val source: Source = new java.io.File("src/main/scala/code/api/util/ApiRole.scala").parse[Source].get
 
-    val allowedPrefixes = List("Can", "Create","Get", "Update", "Delete", "Maintain", "Search", "Enable", "Disable")
+    val allowedPrefixes = 
+      List(
+        "CanCreate",
+        "CanGet", 
+        "CanUpdate", 
+        "CanDelete", 
+        "CanMaintain", 
+        "CanSearch", 
+        "CanEnable", 
+        "CanDisable"
+      )
+    val allowedExistingNames = 
+      List(
+        "CanQueryOtherUser",
+        "CanAddSocialMediaHandle", 
+        "CanReadMetrics", 
+        "CanUseFirehoseAtAnyBank", 
+        "CanReadAggregateMetrics", 
+        "CanUnlockUser", 
+        "CanReadUserLockedStatus", 
+        "CanReadCallLimits", 
+        "CanCheckFundsAvailable", 
+        "CanRefreshUser", 
+        "CanReadFx", 
+        "CanSetCallLimits"
+      )
+    
+    val allowed = allowedPrefixes ::: allowedExistingNames
 
     source.collect {
       case obj: Defn.Object if obj.name.value == "ApiRole" =>
         obj.collect {
-          case c: Defn.Class if allowedPrefixes.exists(i => c.name.syntax.startsWith(i)) == true => 
+          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == true => 
             // OK
-          case c: Defn.Class if allowedPrefixes.exists(i => c.name.syntax.startsWith(i)) == false => 
+          case c: Defn.Class if allowed.exists(i => c.name.syntax.startsWith(i)) == false => 
             println("INCORRECT - " + c)
         }
     }
