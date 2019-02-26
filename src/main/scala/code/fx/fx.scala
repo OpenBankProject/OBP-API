@@ -1,5 +1,7 @@
 package code.fx
 
+import code.bankconnectors.Connector
+import code.model.BankId
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
 import net.liftweb.http.LiftRules
@@ -92,9 +94,36 @@ object fx extends MdcLoggable {
     result.setScale(2, BigDecimal.RoundingMode.HALF_UP)
   }
 
+  /** 
+    * Exchange rate workflow:
+    * 
+    *                            1st try                                    2nd try                                    3rd try
+                            +---------------+                +----------------------------------+              +----------------------+
+       Get Exchange Rate    |               |  failed        |                                  |  failed      |                      |
+      +-------------------->+    Connector  +--------------->+  resources/fallbackexchangerates +------------->+    hard coded Map    |
+                            |               |                |         json files               |              |                      |
+                            +-------+-------+                +------------------+---------------+              +----------+-----------+
+                                    |                                           |                                         |
+                                    | success                                   | success                                 |     success
+        CBS response                |                                           |                                         |
+      <-----------------------------+                                           |                                         |
+        OBP response                                                            |                                         |
+      <-------------------------------------------------------------------------+                                         |
+        OBP rsponse                                                                                                       |
+      <-------------------------------------------------------------------------------------------------------------------+
 
-  def exchangeRate(fromCurrency: String, toCurrency: String): Option[Double] = {
-    getFallbackExchangeRate(fromCurrency, toCurrency).orElse(getFallbackExchangeRate2nd(fromCurrency, toCurrency))
+    */
+  def exchangeRate(fromCurrency: String, toCurrency: String, bankId: Option[String] = None): Option[Double] = {
+    bankId match {
+      case None =>
+        getFallbackExchangeRate(fromCurrency, toCurrency).orElse(getFallbackExchangeRate2nd(fromCurrency, toCurrency))
+      case Some(id) =>
+        Connector.connector.vend.getCurrentFxRate(BankId(id), fromCurrency, toCurrency).map(_.conversionValue).toOption match {
+          case None =>
+            getFallbackExchangeRate(fromCurrency, toCurrency).orElse(getFallbackExchangeRate2nd(fromCurrency, toCurrency))
+          case exchangeRate => exchangeRate
+        }
+    }
   }
   
 

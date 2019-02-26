@@ -227,7 +227,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       def checkBankAccountBalance(finishedTranscation: Boolean): Unit = {
         val toAccount = getToAccount
         val fromAccount = getFromAccount
-        val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency)
+        val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))
         val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = fromAccount.balance
         val toAccountBalance = toAccount.balance
