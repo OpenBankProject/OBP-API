@@ -131,15 +131,19 @@ class CustomerAddressTest extends V310ServerSetup {
 
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomerAddress.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomerAddress.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteCustomerAddress.toString)
       When("We try to create a customer address with non existing customer v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST <@(user1)
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
       Then("We should get a 400")
+      org.scalameta.logger.elem(response310)
       response310.code should equal(400)
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
-
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      
       When("We try to create the customer v3.1.0")
       val requestCustomer310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
       val responseCustomer310 = makePostRequest(requestCustomer310, write(postCustomerJson))
@@ -163,7 +167,6 @@ class CustomerAddressTest extends V310ServerSetup {
       address.city shouldBe "Novi Sad"
 
       When("We try to make the GET request v3.1.0")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
       val successGetReq = (v3_1_0_Request / "banks" / bankId / "customers" / customerJson.customer_id / "address").GET <@(user1)
       val successGetRes = makeGetRequest(successGetReq)
       Then("We should get a 200")
