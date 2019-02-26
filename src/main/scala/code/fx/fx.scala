@@ -99,12 +99,12 @@ object fx extends MdcLoggable {
     * 
     *                            1st try                                    2nd try                                    3rd try
                             +---------------+                +----------------------------------+              +----------------------+
-       Get Exchange Rate    |               |  failed        |                                  |  failed      |                      |
+       Get Exchange Rate    |               |  no match      |                                  |  no match    |                      |
       +-------------------->+    Connector  +--------------->+  resources/fallbackexchangerates +------------->+    hard coded Map    |
                             |               |                |         json files               |              |                      |
                             +-------+-------+                +------------------+---------------+              +----------+-----------+
                                     |                                           |                                         |
-                                    | success                                   | success                                 |     success
+                                    | match                                     | match                                   | match
         CBS response                |                                           |                                         |
       <-----------------------------+                                           |                                         |
         OBP response                                                            |                                         |
