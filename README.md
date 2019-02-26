@@ -480,9 +480,9 @@ use_consumer_limits_in_memory_mode=true
 
 We apply Rate Limiting for two type of access:
    *  Authorized
-   *  Anonymouse
+   *  Anonymous
 
-To set up Rate Limiting in case of the anonymose access edit your props file in next way:
+To set up Rate Limiting in case of the anonymous access edit your props file in next way:
 ```
 user_consumer_limit_anonymous_access=100, In case isn't defined default value is 60
 ```
