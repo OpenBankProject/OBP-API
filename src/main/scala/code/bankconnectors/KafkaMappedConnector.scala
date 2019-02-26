@@ -213,7 +213,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       case Some(x)  => (Full(AmountOfMoney(x.currency, x.limit)), callContext)
       case _ => {
         val limit = BigDecimal("0")
-        val rate = fx.exchangeRate ("EUR", currency)
+        val rate = fx.exchangeRate ("EUR", currency, Some(bankId))
         val convertedLimit = fx.convert(limit, rate)
         (Full(AmountOfMoney(currency,convertedLimit.toString())), callContext)
       }

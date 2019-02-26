@@ -96,7 +96,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     logger.debug(s"thresholdCurrency is $thresholdCurrency")
     isValidCurrencyISOCode(thresholdCurrency)match {
       case true =>
-        fx.exchangeRate(thresholdCurrency, currency) match {
+        fx.exchangeRate(thresholdCurrency, currency, Some(bankId)) match {
           case rate@Some(_) =>
             val convertedThreshold = fx.convert(threshold, rate)
             logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")

@@ -225,7 +225,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       case c:ChallengeThresholdReader => (Full(AmountOfMoney(c.currency, c.amount)), callContext)
       case _ =>
         val limit = BigDecimal("0")
-        val rate = fx.exchangeRate ("EUR", currency)
+        val rate = fx.exchangeRate ("EUR", currency, Some(bankId))
         val convertedLimit = fx.convert(limit, rate)
         (Full(AmountOfMoney(currency, convertedLimit.toString())), callContext)
     }
