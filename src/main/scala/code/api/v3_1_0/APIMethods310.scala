@@ -1365,7 +1365,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle))
 
     lazy val getCustomerByCustomerNumber : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> _ => {
@@ -1560,7 +1560,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer, apiTagKyc, apiTagNewStyle),
       Some(List(canCreateTaxResidence)))
 
     lazy val createTaxResidence : OBPEndpoint = {
@@ -1604,7 +1604,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagKyc, apiTagNewStyle))
 
     lazy val getTaxResidence : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax-residence" ::  Nil JsonGet _ => {
@@ -1643,7 +1643,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagKyc, apiTagNewStyle))
 
     lazy val deleteTaxResidence : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "tax_residencies" :: taxResidenceId :: Nil JsonDelete _ => {
@@ -1839,7 +1839,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer, apiTagKyc, apiTagNewStyle),
       Some(List(canGetCustomerAddress)))
 
     lazy val getCustomerAddresses : OBPEndpoint = {
@@ -1879,7 +1879,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer, apiTagKyc, apiTagNewStyle),
       Some(List(canDeleteCustomerAddress)))
 
     lazy val deleteCustomerAddress : OBPEndpoint = {

@@ -956,6 +956,83 @@ object Glossary {
 			|
 		  """)
 
+
+	glossaryItems += GlossaryItem(
+		title = "KYC (Know Your Customer)",
+		description =
+			s"""
+|KYC is the process by which the Bank can be assured that the customer is who they say they are.
+|
+|OBP provides a [number of endpoints](/index?ignoredefcat=true&tags=KYC) that KYC Apps can interact with in order to get and store relevant data and update the KYC status of a Customer.
+|
+|For instance:
+|
+|
+ |1) Use KYC documents to add information about passports, ID cards, driving licenses including:
+ |
+|  * customer_number
+|  * type (of document)
+|  * number (of document)
+|  * issue_date
+|  * issue_place
+|  * expiry_date
+|
+|
+ |For more info see [here](/index?ignoredefcat=true&tags=KYC#OBPv2_0_0-addKycDocument).
+|
+ |
+ |2) Use KYC check to record a check of the customer via phone call, in person meeting or PEP database search.
+|
+|KYC Checks store:
+|
+| * customer_number
+| * date
+| * how (FACE_TO_FACE_MEETING, PHONE_INTERVIEW, PEP_SEARCH)
+| * staff_user_id (who recorded the record)
+| * staff_name (who recorded the record)
+| * satisfied (True/False)
+| * comments
+|
+ |For more info see [here](/index?ignoredefcat=true&tags=KYC#OBPv2_0_0-addKycCheck).
+|
+ |3) Use KYC Media to add media (image or video etc.) related to:
+|
+ |A) the documents listed in KYC documents
+|
+ |B) media that identifies the user e.g. a video ident.
+|
+ |C) media that relates to a KYC check
+|
+ |
+ |KYC Media stores:
+ |
+| * customer_number
+| * type
+| * url
+| * date
+| * relates_to_kyc_document_id
+| * relates_to_kyc_check_id
+|
+|
+ |For more information see [here](/index?ignoredefcat=true&tags=KYC#OBPv2_0_0-addKycMedia).
+|
+ |
+ |4) Use KYC status to update the KYC status of a customer following a meeting or using one of the above calls.
+|
+|KYC status stores:
+|
+|  * customer_number
+|  * ok (True/False)
+|  * date
+||
+ |
+ |For more information see [here](/index?ignoredefcat=true&tags=KYC#OBPv2_0_0-addKycStatus).
+ |
+ |
+ |5) Use other Customer related endpoints shown [here](/index?ignoredefcat=true&tags=KYC) to check for known Addresses, contact details, Tax Residences etc.
+|
+		  """)
+
 	glossaryItems += GlossaryItem(
 		title = "OAuth 1.0a",
 		description =
