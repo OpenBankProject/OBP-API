@@ -4,7 +4,7 @@ import code.accountholder.AccountHolders
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, branchJsonV300, _}
-import code.api.util.APIUtil.{canGetAtm, _}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._

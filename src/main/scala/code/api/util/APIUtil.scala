@@ -1556,30 +1556,6 @@ Returns a string showed to the developer
     case JField("ccy", x) => JField("currency", x)
   }
 
-
-  def canGet(condition: Boolean, user: Box[User]): Boolean = {
-    condition match {
-      case true =>
-        true
-      case false =>
-        user match {
-          case Full(_) =>
-            true
-          case _ =>
-            false
-        }
-    }
-  }
-
-  def canGetBranch(branchesIsPublic: Boolean, user: Box[User]): Boolean = {
-    canGet(branchesIsPublic, user)
-  }
-
-  def canGetAtm(atmsIsPublic: Boolean, user: Box[User]): Boolean = {
-    canGet(atmsIsPublic, user)
-  }
-
-
   def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def getDisabledEndpoints() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
