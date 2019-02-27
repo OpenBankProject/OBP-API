@@ -48,6 +48,10 @@ header #logo-right {
 	text-align: right;
 }
 
+#table-header {
+    width: 100%;
+}
+
 #logo-left-xs {
     max-width: 50%;
     min-width: 50%;
