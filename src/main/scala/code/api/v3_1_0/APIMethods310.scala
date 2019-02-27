@@ -2555,8 +2555,8 @@ trait APIMethods310 {
           for {
             (_, callContext) <- 
               getProductsIsPublic match {
-                case true => authorizedAccess(UserNotLoggedIn, cc)
-                case false => anonymousAccess(cc)
+                case false => authorizedAccess(UserNotLoggedIn, cc)
+                case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
@@ -2620,8 +2620,8 @@ trait APIMethods310 {
           for {
             (_, callContext) <-
               getProductsIsPublic match {
-                case true => authorizedAccess(UserNotLoggedIn, cc)
-                case false => anonymousAccess(cc)
+                case false => authorizedAccess(UserNotLoggedIn, cc)
+                case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
@@ -2673,8 +2673,8 @@ trait APIMethods310 {
           for {
             (_, callContext) <-
               getProductsIsPublic match {
-                case true => authorizedAccess(UserNotLoggedIn, cc)
-                case false => anonymousAccess(cc)
+                case false => authorizedAccess(UserNotLoggedIn, cc)
+                case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             products <- Future(Connector.connector.vend.getProducts(bankId)) map {

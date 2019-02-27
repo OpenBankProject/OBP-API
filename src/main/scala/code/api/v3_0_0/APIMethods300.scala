@@ -1169,10 +1169,11 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
         cc => {
           for {
-            (user, callContext) <- authorizedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
-              canGetBranch(getBranchesIsPublic, user)
-            }
+            (_, callContext) <-
+              getBranchesIsPublic match {
+                case false => authorizedAccess(UserNotLoggedIn, cc)
+                case true => anonymousAccess(cc)
+              }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (branch, callContext) <- NewStyle.function.getBranch(bankId, branchId, callContext)
           } yield {
@@ -1224,10 +1225,11 @@ trait APIMethods300 {
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
-            (user, callContext) <- authorizedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
-              canGetBranch(getBranchesIsPublic, user)
-            }
+            (_, callContext) <-
+              getBranchesIsPublic match {
+                case false => authorizedAccess(UserNotLoggedIn, cc)
+                case true => anonymousAccess(cc)
+              }
             _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
               limit match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
@@ -1299,10 +1301,11 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
         cc =>
           for {
-            (user, callContext) <- authorizedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
-              canGetAtm(getAtmsIsPublic, user)
-            }
+            (_, callContext) <-
+              getAtmsIsPublic match {
+                case false => authorizedAccess(UserNotLoggedIn, cc)
+                case true => anonymousAccess(cc)
+              }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (atm, callContext) <- NewStyle.function.getAtm(bankId,atmId, callContext)
           } yield {
@@ -1347,10 +1350,11 @@ trait APIMethods300 {
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
-            (user, callContext) <- authorizedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserNotLoggedIn) {
-              canGetBranch(getBranchesIsPublic, user)
-            }
+            (_, callContext) <-
+              getAtmsIsPublic match {
+                case false => authorizedAccess(UserNotLoggedIn, cc)
+                case true => anonymousAccess(cc)
+              }
             _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
               limit match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)

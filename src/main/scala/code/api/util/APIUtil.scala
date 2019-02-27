@@ -2147,13 +2147,6 @@ Returns a string showed to the developer
       x => underCallLimits(x)
     }
   }
-  
-  /**
-    * This function is used to factor out common code at endpoints regarding Authorized access
-    */
-  def authorizedAccess(cc: CallContext): OBPReturnType[Box[User]] = {
-    getUserAndSessionContextFuture(cc)
-  }
 
   def filterMessage(obj: Failure): String = {
     logger.debug("Failure: " + obj)
