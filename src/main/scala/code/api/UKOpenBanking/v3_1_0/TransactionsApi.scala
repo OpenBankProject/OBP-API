@@ -280,7 +280,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        case "accounts" :: accountid:: "statements" :: statementid:: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -753,7 +753,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        case "accounts" :: accountid:: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -1226,7 +1226,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        case "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

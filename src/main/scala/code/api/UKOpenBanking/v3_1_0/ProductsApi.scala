@@ -55,7 +55,7 @@ object APIMethods_ProductsApi extends RestHelper {
        case "accounts" :: accountid:: "product" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -82,7 +82,7 @@ object APIMethods_ProductsApi extends RestHelper {
        case "products" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }

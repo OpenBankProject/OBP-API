@@ -142,7 +142,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        case "domestic-standing-order-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -325,7 +325,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        case "domestic-standing-orders" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -508,7 +508,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        case "domestic-standing-order-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -691,7 +691,7 @@ object APIMethods_DomesticStandingOrdersApi extends RestHelper {
        case "domestic-standing-orders" :: domesticstandingorderid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

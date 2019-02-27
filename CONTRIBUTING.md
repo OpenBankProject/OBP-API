@@ -57,7 +57,7 @@ When naming variables use strict camel case e.g. use myUrl not myURL. This is so
         cc => {
           for {
             // Extract the user from the headers and get an updated callContext
-            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
             (customers,callContext) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
@@ -79,7 +79,7 @@ When naming variables use strict camel case e.g. use myUrl not myURL. This is so
         cc =>
           for {
             // 1. makes sure the user which attempts to use the endpoint is authorized
-            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             // 2. makes sure the user which attempts to use the endpoint is allowed to consume it 
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
             // 3. checks the endpoint constraints
@@ -90,11 +90,11 @@ When naming variables use strict camel case e.g. use myUrl not myURL. This is so
 Please note that that checks at an endpoint should be applied only in case an user is authorized and has privilege to consume the endpoint. Otherwise we can reveal sensitive data to the user. For instace if we reorder the checks in next way:
 ```scala
             // 1. makes sure the user which attempts to use the endpoint is authorized
-            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             // 3. checks the endpoint constraints
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostPutProductJsonV310 "      
-            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             // 2. makes sure the user which attempts to use the endpoint is allowed to consume it 
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)   
 ```

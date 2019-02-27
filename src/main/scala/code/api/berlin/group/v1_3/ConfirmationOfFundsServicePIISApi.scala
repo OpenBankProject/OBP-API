@@ -70,7 +70,7 @@ Creates a confirmation of funds request at the ASPSP. Checks whether a specific 
        case "funds-confirmations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "fundsAvailable" : true
