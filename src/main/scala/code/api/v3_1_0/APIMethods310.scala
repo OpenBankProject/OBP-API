@@ -2803,7 +2803,7 @@ trait APIMethods310 {
          |
          |""",
       putProductCollectionsV310,
-      productJsonV310,
+      productCollectionsJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -2865,7 +2865,7 @@ trait APIMethods310 {
          |
           """,
       emptyObjectJson,
-      productsJsonV310,
+      productCollectionJsonTreeV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
