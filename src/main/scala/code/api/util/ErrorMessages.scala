@@ -139,6 +139,10 @@ object ErrorMessages {
 
   val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
   val MissingQueryParams = "OBP-20055: These query parameters are missing: "
+  
+  
+
+  val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
 
 
