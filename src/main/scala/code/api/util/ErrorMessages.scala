@@ -120,7 +120,7 @@ object ErrorMessages {
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
 
-  val UserNotSuperAdmin = "OBP-20050: Logged user is not super admin!"
+  val UserNotSuperAdmin = "OBP-20050: Current User is not a Super Admin!"
 
   val ElasticSearchIndexNotFound = "OBP-20051: Elasticsearch index or indices not found."
   val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."

@@ -22,6 +22,8 @@ If you have a particular requirement or would like to comment or help us specify
 * Enhanced support for Berlin Group, STET, UK Open Banking and Polish APIs e.g.
  [Berlin Group](https://apiexplorersandbox.openbankproject.com/?version=BGv3.1) and [STET](https://apiexplorersandbox.openbankproject.com/?version=STETv1.4)
 
+* General Documents resource
+
 ## Completed developments
 
 See [completed_developments.md](completed_developments.md)
