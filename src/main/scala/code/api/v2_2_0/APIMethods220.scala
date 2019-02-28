@@ -253,30 +253,7 @@ trait APIMethods220 {
             _ <- NewStyle.function.tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
               assert(isValidCurrencyISOCode(toCurrencyCode))
             }
-            fxRate <- Future(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode)) map {
-              fallbackFxRate => 
-                fallbackFxRate match {
-                  case Empty =>
-                    val rate = fx.exchangeRate(fromCurrencyCode, toCurrencyCode)
-                    val inverseRate = fx.exchangeRate(toCurrencyCode, fromCurrencyCode)
-                    (rate, inverseRate) match {
-                      case (Some(r), Some(ir)) =>
-                        Full(
-                          MappedFXRate.create
-                            .mBankId(bankId.value)
-                            .mFromCurrencyCode(fromCurrencyCode)
-                            .mToCurrencyCode(toCurrencyCode)
-                            .mConversionValue(r)
-                            .mInverseConversionValue(ir)
-                            .mEffectiveDate(new Date())
-                        )
-                      case _ => fallbackFxRate
-                    }
-                  case _ => fallbackFxRate
-                }
-            } map {
-              unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported,400)
-            }
+            fxRate <- NewStyle.function.getExchangeRate(bankId, fromCurrencyCode, toCurrencyCode, callContext)
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
             (viewJSON, HttpCode.`200`(callContext))

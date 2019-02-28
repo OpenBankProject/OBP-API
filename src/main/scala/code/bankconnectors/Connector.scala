@@ -1,10 +1,12 @@
 package code.bankconnectors
 
 import java.util.Date
+import java.util.UUID.randomUUID
 
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.accountholder.{AccountHolders, MapperAccountHolders}
+import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
@@ -24,6 +26,7 @@ import code.context.UserAuthContext
 import code.customer._
 import code.customeraddress.CustomerAddress
 import code.fx.FXRate
+import code.fx.fx.TTL
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
@@ -41,6 +44,7 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
@@ -53,6 +57,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.math.BigInt
 import scala.util.Random
+import scala.concurrent.duration._
 
 /*
 So we can switch between different sources of resources e.g.
@@ -1322,6 +1327,20 @@ trait Connector extends MdcLoggable{
 
 
   def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Failure(NotImplemented + currentMethodName)
+  def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
+        getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode)
+      }
+    }
+  }
 
   /**
     * get transaction request type charge specified by: bankId, accountId, viewId, transactionRequestType. 

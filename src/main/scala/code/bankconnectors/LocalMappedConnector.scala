@@ -658,7 +658,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                transactionRequestType: TransactionRequestType,
                                chargePolicy: String): Box[TransactionId] = {
     for{
-       rate <- tryo {fx.exchangeRate(fromAccount.currency, toAccount.currency)} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
+       rate <- tryo {fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))} ?~! s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported."
        fromTransAmt = -amount//from fromAccount balance should decrease
        toTransAmt = fx.convert(amount, rate)
        sentTransactionId <- saveTransaction(fromAccount, toAccount,transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
@@ -678,7 +678,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                       callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= {
     for{
        rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported.", 400, callContext) {
-          fx.exchangeRate(fromAccount.currency, toAccount.currency)}
+          fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))}
        fromTransAmt = -amount//from fromAccount balance should decrease
        toTransAmt = fx.convert(amount, rate)
        sentTransactionId <- Future{saveTransaction(fromAccount, toAccount,transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)}

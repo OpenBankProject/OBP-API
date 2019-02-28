@@ -1,11 +1,18 @@
 package code.fx
 
+import java.util.UUID.randomUUID
+
+import code.api.cache.Caching
+import code.api.util.APIUtil
 import code.bankconnectors.Connector
 import code.model.BankId
 import code.util.Helper.MdcLoggable
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Full
 import net.liftweb.http.LiftRules
 import net.liftweb.json.{DefaultFormats, _}
+
+import scala.concurrent.duration._
 
 /**
   * Simple map of exchange rates.
@@ -13,6 +20,8 @@ import net.liftweb.json.{DefaultFormats, _}
   * One pound -> X Euros etc.
   */
 object fx extends MdcLoggable {
+
+  val TTL = APIUtil.getPropsAsIntValue("code.fx.exchangeRate.cache.ttl.seconds", 0)
 
   // TODO For sandbox purposes we only need rough exchanges rates.
   // Make this easier
@@ -35,6 +44,21 @@ object fx extends MdcLoggable {
     )
   }
   
+  
+  def getFallbackExchangeRateCached(fromCurrency: String, toCurrency: String): Option[Double] = {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
+        getFallbackExchangeRate(fromCurrency, toCurrency)
+      }
+    }
+  }
   def getFallbackExchangeRate(fromCurrency: String, toCurrency: String): Option[Double] = {
     case class ExchangeRate(
       code: String,
@@ -116,11 +140,11 @@ object fx extends MdcLoggable {
   def exchangeRate(fromCurrency: String, toCurrency: String, bankId: Option[String] = None): Option[Double] = {
     bankId match {
       case None =>
-        getFallbackExchangeRate(fromCurrency, toCurrency).orElse(getFallbackExchangeRate2nd(fromCurrency, toCurrency))
+        getFallbackExchangeRateCached(fromCurrency, toCurrency).orElse(getFallbackExchangeRate2nd(fromCurrency, toCurrency))
       case Some(id) =>
-        Connector.connector.vend.getCurrentFxRate(BankId(id), fromCurrency, toCurrency).map(_.conversionValue).toOption match {
+        Connector.connector.vend.getCurrentFxRateCached(BankId(id), fromCurrency, toCurrency).map(_.conversionValue).toOption match {
           case None =>
-            getFallbackExchangeRate(fromCurrency, toCurrency).orElse(getFallbackExchangeRate2nd(fromCurrency, toCurrency))
+            getFallbackExchangeRateCached(fromCurrency, toCurrency).orElse(getFallbackExchangeRate2nd(fromCurrency, toCurrency))
           case exchangeRate => exchangeRate
         }
     }

@@ -73,7 +73,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
       //we expected transfer amount
       val zero: BigDecimal = BigDecimal(0)
-      var expectedAmtTo = fx.exchangeRate(fromCurrency, toCurrency) match {
+      var expectedAmtTo = fx.exchangeRate(fromCurrency, toCurrency, Some(fromAccount.bankId.value)) match {
         case Some(exchangeRate) => amt * exchangeRate
         case _ => amt * BigDecimal("0")
       }
