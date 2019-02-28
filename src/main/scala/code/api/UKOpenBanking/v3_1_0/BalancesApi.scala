@@ -119,7 +119,7 @@ object APIMethods_BalancesApi extends RestHelper {
        case "accounts" :: accountid:: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -272,7 +272,7 @@ object APIMethods_BalancesApi extends RestHelper {
        case "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

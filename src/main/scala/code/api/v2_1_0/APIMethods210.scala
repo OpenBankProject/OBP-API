@@ -402,7 +402,7 @@ trait APIMethods210 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.isEnabledTransactionRequests()
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
             _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
@@ -604,7 +604,7 @@ trait APIMethods210 {
         cc =>
             for {
               // Check we have a User
-              (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+              (Full(u), callContext) <- authorizedAccess(cc)
               _ <- NewStyle.function.isEnabledTransactionRequests()
               _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
               _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
@@ -763,7 +763,7 @@ trait APIMethods210 {
       case "roles" :: Nil JsonGet _ => {
         cc =>
           for {
-            _ <- authorizedAccess(UserNotLoggedIn, cc)
+            _ <- authorizedAccess(cc)
           }
           yield {
             // Format the data as V2.1.0 json
@@ -1047,7 +1047,7 @@ trait APIMethods210 {
       case "users" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+            (Full(u), callContext) <- authorizedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
               hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             }

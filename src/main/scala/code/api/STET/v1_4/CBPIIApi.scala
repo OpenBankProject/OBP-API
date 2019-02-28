@@ -78,7 +78,7 @@ The CBPII requests the ASPSP for a payment coverage check against either a bank 
        case "funds-confirmations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }

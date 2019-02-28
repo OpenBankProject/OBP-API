@@ -1556,30 +1556,6 @@ Returns a string showed to the developer
     case JField("ccy", x) => JField("currency", x)
   }
 
-
-  def canGet(condition: Boolean, user: Box[User]): Boolean = {
-    condition match {
-      case true =>
-        true
-      case false =>
-        user match {
-          case Full(_) =>
-            true
-          case _ =>
-            false
-        }
-    }
-  }
-
-  def canGetBranch(branchesIsPublic: Boolean, user: Box[User]): Boolean = {
-    canGet(branchesIsPublic, user)
-  }
-
-  def canGetAtm(atmsIsPublic: Boolean, user: Box[User]): Boolean = {
-    canGet(atmsIsPublic, user)
-  }
-
-
   def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def getDisabledEndpoints() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
@@ -2129,7 +2105,7 @@ Returns a string showed to the developer
     * This function is used to factor out common code at endpoints regarding Authorized access
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
-  def authorizedAccess(emptyUserErrorMsg: String, cc: CallContext): OBPReturnType[Box[User]] = {
+  def authorizedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
     getUserAndSessionContextFuture(cc) map {
       x => underCallLimits(x)
     } map {
@@ -2146,13 +2122,6 @@ Returns a string showed to the developer
     getUserAndSessionContextFuture(cc) map {
       x => underCallLimits(x)
     }
-  }
-  
-  /**
-    * This function is used to factor out common code at endpoints regarding Authorized access
-    */
-  def authorizedAccess(cc: CallContext): OBPReturnType[Box[User]] = {
-    getUserAndSessionContextFuture(cc)
   }
 
   def filterMessage(obj: Failure): String = {

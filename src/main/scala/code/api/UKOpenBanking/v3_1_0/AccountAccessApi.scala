@@ -80,7 +80,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {
@@ -130,7 +130,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: consentid :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (NotImplemented, callContext)
            }
@@ -180,7 +180,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
        case "account-access-consents" :: consentid :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(UserNotLoggedIn, cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
              (json.parse("""{
   "Meta" : {

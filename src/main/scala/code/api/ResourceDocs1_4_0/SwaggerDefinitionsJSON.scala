@@ -3117,6 +3117,16 @@ object SwaggerDefinitionsJSON {
   )
   val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
   
+  
+  val productCollectionItemJsonV310 = ProductCollectionItemJsonV310(member_product_code = "A")
+  val productCollectionJsonV310 = ProductCollectionJsonV310(
+    collection_code = "C",
+    product_code = "D", items = List(productCollectionItemJsonV310, productCollectionItemJsonV310.copy(member_product_code = "B"))
+  )
+  val productCollectionsJsonV310 = ProductCollectionsJsonV310(product_collection = List(productCollectionJsonV310))
+  
+  val productCollectionJsonTreeV310 = ProductCollectionJsonTreeV310(collection_code = "A", products = List(productJsonV310))
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
