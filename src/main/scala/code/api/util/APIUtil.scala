@@ -442,7 +442,7 @@ object APIUtil extends MdcLoggable {
       val input: InputStream = url.openStream()
       xml = XML.load(input)
     }
-    val stringArray = (xml \ "Currency" \ "CurrencyCode").map(_.text).mkString(" ").split("\\s+")
+    val stringArray = (xml \ "CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+")
     stringArray.contains(currencyCode)
   }
 
