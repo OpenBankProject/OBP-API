@@ -1,5 +1,7 @@
 package code.api.util
 
+import java.util.Date
+
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.APIFailureNewStyle
@@ -23,6 +25,7 @@ import code.context.UserAuthContext
 import code.customer.Customer
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
+import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
@@ -36,7 +39,7 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
@@ -772,6 +775,32 @@ object NewStyle {
       }
     }
       
+    
+    def getExchangeRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Future[FXRate] =
+      Future(Connector.connector.vend.getCurrentFxRateCached(bankId, fromCurrencyCode, toCurrencyCode)) map {
+        fallbackFxRate =>
+          fallbackFxRate match {
+            case Empty =>
+              val rate = fx.exchangeRate(fromCurrencyCode, toCurrencyCode)
+              val inverseRate = fx.exchangeRate(toCurrencyCode, fromCurrencyCode)
+              (rate, inverseRate) match {
+                case (Some(r), Some(ir)) =>
+                  Full(
+                    MappedFXRate.create
+                      .mBankId(bankId.value)
+                      .mFromCurrencyCode(fromCurrencyCode)
+                      .mToCurrencyCode(toCurrencyCode)
+                      .mConversionValue(r)
+                      .mInverseConversionValue(ir)
+                      .mEffectiveDate(new Date())
+                  )
+                case _ => fallbackFxRate
+              }
+            case _ => fallbackFxRate
+          }
+      } map {
+        unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported,400)
+      }
     
   }
 
