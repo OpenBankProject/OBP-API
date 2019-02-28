@@ -30,9 +30,8 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
 
     scenario("We Get Current FxRate", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
-      val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "RSD" ).GET <@ (user1)
+      val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "EUR" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
-      org.scalameta.logger.elem(responseGet)
       And("We should get a 200")
       responseGet.code should equal(200)
     }
