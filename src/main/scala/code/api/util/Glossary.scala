@@ -1024,7 +1024,7 @@ object Glossary {
 |  * customer_number
 |  * ok (True/False)
 |  * date
-||
+|
  |
  |For more information see [here](/index?ignoredefcat=true&tags=KYC#OBPv2_0_0-addKycStatus).
  |
