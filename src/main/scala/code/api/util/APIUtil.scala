@@ -2106,9 +2106,7 @@ Returns a string showed to the developer
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def authorizedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
-    getUserAndSessionContextFuture(cc) map {
-      x => underCallLimits(x)
-    } map {
+    anonymousAccess(cc) map {
       x => (fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))), x._2)
     }
   }
