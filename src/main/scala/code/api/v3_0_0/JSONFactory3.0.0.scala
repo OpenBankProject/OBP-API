@@ -1053,7 +1053,8 @@ object JSONFactory300{
       accessibleFeatures = Some(branchJsonV300.accessibleFeatures),
       branchType = Some(branchJsonV300.branch_type),
       moreInfo = Some(branchJsonV300.more_info),
-      phoneNumber = Some(branchJsonV300.phone_number)
+      phoneNumber = Some(branchJsonV300.phone_number),
+      isDeleted = Some(false)
     )
 
     Full(branch)

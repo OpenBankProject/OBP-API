@@ -19,7 +19,8 @@ import code.atms.Atms.AtmId
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, ObpApiLoopback}
 import code.branches.Branches
-import code.branches.Branches.BranchId
+import code.branches.Branches.{Branch, BranchId, DriveUp, DriveUpString, Lobby, LobbyString}
+import code.common.{Address, Location, Meta, Routing}
 import code.consumer.Consumers
 import code.context.UserAuthContext
 import code.customer.Customer
@@ -42,6 +43,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.True
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
@@ -155,7 +157,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
   )
 
   object HttpCode {
@@ -184,6 +187,39 @@ object NewStyle {
       Connector.connector.vend.getBranchFuture(bankId, branchId, callContext) map {
         val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
         x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    /**
+      * delete a branch, just set isDeleted field to true, marks it is deleted
+      * @param branch to be deleted branch
+      * @param callContext call context
+      * @return true is mean delete success, false is delete fail
+      */
+    def deleteBranch(branch : Branches.BranchT, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      val deletedBranch = Branch(
+        branch.branchId ,
+        branch.bankId ,
+        branch.name ,
+        branch.address ,
+        branch.location ,
+        branch.lobbyString.map(it => LobbyString(it.hours)),
+        branch.driveUpString.map(it => DriveUpString(it.hours)),
+        branch.meta: Meta,
+        branch.branchRouting.map(it => Routing(it.scheme, it.address)),
+        branch.lobby,
+        branch.driveUp,
+        branch.isAccessible,
+        branch.accessibleFeatures,
+        branch.branchType,
+        branch.moreInfo,
+        branch.phoneNumber,
+        Some(true)
+      )
+      Future {
+        Connector.connector.vend.createOrUpdateBranch(deletedBranch) map {
+          i =>  (i.isDeleted.get, callContext)
+        }
       } map { unboxFull(_) }
     }
 

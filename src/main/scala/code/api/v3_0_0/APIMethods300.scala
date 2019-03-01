@@ -1224,6 +1224,10 @@ trait APIMethods300 {
         cc => {
           val limit = S.param("limit")
           val offset = S.param("offset")
+          val city = S.param("city")
+          val withinMetersOf = S.param("withinMetersOf")
+          val nearLatitude = S.param("nearLatitude")
+          val nearLongtitude = S.param("nearLongtitude")
           for {
             (_, callContext) <-
               getBranchesIsPublic match {
