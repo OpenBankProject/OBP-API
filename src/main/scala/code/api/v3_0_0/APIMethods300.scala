@@ -728,7 +728,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canSearchWarehouse)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouse)
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
@@ -797,7 +797,7 @@ trait APIMethods300 {
           //if (field == "/") throw new RuntimeException("No aggregation field supplied") with NoStackTrace
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canSearchWarehouseStatistics)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouseStatistics)
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
@@ -841,7 +841,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
             (JSONFactory300.createUserJSONs (users), HttpCode.`200`(callContext))
@@ -875,7 +875,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -913,7 +913,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -1428,7 +1428,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             
             httpParams <- NewStyle.function.createHttpParams(cc.url)
               
@@ -2079,7 +2079,7 @@ trait APIMethods300 {
             for {
               (Full(u), callContext) <- authorizedAccess(cc)
 
-              _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canReadAggregateMetrics)
+              _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
               
               httpParams <- NewStyle.function.createHttpParams(cc.url)
               

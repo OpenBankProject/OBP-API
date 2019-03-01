@@ -810,7 +810,7 @@ trait APIMethods220 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(failMsg = UserHasMissingRoles)("", u.userId, ApiRole.canGetConfig)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfig)
           } yield {
             (JSONFactory220.getConfigInfoJSON(), callContext)
           }

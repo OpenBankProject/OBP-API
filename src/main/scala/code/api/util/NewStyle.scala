@@ -413,7 +413,7 @@ object NewStyle {
       }
     }
     def hasEntitlement(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
-      hasEntitlement(UserHasMissingRoles + role.toString())(bankId, userId, role)
+      hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
     }
     
     def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {
