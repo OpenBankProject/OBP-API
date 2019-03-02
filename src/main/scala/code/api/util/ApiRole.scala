@@ -356,6 +356,8 @@ object ApiRole {
         canDeleteProductAttribute ::
         canCreateProductAttribute ::
         canMaintainProductCollection ::
+        canDeleteBranchAtAnyBank ::
+        canDeleteBranch ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
