@@ -18,6 +18,7 @@ import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.openbankproject.commons.model.{Bank, _}
 import net.liftweb.common._
 import net.liftweb.util.SimpleInjector
 

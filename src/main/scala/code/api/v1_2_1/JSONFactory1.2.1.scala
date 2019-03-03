@@ -27,9 +27,11 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v1_2_1
 
 import java.util.Date
+
 import net.liftweb.common.{Box, Full}
 import code.model._
 import code.api.util.APIUtil._
+import com.openbankproject.commons.model._
 
 case class APIInfoJSON(
   version : String,

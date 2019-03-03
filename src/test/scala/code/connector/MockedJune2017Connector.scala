@@ -7,6 +7,7 @@ import code.bankconnectors.vMar2017.InboundStatusMessage
 import code.model._
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List

@@ -5,8 +5,8 @@ import code.api.util.{ErrorMessages, OBPQueryParam}
 import code.branches.Branches._
 import code.branches.{Branches, BranchesProvider}
 import code.common._
-import code.model.BankId
 import code.setup.DefaultUsers
+import com.openbankproject.commons.model.BankId
 import net.liftweb.json
 
 /*

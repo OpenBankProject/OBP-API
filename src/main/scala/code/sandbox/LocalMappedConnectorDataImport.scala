@@ -5,10 +5,10 @@ import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.metadata.counterparties.MappedCounterpartyMetadata
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
-import code.model.{AccountId, BankId, View}
 import code.products.MappedProduct
 import code.transaction.MappedTransaction
 import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, View}
 
 // , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits

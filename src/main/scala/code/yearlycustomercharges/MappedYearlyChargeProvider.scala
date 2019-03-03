@@ -1,9 +1,7 @@
 package code.yearlycustomercharges
 
-import code.model.{CustomerId, BankId}
-
-
-import code.util.{UUIDString}
+import code.util.UUIDString
+import com.openbankproject.commons.model.{BankId, CustomerId}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 

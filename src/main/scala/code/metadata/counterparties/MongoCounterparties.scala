@@ -6,6 +6,7 @@ import code.api.util.CallContext
 import code.model._
 import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
 import org.bson.types.ObjectId

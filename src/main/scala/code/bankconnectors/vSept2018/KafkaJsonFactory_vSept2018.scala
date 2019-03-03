@@ -1,6 +1,7 @@
 package code.bankconnectors.vSept2018
 
 import java.util.Date
+
 import code.api.util.APIUtil
 import code.api.util.APIUtil.InboundMessageBase
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
@@ -12,14 +13,14 @@ import code.bankconnectors.vMar2017._
 import code.branches.Branches._
 import code.common.{Address, Location, Meta, Routing}
 import code.context.UserAuthContext
-import code.customer.Customer
 import code.kafka.Topics._
-import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
 import code.model._
 import code.transactionrequests.TransactionRequests.TransactionRequest
+import com.openbankproject.commons.model.{CounterpartyTrait, Customer, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
+
 import scala.collection.immutable.List
 
 /**

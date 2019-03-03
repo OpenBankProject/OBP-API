@@ -1,12 +1,12 @@
 package code.metadata.narrative
 
-import code.model.{TransactionId, AccountId, BankId}
 import net.liftweb.common.Full
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
-import com.mongodb.{QueryBuilder, DBObject}
+import com.mongodb.{DBObject, QueryBuilder}
+import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 
 private object MongoTransactionNarrative extends Narrative {
 

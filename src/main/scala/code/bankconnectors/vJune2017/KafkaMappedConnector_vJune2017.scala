@@ -41,12 +41,12 @@ import code.branches.Branches.{BranchId, BranchT, Lobby}
 import code.common._
 import code.customer._
 import code.kafka.KafkaHelper
-import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess._
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper.MdcLoggable
 import com.google.common.cache.CacheBuilder
+import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, _}

@@ -27,8 +27,8 @@ TESOBE (http://www.tesobe.com/)
 package code.model.dataAccess
 
 import code.api.util.APIUtil
-import code.model.{User, UserPrimaryKey}
 import code.util.MappedUUID
+import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.mapper._
 
 /**

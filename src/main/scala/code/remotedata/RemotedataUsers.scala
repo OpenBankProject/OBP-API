@@ -4,9 +4,9 @@ import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.api.util.OBPQueryParam
 import code.entitlement.Entitlement
-import code.model.User
 import code.model.dataAccess.ResourceUser
 import code.users.{RemotedataUsersCaseClasses, Users}
+import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

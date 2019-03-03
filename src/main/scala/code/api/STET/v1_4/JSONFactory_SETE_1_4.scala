@@ -5,8 +5,9 @@ import java.util.Date
 import code.api.STET.v1_4.JSONFactory_STET_1_4.{TransactionLastLink, TransactionNextLink}
 import code.api.util.APIUtil
 import code.api.v2_1_0.IbanJson
-import code.model.{BankAccount, CoreAccount, ModeratedBankAccount, ModeratedTransaction}
+import code.model.{ModeratedBankAccount, ModeratedTransaction}
 import code.transactionrequests.TransactionRequests.TransactionRequest
+import com.openbankproject.commons.model.BankAccount
 
 import scala.collection.immutable.List
 

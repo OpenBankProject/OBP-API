@@ -44,7 +44,6 @@ import code.fx.FXRate
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.CounterpartyTrait
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -59,6 +58,7 @@ import code.transactionrequests.{MappedTransactionRequestTypeCharge, Transaction
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.obp.transport.Pager
 import com.tesobe.obp.transport.spi.{DefaultPager, DefaultSorter, TimestampFilter}

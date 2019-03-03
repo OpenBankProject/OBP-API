@@ -16,6 +16,7 @@ import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
 import code.bankconnectors.Connector
+import code.customer.Customer
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.kycchecks.KycChecks
@@ -24,13 +25,14 @@ import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
 import code.meetings.Meeting
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.model.{BankAccount, BankId, _}
+import code.model._
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper
@@ -44,7 +46,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.customer.{Customer, CustomerFaceImage}
 import net.liftweb.json.Extraction
 
 

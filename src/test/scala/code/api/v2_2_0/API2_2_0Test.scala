@@ -33,8 +33,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
 import code.api.v1_2_1.UpdateViewJsonV121
-import code.model.CreateViewJson
 import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
+import com.openbankproject.commons.model.CreateViewJson
 import net.liftweb.util.Helpers._
 import org.scalatest._
 

@@ -23,15 +23,13 @@ import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConn
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.context.UserAuthContext
-import code.customer._
+import code.model.{Transaction, toUserEx}
 import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.fx.fx.TTL
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.ResourceUser
-import code.model.{BankAccount, Transaction, TransactionRequestType, User, _}
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.ProductCollection
 import code.productcollectionitem.ProductCollectionItem
@@ -44,6 +42,7 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
+import com.openbankproject.commons.model.{Bank, CounterpartyTrait, TransactionRequestStatus, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By

@@ -3,7 +3,6 @@ package code.bankaccountcreation
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
-import code.model.{BankId, User}
 import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.mapper.By
@@ -15,6 +14,7 @@ import net.liftmodules.amqp.AMQPMessage
 import code.bankconnectors.Connector
 import code.setup.{DefaultConnectorTestSetup, ServerSetup}
 import code.users.Users
+import com.openbankproject.commons.model.{BankId, User}
 
 class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorTestSetup {
 

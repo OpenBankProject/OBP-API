@@ -37,6 +37,7 @@ import code.model._
 import code.users.Users
 import code.util.Helper
 import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, User}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._

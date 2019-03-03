@@ -29,11 +29,11 @@ package code.api
 import java.net.URI
 
 import code.api.util.{APIUtil, CallContext, ErrorMessages, JwtUtil}
-import code.model.User
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
+import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 

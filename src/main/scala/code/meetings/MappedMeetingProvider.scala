@@ -2,9 +2,9 @@ package code.meetings
 
 import java.util.Date
 
-import code.model.{BankId, User}
 import code.model.dataAccess.ResourceUser
-import code.util.{UUIDString, MappedUUID}
+import code.util.{MappedUUID, UUIDString}
+import com.openbankproject.commons.model.{BankId, User}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 

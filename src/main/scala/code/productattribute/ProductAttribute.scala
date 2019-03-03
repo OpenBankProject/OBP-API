@@ -3,11 +3,11 @@ package code.productattribute
 /* For ProductAttribute */
 
 import code.api.util.APIUtil
-import code.model.BankId
 import code.productAttributeattribute.MappedProductAttributeProvider
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.products.Products.ProductCode
 import code.remotedata.RemotedataProductAttribute
+import com.openbankproject.commons.model.BankId
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 

@@ -35,6 +35,7 @@ import net.liftweb.mapper._
 import code.model._
 import code.users.Users
 import code.views.Views
+import com.openbankproject.commons.model._
 
 import scala.collection.immutable.List
 

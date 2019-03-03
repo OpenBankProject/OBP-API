@@ -7,6 +7,7 @@ import code.actorsystem.ObpActorInit
 import code.api.util.OBPQueryParam
 import code.customer._
 import code.model._
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

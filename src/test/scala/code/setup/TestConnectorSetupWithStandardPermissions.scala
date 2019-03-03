@@ -6,6 +6,7 @@ import code.api.util.ErrorMessages._
 import code.model._
 import code.model.dataAccess._
 import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.mongodb._
 import net.liftweb.util.DefaultConnectionIdentifier

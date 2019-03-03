@@ -7,7 +7,7 @@ package code.branches
 import code.api.util.OBPQueryParam
 import code.branches.Branches.{BranchId, BranchT}
 import code.common._
-import code.model.BankId
+import com.openbankproject.commons.model.BankId
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 

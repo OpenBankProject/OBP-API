@@ -18,10 +18,12 @@ import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
 import code.api.v3_1_0.{BadLoginStatusJson, ObpApiLoopbackJson, _}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
-import code.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.api.builder.JsonFactory_APIBuilder
+import com.openbankproject.commons.model
+import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
+import com.openbankproject.commons.model._
 import net.liftweb.json
 
 import scala.collection.immutable.List
@@ -251,7 +253,7 @@ object SwaggerDefinitionsJSON {
 
   val counterpartyId = CounterpartyId(value = "123")
 
-  val accountId = AccountId(value = "123")
+  val accountId = model.AccountId(value = "123")
 
   val viewId = ViewId(value = "owner")
 

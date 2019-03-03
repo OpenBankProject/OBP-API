@@ -1,8 +1,8 @@
 package code.metadata.counterparties
 
 import code.api.util.APIUtil
-import code.model.CounterpartyBespoke
 import code.remotedata.RemotedataCounterpartyBespokes
+import com.openbankproject.commons.model.CounterpartyBespoke
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List

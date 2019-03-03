@@ -3,7 +3,7 @@ package code.remotedata
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.metadata.counterparties._
-import code.model.CounterpartyBespoke
+import com.openbankproject.commons.model.CounterpartyBespoke
 
 import scala.collection.immutable.List
 

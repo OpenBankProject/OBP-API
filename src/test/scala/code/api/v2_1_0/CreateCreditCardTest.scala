@@ -5,8 +5,8 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanCreateCardsForBank
 import code.api.v1_3_0.PhysicalCardJSON
-import code.model.AccountId
 import code.setup.DefaultUsers
+import com.openbankproject.commons.model.AccountId
 import net.liftweb.json.Serialization.write
 
 class CreateCreditCardTest extends V210ServerSetup with DefaultUsers {

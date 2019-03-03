@@ -3,8 +3,8 @@ package code.branches
 import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.branches.Branches._
 import code.common._
-import code.model.BankId
 import code.util.{TwentyFourHourClockString, UUIDString}
+import com.openbankproject.commons.model.BankId
 import net.liftweb.common.Logger
 import net.liftweb.mapper.{By, _}
 

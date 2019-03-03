@@ -1,4 +1,4 @@
-package code.model
+package com.openbankproject.commons.model
 
 import java.util.Date
 

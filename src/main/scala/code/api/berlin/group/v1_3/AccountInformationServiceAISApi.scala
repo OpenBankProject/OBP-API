@@ -16,6 +16,7 @@ import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer

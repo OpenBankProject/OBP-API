@@ -1,8 +1,8 @@
 package code.metadata.narrative
 
 import code.api.util.APIUtil
-import code.model.{AccountId, BankId, TransactionId}
 import code.remotedata.RemotedataNarratives
+import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 import net.liftweb.util.{Props, SimpleInjector}
 
 object Narrative extends SimpleInjector {

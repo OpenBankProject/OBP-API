@@ -3,7 +3,6 @@ package code.transaction_types
 import code.TransactionTypes.TransactionTypeProvider
 import code.model._
 import code.TransactionTypes.TransactionType._
-
 import code.util.{MediumString, UUIDString}
 import net.liftweb.common._
 import net.liftweb.mapper._
@@ -11,6 +10,8 @@ import code.api.util.ErrorMessages
 import code.api.v2_0_0.TransactionTypeJsonV200
 import net.liftweb.util.Helpers._
 import java.util.Date
+
+import com.openbankproject.commons.model.{AmountOfMoney, BankId, TransactionTypeId}
 
 object MappedTransactionTypeProvider extends TransactionTypeProvider {
 

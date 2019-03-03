@@ -20,11 +20,11 @@ import code.bankconnectors._
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.consumer.Consumers
-import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
+import code.customer.Customer
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metrics.APIMetrics
-import code.model.{BankAccount, BankId, ViewId, _}
+import code.model.{Bank, BankAccount, Consumer, User, toUserEx}
 import code.products.Products.ProductCode
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
@@ -32,6 +32,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.booleanToBox
 import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props

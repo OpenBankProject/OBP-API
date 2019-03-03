@@ -6,8 +6,8 @@ import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.branches.Branches.{BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
 import code.common._
-import code.model.BankId
 import code.setup.DefaultUsers
+import com.openbankproject.commons.model.BankId
 
 /*
 Note This does not test retrieval from a backend.

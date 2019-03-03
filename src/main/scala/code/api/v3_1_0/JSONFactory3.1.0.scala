@@ -42,7 +42,6 @@ import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
 import code.common.Meta
 import code.context.UserAuthContext
-import code.customer.Customer
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
@@ -54,6 +53,7 @@ import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.Product
 import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
+import com.openbankproject.commons.model.{Customer, User}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List

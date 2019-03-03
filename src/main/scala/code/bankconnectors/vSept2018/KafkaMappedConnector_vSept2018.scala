@@ -64,8 +64,8 @@ import code.api.util.ExampleValue._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
 import code.context.UserAuthContextProvider
-import code.metadata.counterparties.CounterpartyTrait
 import code.users.Users
+import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import net.liftweb
 import net.liftweb.json
 

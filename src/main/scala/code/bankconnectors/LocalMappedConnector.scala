@@ -26,13 +26,13 @@ import code.customer._
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model.dataAccess._
-import code.model.{TransactionRequestType, _}
+import code.model._
 import code.productattribute.ProductAttribute
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.{MappedProductCollectionProvider, ProductCollection}
@@ -48,6 +48,7 @@ import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
 import com.google.common.cache.CacheBuilder
+import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
