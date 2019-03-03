@@ -1233,16 +1233,16 @@ trait APIMethods300 {
       List(apiTagBranch, apiTagBank, apiTagNewStyle)
     )
 
-    private[this] val branchCityPredicate = (city: Option[String], branchCity: String) => city.isEmpty || city.get == branchCity
+    private[this] val branchCityPredicate = (city: Box[String], branchCity: String) => city.isEmpty || city.openOrThrowException("city should be have value!") == branchCity
 
-    private[this] val distancePredicate = (withinMetersOf: Option[String], nearLatitude: Option[String], nearLongitude: Option[String], latitude: Double, longitude: Double) => {
+    private[this] val distancePredicate = (withinMetersOf: Box[String], nearLatitude: Box[String], nearLongitude: Box[String], latitude: Double, longitude: Double) => {
 
       if(withinMetersOf.isEmpty && nearLatitude.isEmpty && nearLongitude.isEmpty) {
         true
       } else {
         // from point
-        var lat = Coordinate.fromDegrees(nearLatitude.get.toDouble)
-        var lng = Coordinate.fromDegrees(nearLongitude.get.toDouble)
+        var lat = Coordinate.fromDegrees(nearLatitude.map(_.toDouble).openOrThrowException("latitude value should be a number!"))
+        var lng = Coordinate.fromDegrees(nearLongitude.map(_.toDouble).openOrThrowException("latitude value should be a number!"))
         val fromPoint = Point.at(lat, lng)
 
         // current branch location point
@@ -1251,9 +1251,11 @@ trait APIMethods300 {
         val branchLocation = Point.at(lat, lng)
 
         val distance = EarthCalc.harvesineDistance(branchLocation, fromPoint) //in meters
-        withinMetersOf.get.toDouble >= distance
+        withinMetersOf.map(_.toDouble).openOrThrowException("withinMetersOf value should be a number!") >= distance
       }
     }
+    // regex to check string is a float
+    private[this] val reg = Pattern.compile("^[-+]?(\\d+\\.?\\d*$|\\d*\\.?\\d+$)")
 
     lazy val getBranches : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
@@ -1282,19 +1284,16 @@ trait APIMethods300 {
                 case _ => true
               }
             }
-            // regex to check string is a float
-            reg = Pattern.compile("^[-+]?(\\d+\\.?\\d*$|\\d*\\.?\\d+$)")
-            _ <- Helper.booleanToFuture(failMsg = s"withinMetersOf, nearLatitude and nearLongitude must be either all empty or all float value, but currently their value are: withinMetersOf=${withinMetersOf.getOrElse("")}, nearLatitude=${nearLatitude.getOrElse("")} and nearLongitude=${nearLongitude.getOrElse("")}") {
-              (withinMetersOf, nearLatitude, nearLongitude) match {
-                case (Full(i), Full(j), Full(k)) => !reg.matcher(i).matches() || !reg.matcher(j).matches() || !reg.matcher(k).matches()
-                case (Empty, Empty, Empty) => false
-                case _ => true
-              }
-            }
-
             _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
               offset match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${MissingQueryParams} withinMetersOf, nearLatitude and nearLongitude must be either all empty or all float value, but currently their value are: withinMetersOf=${withinMetersOf.openOr("")}, nearLatitude=${nearLatitude.openOr("")} and nearLongitude=${nearLongitude.openOr("")}") {
+              (withinMetersOf, nearLatitude, nearLongitude) match {
+                case (Full(i), Full(j), Full(k)) => reg.matcher(i).matches() && reg.matcher(j).matches() && reg.matcher(k).matches()
+                case (Empty, Empty, Empty) => true
                 case _ => true
               }
             }
@@ -1310,14 +1309,13 @@ trait APIMethods300 {
               case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
             } map { unboxFull(_) } map {
               branches =>
-                // filter city and distance within given point
                 // Before we slice we need to sort in order to keep consistent results
-                (branches
+                (branches.sortWith(_.branchId.value < _.branchId.value)
                   .filter(it => this.branchCityPredicate(city, it.address.city))
-                  .filter(it => this.distancePredicate(withinMetersOf, nearLatitude, nearLongitude, it.location.latitude, it.location.longitude)).sortWith(_.branchId.value < _.branchId.value)
-                // Slice the result in next way: from=offset and until=offset + limit
+                  .filter(it => this.distancePredicate(withinMetersOf, nearLatitude, nearLongitude, it.location.latitude, it.location.longitude))
+                  // Slice the result in next way: from=offset and until=offset + limit
                   .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
-              , callContext)
+                  , callContext)
             }
           } yield {
             (JSONFactory300.createBranchesJson(branches), HttpCode.`200`(callContext))
