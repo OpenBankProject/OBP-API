@@ -51,8 +51,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Open Bank Project Guide'
-copyright = '2019, Open Bank Project, Chris Simpson'
-author = 'Open Bank Project, Chris Simpson'
+copyright = '2019, Open Bank Project '
+author = 'Open Bank Project'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -229,7 +229,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'OpenBankProjectGuide.tex', 'Open Bank Project Guide Documentation',
-     'Open Bank Project, Chris Simpson', 'manual'),
+     'Open Bank Project', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
