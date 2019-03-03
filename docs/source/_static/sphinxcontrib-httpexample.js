@@ -1,4 +1,3 @@
-alert("ok");
 (function() {
   var jQuery = window.jQuery || function() {};
 
