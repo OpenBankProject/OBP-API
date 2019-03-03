@@ -1294,7 +1294,7 @@ trait APIMethods300 {
               (withinMetersOf, nearLatitude, nearLongitude) match {
                 case (Full(i), Full(j), Full(k)) => reg.matcher(i).matches() && reg.matcher(j).matches() && reg.matcher(k).matches()
                 case (Empty, Empty, Empty) => true
-                case _ => true
+                case _ => false
               }
             }
             (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
