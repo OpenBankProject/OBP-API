@@ -70,7 +70,7 @@ class OAuthWorkedThanks extends MdcLoggable {
           "#redirect-link [href]" #> url
         }else{
           logger.info(incorrectRedirectUrlMessage)
-          "#oauth-done-thanks *" #> s"Sorry, the App requested a redirect to a URL that is not registered. $incorrectRedirectUrlMessage - Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
+          "#oauth-done-thanks *" #> s"Sorry, the requestedRedirectURL $requestedRedirectURL is not registered as a validRedirectURL by your app. Your app's validRedirectURL seems to be incorrectly set to $validRedirectURL. You need to register a new app with a corrected validRedirectURL. Developers can set the redirect URL you will use at consumer registration with PUT /management/consumers..."
         }
       case _ => {
         "#thanks *" #> "Error"
