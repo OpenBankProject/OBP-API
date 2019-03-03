@@ -4,14 +4,13 @@ Authentication
 
 
 .. sidebar:: Consumer Keys
-    :subtitle: A **Consumer Key** allows you to register multiple application under one account.
+    :subtitle: A **Consumer Key** allows you to register multiple applications under one account.
 
     * `Create an account <https://api.openbankproject.com/user_mgt/sign_up>`_
     * Register a `new application <https://api.openbankproject.com/consumer-registration>`_ to generate your consumer key
 
 
-``Open Bank Project`` offers multiple authentication methods. The most easy is 
-called 'Direct Login'.
+``Open Bank Project`` offers multiple authentication methods:
 
 - OAuth 1.0a
 - JSON Web Tokens (JWT) 
@@ -21,7 +20,7 @@ JSON Web Tokens (JWT)
 
 First you must 
 `create an account <https://api.openbankproject.com/user_mgt/sign_up>`_ on Open
-Bank Project. Then, `register a new apllication <https://api.openbankproject.com/consumer-registration>`_
+Bank Project. Then, `register a new application <https://api.openbankproject.com/consumer-registration>`_
 which gives you a `consumer-key`. You use your consumer key when generating a 
 JWT login token. 
 
