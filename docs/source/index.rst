@@ -9,12 +9,3 @@ Contents
    :maxdepth: 2
    
    authentication
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`
-
