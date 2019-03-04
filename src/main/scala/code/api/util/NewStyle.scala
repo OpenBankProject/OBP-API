@@ -5,7 +5,7 @@ import java.util.Date
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, isValidCurrencyISOCode, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -404,6 +404,13 @@ object NewStyle {
       createQueriesByHttpParamsFuture(httpParamsAllowed) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
+    }
+    
+    
+    def isValidCurrencyISOCode(currencyCode: String,  callContext: Option[CallContext]) = {
+      tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
+        assert(APIUtil.isValidCurrencyISOCode(currencyCode))
+      }
     }
 
 
