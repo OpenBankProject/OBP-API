@@ -192,6 +192,7 @@ object NewStyle {
 
     /**
       * delete a branch, just set isDeleted field to true, marks it is deleted
+      * also check this: https://github.com/OpenBankProject/OBP-API/issues/1241
       * @param branch to be deleted branch
       * @param callContext call context
       * @return true is mean delete success, false is delete fail

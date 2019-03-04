@@ -2930,13 +2930,12 @@ trait APIMethods310 {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonDelete _  => {
         cc =>
           for {
-            u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            canDeleteBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canDeleteBranch) == true
-              ||
-              hasEntitlement("", u.userId, canDeleteBranchAtAnyBank)
-              , deleteBranchEntitlementsRequiredText)
-            (branch, _) <- NewStyle.function.getBranch(bankId, branchId, callContext)
+            (Full(u), callContext) <- authorizedAccess(cc)
+            allowedEntitlements = canDeleteBranch ::canDeleteBranchAtAnyBank:: Nil
+            allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)(bankId.value, u.userId, allowedEntitlements)
+            (branch, callContext) <- NewStyle.function.getBranch(bankId, branchId, callContext)
             (result, callContext) <- NewStyle.function.deleteBranch(branch, callContext)
           } yield {
             (Full(result), HttpCode.`200`(callContext))
