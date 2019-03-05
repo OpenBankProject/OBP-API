@@ -87,7 +87,7 @@ trait APIMethods310 {
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             
             (checkbookOrders, callContext)<- Connector.connector.vend.getCheckbookOrdersFuture(bankId.value,accountId.value, callContext) map {
-              unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetCheckbookOrdersFuture, 400)
+              unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetCheckbookOrdersFuture)
             }
           } yield
            (JSONFactory310.createCheckbookOrdersJson(checkbookOrders), HttpCode.`200`(callContext))
@@ -130,7 +130,7 @@ trait APIMethods310 {
             
             //TODO need error handling here
             (checkbookOrders,callContext) <- Connector.connector.vend.getStatusOfCreditCardOrderFuture(bankId.value,accountId.value, callContext) map {
-              unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture, 400)
+              unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture)
             }
             
           } yield
@@ -307,11 +307,11 @@ trait APIMethods310 {
             httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
+              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             
             toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(obpQueryParams) map {
-                unboxFullOrFail(_, callContext, GetTopApisError, 400)
+                unboxFullOrFail(_, callContext, GetTopApisError)
             }
           } yield
            (JSONFactory310.createTopApisJson(toApis), HttpCode.`200`(callContext))
@@ -397,11 +397,11 @@ trait APIMethods310 {
             httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-                unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
+                unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             
             topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(obpQueryParams) map {
-              unboxFullOrFail(_, callContext, GetMetricsTopConsumersError, 400)
+              unboxFullOrFail(_, callContext, GetMetricsTopConsumersError)
             }
             
           } yield
@@ -499,7 +499,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus)
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)") }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
@@ -536,7 +536,7 @@ trait APIMethods310 {
             (Full(u), callContext) <-  authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser)
             _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)",400) }
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)") }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
@@ -603,7 +603,7 @@ trait APIMethods310 {
               Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit),
               Some(postJson.per_month_call_limit)) map {
-              unboxFullOrFail(_, callContext, UpdateConsumerError, 400)
+              unboxFullOrFail(_, callContext, UpdateConsumerError)
             }
           } yield {
             (createCallLimitJson(updatedConsumer, Nil), HttpCode.`200`(callContext))
@@ -900,7 +900,7 @@ trait APIMethods310 {
               httpProtocol = postJson.http_protocol,
               isActive = isActive
             ) map {
-              unboxFullOrFail(_, callContext, CreateWebhookError, 400)
+              unboxFullOrFail(_, callContext, CreateWebhookError)
             }
           } yield {
             (createAccountWebhookJson(wh), HttpCode.`201`(callContext))
@@ -945,13 +945,13 @@ trait APIMethods310 {
               putJson.is_active.toBoolean
             }
             _ <- AccountWebhook.accountWebhook.vend.getAccountWebhookByIdFuture(putJson.account_webhook_id) map {
-              unboxFullOrFail(_, callContext, WebhookNotFound, 400)
+              unboxFullOrFail(_, callContext, WebhookNotFound)
             }
             wh <- AccountWebhook.accountWebhook.vend.updateAccountWebhookFuture(
               accountWebhookId = putJson.account_webhook_id,
               isActive = isActive
             ) map {
-              unboxFullOrFail(_, callContext, UpdateWebhookError, 400)
+              unboxFullOrFail(_, callContext, UpdateWebhookError)
             }
           } yield {
             (createAccountWebhookJson(wh), HttpCode.`200`(callContext))
@@ -1247,7 +1247,7 @@ trait APIMethods310 {
               postedData.branchId,
               postedData.nameSuffix
             ) map {
-              unboxFullOrFail(_, callContext, CreateCustomerError, 400)
+              unboxFullOrFail(_, callContext, CreateCustomerError)
             }
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
@@ -1963,7 +1963,7 @@ trait APIMethods310 {
             startTime <- Future{Helpers.now}
             _ <- NewStyle.function.findByUserId(userId, callContext)
             _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
-              unboxFullOrFail(_, callContext, RefreshUserError, 400)
+              unboxFullOrFail(_, callContext, RefreshUserError)
             }
             endTime <- Future{Helpers.now}
             durationTime = endTime.getTime - startTime.getTime
@@ -2557,7 +2557,7 @@ trait APIMethods310 {
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
-              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
           } yield {
@@ -2622,7 +2622,7 @@ trait APIMethods310 {
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
-              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
             product <- Future(getProductTre(bankId, productCode))
           } yield {
@@ -2675,7 +2675,7 @@ trait APIMethods310 {
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             products <- Future(Connector.connector.vend.getProducts(bankId)) map {
-              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode, 400)
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
           } yield {
             (JSONFactory310.createProductsJson(products), HttpCode.`200`(callContext))

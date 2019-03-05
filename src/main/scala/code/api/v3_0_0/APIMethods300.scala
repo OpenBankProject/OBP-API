@@ -250,7 +250,7 @@ trait APIMethods300 {
               (Full(u), callContext) <-  authorizedAccess(cc)
               updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
-                x => unboxFullOrFail(x, callContext, msg, 400)
+                x => unboxFullOrFail(x, callContext, msg)
               }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
@@ -608,10 +608,10 @@ trait APIMethods300 {
             // Assume owner view was requested
             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
+              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             (transactionsCore, callContext) <- Future { bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)} map {
-              unboxFullOrFail(_, callContext, UnknownError, 400)
+              unboxFullOrFail(_, callContext, UnknownError)
             }
           } yield {
             (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
@@ -666,7 +666,7 @@ trait APIMethods300 {
             (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat, 400)
+              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params: _*) map {
@@ -733,7 +733,7 @@ trait APIMethods300 {
               esw.isEnabled()
             }
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
-              x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound, 400)
+              x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound)
             }
             bodyPart <- Future { tryo(compactRender(json)) } map {
               x => unboxFullOrFail(x, callContext, ElasticSearchEmptyQueryBody)
@@ -802,10 +802,10 @@ trait APIMethods300 {
               esw.isEnabled()
             }
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
-              x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound, 400)
+              x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound)
             }
             bodyPart <- Future { tryo(compactRender(json)) } map {
-              x => unboxFullOrFail(x, callContext, ElasticSearchEmptyQueryBody, 400)
+              x => unboxFullOrFail(x, callContext, ElasticSearchEmptyQueryBody)
             }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
@@ -877,7 +877,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
-              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername, 400)
+              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
@@ -915,7 +915,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
-              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername, 400)
+              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
@@ -1433,7 +1433,7 @@ trait APIMethods300 {
             httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat, 400)
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
             }
             
             users <- Users.users.vend.getAllUsersF(obpQueryParams)
@@ -1724,7 +1724,7 @@ trait APIMethods300 {
               (Full(u), callContext) <- authorizedAccess(cc)
               postedData <- Future { tryo{json.extract[CreateEntitlementRequestJSON]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementRequestJSON "
-                x => unboxFullOrFail(x, callContext, msg, 400)
+                x => unboxFullOrFail(x, callContext, msg)
               }
               _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(bankId, callContext)}
               
@@ -1738,7 +1738,7 @@ trait APIMethods300 {
                 EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(postedData.bank_id, u.userId, postedData.role_name).isEmpty
               }
               addedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.addEntitlementRequestFuture(postedData.bank_id, u.userId, postedData.role_name) map {
-                x => unboxFullOrFail(x, callContext, EntitlementRequestCannotBeAdded, 400)
+                x => unboxFullOrFail(x, callContext, EntitlementRequestCannotBeAdded)
               }
             } yield {
               (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`201`(callContext))
@@ -2081,10 +2081,10 @@ trait APIMethods300 {
               _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
               httpParams <- NewStyle.function.createHttpParams(cc.url)
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-                x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat, 400)
+                x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
               }
               aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams) map {
-                x => unboxFullOrFail(x, callContext, GetAggregateMetricsError, 400)
+                x => unboxFullOrFail(x, callContext, GetAggregateMetricsError)
               }
             } yield {
               (createAggregateMetricJson(aggregateMetrics), HttpCode.`200`(callContext))
@@ -2135,21 +2135,21 @@ trait APIMethods300 {
 
             consumerIdInt <- Future { tryo{consumerId.toInt} } map {
               val msg = s"$ConsumerNotFoundById Current Value is $consumerId"
-              x => unboxFullOrFail(x, callContext, msg, 400)
+              x => unboxFullOrFail(x, callContext, msg)
             }
             
             _ <- Future { Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdInt) } map {
-              x => unboxFullOrFail(x, callContext, ConsumerNotFoundById, 400)
+              x => unboxFullOrFail(x, callContext, ConsumerNotFoundById)
             }
 
             postedData <- Future { tryo{json.extract[CreateScopeJson]} } map {
               val msg = s"$InvalidJsonFormat The Json body should be the $CreateScopeJson "
-              x => unboxFullOrFail(x, callContext, msg, 400)
+              x => unboxFullOrFail(x, callContext, msg)
             }
 
             role <- Future { tryo{valueOf(postedData.role_name)} } map {
               val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
-              x => unboxFullOrFail(x, callContext, msg, 400)
+              x => unboxFullOrFail(x, callContext, msg)
             }
             
             _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
@@ -2203,12 +2203,12 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             consumer <- Future{callContext.get.consumer} map {
-              x => unboxFullOrFail(x, callContext, InvalidConsumerCredentials, 400)
+              x => unboxFullOrFail(x, callContext, InvalidConsumerCredentials)
             }
             _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank)}  map ( fullBoxOrException(_))
             scope <- Future{ Scope.scope.vend.getScopeById(scopeId) ?~! ScopeNotFound } map {
               val msg = s"$ScopeNotFound Current Value is $scopeId"
-              x => unboxFullOrFail(x, callContext, msg, 400)
+              x => unboxFullOrFail(x, callContext, msg)
             }
             _ <- Helper.booleanToFuture(failMsg = ConsumerDoesNotHaveScope) { scope.scopeId ==scopeId }
             _ <- Future {Scope.scope.vend.deleteScope(Full(scope))} 
@@ -2242,7 +2242,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             consumer <- Future{callContext.get.consumer} map {
-              x => unboxFullOrFail(x , callContext, InvalidConsumerCredentials, 400)
+              x => unboxFullOrFail(x , callContext, InvalidConsumerCredentials)
             }
             _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank)} flatMap {unboxFullAndWrapIntoFuture(_)}
             scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerId)} map { unboxFull(_) }

@@ -705,7 +705,7 @@ trait Connector extends MdcLoggable{
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
       transactionRequest <- Future{ createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)} map {
-        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210", 400)
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
       }
 
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
@@ -747,7 +747,7 @@ trait Connector extends MdcLoggable{
       
             //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
             _ <- Future {ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)} map { 
-              unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+              unboxFullOrFail(_, callContext, s"$UnknownError ")
             }
       
             // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv300

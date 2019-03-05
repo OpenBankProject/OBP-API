@@ -195,7 +195,7 @@ object NewStyle {
 
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
       Connector.connector.vend.getBankFuture(bankId, callContext) map {
-        unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 400)
+        unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId")
       }
     }
     def getBanks(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
@@ -212,7 +212,7 @@ object NewStyle {
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.checkBankAccountExistsFuture(bankId, accountId, callContext) } map {
-        unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400)
+        unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId")
       }
 
     def moderatedBankAccount(account: BankAccount, view: View, user: Box[User]) = Future {
@@ -222,25 +222,25 @@ object NewStyle {
 
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
-        unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is $viewId", 400)
+        unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is $viewId")
       }
     }
 
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {
-        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId", 400)
+        unboxFullOrFail(_, callContext, s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId")
       }
     }
 
     def getAccountWebhooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebhook]] = {
       AccountWebhook.accountWebhook.vend.getAccountWebhooksFuture(queryParams) map {
-        unboxFullOrFail(_, callContext, GetWebhooksError, 400)
+        unboxFullOrFail(_, callContext, GetWebhooksError)
       }
     }
 
     def getConsumerByPrimaryId(id: Long, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByPrimaryIdFuture(id) map {
-        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId, 400)
+        unboxFullOrFail(_, callContext, ConsumerNotFoundByConsumerId)
       }
     }
     def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
@@ -250,12 +250,12 @@ object NewStyle {
     }
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerIdFuture(customerId, callContext) map {
-        unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId, 400)
+        unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId)
       }
     }
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId, callContext) map {
-        unboxFullOrFail(_, callContext, CustomerNotFound, 400)
+        unboxFullOrFail(_, callContext, CustomerNotFound)
       }
     }
 
@@ -460,7 +460,7 @@ object NewStyle {
 
     def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
       Future { User.findByUserId(userId).map(user =>(user, callContext))} map {
-        unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 400)
+        unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)")
       }
     }
   
@@ -502,7 +502,7 @@ object NewStyle {
     def toBankAccount(counterparty: CounterpartyTrait, callContext: Option[CallContext]) : Future[BankAccount] =
     {
       Future{BankAccount.toBankAccount(counterparty)} map {
-        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+        unboxFullOrFail(_, callContext, s"$UnknownError ")
       }
     }
     
@@ -524,7 +524,7 @@ object NewStyle {
     {
       //Note: this method is not over kafka yet, so use Future here.
       Future{ Connector.connector.vend.getTransactionRequestImpl(transactionRequestId, callContext)} map {
-        unboxFullOrFail(_, callContext, s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId) ", 400)
+        unboxFullOrFail(_, callContext, s"$InvalidTransactionRequestId Current TransactionRequestId($transactionRequestId) ")
       }
     }
     
@@ -533,13 +533,13 @@ object NewStyle {
     {
       //Note: this method is not over kafka yet, so use Future here.
       Future{ ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.validateChallengeAnswerInOBPSide(challengeId, challengeAnswer)} map {
-        unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+        unboxFullOrFail(_, callContext, s"$UnknownError ")
       }
     }
     
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
-       (unboxFullOrFail(i._1, callContext, s"$UnknownError ", 400), i._2)
+       (unboxFullOrFail(i._1, callContext, s"$UnknownError "), i._2)
       } 
     
     def createTransactionAfterChallengeV300(
@@ -811,7 +811,7 @@ object NewStyle {
             case _ => fallbackFxRate
           }
       } map {
-        unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported,400)
+        unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported)
       }
     
   }
