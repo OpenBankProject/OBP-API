@@ -52,7 +52,8 @@ object ApiVersion {
   case class Sandbox() extends ApiVersion
   lazy val sandbox = Sandbox()
   
-  lazy val apiBuilder = ScannedApiVersion("api-builder","obp","b1") // replace "obp" with "builder" or something.
+  //Fixed the apiBuild apis as `api-builder` standard . 
+  lazy val apiBuilder = ScannedApiVersion("api-builder","api-builder","b1") 
 
   val scabbedApis = ScannedApis.versionMapScannedApis.keysIterator.toList
   private val versions =
