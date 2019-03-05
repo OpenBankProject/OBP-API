@@ -1311,6 +1311,7 @@ trait APIMethods300 {
               branches =>
                 // Before we slice we need to sort in order to keep consistent results
                 (branches.sortWith(_.branchId.value < _.branchId.value)
+                  .filter(it => it.isDeleted != Some(true))
                   .filter(it => this.branchCityPredicate(city, it.address.city))
                   .filter(it => this.distancePredicate(withinMetersOf, nearLatitude, nearLongitude, it.location.latitude, it.location.longitude))
                   // Slice the result in next way: from=offset and until=offset + limit
