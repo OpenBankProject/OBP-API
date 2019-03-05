@@ -103,7 +103,7 @@ object JSONFactory_UKOpenBanking_310 {
     Type: String
   )
   
-  case class BalanceJsonUKV200(
+  case class BalanceJsonUKV310(
     AccountId: String,
     Amount: AmountOfMoneyJsonV121,
     CreditDebitIndicator: String,
@@ -112,18 +112,15 @@ object JSONFactory_UKOpenBanking_310 {
     CreditLine: List[CreditLineJson]
   )
   
-  case class DataJsonUKV200(
-    Balance: List[BalanceJsonUKV200]
+  case class DataJsonUKV310(
+    Balance: List[BalanceJsonUKV310]
   )
   
-  case class MetaBisJson(
-    TotalPages: Int
-  )
   
-  case class AccountBalancesUKV200(
-    Data: DataJsonUKV200,
+  case class AccountBalancesUKV310(
+    Data: DataJsonUKV310,
     Links: LinksV310,
-    Meta: MetaBisJson
+    Meta: MetaUKV310
   )
   
   def createAccountsListJSON(accounts: List[BankAccount]): AccountsUKV310 = {
@@ -193,11 +190,11 @@ object JSONFactory_UKOpenBanking_310 {
     TransactionsJsonUKV200(
       Data = TransactionsInnerJson(transactionsInnerJson),
       Links = LinksV310(
-        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/"
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions"
       ),
       Meta = MetaInnerJson(
         TotalPages = 1,
@@ -246,12 +243,12 @@ object JSONFactory_UKOpenBanking_310 {
   def createAccountBalanceJSON(moderatedAccount : ModeratedBankAccount) = {
     val accountId = moderatedAccount.accountId.value
     
-    val dataJson = DataJsonUKV200(
-      List(BalanceJsonUKV200(
+    val dataJson = DataJsonUKV310(
+      List(BalanceJsonUKV310(
         AccountId = accountId,
         Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance),
-        CreditDebitIndicator = moderatedAccount.owners.getOrElse(null).head.name,
-        Type = "Credit",
+        CreditDebitIndicator = "Credit",
+        Type = "ClosingAvailable",
         DateTime = null,
         CreditLine = List(CreditLineJson(
           Included = true,
@@ -259,42 +256,50 @@ object JSONFactory_UKOpenBanking_310 {
           Type = "Pre-Agreed"
         )))))
     
-    AccountBalancesUKV200(
+    AccountBalancesUKV310(
       Data = dataJson,
       Links = LinksV310(
-        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/"),
-      Meta = MetaBisJson(1)
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances"),
+      Meta = MetaUKV310(
+        0,
+        new Date(),
+        new Date(),
+      )
     )
   }
   
   def createBalancesJSON(accounts: List[BankAccount]) = {
     
-    val dataJson = DataJsonUKV200(
-      accounts.map(account => BalanceJsonUKV200(
+    val dataJson = DataJsonUKV310(
+      accounts.map(account => BalanceJsonUKV310(
         AccountId = account.accountId.value,
         Amount = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
-        CreditDebitIndicator = account.userOwners.headOption.getOrElse(null).name,
-        Type = "Credit",
-        DateTime = null,
+        CreditDebitIndicator = "Credit",
+        Type = "ClosingAvailable",
+        DateTime = account.lastUpdate,
         CreditLine = List(CreditLineJson(
           Included = true,
           Amount = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
-          Type = "Pre-Agreed"
+          Type = "Available"
         )))))
     
-    AccountBalancesUKV200(
+    AccountBalancesUKV310(
       Data = dataJson,
       Links = LinksV310(
-        s"${Constant.HostName}/open-banking/v3.1/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/balances/",
-        s"${Constant.HostName}/open-banking/v3.1/balances/"),
-      Meta = MetaBisJson(1)
+        s"${Constant.HostName}/open-banking/v3.1/balances",
+        s"${Constant.HostName}/open-banking/v3.1/balances",
+        s"${Constant.HostName}/open-banking/v3.1/balances",
+        s"${Constant.HostName}/open-banking/v3.1/balances",
+        s"${Constant.HostName}/open-banking/v3.1/balances"),
+      Meta = MetaUKV310(
+        0,
+        new Date(),
+        new Date()
+      )
     )
   }
 

@@ -116,76 +116,26 @@ object APIMethods_BalancesApi extends RestHelper {
      )
 
      lazy val getAccountsAccountIdBalances : OBPEndpoint = {
-       case "accounts" :: accountid:: "balances" :: Nil JsonGet _ => {
+       case "accounts" :: AccountId(accountId):: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "Meta" : {
-    "FirstAvailableDateTime" : { },
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "http://example.com/aeiou",
-    "Prev" : "http://example.com/aeiou",
-    "Next" : "http://example.com/aeiou",
-    "Self" : "http://example.com/aeiou",
-    "First" : "http://example.com/aeiou"
-  },
-  "Data" : {
-    "Balance" : [ {
-      "Type" : { },
-      "AccountId" : { },
-      "CreditLine" : [ {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      }, {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      } ],
-      "Amount" : {
-        "Amount" : { },
-        "Currency" : "Currency"
-      },
-      "CreditDebitIndicator" : "Credit",
-      "DateTime" : "2000-01-23T04:56:07.000+00:00"
-    }, {
-      "Type" : { },
-      "AccountId" : { },
-      "CreditLine" : [ {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      }, {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      } ],
-      "Amount" : {
-        "Amount" : { },
-        "Currency" : "Currency"
-      },
-      "CreditDebitIndicator" : "Credit",
-      "DateTime" : "2000-01-23T04:56:07.000+00:00"
-    } ]
-  }
-}"""), callContext)
-           }
+            (Full(u), callContext) <- authorizedAccess(cc)
+
+            (account, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+
+            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
+        
+            _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
+        
+            moderatedAccount <- Future {account.moderatedBankAccount(view, Full(u))} map {
+              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+            } map { unboxFull(_) }
+        
+          } yield {
+            (JSONFactory_UKOpenBanking_310.createAccountBalanceJSON(moderatedAccount), callContext)
+          }
          }
        }
             
@@ -272,73 +222,15 @@ object APIMethods_BalancesApi extends RestHelper {
        case "balances" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "Meta" : {
-    "FirstAvailableDateTime" : { },
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "http://example.com/aeiou",
-    "Prev" : "http://example.com/aeiou",
-    "Next" : "http://example.com/aeiou",
-    "Self" : "http://example.com/aeiou",
-    "First" : "http://example.com/aeiou"
-  },
-  "Data" : {
-    "Balance" : [ {
-      "Type" : { },
-      "AccountId" : { },
-      "CreditLine" : [ {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      }, {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      } ],
-      "Amount" : {
-        "Amount" : { },
-        "Currency" : "Currency"
-      },
-      "CreditDebitIndicator" : "Credit",
-      "DateTime" : "2000-01-23T04:56:07.000+00:00"
-    }, {
-      "Type" : { },
-      "AccountId" : { },
-      "CreditLine" : [ {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      }, {
-        "Type" : { },
-        "Included" : true,
-        "Amount" : {
-          "Amount" : { },
-          "Currency" : "Currency"
-        }
-      } ],
-      "Amount" : {
-        "Amount" : { },
-        "Currency" : "Currency"
-      },
-      "CreditDebitIndicator" : "Credit",
-      "DateTime" : "2000-01-23T04:56:07.000+00:00"
-    } ]
-  }
-}"""), callContext)
-           }
+            (Full(u), callContext) <- authorizedAccess(cc)
+
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          
+            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+          
+          } yield {
+            (JSONFactory_UKOpenBanking_310.createBalancesJSON(accounts.getOrElse(Nil)), callContext)
+          }
          }
        }
 
