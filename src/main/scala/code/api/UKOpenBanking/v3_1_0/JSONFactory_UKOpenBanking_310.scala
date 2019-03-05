@@ -149,11 +149,11 @@ object JSONFactory_UKOpenBanking_310 {
     AccountsUKV310(
       Data = AccountList(list),
       Links = LinksV310(
-        Self = Constant.HostName + "/open-banking/v2.0/accounts",
-        First = Constant.HostName + "/open-banking/v2.0/accounts",
-        Prev = Constant.HostName + "/open-banking/v2.0/accounts",
-        Next = Constant.HostName + "/open-banking/v2.0/accounts",
-        Last = Constant.HostName + "/open-banking/v2.0/accounts",
+        Self = Constant.HostName + "/open-banking/v3.1/accounts",
+        First = Constant.HostName + "/open-banking/v3.1/accounts",
+        Prev = Constant.HostName + "/open-banking/v3.1/accounts",
+        Next = Constant.HostName + "/open-banking/v3.1/accounts",
+        Last = Constant.HostName + "/open-banking/v3.1/accounts",
       ),
       Meta = MetaUKV310(
         TotalPages = 1,
@@ -193,11 +193,11 @@ object JSONFactory_UKOpenBanking_310 {
     TransactionsJsonUKV200(
       Data = TransactionsInnerJson(transactionsInnerJson),
       Links = LinksV310(
-        Constant.HostName + s"/open-banking/v2.0/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v2.0/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v2.0/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v2.0/accounts/${accountId}/transactions/",
-        Constant.HostName + s"/open-banking/v2.0/accounts/${accountId}/transactions/"
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions/"
       ),
       Meta = MetaInnerJson(
         TotalPages = 1,
@@ -230,11 +230,11 @@ object JSONFactory_UKOpenBanking_310 {
     AccountsUKV310(
       Data = AccountList(list),
       Links = LinksV310(
-        s"${Constant.HostName}/open-banking/v2.0/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v2.0/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v2.0/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v2.0/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v2.0/accounts/" + list.head.AccountId),
+        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
+        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
+        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
+        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
+        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId),
       Meta = MetaUKV310(
         TotalPages = 1,
         FirstAvailableDateTime = new Date(),
@@ -262,11 +262,11 @@ object JSONFactory_UKOpenBanking_310 {
     AccountBalancesUKV200(
       Data = dataJson,
       Links = LinksV310(
-        s"${Constant.HostName}/open-banking/v2.0/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/accounts/${accountId}/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/accounts/${accountId}/balances/"),
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/accounts/${accountId}/balances/"),
       Meta = MetaBisJson(1)
     )
   }
@@ -289,11 +289,11 @@ object JSONFactory_UKOpenBanking_310 {
     AccountBalancesUKV200(
       Data = dataJson,
       Links = LinksV310(
-        s"${Constant.HostName}/open-banking/v2.0/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/balances/",
-        s"${Constant.HostName}/open-banking/v2.0/balances/"),
+        s"${Constant.HostName}/open-banking/v3.1/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/balances/",
+        s"${Constant.HostName}/open-banking/v3.1/balances/"),
       Meta = MetaBisJson(1)
     )
   }
