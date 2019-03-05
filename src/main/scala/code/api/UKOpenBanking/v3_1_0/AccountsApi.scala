@@ -115,69 +115,13 @@ object APIMethods_AccountsApi extends RestHelper {
        case "accounts" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "Meta" : {
-    "FirstAvailableDateTime" : { },
-    "TotalPages" : 0
-  },
-  "Links" : {
-    "Last" : "http://example.com/aeiou",
-    "Prev" : "http://example.com/aeiou",
-    "Next" : "http://example.com/aeiou",
-    "Self" : "http://example.com/aeiou",
-    "First" : "http://example.com/aeiou"
-  },
-  "Data" : {
-    "Account" : [ {
-      "Account" : [ {
-        "SecondaryIdentification" : "SecondaryIdentification",
-        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
-        "Identification" : "Identification",
-        "Name" : "Name"
-      }, {
-        "SecondaryIdentification" : "SecondaryIdentification",
-        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
-        "Identification" : "Identification",
-        "Name" : "Name"
-      } ],
-      "Servicer" : {
-        "SchemeName" : [ "UK.OBIE.BICFI" ],
-        "Identification" : "Identification"
-      },
-      "AccountId" : { },
-      "Description" : "Description",
-      "Currency" : "Currency",
-      "AccountType" : { },
-      "AccountSubType" : { },
-      "Nickname" : "Nickname"
-    }, {
-      "Account" : [ {
-        "SecondaryIdentification" : "SecondaryIdentification",
-        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
-        "Identification" : "Identification",
-        "Name" : "Name"
-      }, {
-        "SecondaryIdentification" : "SecondaryIdentification",
-        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
-        "Identification" : "Identification",
-        "Name" : "Name"
-      } ],
-      "Servicer" : {
-        "SchemeName" : [ "UK.OBIE.BICFI" ],
-        "Identification" : "Identification"
-      },
-      "AccountId" : { },
-      "Description" : "Description",
-      "Currency" : "Currency",
-      "AccountType" : { },
-      "AccountSubType" : { },
-      "Nickname" : "Nickname"
-    } ]
-  }
-}"""), callContext)
-           }
+            (Full(u), callContext) <- authorizedAccess(cc)
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+          } yield {
+            (JSONFactory_UKOpenBanking_310.createAccountsListJSON(accounts.getOrElse(Nil)), callContext)
+          }
+           
          }
        }
             
