@@ -713,10 +713,7 @@ trait APIMethods310 {
               val value = httpParams.filter(_.name == amount).map(_.values.head).head
               new java.math.BigDecimal(value)
             }
-            _ <- Helper.booleanToFuture(failMsg = InvalidISOCurrencyCode) {
-              val currencyCode = httpParams.filter(_.name == currency).map(_.values.head).head
-              isValidCurrencyISOCode(currencyCode)
-            }
+            _ <- NewStyle.function.isValidCurrencyISOCode(httpParams.filter(_.name == currency).map(_.values.head).head, callContext)
             _ <- NewStyle.function.moderatedBankAccount(account, view, Full(u))
           } yield {
             val ccy = httpParams.filter(_.name == currency).map(_.values.head).head

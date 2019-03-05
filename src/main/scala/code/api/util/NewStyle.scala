@@ -412,6 +412,11 @@ object NewStyle {
         assert(APIUtil.isValidCurrencyISOCode(currencyCode))
       }
     }
+    def isValidCurrencyISOCode(currencyCode: String, failMsg: String, callContext: Option[CallContext])= {
+      tryons(failMsg = failMsg,400, callContext) {
+        assert(APIUtil.isValidCurrencyISOCode(currencyCode))
+      }
+    }
 
 
     def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
