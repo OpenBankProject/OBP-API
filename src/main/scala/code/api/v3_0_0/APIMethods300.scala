@@ -670,7 +670,7 @@ trait APIMethods300 {
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params: _*) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (createTransactionsJson(transactions), HttpCode.`200`(callContext))
@@ -949,9 +949,9 @@ trait APIMethods300 {
           cc =>
             for {
               (_, callContext) <- anonymousAccess(cc)
-              _ <- NewStyle.function.getBank(bankId, callContext)
-              (ai, cc) <- Future(Connector.connector.vend.getAdapterInfo(Some(cc))) map {
-                unboxFullOrFail(_, Some(cc), ConnectorEmptyResponse, 400)
+              (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+              (ai, callContext) <- Future(Connector.connector.vend.getAdapterInfo(callContext)) map {
+                connectorEmptyResponse(_, callContext)
               }
             } yield {
               (createAdapterInfoJson(ai), callContext)
@@ -1483,7 +1483,7 @@ trait APIMethods300 {
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
             (customers,callContext) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             // Create the JSON to return. We also return the callContext
@@ -1553,7 +1553,7 @@ trait APIMethods300 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             ((accounts, callContext)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
@@ -1630,7 +1630,7 @@ trait APIMethods300 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             otherBankAccounts <- Future(account.moderatedOtherBankAccounts(view, u)) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             val otherBankAccountsJson = createOtherBankAccountsJson(otherBankAccounts)
@@ -1669,7 +1669,7 @@ trait APIMethods300 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             otherBankAccount <- Future(account.moderatedOtherBankAccount(other_account_id, view, u)) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)
@@ -1780,7 +1780,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
@@ -1823,7 +1823,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
@@ -1863,7 +1863,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(u.userId) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
@@ -1905,7 +1905,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
             deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (Full(deleteEntitlementRequest), HttpCode.`200`(callContext))
@@ -2003,7 +2003,7 @@ trait APIMethods300 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
             accounts <- Connector.connector.vend.getCoreBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))

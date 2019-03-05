@@ -29,7 +29,7 @@ package code.model
 import java.util.Date
 
 import code.accountholder.AccountHolders
-import code.api.util.APIUtil.unboxFullOrFail
+import code.api.util.APIUtil.connectorEmptyResponse
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages, OBPQueryParam}
 import code.bankconnectors.Connector
@@ -523,7 +523,7 @@ trait BankAccount extends MdcLoggable {
     if(APIUtil.hasAccess(view, user))
       for{
        (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext) map {
-         x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+         x => (connectorEmptyResponse(x._1, callContext), x._2)
        }
       } yield {
         view.moderateTransaction(transaction) match {
@@ -553,7 +553,7 @@ trait BankAccount extends MdcLoggable {
     if(APIUtil.hasAccess(view, user)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactionsFuture(bankId, accountId, callContext, queryParams: _*) map {
-          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+          x => (connectorEmptyResponse(x._1, callContext), x._2)
         }
       } yield {
         view.moderateTransactionsWithSameAccount(transactions) match {

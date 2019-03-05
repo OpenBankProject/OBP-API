@@ -1930,6 +1930,12 @@ Returns a string showed to the developer
       fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
     }
   }
+  
+  def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext])(implicit m: Manifest[T]): T = {
+    unboxFull {
+      fullBoxOrException(box ~> APIFailureNewStyle(ConnectorEmptyResponse, 400, cc.map(_.toLight)))
+    }
+  }
 
   def unboxFuture[T](box: Box[Future[T]]): Future[Box[T]] = box match {
     case Full(v) => v.map(Box !! _)

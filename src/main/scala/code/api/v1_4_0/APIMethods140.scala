@@ -436,10 +436,10 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u.hasViewAccess(view)
             } 
             transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
             transactionRequestTypeCharges <- Future(Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypeCharges)

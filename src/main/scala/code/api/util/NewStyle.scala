@@ -5,7 +5,7 @@ import java.util.Date
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, isValidCurrencyISOCode, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail, connectorEmptyResponse}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -200,7 +200,7 @@ object NewStyle {
     }
     def getBanks(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
       Connector.connector.vend.getBanksFuture(callContext: Option[CallContext]) map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+        connectorEmptyResponse(_, callContext)
       }
     }
 
@@ -245,7 +245,7 @@ object NewStyle {
     }
     def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
       Connector.connector.vend.getCustomersFuture(bankId, callContext, queryParams) map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+        connectorEmptyResponse(_, callContext)
       }
     }
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
@@ -262,7 +262,7 @@ object NewStyle {
 
     def getCustomerAddress(customerId : String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAddress]] = {
       Connector.connector.vend.getCustomerAddress(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def createCustomerAddress(customerId: String,
@@ -290,7 +290,7 @@ object NewStyle {
         tags,
         status,
         callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def updateCustomerAddress(customerAddressId: String,
@@ -318,46 +318,46 @@ object NewStyle {
         tags,
         status,
         callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteCustomerAddress(customerAddressId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 
     def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[TaxResidence] = {
       Connector.connector.vend.createTaxResidence(customerId, domain, taxNumber, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def getTaxResidence(customerId : String, callContext: Option[CallContext]): OBPReturnType[List[TaxResidence]] = {
       Connector.connector.vend.getTaxResidence(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def deleteTaxResidence(taxResienceId : String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteTaxResidence(taxResienceId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
         Connector.connector.vend.getAdapterInfoFuture(callContext) map {
-          unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+          connectorEmptyResponse(_, callContext)
         }
     }
 
     def getEntitlementsByUserId(userId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
       Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+        connectorEmptyResponse(_, callContext)
       }
     }
 
     def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): OBPReturnType[List[CounterpartyTrait]] = {
       Connector.connector.vend.getCounterpartiesFuture(bankId,accountId,viewId, callContext) map { i=>
-        (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 
@@ -369,7 +369,7 @@ object NewStyle {
 
     def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
       Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i=>
-        (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        (connectorEmptyResponse(i._1, callContext), i._2)
       } 
     }
 
@@ -437,23 +437,23 @@ object NewStyle {
 
     def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
       Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def getUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAuthContext]] = {
       Connector.connector.vend.getUserAuthContexts(userId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteUserAuthContexts(userId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 
     def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 
@@ -589,7 +589,7 @@ object NewStyle {
     
     def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[ObpApiLoopback] = {
       Connector.connector.vend.getObpApiLoopback(callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     
@@ -612,7 +612,7 @@ object NewStyle {
         value: String,
         callContext: Option[CallContext]
       ) map {
-          i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+          i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 
@@ -626,7 +626,7 @@ object NewStyle {
         productCode: ProductCode,
         callContext: Option[CallContext]
       ) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     
@@ -638,7 +638,7 @@ object NewStyle {
         productAttributeId: String,
         callContext: Option[CallContext]
       ) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     
@@ -650,7 +650,7 @@ object NewStyle {
         productAttributeId: String,
         callContext: Option[CallContext]
       ) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 
@@ -675,7 +675,7 @@ object NewStyle {
         value: String,
         callContext: Option[CallContext]
       ) map {
-        i => (unboxFullOrFail(i._1, callContext, ConnectorEmptyResponse, 400), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
     

@@ -2829,7 +2829,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   override def getCoreBankAccountsHeldFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
     for{
       (accounts, callContext) <- getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) map {
-        unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)}
+        connectorEmptyResponse(_, callContext)}
     } yield {
       tryo{accounts.map(account =>AccountHeld(
                  account.id,

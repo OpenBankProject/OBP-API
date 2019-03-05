@@ -1691,7 +1691,7 @@ trait APIMethods310 {
             }
             roleName = APIUtil.getHttpRequestUrlParam(cc.url, "role")
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByRoleFuture(roleName) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (JSONFactory310.createEntitlementJsonsV310(entitlements), callContext)
@@ -2502,7 +2502,7 @@ trait APIMethods310 {
               metaLicenceId = product.meta.license.id,
               metaLicenceName = product.meta.license.name
             )) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
           } yield {
             (JSONFactory310.createProductJson(success), HttpCode.`201`(callContext))
@@ -2824,7 +2824,7 @@ trait APIMethods310 {
               json.extract[PutProductCollectionsV310]
             }
             products <- Future(Connector.connector.vend.getProducts(bankId)) map {
-              unboxFullOrFail(_, callContext, ConnectorEmptyResponse, 400)
+              connectorEmptyResponse(_, callContext)
             }
             _ <- Helper.booleanToFuture(ProductNotFoundByProductCode + " {" + (product.parent_product_code :: product.children_product_codes).mkString(", ") + "}") {
               val existingCodes = products.map(_.code.value)
