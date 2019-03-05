@@ -162,8 +162,8 @@ trait APIMethods300 {
               (Full(u), callContext) <-  authorizedAccess(cc)
               createViewJson <- Future { tryo{json.extract[CreateViewJson]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson "
-                x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+                x => unboxFullOrFail(x, callContext, msg)
+              }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 createViewJson.name.startsWith("_")
@@ -250,8 +250,8 @@ trait APIMethods300 {
               (Full(u), callContext) <-  authorizedAccess(cc)
               updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
-                x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+                x => unboxFullOrFail(x, callContext, msg, 400)
+              }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
               _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
                 updateJson.metadata_view.startsWith("_")
@@ -733,11 +733,11 @@ trait APIMethods300 {
               esw.isEnabled()
             }
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchIndexNotFound, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound, 400)
+            }
             bodyPart <- Future { tryo(compactRender(json)) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchEmptyQueryBody, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, ElasticSearchEmptyQueryBody)
+            }
             result: esw.APIResponse <- esw.searchProxyAsyncV300(u.userId, indexPart, bodyPart)
           } yield {
             (esw.parseResponse(result), HttpCode.`201`(callContext))
@@ -802,11 +802,11 @@ trait APIMethods300 {
               esw.isEnabled()
             }
             indexPart <- Future { esw.getElasticSearchUri(index) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchIndexNotFound, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, ElasticSearchIndexNotFound, 400)
+            }
             bodyPart <- Future { tryo(compactRender(json)) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ElasticSearchEmptyQueryBody, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, ElasticSearchEmptyQueryBody, 400)
+            }
             result <- esw.searchProxyStatsAsyncV300(u.userId, indexPart, bodyPart, field)
           } yield {
             (esw.parseResponse(result), HttpCode.`201`(callContext))
@@ -877,8 +877,8 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername, 400)
+            }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
             (JSONFactory300.createUserJSON (user, entitlements), HttpCode.`200`(callContext))
@@ -915,8 +915,8 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UserNotFoundByUsername, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername, 400)
+            }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
             (JSONFactory300.createUserJSON (user, entitlements), HttpCode.`200`(callContext))
@@ -1433,8 +1433,8 @@ trait APIMethods300 {
             httpParams <- NewStyle.function.createHttpParams(cc.url)
               
             obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat, 400)
+            }
             
             users <- Users.users.vend.getAllUsersF(obpQueryParams)
           } yield {
@@ -1724,8 +1724,8 @@ trait APIMethods300 {
               (Full(u), callContext) <- authorizedAccess(cc)
               postedData <- Future { tryo{json.extract[CreateEntitlementRequestJSON]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementRequestJSON "
-                x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+                x => unboxFullOrFail(x, callContext, msg, 400)
+              }
               _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(bankId, callContext)}
               
               _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")) {
@@ -1738,8 +1738,8 @@ trait APIMethods300 {
                 EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(postedData.bank_id, u.userId, postedData.role_name).isEmpty
               }
               addedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.addEntitlementRequestFuture(postedData.bank_id, u.userId, postedData.role_name) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementRequestCannotBeAdded, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
+                x => unboxFullOrFail(x, callContext, EntitlementRequestCannotBeAdded, 400)
+              }
             } yield {
               (JSONFactory300.createEntitlementRequestJSON(addedEntitlementRequest), HttpCode.`201`(callContext))
             }
@@ -2078,20 +2078,14 @@ trait APIMethods300 {
           cc => {
             for {
               (Full(u), callContext) <- authorizedAccess(cc)
-
               _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
-              
               httpParams <- NewStyle.function.createHttpParams(cc.url)
-              
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
-              
-              
+                x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat, 400)
+              }
               aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams) map {
-                x => fullBoxOrException(x ~> APIFailureNewStyle(GetAggregateMetricsError, 400, callContext.map(_.toLight)))
-              } map { unboxFull(_) }
-              
+                x => unboxFullOrFail(x, callContext, GetAggregateMetricsError, 400)
+              }
             } yield {
               (createAggregateMetricJson(aggregateMetrics), HttpCode.`200`(callContext))
             }
@@ -2141,22 +2135,22 @@ trait APIMethods300 {
 
             consumerIdInt <- Future { tryo{consumerId.toInt} } map {
               val msg = s"$ConsumerNotFoundById Current Value is $consumerId"
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, msg, 400)
+            }
             
             _ <- Future { Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdInt) } map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(ConsumerNotFoundById, 400, callContext.map(_.toLight)))
+              x => unboxFullOrFail(x, callContext, ConsumerNotFoundById, 400)
             }
 
             postedData <- Future { tryo{json.extract[CreateScopeJson]} } map {
               val msg = s"$InvalidJsonFormat The Json body should be the $CreateScopeJson "
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, msg, 400)
+            }
 
             role <- Future { tryo{valueOf(postedData.role_name)} } map {
               val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x, callContext, msg, 400)
+            }
             
             _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
               ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
@@ -2209,17 +2203,14 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             consumer <- Future{callContext.get.consumer} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConsumerCredentials, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-            
+              x => unboxFullOrFail(x, callContext, InvalidConsumerCredentials, 400)
+            }
             _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank)}  map ( fullBoxOrException(_))
             scope <- Future{ Scope.scope.vend.getScopeById(scopeId) ?~! ScopeNotFound } map {
               val msg = s"$ScopeNotFound Current Value is $scopeId"
-              x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
-
+              x => unboxFullOrFail(x, callContext, msg, 400)
+            }
             _ <- Helper.booleanToFuture(failMsg = ConsumerDoesNotHaveScope) { scope.scopeId ==scopeId }
-            
             _ <- Future {Scope.scope.vend.deleteScope(Full(scope))} 
           } yield
             (JsRaw(""), HttpCode.`200`(callContext))
@@ -2249,14 +2240,12 @@ trait APIMethods300 {
       case "consumers" :: consumerId :: "scopes" :: Nil JsonGet _ => {
         cc =>
           for {
-            
             (Full(u), callContext) <- authorizedAccess(cc)
             consumer <- Future{callContext.get.consumer} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConsumerCredentials, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+              x => unboxFullOrFail(x , callContext, InvalidConsumerCredentials, 400)
+            }
             _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank)} flatMap {unboxFullAndWrapIntoFuture(_)}
             scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerId)} map { unboxFull(_) }
-           
           } yield
             (JSONFactory300.createScopeJSONs(scopes), HttpCode.`200`(callContext))
       }
