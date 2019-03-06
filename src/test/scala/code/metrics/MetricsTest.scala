@@ -35,7 +35,10 @@ class MetricsTest extends ServerSetup with WipeMetrics {
 
   val metrics = APIMetrics.apiMetrics.vend
 
+  //We used the cache for getAllMetrics method, so here, we need use different parameters to get latest response. 
   val limit = 100
+  val limit1 = 101
+  val limit2 = 102
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -85,7 +88,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, getCorrelationId())
 
-      val byUrl = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(_.getUrl())
+      val byUrl = metrics.getAllMetrics(List(OBPLimit(limit1))).groupBy(_.getUrl())
       byUrl.keySet should equal(Set(testUrl1, testUrl2))
 
       val url1Metrics = byUrl(testUrl1)
@@ -114,7 +117,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, getCorrelationId())
 
-      val byDay = metrics.getAllMetrics(List(OBPLimit(limit))).groupBy(APIMetrics.getMetricDay)
+      val byDay = metrics.getAllMetrics(List(OBPLimit(limit2))).groupBy(APIMetrics.getMetricDay)
       byDay.keySet should equal(Set(startOfDay1, startOfDay2))
 
       val day1Metrics = byDay(startOfDay1)
