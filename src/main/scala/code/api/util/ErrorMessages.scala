@@ -249,6 +249,7 @@ object ErrorMessages {
 
 
   val InsufficientAuthorisationToCreateBranch  = "OBP-30209: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
+  val InsufficientAuthorisationToDeleteBranch  = "OBP-30218: Insufficient authorisation to Create Branch. You do not have the role CanCreateBranch." // was OBP-20019
   val InsufficientAuthorisationToCreateBank  = "OBP-30210: Insufficient authorisation to Create Bank. You do not have the role CanCreateBank." // was OBP-20020
 
   val InvalidConnector = "OBP-30211: Invalid Connector Version. Please specify a valid value for CONNECTOR."

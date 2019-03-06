@@ -1261,7 +1261,8 @@ object SwaggerDefinitionsJSON {
     accessibleFeatures = Some("wheelchair, atm usuable by the visually impaired"),
     branchType = Some("Full service store"),
     moreInfo = Some("short walk to the lake from here"),
-    phoneNumber = Some("+381631954907")
+    phoneNumber = Some("+381631954907"),
+    isDeleted = Some(false)
   )
 
 

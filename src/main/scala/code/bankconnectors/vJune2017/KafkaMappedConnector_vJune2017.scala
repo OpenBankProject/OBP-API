@@ -2015,7 +2015,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           accessibleFeatures = None,
           branchType  = Some(""),
           moreInfo = Some(""),
-          phoneNumber = Some("")
+          phoneNumber = Some(""),
+          isDeleted = Some(false)
         )  :: Nil
       )
 
@@ -2107,7 +2108,8 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           accessibleFeatures = None,
           branchType  = Some(""),
           moreInfo = Some(""),
-          phoneNumber = Some("")
+          phoneNumber = Some(""),
+          isDeleted = Some(false)
         ))
       )
 
