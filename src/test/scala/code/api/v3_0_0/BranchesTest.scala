@@ -1,10 +1,13 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{ErrorMessages, OBPQueryParam}
+import code.api.util.ApiRole.{CanCreateCustomer, CanDeleteBranchAtAnyBank}
+import code.api.util.{ErrorMessages, NewStyle, OBPQueryParam}
+import code.bankconnectors.Connector
 import code.branches.Branches._
 import code.branches.{Branches, BranchesProvider}
 import code.common._
+import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.BankId
 import net.liftweb.json
@@ -18,6 +21,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
   val BankWithLicense = BankId("testBank1")
   val BankWithoutLicense = BankId("testBank2")
   val BankWithoutBranches = BankId("testBankWithoutBranches")
+  val bankId = "exist_bank_id"
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(
@@ -86,14 +90,14 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
                          driveUp: Option[DriveUp],
                          lobby: Option[Lobby],
                          branchRouting: Option[RoutingT],
-                         phoneNumber : Option[String]
-
+                         phoneNumber : Option[String],
+                         isDeleted : Option[Boolean]
   ) extends BranchT
 
 
 
   val fakeAddress1 = Address("Dunckerstraße 73 ApS", "Udemarken", "Hjørring", "Berlin", Some("Denmark"), "Denmark", "10437", "DE")
-  val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
+  val fakeAddress2 = fakeAddress1.copy(line1 = "00000", city="Aachen")
 
   val fakeMeta = Meta (
     License (
@@ -108,18 +112,19 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
       name = ""
       )
   )
-
+//"latitude":54.300288,
+//      "longitude":-2.236626
   val fakeLocation = Location (
-    latitude = 1.11,
-    longitude = 2.22,
+    latitude = 54.300288,
+    longitude = -2.236626,
     date =None,
     user = None
   )
 
 
   val fakeLocation2 = Location (
-    latitude = 1.1111,
-    longitude = 2.2222,
+    latitude = 55.8,
+    longitude = -2.6,
     date =None,
     user = None
   )
@@ -174,7 +179,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeIsAccessible,
     None,
     fakeBranchType,
-    fakeMoreInfo, None, None, None, None)
+    fakeMoreInfo, None, None, None, None, None)
   val fakeBranch2 = BranchImpl(BranchId("branch2"), BankId("uk"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
@@ -193,7 +198,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeIsAccessible,
     None,
     fakeBranchType,
-    fakeMoreInfo, None, None, None, None)
+    fakeMoreInfo, None, None, None, None, None)
   val fakeBranch3 = BranchImpl(BranchId("branch3"), BankId("uk"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2,fakeBranchRoutingScheme,fakeBranchRoutingAddress,
     fakeOpeningTime, fakeClosingTime,
     fakeOpeningTime, fakeClosingTime,
@@ -212,7 +217,62 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     fakeOpeningTime, fakeIsAccessible,
     None,
     fakeBranchType,
-    fakeMoreInfo, None, None, None, None) // Should not be returned
+    fakeMoreInfo, None, None, None, None, None) // Should not be returned
+
+  val deletedBranch = Branch(
+    BranchId("deleted_branch_id"),
+    BankId(bankId),
+    "Deleted Branch",
+    fakeAddress2,
+    fakeLocation,
+    None,
+    None,
+    fakeMeta,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    Some(true))
+
+  val existsBranch1 = Branch(BranchId("not_deleted_branch_id"),
+        BankId(bankId),
+        "Not deleted Branch",
+        fakeAddress1,
+        fakeLocation,
+        None,
+        None,
+        fakeMeta,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None)
+
+  val existsBranch2 = Branch(BranchId("not_deleted_branch_id_2"),
+        BankId(bankId),
+        "Not deleted Branch2",
+        fakeAddress2,
+        fakeLocation2,
+        None,
+        None,
+        fakeMeta,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None)
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
@@ -250,6 +310,16 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
     Branches.branchesProvider.default.set(Branches.buildOne)
   }
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    Connector.connector.vend.createOrUpdateBank(bankId, "exists bank", "bank", "string", "string", "string", "string", "string", "string")
+    Connector.connector.vend.createOrUpdateBranch(deletedBranch)
+    Connector.connector.vend.createOrUpdateBranch(existsBranch1)
+    Connector.connector.vend.createOrUpdateBranch(existsBranch2)
+  }
+
+  override def afterEach(): Unit = super.afterEach()
+
   feature("getBranches -- /banks/BANK_ID/branches -- V300") {
 
     scenario("We try to get bank branches for a bank without a data license for branch information") {
@@ -257,12 +327,92 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
       When("We make a request v3.0.0")
       val request300 = (v3_0Request / "banks" / BankWithoutBranches.value / "branches").GET <@(user1)
       val response300 = makeGetRequest(request300)
-      Then("We should get a 400 and correct response jons format")
+      Then("We should get a 400 and correct response json format")
       response300.code should equal(400)
       response300.body.extract[BranchesJsonV300]
       json.compactRender(response300.body \ "message").replaceAll("\"", "") should include (ErrorMessages.BranchesNotFound)
     }
-   
+
+
+    scenario("We try to get bank branches those all not deleted") {
+      Connector.connector.vend.createOrUpdateBank(bankId, "exists bank", "bank", "string", "string", "string", "string", "string", "string")
+      When("We make a request v3.0.0")
+      val request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
+      val response300 = makeGetRequest(request300)
+      Then("We should get a 200 and all branches is not deleted")
+      response300.code should equal(200)
+      //check return branches not deleted
+      val result = response300.body.extract[BranchesJsonV300]
+      result.branches.size should be (2)
+      result.branches.forall(_.name.startsWith("Not deleted Branch")) should be (true)
+    }
+
+
+    scenario("We try to get bank branches query by city") {
+
+      When("We make a request v3.0.0")
+      var request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
+      //query parameter must add in this way, So request300 defined as var instead of val
+      request300 = request300.addQueryParameter("city",  existsBranch1.address.city)
+
+      val response300 = makeGetRequest(request300)
+      Then("We should get a 200 and city matches query parameter")
+      response300.code should equal(200)
+      //check return branches not deleted
+      val result = response300.body.extract[BranchesJsonV300]
+      result.branches.size should be (1)
+      result.branches(0).address.city should be (existsBranch1.address.city)
+    }
+
+    scenario("We try to get bank branches query by distance fond one branch") {
+
+      When("We make a request v3.0.0")
+      var request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
+      request300 = request300.addQueryParameter("withinMetersOf", "220").addQueryParameter("nearLatitude", "54.3").addQueryParameter("nearLongitude", "-2.24")
+      val response300 = makeGetRequest(request300, List(("city", existsBranch1.address.city)))
+      Then("We should get a 200 and there is one branch in the given distance of latitude and longitude")
+      response300.code should equal(200)
+      //check return branches not deleted
+      val result = response300.body.extract[BranchesJsonV300]
+      result.branches.size should be (0)
+
+    }
+
+    scenario("We try to get bank branches query by distance fond none branch") {
+
+      When("We make a request v3.0.0")
+      var request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
+      request300 = request300.addQueryParameter("withinMetersOf", "250").addQueryParameter("nearLatitude", "54.3").addQueryParameter("nearLongitude", "-2.24")
+      val response300 = makeGetRequest(request300)
+      Then("We should get a 200 and there is none branch in the given distance of latitude and longitude")
+      response300.code should equal(200)
+      //check return branches not deleted
+      val result = response300.body.extract[BranchesJsonV300]
+      result.branches.size should be (1)
+      result.branches(0).name should be (existsBranch1.name)
+
+    }
+
+
+    // note：get all branches endpoint belongs v3.0.0, and delete branch endpoint belongs 3.1.0.
+    // But, because the delete branch endpoint unitest need get all branches endpoint, to check whether given branch is deleted
+    // So the delete branch endpoint unit test put at here.
+    scenario("We try to delete bank branche") {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteBranchAtAnyBank.toString())
+      When("We make a request v3.0.0")
+      val requestDelete = (baseRequest / "obp" / "v3.1.0" / "banks" / bankId / "branches"/ existsBranch1.branchId.value).DELETE <@(user1)
+      makeDeleteRequest(requestDelete)
+
+      val request300 = (v3_0Request / "banks" / bankId / "branches").GET <@(user1)
+      val response300 = makeGetRequest(request300)
+      Then("We should delete one branch and left one branch")
+      response300.code should equal(200)
+      //check return branches not deleted
+      val result = response300.body.extract[BranchesJsonV300]
+      result.branches.size should be (1)
+      result.branches(0).name should be (existsBranch2.name)
+    }
+
   }
 
 }

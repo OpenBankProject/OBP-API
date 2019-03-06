@@ -749,6 +749,7 @@ object JSONFactory210{
       None,
       None,
       None,
+      None,
       None))
   }
 
@@ -768,6 +769,7 @@ object JSONFactory210{
       lobbyString = Some(LobbyString(branchJsonPostV210.lobby.hours)),
       driveUpString = Some(DriveUpString(branchJsonPostV210.drive_up.hours)),
       meta = meta,
+      None,
       None,
       None,
       None,

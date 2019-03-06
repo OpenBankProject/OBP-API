@@ -3,7 +3,7 @@ package code.api.v3_1_0
 import java.util.UUID
 
 import code.accountattribute.AccountAttribute.AccountAttributeType
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{branchJsonV220, _}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -12,10 +12,13 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_1_0.JSONFactory210
+import code.api.v2_2_0.{BranchJsonV220, JSONFactory220}
+import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
+import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -26,12 +29,14 @@ import code.productattribute.ProductAttribute.ProductAttributeType
 import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.util.Helper
+import code.util.Helper.booleanToBox
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.Validate
@@ -2889,7 +2894,54 @@ trait APIMethods310 {
       }
     }
 
+    // Delete Branch
+    private[this] val deleteBranchEntitlementsRequiredForSpecificBank = CanDeleteBranch :: Nil
+    private[this] val deleteBranchEntitlementsRequiredForAnyBank = CanDeleteBranchAtAnyBank :: Nil
+    private[this] val deleteBranchEntitlementsRequiredText = UserHasMissingRoles + deleteBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required OR " + deleteBranchEntitlementsRequiredForAnyBank.mkString(" and ")
 
+    resourceDocs += ResourceDoc(
+      deleteBranch,
+      implementedInApiVersion,
+      nameOf(deleteBranch),
+      "DELETE",
+      "/banks/BANK_ID/branches/BRANCH_ID",
+      "Delete Branch",
+      s"""Delete Branch from given Bank.
+         |
+         |${authenticationRequiredMessage(true) }
+         |
+         |$deleteBranchEntitlementsRequiredText
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InsufficientAuthorisationToDeleteBranch,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagBranch),
+      Some(List(canDeleteBranch,canDeleteBranchAtAnyBank))
+    )
+
+    lazy val deleteBranch: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonDelete _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            allowedEntitlements = canDeleteBranch ::canDeleteBranchAtAnyBank:: Nil
+            allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)(bankId.value, u.userId, allowedEntitlements)
+            (branch, callContext) <- NewStyle.function.getBranch(bankId, branchId, callContext)
+            (result, callContext) <- NewStyle.function.deleteBranch(branch, callContext)
+          } yield {
+            (Full(result), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
   }

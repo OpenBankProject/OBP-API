@@ -41,7 +41,10 @@ object Branches extends SimpleInjector {
   def accessibleFeatures: Option[String]
   def branchType : Option[String]
   def moreInfo : Option[String]
-  def phoneNumber : Option[String] }
+  def phoneNumber : Option[String]
+  // marks whether this branch is deleted
+  def isDeleted : Option[Boolean]
+  }
 
 
 
@@ -65,7 +68,8 @@ object Branches extends SimpleInjector {
                      accessibleFeatures: Option[String],
                      branchType : Option[String],
                      moreInfo : Option[String],
-                     phoneNumber : Option[String]
+                     phoneNumber : Option[String],
+                     isDeleted : Option[Boolean]
                    ) extends BranchT
 
 
