@@ -5,7 +5,7 @@ import java.util.Date
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{OBPReturnType, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail, connectorEmptyResponse}
+import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -25,6 +25,7 @@ import code.context.UserAuthContext
 import code.customer.Customer
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
+import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.model._
@@ -219,6 +220,18 @@ object NewStyle {
       account.moderatedBankAccount(view, user)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
+    
+    def moderatedOtherBankAccounts(account: BankAccount, 
+                                   view: View, 
+                                   user: Box[User], 
+                                   callContext: Option[CallContext]): Future[List[ModeratedOtherBankAccount]] = 
+      Future(account.moderatedOtherBankAccounts(view, user)) map { connectorEmptyResponse(_, callContext) }    
+    def moderatedOtherBankAccount(account: BankAccount,
+                                  counterpartyId: String, 
+                                  view: View, 
+                                  user: Box[User], 
+                                  callContext: Option[CallContext]): Future[ModeratedOtherBankAccount] = 
+      Future(account.moderatedOtherBankAccount(counterpartyId, view, user)) map { connectorEmptyResponse(_, callContext) }
 
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
@@ -351,6 +364,16 @@ object NewStyle {
 
     def getEntitlementsByUserId(userId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
       Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
+    def getEntitlementRequestsFuture(userId: String, callContext: Option[CallContext]): Future[List[EntitlementRequest]] = {
+      EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
+    def getEntitlementRequestsFuture(callContext: Option[CallContext]): Future[List[EntitlementRequest]] = {
+      EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
         connectorEmptyResponse(_, callContext)
       }
     }

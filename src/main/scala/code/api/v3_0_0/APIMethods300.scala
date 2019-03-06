@@ -1629,9 +1629,7 @@ trait APIMethods300 {
             (u, callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            otherBankAccounts <- Future(account.moderatedOtherBankAccounts(view, u)) map {
-              connectorEmptyResponse(_, callContext)
-            }
+            otherBankAccounts <- NewStyle.function.moderatedOtherBankAccounts(account, view, u, callContext)
           } yield {
             val otherBankAccountsJson = createOtherBankAccountsJson(otherBankAccounts)
             (otherBankAccountsJson, HttpCode.`200`(callContext))
@@ -1668,9 +1666,7 @@ trait APIMethods300 {
             (u, callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            otherBankAccount <- Future(account.moderatedOtherBankAccount(other_account_id, view, u)) map {
-              connectorEmptyResponse(_, callContext)
-            }
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, u, callContext)
           } yield {
             val otherBankAccountJson = createOtherBankAccount(otherBankAccount)
             (otherBankAccountJson, HttpCode.`200`(callContext))
@@ -1779,11 +1775,9 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
-            getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture() map {
-              connectorEmptyResponse(_, callContext)
-            }
+            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(callContext)
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
+            (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1820,13 +1814,11 @@ trait APIMethods300 {
           val allowedEntitlements = canGetEntitlementRequestsAtAnyBank :: Nil
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
-            (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
-            getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(userId) map {
-              connectorEmptyResponse(_, callContext)
-            }
+            (Full(authorizedUser), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", authorizedUser.userId, allowedEntitlements)
+            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(userId, callContext)
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
+            (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1862,11 +1854,9 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            getEntitlementRequests <- EntitlementRequest.entitlementRequest.vend.getEntitlementRequestsFuture(u.userId) map {
-              connectorEmptyResponse(_, callContext)
-            }
+            entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(u.userId, callContext)
           } yield {
-            (JSONFactory300.createEntitlementRequestsJSON(getEntitlementRequests), HttpCode.`200`(callContext))
+            (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1943,9 +1933,9 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            getEntitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
-            (JSONFactory200.createEntitlementJSONs(getEntitlements), HttpCode.`200`(callContext))
+            (JSONFactory200.createEntitlementJSONs(entitlements), HttpCode.`200`(callContext))
           }
       }
     }
