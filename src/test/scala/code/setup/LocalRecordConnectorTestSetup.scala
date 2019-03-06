@@ -7,6 +7,8 @@ import code.model.dataAccess._
 import com.mongodb.QueryBuilder
 import net.liftweb.util.Helpers._
 import code.api.util.ErrorMessages._
+import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, BankId}
+
 import scala.math.BigDecimal
 import scala.math.BigDecimal.RoundingMode
 import scala.util.Random._

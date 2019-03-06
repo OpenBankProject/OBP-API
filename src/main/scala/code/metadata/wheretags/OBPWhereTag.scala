@@ -6,6 +6,7 @@ import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{DoubleField, LongField, StringField}
 import code.model._
 import com.mongodb.{DBObject, QueryBuilder}
+import com.openbankproject.commons.model._
 
 private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with ObjectIdPk[OBPWhereTag] with GeoTag {
   def meta = OBPWhereTag

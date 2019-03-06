@@ -1,7 +1,7 @@
 package code.customer.internalMapping
 
-import code.model.{BankId, CustomerId}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{BankId, CustomerId}
 import net.liftweb.common._
 import net.liftweb.mapper.By
 

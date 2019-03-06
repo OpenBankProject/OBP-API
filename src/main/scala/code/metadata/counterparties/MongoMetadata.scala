@@ -1,11 +1,11 @@
 package code.metadata.counterparties
 
 
-import code.util.Helper
+import code.model.User
 import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
-import code.model.{CounterpartyMetadata, UserPrimaryKey, ViewId, GeoTag}
+import com.openbankproject.commons.model.{CounterpartyMetadata, GeoTag, UserPrimaryKey}
 //TODO: this should be private
 class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata] with ObjectIdPk[Metadata] {
   import net.liftweb.mongodb.record.field.BsonRecordField
@@ -128,7 +128,7 @@ class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata]
 object Metadata extends Metadata with MongoMetaRecord[Metadata]
 
 class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
-  import code.model.User
+  import com.openbankproject.commons.model.User
   import net.liftweb.record.field.{DoubleField, LongField}
   import net.liftweb.mongodb.record.field.DateField
 

@@ -3,9 +3,9 @@ package code.views
 import code.api.util.APIUtil
 import code.api.util.APIUtil.canUseFirehose
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
-import code.model.{CreateViewJson, Permission, _}
 import code.remotedata.RemotedataViews
 import code.views.MapperViews.getPrivateBankAccounts
+import com.openbankproject.commons.model.{CreateViewJson, _}
 import net.liftweb.common.Box
 import net.liftweb.mapper.By
 import net.liftweb.util.{Props, SimpleInjector}

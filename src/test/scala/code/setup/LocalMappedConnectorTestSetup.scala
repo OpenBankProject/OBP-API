@@ -6,11 +6,12 @@ import bootstrap.liftweb.ToSchemify
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.entitlement.Entitlement
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess._
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._

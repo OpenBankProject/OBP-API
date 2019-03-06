@@ -1,16 +1,16 @@
 package code.customer
 
-import java.lang
 import java.util.Date
 
 import code.api.util.{APIUtil, OBPQueryParam}
-import code.model.{BankId, User}
 import code.remotedata.RemotedataCustomers
+import com.openbankproject.commons.model.{User, _}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
+
 
 object Customer extends SimpleInjector {
 
@@ -113,44 +113,3 @@ class RemotedataCustomerProviderCaseClasses {
 
 object RemotedataCustomerProviderCaseClasses extends RemotedataCustomerProviderCaseClasses
 
-trait Customer {
-  def customerId : String // The UUID for the customer. To be used in URLs
-  def bankId : String
-  def number : String // The Customer number i.e. the bank identifier for the customer.
-  def legalName : String
-  def mobileNumber : String
-  def email : String
-  def faceImage : CustomerFaceImageTrait
-  def dateOfBirth: Date
-  def relationshipStatus: String
-  def dependents: Integer
-  def dobOfDependents: List[Date]
-  def highestEducationAttained: String
-  def employmentStatus: String
-  def creditRating : CreditRatingTrait
-  def creditLimit: AmountOfMoneyTrait
-  def kycStatus: lang.Boolean
-  def lastOkDate: Date
-  def title: String
-  def branchId: String
-  def nameSuffix: String
-}
-
-trait CustomerFaceImageTrait {
-  def url : String
-  def date : Date
-}
-
-trait AmountOfMoneyTrait {
-  def currency: String
-  def amount: String
-}
-
-trait CreditRatingTrait {
-  def rating: String
-  def source: String
-}
-
-case class CustomerFaceImage(date : Date, url : String) extends CustomerFaceImageTrait
-case class CreditRating(rating: String, source: String) extends CreditRatingTrait
-case class CreditLimit(currency: String, amount: String) extends AmountOfMoneyTrait

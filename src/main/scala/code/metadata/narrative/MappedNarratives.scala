@@ -1,7 +1,7 @@
 package code.metadata.narrative
 
-import code.model.{AccountId, BankId, TransactionId}
 import code.util.{AccountIdString, UUIDString}
+import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 import net.liftweb.common.Full
 import net.liftweb.mapper._
 

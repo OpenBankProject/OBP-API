@@ -36,6 +36,7 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.usercustomerlinks.UserCustomerLink
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.Customer
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 

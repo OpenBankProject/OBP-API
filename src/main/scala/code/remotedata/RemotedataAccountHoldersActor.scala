@@ -5,6 +5,7 @@ import code.accountholder.{MapperAccountHolders, RemotedataAccountHoldersCaseCla
 import code.actorsystem.ObpActorHelper
 import code.model._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, User}
 
 
 class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLoggable {

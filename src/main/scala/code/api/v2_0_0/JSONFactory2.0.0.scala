@@ -42,6 +42,7 @@ import code.model.dataAccess.AuthUser
 import code.socialmedia.SocialMedia
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue

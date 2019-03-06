@@ -4,6 +4,7 @@ import code.api.util.ErrorMessages.ViewIdNotSupported
 import code.model._
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.Failure
 import net.liftweb.mapper.By
 

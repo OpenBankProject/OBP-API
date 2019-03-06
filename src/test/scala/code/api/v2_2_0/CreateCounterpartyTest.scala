@@ -4,8 +4,8 @@ import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
-import code.model.{AccountId, ViewId}
 import code.setup.DefaultUsers
+import com.openbankproject.commons.model.{AccountId, ViewId}
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 

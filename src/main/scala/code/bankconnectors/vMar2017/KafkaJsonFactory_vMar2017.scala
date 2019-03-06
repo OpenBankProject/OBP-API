@@ -27,14 +27,15 @@ TESOBE (http://www.tesobe.com/)
 package code.bankconnectors.vMar2017
 
 import java.util.Date
+
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
 import code.bankconnectors.InboundUser
 import code.fx.FXRate
-import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.model.dataAccess.MappedBankAccountData
 import code.transactionrequests.TransactionRequestTypeCharge
+import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today

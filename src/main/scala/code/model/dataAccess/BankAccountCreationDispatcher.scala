@@ -50,6 +50,7 @@ import code.model._
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.openbankproject.commons.model._
 import com.rabbitmq.client.{Channel, ConnectionFactory}
 import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 import net.liftmodules.amqp.{AMQPAddListener, AMQPDispatcher, AMQPMessage, SerializedConsumer}

@@ -5,8 +5,8 @@ import java.util.Date
 import code.api.util.ErrorMessages
 import code.model.dataAccess.MappedBankAccount
 import code.model._
-import code.views.Views
 import code.views.Views._
+import com.openbankproject.commons.model.{CardAction => CardActionType, _}
 import net.liftweb.mapper.{By, MappedString, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.util.Helpers.tryo
@@ -187,8 +187,8 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   def onHotList: Boolean = mOnHotList.get
   def technology: String = mTechnology.get
   def networks: List[String] = mNetworks.get.split(",").toList
-  def allows: List[code.model.CardAction] = Option(mAllows.get) match {
-    case Some(x) if (!x.isEmpty) => x.split(",").toList.map(code.model.CardAction.valueOf((_)))
+  def allows: List[CardActionType] = Option(mAllows.get) match {
+    case Some(x) if (!x.isEmpty) => x.split(",").toList.map(CardActionType.valueOf((_)))
     case _ => List()
   }
   def account = mAccount.obj match {
@@ -202,7 +202,7 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
     }
     case _ => None
   }
-  def pinResets: List[code.model.PinResetInfo] = mPinResets.map(a => PinResetInfo(a.mReplacementDate.get, PinResetReason.valueOf(a.mReplacementReason.get))).toList
+  def pinResets: List[PinResetInfo] = mPinResets.map(a => PinResetInfo(a.mReplacementDate.get, PinResetReason.valueOf(a.mReplacementReason.get))).toList
   def collected: Option[CardCollectionInfo] = Option(mCollected.get) match {
     case Some(x) => Some(CardCollectionInfo(x))
     case _ => None

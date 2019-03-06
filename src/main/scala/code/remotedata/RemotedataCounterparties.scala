@@ -4,8 +4,9 @@ import java.util.Date
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemotedataCounterpartiesCaseClasses}
+import code.metadata.counterparties.{Counterparties, RemotedataCounterpartiesCaseClasses}
 import code.model._
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

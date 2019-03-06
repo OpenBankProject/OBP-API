@@ -4,8 +4,8 @@ import akka.pattern.ask
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.accountattribute.{AccountAttributeProvider, RemotedataAccountAttributeCaseClasses}
 import code.actorsystem.ObpActorInit
-import code.model.{AccountId, BankId}
 import code.products.Products.ProductCode
+import com.openbankproject.commons.model.{AccountId, BankId}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

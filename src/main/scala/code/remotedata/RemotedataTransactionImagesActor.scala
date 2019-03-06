@@ -7,6 +7,7 @@ import code.actorsystem.ObpActorHelper
 import code.metadata.transactionimages.{MapperTransactionImages, RemotedataTransactionImagesCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model._
 
 
 class RemotedataTransactionImagesActor extends Actor with ObpActorHelper with MdcLoggable {

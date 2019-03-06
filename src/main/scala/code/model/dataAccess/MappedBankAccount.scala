@@ -1,8 +1,9 @@
 package code.model.dataAccess
 
 import java.util.Date
-import code.model._
+
 import code.util.{AccountIdString, Helper, MappedAccountNumber, UUIDString}
+import com.openbankproject.commons.model._
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List

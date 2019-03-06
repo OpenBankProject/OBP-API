@@ -6,8 +6,8 @@ import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, AtmsProvider}
 import code.common.{AddressT, LicenseT, LocationT, MetaT}
-import code.model.BankId
 import code.setup.DefaultUsers
+import com.openbankproject.commons.model.BankId
 
 class AtmsTest extends V140ServerSetup with DefaultUsers {
 

@@ -17,12 +17,14 @@ import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
+
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.util.ApiTag
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 
 object APIMethods_BalancesApi extends RestHelper {
     val apiVersion = OBP_UKOpenBanking_310.apiVersion

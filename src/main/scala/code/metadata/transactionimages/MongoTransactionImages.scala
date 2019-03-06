@@ -6,6 +6,7 @@ import net.liftweb.common.Box
 import code.util.Helper.MdcLoggable
 import java.net.URL
 import java.util.Date
+
 import org.bson.types.ObjectId
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
@@ -13,6 +14,7 @@ import net.liftweb.record.field.{LongField, StringField}
 import net.liftweb.util.Helpers._
 import net.liftweb.common.Full
 import com.mongodb.{DBObject, QueryBuilder}
+import com.openbankproject.commons.model._
 
 private object MongoTransactionImages extends TransactionImages with MdcLoggable {
 

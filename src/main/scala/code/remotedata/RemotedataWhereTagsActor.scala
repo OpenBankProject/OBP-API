@@ -7,6 +7,7 @@ import code.actorsystem.ObpActorHelper
 import code.metadata.wheretags.{MapperWhereTags, RemotedataWhereTagsCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model._
 
 
 class RemotedataWhereTagsActor extends Actor with ObpActorHelper with MdcLoggable {

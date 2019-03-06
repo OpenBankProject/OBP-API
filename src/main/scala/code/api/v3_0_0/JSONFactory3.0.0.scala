@@ -40,13 +40,13 @@ import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
-import code.customer.Customer
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.metrics.AggregateMetrics
 import code.model.dataAccess.ResourceUser
 import code.scope.Scope
 import code.views.Views
+import com.openbankproject.commons.model.{Customer, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List

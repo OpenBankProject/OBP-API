@@ -9,8 +9,8 @@ import code.api.util.ErrorMessages._
 import code.customer.MappedCustomer
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
-import code.model.{CreateViewJson, Permission, UpdateViewJSON, User, _}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, ByList, Schemifier}
 import net.liftweb.util.Helpers._

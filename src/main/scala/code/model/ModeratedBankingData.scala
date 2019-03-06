@@ -36,6 +36,8 @@ import net.liftweb.common.{Box, Failure}
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.json.JsonDSL._
 import code.api.util.ErrorMessages._
+import com.openbankproject.commons.model._
+
 import scala.collection.immutable.List
 
 object Moderation {

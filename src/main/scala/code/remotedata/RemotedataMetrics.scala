@@ -5,7 +5,6 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.api.util.OBPQueryParam
-import code.customer.{AmountOfMoneyTrait => _}
 import code.metrics._
 import net.liftweb.common.Box
 

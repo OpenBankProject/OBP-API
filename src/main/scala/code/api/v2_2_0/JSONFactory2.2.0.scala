@@ -38,14 +38,13 @@ import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.atms.Atms.{Atm, AtmId, AtmT}
 import code.branches.Branches._
 import code.common.{Address, Location, Meta}
-import code.customer.Customer
 import code.fx.FXRate
-import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.ConnectorMetric
 import code.model.dataAccess.ResourceUser
-import code.model.{CounterpartyMetadata, _}
+import code.model.{_}
 import code.products.Products.Product
 import code.users.Users
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JsonAST.JValue
 

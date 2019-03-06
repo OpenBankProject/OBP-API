@@ -5,12 +5,14 @@ import java.util.Date
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.api.util.OBPQueryParam
-import code.customer.{AmountOfMoneyTrait, _}
+import code.customer._
 import code.model._
 import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
 import akka.pattern.pipe
+import com.openbankproject.commons.model.{AmountOfMoneyTrait, BankId, CreditRatingTrait, CustomerFaceImageTrait}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggable {

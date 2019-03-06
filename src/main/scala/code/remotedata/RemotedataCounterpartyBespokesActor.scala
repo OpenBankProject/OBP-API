@@ -3,8 +3,8 @@ package code.remotedata
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.metadata.counterparties.{MapperCounterpartyBespokes, RemotedataCounterpartyBespokesCaseClasses}
-import code.model.CounterpartyBespoke
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.CounterpartyBespoke
 
 import scala.collection.immutable.List
 

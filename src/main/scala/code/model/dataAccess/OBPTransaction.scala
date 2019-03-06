@@ -29,23 +29,27 @@ package code.model.dataAccess
 import code.util.Helper
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.record.field._
-import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
+import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.common.{Box, Empty, Failure}
-import java.util.{UUID, Date}
-import net.liftweb.record.field.{StringField,LongField}
+import java.util.{Date, UUID}
+
+import net.liftweb.record.field.{LongField, StringField}
 import net.liftweb.json.JsonAST._
 import code.model._
 import code.util.Helper.MdcLoggable
-import net.liftweb.record.field.{DoubleField,DecimalField}
+import net.liftweb.record.field.{DecimalField, DoubleField}
 import net.liftweb.util.FieldError
 import org.bson.types.ObjectId
+
 import scala.xml.Unparsed
 import net.liftweb.json.JsonAST.JObject
+
 import scala.Some
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.JField
 import code.metadata.counterparties.MongoCounterparties
+import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 
 /**
  * "Current Account View"

@@ -5,8 +5,8 @@ package code.products
 // Need to import these one by one because in same package!
 
 import code.products.Products.{Product, ProductCode}
-import code.model.BankId
 import code.common.{Address, LocationT, Meta}
+import com.openbankproject.commons.model.BankId
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 

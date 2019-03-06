@@ -8,10 +8,10 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{CounterpartyIdJson, IbanJson, TransactionRequestCommonBodyJSON}
 import code.api.v3_0_0.custom._
-import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.remotedata.RemotedataTransactionRequests
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.{Props, SimpleInjector}

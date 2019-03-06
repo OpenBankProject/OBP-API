@@ -2,7 +2,7 @@ package code.entitlementrequest
 
 import java.util.Date
 
-import code.model.User
+import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 

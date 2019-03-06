@@ -56,6 +56,7 @@ import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import com.openbankproject.commons.model.{Customer, _}
 import dispatch.url
 import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}

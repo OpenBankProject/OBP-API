@@ -1,10 +1,13 @@
 package code.remotedata
 
 import java.util.Date
+
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.metadata.transactionimages.{RemotedataTransactionImagesCaseClasses, TransactionImages}
 import code.model._
+import com.openbankproject.commons.model._
+
 import scala.collection.immutable.List
 import net.liftweb.common.Box
 

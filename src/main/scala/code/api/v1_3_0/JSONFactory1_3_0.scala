@@ -1,11 +1,10 @@
 package code.api.v1_3_0
 
 import java.util.Date
+
 import code.model._
-import code.model.CardReplacementInfo
-import code.model.PhysicalCard
-import code.model.PinResetInfo
 import code.views.Views
+import com.openbankproject.commons.model._
 
 case class PhysicalCardsJSON(
   cards : List[PhysicalCardJSON])

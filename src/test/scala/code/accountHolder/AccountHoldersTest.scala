@@ -3,6 +3,7 @@ package code.accountHolder
 import code.accountholder.AccountHolders
 import code.model._
 import code.setup.{DefaultUsers, ServerSetup}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 
 class AccountHoldersTest extends ServerSetup with DefaultUsers{
   

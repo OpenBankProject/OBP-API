@@ -3,7 +3,7 @@ package code.accountapplication
 import java.util.Date
 
 import code.api.util.ErrorMessages
-import code.customer.{Customer, MappedCustomer}
+import code.customer.MappedCustomer
 import code.model.dataAccess.ResourceUser
 import code.products.Products.ProductCode
 import code.util.MappedUUID

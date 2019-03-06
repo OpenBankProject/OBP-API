@@ -2,8 +2,8 @@ package code.bankaccountcreation
 
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
-import code.model.{AccountId, BankId}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
+import com.openbankproject.commons.model.{AccountId, BankId}
 import org.scalatest.Tag
 
 class BankAccountCreationTest extends ServerSetup with DefaultUsers with DefaultConnectorTestSetup {

@@ -22,7 +22,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlementrequest.EntitlementRequest
 import code.metrics.APIMetrics
-import code.model.{BankId, ViewId, _}
+import code.model._
 import code.scope.Scope
 import code.search.elasticsearchWarehouse
 import code.users.Users
@@ -30,6 +30,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw

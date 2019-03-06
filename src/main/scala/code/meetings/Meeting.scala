@@ -2,7 +2,7 @@ package code.meetings
 
 import java.util.Date
 
-import code.model.{User, BankId}
+import com.openbankproject.commons.model.{BankId, User}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 

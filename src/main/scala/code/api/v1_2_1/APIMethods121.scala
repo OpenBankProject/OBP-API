@@ -14,10 +14,11 @@ import code.api.util._
 import code.bankconnectors._
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
-import code.model.{CreateViewJson, UpdateViewJSON, _}
+import code.model.{Bank, BankAccount, ModeratedTransactionMetadata, toBankAccountEx, toBankEx, toUserEx}
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.google.common.cache.CacheBuilder
+import com.openbankproject.commons.model.{Bank, UpdateViewJSON, _}
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest.RestHelper

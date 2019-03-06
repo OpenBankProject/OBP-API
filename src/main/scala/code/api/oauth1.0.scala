@@ -40,6 +40,7 @@ import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}

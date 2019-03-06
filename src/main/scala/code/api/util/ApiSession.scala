@@ -5,7 +5,9 @@ import java.util.{Date, UUID}
 import code.api.oauth1a.OauthParams._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
-import code.model.{Consumer, User}
+import code.model.Consumer
+import com.openbankproject.commons.dto.CallContextAkka
+import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
@@ -96,12 +98,6 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             `X-Rate-Limit-Limit` : Long = -1,
                             `X-Rate-Limit-Remaining` : Long = -1,
                             `X-Rate-Limit-Reset` : Long = -1
-                           )
-
-case class CallContextAkka(userId: Option[String] = None,
-                           consumerId: Option[String] = None,
-                           correlationId: String = "",
-                           sessionId: Option[String] = None,
                            )
 
 trait GatewayLoginParam

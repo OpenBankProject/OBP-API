@@ -12,6 +12,7 @@ import code.model.dataAccess._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
+import com.openbankproject.commons.model._
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction

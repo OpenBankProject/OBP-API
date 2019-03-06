@@ -4,8 +4,8 @@ import java.util.{Calendar, Date}
 
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.Connector
-import code.metadata.counterparties.CounterpartyTrait
 import code.model._
+import com.openbankproject.commons.model._
 
 trait TestConnectorSetup {
 

@@ -6,6 +6,7 @@ import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.metadata.comments.{Comments, RemotedataCommentsCaseClasses}
 import code.model._
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

@@ -37,7 +37,7 @@ import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -52,6 +52,7 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, TTLCache}
 import code.views.Views
+import com.openbankproject.commons.model.{Bank, _}
 import net.liftweb.common._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue

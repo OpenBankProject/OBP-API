@@ -2,8 +2,8 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.model.{CreateViewJson, Permission, UpdateViewJSON, _}
 import code.views.{RemotedataViewsCaseClasses, Views}
+import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

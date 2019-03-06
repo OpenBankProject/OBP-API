@@ -39,6 +39,7 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import _root_.net.liftweb.util.{Props, _}
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
+import com.openbankproject.commons.model._
 import org.scalatest.Tag
 
 import scala.util.Random._

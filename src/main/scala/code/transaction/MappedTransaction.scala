@@ -1,6 +1,5 @@
 package code.transaction
 
-import java.util.UUID
 
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, ApiTrigger}
@@ -9,6 +8,7 @@ import code.bankconnectors.LocalMappedConnector.getBankAccountCommon
 import code.model._
 import code.util._
 import code.webhook.WebhookActor
+import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.common.Box.tryo
 import net.liftweb.mapper._

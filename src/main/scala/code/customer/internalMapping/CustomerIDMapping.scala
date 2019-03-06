@@ -1,6 +1,6 @@
 package code.customer.internalMapping
 
-import code.model.{BankId, CustomerId}
+import com.openbankproject.commons.model.{BankId, CustomerId}
 
 /**
   * This trait is used for storing the mapped between obp customer_id and bank real customer number.

@@ -2,8 +2,8 @@ package code.branches
 
 import code.api.util.OBPLimit
 import code.branches.Branches.BranchT
-import code.model.BankId
 import code.setup.ServerSetup
+import com.openbankproject.commons.model.BankId
 import net.liftweb.mapper.By
 
 class MappedBranchesProviderTest extends ServerSetup {

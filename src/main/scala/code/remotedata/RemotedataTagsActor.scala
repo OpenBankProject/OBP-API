@@ -5,6 +5,7 @@ import code.actorsystem.ObpActorHelper
 import code.metadata.tags.{MappedTags, RemotedataTagsCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 
 class RemotedataTagsActor extends Actor with ObpActorHelper with MdcLoggable {
 

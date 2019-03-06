@@ -1,7 +1,7 @@
 package code.metadata.counterparties
 
-import code.model.CounterpartyBespoke
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.CounterpartyBespoke
 import net.liftweb.mapper.{MappedString, _}
 
 import scala.collection.immutable.List

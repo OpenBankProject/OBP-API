@@ -3,8 +3,9 @@ package code.cards
 import java.util.Date
 
 import code.model._
+import com.openbankproject.commons.model._
 import net.liftweb.util.SimpleInjector
-import net.liftweb.common.{Box}
+import net.liftweb.common.Box
 
 object PhysicalCard extends SimpleInjector {
 

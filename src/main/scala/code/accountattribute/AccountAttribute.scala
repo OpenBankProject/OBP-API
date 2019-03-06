@@ -4,9 +4,9 @@ package code.accountattribute
 
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.util.APIUtil
-import code.model.{AccountId, BankId}
 import code.products.Products.ProductCode
 import code.remotedata.RemotedataAccountAttribute
+import com.openbankproject.commons.model.{AccountId, BankId}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
