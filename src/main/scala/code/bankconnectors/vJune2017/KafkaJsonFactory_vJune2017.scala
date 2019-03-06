@@ -340,7 +340,8 @@ case class  InboundBranchVJune2017(
                            accessibleFeatures: Option[String],
                            branchType : Option[String],
                            moreInfo : Option[String],
-                           phoneNumber : Option[String]
+                           phoneNumber : Option[String],
+                           isDeleted : Option[Boolean]
                          ) extends BranchT
 
 case class InboundAtmJune2017(

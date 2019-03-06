@@ -25,7 +25,7 @@ object MappedBranchesProvider extends BranchesProvider {
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedBranch](value) }.headOption
     
     val optionalParams : Seq[QueryParam[MappedBranch]] = Seq(limit.toSeq, offset.toSeq).flatten
-    val mapperParams = Seq(By(MappedBranch.mBankId, bankId.value)) ++ optionalParams
+    val mapperParams = Seq(By(MappedBranch.mBankId, bankId.value), By(MappedBranch.mIsDeleted, false)) ++ optionalParams
     
     val branches: Option[List[BranchT]] = Some(MappedBranch.findAll(mapperParams:_*))
   
@@ -118,6 +118,8 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   object mBranchType extends MappedString(this, 32)
   object mMoreInfo extends MappedString(this, 128)
   object mPhoneNumber extends MappedString(this, 32)
+
+  object mIsDeleted extends MappedBoolean(this)
 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
@@ -256,6 +258,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   override def  moreInfo = Some(mMoreInfo.get)
   override def  phoneNumber = Some(mPhoneNumber.get)
 
+  override def isDeleted: Option[Boolean] = Some(mIsDeleted.get)
 }
 
 //

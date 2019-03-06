@@ -134,6 +134,12 @@ object ApiRole {
   case class CanCreateBranchAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateBranchAtAnyBank = CanCreateBranchAtAnyBank()
 
+  case class CanDeleteBranch(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBranch = CanDeleteBranch()
+
+  case class CanDeleteBranchAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteBranchAtAnyBank = CanDeleteBranchAtAnyBank()
+
   case class CanCreateAtm(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAtm = CanCreateAtm()
 
@@ -350,6 +356,8 @@ object ApiRole {
         canDeleteProductAttribute ::
         canCreateProductAttribute ::
         canMaintainProductCollection ::
+        canDeleteBranchAtAnyBank ::
+        canDeleteBranch ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
