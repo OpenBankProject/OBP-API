@@ -17,11 +17,12 @@ import code.consumer.Consumers
 import code.fx.{MappedFXRate, fx}
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metrics.ConnectorMetricsProvider
+import code.model._
 import code.model.dataAccess.BankAccountCreation
-import code.model.{BankId, ViewId, _}
 import code.util.Helper
 import code.util.Helper._
 import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction

@@ -1,6 +1,6 @@
 package code.customer.internalMapping
 
-import code.model.{BankId, CustomerId}
+import com.openbankproject.commons.model.{BankId, CustomerId}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 

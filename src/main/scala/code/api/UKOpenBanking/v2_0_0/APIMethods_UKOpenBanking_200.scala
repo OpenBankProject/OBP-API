@@ -7,9 +7,10 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidConnectorResponseForGetTransactionRequests210, UnknownError, UserNotLoggedIn, _}
 import code.api.util.{ApiVersion, ErrorMessages, NewStyle}
 import code.bankconnectors.Connector
-import code.model.{AccountId, _}
+import code.model._
 import code.util.Helper
 import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 

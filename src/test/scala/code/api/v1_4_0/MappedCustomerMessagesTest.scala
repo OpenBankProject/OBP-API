@@ -8,6 +8,7 @@ import code.customer.{Customer, MappedCustomerMessage}
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
+import com.openbankproject.commons.model.Customer
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Serialization.write
 

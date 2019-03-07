@@ -5,8 +5,9 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.v2_1_0.IbanJson
-import code.model.{BankAccount, CoreAccount, ModeratedBankAccount, ModeratedTransaction}
+import code.model.{ModeratedBankAccount, ModeratedTransaction}
 import code.transactionrequests.TransactionRequests.TransactionRequest
+import com.openbankproject.commons.model.{BankAccount, CoreAccount}
 
 import scala.collection.immutable.List
 import net.liftweb.json.JValue

@@ -7,6 +7,7 @@ import code.actorsystem.ObpActorHelper
 import code.metadata.counterparties.{MapperCounterparties, RemotedataCounterpartiesCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model._
 
 import scala.collection.immutable.List
 

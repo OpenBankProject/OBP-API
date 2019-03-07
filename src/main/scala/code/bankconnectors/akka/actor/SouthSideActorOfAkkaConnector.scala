@@ -5,12 +5,11 @@ import java.util.Date
 import akka.actor.{Actor, ActorLogging}
 import code.api.util.{APIUtil, OBPFromDate, OBPLimit, OBPToDate}
 import code.bankconnectors.LocalMappedConnector._
-import code.bankconnectors.akka._
-import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
-import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBank
-import code.model.{Bank => _, _}
+import code.model._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.dto._
+import com.openbankproject.commons.model.{CounterpartyTrait, CreditLimit, _}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

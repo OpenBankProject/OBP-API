@@ -4,6 +4,7 @@ import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.metadata.narrative.{Narrative, RemoteNarrativesCaseClasses}
 import code.model._
+import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 
 object RemotedataNarratives extends ObpActorInit with Narrative {
 

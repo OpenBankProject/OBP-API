@@ -5,8 +5,8 @@ import java.util.UUID.randomUUID
 import code.api.cache.Caching
 import code.api.util.APIUtil
 import code.bankconnectors.Connector
-import code.model.BankId
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.BankId
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Full
 import net.liftweb.http.LiftRules

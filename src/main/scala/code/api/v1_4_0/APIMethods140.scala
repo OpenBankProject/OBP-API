@@ -8,9 +8,11 @@ import code.api.util.{APIUtil, ApiRole, ApiVersion, NewStyle}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
 import code.bankconnectors.Connector
+import code.customer.Customer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
@@ -38,7 +40,7 @@ import code.api.util.ErrorMessages._
 import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
-import code.customer.{Customer, CustomerFaceImage, CustomerMessages}
+import code.customer.CustomerMessages
 import code.model._
 import code.products.Products
 import code.util.Helper._

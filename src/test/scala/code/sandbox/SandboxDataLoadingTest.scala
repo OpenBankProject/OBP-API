@@ -47,6 +47,7 @@ import code.products.Products.{Product, ProductCode, countOfProducts}
 import code.setup.{APIResponse, SendServerRequests}
 import code.users.Users
 import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionId}
 import dispatch._
 import net.liftweb.common.{Empty, ParamFailure}
 import net.liftweb.json.JsonAST.{JObject, JValue}

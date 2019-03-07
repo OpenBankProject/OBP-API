@@ -3,9 +3,9 @@ package code.entitlementrequest
 import java.util.Date
 
 import code.api.util.ErrorMessages
-import code.model.User
 import code.users.Users
 import code.util.{MappedUUID, UUIDString}
+import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 

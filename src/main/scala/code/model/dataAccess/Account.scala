@@ -34,6 +34,7 @@ import code.model._
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.mongodb.QueryBuilder
+import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk, ObjectIdRefField}
@@ -94,7 +95,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     .is(accountNumber.get)
     //FIX: change that to use the bank identifier
     .put("obp_transaction.this_account.bank.national_identifier")
-    .is(nationalIdentifier)
+    .is(this.nationalIdentifier)
   }
 
   //find all the envelopes related to this account

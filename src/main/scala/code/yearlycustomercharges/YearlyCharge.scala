@@ -1,7 +1,7 @@
 package code.yearlycustomercharges
 
 import code.api.util.APIUtil
-import code.model.{BankId, CustomerId}
+import com.openbankproject.commons.model.{BankId, CustomerId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 

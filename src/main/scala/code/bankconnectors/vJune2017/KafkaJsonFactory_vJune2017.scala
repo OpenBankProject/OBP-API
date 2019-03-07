@@ -12,12 +12,10 @@ import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 import code.branches.Branches._
 import code.common.{Address, Location, Meta, Routing}
-import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
 import code.kafka.Topics._
-import code.metadata.counterparties.CounterpartyTrait
 import code.model.dataAccess.MappedBankAccountData
-import code.model.{AmountOfMoney => _, _}
 import code.transactionrequests.TransactionRequests.TransactionRequest
+import com.openbankproject.commons.model.{CounterpartyTrait, CreditLimit, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 

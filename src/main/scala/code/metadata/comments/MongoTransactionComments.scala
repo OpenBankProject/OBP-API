@@ -2,10 +2,12 @@ package code.metadata.comments
 
 import code.model._
 import java.util.Date
+
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Full, Box}
+import net.liftweb.common.{Box, Full}
 import org.bson.types.ObjectId
 import com.mongodb.{DBObject, QueryBuilder}
+import com.openbankproject.commons.model._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{LongField, StringField}

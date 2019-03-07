@@ -1,7 +1,7 @@
 package code.customer.internalMapping
 
-import code.model.{BankId, CustomerId}
 import code.util.MappedUUID
+import com.openbankproject.commons.model.{BankId, CustomerId}
 import net.liftweb.mapper._
 
 class MappedCustomerIDMapping extends CustomerIDMapping with LongKeyedMapper[MappedCustomerIDMapping] with IdPK with CreatedUpdated {

@@ -12,11 +12,11 @@ import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequest
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
 import code.bankconnectors.Connector
 import code.fx.fx
-import code.model.{AccountId, BankAccount, TransactionRequestId}
+import code.model.BankAccount
 import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
+import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 

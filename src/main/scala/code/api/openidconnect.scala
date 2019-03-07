@@ -28,8 +28,8 @@ package code.api
 
 import java.net.HttpURLConnection
 import java.util.Date
-import javax.net.ssl.HttpsURLConnection
 
+import javax.net.ssl.HttpsURLConnection
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiVersion}
 import code.model.User

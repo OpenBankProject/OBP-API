@@ -6,7 +6,8 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
 import code.bankconnectors.Connector
-import code.model.{Bank, BankId}
+import code.model.Bank
+import com.openbankproject.commons.model.BankId
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 

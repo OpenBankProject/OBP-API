@@ -8,6 +8,7 @@ import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{AccountIdString, MappedUUID, UUIDString}
 import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo

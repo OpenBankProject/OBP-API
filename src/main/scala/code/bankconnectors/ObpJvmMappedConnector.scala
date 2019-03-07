@@ -15,7 +15,6 @@ import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
-import code.metadata.counterparties.CounterpartyTrait
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
@@ -30,6 +29,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.google.common.cache.CacheBuilder
+import com.openbankproject.commons.model.{Bank, CounterpartyTrait, _}
 import com.tesobe.obp.kafka.{Configuration, SimpleConfiguration, SimpleNorth}
 import com.tesobe.obp.transport.nov2016.{Bank => _, Transaction => _, User => _, _}
 import com.tesobe.obp.transport.spi.{DefaultSorter, TimestampFilter}

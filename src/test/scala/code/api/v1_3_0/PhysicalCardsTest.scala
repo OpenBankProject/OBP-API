@@ -5,9 +5,9 @@ import java.util.Date
 import code.api.util.APIUtil.OAuth._
 import code.api.util.CallContext
 import code.bankconnectors.Connector
-import code.model.{PhysicalCard, _}
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {

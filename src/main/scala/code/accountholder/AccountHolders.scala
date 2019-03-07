@@ -6,6 +6,7 @@ import code.api.util.APIUtil
 import code.model._
 import net.liftweb.util.{Props, SimpleInjector}
 import code.remotedata.RemotedataAccountHolders
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, User}
 import net.liftweb.common.Box
 
 

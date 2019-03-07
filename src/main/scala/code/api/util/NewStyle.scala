@@ -23,12 +23,11 @@ import code.branches.Branches.{Branch, BranchId, DriveUp, DriveUpString, Lobby, 
 import code.common.{Address, Location, Meta, Routing}
 import code.consumer.Consumers
 import code.context.UserAuthContext
-import code.customer.Customer
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.Counterparties
 import code.model._
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.ProductCollection
@@ -41,6 +40,7 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{Bank, Customer, _}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo

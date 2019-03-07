@@ -33,8 +33,8 @@ import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
-import code.model.{AccountId, BankId}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{AccountId, BankId}
 import dispatch._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.json.JsonDSL._

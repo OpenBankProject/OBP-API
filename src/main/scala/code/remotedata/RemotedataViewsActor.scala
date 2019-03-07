@@ -5,6 +5,7 @@ import code.actorsystem.ObpActorHelper
 import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import code.model._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model._
 import net.liftweb.common._
 
 class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {

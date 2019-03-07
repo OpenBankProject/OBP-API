@@ -32,9 +32,10 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.{APIInfoJSON, PermissionJSON, PermissionsJSON}
 import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
-import code.model.{CreateViewJson, UpdateViewJSON}
 import code.setup.APIResponse
+import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import net.liftweb.util.Helpers._
+
 import scala.util.Random.nextInt
 
 class ViewsTests extends V300ServerSetup {

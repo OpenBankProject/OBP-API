@@ -5,15 +5,15 @@ import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
-import code.model.{AccountId, BankAccount, TransactionRequestId}
 import code.setup.DefaultUsers
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestStatus}
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
-import net.liftweb.util.Props
 import org.scalatest.Tag
 import code.api.util.ErrorMessages._
+import code.model.BankAccount
+import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 
 class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
 

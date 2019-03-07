@@ -4,12 +4,12 @@ import java.lang
 import java.util.Date
 
 import code.api.util._
-import code.model.{BankId, User}
 import code.usercustomerlinks.{MappedUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
 import com.github.dwickern.macros.NameOf
+import com.openbankproject.commons.model.{User, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.tryo

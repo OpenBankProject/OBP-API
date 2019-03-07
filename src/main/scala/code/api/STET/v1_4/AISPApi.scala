@@ -16,6 +16,7 @@ import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
+
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -23,6 +24,7 @@ import scala.concurrent.Future
 import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.util.ApiTag
 import code.api.STET.v1_4.JSONFactory_STET_1_4._
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 
 object APIMethods_AISPApi extends RestHelper {
     val apiVersion =  OBP_STET_1_4.apiVersion

@@ -6,9 +6,10 @@ import java.util.TimeZone
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
-import code.model.{AccountId, Transaction}
+import code.model._
 import code.setup.{APIResponse, DefaultConnectorTestSetup, ServerSetup}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.AccountId
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers._
 

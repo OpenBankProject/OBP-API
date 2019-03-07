@@ -11,9 +11,9 @@ import code.bankconnectors._
 import code.bankconnectors.akka.InboundTransformerDec2018._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.customer.{CreditLimit, CreditRating, Customer, CustomerFaceImage}
-import code.metadata.counterparties.CounterpartyTrait
-import code.model.{AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CoreAccount, CounterpartyBespoke, Transaction, TransactionId, ViewId, Bank => BankTrait}
+import code.model.Transaction
+import com.openbankproject.commons.dto._
+import com.openbankproject.commons.model.{CounterpartyTrait, CreditLimit, _}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction.decompose
@@ -98,7 +98,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundAvroSchema =  Some(parse(SchemaFor[InboundGetBanks]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
-  override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[BankTrait], Option[CallContext])]] = {
+  override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = {
     val req = OutboundGetBanks(callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetBanks] = (southSideActor ? req).mapTo[InboundGetBanks]
     response.map(_.payload.map(r => (r.map(toBank(_)), callContext)))
@@ -124,7 +124,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
-  override def getBankFuture(bankId : BankId, callContext: Option[CallContext]): Future[Box[(BankTrait, Option[CallContext])]] = {
+  override def getBankFuture(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
     val req = OutboundGetBank(bankId.value, callContext.map(_.toCallContextAkka))
     val response: Future[InboundGetBank] = (southSideActor ? req).mapTo[InboundGetBank]
     response.map(_.payload.map(r => (toBank(r), callContext)))

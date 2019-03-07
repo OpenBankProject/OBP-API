@@ -5,6 +5,7 @@ import java.util.Date
 import code.model._
 import net.liftweb.common.{Box, Full}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model._
 
 
 private object MongoTransactionWhereTags extends WhereTags with MdcLoggable {

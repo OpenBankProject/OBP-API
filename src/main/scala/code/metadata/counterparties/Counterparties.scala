@@ -5,6 +5,7 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.model._
 import code.remotedata.RemotedataCounterparties
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.util.{Props, SimpleInjector}
 
@@ -83,46 +84,6 @@ trait Counterparties {
   def getPrivateAlias(counterpartyId : String): Box[String]
   def bulkDeleteAllCounterparties(): Box[Boolean]
 }
-
-trait CounterpartyTrait {
-  def createdByUserId: String
-  def name: String
-  def description: String
-  def thisBankId: String
-  def thisAccountId: String
-  def thisViewId: String
-  def counterpartyId: String
-  def otherAccountRoutingScheme: String
-  def otherAccountRoutingAddress: String
-  def otherAccountSecondaryRoutingScheme: String
-  def otherAccountSecondaryRoutingAddress: String
-  def otherBankRoutingScheme: String
-  def otherBankRoutingAddress: String
-  def otherBranchRoutingScheme: String
-  def otherBranchRoutingAddress: String
-  def isBeneficiary : Boolean
-  def bespoke: List[CounterpartyBespoke]
-}
-
-case class CounterpartyInMemory(
-   createdByUserId: String,
-   name: String,
-   description: String,
-   thisBankId: String,
-   thisAccountId: String,
-   thisViewId: String,
-   counterpartyId: String,
-   otherAccountRoutingScheme: String,
-   otherAccountRoutingAddress: String,
-   otherAccountSecondaryRoutingScheme: String,
-   otherAccountSecondaryRoutingAddress: String,
-   otherBankRoutingScheme: String,
-   otherBankRoutingAddress: String,
-   otherBranchRoutingScheme: String,
-   otherBranchRoutingAddress: String,
-   isBeneficiary : Boolean,
-   bespoke: List[CounterpartyBespoke]
-)
 
 class RemotedataCounterpartiesCaseClasses {
   case class getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)

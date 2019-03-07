@@ -1,6 +1,6 @@
 package code.model.dataAccess
 
-import code.model.{BankId, Bank}
+import com.openbankproject.commons.model.{Bank, BankId}
 import net.liftweb.mapper._
 
 class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with CreatedUpdated {

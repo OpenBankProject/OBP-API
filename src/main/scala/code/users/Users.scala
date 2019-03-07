@@ -2,9 +2,9 @@ package code.users
 
 import code.api.util.{APIUtil, OBPQueryParam}
 import code.entitlement.Entitlement
-import code.model.User
 import code.model.dataAccess.ResourceUser
 import code.remotedata.RemotedataUsers
+import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 

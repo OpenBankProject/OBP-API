@@ -5,9 +5,9 @@ import akka.pattern.pipe
 import code.accountattribute.AccountAttribute.AccountAttributeType
 import code.accountattribute.{MappedAccountAttributeProvider, RemotedataAccountAttributeCaseClasses}
 import code.actorsystem.ObpActorHelper
-import code.model.{AccountId, BankId}
 import code.products.Products.ProductCode
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{AccountId, BankId}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

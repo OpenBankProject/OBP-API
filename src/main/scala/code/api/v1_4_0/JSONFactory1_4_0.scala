@@ -9,11 +9,12 @@ import code.atms.Atms.AtmT
 import code.branches.Branches.BranchT
 import code.common._
 import code.crm.CrmEvent.CrmEvent
-import code.customer.{Customer, CustomerMessage}
+import code.customer.CustomerMessage
 import code.model._
 import code.products.Products.Product
 import code.transactionrequests.TransactionRequestTypeCharge
 import code.transactionrequests.TransactionRequests.{TransactionRequest, _}
+import com.openbankproject.commons.model._
 import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue

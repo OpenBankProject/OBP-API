@@ -1,9 +1,9 @@
 package code.accountattribute
 
 import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
-import code.model.{AccountId, BankId}
 import code.products.Products.ProductCode
 import code.util.{MappedUUID, UUIDString}
+import com.openbankproject.commons.model.{AccountId, BankId}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo

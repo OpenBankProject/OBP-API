@@ -36,15 +36,14 @@ import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitl
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.branches.Branches._
 import code.common._
-import code.customer.Customer
 import code.entitlement.Entitlement
-import code.metadata.counterparties.CounterpartyTrait
 import code.metrics.APIMetric
 import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, _}
 import code.products.Products.Product
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List

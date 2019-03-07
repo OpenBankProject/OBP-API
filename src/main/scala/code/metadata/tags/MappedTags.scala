@@ -7,6 +7,7 @@ import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util._
 import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.mapper._

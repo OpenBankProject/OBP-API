@@ -32,53 +32,22 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
-import code.api.util.APIUtil
 import code.views.Views
 import code.entitlement.Entitlement
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{BankIdAccountId, User, UserPrimaryKey, View, ViewId}
 import net.liftweb.mapper.By
 
-case class UserPrimaryKey(val value : Long) {
-  override def toString = value.toString
-}
+case class UserEx(val user: User) extends MdcLoggable {
 
-/**
- * An O-R mapped "User" class that includes first name, last name, password
-  *
-  * 1 AuthUser : is used for authentication, only for webpage Login in stuff
-  *   1) It is MegaProtoUser, has lots of methods for validation username, password, email ....
-  *      Such as lost password, reset password ..... 
-  *      Lift have some helper methods to make these things easily. 
-  *   
-  *  
-  * 
-  * 2 ResourceUser: is only a normal LongKeyedMapper 
-  *   1) All the accounts, transactions ,roles, views, accountHolders, customers... should be linked to ResourceUser.userId_ field.
-  *   2) The consumer keys, tokens are also belong ResourceUser
-  *  
-  * 
-  * 3 RelationShips:
-  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save() --> create ResourceUser user.
-  *      They share the same username and email.
-  *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
-  *      one AuthUser <---> one ResourceUser 
-  *
- */
-trait User extends MdcLoggable {
-  
-  /**This will return resouceUser primary key: it is a long value !!!
-    * This should not be exposed to outside. */
-  def userPrimaryKey : UserPrimaryKey
-  /** This will be a UUID for Resource User Docment */
-  def userId: String
+  private[this] val userPrimaryKey: UserPrimaryKey = user.userPrimaryKey
+  private[this] val userId: String = user.userId
+  private[this] val idGivenByProvider = user.idGivenByProvider
+  private[this] val provider : String = user.provider
+  private[this] val name : String = user.name
 
-  def idGivenByProvider: String
-  def provider : String
-  def emailAddress : String
-  def name : String
-  
   /**
     * Also see @`hasViewAccess(view: View): Boolean`
     * Here only need the bankIdAccountId, it will search for the `owner` view internally.
@@ -90,7 +59,7 @@ trait User extends MdcLoggable {
     val viewImplBox = Views.views.vend.view(ViewId("owner"), bankIdAccountId)
     viewImplBox match {
       case Full(v) => hasViewAccess(v)
-      case _ => 
+      case _ =>
         logger.warn(s"It is strange. This bankAccount(${bankIdAccountId.bankId}, ${bankIdAccountId.accountId}) do not have `owner` view.")
         return false
     }
@@ -107,7 +76,7 @@ trait User extends MdcLoggable {
     val viewImpl = view.asInstanceOf[ViewImpl]
     !(ViewPrivileges.count(By(ViewPrivileges.user, this.userPrimaryKey.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
   }
-  
+
   def assignedEntitlements : List[Entitlement] = {
     Entitlement.entitlement.vend.getEntitlementsByUserId(userId) match {
       case Full(l) => l.sortWith(_.roleName < _.roleName)
@@ -118,11 +87,13 @@ trait User extends MdcLoggable {
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject =
     ("id" -> idGivenByProvider) ~
-    ("provider" -> provider) ~
-    ("display_name" -> name)
+      ("provider" -> provider) ~
+      ("display_name" -> name)
 }
 
+
 object User {
+
   def findByResourceUserId(id : Long) : Box[User] =
     Users.users.vend.getUserByResourceUserId(id)
 
@@ -130,9 +101,9 @@ object User {
     Users.users.vend.getResourceUserByResourceUserId(id)
 
   def findByProviderId(provider : String, idGivenByProvider : String) =
-    //if you change this, think about backwards compatibility! All existing
-    //versions of the API return this failure message, so if you change it, make sure
-    //that all stable versions retain the same behavior
+  //if you change this, think about backwards compatibility! All existing
+  //versions of the API return this failure message, so if you change it, make sure
+  //that all stable versions retain the same behavior
     Users.users.vend.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
 
   def findByUserId(userId : String) = {
@@ -159,7 +130,7 @@ object User {
   }
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
-     Users.users.vend.createResourceUser(provider, providerId, name, email, userId)
+    Users.users.vend.createResourceUser(provider, providerId, name, email, userId)
   }
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
@@ -174,3 +145,6 @@ object User {
   //  Users.users.vend.bulkDeleteAllResourceUsers()
   //}
 }
+
+
+

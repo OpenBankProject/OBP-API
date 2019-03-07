@@ -2,9 +2,9 @@ package code.users
 
 import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
 import code.entitlement.Entitlement
-import code.model.User
 import code.model.dataAccess.ResourceUser
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
