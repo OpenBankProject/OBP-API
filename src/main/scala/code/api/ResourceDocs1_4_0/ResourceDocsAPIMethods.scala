@@ -10,7 +10,8 @@ import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, ApiVersion, ScannedApiVersion, ScannedApis}
+import code.api.util.ApiStandards.{ApiStandards => _, apply => _, _}
+import code.api.util._
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
@@ -160,39 +161,22 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       requestedApiVersion match
       {
         // only `obp` standard show the `localResouceDocs`
-        case version: ScannedApiVersion if(version.apiStandard =="obp") => activePlusLocalResourceDocs ++= localResourceDocs
+        case version: ScannedApiVersion if(version.apiStandard == obp.toString) => activePlusLocalResourceDocs ++= localResourceDocs
         // all other standards only show their own apis. 
         case _ => ;
       }
-//      activePlusLocalResourceDocs ++= localResourceDocs
 
 
       // Add any featured status and special instructions from Props
-      // Overwrite the requestUrl adding /obp
-      // TODO We ideally need to return two urls here:
-      // 1) the implemented in url i.e. the earliest version under which this endpoint is available
-      // 2) the called url (contains the version we are calling)
 
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
-        // This is the "implemented in" url
-        url = x.implementedInApiVersion match {
-          case ApiVersion.`apiBuilder` =>  s"/api-builder/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          // We add the /obp/vX prefix here
-          case version: ScannedApiVersion => s"/${version.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-          case _ =>  s"/obp/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}"
-        }
-        y = x.copy(isFeatured = getIsFeaturedApi(x.partialFunctionName),
-                    specialInstructions = getSpecialInstructions(x.partialFunctionName),
-          requestUrl = url,
-          specifiedUrl = x.implementedInApiVersion match {
-            // We add the /obp/vX prefix here - but this is the requested API version by the resource docs endpoint. i.e. we know this endpoint
-            // is also available here as well as the requestUrl. See the resource doc for resource doc!
-            case version: ScannedApiVersion if(version.apiStandard =="obp") =>  Some(s"/obp/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}")
-            //for other standard apis, there is no need to map the version. because each version only contains its own apis, do not mix for now.
-            case _ =>  Some(url)
-          }
-
+        
+        y = x.copy(
+          isFeatured = getIsFeaturedApi(x.partialFunctionName),
+          specialInstructions = getSpecialInstructions(x.partialFunctionName),
+          requestUrl =  s"/${x.implementedInApiVersion.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}", // This is the "implemented" in url 
+          specifiedUrl = Some(s"/${x.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}") // This is the "specified" in url when we call the resourceDoc api
         )
       } yield y
 
