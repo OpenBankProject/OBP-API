@@ -377,7 +377,7 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def getHeadersCommonPart() = headers ::: List(("Correlation-Id", getCorrelationId()))
+  def getHeadersCommonPart() = headers ::: List((ResponseHeader.`Correlation-Id`, getCorrelationId()))
 
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
 
@@ -1931,6 +1931,10 @@ Returns a string showed to the developer
       fullBoxOrException(box ~> APIFailureNewStyle(emptyBoxErrorMsg, emptyBoxErrorCode, cc.map(_.toLight)))
     }
   }
+  
+  def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext])(implicit m: Manifest[T]): T = {
+    unboxFullOrFail(box, cc, ConnectorEmptyResponse, 400)
+  }
 
   def unboxFuture[T](box: Box[Future[T]]): Future[Box[T]] = box match {
     case Full(v) => v.map(Box !! _)
@@ -2107,9 +2111,7 @@ Returns a string showed to the developer
     * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
     */
   def authorizedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
-    getUserAndSessionContextFuture(cc) map {
-      x => underCallLimits(x)
-    } map {
+    anonymousAccess(cc) map {
       x => (fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))), x._2)
     }
   }

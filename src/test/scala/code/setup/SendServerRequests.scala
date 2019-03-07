@@ -29,6 +29,7 @@ package code.setup
 import java.nio.charset.{Charset, StandardCharsets}
 import java.util.TimeZone
 
+import code.api.ResponseHeader
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.OAuth
 import code.consumer.Consumers
@@ -179,9 +180,9 @@ trait SendServerRequests {
         val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
 
         // Check that every response has a correlationId at Response Header
-        val list = response.getHeaders("Correlation-Id").asScala.toList
+        val list = response.getHeaders(ResponseHeader.`Correlation-Id`).asScala.toList
         list match {
-          case Nil => throw new Exception(s"There is no Correlation-Id in response header. Couldn't parse response from ${req.url} : $body")
+          case Nil => throw new Exception(s"There is no ${ResponseHeader.`Correlation-Id`} in response header. Couldn't parse response from ${req.url} : $body")
           case _ =>
         }
 
