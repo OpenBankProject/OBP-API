@@ -2,6 +2,25 @@ package code.api.util
 
 import code.api.Constant.ApiPathZero
 
+object ApiStandards extends Enumeration {
+    type ApiStandards = Value
+    val obp = Value
+    val `api-builder` = Value("api-builder")
+}
+
+object ApiShortVersions extends Enumeration {
+  type ApiShortVersions = Value
+  val `v1.2.1` = Value("v1.2.1")
+  val `v1.3.0` = Value("v1.3.0")
+  val `v1.4.0` = Value("v1.4.0")
+  val `v2.0.0` = Value("v2.0.0")
+  val `v2.1.0` = Value("v2.1.0")
+  val `v2.2.0` = Value("v2.2.0")
+  val `v3.0.0` = Value("v3.0.0")
+  val `v3.1.0` = Value("v3.1.0")
+  val b1 = Value
+}
+
 sealed trait ApiVersion {
   def dottedApiVersion() : String = this.toString.replace("_", ".").replace("v","")
   def vDottedApiVersion() : String = this.toString.replace("_", ".")
@@ -38,14 +57,14 @@ object ApiVersion {
   lazy val bankMockApi = BankMockApi()
   
   //OBP Standard 
-  val v1_2_1 = ScannedApiVersion(ApiPathZero,"OBP","v1.2.1")
-  val v1_3_0 = ScannedApiVersion(ApiPathZero,"OBP","v1.3.0")
-  val v1_4_0 = ScannedApiVersion(ApiPathZero,"OBP","v1.4.0")
-  val v2_0_0 = ScannedApiVersion(ApiPathZero,"OBP","v2.0.0")
-  val v2_1_0 = ScannedApiVersion(ApiPathZero,"OBP","v2.1.0")
-  val v2_2_0 = ScannedApiVersion(ApiPathZero,"OBP","v2.2.0")
-  val v3_0_0 = ScannedApiVersion(ApiPathZero,"OBP","v3.0.0")
-  val v3_1_0 = ScannedApiVersion(ApiPathZero,"OBP","v3.1.0")
+  val v1_2_1 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.2.1`.toString)
+  val v1_3_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.3.0`.toString)
+  val v1_4_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v1.4.0`.toString)
+  val v2_0_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.0.0`.toString)
+  val v2_1_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.1.0`.toString)
+  val v2_2_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.2.0`.toString)
+  val v3_0_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.0.0`.toString)
+  val v3_1_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
 
   case class OpenIdConnect1() extends ApiVersion
   lazy val openIdConnect1 = OpenIdConnect1()
@@ -53,9 +72,9 @@ object ApiVersion {
   lazy val sandbox = Sandbox()
   
   //Fixed the apiBuild apis as `api-builder` standard . 
-  lazy val apiBuilder = ScannedApiVersion("api-builder","api-builder","b1") 
+  lazy val apiBuilder = ScannedApiVersion("api-builder",ApiStandards.`api-builder`.toString, ApiShortVersions.b1.toString) 
 
-  val scabbedApis = ScannedApis.versionMapScannedApis.keysIterator.toList
+  val scannedApis = ScannedApis.versionMapScannedApis.keysIterator.toList
   private val versions =
       v1_2_1 ::
       v1_3_0 ::
@@ -71,7 +90,7 @@ object ApiVersion {
       openIdConnect1 ::
       sandbox ::
       apiBuilder::
-      scabbedApis
+      scannedApis
 
   def valueOf(value: String): ApiVersion = {
     
@@ -88,8 +107,8 @@ object ApiVersion {
       case v3_0_0.fullyQualifiedVersion => v3_0_0.apiShortVersion
       case v3_1_0.fullyQualifiedVersion => v3_1_0.apiShortVersion
       case apiBuilder.fullyQualifiedVersion => apiBuilder.apiShortVersion
-      case version if(scabbedApis.map(_.fullyQualifiedVersion).contains(version))
-        =>scabbedApis.filter(_.fullyQualifiedVersion==version).head.apiShortVersion
+      case version if(scannedApis.map(_.fullyQualifiedVersion).contains(version))
+        =>scannedApis.filter(_.fullyQualifiedVersion==version).head.apiShortVersion
       case _=> value
     }
     

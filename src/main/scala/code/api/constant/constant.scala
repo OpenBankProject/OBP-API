@@ -1,6 +1,6 @@
 package code.api
 
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ApiStandards, ErrorMessages}
 import code.util.Helper.MdcLoggable
 
 
@@ -11,7 +11,7 @@ object Constant extends MdcLoggable {
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
 
   // This is the part before the version. Do not change this default!
-  final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", "obp")
+  final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", ApiStandards.obp.toString)
 
 }
 
