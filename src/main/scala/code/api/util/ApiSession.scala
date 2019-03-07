@@ -2,8 +2,9 @@ package code.api.util
 
 import java.util.{Date, UUID}
 
-import code.api.oauth1a.OauthParams._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
+import code.api.RequestHeader
+import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
 import code.model.Consumer
 import com.openbankproject.commons.dto.CallContextAkka
@@ -37,9 +38,17 @@ case class CallContext(
                        `X-Rate-Limit-Remaining` : Long = -1,
                        `X-Rate-Limit-Reset` : Long = -1
                       ) {
-  
-  def removeResourceDocument: CallContext = this.copy(resourceDocument = None)
 
+  /**
+    * Purpose of this helper function is to get rid of unnecessary and heavy data before serialization.
+    * For instance before we send it from the North Side to the Adapter(the South side)
+    * @return CallContext without ResourceDoc type
+    */
+  def removeResourceDocument: CallContext = this.copy(resourceDocument = None)
+  /**
+    * Purpose of this helper function is to transform data for Akka's connector serialization.
+    * @return object which type is CallContextAkka
+    */
   def toCallContextAkka: CallContextAkka = 
     CallContextAkka(
       userId = this.user.map(_.userId).toOption,
@@ -74,6 +83,17 @@ case class CallContext(
       `X-Rate-Limit-Reset` = this.`X-Rate-Limit-Reset`
     )
   }
+  /**
+    * Purpose of this helper function is to get the Consent-Id value from a Request Headers.
+    * @return the Consent-Id value from a Request Header as a String
+    */
+  def getConsentId(): String = {
+    this.requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+      case x :: Nil => x.values.mkString(", ")
+      case _ => ""
+    }
+  }
+  
 }
 
 case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,

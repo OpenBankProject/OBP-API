@@ -377,7 +377,7 @@ object APIUtil extends MdcLoggable {
     }
   }
 
-  def getHeadersCommonPart() = headers ::: List(("Correlation-Id", getCorrelationId()))
+  def getHeadersCommonPart() = headers ::: List((ResponseHeader.`Correlation-Id`, getCorrelationId()))
 
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
 

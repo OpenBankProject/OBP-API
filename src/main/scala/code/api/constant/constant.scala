@@ -22,3 +22,11 @@ object ChargePolicy extends Enumeration {
   type ChargePolicy = Value
   val SHARED, SENDER, RECEIVER = Value
 }
+
+object RequestHeader {
+  final lazy val `Consent-Id` = "Consent-Id"
+}
+object ResponseHeader {
+  final lazy val `Correlation-Id` = "Correlation-Id"
+}
+
