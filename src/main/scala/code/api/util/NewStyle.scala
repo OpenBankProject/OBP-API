@@ -27,6 +27,7 @@ import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
+import code.meetings.Meeting
 import code.metadata.counterparties.Counterparties
 import code.model._
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
@@ -873,6 +874,65 @@ object NewStyle {
       } map {
         unboxFullOrFail(_, callContext, FXCurrencyCodeCombinationsNotSupported)
       }
+    
+    def createMeeting(
+      bankId: BankId,
+      staffUser: User,
+      customerUser: User,
+      providerId: String,
+      purposeId: String,
+      when: Date,
+      sessionId: String,
+      customerToken: String,
+      staffToken: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Meeting] =
+    {
+      Connector.connector.vend.createMeeting(
+        bankId: BankId,
+        staffUser: User,
+        customerUser: User,
+        providerId: String,
+        purposeId: String,
+        when: Date,
+        sessionId: String,
+        customerToken: String,
+        staffToken: String,
+        callContext: Option[CallContext]
+    ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not createMeeting there. ", 400), i._2)
+      }
+    }
+    
+    def getMeetings(
+      bankId : BankId, 
+      userId: User,
+      callContext: Option[CallContext]
+    ) :OBPReturnType[List[Meeting]] ={
+      Connector.connector.vend.getMeetings(
+        bankId : BankId, 
+        userId: User,
+        callContext: Option[CallContext]
+      ) map {
+          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not getMeetings there. ", 400), i._2)
+        }
+      }
+    
+    def getMeeting(
+      bankId: BankId,
+      userId: User, 
+      meetingId : String,
+      callContext: Option[CallContext]
+    ) :OBPReturnType[Meeting]={ 
+      Connector.connector.vend.getMeeting(
+      bankId: BankId,
+      userId: User, 
+      meetingId : String,
+      callContext: Option[CallContext]
+    ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$MeetingNotFound Current MeetingId(${meetingId}) ", 400), i._2)
+      }
+    }
     
   }
 

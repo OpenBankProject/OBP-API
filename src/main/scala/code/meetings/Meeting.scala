@@ -15,8 +15,9 @@ trait Meeting {
   def present: MeetingPresent
   def keys: MeetingKeys
   def when: Date
+//  def creator: ContactDetails
+//  def invitees: List[String]
 }
-
 
 case class MeetingKeys (
                          sessionId: String,
@@ -39,9 +40,28 @@ object Meeting extends SimpleInjector {
 }
 
 trait MeetingProvider {
-  def getMeetings(bankId : BankId, userId: User) : Box[List[Meeting]]
-  def createMeeting(bankId: BankId, staffUser: User, customerUser : User, providerId : String, purposeId : String, when: Date, sessionId: String, customerToken: String, staffToken: String): Box[Meeting]
-  def getMeeting(bankId : BankId, userId: User, meetingId : String) : Box[Meeting]
+  def getMeetings(
+    bankId : BankId, 
+    userId: User
+  ) : Box[List[Meeting]]
+  
+  def createMeeting(
+    bankId: BankId,
+    staffUser: User,
+    customerUser: User,
+    providerId: String,
+    purposeId: String,
+    when: Date,
+    sessionId: String,
+    customerToken: String,
+    staffToken: String
+  ): Box[Meeting]
+  
+  def getMeeting(
+    bankId: BankId,
+    userId: User, 
+    meetingId : String
+  ) : Box[Meeting]
 }
 
 
