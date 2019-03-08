@@ -1,9 +1,24 @@
 package code.api.v3_0_0
 
+import code.api.util.ApiVersion
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import com.github.dwickern.macros.NameOf.nameOf
+import org.scalatest.Tag
+
 class CounterpartyTest extends V300ServerSetup {
+  /**
+    * Test tags
+    * Example: To run tests with tag "getPermissions":
+    * 	mvn test -D tagsToInclude
+    *
+    *  This is made possible by the scalatest maven plugin
+    */
+  object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.getOtherAccountsForBankAccount))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getOtherAccountByIdForBankAccount))
   
   feature("Get Other Accounts of one Account.and Get Other Account by Id. - V300") {
-    scenario("prepare all the need parameters") {
+    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
       Given("We prepare all the parameters, just check the response")
       val bankId = randomBankId
       val accountId = randomPrivateAccountId(bankId)

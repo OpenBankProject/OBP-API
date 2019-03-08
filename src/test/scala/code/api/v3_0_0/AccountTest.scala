@@ -1,13 +1,26 @@
 package code.api.v3_0_0
 
-import code.setup.APIResponse
 import code.api.util.APIUtil.OAuth._
-import code.api.util.APIUtil.canUseFirehose
-import code.api.util.ErrorMessages.{FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles}
 import code.api.util.ApiRole.CanUseFirehoseAtAnyBank
+import code.api.util.ApiVersion
+import code.api.util.ErrorMessages.{FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles}
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.setup.APIResponse
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.JsonAST.compactRender
+import org.scalatest.Tag
 
 class AccountTest extends V300ServerSetup {
+  /**
+    * Test tags
+    * Example: To run tests with tag "getPermissions":
+    * 	mvn test -D tagsToInclude
+    *
+    *  This is made possible by the scalatest maven plugin
+    */
+  object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getFirehoseAccountsAtOneBank))
   
   // Need test endpoints -- /my/accounts - corePrivateAccountsAllBanks - V300
   def getCorePrivateAccountsAllBanksV300(consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -16,7 +29,7 @@ class AccountTest extends V300ServerSetup {
   }
   
   feature("/my/accounts - corePrivateAccountsAllBanks -V300") {
-    scenario("prepare all the need parameters") {
+    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
       Given("We prepare the accounts in V300ServerSetup, just check the response")
       
       When("We send the request")
@@ -31,7 +44,7 @@ class AccountTest extends V300ServerSetup {
   }
   feature("Assuring that entitlement requirements are checked for account(s) related endpoints") {
 
-    scenario("We try to get firehose accounts without required role " + CanUseFirehoseAtAnyBank){
+    scenario("We try to get firehose accounts without required role " + CanUseFirehoseAtAnyBank, VersionOfApi, ApiEndpoint2){
 
       When("We have to find it by endpoint getFirehoseAccountsAtOneBank")
       val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" / "views" / "VIEW_ID").GET <@ (user1)
