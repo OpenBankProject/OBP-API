@@ -1427,7 +1427,8 @@ object SwaggerDefinitionsJSON {
     request_verb = "String",
     request_url = "String",
     summary = "String",
-    description = "String",
+    description = "HTML String",
+    description_markdown = "Mark_down String",
     example_request_body = successMessage, //TODO maybe need fix
     success_response_body = successMessage,
     error_response_bodies = List("OBP-10001= Incorrect json format."),
