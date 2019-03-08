@@ -2,6 +2,7 @@
 
 package code.api.v3_0_0
 
+import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanSearchWarehouse
 import code.api.util.ApiVersion
@@ -9,7 +10,6 @@ import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -52,7 +52,7 @@ class WarehouseTestAsync extends V300ServerSetupAsync with DefaultUsers {
       responsePost map {
         r =>
           r.code should equal(403)
-          compactRender(r.body \ "message").replaceAll("\"", "") should equal(UserHasMissingRoles + CanSearchWarehouse)
+          r.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanSearchWarehouse)
       }
 
     }

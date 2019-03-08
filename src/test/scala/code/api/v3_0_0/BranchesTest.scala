@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanDeleteBranchAtAnyBank
 import code.api.util.{ApiVersion, ErrorMessages, OBPQueryParam}
@@ -10,10 +11,9 @@ import code.branches.{Branches, BranchesProvider}
 import code.common._
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
-import com.openbankproject.commons.model.BankId
-import net.liftweb.json
-import org.scalatest.Tag
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.BankId
+import org.scalatest.Tag
 
 /*
 Note This does not test retrieval from a backend.
@@ -336,7 +336,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
       Then("We should get a 400 and correct response json format")
       response300.code should equal(400)
       response300.body.extract[BranchesJsonV300]
-      json.compactRender(response300.body \ "message").replaceAll("\"", "") should include (ErrorMessages.BranchesNotFound)
+      response300.body.extract[ErrorMessage].message should include (ErrorMessages.BranchesNotFound)
     }
 
 
