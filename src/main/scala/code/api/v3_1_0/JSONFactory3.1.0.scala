@@ -467,6 +467,10 @@ case class MeetingJsonV310(
   invitees: List[InviteeJson]
 )
 
+case class MeetingsJsonV310(
+  meetings: List[MeetingJsonV310]
+)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -869,7 +873,7 @@ object JSONFactory310{
   def createAccountAttributesJson(productsList: List[AccountAttribute]) : AccountAttributesResponseJson = {
     AccountAttributesResponseJson(productsList.map(createAccountAttributeJson))
   }
-  def createMeetingJSON(meeting : Meeting) : MeetingJsonV310 = {
+  def createMeetingJson(meeting : Meeting) : MeetingJsonV310 = {
     MeetingJsonV310(
       meeting_id = meeting.meetingId,
       provider_id = meeting.providerId,
@@ -895,7 +899,10 @@ object JSONFactory310{
               invitee.contactDetails.email),
             invitee.status)) 
     )
-
+  }
+  
+  def createMeetingsJson(meetings : List[Meeting]) : MeetingsJsonV310 = {
+    MeetingsJsonV310(meetings.map(createMeetingJson))
   }
 
 }

@@ -3162,6 +3162,8 @@ object SwaggerDefinitionsJSON {
     invitees = List(inviteeJson)
   )
   
+  val meetingsJsonV310 = MeetingsJsonV310(List(meetingJsonV310))
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

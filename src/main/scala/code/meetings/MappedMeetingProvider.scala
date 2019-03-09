@@ -28,10 +28,10 @@ object MappedMeetingProvider extends MeetingProvider {
 
   override def getMeetings(bankId : BankId, userId: User): Box[List[Meeting]] = {
     // Return a Box so we can handle errors later.
-   Some(MappedMeeting.findAll(By(
-     // TODO Need to check permissions (user)
+   tryo{MappedMeeting.findAll(By(
+//      TODO Need to check permissions (user)
      MappedMeeting.mBankId, bankId.toString),
-     OrderBy(MappedMeeting.mWhen, Descending)))
+     OrderBy(MappedMeeting.mWhen, Descending))}
   }
 
 

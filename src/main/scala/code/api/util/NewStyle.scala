@@ -919,7 +919,7 @@ object NewStyle {
         userId: User,
         callContext: Option[CallContext]
       ) map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not getMeetings there. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not getMeetings in the backend. ", 400), i._2)
         }
       }
     

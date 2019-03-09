@@ -3019,7 +3019,7 @@ trait APIMethods310 {
               callContext
             )
           } yield {
-            (createMeetingJSON(meeting), HttpCode.`201`(callContext))
+            (JSONFactory310.createMeetingJson(meeting), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3041,13 +3041,10 @@ trait APIMethods310 {
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
-      meetingsJson,
+      meetingsJsonV310,
       List(
         UserNotLoggedIn,
-        MeetingApiKeyNotConfigured,
-        MeetingApiSecretNotConfigured,
         BankNotFound,
-        MeetingsNotSupported,
         UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
@@ -3060,7 +3057,7 @@ trait APIMethods310 {
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (meetings, callContext) <- NewStyle.function.getMeetings(bank.bankId, u, callContext)
           } yield {
-            (JSONFactory200.createMeetingJSONs(meetings), HttpCode.`200`(callContext))
+            (createMeetingsJson(meetings), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3083,14 +3080,11 @@ trait APIMethods310 {
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
-      meetingJson,
+      meetingJsonV310,
       List(
         UserNotLoggedIn, 
         BankNotFound, 
-        MeetingApiKeyNotConfigured,
-        MeetingApiSecretNotConfigured, 
-        MeetingNotFound, 
-        MeetingsNotSupported,
+        MeetingNotFound,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -3104,7 +3098,7 @@ trait APIMethods310 {
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (meeting, callContext) <- NewStyle.function.getMeeting(bank.bankId, u, meetingId, callContext)
           } yield {
-            (JSONFactory200.createMeetingJSON(meeting), HttpCode.`200`(callContext))
+            (JSONFactory310.createMeetingJson(meeting), HttpCode.`200`(callContext))
           }
       }
     }
