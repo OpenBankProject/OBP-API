@@ -23,7 +23,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.meetings.Meeting
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -2961,11 +2961,10 @@ trait APIMethods310 {
         |
         |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
-      CreateMeetingJson("tokbox", "onboarding"),
-      meetingJson,
+      createMeetingJsonV310,
+      meetingJsonV310,
       List(
         UserNotLoggedIn,
-        InvalidBankIdFormat,
         BankNotFound,
         InvalidJsonFormat,
         UnknownError
@@ -2980,38 +2979,47 @@ trait APIMethods310 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson "
-            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[CreateMeetingJson]
+            createMeetingJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateMeetingJsonV310]
             }
-//           These following are only for `tokbox` stuff, for now, just ignore it.          
-//            _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
-//            _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
-//            u <- cc.user ?~! UserNotLoggedIn
-//            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-//            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-//            postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
-//            now = Calendar.getInstance().getTime()
-//            sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
-//            customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
-//            staffToken <- tryo{code.opentok.OpenTokUtil.generateTokenForModerator(60)}
-            
-            now = Calendar.getInstance().getTime()
+            //           These following are only for `tokbox` stuff, for now, just ignore it.          
+            //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
+            //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
+            //            u <- cc.user ?~! UserNotLoggedIn
+            //            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
+            //            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            //            postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
+            //            now = Calendar.getInstance().getTime()
+            //            sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
+            //            customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
+            //            staffToken <- tryo{code.opentok.OpenTokUtil.generateTokenForModerator(60)}
+            //The following three are just used for Tokbox 
             sessionId = ""
             customerToken =""
             staffToken = ""
+  
+            creator = ContactDetails(createMeetingJson.creator.name,createMeetingJson.creator.mobile_phone,createMeetingJson.creator.email_addresse)
+            invitees  = createMeetingJson.invitees.map(
+              invitee =>
+                Invitee(
+                  ContactDetails(invitee.contact_details.name, invitee.contact_details.mobile_phone,invitee.contact_details.email_addresse),
+                  invitee.status))
             (meeting, callContext) <- NewStyle.function.createMeeting(
               bank.bankId,
               u,
               u,
-              postedData.provider_id,
-              postedData.purpose_id,
-              now,sessionId,
+              createMeetingJson.provider_id,
+              createMeetingJson.purpose_id,
+              createMeetingJson.date,
+              sessionId,
               customerToken,
               staffToken,
+              creator,
+              invitees,
               callContext
             )
           } yield {
-            (JSONFactory200.createMeetingJSON(meeting), HttpCode.`201`(callContext))
+            (createMeetingJSON(meeting), HttpCode.`201`(callContext))
           }
       }
     }

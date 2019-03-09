@@ -13,6 +13,7 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.v3_1_0.{ContactDetailsJson, InviteeJson}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.atms.Atms
 import code.atms.Atms.AtmId
@@ -27,7 +28,7 @@ import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
-import code.meetings.Meeting
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.metadata.counterparties.Counterparties
 import code.model._
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
@@ -885,6 +886,8 @@ object NewStyle {
       sessionId: String,
       customerToken: String,
       staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
       callContext: Option[CallContext]
     ): OBPReturnType[Meeting] =
     {
@@ -898,9 +901,11 @@ object NewStyle {
         sessionId: String,
         customerToken: String,
         staffToken: String,
+        creator: ContactDetails,
+        invitees: List[Invitee],
         callContext: Option[CallContext]
     ) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not createMeeting there. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not createMeeting in the backend. ", 400), i._2)
       }
     }
     

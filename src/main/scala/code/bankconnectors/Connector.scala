@@ -29,7 +29,7 @@ import code.fx.FXRate
 import code.fx.fx.TTL
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
-import code.meetings.Meeting
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.model.dataAccess.ResourceUser
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.ProductCollection
@@ -1629,6 +1629,8 @@ trait Connector extends MdcLoggable{
       sessionId: String,
       customerToken: String,
       staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
       callContext: Option[CallContext]
   ): OBPReturnType[Box[Meeting]] = 
     Future{(Failure(NotImplemented + currentMethodName), callContext)}

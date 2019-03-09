@@ -15,7 +15,7 @@ import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
-import code.api.v3_1_0.{BadLoginStatusJson, ObpApiLoopbackJson, _}
+import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, _}
 import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import code.sandbox.SandboxData
@@ -3130,6 +3130,37 @@ object SwaggerDefinitionsJSON {
   val productCollectionsJsonV310 = ProductCollectionsJsonV310(product_collection = List(productCollectionJsonV310))
   
   val productCollectionJsonTreeV310 = ProductCollectionJsonTreeV310(collection_code = "A", products = List(productJsonV310))
+  
+  val contactDetailsJson = ContactDetailsJson(
+    name = "Simon ",
+    mobile_phone = "+44 07972 444 876",
+    email_addresse = "contact@tesobe.com"
+  )
+  
+  val inviteeJson = InviteeJson(
+    contactDetailsJson,
+    "String, eg: Good"
+  )
+  
+  val createMeetingJsonV310 = CreateMeetingJsonV310(
+    provider_id = "String, eg: tokbox",
+    purpose_id = "String, eg: onboarding",
+    date = DateWithMsExampleObject,
+    creator = contactDetailsJson,
+    invitees = List(inviteeJson)
+  )
+  
+  val meetingJsonV310 = MeetingJsonV310(
+    meeting_id = "UUID-String",
+    provider_id = "String, eg: tokbox",
+    purpose_id = "String, eg: onboarding",
+    bank_id = "gh.29.uk",
+    present = meetingPresentJSON,
+    keys = meetingKeysJSON,
+    when = DateWithDayExampleObject,
+    creator = contactDetailsJson,
+    invitees = List(inviteeJson)
+  )
   
   //The common error or success format.
   //Just some helper format to use in Json 

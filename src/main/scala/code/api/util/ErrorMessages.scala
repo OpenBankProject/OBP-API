@@ -352,6 +352,8 @@ object ErrorMessages {
   val TransactionRequestDetailsExtractException = "OBP-60008: Transaction detail body extract exception. "
   val GetTransactionsException = "OBP-60009: Get Transaction Exception. "
   val GetTransactionRequestsException = "OBP-60010: Get Transaction Requests Exception. "
+  val CreateMeetingException = "OBP-60011: Create Meeting Exception. "
+  val CreateMeetingInviteeException = "OBP-60012: Create Meeting Invitee Exception. "
 
 
   ///////////

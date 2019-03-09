@@ -25,7 +25,7 @@ import code.context.{UserAuthContext, UserAuthContextProvider}
 import code.customer._
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.meetings.Meeting
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.Narrative
@@ -2117,6 +2117,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       sessionId: String,
       customerToken: String,
       staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
       callContext: Option[CallContext]
     ): OBPReturnType[Box[Meeting]] = 
     Future{(
@@ -2129,7 +2131,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       when: Date,
       sessionId: String,
       customerToken: String,
-      staffToken: String
+      staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
     ),callContext)}
   
   override def getMeetings(

@@ -6,6 +6,8 @@ import com.openbankproject.commons.model.{BankId, User}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
+import scala.collection.immutable.List
+
 
 trait Meeting {
   def meetingId: String
@@ -15,9 +17,23 @@ trait Meeting {
   def present: MeetingPresent
   def keys: MeetingKeys
   def when: Date
-//  def creator: ContactDetails
-//  def invitees: List[String]
+  def creator: ContactDetails
+  def invitees: List[Invitee]
 }
+case class Invitee(
+  contactDetails: ContactDetails,
+  status: String
+)
+
+case class ContactMedium(
+  `type`: String, 
+  value: String
+)
+case class ContactDetails(
+                         name: String,
+                         phone: String,
+                         email: String
+                         )
 
 case class MeetingKeys (
                          sessionId: String,
@@ -54,7 +70,9 @@ trait MeetingProvider {
     when: Date,
     sessionId: String,
     customerToken: String,
-    staffToken: String
+    staffToken: String,
+    creator: ContactDetails,
+    invitees: List[Invitee]
   ): Box[Meeting]
   
   def getMeeting(
