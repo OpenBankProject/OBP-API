@@ -349,8 +349,6 @@
   </dependencies>
 
   <build>
-    <sourceDirectory>src/main/scala</sourceDirectory>
-    <testSourceDirectory>src/test/scala</testSourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -404,7 +402,7 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>3.2.2</version>
+          <version>3.4.6</version>
           <configuration>
             <charset>${project.build.sourceEncoding}</charset>
             <jvmArgs>
@@ -471,16 +469,7 @@
             </execution>
           </executions>
         </plugin>
-      <plugin>
-        <groupId>org.mortbay.jetty</groupId>
-        <artifactId>maven-jetty-plugin</artifactId>
-        <version>6.1.26</version>
-        <configuration>
-          <contextPath>/</contextPath>
-          <scanIntervalSeconds>5</scanIntervalSeconds>
-          <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
-        </configuration>
-      </plugin>
+
       <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>yuicompressor-maven-plugin</artifactId>
@@ -495,6 +484,15 @@
           <configuration>
             <nosuffix>true</nosuffix>
             <encoding>${project.build.sourceEncoding}</encoding>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.mortbay.jetty</groupId>
+          <artifactId>maven-jetty-plugin</artifactId>
+          <configuration>
+            <contextPath>/</contextPath>
+            <scanIntervalSeconds>5</scanIntervalSeconds>
+            <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
           </configuration>
         </plugin>
         <plugin>
@@ -548,7 +546,7 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <version>3.2.2</version>
+        <version>3.4.6</version>
         <configuration>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>

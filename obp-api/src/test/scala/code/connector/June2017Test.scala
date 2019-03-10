@@ -1,8 +1,8 @@
 package code.connector
 
-import code.accountholder.MapperAccountHolders
-import code.bankconnectors.{Connector}
-import code.model.dataAccess.{ViewImpl}
+import code.accountholders.MapperAccountHolders
+import code.bankconnectors.Connector
+import code.model.dataAccess.ViewImpl
 import code.setup.{DefaultUsers, ServerSetup}
 
 class June2017Test extends ServerSetup with DefaultUsers {

@@ -31,7 +31,7 @@ import java.util.{Locale, TimeZone}
 
 import code.accountapplication.MappedAccountApplication
 import code.accountattribute.MappedAccountAttribute
-import code.accountholder.MapperAccountHolders
+import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs300.ResourceDocs310

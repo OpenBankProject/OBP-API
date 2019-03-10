@@ -1,9 +1,8 @@
 package code.remotedata
 
 import akka.pattern.ask
-import code.accountholder.{AccountHolders, MapperAccountHolders, RemotedataAccountHoldersCaseClasses}
+import code.accountholders.{AccountHolders, MapperAccountHolders, RemotedataAccountHoldersCaseClasses}
 import code.actorsystem.ObpActorInit
-import code.model._
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, User}
 import net.liftweb.common.Box
 

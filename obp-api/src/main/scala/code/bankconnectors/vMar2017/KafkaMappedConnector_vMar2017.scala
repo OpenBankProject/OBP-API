@@ -26,8 +26,8 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.accountholders.AccountHolders
 import code.api.util.ErrorMessages._
-import code.accountholder.AccountHolders
 import code.api.util.APIUtil.MessageDoc
 import code.api.util._
 import code.api.v2_1_0._

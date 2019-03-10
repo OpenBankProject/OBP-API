@@ -1,7 +1,8 @@
 package code.remotedata
 
 import akka.actor.Actor
-import code.accountholder.{MapperAccountHolders, RemotedataAccountHoldersCaseClasses}
+import code.accountholders.{MapperAccountHolders, RemotedataAccountHoldersCaseClasses}
+import code.accountholders.{MapperAccountHolders, RemotedataAccountHoldersCaseClasses}
 import code.actorsystem.ObpActorHelper
 import code.model._
 import code.util.Helper.MdcLoggable

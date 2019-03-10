@@ -1,7 +1,7 @@
 package code.setup
 
 import bootstrap.liftweb.ToSchemify
-import code.accountholder.AccountHolders
+import code.accountholders.AccountHolders
 import code.api.util.ErrorMessages._
 import code.model._
 import code.model.dataAccess._

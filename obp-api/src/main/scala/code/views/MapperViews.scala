@@ -1,7 +1,7 @@
 package code.views
 
 import bootstrap.liftweb.ToSchemify
-import code.accountholder.MapperAccountHolders
+import code.accountholders.MapperAccountHolders
 import code.api.APIFailure
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiRole}

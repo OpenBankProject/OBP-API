@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.accountholder.AccountHolders
+import code.accountholders.AccountHolders
 import code.api.cache.Caching
 import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages._

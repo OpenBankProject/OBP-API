@@ -26,7 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model.dataAccess
 
-import code.accountholder.AccountHolders
+import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._

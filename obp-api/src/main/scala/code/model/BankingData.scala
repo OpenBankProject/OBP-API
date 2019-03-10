@@ -28,7 +28,7 @@ package code.model
 
 import java.util.Date
 
-import code.accountholder.AccountHolders
+import code.accountholders.AccountHolders
 import code.api.util.APIUtil.unboxFullOrFail
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, ErrorMessages, OBPQueryParam}

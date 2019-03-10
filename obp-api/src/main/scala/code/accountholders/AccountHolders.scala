@@ -1,13 +1,10 @@
-package code.accountholder
-
-
+package code.accountholders
 
 import code.api.util.APIUtil
-import code.model._
-import net.liftweb.util.{Props, SimpleInjector}
 import code.remotedata.RemotedataAccountHolders
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, User}
 import net.liftweb.common.Box
+import net.liftweb.util.SimpleInjector
 
 
 object AccountHolders extends SimpleInjector {
@@ -23,7 +20,7 @@ object AccountHolders extends SimpleInjector {
 }
 
 trait AccountHolders {
-  
+
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User]
   def getAccountsHeld(bankId: BankId, user: User): Set[BankIdAccountId]
   def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] //There is no AccountHolder trait, database structure different with view
@@ -38,3 +35,7 @@ class RemotedataAccountHoldersCaseClasses {
 }
 
 object RemotedataAccountHoldersCaseClasses extends RemotedataAccountHoldersCaseClasses
+
+
+
+

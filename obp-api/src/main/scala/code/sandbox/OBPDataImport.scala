@@ -3,7 +3,7 @@ package code.sandbox
 import java.text.SimpleDateFormat
 import java.util.UUID
 
-import code.accountholder.AccountHolders
+import code.accountholders.AccountHolders
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.atms.Atms.AtmT

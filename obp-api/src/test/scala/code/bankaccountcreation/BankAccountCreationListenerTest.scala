@@ -1,6 +1,6 @@
 package code.bankaccountcreation
 
-import code.accountholder.AccountHolders
+import code.accountholders.AccountHolders
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.views.Views

@@ -36,7 +36,9 @@ object RunWebApp extends App {
   val context = new WebAppContext()
   context.setServer(server)
   context.setContextPath("/")
-  context.setWar("src/main/webapp")
+  // current project absolute path
+  val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
+  context.setWar(s"${basePath}src/main/webapp")
 
   server.setHandler(context)
 

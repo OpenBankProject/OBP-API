@@ -1,4 +1,4 @@
-package code.accountholder
+package code.accountholders
 
 import code.model._
 import code.model.dataAccess.ResourceUser

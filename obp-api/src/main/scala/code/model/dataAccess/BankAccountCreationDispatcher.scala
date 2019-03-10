@@ -43,19 +43,19 @@ package com.tesobe.model {
 
 package code.model.dataAccess {
 
-import code.accountholder.AccountHolders
-import code.api.util.APIUtil
-import code.bankconnectors.Connector
-import code.model._
-import code.users.Users
-import code.util.Helper.MdcLoggable
-import code.views.Views
-import com.openbankproject.commons.model._
-import com.rabbitmq.client.{Channel, ConnectionFactory}
-import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
-import net.liftmodules.amqp.{AMQPAddListener, AMQPDispatcher, AMQPMessage, SerializedConsumer}
-import net.liftweb.actor.LiftActor
-import net.liftweb.common.{Failure, Full}
+  import code.accountholders.AccountHolders
+  import code.api.util.APIUtil
+  import code.bankconnectors.Connector
+  import code.model._
+  import code.users.Users
+  import code.util.Helper.MdcLoggable
+  import code.views.Views
+  import com.openbankproject.commons.model._
+  import com.rabbitmq.client.{Channel, ConnectionFactory}
+  import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
+  import net.liftmodules.amqp.{AMQPAddListener, AMQPDispatcher, AMQPMessage, SerializedConsumer}
+  import net.liftweb.actor.LiftActor
+  import net.liftweb.common.{Failure, Full}
 
 
 /**
