@@ -38,7 +38,7 @@ The project uses Maven 3 as its build tool.
 
 To compile and run jetty, install Maven 3, create your configuration in src/main/resources/props/default.props and execute:
 
-        ./mvn.sh jetty:run
+     ./mvn.sh install -pl obp-commons && ./mvn.sh jetty:run -pl obp-api
 
 ## To run with IntelliJ IDEA
 
@@ -56,11 +56,11 @@ To compile and run jetty, install Maven 3, create your configuration in src/main
 
 * If you see a message about an unmanaged pom.xml, click the option to let Maven manage it.
 
-* Navigate to test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.12.4 or so.
+* Navigate to obp-api/test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.12.4 or so.
 
-* In src/main/resources/props create a test.default.props for tests. Set connector=mapped
+* In obp-api/src/main/resources/props create a test.default.props for tests. Set connector=mapped
 
-* In src/main/resources/props create a \<yourloginname\>.props (or default.props) for development. Set connector=mapped
+* In obp-api/src/main/resources/props create a \<yourloginname\>.props (or default.props) for development. Set connector=mapped
 
 * Now **Rebuild** the project so everything is compiled. At this point you may need to select the SDK, see above.
 
@@ -72,9 +72,9 @@ To compile and run jetty, install Maven 3, create your configuration in src/main
 
 ### Run some tests.
   
-* Run a single test. For instance right click on test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
+* Run a single test. For instance right click on obp-api/test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
 
-* Run multiple tests: Right click on test/scala/code and select Run. If need be:
+* Run multiple tests: Right click on obp-api/test/scala/code and select Run. If need be:
     Goto Run / Debug configurations
     Test Kind: Select All in Package
     Package: Select code
@@ -84,7 +84,7 @@ To compile and run jetty, install Maven 3, create your configuration in src/main
     Make sure your test.default.props has the minimum settings (see test.default.props.template)
 
     
-    Right click test/scala/code and select the Scala Tests in code to run them all.
+    Right click obp-api/test/scala/code and select the Scala Tests in code to run them all.
     
     Note: You may want to disable some tests not relevant to your setup e.g.:
     set bank_account_creation_listener=false in test.default.props 
@@ -300,8 +300,8 @@ kafka.host is used by the producer and kafka.zookeeper_host is used by the consu
 
 * Start the server:
 
-        cd OBP-API
-        mvn jetty:run
+        cd OBP-API/obp-api/
+         mvn jetty:run
 
 4) OBP-JVM
 
@@ -352,11 +352,11 @@ We use jetty8 to run the API in production mode.
         JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
         JAVA_OPTIONS="-Drun.mode=production -XX:PermSize=256M -XX:MaxPermSize=512M -Xmx768m -verbose -Dobp.resource.dir=$JETTY_HOME/resources -Dprops.resource.dir=$JETTY_HOME/resources"
 
-* In src/main/resources/props create a test.default.props file for tests. Set connector=mapped
+* In obp-api/src/main/resources/props create a test.default.props file for tests. Set connector=mapped
 
-* In src/main/resources/props create a default.props file for development. Set connector=mapped
+* In obp-api/src/main/resources/props create a default.props file for development. Set connector=mapped
 
-* In src/main/resources/props create a production.default.props file for production. Set connector=mapped.
+* In obp-api/src/main/resources/props create a production.default.props file for production. Set connector=mapped.
 
 * This file could be similar to the default.props file created above, or it could include production settings, such as information about Postgresql server, if you are using one. For example, it could have the following line for postgresql configuration.
 
