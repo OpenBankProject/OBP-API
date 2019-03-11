@@ -10,10 +10,10 @@
 .project
 .cache
 target
-src/main/resources/
-src/test/resources/
+obp-api/src/main/resources/
+obp-api/src/test/resources/
 *.iml
-src/main/resources/log4j.properties
-src/main/scripts/kafka/kafka_*
-src/main/scripts/kafka/logs/
-src/main/scripts/kafka/tmp/
+obp-api/src/main/resources/log4j.properties
+obp-api/src/main/scripts/kafka/kafka_*
+obp-api/src/main/scripts/kafka/logs/
+obp-api/src/main/scripts/kafka/tmp/
