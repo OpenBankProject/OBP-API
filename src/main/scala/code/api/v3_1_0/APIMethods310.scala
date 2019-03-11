@@ -1,6 +1,6 @@
 package code.api.v3_1_0
 
-import java.util.UUID
+import java.util.{Calendar, UUID}
 
 import code.accountattribute.AccountAttribute.AccountAttributeType
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{branchJsonV220, _}
@@ -11,6 +11,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
+import code.api.v2_0_0.{CreateMeetingJson, JSONFactory200}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v2_2_0.{BranchJsonV220, JSONFactory220}
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
@@ -22,6 +23,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -2936,6 +2938,167 @@ trait APIMethods310 {
             (result, callContext) <- NewStyle.function.deleteBranch(branch, callContext)
           } yield {
             (Full(result), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      createMeeting,
+      implementedInApiVersion,
+      "createMeeting",
+      "POST",
+      "/banks/BANK_ID/meetings",
+      "Create Meeting (video conference/call)",
+      """Create Meeting: Initiate a video conference/call with the bank.
+        |
+        |The Meetings resource contains meta data about video/other conference sessions
+        |
+        |provider_id determines the provider of the meeting / video chat service. MUST be url friendly (no spaces).
+        |
+        |purpose_id explains the purpose of the chat. onboarding | mortgage | complaint etc. MUST be url friendly (no spaces).
+        |
+        |Login is required.
+        |
+        |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
+      """.stripMargin,
+      createMeetingJsonV310,
+      meetingJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+    
+    lazy val createMeeting: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateMeetingJson "
+            createMeetingJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateMeetingJsonV310]
+            }
+            //           These following are only for `tokbox` stuff, for now, just ignore it.          
+            //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
+            //            _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
+            //            u <- cc.user ?~! UserNotLoggedIn
+            //            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
+            //            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            //            postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
+            //            now = Calendar.getInstance().getTime()
+            //            sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
+            //            customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
+            //            staffToken <- tryo{code.opentok.OpenTokUtil.generateTokenForModerator(60)}
+            //The following three are just used for Tokbox 
+            sessionId = ""
+            customerToken =""
+            staffToken = ""
+  
+            creator = ContactDetails(createMeetingJson.creator.name,createMeetingJson.creator.mobile_phone,createMeetingJson.creator.email_addresse)
+            invitees  = createMeetingJson.invitees.map(
+              invitee =>
+                Invitee(
+                  ContactDetails(invitee.contact_details.name, invitee.contact_details.mobile_phone,invitee.contact_details.email_addresse),
+                  invitee.status))
+            (meeting, callContext) <- NewStyle.function.createMeeting(
+              bank.bankId,
+              u,
+              u,
+              createMeetingJson.provider_id,
+              createMeetingJson.purpose_id,
+              createMeetingJson.date,
+              sessionId,
+              customerToken,
+              staffToken,
+              creator,
+              invitees,
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createMeetingJson(meeting), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      getMeetings,
+      implementedInApiVersion,
+      "getMeetings",
+      "GET",
+      "/banks/BANK_ID/meetings",
+      "Get Meetings",
+      """Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
+        |
+        |The actual conference/chats are handled by external services.
+        |
+        |Login is required.
+        |
+        |This call is **experimental** and will require further authorisation in the future.
+      """.stripMargin,
+      emptyObjectJson,
+      meetingsJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+
+    lazy val getMeetings: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (meetings, callContext) <- NewStyle.function.getMeetings(bank.bankId, u, callContext)
+          } yield {
+            (createMeetingsJson(meetings), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getMeeting,
+      implementedInApiVersion,
+      "getMeeting",
+      "GET",
+      "/banks/BANK_ID/meetings/MEETING_ID",
+      "Get Meeting",
+      """Get Meeting specified by BANK_ID / MEETING_ID
+        |Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
+        |
+        |The actual conference/chats are handled by external services.
+        |
+        |Login is required.
+        |
+        |This call is **experimental** and will require further authorisation in the future.
+      """.stripMargin,
+      emptyObjectJson,
+      meetingJsonV310,
+      List(
+        UserNotLoggedIn, 
+        BankNotFound, 
+        MeetingNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+
+    lazy val getMeeting: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (meeting, callContext) <- NewStyle.function.getMeeting(bank.bankId, u, meetingId, callContext)
+          } yield {
+            (JSONFactory310.createMeetingJson(meeting), HttpCode.`200`(callContext))
           }
       }
     }

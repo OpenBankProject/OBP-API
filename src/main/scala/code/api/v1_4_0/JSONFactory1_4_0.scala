@@ -337,7 +337,8 @@ object JSONFactory1_4_0 {
                              request_verb: String,
                              request_url: String,
                              summary: String,
-                             description: String,
+                             description: String, //This will be a `HTML` format.
+                             description_markdown: String,// This will be a `MARK_DOWN` format.
                              example_request_body: scala.Product,
                              success_response_body: scala.Product,
                              error_response_bodies: List[String],
@@ -372,6 +373,7 @@ object JSONFactory1_4_0 {
       summary = rd.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
       description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin), //.replaceAll("\n", ""),
+      description_markdown =rd.description.stripMargin,
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,

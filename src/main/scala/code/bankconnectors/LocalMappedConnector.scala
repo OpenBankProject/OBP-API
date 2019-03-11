@@ -25,6 +25,7 @@ import code.context.{UserAuthContext, UserAuthContextProvider}
 import code.customer._
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.Narrative
@@ -2105,5 +2106,57 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ProductCollectionItem.productCollectionItem.vend.getProductCollectionItemsTree(collectionCode, bankId) map {
       (_, callContext)
     }
-
+  
+  override def createMeeting(
+      bankId: BankId,
+      staffUser: User,
+      customerUser: User,
+      providerId: String,
+      purposeId: String,
+      when: Date,
+      sessionId: String,
+      customerToken: String,
+      staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
+      callContext: Option[CallContext]
+    ): OBPReturnType[Box[Meeting]] = 
+    Future{(
+      Meeting.meetingProvider.vend.createMeeting(
+      bankId: BankId,
+      staffUser: User,
+      customerUser: User,
+      providerId: String,
+      purposeId: String,
+      when: Date,
+      sessionId: String,
+      customerToken: String,
+      staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
+    ),callContext)}
+  
+  override def getMeetings(
+    bankId : BankId, 
+    userId: User,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[Meeting]]] = 
+    Future{(
+      Meeting.meetingProvider.vend.getMeetings(
+        bankId : BankId,
+        userId: User),
+      callContext)}
+  
+  override def getMeeting(
+    bankId: BankId,
+    userId: User, 
+    meetingId : String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Meeting]]=
+    Future{(
+      Meeting.meetingProvider.vend.getMeeting(
+        bankId: BankId,
+        userId: User, 
+        meetingId : String), 
+      callContext)}
 }
