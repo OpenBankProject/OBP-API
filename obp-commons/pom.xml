@@ -18,19 +18,16 @@
             <groupId>net.liftweb</groupId>
             <artifactId>lift-common_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.version}</artifactId>
+            <version>3.0.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
-        <sourceDirectory>src/main/scala</sourceDirectory>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${scala.version}</version>
-                <configuration>
-                    <skipTests>true</skipTests>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -49,7 +46,6 @@
                     <execution>
                         <goals>
                             <goal>compile</goal>
-                            <goal>testCompile</goal>
                         </goals>
                         <configuration>
                             <args>
@@ -60,11 +56,26 @@
                             </args>
                         </configuration>
                     </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- enable the scalatest plugin -->
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>1.0</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <forkMode>once</forkMode>
+                    <junitxml>.</junitxml>
+                    <filereports>WDF TestSuite.txt</filereports>
+                    <argLine>-Drun.mode=test -XX:MaxPermSize=128m -Xms512m -Xmx512m</argLine>
+                    <tagsToExclude>code.external</tagsToExclude>
+                </configuration>
+                <executions>
                     <execution>
-                        <id>scala-test-compile</id>
-                        <phase>process-test-resources</phase>
+                        <id>test</id>
                         <goals>
-                            <goal>testCompile</goal>
+                            <goal>test</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -98,23 +109,4 @@
             </plugin>
         </plugins>
     </build>
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.2</version>
-                <configuration>
-                    <charset>${project.build.sourceEncoding}</charset>
-                    <jvmArgs>
-                        <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
-                    </jvmArgs>
-                    <scalaCompatVersion>${scala.version}</scalaCompatVersion>
-                    <scalaVersion>${scala.compiler}</scalaVersion>
-                    <recompileMode>incremental</recompileMode>
-                    <useZincServer>true</useZincServer>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
 </project>
