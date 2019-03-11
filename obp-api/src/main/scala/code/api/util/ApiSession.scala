@@ -93,6 +93,12 @@ case class CallContext(
       case _ => ""
     }
   }
+  def hasConsentId(): Boolean = {
+    this.requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+      case x :: Nil => true
+      case _ => false
+    }
+  }
   
 }
 
