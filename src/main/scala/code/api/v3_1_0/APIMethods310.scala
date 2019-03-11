@@ -2909,8 +2909,6 @@ trait APIMethods310 {
          |
          |${authenticationRequiredMessage(true) }
          |
-         |$deleteBranchEntitlementsRequiredText
-         |
          |""",
       emptyObjectJson,
       emptyObjectJson,

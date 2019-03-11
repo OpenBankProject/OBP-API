@@ -466,7 +466,6 @@ trait APIMethods220 {
          |
          |${authenticationRequiredMessage(true) }
          |
-         |$createBranchEntitlementsRequiredText
          |""",
       branchJsonV220,
       branchJsonV220,
@@ -518,7 +517,6 @@ trait APIMethods220 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createAtmEntitlementsRequiredText
           |""",
       atmJsonV220,
       atmJsonV220,
@@ -573,7 +571,6 @@ trait APIMethods220 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createProductEntitlementsRequiredText
           |""",
       productJsonV220,
       productJsonV220,
@@ -640,7 +637,6 @@ trait APIMethods220 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createFxEntitlementsRequiredText
           |""",
       fxJsonV220,
       fxJsonV220,

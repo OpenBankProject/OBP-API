@@ -984,7 +984,6 @@ trait APIMethods300 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createBranchEntitlementsRequiredText
           |""",
       branchJsonV300,
       branchJsonV300,
@@ -1033,7 +1032,6 @@ trait APIMethods300 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createBranchEntitlementsRequiredText
           |""",
       postBranchJsonV300,
       branchJsonV300,
@@ -1103,7 +1101,6 @@ trait APIMethods300 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createAtmEntitlementsRequiredText
           |""",
       atmJsonV300,
       atmJsonV300,
