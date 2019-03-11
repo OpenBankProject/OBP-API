@@ -63,6 +63,7 @@ import code.kycstatuses.MappedKycStatus
 import code.loginattempts.MappedBadLoginAttempt
 import code.management.ImporterAPI
 import code.meetings.MappedMeeting
+import code.meetings.MappedMeetingInvitee
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
@@ -600,6 +601,7 @@ object ToSchemify {
     MappedSocialMedia,
     MappedTransactionType,
     MappedMeeting,
+    MappedMeetingInvitee,
     MappedBankAccountData,
     MappedPhysicalCard,
     PinReset,

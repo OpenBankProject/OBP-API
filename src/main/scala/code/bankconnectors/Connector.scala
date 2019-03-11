@@ -29,6 +29,7 @@ import code.fx.FXRate
 import code.fx.fx.TTL
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.model.dataAccess.ResourceUser
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.ProductCollection
@@ -1618,4 +1619,33 @@ trait Connector extends MdcLoggable{
                                     callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
   
+  def createMeeting(
+      bankId: BankId,
+      staffUser: User,
+      customerUser: User,
+      providerId: String,
+      purposeId: String,
+      when: Date,
+      sessionId: String,
+      customerToken: String,
+      staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
+      callContext: Option[CallContext]
+  ): OBPReturnType[Box[Meeting]] = 
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def getMeetings(
+    bankId : BankId, 
+    userId: User,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[Meeting]]] = 
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def getMeeting(
+    bankId: BankId,
+    userId: User, 
+    meetingId : String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Meeting]]=Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

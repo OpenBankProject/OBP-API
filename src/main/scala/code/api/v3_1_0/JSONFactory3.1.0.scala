@@ -36,6 +36,7 @@ import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
+import code.api.v2_0_0.{MeetingJson, MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
@@ -45,6 +46,7 @@ import code.context.UserAuthContext
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
+import code.meetings.Meeting
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
 import code.productattribute.ProductAttribute.ProductAttribute
@@ -433,6 +435,41 @@ case class ProductCollectionsJsonV310(product_collection : List[ProductCollectio
 
 case class ProductCollectionJsonTreeV310(collection_code: String,
                                          products: List[ProductJsonV310])
+
+case class ContactDetailsJson(
+  name: String,
+  mobile_phone: String,
+  email_addresse: String
+)
+
+case class InviteeJson(
+  contact_details: ContactDetailsJson,
+  status: String
+)
+
+case class CreateMeetingJsonV310(
+  provider_id: String,
+  purpose_id: String,
+  date: Date,
+  creator: ContactDetailsJson,
+  invitees: List[InviteeJson]
+)
+
+case class MeetingJsonV310(
+  meeting_id: String,
+  provider_id: String,
+  purpose_id: String,
+  bank_id: String,
+  present: MeetingPresentJson,
+  keys: MeetingKeysJson,
+  when: Date,
+  creator: ContactDetailsJson,
+  invitees: List[InviteeJson]
+)
+
+case class MeetingsJsonV310(
+  meetings: List[MeetingJsonV310]
+)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -836,5 +873,37 @@ object JSONFactory310{
   def createAccountAttributesJson(productsList: List[AccountAttribute]) : AccountAttributesResponseJson = {
     AccountAttributesResponseJson(productsList.map(createAccountAttributeJson))
   }
+  def createMeetingJson(meeting : Meeting) : MeetingJsonV310 = {
+    MeetingJsonV310(
+      meeting_id = meeting.meetingId,
+      provider_id = meeting.providerId,
+      purpose_id = meeting.purposeId,
+      bank_id = meeting.bankId,
+      present = MeetingPresentJson(
+        staff_user_id = meeting.present.staffUserId,
+        customer_user_id = meeting.present.customerUserId
+      ),
+      keys = MeetingKeysJson(
+        session_id = meeting.keys.sessionId,
+        staff_token = meeting.keys.staffToken,
+        customer_token = meeting.keys.customerToken
+      ),
+      when = meeting.when,
+      creator = ContactDetailsJson(meeting.creator.name, meeting.creator.phone, meeting.creator.email),
+      invitees = meeting.invitees.map(
+        invitee =>
+          InviteeJson(
+            ContactDetailsJson(
+              invitee.contactDetails.name,
+              invitee.contactDetails.phone,
+              invitee.contactDetails.email),
+            invitee.status)) 
+    )
+  }
+  
+  def createMeetingsJson(meetings : List[Meeting]) : MeetingsJsonV310 = {
+    MeetingsJsonV310(meetings.map(createMeetingJson))
+  }
 
 }
+
