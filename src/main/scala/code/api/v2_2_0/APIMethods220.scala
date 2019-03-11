@@ -477,7 +477,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil,
+      List(apiTagBranch, apiTagOpenData),
       Some(List(canCreateBranch,canCreateBranchAtAnyBank))
     )
 
@@ -916,7 +916,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil,
+      List(apiTagConsumer),
       Some(List(canCreateConsumer)))
 
 
