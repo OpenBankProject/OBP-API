@@ -51,7 +51,7 @@ object JSONFactory_UKOpenBanking_310 {
     LastAvailableDateTime: Date,
   )
 
-  case class TransactionsJsonUKV200(
+  case class TransactionsJsonUKV310(
     Data: TransactionsInnerJson,
     Links: LinksV310,
     Meta: MetaInnerJson
@@ -70,22 +70,82 @@ object JSONFactory_UKOpenBanking_310 {
   case class BalanceUKOpenBankingJson(
     Amount: AmountOfMoneyJsonV121,
     CreditDebitIndicator: String,
-    Type: String
+    Type: String = "ClosingAvailable"
   )
 
+  case class CurrencyExchangeJson(
+    SourceCurrency: String,
+    TargetCurrency: String,
+    UnitCurrency: String,
+    ExchangeRate: Int,
+    ContractIdentification: String,
+    QuotationDate: Date,
+    InstructedAmount: AmountOfMoneyJsonV121
+  )
+  
+  case class CardInstrumentJson(
+    CardSchemeName: String = "AmericanExpress",
+    AuthorisationType: String = "ConsumerDevice",
+    Name: String = "string",
+    Identification: String = "string"
+  )
+  
+  case class MerchantDetailsJson(
+    MerchantName: String = "String",
+    MerchantCategoryCode : String = "String"
+  )
+  
+  case class PostalAddressJson(
+    AddressType: String ="Business",
+    Department: String ="string",
+    SubDepartment: String ="string",
+    StreetName: String ="string",
+    BuildingNumber: String ="string",
+    PostCode: String ="string",
+    TownName: String ="string",
+    CountrySubDivision: String ="string",
+    Country: String ="string",
+    AddressLine: List[String]= List("string")
+  )
+  
+  case class AgentJson(
+    SchemeName: List[String] = List("UK.OBIE.BICFI"),
+    Identification: String = "string",
+    Name: String = "string",
+    PostalAddress: PostalAddressJson = PostalAddressJson(),
+  )
+  
+  case class TransactionInnerAccountJson(
+    SchemeName: List[String] = List("UK.OBIE.BBAN"),
+    Identification: String = "string",
+    Name: String = "string",
+    SecondaryIdentification: String = "string",
+  )
+  
   case class TransactionInnerJson(
     AccountId: String,
     TransactionId: String,
     TransactionReference: String,
+    StatementReference: List[String] = List("String"),
     Amount: AmountOfMoneyJsonV121,
-    CreditDebitIndicator: String,
-    Status: String,
+    CreditDebitIndicator: String ="Credit",
+    Status: String ="Booked",
     BookingDateTime: Date,
     ValueDateTime: Date,
+    AddressLine: String = "String",
+    ChargeAmount: AmountOfMoneyJsonV121,
     TransactionInformation: String,
+    CurrencyExchange:CurrencyExchangeJson,
     BankTransactionCode: BankTransactionCodeJson,
     ProprietaryBankTransactionCode: TransactionCodeJson,
-    Balance: BalanceUKOpenBankingJson
+    CardInstrument: CardInstrumentJson,
+    SupplementaryData:String = "",//Empty object {}. not sure what does it mean 
+    Balance: BalanceUKOpenBankingJson,
+    MerchantDetails: MerchantDetailsJson = MerchantDetailsJson(),
+    CreditorAgent:AgentJson = AgentJson(),
+    CreditorAccount:TransactionInnerAccountJson = TransactionInnerAccountJson(),
+    DebtorAgent:AgentJson= AgentJson(),
+    DebtorAccount:TransactionInnerAccountJson = TransactionInnerAccountJson(),
   )
   
   case class TransactionsInnerJson(
@@ -161,34 +221,42 @@ object JSONFactory_UKOpenBanking_310 {
     )
   }
   
-  def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonUKV200 = {
+  def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonUKV310 = {
     val accountId = transactions.head.bankAccount.get.accountId.value
     val transactionsInnerJson = transactions.map(
       transaction=>TransactionInnerJson(
-        AccountId = accountId,
-        TransactionId  = transaction.id.value,
+        accountId,
+        transaction.id.value,
         TransactionReference = transaction.description.getOrElse(""),
         Amount = AmountOfMoneyJsonV121(
           currency = transaction.currency.getOrElse("") ,
-          amount= transaction.amount.getOrElse(BigDecimal(0)).toString()
-        ),
-        CreditDebitIndicator = "Credit",
-        Status = "Booked",
+          amount= transaction.amount.getOrElse(BigDecimal(0)).toString()),
         BookingDateTime = transaction.startDate.get,
         ValueDateTime = transaction.finishDate.get,
+        ChargeAmount = AmountOfMoneyJsonV121(transaction.currency.getOrElse(""),"0"),
         TransactionInformation = transaction.description.getOrElse(""),
+        CurrencyExchange = CurrencyExchangeJson(
+          SourceCurrency = transaction.bankAccount.map(_.currency).flatten.getOrElse(""),
+          TargetCurrency = "",//No currency in the otherBankAccount,
+          UnitCurrency = "",
+          ExchangeRate = 0,
+          ContractIdentification = "string",
+          QuotationDate = new Date(),
+          InstructedAmount = AmountOfMoneyJsonV121(transaction.bankAccount.map(_.currency).flatten.getOrElse(""),"")), 
         BankTransactionCode = BankTransactionCodeJson("",""),
         ProprietaryBankTransactionCode = TransactionCodeJson("Transfer", "AlphaBank"),
-        Balance = BalanceUKOpenBankingJson(
+        CardInstrument = CardInstrumentJson(),
+        Balance =BalanceUKOpenBankingJson(
           Amount = AmountOfMoneyJsonV121(
             currency = transaction.currency.getOrElse(""),
             amount = transaction.balance
           ),
           CreditDebitIndicator = "Credit",
           Type = "InterimBooked"
-        ))
+        )
+      )
     )
-    TransactionsJsonUKV200(
+    TransactionsJsonUKV310(
       Data = TransactionsInnerJson(transactionsInnerJson),
       Links = LinksV310(
         Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",

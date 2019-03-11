@@ -2,12 +2,16 @@ package code.meetings
 
 import java.util.Date
 
+import code.api.util.ErrorMessages
+import code.cards.PinReset
 import code.model.dataAccess.ResourceUser
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.model.{BankId, User}
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers.tryo
 
+import scala.collection.immutable.List
 
 object MappedMeetingProvider extends MeetingProvider {
 
@@ -24,18 +28,31 @@ object MappedMeetingProvider extends MeetingProvider {
 
   override def getMeetings(bankId : BankId, userId: User): Box[List[Meeting]] = {
     // Return a Box so we can handle errors later.
-   Some(MappedMeeting.findAll(By(
-     // TODO Need to check permissions (user)
+   tryo{MappedMeeting.findAll(By(
+//      TODO Need to check permissions (user)
      MappedMeeting.mBankId, bankId.toString),
-     OrderBy(MappedMeeting.mWhen, Descending)))
+     OrderBy(MappedMeeting.mWhen, Descending))}
   }
 
 
 
-  override def createMeeting(bankId: BankId, staffUser: User, customerUser : User, providerId : String, purposeId : String, when: Date, sessionId: String, customerToken: String, staffToken: String) : Box[Meeting] = {
-
-    val createdMeeting = MappedMeeting.create
-      .mBankId(bankId.value.toString)
+  override def createMeeting(
+    bankId: BankId,
+    staffUser: User,
+    customerUser: User,
+    providerId: String,
+    purposeId: String,
+    when: Date,
+    sessionId: String,
+    customerToken: String,
+    staffToken: String,
+    creator: ContactDetails,
+    invitees: List[Invitee],
+  ): Box[Meeting] =
+  {
+   for{
+     createdMeeting <- tryo {MappedMeeting.create
+       .mBankId(bankId.value.toString)
       //.mStaffUserId(staffUser.apiId.value)
       .mCustomerUserId(customerUser.userPrimaryKey.value)
       .mProviderId(providerId)
@@ -44,9 +61,25 @@ object MappedMeetingProvider extends MeetingProvider {
       .mSessionId(sessionId)
       .mCustomerToken(customerToken)
       .mStaffToken(staffToken)
-      .saveMe()
-
-    Some(createdMeeting)
+      .mCreatorName(creator.name) 
+      .mCreatorPhone(creator.phone)
+      .mCreatorEmail(creator.email)
+      .saveMe()} ?~! ErrorMessages.CreateMeetingException
+     
+     _ <- tryo {for(invitee <- invitees) {
+      val meetingInvitee = MappedMeetingInvitee.create
+        .mMappedMeeting(createdMeeting)
+        .mName(invitee.contactDetails.name)
+        .mPhone(invitee.contactDetails.phone) 
+        .mEmail(invitee.contactDetails.email) 
+        .mStatus(invitee.status)
+        .saveMe()
+      createdMeeting.mInvitees += meetingInvitee
+      createdMeeting.save()
+    }} ?~! ErrorMessages.CreateMeetingInviteeException
+   } yield {
+     createdMeeting
+   }
   }
 
 }
@@ -55,7 +88,7 @@ object MappedMeetingProvider extends MeetingProvider {
 
 
 
-class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdPK with CreatedUpdated {
+class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdPK with CreatedUpdated with OneToMany[Long, MappedMeeting]{
 
   def getSingleton = MappedMeeting
 
@@ -79,7 +112,14 @@ class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdP
   object mStaffToken extends MappedString(this, 255)
 
   object mWhen extends MappedDateTime(this)
+  //Creator
+  object mCreatorName extends MappedString(this, 255)
+  object mCreatorPhone extends MappedString(this, 32)
+  object mCreatorEmail extends MappedEmail(this, 100)
 
+  //Invitees
+  object mInvitees extends MappedOneToMany(MappedMeetingInvitee, MappedMeetingInvitee.mMappedMeeting, OrderBy(MappedMeetingInvitee.id, Ascending))
+  
   override def meetingId: String = mMeetingId.get.toString
 
   override def when: Date = mWhen.get
@@ -92,10 +132,23 @@ class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdP
   override def present = MeetingPresent(staffUserId = mStaffUserId.foreign.map(_.userId).getOrElse(""),
                                         customerUserId = mCustomerUserId.foreign.map(_.userId).getOrElse(""))
 
-
+  override def creator = ContactDetails(mCreatorName.get,mCreatorPhone.get,mCreatorEmail.get)
+  override def invitees = mInvitees.map(invitee => Invitee(ContactDetails(invitee.mName.get, invitee.mPhone.get, invitee.mEmail.get),invitee.mStatus.get)).toList
+  
 }
 
 object MappedMeeting extends MappedMeeting with LongKeyedMetaMapper[MappedMeeting] {
   //one Meeting info per bank for each api user
   override def dbIndexes = UniqueIndex(mMeetingId) :: super.dbIndexes
 }
+
+class MappedMeetingInvitee extends LongKeyedMapper[MappedMeetingInvitee] with IdPK {
+  def getSingleton = MappedMeetingInvitee
+
+  object mMappedMeeting extends MappedLongForeignKey(this, MappedMeeting)
+  object mName extends MappedString(this, 255)
+  object mPhone extends MappedString(this, 255)
+  object mEmail extends MappedEmail(this, 100)
+  object mStatus extends MappedString(this, 255)
+}
+object MappedMeetingInvitee extends MappedMeetingInvitee with LongKeyedMetaMapper[MappedMeetingInvitee]{}

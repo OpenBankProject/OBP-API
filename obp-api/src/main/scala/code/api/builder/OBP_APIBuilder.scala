@@ -24,7 +24,7 @@ object OBP_APIBuilder extends OBPRestHelper with APIMethods_APIBuilder with MdcL
 
   // Make them available for use!
   routes.foreach(route => {
-    oauthServe(("api-builder" / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
+    oauthServe((version.urlPrefix / version.vDottedApiVersion()).oPrefix{route}, findResourceDoc(route))
   })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")

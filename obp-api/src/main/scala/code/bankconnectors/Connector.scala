@@ -30,6 +30,7 @@ import code.fx.FXRate
 import code.fx.fx.TTL
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
+import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.model.dataAccess.ResourceUser
 import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productcollection.ProductCollection
@@ -705,7 +706,7 @@ trait Connector extends MdcLoggable{
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
       // Always create a new Transaction Request
       transactionRequest <- Future{ createTransactionRequestImpl210(TransactionRequestId(generateUUID()), transactionRequestType, fromAccount, toAccount, transactionRequestCommonBody, detailsPlain, status.toString, charge, chargePolicy)} map {
-        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210", 400)
+        unboxFullOrFail(_, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestImpl210")
       }
 
       // If no challenge necessary, create Transaction immediately and put in data store and object to return
@@ -747,7 +748,7 @@ trait Connector extends MdcLoggable{
       
             //Save the challengeAnswer in OBP side, will check it in `Answer Transaction Request` endpoint.
             _ <- Future {ExpectedChallengeAnswer.expectedChallengeAnswerProvider.vend.saveExpectedChallengeAnswer(challengeId, salt, challengeAnswerHashed)} map { 
-              unboxFullOrFail(_, callContext, s"$UnknownError ", 400)
+              unboxFullOrFail(_, callContext, s"$UnknownError ")
             }
       
             // TODO: challenge_type should not be hard coded here. Rather it should be sent as a parameter to this function createTransactionRequestv300
@@ -1619,4 +1620,33 @@ trait Connector extends MdcLoggable{
                                     callContext: Option[CallContext]): OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] =
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
   
+  def createMeeting(
+      bankId: BankId,
+      staffUser: User,
+      customerUser: User,
+      providerId: String,
+      purposeId: String,
+      when: Date,
+      sessionId: String,
+      customerToken: String,
+      staffToken: String,
+      creator: ContactDetails,
+      invitees: List[Invitee],
+      callContext: Option[CallContext]
+  ): OBPReturnType[Box[Meeting]] = 
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def getMeetings(
+    bankId : BankId, 
+    userId: User,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[Meeting]]] = 
+    Future{(Failure(NotImplemented + currentMethodName), callContext)}
+  
+  def getMeeting(
+    bankId: BankId,
+    userId: User, 
+    meetingId : String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Meeting]]=Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }
