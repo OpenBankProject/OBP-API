@@ -3134,7 +3134,7 @@ object SwaggerDefinitionsJSON {
   val contactDetailsJson = ContactDetailsJson(
     name = "Simon ",
     mobile_phone = "+44 07972 444 876",
-    email_addresse = "contact@tesobe.com"
+    email_address = "contact@tesobe.com"
   )
   
   val inviteeJson = InviteeJson(

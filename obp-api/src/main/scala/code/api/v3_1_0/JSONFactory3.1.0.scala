@@ -437,9 +437,9 @@ case class ProductCollectionJsonTreeV310(collection_code: String,
                                          products: List[ProductJsonV310])
 
 case class ContactDetailsJson(
-  name: String,
-  mobile_phone: String,
-  email_addresse: String
+                               name: String,
+                               mobile_phone: String,
+                               email_address: String
 )
 
 case class InviteeJson(
