@@ -3,8 +3,7 @@ package code.api.util
 import java.net.URL
 import java.text.ParseException
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.interfaces.Claim
+import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.crypto.{MACVerifier, RSASSAVerifier}
 import com.nimbusds.jose.jwk.source.{JWKSource, RemoteJWKSet}
@@ -15,40 +14,7 @@ import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
-object JwtUtil {
-
-  /**
-    * Getter for the Header contained in the JWT as a Base64 encoded String.
-    * This represents the first part of the token.
-    *
-    * @return the Header of the JWT.
-    */
-  def getHeader(jwtToken: String) = {
-    val jwtDecoded = JWT.decode(jwtToken)
-    jwtDecoded.getHeader()
-  }
-
-  /**
-    * Getter for the Payload contained in the JWT as a Base64 encoded String.
-    * This represents the second part of the token.
-    *
-    * @return the Payload of the JWT.
-    */
-  def getPayload(jwtToken: String) = {
-    val jwtDecoded = JWT.decode(jwtToken)
-    jwtDecoded.getPayload()
-  }
-
-  /**
-    * Getter for the Signature contained in the JWT as a Base64 encoded String.
-    * This represents the third part of the token.
-    *
-    * @return the Signature of the JWT.
-    */
-  def getSignature(jwtToken: String) = {
-    val jwtDecoded = JWT.decode(jwtToken)
-    jwtDecoded.getSignature()
-  }
+object JwtUtil extends MdcLoggable {
 
   /**
     * Helper function which verify JSON Web Token (JWT) with RSA signature
@@ -78,12 +44,19 @@ object JwtUtil {
     * @return the Subject's value or None.
     */
   def getSubject(jwtToken: String): Option[String] = {
-    val jwtDecoded = JWT.decode(jwtToken)
-    jwtDecoded.getSubject() match {
-      case null => None
-      case value => Some(value)
+    var signedJWT: SignedJWT = null
+    try {
+      signedJWT = SignedJWT.parse(jwtToken)
+    } catch {
+      case e: Exception =>
+      logger.error(msg = "code.api.util.JwtUtil.getSubject")
+      logger.error(e)
+      None
     }
+    // claims extraction...
+    Some(signedJWT.getJWTClaimsSet.getSubject())
   }
+  
   /**
     * The Issuer Identifier for the Issuer of the response. 
     * Get the value of the "iss" claim, or None if it's not available.
@@ -91,11 +64,17 @@ object JwtUtil {
     * @return the Issuer's value or None.
     */
   def getIssuer(jwtToken: String): Option[String] = {
-    val jwtDecoded = JWT.decode(jwtToken)
-    jwtDecoded.getIssuer() match {
-      case null => None
-      case value => Some(value)
+    var signedJWT: SignedJWT = null
+    try {
+      signedJWT = SignedJWT.parse(jwtToken)
+    } catch {
+      case e: Exception =>
+        logger.error(msg = "code.api.util.JwtUtil.getIssuer")
+        logger.error(e)
+        None
     }
+    // claims extraction...
+    Some(signedJWT.getJWTClaimsSet.getIssuer())
   }
   /**
     * The Audience Identifier for the Issuer of the response. 
@@ -104,12 +83,18 @@ object JwtUtil {
     * @return the Issuer's value. In case if it's not available the value is empty list.
     */
   def getAudience(jwtToken: String): List[String] = {
-    import scala.collection.JavaConverters._
-    val jwtDecoded = JWT.decode(jwtToken)
-    jwtDecoded.getAudience() match {
-      case null => Nil
-      case value => value.asScala.toList
+    var signedJWT: SignedJWT = null
+    try {
+      signedJWT = SignedJWT.parse(jwtToken)
+    } catch {
+      case e: Exception =>
+        logger.error(msg = "code.api.util.JwtUtil.getAudience")
+        logger.error(e)
+        None
     }
+    // claims extraction...
+    import scala.collection.JavaConverters._
+    signedJWT.getJWTClaimsSet.getAudience().asScala.toList
   }
 
   /**
@@ -118,9 +103,20 @@ object JwtUtil {
     * @param jwtToken JSON Web Token (JWT) as a String value
     * @return The claim we requested
     */
-  def getClaim(name: String, jwtToken: String): Claim = {
-    val jwtDecoded = JWT.decode(jwtToken)
-    jwtDecoded.getClaim(name)
+  def getClaim(name: String, jwtToken: String): String = {
+    var signedJWT: SignedJWT = null
+    var claim = ""
+    try {
+      signedJWT = SignedJWT.parse(jwtToken)
+      // claims extraction...
+      claim = signedJWT.getJWTClaimsSet.getStringClaim(name)
+    } catch {
+      case e: Exception =>
+        logger.error(msg = "code.api.util.JwtUtil.getIssuer")
+        logger.error(e)
+        None
+    }
+    claim
   }
 
   /**
@@ -181,7 +177,7 @@ object JwtUtil {
 
     // The required parameters
     val iss: Issuer = new Issuer(getIssuer(idToken).getOrElse(""))
-    val azp = getClaim("azp", idToken).asString()
+    val azp = getClaim("azp", idToken)
     val clientID: ClientID = new ClientID(azp)
     val jwsAlg: JWSAlgorithm = JWSAlgorithm.RS256
     //val jwkSetURL: URL = new URL("https://www.googleapis.com/oauth2/v3/certs")
@@ -219,13 +215,10 @@ object JwtUtil {
 
   def main(args: Array[String]): Unit = {
     val jwtToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjhhYWQ2NmJkZWZjMWI0M2Q4ZGIyN2U2NWUyZTJlZjMwMTg3OWQzZTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJhdF9oYXNoIjoiWGlpckZ1cnJ2X0ZxN3RHd25rLWt1QSIsIm5hbWUiOiJNYXJrbyBNaWxpxIciLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDUuZ29vZ2xldXNlcmNvbnRlbnQuY29tLy1YZDQ0aG5KNlREby9BQUFBQUFBQUFBSS9BQUFBQUFBQUFBQS9BS3hyd2NhZHd6aG00TjR0V2s1RThBdnhpLVpLNmtzNHFnL3M5Ni1jL3Bob3RvLmpwZyIsImdpdmVuX25hbWUiOiJNYXJrbyIsImZhbWlseV9uYW1lIjoiTWlsacSHIiwibG9jYWxlIjoiZW4iLCJpYXQiOjE1NDczMTE3NjAsImV4cCI6MTU0NzMxNTM2MH0.UyOmM0rsO0-G_ibDH3DFogS94GcsNd9GtYVw7j3vSMjO1rZdIraV-N2HUtQN3yHopwdf35A2FEJaag6X8dbvEkJC7_GAynyLIpodoaHNtaLbww6XQSYuQYyF27aPMpROoGZUYkMpB_82LF3PbD4ecDPC2IA5oSyDF4Eya4yn-MzxYmXS7usVWvanREg8iNQSxpu7zZqj4UwhvSIv7wH0vskr_M-PnefQzNTrdUx74i-v9lVqC4E_bF5jWeDGO8k5dqWqg55QuZdyJdSh89KNiIjJXGZDWUBzGfsbetWRnObIgX264fuOW4SpRglUc8fzv41Sc7SSqjqRAFm05t60kg"
-    println("Header: " + getHeader(jwtToken))
-    println("Payload: " + getPayload(jwtToken))
     println("Subject: " + getSubject(jwtToken))
-    println("Signature: " + getSignature(jwtToken))
     println("Verify JWT: " + verifyRsaSignedJwt(jwtToken))
 
-    val idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjhhYWQ2NmJkZWZjMWI0M2Q4ZGIyN2U2NWUyZTJlZjMwMTg3OWQzZTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJhdF9oYXNoIjoiWVVuME9EYlVsUU4xQ1VUOThSVmE3USIsIm5hbWUiOiJNYXJrbyBNaWxpxIciLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDUuZ29vZ2xldXNlcmNvbnRlbnQuY29tLy1YZDQ0aG5KNlREby9BQUFBQUFBQUFBSS9BQUFBQUFBQUFBQS9BS3hyd2NhZHd6aG00TjR0V2s1RThBdnhpLVpLNmtzNHFnL3M5Ni1jL3Bob3RvLmpwZyIsImdpdmVuX25hbWUiOiJNYXJrbyIsImZhbWlseV9uYW1lIjoiTWlsacSHIiwibG9jYWxlIjoiZW4iLCJpYXQiOjE1NDc0NTQ3MTIsImV4cCI6MTU0NzQ1ODMxMn0.GImeYoPuOgitxpS59XvEd93nxRYKbWl9vHvuMIXYJWFQ5bF_LcnX_PdXRA3w-cBrAZZ3FCAtY0nrE8f7pb6-oQnqpJXYl6PwCe_oZV5rUzMnWUyWauk752_Et-hSxCypAyf7zvW3xcunQUdeKLt_b5dIIs80d8vDpnSlR4SkXx9iduOQ84ktvHMgwIb7ymws6LenstJH864TMvmUNokFgVGOcVeJRKKiGmcoIhIYdh9j1z4J0_gCPs-UsJhJTdmVQgtNQFqMUt8KPEYvFd0gI3Cdvd9gQM5cq9OSUs3D9sI0DLEhBCoEHanBinUrII8B7JE2HkPTEMdM2ZN-2Ecq5A"
+    val idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNmMDIyYTQ5ZTk3ODYxNDhhZDBlMzc5Y2M4NTQ4NDRlMzZjM2VkYzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NjY4NTQyNDU3ODA4OTI5NTkiLCJlbWFpbCI6Im1hcmtvLm1pbGljLnNyYmlqYUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IkQ0VlZTSThXXzBXSC1QM1o5TW9NSEEiLCJuYW1lIjoiTWFya28gTWlsacSHIiwicGljdHVyZSI6Imh0dHBzOi8vbGg1Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWGQ0NGhuSjZURG8vQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQUNIaTNyY0lDel9Kemk5UEdnY3RrVzRzRzdWQmtFV2d2QS9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiTWFya28iLCJmYW1pbHlfbmFtZSI6Ik1pbGnEhyIsImxvY2FsZSI6ImVuIiwiaWF0IjoxNTUyMzc3ODgwLCJleHAiOjE1NTIzODE0ODB9.g2gIxUPT2zFmeTpbeeU4t0vmzrwgbKJSSQ_V33e9iWx63aDSHreGOwAMn6bPlI7b3DXB6Kjzx_6OoijoEsyoUHdJ4Pa5Ds611KKgBKDL0ztqKAtcLFE66kiHtUSnZyFUiYykzE6uGcluBaeXVQOkZqpeXEwhUVbUZSkM0QZ1l2DoOnnJB3rsNsoTBVnIYfQDZR8huxNCb9gjrYTzvtjifYG8uJ7FWMndcTorlUUpd3TxFkxJvws8oD2Au564awNQsQymZ10ZVDQ-D_mImJo5EQDxRiCtwMRDP_UtIYI9AkBHbE_6hi8kbeop-gDpDsLvl1v4Wl_rFciRxPgXP07Xuw"
     println("validateIdToken: " + validateIdToken(idToken = idToken, remoteJWKSetUrl = "https://www.googleapis.com/oauth2/v3/certs").map("Logged in user: " + _.getSubject))
   }
 
