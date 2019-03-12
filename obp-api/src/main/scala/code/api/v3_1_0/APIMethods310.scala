@@ -2998,11 +2998,11 @@ trait APIMethods310 {
             customerToken =""
             staffToken = ""
   
-            creator = ContactDetails(createMeetingJson.creator.name,createMeetingJson.creator.mobile_phone,createMeetingJson.creator.email_addresse)
+            creator = ContactDetails(createMeetingJson.creator.name,createMeetingJson.creator.mobile_phone,createMeetingJson.creator.email_address)
             invitees  = createMeetingJson.invitees.map(
               invitee =>
                 Invitee(
-                  ContactDetails(invitee.contact_details.name, invitee.contact_details.mobile_phone,invitee.contact_details.email_addresse),
+                  ContactDetails(invitee.contact_details.name, invitee.contact_details.mobile_phone,invitee.contact_details.email_address),
                   invitee.status))
             (meeting, callContext) <- NewStyle.function.createMeeting(
               bank.bankId,
