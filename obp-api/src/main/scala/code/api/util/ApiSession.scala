@@ -222,4 +222,14 @@ object ApiSession {
     }
   }
 
+  def hasConsent(callContext: Option[CallContext]): Boolean = {
+    callContext.map(_.getConsentId()) match {
+      case Some(consent) => 
+        // TODO Inspect rights based on Consent-Id header value
+        false
+      case _ =>
+        false
+    }
+  }
+
 }

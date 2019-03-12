@@ -255,8 +255,8 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId")
       }
 
-    def moderatedBankAccount(account: BankAccount, view: View, user: Box[User]) = Future {
-      account.moderatedBankAccount(view, user)
+    def moderatedBankAccount(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
+      account.moderatedBankAccount(view, user, callContext)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
@@ -270,7 +270,7 @@ object NewStyle {
                                   view: View, 
                                   user: Box[User], 
                                   callContext: Option[CallContext]): Future[ModeratedOtherBankAccount] = 
-      Future(account.moderatedOtherBankAccount(counterpartyId, view, user)) map { connectorEmptyResponse(_, callContext) }
+      Future(account.moderatedOtherBankAccount(counterpartyId, view, user, callContext)) map { connectorEmptyResponse(_, callContext) }
 
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
@@ -486,12 +486,12 @@ object NewStyle {
         code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
       }
     }
-    def hasEntitlement(bankId: String, userId: String, role: ApiRole, consentId: Option[String] = None): Future[Box[Unit]] = {
-      consentId match {
-        case Some(_) =>
+    def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext] = None): Future[Box[Unit]] = {
+      ApiSession.hasConsent(callContext) match {
+        case true =>
           // TODO Implement consent feature behaviour
           hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
-        case None =>
+        case false =>
           hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
       }
     }

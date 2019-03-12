@@ -117,7 +117,7 @@ The ASPSP answers by providing a list of balances on this account.
              (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountresourceid), callContext)
              view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
              _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
-             moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u))} map {
+             moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u), callContext)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
           } yield {

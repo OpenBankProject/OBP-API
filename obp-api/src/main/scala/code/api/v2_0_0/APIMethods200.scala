@@ -866,7 +866,7 @@ trait APIMethods200 {
             account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(account.bankId,account.accountId))
-            moderatedAccount <- account.moderatedBankAccount(view, cc.user)
+            moderatedAccount <- account.moderatedBankAccount(view, cc.user, Some(cc))
           } yield {
             val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount)
             val response = successJsonResponse(Extraction.decompose(moderatedAccountJson))
@@ -968,7 +968,7 @@ trait APIMethods200 {
             availableViews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
-            moderatedAccount <- account.moderatedBankAccount(view, cc.user)
+            moderatedAccount <- account.moderatedBankAccount(view, cc.user, callContext)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
             val moderatedAccountJson = JSONFactory121.createBankAccountJSON(moderatedAccount, viewsAvailable)
