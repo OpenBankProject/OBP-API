@@ -36,9 +36,9 @@ This project is dual licensed under the AGPL V3 (see NOTICE) and commercial lice
 
 The project uses Maven 3 as its build tool.
 
-To compile and run jetty, install Maven 3, create your configuration in src/main/resources/props/default.props and execute:
+To compile and run jetty, install Maven 3, create your configuration in obp-api/src/main/resources/props/default.props and execute:
 
-     ./mvn.sh install -pl obp-commons && ./mvn.sh jetty:run -pl obp-api
+     ./mvn.sh install -pl .,obp-commons && ./mvn.sh jetty:run -pl obp-api
 
 ## To run with IntelliJ IDEA
 
@@ -64,7 +64,7 @@ To compile and run jetty, install Maven 3, create your configuration in src/main
 
 * Now **Rebuild** the project so everything is compiled. At this point you may need to select the SDK, see above.
 
-* Once you have rebuilt the project wihtout compile errors, you should be able to RunWebApp in src/test/scala
+* Once you have rebuilt the project wihtout compile errors, you should be able to RunWebApp in obp-api/src/test/scala
 
 * Run RunWebApp by right clicking on it or selecting Run. The built in jetty server should start on localhost:8080
 
@@ -153,7 +153,7 @@ Note: Your Java environment may need to be setup correctly to use SSL
 
 Restart OBP-API, if you get an error, check your Java environment can connect to the host over SSL.
 
-Note you can change the log level in /src/main/resources/default.logback.xml (try TRACE or DEBUG)
+Note you can change the log level in /obp-api/src/main/resources/default.logback.xml (try TRACE or DEBUG)
 
 There is a gist / tool which is useful for this. Search the web for SSLPoke. Note this is an external repository.
 
@@ -287,7 +287,7 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * Configuration
 
-* Edit the OBP-API/src/main/resources/props/default.props so that it contains the following lines. Please note that 
+* Edit the OBP-API/obp-api/src/main/resources/props/default.props so that it contains the following lines. Please note that 
 kafka.host is used by the producer and kafka.zookeeper_host is used by the consumer. This should be done on each node:
 
         connector=kafka
@@ -466,7 +466,7 @@ You can obfuscate passwords in the props file the same way as for jetty:
    *  db.url=OBF:fdsafdsakwaetcetcetc
 
 ## Rate Limiting
-We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this fie: https://github.com/OpenBankProject/OBP-API/blob/develop/src/main/scala/code/api/util/NewStyle.scala. 
+We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this file: https://github.com/OpenBankProject/OBP-API/blob/develop/obp-api/src/main/scala/code/api/util/NewStyle.scala. 
 There are two supported modes:
    *  In-Memory
    *  Redis

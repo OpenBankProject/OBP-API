@@ -4,7 +4,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.tesobe</groupId>
-  <artifactId>obp-api-parent</artifactId>
+  <artifactId>obp-parent</artifactId>
   <version>1.0</version>
   <packaging>pom</packaging>
   <name>Open Bank Project API Parent</name>
@@ -30,8 +30,8 @@
   </properties>
 
   <modules>
-    <module>obp-api</module>
     <module>obp-commons</module>
+    <module>obp-api</module>
   </modules>
 
   <repositories>
