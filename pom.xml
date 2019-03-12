@@ -32,6 +32,7 @@
   <modules>
     <module>obp-commons</module>
     <module>obp-api</module>
+    <module>obp-adapter</module>
   </modules>
 
   <repositories>

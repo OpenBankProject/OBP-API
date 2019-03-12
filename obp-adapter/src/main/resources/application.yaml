@@ -1,0 +1,42 @@
+server:
+  servlet.context-path: /adapter
+  port: 8083
+
+adapter:
+  akka:
+    host: 127.0.0.1
+    port: 8080
+  remote.base.url: http://127.0.0.1:9094
+
+spring:
+  # we are using multiple @FeignClient beans and without bean overriding the app fails to start.
+  # see https://stackoverflow.com/questions/53787550/jpaauditinghandler-defined-in-null-on-application-startup-using-spring-boot
+  main.allow-bean-definition-overriding: true
+
+
+#actuator
+management:
+  server.port: 9091
+  endpoints:
+    web.base-path: /monitor
+    # disable actuator
+    web.exposure.exclude: "*"
+    health.show-details: always
+
+openbankproject:
+  adapter:
+    swagger.enable: false
+
+---
+spring:
+  profiles: dev
+
+openbankproject:
+  adapter:
+    swagger.enable: true
+
+management:
+  endpoints:
+    web.exposure:
+      include: "*"
+      exclude: ""

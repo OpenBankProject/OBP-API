@@ -62,7 +62,7 @@ object AkkaConnectorActorConfig {
         "scala.Boolean" = kryo,
         "java.io.Serializable" = kryo,
         "scala.collection.immutable.List" = kryo,
-        "akka.actor.ActorSelectionMessage" = kryo,
+        #"akka.actor.ActorSelectionMessage" = kryo,
         "code.model.Consumer" = kryo,
         "code.model.AppType" = kryo
       }
