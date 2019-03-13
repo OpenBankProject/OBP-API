@@ -100,7 +100,6 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
   override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = {
     val req = OutboundGetBanks(callContext.map(_.toCallContextAkka))
-    val response2 = (southSideActor ? "hello")
     val response: Future[InboundGetBanks] = (southSideActor ? req).mapTo[InboundGetBanks]
     response.map(_.payload.map(r => (r.map(toBank(_)), callContext)))
   }

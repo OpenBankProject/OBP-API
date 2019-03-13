@@ -4,8 +4,8 @@ import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.actor.Props
 import com.openbankproject.adapter.actor.ResultActor
-import com.openbankproject.adapter.service.BankAccountService
-import org.junit.Test
+import com.openbankproject.adapter.service.BankService
+import org.junit.{Ignore, Test}
 import org.junit.runner.RunWith
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.junit4.SpringRunner
@@ -13,12 +13,13 @@ import javax.annotation.Resource;
 
 @RunWith(classOf[SpringRunner])
 @SpringBootTest
+@Ignore
 class AkkaAdapterApplicationTest{
   @Resource
   val actorSystem: ActorSystem = null
 
   @Resource
-  val accountService: BankAccountService = null
+  val bankService: BankService = null
 
   @Test
   def contextLoads ={
@@ -33,8 +34,8 @@ class AkkaAdapterApplicationTest{
 
   @Test
   def getBanksTest = {
-    val banks = this.accountService.getBanks()
-    val bank = this.accountService.getBankById("hello-bank-id")
+    val banks = this.bankService.getBanks()
+    val bank = this.bankService.getBankById("hello-bank-id")
     System.out.println(banks)
     System.out.println(bank)
 

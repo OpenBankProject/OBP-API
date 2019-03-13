@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.{GetMapping, PathVariable}
 import scala.tools.nsc.interpreter.JList
 
 @FeignClient(name="account", url="${adapter.remote.base.url}")
-trait BankAccountService {
+trait BankService {
 
   @GetMapping(Array("banks/{BANK_ID}"))
   def getBankById(@PathVariable("BANK_ID") bankId: String): InboundBank

@@ -3,7 +3,7 @@ package com.openbankproject.adapter.actor
 import java.util.Date
 
 import akka.actor.Actor
-import com.openbankproject.adapter.service.BankAccountService
+import com.openbankproject.adapter.service.BankService
 import com.openbankproject.commons.dto.{InboundGetBank, InboundGetBanks, OutboundGetBank, OutboundGetBanks}
 import javax.annotation.Resource
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 class SouthSideActor  extends Actor  {
 
   @Resource
-  val accountService: BankAccountService = null
+  val bankService: BankService = null
 
   val mockAdapaterInfo =
     s"""
@@ -28,8 +28,8 @@ class SouthSideActor  extends Actor  {
     """.stripMargin
 
   def receive = {
-    case OutboundGetBanks(callContext) => sender ! InboundGetBanks(accountService.getBanks(), callContext)
-    case OutboundGetBank(bankId, callContext) => sender ! InboundGetBank(this.accountService.getBankById(bankId), callContext)
+    case OutboundGetBanks(callContext) => sender ! InboundGetBanks(bankService.getBanks(), callContext)
+    case OutboundGetBank(bankId, callContext) => sender ! InboundGetBank(this.bankService.getBankById(bankId), callContext)
     case message => sender ! mockAdapaterInfo
   }
 
