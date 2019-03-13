@@ -367,7 +367,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
   }
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Box[(ModeratedTransaction, Option[CallContext])] = {
-    if(APIUtil.hasAccess(view, user) || ApiSession.hasConsent(callContext))
+    if(APIUtil.hasAccess(view, user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext)
         moderatedTransaction<- view.moderateTransaction(transaction)
@@ -376,7 +376,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
       viewNotAllowed(view)
   }
   final def moderatedTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
-    if(APIUtil.hasAccess(view, user) || ApiSession.hasConsent(callContext))
+    if(APIUtil.hasAccess(view, user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext) map {
           x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
@@ -397,7 +397,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactions(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[(List[ModeratedTransaction],Option[CallContext])] = {
-    if(APIUtil.hasAccess(view, user) || ApiSession.hasConsent(callContext)) {
+    if(APIUtil.hasAccess(view, user)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams: _*)
         moderated <- view.moderateTransactionsWithSameAccount(transactions) ?~! "Server error"
@@ -406,7 +406,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
     else viewNotAllowed(view)
   }
   final def getModeratedTransactionsFuture(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
-    if(APIUtil.hasAccess(view, user) || ApiSession.hasConsent(callContext)) {
+    if(APIUtil.hasAccess(view, user)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactionsFuture(bankId, accountId, callContext, queryParams: _*) map {
           x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
@@ -423,7 +423,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactionsCore(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[(List[ModeratedTransactionCore], Option[CallContext])] = {
-    if(APIUtil.hasAccess(view, user) || ApiSession.hasConsent(callContext)) {
+    if(APIUtil.hasAccess(view, user)) {
       for {
         (transactions, callContext) <- Connector.connector.vend.getTransactionsCore(bankId, accountId, callContext, queryParams: _*) ?~! InvalidConnectorResponseForGetTransactions
         moderated <- view.moderateTransactionsWithSameAccountCore(transactions) ?~! UnknownError
@@ -433,7 +433,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
   }
 
   final def moderatedBankAccount(view: View, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccount] = {
-    if(APIUtil.hasAccess(view, user) || ApiSession.hasConsent(callContext))
+    if(APIUtil.hasAccess(view, user))
     //implicit conversion from option to box
       view.moderateAccount(bankAccount)
     else
@@ -468,7 +468,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
     *  account that have at least one transaction in common with this bank account
     */
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedOtherBankAccount] =
-    if(APIUtil.hasAccess(view, user) || ApiSession.hasConsent(callContext))
+    if(APIUtil.hasAccess(view, user))
       Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID), None).map(_._1).flatMap(BankAccount.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
         //First check the explict counterparty
         case Full(moderatedOtherBankAccount) => Full(moderatedOtherBankAccount)

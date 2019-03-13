@@ -487,13 +487,7 @@ object NewStyle {
       }
     }
     def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext] = None): Future[Box[Unit]] = {
-      ApiSession.hasConsent(callContext) match {
-        case true =>
-          // TODO Implement consent feature behaviour
-          hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
-        case false =>
-          hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
-      }
+      hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
     }
     
     def hasAtLeastOneEntitlement(failMsg: String)(bankId: String, userId: String, role: List[ApiRole]): Future[Box[Unit]] = {

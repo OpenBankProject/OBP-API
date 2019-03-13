@@ -87,17 +87,11 @@ case class CallContext(
     * Purpose of this helper function is to get the Consent-Id value from a Request Headers.
     * @return the Consent-Id value from a Request Header as a String
     */
-  def getConsentId(): String = {
-    this.requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
-      case x :: Nil => x.values.mkString(", ")
-      case _ => ""
-    }
+  def getConsentId(): Option[String] = {
+    APIUtil.getConsentId(this.requestHeaders)
   }
   def hasConsentId(): Boolean = {
-    this.requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
-      case x :: Nil => true
-      case _ => false
-    }
+    APIUtil.hasConsentId(this.requestHeaders)
   }
   
 }
@@ -219,16 +213,6 @@ object ApiSession {
         }
       case None =>
         j
-    }
-  }
-
-  def hasConsent(callContext: Option[CallContext]): Boolean = {
-    callContext.map(_.getConsentId()) match {
-      case Some(consent) => 
-        // TODO Inspect rights based on Consent-Id header value
-        false
-      case _ =>
-        false
     }
   }
 
