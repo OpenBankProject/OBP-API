@@ -17,3 +17,5 @@ obp-api/src/main/resources/log4j.properties
 obp-api/src/main/scripts/kafka/kafka_*
 obp-api/src/main/scripts/kafka/logs/
 obp-api/src/main/scripts/kafka/tmp/
+**/resources/git.properties
+.swagger-codegen/
