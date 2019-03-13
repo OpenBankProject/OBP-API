@@ -229,7 +229,6 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     logger.debug("login_user_name: " + username)
     val cbsAndCallContextBox = refreshBankAccounts(jwtPayload, callContext)
     for {
-      placeHolder <- Full(1)
       tuple <- cbsAndCallContextBox match {
         case Full((s, _, callContextNew)) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
           logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
