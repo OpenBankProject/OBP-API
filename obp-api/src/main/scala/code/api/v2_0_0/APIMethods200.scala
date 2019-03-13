@@ -2168,7 +2168,7 @@ trait APIMethods200 {
         emptyObjectJson, //TODO what is output here?
         List(UserNotLoggedIn, BankNotFound, UserHasMissingRoles, UnknownError),
         Catalogs(notCore, notPSD2, notOBWG),
-        List(),
+        List(apiTagSearchWarehouse),
         Some(List(canSearchWarehouse)))
 
     val esw = new elasticsearchWarehouse

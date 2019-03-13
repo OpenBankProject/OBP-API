@@ -466,7 +466,6 @@ trait APIMethods220 {
          |
          |${authenticationRequiredMessage(true) }
          |
-         |$createBranchEntitlementsRequiredText
          |""",
       branchJsonV220,
       branchJsonV220,
@@ -477,7 +476,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
-      Nil,
+      List(apiTagBranch, apiTagOpenData),
       Some(List(canCreateBranch,canCreateBranchAtAnyBank))
     )
 
@@ -518,7 +517,6 @@ trait APIMethods220 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createAtmEntitlementsRequiredText
           |""",
       atmJsonV220,
       atmJsonV220,
@@ -573,7 +571,6 @@ trait APIMethods220 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createProductEntitlementsRequiredText
           |""",
       productJsonV220,
       productJsonV220,
@@ -640,7 +637,6 @@ trait APIMethods220 {
           |
          |${authenticationRequiredMessage(true) }
           |
-         |$createFxEntitlementsRequiredText
           |""",
       fxJsonV220,
       fxJsonV220,
@@ -916,7 +912,7 @@ trait APIMethods220 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      Nil,
+      List(apiTagConsumer),
       Some(List(canCreateConsumer)))
 
 
