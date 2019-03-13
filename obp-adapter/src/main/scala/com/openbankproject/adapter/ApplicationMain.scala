@@ -11,3 +11,11 @@ class ApplicationMain
 object ApplicationMain extends App{
   SpringApplication.run(classOf[ApplicationMain], args:_*)
 }
+
+/**
+  * run as dev profile
+  */
+private object ApplicationDevMain extends App {
+  System.setProperty("spring.profiles.active", "dev")
+  SpringApplication.run(classOf[ApplicationMain], args:_*)
+}
