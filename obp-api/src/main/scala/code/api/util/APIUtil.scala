@@ -1861,7 +1861,10 @@ Returns a string showed to the developer
     val res =
     if (APIUtil.hasConsentId(reqHeaders)) {
       // TODO 1. Get or Create a User 2. Assign entitlements to it 3. Create views
-      Future((Failure(NotImplemented + RequestHeader.`Consent-Id`), Some(cc)))
+      APIUtil.getConsentId(reqHeaders) match {
+        case Some(consentId) => Consent.hasConsent(consentId, Some(cc))
+        case None => Future((Failure("Cannot get Consent-Id"), Some(cc)))
+      }
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
     } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
