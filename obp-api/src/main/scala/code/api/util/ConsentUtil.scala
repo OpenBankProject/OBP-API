@@ -33,31 +33,84 @@ object Consent {
       case _ => 
         Full(true)
     }
-  } 
+  }
 
+  private def getOrCreateUser(subject: String, provider: String, name: Option[String], email: Option[String]): Future[Box[User]] = {
+    Users.users.vend.getOrCreateUserByProviderIdFuture(
+      provider = provider,
+      idGivenByProvider = subject,
+      name = name,
+      email = email
+    )
+  }
+
+  private def addEntitlements(user: User, consent: Consent): Box[User] = {
+    def addConsentEntitlements(existingEntitlements: List[Entitlement], entitlement: Role): (Role, String) = {
+      ApiRole.availableRoles.exists(_.toString == entitlement.role_name) match { // Check a role name
+        case true =>
+          val role = ApiRole.valueOf(entitlement.role_name)
+          existingEntitlements.exists(_.roleName == entitlement.role_name) match { // Check is a role already added to a user
+            case false =>
+              val bankId = if (role.requiresBankId) entitlement.bank_id else ""
+              Entitlement.entitlement.vend.addEntitlement(bankId, user.userId, entitlement.role_name) match {
+                case Full(_) => (entitlement, "AddedOrExisted")
+                case _ => (entitlement, "Cannot add the entitlement: " + entitlement)
+              }
+            case true =>
+              (entitlement, "AddedOrExisted")
+          }
+        case false =>
+          (entitlement, "There is no entitlement's name: " + entitlement)
+      }
+    }
+
+    val entitlements: List[Role] = consent.entitlements
+    Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId) match {
+      case Full(existingEntitlements) =>
+        val triedToAdd =
+          for {
+            entitlement <- entitlements
+          } yield {
+            addConsentEntitlements(existingEntitlements, entitlement)
+          }
+        val failedToAdd: List[(Role, String)] = triedToAdd.filter(_._2 != "AddedOrExisted")
+        failedToAdd match {
+          case Nil => Full(user)
+          case _ => Failure("The entitlements cannot be added. " + failedToAdd.map(_._1).mkString(", "))
+        }
+      case _ =>
+        Failure("Cannot get entitlements for user id: " + user.userId)
+    }
+
+  }
 
   private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
     implicit val dateFormats = net.liftweb.json.DefaultFormats
+
+    def applyConsentRules(consent: Consent): Future[Box[User]] = {
+      // 1. Get or Create a User
+      getOrCreateUser(consent.subject, consent.provider, None, None) map {
+        case (Full(user)) =>
+          // 2. Assign entitlements to the User
+          addEntitlements(user, consent)
+        case _ =>
+          Failure("Cannot create or get the user based on: " + consentIdAsJwt)
+      }
+    }
+
     JwtUtil.getSignedPayloadAsJson(consentIdAsJwt) match {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[Consent]
           chechExpiration(consent.issued_at, consent.expiration_time) match { // Check is it Consent-Id expired
             case (Full(true)) => // OK
-              // 1. Get or Create a User
-              getOrCreateUser(consent.subject, consent.provider, None, None) map {
-                case (Full(user)) =>
-                  // 2. Assign entitlements to the User
-                  addEntitlements(user, consent)
-                case _ =>
-                  Failure("Cannot create or get the user based on: " + consentIdAsJwt)
-              }
+              applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
               Future(failure)
             case _ => // Unexpected errors
               Future(Failure("Cannot check is Consent-Id expired."))
           }
-        } catch {
+        } catch { // Possible exceptions
           case e: ParseException => Future(Failure("ParseException: " + e.getMessage))
           case e: MappingException => Future(Failure("MappingException: " + e.getMessage))
           case e: Exception => Future(Failure("parsing failed: " + e.getMessage))
@@ -72,47 +125,6 @@ object Consent {
   def hasConsent(consentIdAsJwt: String, calContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
     hasConsentInternal(consentIdAsJwt) map (result => (result, calContext))
   }
-  
-  def getOrCreateUser(subject: String, provider: String, name: Option[String], email: Option[String]): Future[Box[User]] = {
-    Users.users.vend.getOrCreateUserByProviderIdFuture(
-      provider = provider,
-      idGivenByProvider = subject,
-      name = name,
-      email = email
-    )
-  }
-  
-  def addEntitlements(user: User, consent: Consent): Box[User] = {
-    val entitlements: List[Role] = consent.entitlements
-    Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId) match {
-      case Full(existingEntitlements) =>
-        val triedToAdd =
-          for {
-            entitlement <- entitlements
-          } yield {
-            ApiRole.availableRoles.exists(_.toString == entitlement.role_name) match { // Check a role name
-              case true =>
-                val role = ApiRole.valueOf(entitlement.role_name)
-                existingEntitlements.exists(_.roleName == entitlement.role_name) match { // Check is a role already added to a user
-                  case false =>
-                    val result = Entitlement.entitlement.vend.addEntitlement(if (role.requiresBankId) entitlement.bank_id else "", user.userId, entitlement.role_name)
-                    (entitlement, result)
-                  case true =>
-                    (entitlement, Full(existingEntitlements.filter(_.roleName == entitlement.role_name).head))
-                }
-              case false =>
-                (entitlement, Failure("There is no role: " + entitlement))
-            }
 
-          }
-        val failedToAdd: List[(Role, Box[Entitlement])] = triedToAdd.filter(_._2.isDefined == false)
-        failedToAdd match {
-          case Nil => Full(user)
-          case _ => Failure("Cannot add next entitlements: " + failedToAdd.map(_._1).mkString(", ") + ", please check the names.")
-        }
-      case _ =>
-        Failure("Cannot get entitlements for user id: " + user.userId)
-    }
-    
-  }
+  
 }
