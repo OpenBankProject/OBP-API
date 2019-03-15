@@ -69,14 +69,24 @@ case class Consent(createdByUserId: String,
 
 object Consent {
   
-  private def chechExpiration(nbf: Long, exp: Long): Box[Boolean] = {
-    (System.currentTimeMillis / 1000) match {
-      case currentTimeInSeconds if currentTimeInSeconds < nbf => 
-        Failure("The time Consent-ID token was issued is set in the future.")
-      case currentTimeInSeconds if currentTimeInSeconds > exp => 
-        Failure("Consent-Id is expired.")
-      case _ => 
-        Full(true)
+  private def verifyHmacSignedJwt(jwtToken: String): Boolean = {
+    val secret = APIUtil.getPropsValue("consent.jwt_secret", "Cannot get your at least 256 bit secret")
+    JwtUtil.verifyHmacSignedJwt(jwtToken, secret)
+  }
+  
+  private def verifyAndChechExpiration(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
+    verifyHmacSignedJwt(consentIdAsJwt) match {
+      case true =>
+        (System.currentTimeMillis / 1000) match {
+          case currentTimeInSeconds if currentTimeInSeconds < consent.nbf =>
+            Failure("The time Consent-ID token was issued is set in the future.")
+          case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
+            Failure("Consent-Id is expired.")
+          case _ =>
+            Full(true)
+        }
+      case false =>
+        Failure("Consent-Id JWT value couldn't be verified.")
     }
   }
 
@@ -147,7 +157,7 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          chechExpiration(consent.nbf, consent.exp) match { // Check is it Consent-Id expired
+          verifyAndChechExpiration(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
