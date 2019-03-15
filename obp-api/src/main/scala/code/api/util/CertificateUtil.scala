@@ -63,6 +63,17 @@ object CertificateUtil extends MdcLoggable {
     keyPairGenerator.initialize(keySize)
     keyPairGenerator.genKeyPair
   }
+  
+  def convertRSAPublicKeyToAnRSAJWK(): String = {
+    import com.nimbusds.jose.jwk._
+    // Convert to JWK format
+    val jwk: RSAKey  = new RSAKey.Builder(publicKey)
+      .keyUse(KeyUse.SIGNATURE)
+      .keyIDFromThumbprint()
+      .build()
+    jwk.toJSONObject.toJSONString()
+  }
+  
 
   def jwtWithHmacProtection(claimsSet: JWTClaimsSet): String = {
     // Create HMAC signer
@@ -182,6 +193,8 @@ object CertificateUtil extends MdcLoggable {
     logger.info(s"hmacJwt = $hmacJwt")
 
     parseJwtWithHmacProtection(hmacJwt)
+    
+    println(convertRSAPublicKeyToAnRSAJWK)
 
   }
 

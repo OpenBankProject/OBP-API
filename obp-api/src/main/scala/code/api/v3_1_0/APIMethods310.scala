@@ -1,9 +1,9 @@
 package code.api.v3_1_0
 
-import java.util.{Calendar, UUID}
+import java.util.UUID
 
 import code.accountattribute.AccountAttribute.AccountAttributeType
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{branchJsonV220, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -11,10 +11,8 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
-import code.api.v2_0_0.{CreateMeetingJson, JSONFactory200}
+import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
-import code.api.v2_2_0.{BranchJsonV220, JSONFactory220}
-import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -23,7 +21,7 @@ import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.meetings.{ContactDetails, Invitee, Meeting}
+import code.meetings.{ContactDetails, Invitee}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -31,15 +29,14 @@ import code.productattribute.ProductAttribute.ProductAttributeType
 import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.util.Helper
-import code.util.Helper.booleanToBox
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers
+import net.liftweb.json.parse
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.Validate
 
@@ -3097,6 +3094,36 @@ trait APIMethods310 {
             (meeting, callContext) <- NewStyle.function.getMeeting(bank.bankId, u, meetingId, callContext)
           } yield {
             (JSONFactory310.createMeetingJson(meeting), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    
+    resourceDocs += ResourceDoc(
+      getJWK,
+      implementedInApiVersion,
+      "getJWK",
+      "GET",
+      "/certs",
+      "Get JSON Web Key (JWK)",
+      """Get JSON Web Key (JWK) at this instance
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi))
+
+    lazy val getJWK: OBPEndpoint = {
+      case "certs" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+          } yield {
+            (parse(CertificateUtil.convertRSAPublicKeyToAnRSAJWK()), HttpCode.`200`(callContext))
           }
       }
     }
