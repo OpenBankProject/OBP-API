@@ -10,23 +10,68 @@ import net.liftweb.json.MappingException
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-case class Consent(subject: String, // An identifier for the user, unique among all OBP-API users and never reused
-                   provider: String, // The Issuer Identifier for the Issuer of the response. 
-                   name: Option[String],
-                   email: Option[String],
-                   issued_at: Long, // The time the Consent-ID token was issued, represented in Unix time (integer seconds).
-                   expiration_time: Long, // The time the Consent-ID token expires, represented in Unix time (integer seconds).
-                   entitlements: List[Role]
-                  )
+case class ConsentJWT(createdByUserId: String,
+                      sub: String, // An identifier for the user, unique among all OBP-API users and never reused
+                      iss: String, // The Issuer Identifier for the Issuer of the response.
+                      jti: String,
+                      iat: Long, // The "iat" (issued at) claim identifies the time at which the JWT was issued. Represented in Unix time (integer seconds).
+                      nbf: Long, // The "nbf" (not before) claim identifies the time before which the JWT MUST NOT be accepted for processing. Represented in Unix time (integer seconds).
+                      exp: Long, // The "exp" (expiration time) claim identifies the expiration time on or after which the JWT MUST NOT be accepted for processing. Represented in Unix time (integer seconds).
+                      name: Option[String],
+                      email: Option[String],
+                      entitlements: List[Role]) {
+  def toConsent(): Consent = {
+    Consent(
+      createdByUserId=this.createdByUserId, 
+      subject=this.sub, 
+      issuer=this.iss, 
+      consentId=this.jti, 
+      issuedAt=this.iat, 
+      validFrom=this.nbf, 
+      validTo=this.exp,
+      name=this.name, 
+      email=this.email, 
+      entitlements=this.entitlements
+    )
+  }
+}
+
 case class Role(role_name: String, 
                 bank_id: String
                )
 
+case class Consent(createdByUserId: String,
+                   subject: String,
+                   issuer: String,
+                   consentId: String,
+                   issuedAt: Long,
+                   validFrom: Long,
+                   validTo: Long, 
+                   name: Option[String],
+                   email: Option[String],
+                   entitlements: List[Role]
+                  ) {
+  def toConsentJWT(): ConsentJWT = {
+    ConsentJWT(
+      createdByUserId=this.createdByUserId,
+      sub=this.subject,
+      iss=this.issuer,
+      jti=this.consentId,
+      iat=this.issuedAt,
+      nbf=this.validFrom,
+      exp=this.validTo,
+      name=this.name,
+      email=this.email,
+      entitlements=this.entitlements
+    )
+  }
+}
+
 object Consent {
   
-  private def chechExpiration(iat: Long, exp: Long): Box[Boolean] = {
+  private def chechExpiration(nbf: Long, exp: Long): Box[Boolean] = {
     (System.currentTimeMillis / 1000) match {
-      case currentTimeInSeconds if currentTimeInSeconds < iat => 
+      case currentTimeInSeconds if currentTimeInSeconds < nbf => 
         Failure("The time Consent-ID token was issued is set in the future.")
       case currentTimeInSeconds if currentTimeInSeconds > exp => 
         Failure("Consent-Id is expired.")
@@ -35,16 +80,16 @@ object Consent {
     }
   }
 
-  private def getOrCreateUser(subject: String, provider: String, name: Option[String], email: Option[String]): Future[Box[User]] = {
+  private def getOrCreateUser(subject: String, issuer: String, name: Option[String], email: Option[String]): Future[Box[User]] = {
     Users.users.vend.getOrCreateUserByProviderIdFuture(
-      provider = provider,
+      provider = issuer,
       idGivenByProvider = subject,
       name = name,
       email = email
     )
   }
 
-  private def addEntitlements(user: User, consent: Consent): Box[User] = {
+  private def addEntitlements(user: User, consent: ConsentJWT): Box[User] = {
     def addConsentEntitlements(existingEntitlements: List[Entitlement], entitlement: Role): (Role, String) = {
       ApiRole.availableRoles.exists(_.toString == entitlement.role_name) match { // Check a role name
         case true =>
@@ -87,9 +132,9 @@ object Consent {
   private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
     implicit val dateFormats = net.liftweb.json.DefaultFormats
 
-    def applyConsentRules(consent: Consent): Future[Box[User]] = {
+    def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
       // 1. Get or Create a User
-      getOrCreateUser(consent.subject, consent.provider, None, None) map {
+      getOrCreateUser(consent.sub, consent.iss, None, None) map {
         case (Full(user)) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent)
@@ -101,8 +146,8 @@ object Consent {
     JwtUtil.getSignedPayloadAsJson(consentIdAsJwt) match {
       case Full(jsonAsString) =>
         try {
-          val consent = net.liftweb.json.parse(jsonAsString).extract[Consent]
-          chechExpiration(consent.issued_at, consent.expiration_time) match { // Check is it Consent-Id expired
+          val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
+          chechExpiration(consent.nbf, consent.exp) match { // Check is it Consent-Id expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
