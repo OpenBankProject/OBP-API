@@ -278,6 +278,9 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is $viewId")
       }
     }
+    def hasViewAccess(view: View, user: User): Future[Box[Unit]] = {
+      Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(user.hasViewAccess(view))}
+    }
 
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
       Consumers.consumers.vend.getConsumerByConsumerIdFuture(consumerId) map {

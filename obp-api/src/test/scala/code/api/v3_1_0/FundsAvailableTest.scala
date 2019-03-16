@@ -42,8 +42,8 @@ class FundsAvailableTest extends V310ServerSetup {
 
   /**
     * Test tags
-    * Example: To run tests with tag "getPermissions":
-    * 	mvn test -D tagsToInclude
+    * Example: To run tests with tag "checkFundsAvailable":
+    * 	./mvn.sh test -DtagsToInclude=checkFundsAvailable
     *
     *  This is made possible by the scalatest maven plugin
     */
@@ -65,6 +65,11 @@ class FundsAvailableTest extends V310ServerSetup {
   def postView(bankId: String, accountId: String, view: CreateViewJsonV121): APIResponse = {
     val request = (baseRequest / "obp" / "v1.2.1" / "banks" / bankId / "accounts" / accountId / "views").POST <@(user1)
     makePostRequest(request, write(view))
+  }
+
+  def grantUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String) : APIResponse= {
+    val request = (baseRequest / "obp" / "v1.2.1" / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(user1)
+    makePostRequest(request)
   }
 
   feature("Check available funds v3.1.0 - Unauthorized access")
@@ -90,7 +95,9 @@ class FundsAvailableTest extends V310ServerSetup {
       val bankAccount = randomPrivateAccount(bankId)
 
       When("We make a request v3.1.0 without all params")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / getThirdPartyAppView(bankId, bankAccount.id).id / "funds-available").GET <@(user1)
+      val viewId = getThirdPartyAppView(bankId, bankAccount.id).id
+      grantUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, viewId)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / viewId / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
@@ -115,7 +122,9 @@ class FundsAvailableTest extends V310ServerSetup {
       val bankAccount = randomPrivateAccount(bankId)
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / getThirdPartyAppView(bankId, bankAccount.id).id / "funds-available").GET <@(user1)
+      val viewId = getThirdPartyAppView(bankId, bankAccount.id).id
+      org.scalameta.logger.elem(grantUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, viewId))
+      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / viewId / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "1"))
       Then("We should get a 200")
       org.scalameta.logger.elem(response310)

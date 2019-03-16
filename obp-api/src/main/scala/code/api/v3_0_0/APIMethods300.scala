@@ -315,9 +315,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-              (u.hasViewAccess(view))
-            }
+            _ <- NewStyle.function.hasViewAccess(view, u)
             moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
@@ -407,7 +405,7 @@ trait APIMethods300 {
           (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
           // Assume owner view was requested
           view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
-          _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewAccess(view))}
+          _ <- NewStyle.function.hasViewAccess(view, u)
           moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
         } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
