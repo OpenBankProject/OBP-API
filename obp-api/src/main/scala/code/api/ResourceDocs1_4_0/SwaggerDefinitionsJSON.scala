@@ -3164,6 +3164,13 @@ object SwaggerDefinitionsJSON {
   
   val meetingsJsonV310 = MeetingsJsonV310(List(meetingJsonV310))
   
+  case class SeverJWK(kty: String = "RSA",
+                      e: String = "AQAB",
+                      use: String = "sig",
+                      kid: String = "fr6-BxXH5gikFeZ2O6rGk0LUmJpukeswASN_TMW8U_s",
+                      n: String = "hrB0OWqg6AeNU3WCnhheG18R5EbQtdNYGOaSeylTjkj2lZr0_vkhNVYvase-CroxO4HOT06InxTYwLnmJiyv2cZxReuoVjTlk--olGu-9MZooiFiqWez0JzndyKxQ27OiAjFsMh0P04kaUXeHKhXRfiU7K2FqBshR1UlnWe7iHLkq2p9rrGjxQc7ff0w-Uc0f-8PWg36Y2Od7s65493iVQwnI13egqMaSvgB1s8_dgm08noEjhr8C5m1aKmr5oipWEPNi-SBV2VNuiCLR1IEPuXq0tOwwZfv31t34KPO-2H2bbaWmzGJy9mMOGqoNrbXyGiUZoyeHRELaNtm1GilyQ")
+  val severJWK = SeverJWK()
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

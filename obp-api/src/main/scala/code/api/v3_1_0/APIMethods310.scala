@@ -3100,24 +3100,25 @@ trait APIMethods310 {
 
     
     resourceDocs += ResourceDoc(
-      getJWK,
+      getServerJWK,
       implementedInApiVersion,
-      "getJWK",
+      "getServerJWK",
       "GET",
       "/certs",
       "Get JSON Web Key (JWK)",
-      """Get JSON Web Key (JWK) at this instance
+      """Get the server's public JSON Web Key (JWK) set and certificate chain.
+        | It is required by client applications to validate ID tokens, self-contained access tokens and other issued objects.
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      severJWK,
       List(
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi))
 
-    lazy val getJWK: OBPEndpoint = {
+    lazy val getServerJWK: OBPEndpoint = {
       case "certs" :: Nil JsonGet _ => {
         cc =>
           for {
