@@ -2,7 +2,8 @@ package code.api.util
 
 import code.entitlement.Entitlement
 import code.users.Users
-import com.openbankproject.commons.model.User
+import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.MappingException
@@ -19,7 +20,8 @@ case class ConsentJWT(createdByUserId: String,
                       exp: Long, // The "exp" (expiration time) claim identifies the expiration time on or after which the JWT MUST NOT be accepted for processing. Represented in Unix time (integer seconds).
                       name: Option[String],
                       email: Option[String],
-                      entitlements: List[Role]) {
+                      entitlements: List[Role],
+                      views: List[ConsentView]) {
   def toConsent(): Consent = {
     Consent(
       createdByUserId=this.createdByUserId, 
@@ -31,7 +33,8 @@ case class ConsentJWT(createdByUserId: String,
       validTo=this.exp,
       name=this.name, 
       email=this.email, 
-      entitlements=this.entitlements
+      entitlements=this.entitlements,
+      views=this.views
     )
   }
 }
@@ -39,6 +42,10 @@ case class ConsentJWT(createdByUserId: String,
 case class Role(role_name: String, 
                 bank_id: String
                )
+case class ConsentView(allowed_actions : List[String], 
+                       bank_id: String, 
+                       account_id: String
+                      )
 
 case class Consent(createdByUserId: String,
                    subject: String,
@@ -49,7 +56,8 @@ case class Consent(createdByUserId: String,
                    validTo: Long, 
                    name: Option[String],
                    email: Option[String],
-                   entitlements: List[Role]
+                   entitlements: List[Role],
+                   views: List[ConsentView]
                   ) {
   def toConsentJWT(): ConsentJWT = {
     ConsentJWT(
@@ -62,7 +70,8 @@ case class Consent(createdByUserId: String,
       exp=this.validTo,
       name=this.name,
       email=this.email,
-      entitlements=this.entitlements
+      entitlements=this.entitlements,
+      views=this.views
     )
   }
 }
@@ -74,7 +83,7 @@ object Consent {
     JwtUtil.verifyHmacSignedJwt(jwtToken, secret)
   }
   
-  private def verifyAndChechExpiration(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
+  private def verifyAndCheckExpiration(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
     verifyHmacSignedJwt(consentIdAsJwt) match {
       case true =>
         (System.currentTimeMillis / 1000) match {
@@ -139,6 +148,32 @@ object Consent {
 
   }
 
+  private def addView(user: User, consent: ConsentJWT): Box[User] = {
+    val result = for {
+        view <- consent.views
+      } yield {
+       val json =  CreateViewJson(
+          name = "_" + "consent",
+          description = consent.jti,
+          metadata_view = "_" + consent.jti,
+          is_public = false,
+          which_alias_to_use = "",
+          hide_metadata_if_alias_used = false,
+          view.allowed_actions)
+        val bankAccount = BankIdAccountId(BankId(view.bank_id), AccountId(view.account_id))
+        Views.views.vend.removeView(ViewId("_consent"), bankAccount)
+        Views.views.vend.createView(bankAccount, json) match {
+          case Full(_) =>
+            Views.views.vend.revokePermission(ViewIdBankIdAccountId(ViewId("_consent"), BankId(view.bank_id), AccountId(view.account_id)), user)
+            Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId("_consent"), BankId(view.bank_id), AccountId(view.account_id)), user)
+            "Added"
+          case _ => 
+            "Error"
+        }
+      }
+    if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add views for user id: " + user.userId)
+  }
+ 
   private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
     implicit val dateFormats = net.liftweb.json.DefaultFormats
 
@@ -147,7 +182,13 @@ object Consent {
       getOrCreateUser(consent.sub, consent.iss, None, None) map {
         case (Full(user)) =>
           // 2. Assign entitlements to the User
-          addEntitlements(user, consent)
+          addEntitlements(user, consent) match {
+            case (Full(user)) =>
+              // 3. Assign views to the User
+              addView(user, consent)
+            case everythingElse =>
+              everythingElse
+          }
         case _ =>
           Failure("Cannot create or get the user based on: " + consentIdAsJwt)
       }
@@ -157,7 +198,7 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          verifyAndChechExpiration(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
+          verifyAndCheckExpiration(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors

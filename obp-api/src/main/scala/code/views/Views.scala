@@ -83,6 +83,7 @@ trait Views {
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View]
+  def getOrCreateConsentView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
 
   def getOwners(view: View): Set[User]
 
@@ -128,6 +129,7 @@ class RemotedataViewsCaseClasses {
   case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String)
   case class createRandomView(bankId: BankId, accountId: AccountId)
+  case class getOrCreateConsentView(bankId: BankId, accountId: AccountId, description: String)
 
   case class getOwners(view: View)
 
