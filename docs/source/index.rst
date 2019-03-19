@@ -6,13 +6,11 @@ Contents
 --------
 
 .. toctree::
-   :maxdepth: 1
-
-   introduction   
-
-.. toctree::
    :maxdepth: 2
+   :titlesonly:
+   :caption: Contents:
 
+   introduction
    authentication
    adapters
 
