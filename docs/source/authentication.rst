@@ -40,3 +40,32 @@ JWT login token.
      "token": "abc123"
    }
 
+Verify Authentication
+---------------------
+
+You then use the token recieved from your DirectLogin request. 
+
+For example, make an authenticated request using your token.
+
+Get your current user infomation:
+
+
+.. http:example:: curl wget httpie python-requests
+
+   POST /obp/v3.1.0/users/current HTTP/1.1
+   Host: YOUR-HOST
+   Accept: application/json
+   Authorization: DirectLogin token="abc123"
+
+
+   HTTP/1.1 200 OK
+   Content-Type: application/json
+
+   {
+     "user_id":"2ef35575-aae9-48fb-ad01-751755b3964f",
+     "email":"Fred@example.com",
+     "provider_id":"your-provider-id",
+     "provider":"your-provider-name",
+     "username":"fred",
+     "entitlements":{"list":[]}
+   }
