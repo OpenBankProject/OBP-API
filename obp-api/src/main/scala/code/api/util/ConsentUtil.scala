@@ -148,24 +148,25 @@ object Consent {
 
   }
 
-  private def addView(user: User, consent: ConsentJWT): Box[User] = {
+  private def addViewsAndPermissions(user: User, consent: ConsentJWT): Box[User] = {
     val result = for {
         view <- consent.views
       } yield {
+      val viewId = "_" + consent.jti
        val json =  CreateViewJson(
-          name = "_" + "consent",
-          description = consent.jti,
-          metadata_view = "_" + consent.jti,
+          name = viewId,
+          description = "consent_valid_to:" + consent.exp,
+          metadata_view = viewId,
           is_public = false,
           which_alias_to_use = "",
           hide_metadata_if_alias_used = false,
           view.allowed_actions)
         val bankAccount = BankIdAccountId(BankId(view.bank_id), AccountId(view.account_id))
-        Views.views.vend.removeView(ViewId("_consent"), bankAccount)
+        Views.views.vend.removeView(ViewId(viewId), bankAccount)
         Views.views.vend.createView(bankAccount, json) match {
           case Full(_) =>
-            Views.views.vend.revokePermission(ViewIdBankIdAccountId(ViewId("_consent"), BankId(view.bank_id), AccountId(view.account_id)), user)
-            Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId("_consent"), BankId(view.bank_id), AccountId(view.account_id)), user)
+            Views.views.vend.revokePermission(ViewIdBankIdAccountId(ViewId(viewId), BankId(view.bank_id), AccountId(view.account_id)), user)
+            Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(viewId), BankId(view.bank_id), AccountId(view.account_id)), user)
             "Added"
           case _ => 
             "Error"
@@ -185,7 +186,7 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              addView(user, consent)
+              addViewsAndPermissions(user, consent)
             case everythingElse =>
               everythingElse
           }
