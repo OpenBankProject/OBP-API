@@ -36,9 +36,9 @@ This project is dual licensed under the AGPL V3 (see NOTICE) and commercial lice
 
 The project uses Maven 3 as its build tool.
 
-To compile and run jetty, install Maven 3, create your configuration in src/main/resources/props/default.props and execute:
+To compile and run jetty, install Maven 3, create your configuration in obp-api/src/main/resources/props/default.props and execute:
 
-        ./mvn.sh jetty:run
+     ./mvn.sh install -pl .,obp-commons && ./mvn.sh jetty:run -pl obp-api
 
 ## To run with IntelliJ IDEA
 
@@ -56,15 +56,15 @@ To compile and run jetty, install Maven 3, create your configuration in src/main
 
 * If you see a message about an unmanaged pom.xml, click the option to let Maven manage it.
 
-* Navigate to test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.12.4 or so.
+* Navigate to obp-api/test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.12.4 or so.
 
-* In src/main/resources/props create a test.default.props for tests. Set connector=mapped
+* In obp-api/src/main/resources/props create a test.default.props for tests. Set connector=mapped
 
-* In src/main/resources/props create a \<yourloginname\>.props (or default.props) for development. Set connector=mapped
+* In obp-api/src/main/resources/props create a \<yourloginname\>.props (or default.props) for development. Set connector=mapped
 
 * Now **Rebuild** the project so everything is compiled. At this point you may need to select the SDK, see above.
 
-* Once you have rebuilt the project wihtout compile errors, you should be able to RunWebApp in src/test/scala
+* Once you have rebuilt the project wihtout compile errors, you should be able to RunWebApp in obp-api/src/test/scala
 
 * Run RunWebApp by right clicking on it or selecting Run. The built in jetty server should start on localhost:8080
 
@@ -72,9 +72,9 @@ To compile and run jetty, install Maven 3, create your configuration in src/main
 
 ### Run some tests.
   
-* Run a single test. For instance right click on test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
+* Run a single test. For instance right click on obp-api/test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
 
-* Run multiple tests: Right click on test/scala/code and select Run. If need be:
+* Run multiple tests: Right click on obp-api/test/scala/code and select Run. If need be:
     Goto Run / Debug configurations
     Test Kind: Select All in Package
     Package: Select code
@@ -84,7 +84,7 @@ To compile and run jetty, install Maven 3, create your configuration in src/main
     Make sure your test.default.props has the minimum settings (see test.default.props.template)
 
     
-    Right click test/scala/code and select the Scala Tests in code to run them all.
+    Right click obp-api/test/scala/code and select the Scala Tests in code to run them all.
     
     Note: You may want to disable some tests not relevant to your setup e.g.:
     set bank_account_creation_listener=false in test.default.props 
@@ -153,7 +153,7 @@ Note: Your Java environment may need to be setup correctly to use SSL
 
 Restart OBP-API, if you get an error, check your Java environment can connect to the host over SSL.
 
-Note you can change the log level in /src/main/resources/default.logback.xml (try TRACE or DEBUG)
+Note you can change the log level in /obp-api/src/main/resources/default.logback.xml (try TRACE or DEBUG)
 
 There is a gist / tool which is useful for this. Search the web for SSLPoke. Note this is an external repository.
 
@@ -287,7 +287,7 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * Configuration
 
-* Edit the OBP-API/src/main/resources/props/default.props so that it contains the following lines. Please note that 
+* Edit the OBP-API/obp-api/src/main/resources/props/default.props so that it contains the following lines. Please note that 
 kafka.host is used by the producer and kafka.zookeeper_host is used by the consumer. This should be done on each node:
 
         connector=kafka
@@ -300,8 +300,8 @@ kafka.host is used by the producer and kafka.zookeeper_host is used by the consu
 
 * Start the server:
 
-        cd OBP-API
-        mvn jetty:run
+        cd OBP-API/obp-api/
+         mvn jetty:run
 
 4) OBP-JVM
 
@@ -352,11 +352,11 @@ We use jetty8 to run the API in production mode.
         JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
         JAVA_OPTIONS="-Drun.mode=production -XX:PermSize=256M -XX:MaxPermSize=512M -Xmx768m -verbose -Dobp.resource.dir=$JETTY_HOME/resources -Dprops.resource.dir=$JETTY_HOME/resources"
 
-* In src/main/resources/props create a test.default.props file for tests. Set connector=mapped
+* In obp-api/src/main/resources/props create a test.default.props file for tests. Set connector=mapped
 
-* In src/main/resources/props create a default.props file for development. Set connector=mapped
+* In obp-api/src/main/resources/props create a default.props file for development. Set connector=mapped
 
-* In src/main/resources/props create a production.default.props file for production. Set connector=mapped.
+* In obp-api/src/main/resources/props create a production.default.props file for production. Set connector=mapped.
 
 * This file could be similar to the default.props file created above, or it could include production settings, such as information about Postgresql server, if you are using one. For example, it could have the following line for postgresql configuration.
 
@@ -466,7 +466,7 @@ You can obfuscate passwords in the props file the same way as for jetty:
    *  db.url=OBF:fdsafdsakwaetcetcetc
 
 ## Rate Limiting
-We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this fie: https://github.com/OpenBankProject/OBP-API/blob/develop/src/main/scala/code/api/util/NewStyle.scala. 
+We support rate limiting i.e functionality to limit calls per consumer key (App). Only `New Style Endpoins` support it. The list of they can be found at this file: https://github.com/OpenBankProject/OBP-API/blob/develop/obp-api/src/main/scala/code/api/util/NewStyle.scala. 
 There are two supported modes:
    *  In-Memory
    *  Redis
