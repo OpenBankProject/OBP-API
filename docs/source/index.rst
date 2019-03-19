@@ -14,5 +14,6 @@ Contents
    :maxdepth: 2
 
    authentication
+   adapters
 
 * :ref:`genindex`
