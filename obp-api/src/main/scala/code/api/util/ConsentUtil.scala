@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.users.Users
@@ -84,7 +85,7 @@ case class Consent(createdByUserId: String,
 object Consent {
   
   private def verifyHmacSignedJwt(jwtToken: String): Boolean = {
-    val secret = APIUtil.getPropsValue("consent.jwt_secret", "Cannot get your at least 256 bit secret")
+    val secret = APIUtil.getPropsValue("consents.jwt_secret").openOrThrowException(attemptedToOpenAnEmptyBox)
     JwtUtil.verifyHmacSignedJwt(jwtToken, secret)
   }
   
@@ -225,9 +226,11 @@ object Consent {
   }
   
   def applyRules(consentId: Option[String], callContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
-    consentId match {
-      case Some(consentId) => hasConsent(consentId, callContext)
-      case None => Future((Failure("Cannot get Consent-Id"), callContext))
+    val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
+    (consentId, allowed) match {
+      case (Some(consentId), true) => hasConsent(consentId, callContext)
+      case (_, false) => Future((Failure("Consents are not allowed at this instance."), callContext))
+      case (None, _) => Future((Failure("Cannot get Consent-Id"), callContext))
     }
   }
   
