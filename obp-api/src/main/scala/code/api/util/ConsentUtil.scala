@@ -42,9 +42,9 @@ case class ConsentJWT(createdByUserId: String,
 case class Role(role_name: String, 
                 bank_id: String
                )
-case class ConsentView(allowed_actions : List[String], 
-                       bank_id: String, 
-                       account_id: String
+case class ConsentView(bank_id: String, 
+                       account_id: String,
+                       view_id : String
                       )
 
 case class Consent(createdByUserId: String,
@@ -148,31 +148,16 @@ object Consent {
 
   }
 
-  private def addViewsAndPermissions(user: User, consent: ConsentJWT): Box[User] = {
-    val result = for {
+  private def addPermissions(user: User, consent: ConsentJWT): Box[User] = {
+    val result = 
+      for {
         view <- consent.views
       } yield {
-      val viewId = "_" + consent.jti
-       val json =  CreateViewJson(
-          name = viewId,
-          description = "consent_valid_to:" + consent.exp,
-          metadata_view = viewId,
-          is_public = false,
-          which_alias_to_use = "",
-          hide_metadata_if_alias_used = false,
-          view.allowed_actions)
-        val bankAccount = BankIdAccountId(BankId(view.bank_id), AccountId(view.account_id))
-        Views.views.vend.removeView(ViewId(viewId), bankAccount)
-        Views.views.vend.createView(bankAccount, json) match {
-          case Full(_) =>
-            Views.views.vend.revokePermission(ViewIdBankIdAccountId(ViewId(viewId), BankId(view.bank_id), AccountId(view.account_id)), user)
-            Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(viewId), BankId(view.bank_id), AccountId(view.account_id)), user)
-            "Added"
-          case _ => 
-            "Error"
-        }
+        Views.views.vend.revokePermission(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
+        Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id)), user)
+        "Added"
       }
-    if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add views for user id: " + user.userId)
+    if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)
   }
  
   private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
@@ -186,7 +171,7 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              addViewsAndPermissions(user, consent)
+              addPermissions(user, consent)
             case everythingElse =>
               everythingElse
           }
