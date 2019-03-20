@@ -88,8 +88,15 @@ object Consent {
     JwtUtil.verifyHmacSignedJwt(jwtToken, secret)
   }
   
-  private def checkConsumerKey(consent: ConsentJWT): Boolean = {
-    Consumers.consumers.vend.getConsumerByConsumerKey(consent.aud).isDefined
+  private def checkConsumerIsActive(consent: ConsentJWT): Box[Boolean] = {
+    Consumers.consumers.vend.getConsumerByConsumerKey(consent.aud) match {
+      case Full(consumer) if consumer.isActive.get == true => 
+        Full(true)
+      case Full(consumer) if consumer.isActive.get == false =>
+        Failure("The Consumer with key: " + consent.aud + " is disabled.")
+      case _ => 
+        Failure("There is no the Consumer with key: " + consent.aud)
+    }
   }
   
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
@@ -101,12 +108,7 @@ object Consent {
           case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
             Failure("Consent-Id is expired.")
           case _ =>
-            checkConsumerKey(consent)  match {
-              case true => 
-                Full(true)
-              case false => 
-                Failure("There is no Consumer Key: " + consent.aud)
-            }
+            checkConsumerIsActive(consent) 
         }
       case false =>
         Failure("Consent-Id JWT value couldn't be verified.")
