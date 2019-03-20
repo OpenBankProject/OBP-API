@@ -204,9 +204,15 @@ object Consent {
     }
   }
   
-  def hasConsent(consentIdAsJwt: String, calContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
+  private def hasConsent(consentIdAsJwt: String, calContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
     hasConsentInternal(consentIdAsJwt) map (result => (result, calContext))
   }
-
+  
+  def applyRules(consentId: Option[String], callContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
+    consentId match {
+      case Some(consentId) => hasConsent(consentId, callContext)
+      case None => Future((Failure("Cannot get Consent-Id"), callContext))
+    }
+  }
   
 }
