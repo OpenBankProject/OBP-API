@@ -1,5 +1,6 @@
 package code.api.util
 
+import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.users.Users
 import code.views.Views
@@ -14,7 +15,8 @@ import scala.concurrent.Future
 case class ConsentJWT(createdByUserId: String,
                       sub: String, // An identifier for the user, unique among all OBP-API users and never reused
                       iss: String, // The Issuer Identifier for the Issuer of the response.
-                      jti: String,
+                      aud: String, // Identifies the audience that this ID token is intended for. It must be one of the OBP-API client IDs of your application. 
+                      jti: String, // (JWT ID) claim provides a unique identifier for the JWT.
                       iat: Long, // The "iat" (issued at) claim identifies the time at which the JWT was issued. Represented in Unix time (integer seconds).
                       nbf: Long, // The "nbf" (not before) claim identifies the time before which the JWT MUST NOT be accepted for processing. Represented in Unix time (integer seconds).
                       exp: Long, // The "exp" (expiration time) claim identifies the expiration time on or after which the JWT MUST NOT be accepted for processing. Represented in Unix time (integer seconds).
@@ -26,7 +28,8 @@ case class ConsentJWT(createdByUserId: String,
     Consent(
       createdByUserId=this.createdByUserId, 
       subject=this.sub, 
-      issuer=this.iss, 
+      issuer=this.iss,
+      consumerKey=this.aud, 
       consentId=this.jti, 
       issuedAt=this.iat, 
       validFrom=this.nbf, 
@@ -50,10 +53,11 @@ case class ConsentView(bank_id: String,
 case class Consent(createdByUserId: String,
                    subject: String,
                    issuer: String,
+                   consumerKey: String,
                    consentId: String,
                    issuedAt: Long,
                    validFrom: Long,
-                   validTo: Long, 
+                   validTo: Long,
                    name: Option[String],
                    email: Option[String],
                    entitlements: List[Role],
@@ -64,6 +68,7 @@ case class Consent(createdByUserId: String,
       createdByUserId=this.createdByUserId,
       sub=this.subject,
       iss=this.issuer,
+      aud=this.consumerKey,
       jti=this.consentId,
       iat=this.issuedAt,
       nbf=this.validFrom,
@@ -83,7 +88,11 @@ object Consent {
     JwtUtil.verifyHmacSignedJwt(jwtToken, secret)
   }
   
-  private def verifyAndCheckExpiration(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
+  private def checkConsumerKey(consent: ConsentJWT): Boolean = {
+    Consumers.consumers.vend.getConsumerByConsumerKey(consent.aud).isDefined
+  }
+  
+  private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
     verifyHmacSignedJwt(consentIdAsJwt) match {
       case true =>
         (System.currentTimeMillis / 1000) match {
@@ -92,7 +101,12 @@ object Consent {
           case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
             Failure("Consent-Id is expired.")
           case _ =>
-            Full(true)
+            checkConsumerKey(consent)  match {
+              case true => 
+                Full(true)
+              case false => 
+                Failure("There is no Consumer Key: " + consent.aud)
+            }
         }
       case false =>
         Failure("Consent-Id JWT value couldn't be verified.")
@@ -184,7 +198,7 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          verifyAndCheckExpiration(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
+          checkConsent(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
