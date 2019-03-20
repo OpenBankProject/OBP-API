@@ -87,11 +87,11 @@ case class CallContext(
     * Purpose of this helper function is to get the Consent-Id value from a Request Headers.
     * @return the Consent-Id value from a Request Header as a String
     */
-  def getConsentId(): String = {
-    this.requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
-      case x :: Nil => x.values.mkString(", ")
-      case _ => ""
-    }
+  def getConsentId(): Option[String] = {
+    APIUtil.getConsentId(this.requestHeaders)
+  }
+  def hasConsentId(): Boolean = {
+    APIUtil.hasConsentId(this.requestHeaders)
   }
   
 }

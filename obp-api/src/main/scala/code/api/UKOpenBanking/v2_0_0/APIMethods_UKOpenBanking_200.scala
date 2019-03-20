@@ -187,7 +187,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
         
             _ <- Helper.booleanToFuture(failMsg = s"${UserNoPermissionAccessView} Current VIEW_ID (${view.viewId.value})") {(u.hasViewAccess(view))}
         
-            moderatedAccount <- Future {account.moderatedBankAccount(view, Full(u))} map {
+            moderatedAccount <- Future {account.moderatedBankAccount(view, Full(u), callContext)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
         

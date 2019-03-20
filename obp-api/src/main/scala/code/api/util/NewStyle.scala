@@ -162,6 +162,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -255,8 +256,8 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId")
       }
 
-    def moderatedBankAccount(account: BankAccount, view: View, user: Box[User]) = Future {
-      account.moderatedBankAccount(view, user)
+    def moderatedBankAccount(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
+      account.moderatedBankAccount(view, user, callContext)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
@@ -270,12 +271,15 @@ object NewStyle {
                                   view: View, 
                                   user: Box[User], 
                                   callContext: Option[CallContext]): Future[ModeratedOtherBankAccount] = 
-      Future(account.moderatedOtherBankAccount(counterpartyId, view, user)) map { connectorEmptyResponse(_, callContext) }
+      Future(account.moderatedOtherBankAccount(counterpartyId, view, user, callContext)) map { connectorEmptyResponse(_, callContext) }
 
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound Current ViewId is $viewId")
       }
+    }
+    def hasViewAccess(view: View, user: User): Future[Box[Unit]] = {
+      Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(user.hasViewAccess(view))}
     }
 
     def getConsumerByConsumerId(consumerId: String, callContext: Option[CallContext]): Future[Consumer] = {
@@ -486,7 +490,7 @@ object NewStyle {
         code.api.util.APIUtil.hasEntitlement(bankId, userId, role)
       }
     }
-    def hasEntitlement(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
+    def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext] = None): Future[Box[Unit]] = {
       hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
     }
     

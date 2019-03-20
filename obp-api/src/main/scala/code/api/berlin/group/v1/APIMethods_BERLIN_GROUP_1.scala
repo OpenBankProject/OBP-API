@@ -111,7 +111,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u))} map {
+            moderatedAccount <- Future {bankAccount.moderatedBankAccount(view, Full(u), callContext)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           } yield {

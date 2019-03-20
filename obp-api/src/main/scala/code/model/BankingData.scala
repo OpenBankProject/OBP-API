@@ -31,7 +31,7 @@ import java.util.Date
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil.unboxFullOrFail
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, ErrorMessages, OBPQueryParam}
+import code.api.util._
 import code.bankconnectors.Connector
 import code.customer.Customer
 import code.metadata.comments.Comments
@@ -432,7 +432,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
     else viewNotAllowed(view)
   }
 
-  final def moderatedBankAccount(view: View, user: Box[User]) : Box[ModeratedBankAccount] = {
+  final def moderatedBankAccount(view: View, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccount] = {
     if(APIUtil.hasAccess(view, user))
     //implicit conversion from option to box
       view.moderateAccount(bankAccount)
@@ -467,7 +467,7 @@ case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
     * @return a Box of a ModeratedOtherBankAccounts, it a bank
     *  account that have at least one transaction in common with this bank account
     */
-  final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
+  final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedOtherBankAccount] =
     if(APIUtil.hasAccess(view, user))
       Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID), None).map(_._1).flatMap(BankAccount.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
         //First check the explict counterparty

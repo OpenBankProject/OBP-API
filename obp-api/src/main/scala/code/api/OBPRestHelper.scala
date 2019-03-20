@@ -33,7 +33,7 @@ import code.api.Constant._
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
+import code.api.util.ErrorMessages.{NotImplemented, attemptedToOpenAnEmptyBox}
 import code.api.util._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
@@ -179,6 +179,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
     val url = URLDecoder.decode(S.uriAndQueryString.getOrElse(""),"UTF-8")
     val correlationId = getCorrelationId()
+    val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val cc = CallContext(
       resourceDocument = rd,
       startTime = Some(Helpers.now),
@@ -191,6 +192,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     )
     if(newStyleEndpoints(rd)) {
       fn(cc)
+    } else if (APIUtil.hasConsentId(reqHeaders)) {
+      // TODO 1. Get or Create a User 2. Assign entitlements to it 3. Assign permissions
+      Failure(NotImplemented + RequestHeader.`Consent-Id`)
     } else if (hasAnOAuthHeader(authorization)) {
       val (usr, callContext) = getUserAndCallContext(cc)
       usr match {

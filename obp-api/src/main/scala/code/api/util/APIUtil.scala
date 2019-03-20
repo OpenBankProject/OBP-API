@@ -160,6 +160,20 @@ object APIUtil extends MdcLoggable {
     }
   }
 
+  /**
+    * Purpose of this helper function is to get the Consent-Id value from a Request Headers.
+    * @return the Consent-Id value from a Request Header as a String
+    */
+  def getConsentId(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+      case x :: Nil => Some(x.values.mkString(", "))
+      case _ => None
+    }
+  }
+  def hasConsentId(requestHeaders: List[HTTPParam]): Boolean = {
+    getConsentId(requestHeaders).isDefined
+  }
+
   def registeredApplication(consumerKey: String): Boolean = {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
       case Full(application) => application.isActive.get
@@ -1845,9 +1859,12 @@ Returns a string showed to the developer
     val correlationId = getCorrelationId()
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val res =
-    if (hasAnOAuthHeader(cc.authReqHeaderField)) {
+    if (APIUtil.hasConsentId(reqHeaders)) {
+      // TODO 1. Get or Create a User 2. Assign entitlements to it 3. Assign permissions
+      Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc)) 
+    } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)
-    } else if (hasAnOAuth2Header(cc.authReqHeaderField))  {
+    } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
       OAuth2Login.getUserFuture(cc)
     } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
       DirectLogin.getUserFromDirectLoginHeaderFuture(cc)

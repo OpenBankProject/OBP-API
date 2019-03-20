@@ -394,6 +394,14 @@ object MapperViews extends Views with MdcLoggable {
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
+  def getOrCreateConsentView(bankId: BankId, accountId: AccountId, description: String = "Consent View") : Box[View] = {
+    getExistingView(bankId, accountId, "_consent") match {
+      case Empty => createConsentView(bankId, accountId, description)
+      case Full(v) => Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
+    }
+  }
 
   //Note: this method is only for scala-test,
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
@@ -481,6 +489,95 @@ object MapperViews extends Views with MdcLoggable {
       canAddTransactionRequestToOwnAccount_(false).//added following two for payments
       canAddTransactionRequestToAnyAccount_(false)
       canSeeBankAccountCreditLimit_(true)
+      saveMe)
+  }
+  
+
+  def createConsentView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
+    Full(ViewImpl.create.
+      isSystem_(false).
+      isFirehose_(false).
+      name_(randomString(5)).
+      metadataView_("_consent").
+      description_(description).
+      permalink_(randomString(3)).
+      isPublic_(false).
+      bankPermalink(bankId.value).
+      accountPermalink(accountId.value).
+      usePrivateAliasIfOneExists_(false).
+      usePublicAliasIfOneExists_(false).
+      hideOtherAccountMetadataIfAlias_(false).
+      canSeeTransactionThisBankAccount_(false).
+      canSeeTransactionOtherBankAccount_(false).
+      canSeeTransactionMetadata_(false).
+      canSeeTransactionDescription_(false).
+      canSeeTransactionAmount_(false).
+      canSeeTransactionType_(false).
+      canSeeTransactionCurrency_(false).
+      canSeeTransactionStartDate_(false).
+      canSeeTransactionFinishDate_(false).
+      canSeeTransactionBalance_(false).
+      canSeeComments_(false).
+      canSeeOwnerComment_(false).
+      canSeeTags_(false).
+      canSeeImages_(false).
+      canSeeBankAccountOwners_(false).
+      canSeeBankAccountType_(false).
+      canSeeBankAccountBalance_(false).
+      canSeeBankAccountCurrency_(false).
+      canSeeBankAccountLabel_(false).
+      canSeeBankAccountNationalIdentifier_(false).
+      canSeeBankAccountSwift_bic_(false).
+      canSeeBankAccountIban_(false).
+      canSeeBankAccountNumber_(false).
+      canSeeBankAccountBankName_(false).
+      canSeeBankAccountBankPermalink_(false).
+      canSeeOtherAccountNationalIdentifier_(false).
+      canSeeOtherAccountSWIFT_BIC_(false).
+      canSeeOtherAccountIBAN_ (false).
+      canSeeOtherAccountBankName_(false).
+      canSeeOtherAccountNumber_(false).
+      canSeeOtherAccountMetadata_(false).
+      canSeeOtherAccountKind_(false).
+      canSeeMoreInfo_(false).
+      canSeeUrl_(false).
+      canSeeImageUrl_(false).
+      canSeeOpenCorporatesUrl_(false).
+      canSeeCorporateLocation_(false).
+      canSeePhysicalLocation_(false).
+      canSeePublicAlias_(false).
+      canSeePrivateAlias_(false).
+      canAddMoreInfo_(false).
+      canAddURL_(false).
+      canAddImageURL_(false).
+      canAddOpenCorporatesUrl_(false).
+      canAddCorporateLocation_(false).
+      canAddPhysicalLocation_(false).
+      canAddPublicAlias_(false).
+      canAddPrivateAlias_(false).
+      canDeleteCorporateLocation_(false).
+      canDeletePhysicalLocation_(false).
+      canEditOwnerComment_(false).
+      canAddComment_(false).
+      canDeleteComment_(false).
+      canAddTag_(false).
+      canDeleteTag_(false).
+      canAddImage_(false).
+      canDeleteImage_(false).
+      canAddWhereTag_(false).
+      canSeeWhereTag_(false).
+      canDeleteWhereTag_(false).
+      canSeeBankRoutingScheme_(false). //added following in V300
+      canSeeBankRoutingAddress_(false).
+      canSeeBankAccountRoutingScheme_(false).
+      canSeeBankAccountRoutingAddress_(false).
+      canSeeOtherBankRoutingScheme_(false).
+      canSeeOtherBankRoutingAddress_(false).
+      canSeeOtherAccountRoutingScheme_(false).
+      canSeeOtherAccountRoutingAddress_(false).
+      canAddTransactionRequestToOwnAccount_(false).//added following two for payments
+      canAddTransactionRequestToAnyAccount_(false)
+      canSeeBankAccountCreditLimit_(false)
       saveMe)
   }
 

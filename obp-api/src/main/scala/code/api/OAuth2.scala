@@ -156,7 +156,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     }
     
     private def getClaim(name: String, idToken: String): Option[String] = {
-      val claim = JwtUtil.getClaim(name = name, jwtToken = idToken).asString()
+      val claim = JwtUtil.getClaim(name = name, jwtToken = idToken)
       claim match {
         case null => None
         case string => Some(string)

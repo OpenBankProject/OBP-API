@@ -293,9 +293,7 @@ trait APIMethods220 {
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
               view.canAddCounterparty == true
             }
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-              u.hasViewAccess(view)
-            }
+            _ <- NewStyle.function.hasViewAccess(view, u)
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
@@ -347,9 +345,7 @@ trait APIMethods220 {
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
               view.canAddCounterparty == true
             }
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-              u.hasViewAccess(view)
-            }
+            _ <- NewStyle.function.hasViewAccess(view, u)
             counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
             (counterparty, callContext) <- NewStyle.function.getCounterpartyTrait(bankId, accountId, counterpartyId.value, callContext)
           } yield {
@@ -803,7 +799,7 @@ trait APIMethods220 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfig)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConfig, callContext)
           } yield {
             (JSONFactory220.getConfigInfoJSON(), callContext)
           }

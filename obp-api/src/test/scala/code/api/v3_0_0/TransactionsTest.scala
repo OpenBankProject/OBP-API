@@ -1,11 +1,10 @@
 package code.api.v3_0_0
 
-import code.api.util.APIUtil.OAuth._
 import code.api.ErrorMessage
-import code.api.util.{APIUtil, ErrorMessages}
-import code.api.util.ErrorMessages.{FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles}
+import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseFirehoseAtAnyBank
-import net.liftweb.json.JsonAST.compactRender
+import code.api.util.ErrorMessages.{FirehoseViewsNotAllowedOnThisInstance, UserHasMissingRoles}
+import code.api.util.{APIUtil, ErrorMessages}
 import org.scalatest.Tag
 
 class TransactionsTest extends V300ServerSetup {
@@ -58,7 +57,6 @@ class TransactionsTest extends V300ServerSetup {
 
 
   feature("transactions with params"){
-    import java.text.SimpleDateFormat
     import java.util.{Calendar, Date}
 
     val defaultFormat = APIUtil.DateWithMsFormat
@@ -403,7 +401,7 @@ class TransactionsTest extends V300ServerSetup {
 
       And("We should get a 403")
       responseGet.code should equal(403)
-      compactRender(responseGet.body \ "message").replaceAll("\"", "") should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
+      responseGet.body.extract[ErrorMessage].message should equal(FirehoseViewsNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseFirehoseAtAnyBank  )
     }}
 
 

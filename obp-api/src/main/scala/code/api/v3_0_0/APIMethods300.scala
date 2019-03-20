@@ -315,10 +315,8 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-              (u.hasViewAccess(view))
-            }
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u))
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
           }
@@ -362,7 +360,7 @@ trait APIMethods300 {
           for {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
-            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Empty)
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Empty, callContext)
           } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
           }
@@ -407,8 +405,8 @@ trait APIMethods300 {
           (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
           // Assume owner view was requested
           view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
-          _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {(u.hasViewAccess(view))}
-          moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u))
+          _ <- NewStyle.function.hasViewAccess(view, u)
+          moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
         } yield {
             (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
         }
@@ -504,7 +502,7 @@ trait APIMethods300 {
               bankIdAccountId <- availableBankIdAccountIdList
               bankAccount <- Connector.connector.vend.getBankAccount(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId}) "
               view <- Views.views.vend.view(viewId, bankIdAccountId)
-              moderatedAccount <- bankAccount.moderatedBankAccount(view, Full(u)) //Error handling is in lower method
+              moderatedAccount <- bankAccount.moderatedBankAccount(view, Full(u), callContext) //Error handling is in lower method
             } yield {
               moderatedAccount
             }
@@ -732,7 +730,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouse)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouse, callContext)
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
@@ -801,7 +799,7 @@ trait APIMethods300 {
           //if (field == "/") throw new RuntimeException("No aggregation field supplied") with NoStackTrace
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouseStatistics)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouseStatistics, callContext)
             _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
               esw.isEnabled()
             }
@@ -845,7 +843,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             users <- Users.users.vend.getUserByEmailFuture(email)
           } yield {
             (JSONFactory300.createUserJSONs (users), HttpCode.`200`(callContext))
@@ -879,7 +877,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
               x => unboxFullOrFail(x, callContext, UserNotFoundByUsername)
             }
@@ -917,7 +915,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             user <- Users.users.vend.getUserByUserNameFuture(username) map {
               x => unboxFullOrFail(x, callContext, UserNotFoundByUsername)
             }
@@ -1477,7 +1475,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser,callContext)
             
             httpParams <- NewStyle.function.createHttpParams(cc.url)
               
@@ -2117,7 +2115,7 @@ trait APIMethods300 {
           cc => {
             for {
               (Full(u), callContext) <- authorizedAccess(cc)
-              _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics)
+              _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics, callContext)
               httpParams <- NewStyle.function.createHttpParams(cc.url)
               obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
                 x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)

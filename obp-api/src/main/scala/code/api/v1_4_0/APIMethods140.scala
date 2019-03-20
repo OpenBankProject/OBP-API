@@ -434,9 +434,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             failMsg = ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
             _ <- NewStyle.function.isValidCurrencyISOCode(fromAccount.currency, failMsg, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoPermissionAccessView) {
-              u.hasViewAccess(view)
-            } 
+            _ <- NewStyle.function.hasViewAccess(view, u) 
             transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)) map {
               connectorEmptyResponse(_, callContext)
             }
