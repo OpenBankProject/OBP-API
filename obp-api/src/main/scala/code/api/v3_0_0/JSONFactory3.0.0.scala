@@ -35,6 +35,7 @@ import code.api.util.{APIUtil, PegdownOptions}
 import code.api.v1_2_1.JSONFactory._
 import code.api.v1_2_1.{UserJSONV121, _}
 import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.EntitlementJSONs
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
@@ -468,6 +469,19 @@ case class AggregateMetricJSON(
                                   minimum_response_time: Double,
                                   maximum_response_time: Double
                                 )
+
+case class ViewJSON300(bank_id: String, account_id: String, view_id: String)
+case class ViewsJSON300(list: List[ViewJSON300])
+
+case class UserJsonV300(
+                         user_id: String,
+                         email : String,
+                         provider_id: String,
+                         provider : String,
+                         username : String,
+                         entitlements : EntitlementJSONs,
+                         views: Option[ViewsJSON300]
+                       )
 
 object JSONFactory300{
 
@@ -1073,6 +1087,19 @@ object JSONFactory300{
 
   def createUserJSONs(users : List[(ResourceUser, Box[List[Entitlement]])]) : UsersJsonV200 = {
     UsersJsonV200(users.map(t => createUserJSON(t._1, t._2.getOrElse(Nil))))
+  }
+
+
+  def createUserInfoJSON(user : User, entitlements: List[Entitlement], views: Option[Permission]) : UserJsonV300 = {
+    new UserJsonV300(
+      user_id = user.userId,
+      email = user.emailAddress,
+      username = stringOrNull(user.name),
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
+      views = views.map(y => ViewsJSON300(y.views.map((v =>  ViewJSON300(v.bankId.value, v.accountId.value, v.viewId.value)))))
+    )
   }
 
 

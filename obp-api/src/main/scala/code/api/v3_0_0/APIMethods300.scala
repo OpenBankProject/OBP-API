@@ -1564,7 +1564,8 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
           } yield {
-            (JSONFactory300.createUserJSON (u, entitlements), HttpCode.`200`(callContext))
+            val permissions: Option[Permission] = Views.views.vend.getPermissionForUser(u).toOption
+            (JSONFactory300.createUserInfoJSON (u, entitlements, permissions), HttpCode.`200`(callContext))
           }
         }
       }
