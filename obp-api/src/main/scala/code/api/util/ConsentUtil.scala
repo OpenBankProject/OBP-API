@@ -124,6 +124,17 @@ object Consent {
       email = email
     )
   }
+  private def getOrCreateUserOldStyle(subject: String, issuer: String, name: Option[String], email: Option[String]): Box[User] = {
+    Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject).or { // Find a user
+      Users.users.vend.createResourceUser( // Otherwise create a new one
+        provider = issuer,
+        providerId = Some(subject),
+        name = name,
+        email = email,
+        userId = None
+      )
+    }
+  }
 
   private def addEntitlements(user: User, consent: ConsentJWT): Box[User] = {
     def addConsentEntitlements(existingEntitlements: List[Entitlement], entitlement: Role): (Role, String) = {
@@ -177,6 +188,50 @@ object Consent {
     if (result.forall(_ == "Added")) Full(user) else Failure("Cannot add permissions to the user with id: " + user.userId)
   }
  
+  private def hasConsentInternalOldStyle(consentIdAsJwt: String): Box[User] = {
+    implicit val dateFormats = net.liftweb.json.DefaultFormats
+
+    def applyConsentRules(consent: ConsentJWT): Box[User] = {
+      // 1. Get or Create a User
+      getOrCreateUserOldStyle(consent.sub, consent.iss, None, None) match {
+        case (Full(user)) =>
+          // 2. Assign entitlements to the User
+          addEntitlements(user, consent) match {
+            case (Full(user)) =>
+              // 3. Assign views to the User
+              addPermissions(user, consent)
+            case everythingElse =>
+              everythingElse
+          }
+        case _ =>
+          Failure("Cannot create or get the user based on: " + consentIdAsJwt)
+      }
+    }
+
+    JwtUtil.getSignedPayloadAsJson(consentIdAsJwt) match {
+      case Full(jsonAsString) =>
+        try {
+          val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
+          checkConsent(consent, consentIdAsJwt) match { // Check is it Consent-Id expired
+            case (Full(true)) => // OK
+              applyConsentRules(consent)
+            case failure@Failure(_, _, _) => // Handled errors
+              failure
+            case _ => // Unexpected errors
+              Failure("Cannot check is Consent-Id expired.")
+          }
+        } catch { // Possible exceptions
+          case e: ParseException => Failure("ParseException: " + e.getMessage)
+          case e: MappingException => Failure("MappingException: " + e.getMessage)
+          case e: Exception => Failure("parsing failed: " + e.getMessage)
+        }
+      case failure@Failure(_, _, _) =>
+        failure
+      case _ =>
+        Failure("Cannot extract data from: " + consentIdAsJwt)
+    }
+  } 
+  
   private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
     implicit val dateFormats = net.liftweb.json.DefaultFormats
 
@@ -221,6 +276,9 @@ object Consent {
     }
   }
   
+  private def hasConsentOldStyle(consentIdAsJwt: String, calContext: CallContext): (Box[User], CallContext) = {
+    (hasConsentInternalOldStyle(consentIdAsJwt), calContext)
+  }  
   private def hasConsent(consentIdAsJwt: String, calContext: Option[CallContext]): Future[(Box[User], Option[CallContext])] = {
     hasConsentInternal(consentIdAsJwt) map (result => (result, calContext))
   }
@@ -231,6 +289,14 @@ object Consent {
       case (Some(consentId), true) => hasConsent(consentId, callContext)
       case (_, false) => Future((Failure("Consents are not allowed at this instance."), callContext))
       case (None, _) => Future((Failure("Cannot get Consent-Id"), callContext))
+    }
+  }  
+  def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {
+    val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
+    (consentId, allowed) match {
+      case (Some(consentId), true) => hasConsentOldStyle(consentId, callContext)
+      case (_, false) => (Failure("Consents are not allowed at this instance."), callContext)
+      case (None, _) => (Failure("Cannot get Consent-Id"), callContext)
     }
   }
   
