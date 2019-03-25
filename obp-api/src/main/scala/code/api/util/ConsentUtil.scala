@@ -1,14 +1,17 @@
 package code.api.util
 
-import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
+import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
+import code.model.Consumer
 import code.users.Users
 import code.views.Views
+import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.MappingException
+import net.liftweb.json.{Extraction, MappingException, compactRender}
+import net.liftweb.mapper.By
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -84,9 +87,8 @@ case class Consent(createdByUserId: String,
 
 object Consent {
   
-  private def verifyHmacSignedJwt(jwtToken: String): Boolean = {
-    val secret = APIUtil.getPropsValue("consents.jwt_secret").openOrThrowException(attemptedToOpenAnEmptyBox)
-    JwtUtil.verifyHmacSignedJwt(jwtToken, secret)
+  private def verifyHmacSignedJwt(jwtToken: String, c: MappedConsent): Boolean = {
+    JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
   }
   
   private def checkConsumerIsActive(consent: ConsentJWT): Box[Boolean] = {
@@ -101,18 +103,25 @@ object Consent {
   }
   
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
-    verifyHmacSignedJwt(consentIdAsJwt) match {
-      case true =>
-        (System.currentTimeMillis / 1000) match {
-          case currentTimeInSeconds if currentTimeInSeconds < consent.nbf =>
-            Failure("The time Consent-ID token was issued is set in the future.")
-          case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
-            Failure("Consent-Id is expired.")
-          case _ =>
-            checkConsumerIsActive(consent) 
+    Consents.ConsentProvider.vend.getConsentByConsentId(consent.jti) match {
+      case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString =>
+        verifyHmacSignedJwt(consentIdAsJwt, c) match {
+          case true =>
+            (System.currentTimeMillis / 1000) match {
+              case currentTimeInSeconds if currentTimeInSeconds < consent.nbf =>
+                Failure("The time Consent-ID token was issued is set in the future.")
+              case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
+                Failure("Consent-Id is expired.")
+              case _ =>
+                checkConsumerIsActive(consent)
+            }
+          case false =>
+            Failure("Consent-Id JWT value couldn't be verified.")
         }
-      case false =>
-        Failure("Consent-Id JWT value couldn't be verified.")
+      case Full(c) if c.mStatus != ConsentStatus.ACCEPTED.toString =>
+        Failure(s"Consent-Id is not in status ${ConsentStatus.ACCEPTED.toString}.")
+      case _ => 
+        Failure("Consent-Id cannot be found.")
     }
   }
 
@@ -298,6 +307,43 @@ object Consent {
       case (_, false) => (Failure("Consents are not allowed at this instance."), callContext)
       case (None, _) => (Failure("Cannot get Consent-Id"), callContext)
     }
+  }
+  
+  
+  def createConsentJWT(user: User, viewId: String, secret: String, consentId: String): String = {
+    val consumerKey = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.key.get).headOption.getOrElse("")
+    val currentTimeInSeconds = System.currentTimeMillis / 1000
+    val views: Box[List[ConsentView]] = {
+      Views.views.vend.getPermissionForUser(user) map {
+        _.views map {
+          view =>
+            ConsentView(
+              bank_id = view.bankId.value,
+              account_id = view.accountId.value,
+              view_id = viewId
+            )
+        }
+      }
+    }.map(_.distinct)
+    val json = ConsentJWT(
+      createdByUserId=user.userId,
+      sub=APIUtil.generateUUID(),
+      iss="https://www.openbankproject.com",
+      aud=consumerKey,
+      jti=consentId,
+      iat=currentTimeInSeconds,
+      nbf=currentTimeInSeconds,
+      exp=currentTimeInSeconds + 3600,
+      name=None,
+      email=None,
+      entitlements=Nil,
+      views=views.getOrElse(Nil)
+    )
+    
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
+    val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+    CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
   
 }

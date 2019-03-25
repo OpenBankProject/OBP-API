@@ -18,6 +18,7 @@ import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
 import code.branches.Branches.BranchId
+import code.consent.Consents
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
@@ -35,8 +36,8 @@ import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.util.Helpers
 import net.liftweb.json.parse
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.Validate
 
@@ -3126,6 +3127,50 @@ trait APIMethods310 {
             (_, callContext) <- anonymousAccess(cc)
           } yield {
             (parse(CertificateUtil.convertRSAPublicKeyToAnRSAJWK()), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      createConsent,
+      implementedInApiVersion,
+      nameOf(createConsent),
+      "POST",
+      "/banks/BANK_ID/my/consent-requests/SCA_METHOD",
+      "Create Consent Request",
+      s"""
+         |Create consent request
+         |""",
+      PostConsentRequestJsonV310(phone_number = "0049182234430", `for`="ALL_MY_ACCOUNTS", view="owner"),
+      emptyObjectJson,
+      List(UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagCustomer :: apiTagNewStyle :: Nil)
+
+    lazy val createConsent : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consent"  :: sca_method :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture("Only sms and email are supported as SCA methods."){
+              List("sms", "email").exists(_ == sca_method)
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentRequestJsonV310 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentRequestJsonV310]
+            }
+            consent <- Future(Consents.ConsentProvider.vend.createConsent()) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+            consentJWT = Consent.createConsentJWT(user, consentJson.view, consent.secret, consent.consentId)
+            _ <- Future(Consents.ConsentProvider.vend.updateConsent(consent.consentId, consentJWT)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentRequestJsonV310(consentJWT), HttpCode.`201`(callContext))
           }
       }
     }

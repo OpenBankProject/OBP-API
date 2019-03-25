@@ -47,6 +47,7 @@ import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
+import code.consent.MappedConsent
 import code.crm.MappedCrmEvent
 import code.context.MappedUserAuthContext
 import code.customer.internalMapping.MappedCustomerIDMapping
@@ -612,5 +613,6 @@ object ToSchemify {
     MappedAccountWebhook,
     MappedCustomerIDMapping,
     MappedProductAttribute,
+    MappedConsent,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

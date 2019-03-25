@@ -277,6 +277,9 @@ object ErrorMessages {
   // ATM related messages
   val atmsNotFoundLicense = "OBP-33001: No ATMs available. License may not be set."
   val atmsNotFound = "OBP-33002: No ATMs available."
+  
+  // Consents
+  val ConsentNotFound = "OBP-35001: Consent not found by consent id. "
 
   // General Resource related messages above here
 
