@@ -3145,10 +3145,14 @@ trait APIMethods310 {
          |Create consent
          |""",
       PostConsentRequestJsonV310(email = "marko@tesobe.com", `for`="ALL_MY_ACCOUNTS", view="owner"),
-      ConsentRequestJsonV310(consent_id = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4"),
+      ConsentRequestJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "INITIATED"
+      ),
       List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
-      apiTagCustomer :: apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagNewStyle :: Nil)
 
     lazy val createConsent : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consent"  :: sca_method :: Nil JsonPost json -> _  => {
@@ -3163,26 +3167,67 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostConsentRequestJsonV310]
             }
-            consent <- Future(Consents.consentProvider.vend.createConsent()) map {
+            createdConsent <- Future(Consents.consentProvider.vend.createConsent()) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT = Consent.createConsentJWT(user, consentJson.view, consent.secret, consent.consentId)
-            _ <- Future(Consents.consentProvider.vend.updateConsent(consent.consentId, consentJWT)) map {
+            consentJWT = Consent.createConsentJWT(user, consentJson.view, createdConsent.secret, createdConsent.consentId)
+            _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
             sca_method match {
               case "email" => // Send the email
-                val params = PlainMailBodyType(consent.challenge) :: List(To(consentJson.email))
+                val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
                 Mailer.sendMail(
-                  From("challenge@tesobe.com"),
+                  //From("challenge@tesobe.com"),
+                  From("marko.milic@yahoo.com"),
                   Subject("Challenge request"),
                   params :_*
                 )
               case "sms" =>
               case _ =>
             }
-            (ConsentRequestJsonV310(consentJWT), HttpCode.`201`(callContext))
+            (ConsentRequestJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      answerConsentChallenge,
+      implementedInApiVersion,
+      nameOf(answerConsentChallenge),
+      "POST",
+      "/banks/BANK_ID/consent/CONSENT_ID/challenge",
+      "Answer Consent Challenge",
+      s"""
+         |Answer consent challenge
+         |""",
+      PostConsentChallengeJsonV310(answer = "12345678"),
+      ConsentChallengeJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "INITIATED"
+      ), 
+      List(UnknownError),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagConsent :: apiTagNewStyle :: Nil)
+
+    lazy val answerConsentChallenge : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "consent"  :: consentId :: "challenge" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentChallengeJsonV310 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentChallengeJsonV310]
+            }
+            consent <- Future(Consents.consentProvider.vend.checkAnswer(consentId, consentJson.answer)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentRequestJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`201`(callContext))
           }
       }
     }

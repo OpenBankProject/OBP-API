@@ -22,13 +22,30 @@ object MappedConsentProvider extends ConsentProvider {
         .saveMe()
     }
   }  
-  override def updateConsent(consentId: String, jwt: String): Box[MappedConsent] = {
+  override def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
         tryo(consent
           .mJsonWebToken(jwt)
-          .mConsentId(consentId)
           .saveMe())
+      case Empty =>
+        Empty ?~! ErrorMessages.ConsentNotFound
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    } 
+  }  
+  override def checkAnswer(consentId: String, challenge: String): Box[MappedConsent] = {
+    MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
+      case Full(consent) =>
+        consent.status match {
+          case value if value == ConsentStatus.INITIATED.toString =>
+            val status = if (consent.challenge == challenge) ConsentStatus.ACCEPTED.toString else ConsentStatus.REJECTED.toString
+            tryo(consent.mStatus(status).saveMe())
+          case _ =>
+            Full(consent)
+        }
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
       case Failure(msg, _, _) =>

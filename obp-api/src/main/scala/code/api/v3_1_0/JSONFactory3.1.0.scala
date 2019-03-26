@@ -472,7 +472,10 @@ case class MeetingsJsonV310(
 )
 
 case class PostConsentRequestJsonV310(email: String, `for`: String, view: String)
-case class ConsentRequestJsonV310(consent_id: String)
+case class ConsentRequestJsonV310(consent_id: String, jwt: String, status: String)
+
+case class PostConsentChallengeJsonV310(answer: String)
+case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: String)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
