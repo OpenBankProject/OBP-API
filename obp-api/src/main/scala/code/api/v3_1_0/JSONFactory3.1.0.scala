@@ -59,6 +59,7 @@ import com.openbankproject.commons.model.{Customer, User}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
+import scala.collection.mutable.ArrayBuffer
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,
@@ -174,7 +175,7 @@ case class CheckFundsAvailableJson(answer: String,
                                    date: Date,
                                    available_funds_request_id: String)
 
-case class ConsumerJson(consumer_id: String,
+case class ConsumerJsonV310(consumer_id: String,
                         app_name: String,
                         app_type: String,
                         description: String,
@@ -184,7 +185,7 @@ case class ConsumerJson(consumer_id: String,
                         enabled: Boolean,
                         created: Date
                        )
-case class ConsumersJson(consumers: List[ConsumerJson])
+case class ConsumersJsonV310(consumers: List[ConsumerJsonV310])
 
 case class AccountWebhookJson(account_webhook_id: String,
                               bank_id: String,
@@ -540,7 +541,7 @@ object JSONFactory310{
     CheckFundsAvailableJson(fundsAvailable,new Date(), availableFundsRequestId)
   }
 
-  def createConsumerJSON(c: Consumer, user: Box[User]): ConsumerJson = {
+  def createConsumerJSON(c: Consumer, user: Box[User]): ConsumerJsonV310 = {
     val resourceUserJSON =  user match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
@@ -552,7 +553,7 @@ object JSONFactory310{
       case _ => null
     }
 
-    code.api.v3_1_0.ConsumerJson(consumer_id=c.consumerId.get,
+    code.api.v3_1_0.ConsumerJsonV310(consumer_id=c.consumerId.get,
       app_name=c.name.get,
       app_type=c.appType.toString(),
       description=c.description.get,
@@ -564,16 +565,16 @@ object JSONFactory310{
     )
   }
 
-  def createConsumersJson(consumers: List[Consumer], user: Box[User]): ConsumersJson = {
+  def createConsumersJson(consumers: List[Consumer], user: Box[User]): ConsumersJsonV310 = {
     val c = consumers.map(createConsumerJSON(_, user))
-    ConsumersJson(c)
+    ConsumersJsonV310(c)
   }
 
-  def createConsumersJson(consumers: List[Consumer], users: List[User]): ConsumersJson = {
+  def createConsumersJson(consumers: List[Consumer], users: List[User]): ConsumersJsonV310 = {
     val cs = consumers.map(
       c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId.get).headOption)
     )
-    ConsumersJson(cs)
+    ConsumersJsonV310(cs)
   }
 
   def createAccountWebhookJson(wh: AccountWebhook) = {

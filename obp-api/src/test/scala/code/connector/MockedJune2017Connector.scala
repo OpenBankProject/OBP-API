@@ -21,6 +21,7 @@ object MockedJune2017Connector extends ServerSetup
   with Connector with DefaultUsers  
   with DefaultConnectorTestSetup with MdcLoggable {
   
+  override implicit val formats = net.liftweb.json.DefaultFormats
   implicit override val nameOfConnector = "MockedCardConnector"
   
   

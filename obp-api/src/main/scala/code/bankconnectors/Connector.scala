@@ -47,12 +47,14 @@ import code.views.Views
 import com.openbankproject.commons.model.{Bank, CounterpartyTrait, TransactionRequestStatus, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.json.Extraction.decompose
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, SimpleInjector}
 import org.mindrot.jbcrypt.BCrypt
 
-import scala.collection.immutable.List
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -133,8 +135,10 @@ case class ObpApiLoopback(
 
 trait Connector extends MdcLoggable{
 
+  implicit val formats = net.liftweb.json.DefaultFormats
+  val emptyObjectJson: JValue = decompose(Nil)(net.liftweb.json.DefaultFormats)
+  
   val messageDocs = ArrayBuffer[MessageDoc]()
-
   implicit val nameOfConnector = Connector.getClass.getSimpleName
   
   //Move all the cache ttl to Connector, all the sub-connectors share the same cache.

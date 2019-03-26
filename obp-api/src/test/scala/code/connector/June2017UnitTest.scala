@@ -5,6 +5,7 @@ import code.api.util.APIUtil.MessageDoc
 import code.bankconnectors.vJune2017.{InboundGetTransactionRequests210, InternalGetTransactionRequests, KafkaMappedConnector_vJune2017, OutboundGetTransactionRequests210}
 import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper.MdcLoggable
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import org.scalatest._
 
@@ -20,8 +21,8 @@ class June2017UnitTest extends FunSuite
   
   test("getTransactionRequests210 kafka message") {
     val messageDocs: ArrayBuffer[MessageDoc] = KafkaMappedConnector_vJune2017.messageDocs.filter(_.process=="obp.get.transactionRequests210")
-    val outboundMessage: JValue = messageDocs.head.exampleOutboundMessage
-    val inboundMessage: JValue = messageDocs.head.exampleInboundMessage
+    val outboundMessage: JValue = Extraction.decompose(messageDocs.head.exampleOutboundMessage)
+    val inboundMessage: JValue = Extraction.decompose(messageDocs.head.exampleInboundMessage)
   
   
     val outboundGetTransactionRequests210: OutboundGetTransactionRequests210 = outboundMessage.extract[OutboundGetTransactionRequests210]

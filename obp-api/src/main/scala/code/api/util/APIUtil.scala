@@ -42,7 +42,7 @@ import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
-import code.api.util.ApiTag.{ResourceDocTag, apiTagMockedData}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagMockedData}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
@@ -72,7 +72,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -1093,8 +1093,8 @@ object APIUtil extends MdcLoggable {
                          description: String,
                          outboundTopic: Option[String] = None,
                          inboundTopic: Option[String] = None,
-                         exampleOutboundMessage: JValue,
-                         exampleInboundMessage: JValue,
+                         exampleOutboundMessage: scala.Product,
+                         exampleInboundMessage: scala.Product,
                          outboundAvroSchema: Option[JValue] = None,
                          inboundAvroSchema: Option[JValue] = None,
                          adapterImplementation : Option[AdapterImplementation] = None
@@ -2454,5 +2454,20 @@ Returns a string showed to the developer
       """
         |
       """.stripMargin
+  
+  def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = ResourceDoc(
+    null,
+    ApiVersion.v3_1_0,
+    messageDoc.process,
+    "get",
+    s"/obp-connector/${messageDoc.process}",
+    messageDoc.description,
+    messageDoc.description,
+    messageDoc.exampleOutboundMessage,
+    messageDoc.exampleInboundMessage,
+    errorResponseBodies = List(InvalidJsonFormat),
+    Catalogs(notCore,notPSD2,notOBWG),
+    List(apiTagBank)
+  )
 
 }

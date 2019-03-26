@@ -94,8 +94,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   logger.info(s"ObpJvmMappedConnector running")
 
-  implicit val formats = net.liftweb.json.DefaultFormats
-
   def toOptional[T](opt: Option[T]): Optional[T] = Optional.ofNullable(opt.getOrElse(null).asInstanceOf[T])
   def toOption[T](opt: Optional[T]): Option[T] = if (opt.isPresent) Some(opt.get()) else None
 

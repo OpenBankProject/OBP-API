@@ -90,9 +90,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   val formatVersion: String  = "Nov2016"
 
-  implicit val formats = net.liftweb.json.DefaultFormats
-
-
   // TODO Create and use a case class for each Map so we can document each structure.
 
 

@@ -41,11 +41,12 @@ import code.common.{Address, Location, Meta}
 import code.fx.FXRate
 import code.metrics.ConnectorMetric
 import code.model.dataAccess.ResourceUser
-import code.model.{_}
+import code.model._
 import code.products.Products.Product
 import code.users.Users
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.List
@@ -366,6 +367,8 @@ case class CustomerViewJsonV220(
 
 object JSONFactory220{
 
+  implicit val formats = net.liftweb.json.DefaultFormats
+  
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
       null
@@ -843,8 +846,8 @@ object JSONFactory220{
       description = md.description,
       outbound_topic = md.outboundTopic,
       inbound_topic = md.inboundTopic,
-      example_outbound_message = md.exampleOutboundMessage,
-      example_inbound_message = md.exampleInboundMessage,
+      example_outbound_message = decompose(md.exampleOutboundMessage),
+      example_inbound_message = decompose(md.exampleInboundMessage),
       // TODO In next version of this endpoint, change these two fields to snake_case
       inboundAvroSchema = md.inboundAvroSchema,
       outboundAvroSchema = md.outboundAvroSchema,

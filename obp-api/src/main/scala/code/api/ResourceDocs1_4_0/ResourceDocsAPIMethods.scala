@@ -602,7 +602,8 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
             // Format the data as json
             val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
             //Get definitions of objects of success responses
-            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered)
+            val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
+            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered, allSwaggerDefinitionCaseClasses)
             // Merge both results and return
             successJsonResponse(Extraction.decompose(json) merge jsonAST)
           }

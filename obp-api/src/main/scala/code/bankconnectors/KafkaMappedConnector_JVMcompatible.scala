@@ -105,8 +105,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   
   val formatVersion: String = "Nov2016"
 
-  implicit val formats = net.liftweb.json.DefaultFormats
-  
   //This is a temporary way to mapping the adapter(Java) side, we maybe used Adapter(Scala) later.
   // Because of the Java Adapter has the fixed format, we need map our input vaule to it.
   def anyToMap[A: scala.reflect.runtime.universe.TypeTag](a: A): Map[String, String] = {

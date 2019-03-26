@@ -28,11 +28,7 @@ import scala.concurrent.Future
 object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
   implicit override val nameOfConnector = AkkaConnector_vDec2018.toString
-
   val messageFormat: String = "Dec2018"
-  implicit val formats = net.liftweb.json.DefaultFormats
-  override val messageDocs = ArrayBuffer[MessageDoc]()
-  val emptyObjectJson: JValue = decompose(Nil)
   
   lazy val southSideActor = ObpLookupSystem.getAkkaConnectorActor(AkkaConnectorHelperActor.actorName)
 
@@ -42,12 +38,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Gets information about the active general (non bank specific) Adapter that is responding to messages sent by OBP.",
     outboundTopic = Some(OutboundGetAdapterInfo.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundAdapterInfo.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAdapterInfo(
         APIUtil.DateWithMsFormat.format(new Date()),
         Examples.callContextAkka)
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundAdapterInfo(
         name = "The south side of Akka connector",
         version = messageFormat,
@@ -86,10 +82,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Gets the banks list on this OBP installation.",
     outboundTopic = Some(OutboundGetBanks.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetBanks.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetBanks(Examples.callContextAkka)
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetBanks(
         Some(List(Examples.bank)),
         Examples.callContextAkka)
@@ -110,12 +106,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get a specific Bank as specified by bankId",
     outboundTopic = Some(OutboundGetBank.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetBank.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetBank(
         bankIdExample.value,
         Examples.callContextAkka)
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetBank(
         Some(Examples.bank),
         Examples.callContextAkka)
@@ -136,14 +132,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Check a bank Account exists - as specified by bankId and accountId.",
     outboundTopic = Some(OutboundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundCheckBankAccountExists(
         bankIdExample.value,
         accountIdExample.value,
         Examples.callContextAkka
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundCheckBankAccountExists(
         Some(Examples.inboundAccountDec2018Example),
         Examples.callContextAkka
@@ -163,14 +159,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get a single Account as specified by the bankId and accountId.",
     outboundTopic = Some(OutboundGetAccount.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetAccount.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAccount(
         bankIdExample.value,
         accountIdExample.value,
         Examples.callContextAkka
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetAccount(
         Some(Examples.inboundAccountDec2018Example),
         Examples.callContextAkka
@@ -190,13 +186,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get bank Accounts available to the User (without Metadata)",
     outboundTopic = Some(OutboundGetCoreBankAccounts.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetCoreBankAccounts.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetCoreBankAccounts(
         List(BankIdAccountId(BankId(bankIdExample.value), AccountId(accountIdExample.value))),
         Examples.callContextAkka
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetCoreBankAccounts(
         List(
           InboundCoreAccount(
@@ -226,13 +222,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get Customers represented by the User.",
     outboundTopic = Some(OutboundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetCustomersByUserId(
         userIdExample.value,
         Examples.callContextAkka
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetCustomersByUserId(
         InboundCustomer(
           customerId = customerIdExample.value, 
@@ -271,7 +267,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get Counterparties available to the View on the Account specified by thisBankId, thisAccountId and viewId.",
     outboundTopic = Some(OutboundGetCounterparties.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetCounterparties.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetCounterparties(
         thisBankId = bankIdExample.value,
         accountIdExample.value,
@@ -279,7 +275,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         Examples.callContextAkka
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetCounterparties(
         InboundCounterparty(
           createdByUserId = userIdExample.value,
@@ -318,7 +314,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get Transactions for an Account specified by bankId and accountId. Pagination is achieved with limit, fromDate and toDate.",
     outboundTopic = Some(OutboundGetTransactions.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetTransactions.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetTransactions(
         bankId = bankIdExample.value,
         accountId = accountIdExample.value,
@@ -328,7 +324,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         Examples.callContextAkka
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetTransactions(
         Nil,
         Examples.callContextAkka
@@ -352,7 +348,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     description = "Get a single Transaction specified by bankId, accountId and transactionId",
     outboundTopic = Some(OutboundGetTransaction.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InboundGetTransaction.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetTransaction(
         bankId = bankIdExample.value,
         accountId = accountIdExample.value,
@@ -360,7 +356,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         Examples.callContextAkka
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetTransaction(
         None,
         Examples.callContextAkka
