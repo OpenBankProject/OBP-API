@@ -3179,8 +3179,7 @@ trait APIMethods310 {
               case "email" => // Send the email
                 val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
                 Mailer.sendMail(
-                  //From("challenge@tesobe.com"),
-                  From("marko.milic@yahoo.com"),
+                  From("challenge@tesobe.com"),
                   Subject("Challenge request"),
                   params :_*
                 )
