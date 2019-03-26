@@ -4,7 +4,7 @@ import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 object Consents extends SimpleInjector {
-  val ConsentProvider = new Inject(buildOne _) {}
+  val consentProvider = new Inject(buildOne _) {}
   def buildOne: ConsentProvider = MappedConsentProvider
 }
 
@@ -18,6 +18,7 @@ trait Consent {
   def consentId: String
   def secret: String
   def status: String
+  def challenge: String
   def jsonWebToken: String
 }
 

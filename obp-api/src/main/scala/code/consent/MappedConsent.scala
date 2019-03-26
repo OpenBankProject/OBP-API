@@ -1,5 +1,7 @@
 package code.consent
 
+import scala.util.Random
+
 import code.api.util.ErrorMessages
 import code.util.MappedUUID
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -45,11 +47,15 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mConsentId extends MappedUUID(this)
   object mSecret extends MappedUUID(this)
   object mStatus extends MappedString(this, 20)
+  object mChallenge extends MappedString(this, 10)  {
+    override def defaultValue = Random.nextInt(99999999).toString()
+  }
   object mJsonWebToken extends MappedString(this, 1024)
 
   override def consentId: String = mConsentId.get
   override def secret: String = mSecret.get
   override def status: String = mStatus.get
+  override def challenge: String = mChallenge.get
   override def jsonWebToken: String = mJsonWebToken.get
 
 }

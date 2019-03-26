@@ -103,7 +103,7 @@ object Consent {
   }
   
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String): Box[Boolean] = {
-    Consents.ConsentProvider.vend.getConsentByConsentId(consent.jti) match {
+    Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString =>
         verifyHmacSignedJwt(consentIdAsJwt, c) match {
           case true =>

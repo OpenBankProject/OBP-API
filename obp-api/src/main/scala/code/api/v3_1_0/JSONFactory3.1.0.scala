@@ -471,7 +471,7 @@ case class MeetingsJsonV310(
   meetings: List[MeetingJsonV310]
 )
 
-case class PostConsentRequestJsonV310(phone_number: String, `for`: String, view: String)
+case class PostConsentRequestJsonV310(email: String, `for`: String, view: String)
 case class ConsentRequestJsonV310(consent_id: String)
 
 object JSONFactory310{
