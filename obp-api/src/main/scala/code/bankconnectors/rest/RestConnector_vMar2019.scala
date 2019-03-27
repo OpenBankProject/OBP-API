@@ -39,7 +39,7 @@ import code.bankconnectors.vJune2017.AuthInfo
 import code.bankconnectors.vMar2017._
 import code.kafka.KafkaHelper
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{Bank, BankId}
+import com.openbankproject.commons.model.{Bank, BankConnector, BankId, InboundAdapterInfoInternal}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, _}
 import net.liftweb.json._
@@ -70,23 +70,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
-  override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
-    val bankConverter: (List[InboundBank]=>List[Bank]) = list => list.map(Bank2(_))
-    /**
-      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val url = getUrl("getBanks")
-        sendGetRequest[List[InboundBank]](url, callContext)
-          .map(it => it.map((bankConverter(_) -> callContext)))
-      }
-    }
-  }("getBanks")
+  //TODO 1 -- Need to be generated automatically
+  override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = ??? 
+
+  //TODO 2-- Need to be generated automatically
+  override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[BankConnector], Option[CallContext])]] = ???
+  
 
   override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
     val bankConverter: (InboundBank=> Bank) = Bank2.apply
