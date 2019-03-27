@@ -338,6 +338,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getServerJWK ::
                           Implementations3_1_0.createConsent ::
                           Implementations3_1_0.answerConsentChallenge ::
+                          Implementations3_1_0.getConsents ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

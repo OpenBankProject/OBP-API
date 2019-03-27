@@ -3144,13 +3144,15 @@ trait APIMethods310 {
       s"""
          |Create consent
          |""",
-      PostConsentRequestJsonV310(email = "marko@tesobe.com", `for`="ALL_MY_ACCOUNTS", view="owner"),
-      ConsentRequestJsonV310(
-        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
-        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
-        status = "INITIATED"
+      PostConsentJsonV310(email = "marko@tesobe.com", `for`="ALL_MY_ACCOUNTS", view="owner"),
+      consentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConnectorEmptyResponse,
+        UnknownError
       ),
-      List(UnknownError),
       Catalogs(Core, notPSD2, OBWG),
       apiTagConsent :: apiTagNewStyle :: Nil)
 
@@ -3163,11 +3165,11 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture("Only sms and email are supported as SCA methods."){
               List("sms", "email").exists(_ == sca_method)
             }
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentRequestJsonV310 "
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[PostConsentRequestJsonV310]
+              json.extract[PostConsentJsonV310]
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createConsent()) map {
+            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
             }
             consentJWT = Consent.createConsentJWT(user, consentJson.view, createdConsent.secret, createdConsent.consentId)
@@ -3186,7 +3188,7 @@ trait APIMethods310 {
               case "sms" =>
               case _ =>
             }
-            (ConsentRequestJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
+            (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3207,8 +3209,14 @@ trait APIMethods310 {
         consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
         jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
         status = "INITIATED"
-      ), 
-      List(UnknownError),
+      ),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConnectorEmptyResponse,
+        UnknownError
+      ),
       Catalogs(Core, notPSD2, OBWG),
       apiTagConsent :: apiTagNewStyle :: Nil)
 
@@ -3226,7 +3234,42 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (ConsentRequestJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`201`(callContext))
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getConsents,
+      implementedInApiVersion,
+      "getConsents",
+      "GET",
+      "/banks/BANK_ID/my/consents",
+      "Get Consents",
+      """Get Consents for current user
+        |
+        |Login is required.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      consentsJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsent, apiTagNewStyle))
+
+    lazy val getConsents: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            consents <- Future(Consents.consentProvider.vend.getConsentsByUser(user.userId))
+          } yield {
+            (JSONFactory310.createConsentsJsonV310(consents), HttpCode.`200`(callContext))
           }
       }
     }

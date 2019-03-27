@@ -1,9 +1,9 @@
 package code.consent
 
 import scala.util.Random
-
 import code.api.util.ErrorMessages
 import code.util.MappedUUID
+import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -14,10 +14,14 @@ object MappedConsentProvider extends ConsentProvider {
       By(MappedConsent.mConsentId, consentId)
     )
   }
-  override def createConsent(): Box[MappedConsent] = {
+  override def getConsentsByUser(userId: String): List[MappedConsent] = {
+    MappedConsent.findAll(By(MappedConsent.mUserId, userId))
+  }
+  override def createConsent(user: User): Box[MappedConsent] = {
     tryo {
       MappedConsent
         .create
+        .mUserId(user.userId)
         .mStatus(ConsentStatus.INITIATED.toString)
         .saveMe()
     }
@@ -62,6 +66,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   def getSingleton = MappedConsent
 
   object mConsentId extends MappedUUID(this)
+  object mUserId extends MappedString(this, 36)
   object mSecret extends MappedUUID(this)
   object mStatus extends MappedString(this, 20)
   object mChallenge extends MappedString(this, 10)  {
@@ -70,6 +75,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mJsonWebToken extends MappedString(this, 1024)
 
   override def consentId: String = mConsentId.get
+  override def userId: String = mUserId.get
   override def secret: String = mSecret.get
   override def status: String = mStatus.get
   override def challenge: String = mChallenge.get

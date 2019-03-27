@@ -42,6 +42,7 @@ import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
 import code.common.Meta
+import code.consent.MappedConsent
 import code.context.UserAuthContext
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
@@ -471,8 +472,9 @@ case class MeetingsJsonV310(
   meetings: List[MeetingJsonV310]
 )
 
-case class PostConsentRequestJsonV310(email: String, `for`: String, view: String)
-case class ConsentRequestJsonV310(consent_id: String, jwt: String, status: String)
+case class PostConsentJsonV310(email: String, `for`: String, view: String)
+case class ConsentJsonV310(consent_id: String, jwt: String, status: String)
+case class ConsentsJsonV310(consents: List[ConsentJsonV310])
 
 case class PostConsentChallengeJsonV310(answer: String)
 case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: String)
@@ -909,6 +911,10 @@ object JSONFactory310{
   
   def createMeetingsJson(meetings : List[Meeting]) : MeetingsJsonV310 = {
     MeetingsJsonV310(meetings.map(createMeetingJson))
+  }
+  
+  def createConsentsJsonV310(consents: List[MappedConsent]): ConsentsJsonV310= {
+    ConsentsJsonV310(consents.map(c => ConsentJsonV310(c.consentId, c.jsonWebToken, c.status)))
   }
 
 }
