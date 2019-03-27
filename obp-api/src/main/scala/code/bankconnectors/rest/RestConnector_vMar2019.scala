@@ -53,6 +53,19 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 
+import com.github.dwickern.macros.NameOf.nameOf
+
+case class BankCommons (
+                         bankId: BankId,
+                         shortName: String,
+                         fullName: String,
+                         logoUrl: String,
+                         websiteUrl: String,
+                         bankRoutingScheme: String,
+                         bankRoutingAddress: String,
+                         swiftBic: String,
+                         nationalIdentifier: String) extends Bank
+
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
 
   implicit override val nameOfConnector = RestConnector_vMar2019.toString
@@ -71,23 +84,26 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
+
+  //---------------- dynamic start ---------------------
+
   //TODO 1 -- Need to be generated automatically
-  override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = ??? 
+  override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = ???
 
   //TODO 2-- Need to be generated automatically
   override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[BankConnector], Option[CallContext])]] = ???
-  
+
   //TODO 3-- Need to be generated automatically
-  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(BankConnector, Option[CallContext])]] = ???
-  
+  //override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(BankConnector, Option[CallContext])]] = ???
+
   //TODO 4-- Need to be generated automatically
   override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccountInMemory, Option[CallContext])]] = ???
-  
+
   //TODO 5-- Need to be generated automatically
   override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccountInMemory]] = ???
 
   //TODO 6-- Need to be generated automatically
-  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = ???
+  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = ???
 
   //TODO 7-- Need to be generated automatically
   override def getCustomersByUserIdFuture(userId: String , callContext: Option[CallContext]): Future[Box[(List[CustomerConnector], Option[CallContext])]] = ???
@@ -97,9 +113,47 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   //TODO 9-- Need to be generated automatically
   override def getTransactionsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = ???
-  
+
   //TODO 10-- Need to be generated automatically
-  override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = ???
+  //override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = ???
+
+
+  //TODO 3-- Need to be generated automatically
+  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val url = getUrl("getBank", ("bankId" -> bankId))
+        sendGetRequest[BankCommons](url, callContext)
+          .map(it => it.map((_ -> callContext)))
+      }
+    }
+  }("getBank")
+  //TODO 10-- Need to be generated automatically
+  override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = saveConnectorMetric {
+    /**
+      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val url = getUrl("getTransaction", ("bankId", bankId), ("accountId", accountId), ("transactionId", transactionId))
+        sendGetRequest[Transaction](url, callContext)
+          .map(it => (it -> callContext))
+      }
+    }
+  }("getTransaction")
+
+  //---------------- dynamic end ---------------------
 
   private[this] def sendGetRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.GET)
@@ -113,20 +167,14 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   private[this] def sendDelteRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.DELETE)
 
-
   //TODO every connector should implement this method to build authorization headers with callContext
   private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = Nil
 
+  //TODO please modify this baseUrl to your remote api server base url of this connector
+  private[this] val baseUrl = "http://127.0.0.1:9093"
 
-  private[this] def getUrl(key: String, variables: Map[String, Any] = Map.empty):String = {
-    //TODO current connector url need be config in default.props file, this value need fix to match given prefix
-    val prefix = "rest.connector.vmar.2019"
-    val urlTemplate = APIUtil.getPropsValue(s"$prefix.${key}").openOrThrowException(s"no $prefix.${key} set")
-    if(variables.isEmpty){
-      urlTemplate
-    } else {
-      interpolateUrl(urlTemplate, variables)
-    }
+  private[this] def getUrl(methodName: String, variables: (String, Any)*):String = {
+    variables.foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/$pair._1/$pair._2"))
   }
 
   private[this] def sendRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext], method: HttpMethod, entityJsonString: String = "") :Future[Box[T]] = {
@@ -170,8 +218,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   def interpolateUrl(urlTemplate: String, variables: Map[String, Any]) = {
     variables.foldLeft(urlTemplate)((url, pair) => {
       val (key, value) = pair
-      url.replace(s":${key}", String.valueOf(value))
-      // to support :{key } expression, there maybe no this format url, so comment off it now.
+      url
+        // fill this format variables: http://rootpath/banks/{bank-id}
+        .replace(s"{$key}", String.valueOf(value))
+      // fill this format variables: http://rootpath/banks/:bank-id
+      // url.replace(s":${key}", String.valueOf(value))
+      // fill this format variables: http://rootpath/banks/:{bank-id}
       //.replaceAll(s":\\{\\s*$key\\s*\\}", String.valueOf(value))
     })
   }
@@ -183,11 +235,62 @@ object RestConnector_vMar2019 extends RestConnector_vMar2019 with App{
 //  val value  = this.getBanksFuture(None)
 //  val value2  = this.getBankFuture(BankId("hello-bank-id"), None)
 //  Thread.sleep(10000)
+  val genMethodNames = List("getAdapterInfoFuture", "getBanksFuture", "getBankFuture", "checkBankAccountExistsFuture", "getBankAccountFuture", "getCoreBankAccountsFuture", "getCustomersByUserIdFuture",
+"getCounterpartiesFuture", "getTransactionsFuture", "getTransactionFuture", "getAdapterInfoFuture"
+)
+
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
   private val clazz: ru.ClassSymbol = ru.typeOf[Connector].typeSymbol.asClass
   private val classMirror: ru.ClassMirror = mirror.reflectClass(clazz)
-  private val symbols: Iterable[ru.Symbol] = ru.typeOf[Connector].decls.filter(_.isMethod)
-  private val types: Iterable[ru.Type] = symbols.map(_.typeSignature)
-  println(symbols)
+  private val nameSignature = ru.typeOf[Connector].decls
+    .filter(_.isMethod)
+    .filter(it => genMethodNames.contains(it.name.toString))
+    .map(it => Generator(it.name.toString, it.typeSignature))
 
+
+//  private val types: Iterable[ru.Type] = symbols.map(_.typeSignature)
+//  println(symbols)
+  println("-------------------")
+  nameSignature.map(_.methodCode).foreach(println(_))
+  println("===================")
+}
+case class Generator(methodName: String, tp: Type) {
+  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
+  private[this] val params = tp.paramLists(0).dropRight(1).map(_.name.toString)
+  private[this] val name = methodName.replaceFirst("Future$", "")
+  private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
+
+  val signature = s"$methodName$paramAnResult"
+  val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
+  val urlDemo = s"/$name" + params.map(it => s"/$it/{$it}").mkString
+  val jsonType = if(resultType.startsWith("Future[Box[")) {
+    resultType.replaceFirst("""Future\[Box\[\((.+), Option\[CallContext\]\)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  } else {
+    resultType.replaceFirst("""OBPReturnType\[Box\[(.+)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  }
+  val lastMapStatement = if(resultType.startsWith("Future[Box[")) {
+    "it.map((_ -> callContext))"
+  } else {
+    "(it -> callContext)"
+  }
+  val methodCode =
+    s"""
+      |  // url example: $urlDemo
+      |  override def $signature = saveConnectorMetric {
+      |    /**
+      |      * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      |      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      |      * The real value will be assigned by Macro during compile time at this line of a code:
+      |      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      |      */
+      |    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      |    CacheKeyFromArguments.buildCacheKey {
+      |      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+      |        val url = getUrl("$name" $pathVariables)
+      |        sendGetRequest[$jsonType](url, callContext)
+      |          .map(it => $lastMapStatement)
+      |      }
+      |    }
+      |  }("$name")
+    """.stripMargin
 }
