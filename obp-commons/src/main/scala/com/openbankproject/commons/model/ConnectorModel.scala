@@ -36,3 +36,16 @@ case class InboundAdapterInfoInternal(
   git_commit: String,
   date: String
 ) extends InboundMessageBase
+
+
+case class BankConnector(
+  bankId: BankId,
+  shortName: String,
+  fullName: String,
+  logoUrl: String,
+  websiteUrl: String,
+  bankRoutingScheme: String,
+  bankRoutingAddress: String,
+  swiftBic: String,
+  nationalIdentifier: String
+) extends Bank
