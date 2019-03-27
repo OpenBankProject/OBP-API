@@ -1,13 +1,12 @@
 package code.bankconnectors.akka
 
-import java.lang
 import java.util.Date
 
 import code.api.util.APIUtil
 import code.model.dataAccess.MappedBankAccountData
 import code.model.Transaction
 import com.openbankproject.commons.dto.{InboundAccount, InboundBank, InboundCustomer, InboundTransaction}
-import com.openbankproject.commons.model.{CreditLimit, _}
+import com.openbankproject.commons.model._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
@@ -16,34 +15,8 @@ import scala.math.BigDecimal
 
 object InboundTransformerDec2018 {
 
-  /*
-   * Customer
-   */
-  case class AkkaDec2018Customer(
-                                  customerId: String,
-                                  bankId: String,
-                                  number: String,
-                                  legalName: String,
-                                  mobileNumber: String,
-                                  email: String,
-                                  faceImage: CustomerFaceImage,
-                                  dateOfBirth: Date,
-                                  relationshipStatus: String,
-                                  dependents: Integer,
-                                  dobOfDependents: List[Date],
-                                  highestEducationAttained: String,
-                                  employmentStatus: String,
-                                  creditRating: CreditRating,
-                                  creditLimit: CreditLimit,
-                                  kycStatus: lang.Boolean,
-                                  lastOkDate: Date,
-                                  title: String = "", //These new fields for V310, not from Connector for now. 
-                                  branchId: String = "", //These new fields for V310, not from Connector for now. 
-                                  nameSuffix: String = "", //These new fields for V310, not from Connector for now. 
-                                ) extends Customer
-
   def toCustomer(customer: InboundCustomer): Customer = {
-    AkkaDec2018Customer(
+    CustomerConnector(
       customerId = customer.customerId,
       bankId = customer.bankId,
       number = customer.number,
@@ -61,6 +34,9 @@ object InboundTransformerDec2018 {
       creditLimit = customer.creditLimit,
       kycStatus = customer.kycStatus,
       lastOkDate = customer.lastOkDate,
+      title = "", 
+      branchId = "", 
+      nameSuffix = "",
     )
   }
 

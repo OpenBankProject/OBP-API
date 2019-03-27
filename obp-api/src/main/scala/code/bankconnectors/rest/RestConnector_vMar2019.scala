@@ -25,21 +25,22 @@ Berlin 13359, Germany
 
 import java.util.UUID.randomUUID
 
-import akka.http.scaladsl.model.{HttpHeader, HttpMethod, HttpMethods, HttpRequest, HttpResponse, ResponseEntity, StatusCodes}
+import akka.http.scaladsl.model._
 import akka.util.ByteString
 import akka.http.scaladsl.model.HttpProtocol
 import code.api.{APIFailure, APIFailureNewStyle}
 import code.util.AkkaHttpClient._
 import code.api.cache.Caching
-import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric}
-import code.api.util.{APIUtil, CallContext, NewStyle}
+import code.api.util.APIUtil.{MessageDoc, OBPReturnType, saveConnectorMetric}
+import code.api.util.{APIUtil, CallContext, NewStyle, OBPQueryParam}
 import code.api.util.ErrorMessages._
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.bankconnectors.vMar2017._
 import code.kafka.KafkaHelper
+import code.model.Transaction
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{Bank, BankConnector, BankId, InboundAdapterInfoInternal}
+import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, _}
 import net.liftweb.json._
@@ -78,6 +79,27 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   
   //TODO 3-- Need to be generated automatically
   override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(BankConnector, Option[CallContext])]] = ???
+  
+  //TODO 4-- Need to be generated automatically
+  override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccountInMemory, Option[CallContext])]] = ???
+  
+  //TODO 5-- Need to be generated automatically
+  override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccountInMemory]] = ???
+
+  //TODO 6-- Need to be generated automatically
+  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = ???
+
+  //TODO 7-- Need to be generated automatically
+  override def getCustomersByUserIdFuture(userId: String , callContext: Option[CallContext]): Future[Box[(List[CustomerConnector], Option[CallContext])]] = ???
+
+  //TODO 8-- Need to be generated automatically
+  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyConnector]]] = ???
+
+  //TODO 9-- Need to be generated automatically
+  override def getTransactionsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = ???
+  
+  //TODO 10-- Need to be generated automatically
+  override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = ???
 
   private[this] def sendGetRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.GET)

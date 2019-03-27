@@ -82,7 +82,7 @@ case class InboundGetCoreBankAccounts(payload: List[InboundCoreAccount],
 case class InboundGetCustomersByUserId(payload: List[InboundCustomer],
                                        callContext: Option[CallContextAkka])
 
-case class InboundGetCounterparties(payload: List[InboundCounterparty],
+case class InboundGetCounterparties(payload: List[CounterpartyConnector],
                                     callContext: Option[CallContextAkka])
 
 case class InboundGetTransactions(payload: List[InboundTransaction],
@@ -166,21 +166,3 @@ case class InboundTransaction(
                              )
 
 
-case class InboundCounterparty(
-                                createdByUserId: String,
-                                name: String,
-                                thisBankId: String,
-                                thisAccountId: String,
-                                thisViewId: String,
-                                counterpartyId: String,
-                                otherAccountRoutingScheme: String,
-                                otherAccountRoutingAddress: String,
-                                otherBankRoutingScheme: String,
-                                otherBankRoutingAddress: String,
-                                otherBranchRoutingScheme: String,
-                                otherBranchRoutingAddress: String,
-                                isBeneficiary: Boolean,
-                                description: String,
-                                otherAccountSecondaryRoutingScheme: String,
-                                otherAccountSecondaryRoutingAddress: String,
-                                bespoke: List[CounterpartyBespoke]) extends CounterpartyTrait

@@ -1,5 +1,8 @@
 package com.openbankproject.commons.model
 
+import java.lang
+import java.util.Date
+
 import scala.collection.immutable.List
 
 /**
@@ -49,3 +52,47 @@ case class BankConnector(
   swiftBic: String,
   nationalIdentifier: String
 ) extends Bank
+
+case class CustomerConnector(
+  customerId: String,
+  bankId: String,
+  number: String,
+  legalName: String,
+  mobileNumber: String,
+  email: String,
+  faceImage: CustomerFaceImage,
+  dateOfBirth: Date,
+  relationshipStatus: String,
+  dependents: Integer,
+  dobOfDependents: List[Date],
+  highestEducationAttained: String,
+  employmentStatus: String,
+  creditRating: CreditRating,
+  creditLimit: CreditLimit,
+  kycStatus: lang.Boolean,
+  lastOkDate: Date,
+  title: String,
+  branchId: String,
+  nameSuffix: String,
+) extends Customer
+
+
+case class CounterpartyConnector(
+  createdByUserId: String,
+  name: String,
+  thisBankId: String,
+  thisAccountId: String,
+  thisViewId: String,
+  counterpartyId: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
+  isBeneficiary: Boolean,
+  description: String,
+  otherAccountSecondaryRoutingScheme: String,
+  otherAccountSecondaryRoutingAddress: String,
+  bespoke: List[CounterpartyBespoke]
+) extends CounterpartyTrait

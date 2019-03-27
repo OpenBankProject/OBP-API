@@ -276,7 +276,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     exampleInboundMessage = (
       InboundGetCounterparties(
-        InboundCounterparty(
+        CounterpartyConnector(
           createdByUserId = userIdExample.value,
           name = "",
           thisBankId = bankIdExample.value,
