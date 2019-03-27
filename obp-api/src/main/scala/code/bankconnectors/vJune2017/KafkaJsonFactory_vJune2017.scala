@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.InboundMessageBase
 import code.api.v3_1_0.CheckbookOrdersJson
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors._

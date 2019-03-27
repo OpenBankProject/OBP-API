@@ -39,7 +39,6 @@ import code.api.v2_0_0.EntitlementJSONs
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.atms.Atms.{Atm, AtmId, AtmT}
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.branches.Branches._
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest

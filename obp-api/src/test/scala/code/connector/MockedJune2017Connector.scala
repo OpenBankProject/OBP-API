@@ -3,7 +3,6 @@ package code.connector
 import code.api.util.CallContext
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import code.bankconnectors.vMar2017.InboundStatusMessage
 import code.model._
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable

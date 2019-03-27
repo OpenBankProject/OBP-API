@@ -1067,25 +1067,6 @@ object APIUtil extends MdcLoggable {
     Glossary.glossaryItems.toList.sortBy(_.title)
   }
 
-  /**
-    *
-    * This is the base class for all kafka outbound case class
-    * action and messageFormat are mandatory
-    * The optionalFields can be any other new fields .
-    */
-  abstract class OutboundMessageBase(
-    optionalFields: String*
-  ) {
-    def action: String
-    def messageFormat: String
-  }
-
-  abstract class InboundMessageBase(
-    optionalFields: String*
-  ) {
-    def errorCode: String
-  }
-
   // Used to document the KafkaMessage calls
   case class MessageDoc(
                          process: String,

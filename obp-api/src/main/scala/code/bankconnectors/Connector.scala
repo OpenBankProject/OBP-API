@@ -20,7 +20,7 @@ import code.atms.Atms
 import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
-import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
 import code.context.UserAuthContext

@@ -10,7 +10,6 @@ import code.api.util._
 import code.bankconnectors._
 import code.bankconnectors.akka.InboundTransformerDec2018._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.model.Transaction
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.{CounterpartyTrait, CreditLimit, _}

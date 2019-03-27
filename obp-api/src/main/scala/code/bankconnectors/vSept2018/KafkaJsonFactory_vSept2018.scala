@@ -3,7 +3,6 @@ package code.bankconnectors.vSept2018
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.InboundMessageBase
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v3_1_0.CheckbookOrdersJson
 import code.atms.Atms.{AtmId, AtmT}

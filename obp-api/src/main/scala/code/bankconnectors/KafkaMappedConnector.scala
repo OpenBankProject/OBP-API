@@ -30,7 +30,7 @@ import code.accountholders.AccountHolders
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
+import code.bankconnectors.vMar2017.{KafkaMappedConnector_vMar2017}
 import code.branches.Branches.{Branch, BranchT}
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper

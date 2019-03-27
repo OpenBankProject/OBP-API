@@ -17,7 +17,6 @@ import code.api.v3_1_0.{ContactDetailsJson, InviteeJson}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
 import code.bankconnectors.{Connector, ObpApiLoopback}
 import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, DriveUp, DriveUpString, Lobby, LobbyString}
