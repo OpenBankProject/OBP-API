@@ -23,7 +23,6 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.util.UUID
 import java.util.UUID.randomUUID
 
 import akka.http.scaladsl.model.{HttpHeader, HttpMethod, HttpMethods, HttpRequest, HttpResponse, ResponseEntity, StatusCodes}
@@ -44,22 +43,14 @@ import com.openbankproject.commons.model.{Bank, BankId}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, _}
 import net.liftweb.json._
-import net.liftweb.json.Extraction._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.A
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.reflect.{ClassTag, ManifestFactory}
 import scala.reflect.runtime.universe._
-import scala.util.{Failure, Success}
-import code.api.util.APIUtil._
-import code.api.util.APIUtil.unboxFullOrFail
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
 
@@ -74,54 +65,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
   val messageFormat: String = "Mar2019"
 
-  implicit val formats = net.liftweb.json.DefaultFormats
   override val messageDocs = ArrayBuffer[MessageDoc]()
-  val emptyObjectJson: JValue = decompose(Nil)
 
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
-  val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
-  override def getAdapterInfo(callContext: Option[CallContext]) = saveConnectorMetric {
-    tryo{(
-      InboundAdapterInfoInternal(
-        errorCode = "",
-        backendMessages = Nil,
-        name = "Connector_vREST",
-        version= "REST",
-        git_commit="",
-        date=""),
-      callContext
-    )}
-  }("getAdapterInfo")
-
-  //  messageDocs += MessageDoc(
-  //    process = "obp.get.Banks",
-  //    messageFormat = messageFormat,
-  //    description = "Gets the banks list on this OBP installation.",
-  //    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetBanks.getClass.getSimpleName).request),
-  //    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetBanks.getClass.getSimpleName).response),
-  //    exampleOutboundMessage = decompose(
-  //      OutboundGetBanks(authInfoExample)
-  //    ),
-  //    exampleInboundMessage = decompose(
-  //      InboundGetBanks(
-  //        inboundAuthInfoExample,
-  //        Status(
-  //          errorCode = errorCodeExample,
-  //          inboundStatusMessagesExample),
-  //        InboundBank(
-  //          bankId = bankIdExample.value,
-  //          name = "sushan",
-  //          logo = "TESOBE",
-  //          url = "https://tesobe.com/"
-  //        )  :: Nil
-  //      )
-  //    ),
-  //    outboundAvroSchema = Some(parse(SchemaFor[OutboundGetBanks]().toString(true))),
-  //    inboundAvroSchema = Some(parse(SchemaFor[InboundGetBanks]().toString(true))),
-  //    adapterImplementation = Some(AdapterImplementation("- Core", 2))
-  //  )
   override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
     val bankConverter: (List[InboundBank]=>List[Bank]) = list => list.map(Bank2(_))
     /**
