@@ -3305,7 +3305,7 @@ trait APIMethods310 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               unboxFullOrFail(_, callContext, ConsentNotFound)
             }
-            _ <- Helper.booleanToFuture(failMsg = "The consent does not belong to the user.") {
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound) {
               consent.mUserId == user.userId
             }
             consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
