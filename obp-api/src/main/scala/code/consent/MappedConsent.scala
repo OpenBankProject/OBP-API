@@ -40,6 +40,20 @@ object MappedConsentProvider extends ConsentProvider {
         Failure(ErrorMessages.UnknownError)
     } 
   }  
+  override def revoke(consentId: String): Box[MappedConsent] = {
+    MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
+      case Full(consent) =>
+        tryo(consent
+          .mStatus(ConsentStatus.REVOKED.toString)
+          .saveMe())
+      case Empty =>
+        Empty ?~! ErrorMessages.ConsentNotFound
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    } 
+  }  
   override def checkAnswer(consentId: String, challenge: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>

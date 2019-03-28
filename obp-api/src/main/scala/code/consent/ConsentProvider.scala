@@ -14,6 +14,7 @@ trait ConsentProvider {
   def getConsentsByUser(userId: String): List[MappedConsent]
   def createConsent(user: User): Box[MappedConsent]
   def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent]
+  def revoke(consentId: String): Box[MappedConsent]
   def checkAnswer(consentId: String, challenge: String): Box[MappedConsent]
 }
 

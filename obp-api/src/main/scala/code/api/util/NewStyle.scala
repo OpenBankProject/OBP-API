@@ -165,7 +165,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createConsent), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.revokeConsent), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {

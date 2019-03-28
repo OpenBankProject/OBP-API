@@ -3273,6 +3273,49 @@ trait APIMethods310 {
           }
       }
     }
+    
+    resourceDocs += ResourceDoc(
+      revokeConsent,
+      implementedInApiVersion,
+      "revokeConsent",
+      "GET",
+      "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
+      "Revoke Consent",
+      """Revoke Consent for current user specified by CONSENT_ID
+        |
+        |Login is required.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      consentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsent, apiTagNewStyle))
+
+    lazy val revokeConsent: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consents" :: consentId :: "revoke" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+              unboxFullOrFail(_, callContext, ConsentNotFound)
+            }
+            _ <- Helper.booleanToFuture(failMsg = "The consent does not belong to the user.") {
+              consent.mUserId == user.userId
+            }
+            consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
   }
