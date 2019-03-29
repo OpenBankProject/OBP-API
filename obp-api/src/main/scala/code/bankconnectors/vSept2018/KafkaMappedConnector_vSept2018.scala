@@ -33,11 +33,9 @@ import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v3_1_0.CardObjectJson
-import code.atms.Atms.AtmId
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
 import code.bankconnectors.vMar2017._
-import code.branches.Branches.{BranchId, Lobby}
 import code.common._
 import code.customer._
 import code.kafka.{KafkaHelper, Topics}

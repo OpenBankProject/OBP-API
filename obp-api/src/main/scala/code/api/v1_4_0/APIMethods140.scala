@@ -1,16 +1,16 @@
 package code.api.v1_4_0
 
-import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiRole, ApiVersion, NewStyle}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
+import code.atms.Atms
 import code.bankconnectors.Connector
+import code.branches.Branches
 import code.customer.Customer
 import code.usercustomerlinks.UserCustomerLink
-import code.util.Helper
 import code.views.Views
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
@@ -37,8 +37,6 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{ResourceDoc, authenticationRequiredMessage, _}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
-import code.atms.Atms
-import code.branches.Branches
 import code.crm.CrmEvent
 import code.customer.CustomerMessages
 import code.model._

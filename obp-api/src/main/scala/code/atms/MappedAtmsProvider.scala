@@ -1,10 +1,8 @@
 package code.atms
 
 import code.api.util.{OBPLimit, OBPOffset, OBPQueryParam}
-import code.atms.Atms._
-import code.common._
 import code.util.{TwentyFourHourClockString, UUIDString}
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model._
 import net.liftweb.mapper._
 
 object MappedAtmsProvider extends AtmsProvider {

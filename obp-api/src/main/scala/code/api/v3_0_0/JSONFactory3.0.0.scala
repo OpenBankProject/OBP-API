@@ -38,8 +38,8 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.EntitlementJSONs
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
-import code.atms.Atms.{Atm, AtmId, AtmT}
-import code.branches.Branches._
+import code.atms.Atms.Atm
+import code.branches.Branches.Branch
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.metrics.AggregateMetrics
@@ -54,7 +54,6 @@ import scala.collection.immutable.List
 //import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
-import code.branches.Branches.Branch
 import code.common._
 
 // should replace Address in 1.4

@@ -1,6 +1,7 @@
 package code.context
 
 import code.util.{MappedUUID, UUIDString}
+import com.openbankproject.commons.model.UserAuthContext
 import net.liftweb.mapper._
 
 class MappedUserAuthContext extends UserAuthContext with LongKeyedMapper[MappedUserAuthContext] with IdPK with CreatedUpdated {

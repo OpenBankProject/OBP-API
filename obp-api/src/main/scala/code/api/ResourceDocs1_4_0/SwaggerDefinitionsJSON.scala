@@ -16,11 +16,11 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
 import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, _}
-import code.branches.Branches.{DriveUpString, _}
 import code.common._
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.api.builder.JsonFactory_APIBuilder
+import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model._

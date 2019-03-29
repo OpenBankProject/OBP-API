@@ -5,18 +5,14 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v3_1_0.CheckbookOrdersJson
-import code.atms.Atms.{AtmId, AtmT}
-import code.bankconnectors._
 import code.bankconnectors.vJune2017.InternalCustomer
 import code.bankconnectors.vMar2017._
-import code.branches.Branches._
-import code.common.{Address, Location, Meta, Routing}
-import code.context.UserAuthContext
+import code.branches.Branches.{DriveUpString, LobbyString}
+import code.common.Routing
 import code.kafka.Topics._
 import code.model.dataAccess.MappedBankAccountData
-import code.model._
 import code.transactionrequests.TransactionRequests.TransactionRequest
-import com.openbankproject.commons.model.{CounterpartyTrait, Customer, _}
+import com.openbankproject.commons.model.{CounterpartyTrait, Customer, UserAuthContext, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 

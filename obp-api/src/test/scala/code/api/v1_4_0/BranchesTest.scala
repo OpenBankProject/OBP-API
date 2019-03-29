@@ -3,11 +3,9 @@ package code.api.v1_4_0
 import code.api.util.APIUtil.OAuth._
 import code.api.util.OBPQueryParam
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
-import code.branches.Branches.{BranchId, BranchT, DriveUp, DriveUpStringT, Lobby, LobbyStringT}
 import code.branches.{Branches, BranchesProvider}
-import code.common._
 import code.setup.DefaultUsers
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model._
 
 /*
 Note This does not test retrieval from a backend.

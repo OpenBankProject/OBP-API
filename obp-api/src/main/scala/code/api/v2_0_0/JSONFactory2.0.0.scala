@@ -36,13 +36,12 @@ import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
 import code.kycstatuses.KycStatus
-import code.meetings.Meeting
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.socialmedia.SocialMedia
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{BankAccount, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue

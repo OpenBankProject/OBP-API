@@ -2,12 +2,10 @@ package code.remotedata
 
 import akka.actor.Actor
 import akka.pattern.pipe
-import code.accountattribute.AccountAttribute.AccountAttributeType
 import code.accountattribute.{MappedAccountAttributeProvider, RemotedataAccountAttributeCaseClasses}
 import code.actorsystem.ObpActorHelper
-import code.products.Products.ProductCode
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{AccountId, BankId}
+import com.openbankproject.commons.model.{AccountAttributeType, AccountId, BankId, ProductCode}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

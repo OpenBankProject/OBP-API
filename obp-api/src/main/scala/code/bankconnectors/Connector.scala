@@ -3,9 +3,6 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.accountapplication.AccountApplication
-import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
-import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -17,26 +14,18 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
 import code.api.v3_1_0._
 import code.atms.Atms
-import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.context.UserAuthContext
-import code.model.{Transaction, toUserEx}
-import code.customeraddress.CustomerAddress
+import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.fx.fx.TTL
 import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
-import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.model.dataAccess.ResourceUser
-import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
-import code.productcollection.ProductCollection
-import code.productcollectionitem.ProductCollectionItem
-import code.products.Products.{Product, ProductCode}
-import code.taxresidence.TaxResidence
+import code.model.{Transaction, toUserEx}
+import code.products.Products.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
@@ -44,7 +33,7 @@ import code.transactionrequests.{TransactionRequestTypeCharge, TransactionReques
 import code.users.Users
 import code.util.Helper._
 import code.views.Views
-import com.openbankproject.commons.model.{Bank, CounterpartyTrait, TransactionRequestStatus, _}
+import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json.Extraction.decompose
@@ -58,9 +47,9 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.math.BigInt
 import scala.util.Random
-import scala.concurrent.duration._
 
 /*
 So we can switch between different sources of resources e.g.
@@ -108,25 +97,7 @@ case class InboundUser(
   password: String,
   displayName: String
 )
-// This is the common InboundAccount from all Kafka/remote, not finished yet.
-trait InboundAccountCommon{
-  def errorCode: String
-  def bankId: String
-  def branchId: String
-  def accountId: String
-  def accountNumber: String
-  def accountType: String
-  def balanceAmount: String
-  def balanceCurrency: String
-  def owners: List[String]
-  def viewsToGenerate: List[String]
-  def bankRoutingScheme:String
-  def bankRoutingAddress:String
-  def branchRoutingScheme:String
-  def branchRoutingAddress:String
-  def accountRoutingScheme:String
-  def accountRoutingAddress:String
-}
+
 case class ObpApiLoopback(
   connectorVersion: String, 
   gitCommit: String, 

@@ -1,16 +1,13 @@
 package code.bankconnectors.vJune2017
 
 import java.lang
-import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.v3_1_0.CheckbookOrdersJson
-import code.atms.Atms.{AtmId, AtmT}
-import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.branches.Branches._
-import code.common.{Address, Location, Meta, Routing}
+import code.branches.Branches.{DriveUpString, LobbyString}
+import code.common.Routing
 import code.kafka.Topics._
 import code.model.dataAccess.MappedBankAccountData
 import code.transactionrequests.TransactionRequests.TransactionRequest

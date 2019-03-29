@@ -1,8 +1,5 @@
 package code.customer
 
-import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
-
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson

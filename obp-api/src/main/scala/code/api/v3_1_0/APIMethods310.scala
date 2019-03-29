@@ -2,7 +2,6 @@ package code.api.v3_1_0
 
 import java.util.UUID
 
-import code.accountattribute.AccountAttribute.AccountAttributeType
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
@@ -20,16 +19,13 @@ import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector
-import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.meetings.{ContactDetails, Invitee}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.productattribute.ProductAttribute.ProductAttributeType
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.{Product}
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook

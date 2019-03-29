@@ -2,47 +2,15 @@ package code.accountattribute
 
 /* For AccountAttribute */
 
-import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.util.APIUtil
-import code.products.Products.ProductCode
 import code.remotedata.RemotedataAccountAttribute
-import com.openbankproject.commons.model.{AccountId, BankId}
+import com.openbankproject.commons.model.{AccountAttribute, AccountAttributeType, AccountId, BankId, ProductCode}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
 object AccountAttribute extends SimpleInjector {
-
-  object AccountAttributeType extends Enumeration{
-    type ProductAttributeType = Value
-    val STRING = Value("STRING")
-
-    val INTEGER = Value("INTEGER")
-
-    val DOUBLE = Value("DOUBLE")
-
-    val DATE_WITH_DAY = Value("DATE_WITH_DAY")
-  }
-
-
-
-  trait AccountAttribute {
-    def bankId: BankId
-    
-    def accountId: AccountId
-
-    def productCode: ProductCode
-
-    def accountAttributeId: String
-
-    def name: String
-
-    def attributeType: AccountAttributeType.Value
-
-    def value: String
-  }
-
 
   val accountAttributeProvider = new Inject(buildOne _) {}
 

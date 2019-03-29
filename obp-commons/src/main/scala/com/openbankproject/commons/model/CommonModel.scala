@@ -1,22 +1,18 @@
 package com.openbankproject.commons.model
 
 import java.util.Date
-import code.customeraddress.CustomerAddress
-import code.bankconnectors.InboundAccountCommon
-import code.branches.Branches.BranchT
-import com.openbankproject.commons.model.Customer
-import code.context.UserAuthContext
-import code.meetings.Meeting
-import code.taxresidence.TaxResidence
-import code.productcollectionitem.ProductCollectionItem
-import com.openbankproject.commons.model.Bank
-import code.productcollection.ProductCollection
-import com.openbankproject.commons.model.CounterpartyTrait
-import code.atms.Atms.AtmT
-import code.productattribute.ProductAttribute.ProductAttribute
-import code.accountattribute.AccountAttribute.AccountAttribute
-import com.openbankproject.commons.model.BankAccount
-import code.accountapplication.AccountApplication
+//import code.customeraddress.CustomerAddress
+//import code.bankconnectors.InboundAccountCommon
+//import code.branches.Branches.BranchT
+//import code.context.UserAuthContext
+//import code.meetings.Meeting
+//import code.taxresidence.TaxResidence
+//import code.productcollectionitem.ProductCollectionItem
+//import code.productcollection.ProductCollection
+//import code.atms.Atms.AtmT
+//import code.productattribute.ProductAttribute.ProductAttribute
+//import code.accountattribute.AccountAttribute.AccountAttribute
+//import code.accountapplication.AccountApplication
 
 case class ProductAttributeCommons(
                                     bankId :BankId,
@@ -38,7 +34,7 @@ case class AccountAttributeCommons(
                                     productCode :ProductCode,
                                     accountAttributeId :String,
                                     name :String,
-                                    attributeType :Value,
+                                    attributeType : AccountAttributeType.Value,
                                     value :String) extends AccountAttribute
 
 
@@ -205,7 +201,7 @@ case class CounterpartyTraitCommons(
                                      otherBranchRoutingScheme :String,
                                      otherBranchRoutingAddress :String,
                                      isBeneficiary :Boolean,
-                                     bespoke :List) extends CounterpartyTrait
+                                     bespoke :List[CounterpartyBespoke]) extends CounterpartyTrait
 
 
 case class TaxResidenceCommons(

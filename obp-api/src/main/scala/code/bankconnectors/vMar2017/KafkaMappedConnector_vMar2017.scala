@@ -23,16 +23,14 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.Date
 
-import code.accountholders.AccountHolders
-import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.MessageDoc
+import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0._
 import code.bankconnectors._
-import code.branches.Branches.{Branch, BranchT}
+import code.branches.Branches.Branch
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
@@ -44,7 +42,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.Product
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
@@ -54,16 +52,12 @@ import code.util.{Helper, TTLCache}
 import code.views.Views
 import com.openbankproject.commons.model.{Bank, _}
 import net.liftweb.common._
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.{Nil, Seq}
-import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
 
