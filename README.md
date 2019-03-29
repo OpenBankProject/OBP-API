@@ -64,7 +64,7 @@ To compile and run jetty, install Maven 3, create your configuration in obp-api/
 
 * Now **Rebuild** the project so everything is compiled. At this point you may need to select the SDK, see above.
 
-* Once you have rebuilt the project wihtout compile errors, you should be able to RunWebApp in obp-api/src/test/scala
+* Once you have rebuilt the project without compile errors, you should be able to RunWebApp in obp-api/src/test/scala
 
 * Run RunWebApp by right clicking on it or selecting Run. The built in jetty server should start on localhost:8080
 
