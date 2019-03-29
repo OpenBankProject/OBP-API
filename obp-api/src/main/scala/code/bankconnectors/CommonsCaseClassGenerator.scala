@@ -1,7 +1,5 @@
 package code.bankconnectors
 
-import com.openbankproject.commons.model.Bank
-
 import scala.concurrent.Future
 import scala.reflect.runtime.{universe => ru}
 
@@ -46,11 +44,4 @@ object CommonsCaseClassGenerator extends App {
   returnModels.map(mkClass).foreach(println)
   println()
 
-  new Foo("hello", 12)
-}
-
-case class Foo(name: String, age: Int)
-trait FooT{
-  def name: String
-  def age: Int
 }
