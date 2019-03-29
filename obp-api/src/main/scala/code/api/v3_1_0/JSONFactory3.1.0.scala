@@ -43,7 +43,7 @@ import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
 import code.common.Meta
 import code.consent.MappedConsent
-import code.context.UserAuthContext
+import code.context.{UserAuthContext, UserAuthContextRequest}
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
@@ -268,6 +268,12 @@ case class PostUserAuthContextJson(
 
 case class UserAuthContextJson(
   user_auth_context_id: String,
+  user_id: String,
+  key: String,
+  value: String
+)
+case class UserAuthContextRequestJson(
+  user_auth_context_request_id: String,
   user_id: String,
   key: String,
   value: String
@@ -645,6 +651,15 @@ object JSONFactory310{
   
   def createUserAuthContextsJson(userAuthContext: List[UserAuthContext]): UserAuthContextsJson = {
     UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
+  }
+
+  def createUserAuthContextRequestJson(userAuthContext: UserAuthContextRequest): UserAuthContextRequestJson = {
+    UserAuthContextRequestJson(
+      user_auth_context_request_id= userAuthContext.userAuthContextRequestId,
+      user_id = userAuthContext.userId,
+      key = userAuthContext.key,
+      value = userAuthContext.value
+    )
   }
 
   def createTaxResidence(tr: List[TaxResidence]) = TaxResidenceJsonV310(

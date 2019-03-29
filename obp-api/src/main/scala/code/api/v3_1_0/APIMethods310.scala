@@ -3318,6 +3318,45 @@ trait APIMethods310 {
     }
 
 
+    resourceDocs += ResourceDoc(
+      createUserAuthContextRequest,
+      implementedInApiVersion,
+      nameOf(createUserAuthContextRequest),
+      "POST",
+      "/users/USER_ID/auth-context-update-request",
+      "Create User Auth Context Request",
+      s"""Create User Auth Context Request.
+         |${authenticationRequiredMessage(true)}
+         |""",
+      postUserAuthContextJson,
+      userAuthContextJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        CreateUserAuthContextError,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val createUserAuthContextRequest : OBPEndpoint = {
+      case "users" :: userId ::"auth-context-update-request" :: Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostUserAuthContextJson]
+            }
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (userAuthContextRquest, callContext) <- NewStyle.function.createUserAuthContextRequest(userId, postedData.key, postedData.value, callContext)
+          } yield {
+            (JSONFactory310.createUserAuthContextRequestJson(userAuthContextRquest), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
   }
 }
 
