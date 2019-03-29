@@ -3134,11 +3134,11 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getMessageDocsSwagger),
       "GET",
-      "/message-docs/rest/swagger",
+      "/message-docs/CONNECTOR/swagger",
       "Get Message Docs Swagger",
       """
         |This endpoint provide example message docs in swagger format.
-        |Only used for rest Connector
+        |Only used for rest Connector and the developer can follow this to design the rest Adapter.  
         |
         |This call is work in progress - Experimental!
       """.stripMargin,
@@ -3150,7 +3150,7 @@ trait APIMethods310 {
     )
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
-      case "message-docs" :: "rest" ::"swagger" :: Nil JsonGet _ => {
+      case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
