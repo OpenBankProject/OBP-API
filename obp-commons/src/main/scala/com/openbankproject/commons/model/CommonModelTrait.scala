@@ -262,7 +262,20 @@ trait RoutingT {
   def address: String
 }
 
+// @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala
+// This is for Kafka topics for both North and South sides.
+// In OBP-API, these topics will be created automatically.
+trait TopicTrait
+
+//high level of four different kinds of transaction request types: FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
+//They share the same AmountOfMoney and description fields
+//Note : in scala case-to-case inheritance is prohibited, so used trait instead
+trait TransactionRequestCommonBodyJSON {
+  val value : AmountOfMoneyJsonV121
+  val description: String
+}
 //---------------------------------------- trait dependents of case class
+
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
 case class LobbyString (hours : String) extends LobbyStringT
 

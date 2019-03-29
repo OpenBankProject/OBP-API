@@ -25,20 +25,17 @@ Berlin 13359, Germany
 
 import java.util.UUID.randomUUID
 
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.util.ByteString
-import akka.http.scaladsl.model.HttpProtocol
-import code.api.{APIFailure, APIFailureNewStyle}
-import code.util.AkkaHttpClient._
+import code.api.APIFailureNewStyle
 import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, OBPReturnType, saveConnectorMetric}
-import code.api.util.{APIUtil, CallContext, NewStyle, OBPQueryParam}
 import code.api.util.ErrorMessages._
+import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
-import code.bankconnectors.vMar2017._
 import code.kafka.KafkaHelper
-import code.model.Transaction
+import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
@@ -52,8 +49,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-
-import com.github.dwickern.macros.NameOf.nameOf
 
 case class BankCommons (
                          bankId: BankId,

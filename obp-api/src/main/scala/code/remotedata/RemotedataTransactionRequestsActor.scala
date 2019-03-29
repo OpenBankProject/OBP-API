@@ -2,12 +2,10 @@ package code.remotedata
 
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.model._
-import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import code.transactionrequests.TransactionRequests.TransactionRequestBody
 import code.transactionrequests.{MappedTransactionRequestProvider, RemotedataTransactionRequestsCaseClasses}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{CounterpartyTrait, _}
+import com.openbankproject.commons.model._
 
 
 class RemotedataTransactionRequestsActor extends Actor with ObpActorHelper with MdcLoggable {

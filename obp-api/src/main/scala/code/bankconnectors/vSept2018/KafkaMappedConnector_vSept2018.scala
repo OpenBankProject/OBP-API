@@ -31,41 +31,33 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{MessageDoc, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
+import code.api.util.ExampleValue._
 import code.api.util._
-import code.api.v3_1_0.CardObjectJson
+import code.api.v2_1_0.TransactionRequestBodyCommonJSON
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
 import code.bankconnectors.vMar2017._
-
+import code.context.UserAuthContextProvider
 import code.customer._
 import code.kafka.{KafkaHelper, Topics}
 import code.model._
 import code.model.dataAccess._
-import code.transactionrequests.TransactionRequests._
+import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
+import net.liftweb
 import net.liftweb.common.{Box, _}
-import net.liftweb.json.Extraction._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Extraction, MappingException, parse}
-import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.json.{MappingException, parse}
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import code.api.util.ExampleValue._
-import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.api.v2_1_0.{TransactionRequestBodyCommonJSON, TransactionRequestCommonBodyJSON}
-import code.context.UserAuthContextProvider
-import code.users.Users
-import com.openbankproject.commons.model.{CounterpartyTrait, _}
-import net.liftweb
-import net.liftweb.json
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
   

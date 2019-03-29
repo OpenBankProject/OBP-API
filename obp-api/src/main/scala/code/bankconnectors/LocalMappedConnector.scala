@@ -10,7 +10,6 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
 import code.bankconnectors.vJune2017.InboundAccountJune2017
@@ -35,7 +34,7 @@ import code.productattribute.ProductAttribute
 import code.productcollection.ProductCollection
 import code.productcollectionitem.ProductCollectionItem
 import code.products.MappedProduct
-import code.products.Products.{Product}
+import code.products.Products.Product
 import code.taxresidence.TaxResidence
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._

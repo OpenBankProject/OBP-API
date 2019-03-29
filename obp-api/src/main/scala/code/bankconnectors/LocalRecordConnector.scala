@@ -4,7 +4,6 @@ import java.util.{Date, TimeZone}
 
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._

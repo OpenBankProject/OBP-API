@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.model.dataAccess.MappedBankAccountData
-import code.model.Transaction
+
 import com.openbankproject.commons.dto.{InboundAccount, InboundBank, InboundCustomer, InboundTransaction}
 import com.openbankproject.commons.model._
 import net.liftweb.mapper.By

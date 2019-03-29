@@ -241,3 +241,214 @@ case class MeetingCommons(
                            when :Date,
                            creator :ContactDetails,
                            invitees :List[Invitee]) extends Meeting
+
+//----------------obp-api moved to here case classes
+
+case class BranchRoutingJsonV141(
+                                  scheme: String,
+                                  address: String
+                                )
+
+case class AccountRoutingJsonV121(
+                                   scheme: String,
+                                   address: String
+                                 )
+
+case class AccountV310Json(
+                            bank_id: String ,
+                            account_id: String ,
+                            account_type : String,
+                            account_routings: List[AccountRoutingJsonV121],
+                            branch_routings: List[BranchRoutingJsonV141]
+                          )
+
+case class CheckbookOrdersJson(
+                                account: AccountV310Json ,
+                                orders: List[OrderJson]
+                              )
+
+case class OrderJson(order: OrderObjectJson)
+
+case class OrderObjectJson(
+                            order_id: String,
+                            order_date: String,
+                            number_of_checkbooks: String,
+                            distribution_channel: String,
+                            status: String,
+                            first_check_number: String,
+                            shipping_code: String
+                          )
+
+case class ObpApiLoopback(
+                           connectorVersion: String,
+                           gitCommit: String,
+                           durationTime: String
+                         ) extends TopicTrait
+
+case class CardObjectJson(
+                           card_type: String,
+                           card_description: String,
+                           use_type: String
+                         )
+
+case class TransactionRequestAccount (
+                                       val bank_id: String,
+                                       val account_id : String
+                                     )
+
+//For SEPA, it need the iban to find the toCounterpaty--> toBankAccount
+case class TransactionRequestIban (iban : String)
+
+case class AmountOfMoneyJsonV121(
+                                  currency : String,
+                                  amount : String
+                                )
+
+case class ToAccountTransferToAccountAccount(
+                                              number: String,
+                                              iban: String
+                                            )
+
+case class FromAccountTransfer(
+                                mobile_phone_number: String,
+                                nickname: String
+                              )
+
+case class ToAccountTransferToAtmKycDocument(
+                                              `type`: String,
+                                              number: String
+                                            )
+
+case class ToAccountTransferToAccount(
+                                       name: String,
+                                       bank_code: String,
+                                       branch_number: String,
+                                       account: ToAccountTransferToAccountAccount
+                                     )
+
+case class ToAccountTransferToPhone(
+                                     mobile_phone_number: String
+                                   )
+
+case class TransactionRequestTransferToPhone(
+                                              value: AmountOfMoneyJsonV121,
+                                              description: String,
+                                              message: String,
+                                              from: FromAccountTransfer,
+                                              to: ToAccountTransferToPhone
+                                            ) extends TransactionRequestCommonBodyJSON
+
+case class ToAccountTransferToAtm(
+                                   legal_name: String,
+                                   date_of_birth: String,
+                                   mobile_phone_number: String,
+                                   kyc_document: ToAccountTransferToAtmKycDocument
+                                 )
+
+case class TransactionRequestTransferToAtm(
+                                            value: AmountOfMoneyJsonV121,
+                                            description: String,
+                                            message: String,
+                                            from: FromAccountTransfer,
+                                            to: ToAccountTransferToAtm
+                                          ) extends TransactionRequestCommonBodyJSON
+
+//For COUNTERPATY, it need the counterparty_id to find the toCounterpaty--> toBankAccount
+case class TransactionRequestCounterpartyId (counterparty_id : String)
+
+case class TransactionRequestTransferToAccount(
+                                                value: AmountOfMoneyJsonV121,
+                                                description: String,
+                                                transfer_type: String,
+                                                future_date: String,
+                                                to: ToAccountTransferToAccount
+                                              ) extends TransactionRequestCommonBodyJSON
+
+case class TransactionRequestBodyAllTypes (
+                                            to_sandbox_tan: Option[TransactionRequestAccount],
+                                            to_sepa: Option[TransactionRequestIban],
+                                            to_counterparty: Option[TransactionRequestCounterpartyId],
+                                            to_transfer_to_phone: Option[TransactionRequestTransferToPhone] = None, //TODO not stable
+                                            to_transfer_to_atm: Option[TransactionRequestTransferToAtm]= None,//TODO not stable
+                                            to_transfer_to_account: Option[TransactionRequestTransferToAccount]= None,//TODO not stable
+                                            value: AmountOfMoney,
+                                            description: String
+                                          )
+
+case class TransactionRequestCharge(
+                                     val summary: String,
+                                     val value : AmountOfMoney
+                                   )
+
+case class TransactionRequestChallenge (
+                                         val id: String,
+                                         val allowed_attempts : Int,
+                                         val challenge_type: String
+                                       )
+case class TransactionRequest (
+                                val id: TransactionRequestId,
+                                val `type` : String,
+                                val from: TransactionRequestAccount,
+                                val body: TransactionRequestBodyAllTypes,
+                                val transaction_ids: String,
+                                val status: String,
+                                val start_date: Date,
+                                val end_date: Date,
+                                val challenge: TransactionRequestChallenge,
+                                val charge: TransactionRequestCharge,
+                                val charge_policy: String,
+                                val counterparty_id :CounterpartyId,
+                                val name :String,
+                                val this_bank_id : BankId,
+                                val this_account_id : AccountId,
+                                val this_view_id :ViewId,
+                                val other_account_routing_scheme : String,
+                                val other_account_routing_address : String,
+                                val other_bank_routing_scheme : String,
+                                val other_bank_routing_address : String,
+                                val is_beneficiary :Boolean,
+                                val future_date :Option[String] = None
+
+                              )
+
+class Transaction(
+                   //A universally unique id
+                   val uuid: String,
+                   //id is unique for transactions of @thisAccount
+                   val id : TransactionId,
+                   val thisAccount : BankAccount,
+                   val otherAccount : Counterparty,
+                   //E.g. cash withdrawal, electronic payment, etc.
+                   val transactionType : String,
+                   val amount : BigDecimal,
+                   //ISO 4217, e.g. EUR, GBP, USD, etc.
+                   val currency : String,
+                   // Bank provided label
+                   val description : Option[String],
+                   // The date the transaction was initiated
+                   val startDate : Date,
+                   // The date when the money finished changing hands
+                   val finishDate : Date,
+                   //the new balance for the bank account
+                   val balance :  BigDecimal
+                 ) {
+
+  val bankId = thisAccount.bankId
+  val accountId = thisAccount.accountId
+}
+
+// because Transaction#thisAccount is trait, can't be deserialize, So here supply a case class to do deserialize
+case class TransactionCommons(
+                   //A universally unique id
+                   override val uuid: String,
+                   override val id : TransactionId,
+                   override val thisAccount : BankAccountCommons,
+                   override val otherAccount : Counterparty,
+                   override val transactionType : String,
+                   override val amount : BigDecimal,
+                   override val currency : String,
+                   override val description : Option[String],
+                   override val startDate : Date,
+                   override val finishDate : Date,
+                   override val balance :  BigDecimal
+                 )  extends Transaction(uuid, id, thisAccount, otherAccount, transactionType, amount, currency,description, startDate, finishDate, balance)

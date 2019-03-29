@@ -32,13 +32,13 @@ import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
-import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
+import code.api.v1_2_1.{RateLimiting}
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.bankconnectors.ObpApiLoopback
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
@@ -49,37 +49,6 @@ import com.openbankproject.commons.model.{AccountApplication, ProductCollection,
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-
-case class CheckbookOrdersJson(
-  account: AccountV310Json ,
-  orders: List[OrderJson]
-)
-
-case class AccountV310Json(
-  bank_id: String ,
-  account_id: String ,
-  account_type : String,
-  account_routings: List[AccountRoutingJsonV121],
-  branch_routings: List[BranchRoutingJsonV141]
-)
-
-case class OrderJson(order: OrderObjectJson)
-
-case class OrderObjectJson(
-  order_id: String,
-  order_date: String,
-  number_of_checkbooks: String,
-  distribution_channel: String,
-  status: String,
-  first_check_number: String,
-  shipping_code: String
-)
-
-case class CardObjectJson(
-  card_type: String,
-  card_description: String,
-  use_type: String
-)
 
 case class CreditCardOrderStatusResponseJson(
   cards: List[CardObjectJson] ,
