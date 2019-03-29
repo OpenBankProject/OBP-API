@@ -3,7 +3,7 @@ package code.api.v2_1_0
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.AmountOfMoneyJsonV121
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers

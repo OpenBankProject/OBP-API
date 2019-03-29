@@ -10,17 +10,13 @@ import code.api.util._
 import code.bankconnectors._
 import code.bankconnectors.akka.InboundTransformerDec2018._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
-import code.model.Transaction
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.{CounterpartyTrait, CreditLimit, _}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.parse
 
 import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

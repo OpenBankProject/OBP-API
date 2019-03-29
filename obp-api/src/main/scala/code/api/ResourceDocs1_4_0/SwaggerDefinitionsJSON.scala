@@ -2,24 +2,22 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
-import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
-import code.api.{Constant}
+import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
-import code.api.util.{APIUtil, ApiTrigger}
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.Glossary.GlossaryItem
-import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.util.{APIUtil, ApiTrigger}
+import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, _}
+import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-
-import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model._

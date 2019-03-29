@@ -4,12 +4,11 @@ import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{ApiRole, PegdownOptions}
-import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.crm.CrmEvent.CrmEvent
 import code.customer.CustomerMessage
 import code.products.Products.Product
 import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests.{TransactionRequest, _}
+import code.transactionrequests.TransactionRequests._
 import com.openbankproject.commons.model._
 import net.liftweb.common.Full
 import net.liftweb.json
@@ -69,13 +68,6 @@ object JSONFactory1_4_0 {
 
   case class DriveUpStringJson(hours : String)
   case class LobbyStringJson(hours : String)
-
-
-
-  case class BranchRoutingJsonV141(
-    scheme: String,
-    address: String
-  )
 
   case class BranchJson(id : String,
                         name : String,

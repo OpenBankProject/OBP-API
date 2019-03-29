@@ -9,10 +9,8 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
-import code.api.v2_1_0.{TransactionRequestCommonBodyJSON, _}
-import code.api.v3_1_0._
+import code.api.v2_1_0._
 import code.atms.Atms
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
@@ -21,10 +19,9 @@ import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.fx.fx.TTL
-import code.kafka.Topics.TopicTrait
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
-import code.model.{Transaction, toUserEx}
+import code.model.toUserEx
 import code.products.Products.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -97,12 +94,6 @@ case class InboundUser(
   password: String,
   displayName: String
 )
-
-case class ObpApiLoopback(
-  connectorVersion: String, 
-  gitCommit: String, 
-  durationTime: String
-) extends TopicTrait
 
 trait Connector extends MdcLoggable{
 

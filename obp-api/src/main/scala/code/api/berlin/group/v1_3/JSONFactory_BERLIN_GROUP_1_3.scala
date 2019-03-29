@@ -1,16 +1,13 @@
 package code.api.berlin.group.v1_3
 
-import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.v2_1_0.IbanJson
-import code.model.{ModeratedBankAccount, ModeratedTransaction}
-import code.transactionrequests.TransactionRequests.TransactionRequest
-import com.openbankproject.commons.model.{BankAccount, CoreAccount}
+import code.model.ModeratedTransaction
+import com.openbankproject.commons.model.{BankAccount, CoreAccount, TransactionRequest}
+import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
-import net.liftweb.json.JValue
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 

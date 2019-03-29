@@ -32,7 +32,8 @@ import java.util.Date
 import code.actorsystem.ObpActorConfig
 import code.api.util.APIUtil
 import code.api.util.APIUtil.MessageDoc
-import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
+import code.api.v1_2_1.{ BankRoutingJsonV121}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.atms.Atms.Atm

@@ -1,6 +1,11 @@
 package code
 
+import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
+import code.metadata.narrative.Narrative
+import code.metadata.tags.Tags
+import code.metadata.transactionimages.TransactionImages
+import code.metadata.wheretags.WhereTags
 import com.openbankproject.commons.model._
 
 /**
@@ -29,5 +34,39 @@ package object model {
       counterparty.counterpartyId,
       counterparty.counterpartyName
     ).openOrThrowException("Can not getOrCreateMetadata !")
+  }
+
+  implicit class TransactionEx(transaction: Transaction) {
+
+    private[this] val bankId = transaction.bankId
+    private[this] val accountId = transaction.accountId
+    private[this] val id = transaction.id
+    /**
+      * The metadata is set up using dependency injection. If you want to, e.g. override the Comments implementation
+      * for a particular scope, use Comments.comments.doWith(NewCommentsImplementation extends Comments{}){
+      *   //code in here will use NewCommentsImplementation (e.g. val t = new Transaction(...) will result in Comments.comments.vend
+      *   // return NewCommentsImplementation here below)
+      * }
+      *
+      * If you want to change the current default implementation, you would change the buildOne function in Comments to
+      * return a different value
+      *
+      */
+    val metadata : TransactionMetadata = new TransactionMetadata(
+      Narrative.narrative.vend.getNarrative(bankId, accountId, id) _,
+      Narrative.narrative.vend.setNarrative(bankId, accountId, id) _,
+      Comments.comments.vend.getComments(bankId, accountId, id) _,
+      Comments.comments.vend.addComment(bankId, accountId, id) _,
+      Comments.comments.vend.deleteComment(bankId, accountId, id) _,
+      Tags.tags.vend.getTags(bankId, accountId, id) _,
+      Tags.tags.vend.addTag(bankId, accountId, id) _,
+      Tags.tags.vend.deleteTag(bankId, accountId, id) _,
+      TransactionImages.transactionImages.vend.getImagesForTransaction(bankId, accountId, id) _,
+      TransactionImages.transactionImages.vend.addTransactionImage(bankId, accountId, id) _,
+      TransactionImages.transactionImages.vend.deleteTransactionImage(bankId, accountId, id) _,
+      WhereTags.whereTags.vend.getWhereTagForTransaction(bankId, accountId, id) _,
+      WhereTags.whereTags.vend.addWhereTag(bankId, accountId, id) _,
+      WhereTags.whereTags.vend.deleteWhereTag(bankId, accountId, id) _
+    )
   }
 }

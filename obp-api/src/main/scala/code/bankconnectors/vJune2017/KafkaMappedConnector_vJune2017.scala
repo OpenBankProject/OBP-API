@@ -33,7 +33,7 @@ import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.util.APIUtil._
-import code.api.v3_1_0.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
+import com.openbankproject.commons.model.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
 

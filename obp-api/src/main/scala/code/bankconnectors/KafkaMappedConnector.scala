@@ -27,7 +27,6 @@ import java.util.Date
 
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.branches.Branches.Branch
 import code.fx.{FXRate, fx}

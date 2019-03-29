@@ -11,7 +11,7 @@ import code.api.util.ErrorMessages.UserNotLoggedIn
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.OBPAPI1_2_1._
-import code.api.v1_2_1.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
+import code.api.v1_2_1.{JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
@@ -24,15 +24,15 @@ import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
 import code.meetings.Meeting
-import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model._
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import code.socialmedia.SocialMediaHandle
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
-import com.openbankproject.commons.model.{Meeting, _}
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper
@@ -47,6 +47,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import net.liftweb.json.Extraction
+
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 
 
 trait APIMethods200 {

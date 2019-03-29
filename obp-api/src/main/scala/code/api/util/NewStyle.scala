@@ -8,13 +8,11 @@ import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.bankconnectors.{Connector, ObpApiLoopback}
+import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
-
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
@@ -23,7 +21,6 @@ import code.metadata.counterparties.Counterparties
 import code.model._
 import code.products.Products.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
-import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook

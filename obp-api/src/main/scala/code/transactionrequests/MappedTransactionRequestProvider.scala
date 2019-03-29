@@ -1,7 +1,6 @@
 package code.transactionrequests
 
 import code.api.util.ErrorMessages._
-import code.api.v2_1_0.{TransactionRequestBodyCounterpartyJSON, TransactionRequestBodySEPAJSON, TransactionRequestBodySandBoxTanJSON, TransactionRequestCommonBodyJSON}
 import code.bankconnectors.Connector
 
 import code.model._
