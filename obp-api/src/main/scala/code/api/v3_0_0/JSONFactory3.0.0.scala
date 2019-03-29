@@ -54,7 +54,6 @@ import scala.collection.immutable.List
 //import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200
 import code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
-import code.common._
 
 // should replace Address in 1.4
 

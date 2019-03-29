@@ -263,7 +263,18 @@ trait RoutingT {
 }
 
 //---------------------------------------- trait dependents of case class
+@deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
+case class LobbyString (hours : String) extends LobbyStringT
 
+
+@deprecated("Use DriveUp instead which contains detailed fields now, not this string","24 July 2017")
+case class  DriveUpString (hours : String ) extends DriveUpStringT
+
+
+case class  Routing (
+   scheme: String,
+   address: String
+) extends RoutingT
 
 case class BranchId(value : String) {
   override def toString = value

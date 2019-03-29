@@ -5,7 +5,7 @@ package code.branches
 
 // Need to import these one by one because in same package!
 import code.api.util.OBPQueryParam
-import code.common._
+
 import com.openbankproject.commons.model._
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector

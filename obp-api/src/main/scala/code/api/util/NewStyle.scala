@@ -14,7 +14,7 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.bankconnectors.{Connector, ObpApiLoopback}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
-import code.common.Routing
+
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
