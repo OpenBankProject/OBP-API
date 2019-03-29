@@ -24,7 +24,8 @@ trait UserAuthContextRequestProvider {
   def getUserAuthContextRequests(userId: String): Future[Box[List[UserAuthContextRequest]]]
   def getUserAuthContextRequestsBox(userId: String): Box[List[UserAuthContextRequest]]
   def deleteUserAuthContextRequests(userId: String): Future[Box[Boolean]]
-  def deleteUserAuthContextRequestById(userAuthContextId: String): Future[Box[Boolean]]
+  def deleteUserAuthContextRequestById(authContextUpdateRequestId: String): Future[Box[Boolean]]
+  def checkAnswer(authContextUpdateRequestId: String, challenge: String): Future[Box[UserAuthContextRequest]]
 }
 
 class RemotedataUserAuthContextRequestCaseClasses {
@@ -32,7 +33,8 @@ class RemotedataUserAuthContextRequestCaseClasses {
   case class getUserAuthContextRequests(userId: String)
   case class getUserAuthContextRequestsBox(userId: String)
   case class deleteUserAuthContextRequests(userId: String)
-  case class deleteUserAuthContextRequestById(userAuthContextId: String)
+  case class deleteUserAuthContextRequestById(authContextUpdateRequestId: String)
+  case class checkAnswer(authContextUpdateRequestId: String, challenge: String)
 }
 
 object RemotedataUserAuthContextRequestCaseClasses extends RemotedataUserAuthContextRequestCaseClasses

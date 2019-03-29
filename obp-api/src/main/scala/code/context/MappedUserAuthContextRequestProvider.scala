@@ -2,7 +2,7 @@ package code.context
 
 import code.api.util.ErrorMessages
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
@@ -19,7 +19,7 @@ object MappedUserAuthContextRequestProvider extends UserAuthContextRequestProvid
           .mUserId(userId)
           .mKey(key)
           .mValue(value)
-          .mStatus(ConsentRequestStatus.INITIATED.toString)
+          .mStatus(UserAuthContextUpdateRequestStatus.INITIATED.toString)
           .saveMe()
       }
     }
@@ -43,5 +43,25 @@ object MappedUserAuthContextRequestProvider extends UserAuthContextRequestProvid
         case _ => Full(false)
       }
     }
+
+  override def checkAnswer(consentId: String, challenge: String): Future[Box[MappedUserAuthContextRequest]] = Future {
+    MappedUserAuthContextRequest.find(By(MappedUserAuthContextRequest.mUserAuthContextRequestId, consentId)) match {
+      case Full(consent) =>
+        consent.status match {
+          case value if value == UserAuthContextUpdateRequestStatus.INITIATED.toString =>
+            val status = if (consent.challenge == challenge) UserAuthContextUpdateRequestStatus.ACCEPTED.toString else UserAuthContextUpdateRequestStatus.REJECTED.toString
+            tryo(consent.mStatus(status).saveMe())
+          case _ =>
+            Full(consent)
+        }
+      case Empty =>
+        Empty ?~! ErrorMessages.UserAuthContextUpdateRequestNotFound
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+
+  }
 }
 

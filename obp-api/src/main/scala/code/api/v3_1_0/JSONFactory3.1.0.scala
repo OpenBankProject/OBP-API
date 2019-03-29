@@ -272,12 +272,14 @@ case class UserAuthContextJson(
   key: String,
   value: String
 )
-case class UserAuthContextRequestJson(
-  user_auth_context_request_id: String,
+case class UserAuthContextUpdateRequestJson(
+  user_auth_context_update_request_id: String,
   user_id: String,
   key: String,
-  value: String
+  value: String,
+  status: String                                   
 )
+case class PostUserAuthContextUpdateRequestJsonV310(answer: String)
 
 case class UserAuthContextsJson(
   user_auth_contexts: List[UserAuthContextJson]
@@ -653,12 +655,13 @@ object JSONFactory310{
     UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
   }
 
-  def createUserAuthContextRequestJson(userAuthContext: UserAuthContextRequest): UserAuthContextRequestJson = {
-    UserAuthContextRequestJson(
-      user_auth_context_request_id= userAuthContext.userAuthContextRequestId,
-      user_id = userAuthContext.userId,
-      key = userAuthContext.key,
-      value = userAuthContext.value
+  def createUserAuthContextUpdateRequestJson(userAuthContextRequest: UserAuthContextRequest): UserAuthContextUpdateRequestJson = {
+    UserAuthContextUpdateRequestJson(
+      user_auth_context_update_request_id= userAuthContextRequest.userAuthContextRequestId,
+      user_id = userAuthContextRequest.userId,
+      key = userAuthContextRequest.key,
+      value = userAuthContextRequest.value,
+      status = userAuthContextRequest.status
     )
   }
 

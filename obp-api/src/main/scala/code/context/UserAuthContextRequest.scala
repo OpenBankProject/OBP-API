@@ -9,7 +9,7 @@ trait UserAuthContextRequest {
   def status: String
 }
 
-object ConsentRequestStatus extends Enumeration {
+object UserAuthContextUpdateRequestStatus extends Enumeration {
   type ConsentStatus = Value
   val INITIATED, ACCEPTED, REJECTED = Value
 }

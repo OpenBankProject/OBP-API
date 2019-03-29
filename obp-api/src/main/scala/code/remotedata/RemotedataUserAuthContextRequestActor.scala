@@ -34,6 +34,10 @@ class RemotedataUserAuthContextRequestActor extends Actor with ObpActorHelper wi
     case cc.deleteUserAuthContextRequestById(userAuthContextId: String) =>
       logger.debug(msg=s"deleteUserAuthContextById(${userAuthContextId})")
       mapper.deleteUserAuthContextRequestById(userAuthContextId) pipeTo sender
+      
+    case cc.checkAnswer(authContextUpdateRequestId: String, challenge: String) =>
+      logger.debug("checkAnswer(" + authContextUpdateRequestId + ", " + challenge + ")")
+      mapper.checkAnswer(authContextUpdateRequestId, challenge) pipeTo sender
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

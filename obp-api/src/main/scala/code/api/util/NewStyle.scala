@@ -167,7 +167,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.revokeConsent), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createUserAuthContextRequest), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createUserAuthContextUpdateRequest), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.answerUserAuthContextUpdateRequest), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
