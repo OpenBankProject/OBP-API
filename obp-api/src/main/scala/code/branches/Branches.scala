@@ -5,49 +5,12 @@ package code.branches
 
 // Need to import these one by one because in same package!
 import code.api.util.OBPQueryParam
-import code.branches.Branches.{BranchId, BranchT}
-import code.common._
-import com.openbankproject.commons.model.BankId
+
+import com.openbankproject.commons.model._
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
 object Branches extends SimpleInjector {
-
-  case class BranchId(value : String) {
-    override def toString = value
-  }
-
-  object BranchId {
-    def unapply(id : String) = Some(BranchId(id))
-  }
-
-// MappedBranch will implement this.
-// The trait defines the fields the API will interact with.
-
-  trait BranchT {
-  def branchId: BranchId
-  def bankId: BankId
-  def name: String
-  def address: Address
-  def location: Location
-  def lobbyString: Option[LobbyStringT]
-  def driveUpString: Option[DriveUpStringT]
-  def meta: Meta
-  def branchRouting: Option[RoutingT]
-  def lobby: Option[Lobby]
-  def driveUp: Option[DriveUp]
-  // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
-  def isAccessible : Option[Boolean]
-  def accessibleFeatures: Option[String]
-  def branchType : Option[String]
-  def moreInfo : Option[String]
-  def phoneNumber : Option[String]
-  // marks whether this branch is deleted
-  def isDeleted : Option[Boolean]
-  }
-
-
-
 
 // This is the API Version indpendent case class for Branches.
   // Use this internally
@@ -212,51 +175,13 @@ object Branches extends SimpleInjector {
 //                       ) extends Branch
 
 
-
-
-
-  case class Lobby(
-                    monday: List[OpeningTimes],
-                    tuesday: List[OpeningTimes],
-                    wednesday: List[OpeningTimes],
-                    thursday: List[OpeningTimes],
-                    friday: List[OpeningTimes],
-                    saturday: List[OpeningTimes],
-                    sunday: List[OpeningTimes]
-                          )
-
-  case class DriveUp(
-                              monday: OpeningTimes,
-                              tuesday: OpeningTimes,
-                              wednesday: OpeningTimes,
-                              thursday: OpeningTimes,
-                              friday: OpeningTimes,
-                              saturday: OpeningTimes,
-                              sunday: OpeningTimes
-                            )
-
-
-
-
-
-
   //
-
-  @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
-  trait LobbyStringT {
-   def hours : String
-  }
 
   @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
   case class LobbyString (
     hours : String
                          ) extends LobbyStringT
 
-
-  @deprecated("Use DriveUp instead which contains detailed fields now, not this string","24 July 2017")
-  trait DriveUpStringT {
-    def hours : String
-  }
 
   @deprecated("Use DriveUp instead which contains detailed fields now, not this string","24 July 2017")
   case class DriveUpString (

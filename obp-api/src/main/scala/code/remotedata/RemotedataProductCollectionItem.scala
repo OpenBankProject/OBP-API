@@ -2,9 +2,9 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.productattribute.ProductAttribute.ProductAttribute
-import code.productcollectionitem.{ProductCollectionItem, ProductCollectionItemProvider, RemotedataProductCollectionItemCaseClasses}
+import code.productcollectionitem.{ProductCollectionItemProvider, RemotedataProductCollectionItemCaseClasses}
 import code.products.MappedProduct
+import com.openbankproject.commons.model.{ProductAttribute, ProductCollectionItem}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

@@ -15,17 +15,14 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0._
 import code.api.v2_1_0.JSONFactory210._
 import code.atms.Atms
-import code.atms.Atms.AtmId
 import code.bankconnectors._
 import code.branches.Branches
-import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metrics.APIMetrics
 import code.model.{Bank, BankAccount, Consumer, User, toUserEx}
-import code.products.Products.ProductCode
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.usercustomerlinks.UserCustomerLink

@@ -1,10 +1,8 @@
 package code.productAttributeattribute
 
-import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
 import code.productattribute.ProductAttributeProvider
-import code.products.Products.ProductCode
 import code.util.{MappedUUID, UUIDString}
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductAttributeType, ProductCode}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo

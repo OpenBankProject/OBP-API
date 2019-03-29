@@ -28,14 +28,14 @@ package code.api
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util._
-import code.bankconnectors.{Connector, InboundAccountCommon}
+import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{InboundAccountCommon, User}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper

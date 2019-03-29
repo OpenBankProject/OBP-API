@@ -5,12 +5,8 @@ import java.util.Date
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{ApiRole, PegdownOptions}
 import code.api.v1_2_1.AmountOfMoneyJsonV121
-import code.atms.Atms.AtmT
-import code.branches.Branches.BranchT
-import code.common._
 import code.crm.CrmEvent.CrmEvent
 import code.customer.CustomerMessage
-import code.model._
 import code.products.Products.Product
 import code.transactionrequests.TransactionRequestTypeCharge
 import code.transactionrequests.TransactionRequests.{TransactionRequest, _}

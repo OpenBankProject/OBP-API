@@ -29,37 +29,26 @@ package code.api.v3_1_0
 import java.lang
 import java.util.Date
 
-import code.accountapplication.AccountApplication
-import code.accountattribute.AccountAttribute.AccountAttribute
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
-import code.api.v2_0_0.{MeetingJson, MeetingKeysJson, MeetingPresentJson}
+import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
-import code.common.Meta
-import code.context.UserAuthContext
-import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
-import code.meetings.Meeting
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
-import code.productattribute.ProductAttribute.ProductAttribute
-import code.productcollection.ProductCollection
-import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.Product
-import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
-import com.openbankproject.commons.model.{Customer, User}
+import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-import scala.collection.mutable.ArrayBuffer
 
 case class CheckbookOrdersJson(
   account: AccountV310Json ,

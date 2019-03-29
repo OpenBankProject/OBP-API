@@ -36,10 +36,9 @@ import code.api.util.APIUtil.saveConnectorMetric
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.atms.Atms.{AtmId, AtmT}
 import code.atms.{Atms, MappedAtm}
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
-import code.branches.Branches.{Branch, BranchT}
+import code.branches.Branches.Branch
 import code.fx.FXRate
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
@@ -50,7 +49,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.Product
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._

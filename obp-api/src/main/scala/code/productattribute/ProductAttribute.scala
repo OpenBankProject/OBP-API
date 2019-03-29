@@ -4,44 +4,14 @@ package code.productattribute
 
 import code.api.util.APIUtil
 import code.productAttributeattribute.MappedProductAttributeProvider
-import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
-import code.products.Products.ProductCode
 import code.remotedata.RemotedataProductAttribute
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductAttributeType, ProductCode}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
 object ProductAttribute extends SimpleInjector {
-
-  object ProductAttributeType extends Enumeration{
-    type ProductAttributeType = Value
-    val STRING = Value("STRING")
-
-    val INTEGER = Value("INTEGER")
-
-    val DOUBLE = Value("DOUBLE")
-
-    val DATE_WITH_DAY = Value("DATE_WITH_DAY")
-  }
-
-
-
-  trait ProductAttribute {
-    def bankId: BankId
-
-    def productCode: ProductCode
-
-    def productAttributeId: String
-
-    def name: String
-
-    def attributeType: ProductAttributeType.Value
-
-    def value: String
-  }
-
 
   val productAttributeProvider = new Inject(buildOne _) {}
 

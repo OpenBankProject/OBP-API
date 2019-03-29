@@ -4,9 +4,8 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.CanCreateBranch
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.branches.Branches.BranchId
 import code.setup.DefaultUsers
-import com.openbankproject.commons.model.{AccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BranchId, ViewId}
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 

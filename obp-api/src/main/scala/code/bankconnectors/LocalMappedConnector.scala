@@ -1,46 +1,41 @@
 package code.bankconnectors
 
+import java.util.Date
 import java.util.UUID.randomUUID
-import java.util.{Date, UUID}
 
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute
-import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
-import code.customeraddress.{CustomerAddress, MappedCustomerAddress}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.api.v3_1_0.{CardObjectJson, CheckbookOrdersJson, PostCustomerJsonV310, TaxResidenceV310}
-import code.atms.Atms.{AtmId, AtmT}
-import code.atms.{Atms, MappedAtm}
+import code.atms.Atms.Atm
+import code.atms.MappedAtm
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import code.branches.Branches._
+import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
-import code.common.OpeningTimes
-import code.context.{UserAuthContext, UserAuthContextProvider}
+import code.context.UserAuthContextProvider
 import code.customer._
+import code.customeraddress.CustomerAddress
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.meetings.{ContactDetails, Invitee, Meeting}
+import code.meetings.Meeting
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
-import code.model.dataAccess._
 import code.model._
+import code.model.dataAccess._
 import code.productattribute.ProductAttribute
-import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
-import code.productcollection.{MappedProductCollectionProvider, ProductCollection}
+import code.productcollection.ProductCollection
 import code.productcollectionitem.ProductCollectionItem
 import code.products.MappedProduct
-import code.products.Products.{Product, ProductCode}
-import code.taxresidence
+import code.products.Products.{Product}
 import code.taxresidence.TaxResidence
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
@@ -49,7 +44,7 @@ import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
 import com.google.common.cache.CacheBuilder
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ProductAttribute, ProductCollectionItem, TaxResidence, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
@@ -1407,7 +1402,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
-  override def createOrUpdateAtm(atm: Atms.Atm): Box[AtmT] = {
+  override def createOrUpdateAtm(atm: Atm): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
     val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)

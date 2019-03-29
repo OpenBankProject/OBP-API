@@ -3,6 +3,7 @@ package code.taxresidence
 import code.api.util.ErrorMessages
 import code.customer.MappedCustomer
 import code.util.{MappedUUID, MediumString}
+import com.openbankproject.commons.model.TaxResidence
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo

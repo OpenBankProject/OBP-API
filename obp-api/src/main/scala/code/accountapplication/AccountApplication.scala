@@ -1,11 +1,9 @@
 package code.accountapplication
 
 
-import java.util.Date
-
 import code.api.util.APIUtil
-import code.products.Products.ProductCode
 import code.remotedata.RemotedataAccountApplication
+import com.openbankproject.commons.model.{AccountApplication, ProductCode}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -27,15 +25,6 @@ trait AccountApplicationProvider {
   def getById(accountApplicationId: String): Future[Box[AccountApplication]]
   def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String]): Future[Box[AccountApplication]]
   def updateStatus(accountApplicationId:String, status: String): Future[Box[AccountApplication]]
-}
-
-trait AccountApplication {
-  def accountApplicationId: String
-  def productCode: ProductCode
-  def userId: String
-  def customerId: String
-  def dateOfApplication: Date
-  def status: String
 }
 
 

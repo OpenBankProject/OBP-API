@@ -34,8 +34,7 @@ import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRouti
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSONs}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.branches.Branches._
-import code.common._
+import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.entitlement.Entitlement
 import code.metrics.APIMetric
 import code.model.dataAccess.ResourceUser

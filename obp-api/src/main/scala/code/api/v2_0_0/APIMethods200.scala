@@ -32,7 +32,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{Meeting, _}
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper

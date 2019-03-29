@@ -1,9 +1,9 @@
 package code.productcollectionitem
 
 import code.api.util.APIUtil
-import code.productattribute.ProductAttribute.ProductAttribute
 import code.products.MappedProduct
 import code.remotedata.RemotedataProductCollectionItem
+import com.openbankproject.commons.model.{ProductAttribute, ProductCollectionItem}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -25,11 +25,6 @@ trait ProductCollectionItemProvider {
   def getProductCollectionItemsTree(collectionCode: String, bankId: String): Future[Box[List[(ProductCollectionItem, MappedProduct, List[ProductAttribute])]]]
   def getProductCollectionItems(collectionCode: String): Future[Box[List[ProductCollectionItem]]]
   def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String]): Future[Box[List[ProductCollectionItem]]]
-}
-
-trait ProductCollectionItem {
-  def collectionCode: String
-  def memberProductCode: String
 }
 
 class RemotedataProductCollectionItemCaseClasses {

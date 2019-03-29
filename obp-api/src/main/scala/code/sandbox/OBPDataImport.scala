@@ -6,14 +6,12 @@ import java.util.UUID
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
-import code.atms.Atms.AtmT
 import code.bankconnectors.Connector
-import code.branches.Branches.BranchT
 import code.crm.CrmEvent.CrmEvent
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.products.Products
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.{Product}
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable

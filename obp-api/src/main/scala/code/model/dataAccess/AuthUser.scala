@@ -31,13 +31,12 @@ import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
-import code.bankconnectors.{Connector, InboundAccountCommon, InboundUser}
+import code.bankconnectors.{Connector, InboundUser}
 import code.loginattempts.LoginAttempt
-import code.model._
 import code.users.Users
 import code.util.Helper
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, User}
+import com.openbankproject.commons.model.{User, _}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._

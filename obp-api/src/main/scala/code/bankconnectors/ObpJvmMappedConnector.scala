@@ -10,7 +10,7 @@ import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.branches.Branches.{Branch, BranchT}
+import code.branches.Branches.Branch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
@@ -20,7 +20,8 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.Product
+import code.model.Transaction
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._
 import code.transactionrequests._
@@ -30,7 +31,7 @@ import code.views.Views
 import com.google.common.cache.CacheBuilder
 import com.openbankproject.commons.model.{Bank, _}
 import com.tesobe.obp.kafka.{Configuration, SimpleConfiguration, SimpleNorth}
-import com.tesobe.obp.transport.nov2016.{Bank => _, Transaction => _, User => _, _}
+import com.tesobe.obp.transport.nov2016._
 import com.tesobe.obp.transport.spi.{DefaultSorter, TimestampFilter}
 import com.tesobe.obp.transport.{Pager, Transport}
 import net.liftweb.common._

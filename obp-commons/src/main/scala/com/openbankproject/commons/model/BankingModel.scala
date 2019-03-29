@@ -275,7 +275,7 @@ case class TransactionCore(
 case class AmountOfMoney (
   val currency: String,
   val amount: String
-)
+) extends AmountOfMoneyTrait
 
 case class Iban(
   val iban: String
