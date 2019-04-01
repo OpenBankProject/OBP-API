@@ -1904,8 +1904,14 @@ Returns a string showed to the developer
       x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     } map {
       x => (x._1, x._2.map(_.copy(ipAddress = getRemoteIpAddress())))
-    }
-
+    } 
+    
+    //a props filed from Default.props
+    if ("props.connector"=="kafka") 
+     res map {
+      x => (x._1, x._2.map(_.copy(authInfo = None)))
+    } else
+      res
   }
 
   /**

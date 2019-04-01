@@ -166,23 +166,6 @@ case class Status(
                    backendMessages: List[InboundStatusMessage]
                  )
 
-case class ViewBasic(
-  id: String,
-  short_name: String,
-  description: String,
-)
-
-case class AccountBasic(
-  id: String,
-  accountRoutings: List[AccountRouting],
-  customerOwners: List[InternalBasicCustomer],
-  userOwners: List[InternalBasicUser]
-)
-
-case class AuthView(
-  view: ViewBasic,
-  account:AccountBasic,
-)
 
 case class AuthInfo(
   userId: String = "", 
@@ -201,16 +184,6 @@ case class InboundAuthInfo(
   sessionId: String = ""
 )
 
-case class BasicCustomer(
-  customerId: String,
-  customerNumber: String,
-  legalName: String,
-)
-
-case class BasicUserAuthContext(
-  key: String,
-  value: String
-)
 
 case class InboundAccountSept2018(
   errorCode: String,
@@ -266,18 +239,10 @@ case class BankAccountSept2018(r: InboundAccountSept2018) extends BankAccount {
   
 }
 
-case class InternalBasicCustomer(
-  bankId:String,
+case class BasicCustomer(
   customerId: String,
   customerNumber: String,
   legalName: String,
-  dateOfBirth: Date
-)
-
-case class InternalBasicUser(
-  userId:String,
-  emailAddress: String,
-  name: String
 )
 
 case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
