@@ -43,10 +43,9 @@ object APIMethods_BalancesApi extends RestHelper {
        apiVersion, 
        nameOf(getAccountsAccountIdBalances),
        "GET", 
-       "/accounts/ACCOUNTID/balances", 
+       "/accounts/ACCOUNT_ID/balances", 
        "Get Balances",
-       s"""${mockedDataText(true)}
-""", 
+       s"""""", 
        json.parse(""""""),
        json.parse("""{
   "Meta" : {
@@ -148,8 +147,7 @@ object APIMethods_BalancesApi extends RestHelper {
        "GET", 
        "/balances", 
        "Get Balances",
-       s"""${mockedDataText(true)}
-""", 
+       s"""""", 
        json.parse(""""""),
        json.parse("""{
   "Meta" : {

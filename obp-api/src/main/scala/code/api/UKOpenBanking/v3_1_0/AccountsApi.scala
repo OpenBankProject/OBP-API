@@ -37,8 +37,7 @@ object APIMethods_AccountsApi extends RestHelper {
        "GET", 
        "/accounts", 
        "Get Accounts",
-       s"""${mockedDataText(true)}
-""", 
+       s"""""", 
        json.parse(""""""),
        json.parse("""{
   "Meta" : {
@@ -124,9 +123,9 @@ object APIMethods_AccountsApi extends RestHelper {
        apiVersion, 
        nameOf(getAccountsAccountId),
        "GET", 
-       "/accounts/ACCOUNTID", 
+       "/accounts/ACCOUNT_ID", 
        "Get Accounts",
-       s"""${mockedDataText(true)}
+       s"""
 """, 
        json.parse(""""""),
        json.parse("""{

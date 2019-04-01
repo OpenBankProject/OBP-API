@@ -520,10 +520,9 @@ object APIMethods_TransactionsApi extends RestHelper {
        apiVersion, 
        nameOf(getAccountsAccountIdTransactions),
        "GET", 
-       "/accounts/ACCOUNTID/transactions", 
+       "/accounts/ACCOUNT_ID/transactions", 
        "Get Transactions",
-       s"""${mockedDataText(true)}
-""", 
+       s"""""", 
        json.parse(""""""),
        json.parse("""{
   "Meta" : {
@@ -789,8 +788,7 @@ object APIMethods_TransactionsApi extends RestHelper {
        "GET", 
        "/transactions", 
        "Get Transactions",
-       s"""${mockedDataText(true)}
-""", 
+       s"""""", 
        json.parse(""""""),
        json.parse("""{
   "Meta" : {
