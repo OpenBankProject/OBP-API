@@ -1,6 +1,8 @@
 package com.openbankproject.commons.model
 
 import java.util.Date
+
+import scala.collection.immutable.List
 //import code.customeraddress.CustomerAddress
 //import code.bankconnectors.InboundAccountCommon
 //import code.branches.Branches.BranchT
@@ -452,3 +454,50 @@ case class TransactionCommons(
                    override val finishDate : Date,
                    override val balance :  BigDecimal
                  )  extends Transaction(uuid, id, thisAccount, otherAccount, transactionType, amount, currency,description, startDate, finishDate, balance)
+
+
+
+case class InternalBasicUser(
+  userId:String,
+  emailAddress: String,
+  name: String
+)
+
+
+case class BasicUserAuthContext(
+  key: String,
+  value: String
+)
+
+case class ViewBasic(
+  id: String,
+  short_name: String,
+  description: String,
+)
+case class InternalBasicCustomer(
+  bankId:String,
+  customerId: String,
+  customerNumber: String,
+  legalName: String,
+  dateOfBirth: Date
+)
+
+case class AccountBasic(
+  id: String,
+  accountRoutings: List[AccountRouting],
+  customerOwners: List[InternalBasicCustomer],
+  userOwners: List[InternalBasicUser]
+)
+
+case class AuthView(
+  view: ViewBasic,
+  account:AccountBasic,
+)
+
+case class AuthInfoBasic(
+  username: String = "", 
+  correlationId: String = "",
+  sessionId: String = "", 
+  userAuthContexts: List[BasicUserAuthContext]= Nil,
+  authViews: List[AuthView] = Nil,
+)
