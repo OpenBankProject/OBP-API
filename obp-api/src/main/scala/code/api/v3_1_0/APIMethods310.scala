@@ -3392,7 +3392,7 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (createUserAuthContextUpdateRequestJson(userAuthContextUpdateRequest), HttpCode.`201`(callContext))
+            (createUserAuthContextUpdateRequestJson(userAuthContextUpdateRequest), HttpCode.`200`(callContext))
           }
       }
     }
