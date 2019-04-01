@@ -247,10 +247,12 @@ trait APIMethods220 {
             _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx) {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canReadFx)
             }
+            fromCurrencyCodeUpperCase = fromCurrencyCode.toUpperCase
+            toCurrencyCodeUpperCase = toCurrencyCode.toUpperCase
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.isValidCurrencyISOCode(fromCurrencyCode, callContext)
-            _ <- NewStyle.function.isValidCurrencyISOCode(toCurrencyCode, callContext)
-            fxRate <- NewStyle.function.getExchangeRate(bankId, fromCurrencyCode, toCurrencyCode, callContext)
+            _ <- NewStyle.function.isValidCurrencyISOCode(fromCurrencyCodeUpperCase, callContext)
+            _ <- NewStyle.function.isValidCurrencyISOCode(toCurrencyCodeUpperCase, callContext)
+            fxRate <- NewStyle.function.getExchangeRate(bankId, fromCurrencyCodeUpperCase, toCurrencyCodeUpperCase, callContext)
           } yield {
             val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
             (viewJSON, HttpCode.`200`(callContext))
