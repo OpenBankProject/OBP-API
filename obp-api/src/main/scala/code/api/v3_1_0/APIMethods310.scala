@@ -20,7 +20,7 @@ import code.bankconnectors.Connector
 import code.branches.Branches.BranchId
 import code.consent.Consents
 import code.consumer.Consumers
-import code.context.UserAuthContextRequestProvider
+import code.context.{UserAuthContextRequestProvider, UserAuthContextUpdateRequestStatus}
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.meetings.{ContactDetails, Invitee}
@@ -3391,6 +3391,17 @@ trait APIMethods310 {
             userAuthContextUpdateRequest <- UserAuthContextRequestProvider.userAuthContextRequestProvider.vend.checkAnswer(authContextUpdateRequestId, postUserAuthContextRequestJson.answer) map {
               i => connectorEmptyResponse(i, callContext)
             }
+            (_, callContext) <-
+              userAuthContextUpdateRequest.status match {
+                case status if status == UserAuthContextUpdateRequestStatus.ACCEPTED.toString => 
+                  NewStyle.function.createUserAuthContext(
+                    userAuthContextUpdateRequest.userId, 
+                    userAuthContextUpdateRequest.key, 
+                    userAuthContextUpdateRequest.value, 
+                    callContext).map(x => (Some(x._1), x._2))
+                case _ =>
+                  Future((None, callContext))
+              }
           } yield {
             (createUserAuthContextUpdateRequestJson(userAuthContextUpdateRequest), HttpCode.`200`(callContext))
           }
