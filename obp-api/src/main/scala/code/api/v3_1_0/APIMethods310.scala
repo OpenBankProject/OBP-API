@@ -3138,7 +3138,7 @@ trait APIMethods310 {
       "Get Message Docs Swagger",
       """
         |This endpoint provide example message docs in swagger format.
-        |Only used for rest Connector
+        |Only used for rest Connector. Adapter developer can follow this to design the rest Adapter.  
         |
         |This call is work in progress - Experimental!
       """.stripMargin,

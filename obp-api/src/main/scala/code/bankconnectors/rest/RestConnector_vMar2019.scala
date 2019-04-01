@@ -82,38 +82,38 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   //---------------- dynamic start ---------------------
 
-  //TODO 1 -- Need to be generated automatically
+  //TODO 1 -- Needs to be generated automatically
   override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = ???
 
-  //TODO 2-- Need to be generated automatically
+  //TODO 2-- Needs to be generated automatically
   override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[BankConnector], Option[CallContext])]] = ???
 
-  //TODO 3-- Need to be generated automatically
+  //TODO 3-- Needs to be generated automatically
   //override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(BankConnector, Option[CallContext])]] = ???
 
-  //TODO 4-- Need to be generated automatically
+  //TODO 4-- Needs to be generated automatically
   override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccountInMemory, Option[CallContext])]] = ???
 
-  //TODO 5-- Need to be generated automatically
+  //TODO 5-- Needs to be generated automatically
   override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccountInMemory]] = ???
 
-  //TODO 6-- Need to be generated automatically
+  //TODO 6-- Needs to be generated automatically
   override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = ???
 
-  //TODO 7-- Need to be generated automatically
+  //TODO 7-- Needs to be generated automatically
   override def getCustomersByUserIdFuture(userId: String , callContext: Option[CallContext]): Future[Box[(List[CustomerConnector], Option[CallContext])]] = ???
 
-  //TODO 8-- Need to be generated automatically
+  //TODO 8-- Needs to be generated automatically
   override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyConnector]]] = ???
 
-  //TODO 9-- Need to be generated automatically
+  //TODO 9-- Needs to be generated automatically
   override def getTransactionsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = ???
 
-  //TODO 10-- Need to be generated automatically
+  //TODO 10-- Needs to be generated automatically
   //override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = ???
 
 
-  //TODO 3-- Need to be generated automatically
+  //TODO 3-- Needs to be generated automatically
   override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -130,7 +130,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
     }
   }("getBank")
-  //TODO 10-- Need to be generated automatically
+  //TODO 10-- Needs to be generated automatically
   override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = saveConnectorMetric {
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
