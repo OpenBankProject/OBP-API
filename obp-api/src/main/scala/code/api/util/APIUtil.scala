@@ -2447,7 +2447,7 @@ Returns a string showed to the developer
     ApiVersion.v3_1_0,
     messageDoc.process,
     "get",
-    s"/obp-connector/${messageDoc.process}",
+    s"/obp-connector/${messageDoc.process.replaceAll("obp.","").replace(".","")}",
     messageDoc.description,
     messageDoc.description,
     messageDoc.exampleOutboundMessage,
