@@ -21,7 +21,7 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metrics.APIMetrics
-import code.model.{Bank, BankAccount, Consumer, User, toUserEx}
+import code.model.{Bank, BankAccount, Consumer, User, toUserExtended}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.usercustomerlinks.UserCustomerLink

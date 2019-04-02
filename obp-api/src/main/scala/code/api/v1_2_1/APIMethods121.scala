@@ -14,7 +14,7 @@ import code.api.util._
 import code.bankconnectors._
 import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
-import code.model.{Bank, BankAccount, ModeratedTransactionMetadata, toBankAccountEx, toBankEx, toUserEx}
+import code.model.{Bank, BankAccount, ModeratedTransactionMetadata, toBankAccountExtended, toBankExtended, toUserExtended}
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.google.common.cache.CacheBuilder

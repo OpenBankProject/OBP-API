@@ -21,7 +21,7 @@ import code.fx.FXRate
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
-import code.model.toUserEx
+import code.model.toUserExtended
 import code.products.Products.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
