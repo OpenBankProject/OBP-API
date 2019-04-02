@@ -17,17 +17,17 @@ import com.openbankproject.commons.model._
   */
 package object model {
 
-  implicit def toBankEx(bank: Bank) = BankEx(bank)
+  implicit def toBankExtended(bank: Bank) = BankExtended(bank)
 
-  implicit def toBankAccountEx(bankAccount: BankAccount) = BankAccountEx(bankAccount)
+  implicit def toBankAccountExtended(bankAccount: BankAccount) = BankAccountExtended(bankAccount)
 
-  implicit def toCommentEx(comment: Comment) = CommentEx(comment)
+  implicit def toCommentExtended(comment: Comment) = CommentExtended(comment)
 
-  implicit def toUserEx(user: User) = UserEx(user)
+  implicit def toUserExtended(user: User) = UserExtended(user)
 
-  implicit def toViewEx(view: View) = ViewEx(view)
+  implicit def toViewExtended(view: View) = ViewExtended(view)
 
-  implicit class CounterpartyEx(counterparty: Counterparty) {
+  implicit class CounterpartyExtended(counterparty: Counterparty) {
     lazy val metadata: CounterpartyMetadata = Counterparties.counterparties.vend.getOrCreateMetadata(
       counterparty.thisBankId,
       counterparty.thisAccountId,
@@ -36,7 +36,7 @@ package object model {
     ).openOrThrowException("Can not getOrCreateMetadata !")
   }
 
-  implicit class TransactionEx(transaction: Transaction) {
+  implicit class TransactionExtended(transaction: Transaction) {
 
     private[this] val bankId = transaction.bankId
     private[this] val accountId = transaction.accountId

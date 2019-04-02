@@ -45,7 +45,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-case class BankEx(bank: Bank) {
+case class BankExtended(bank: Bank) {
 
   def publicAccounts(publicViewsForBank: List[View]) : List[BankAccount] = {
     publicViewsForBank
@@ -115,7 +115,7 @@ class AccountOwner(
 
 // TODO Add: @define productCode A code (no spaces, url friendly) that identifies the financial product this account is based on.
 
-case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
+case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable {
 
   private val bankId = bankAccount.bankId
 
