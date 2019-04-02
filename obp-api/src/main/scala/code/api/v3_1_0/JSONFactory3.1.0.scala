@@ -43,7 +43,7 @@ import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
 import code.common.Meta
 import code.consent.MappedConsent
-import code.context.{UserAuthContext, UserAuthContextRequest}
+import code.context.{UserAuthContext, UserAuthContextUpdate}
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
@@ -272,14 +272,14 @@ case class UserAuthContextJson(
   key: String,
   value: String
 )
-case class UserAuthContextUpdateRequestJson(
-  user_auth_context_update_request_id: String,
+case class UserAuthContextUpdateJson(
+  user_auth_context_update_id: String,
   user_id: String,
   key: String,
   value: String,
   status: String                                   
 )
-case class PostUserAuthContextUpdateRequestJsonV310(answer: String)
+case class PostUserAuthContextUpdateJsonV310(answer: String)
 
 case class UserAuthContextsJson(
   user_auth_contexts: List[UserAuthContextJson]
@@ -655,9 +655,9 @@ object JSONFactory310{
     UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
   }
 
-  def createUserAuthContextUpdateRequestJson(userAuthContextRequest: UserAuthContextRequest): UserAuthContextUpdateRequestJson = {
-    UserAuthContextUpdateRequestJson(
-      user_auth_context_update_request_id= userAuthContextRequest.userAuthContextRequestId,
+  def createUserAuthContextUpdateJson(userAuthContextRequest: UserAuthContextUpdate): UserAuthContextUpdateJson = {
+    UserAuthContextUpdateJson(
+      user_auth_context_update_id= userAuthContextRequest.userAuthContextUpdateId,
       user_id = userAuthContextRequest.userId,
       key = userAuthContextRequest.key,
       value = userAuthContextRequest.value,

@@ -23,7 +23,7 @@ import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.{Branch, BranchId, BranchT}
-import code.context.{UserAuthContext, UserAuthContextRequest}
+import code.context.{UserAuthContext, UserAuthContextUpdate}
 import code.model.{Transaction, toUserEx}
 import code.customeraddress.CustomerAddress
 import code.fx.FXRate
@@ -1529,7 +1529,7 @@ trait Connector extends MdcLoggable{
   def createUserAuthContextRequest(userId: String,
                             key: String,
                             value: String,
-                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextRequest]] =
+                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] =
   LocalMappedConnector.createUserAuthContextRequest(userId: String,
                             key: String,
                             value: String,

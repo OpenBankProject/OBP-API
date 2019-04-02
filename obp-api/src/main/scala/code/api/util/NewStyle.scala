@@ -23,7 +23,7 @@ import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, DriveUp, DriveUpString, Lobby, LobbyString}
 import code.common.{Address, Location, Meta, Routing}
 import code.consumer.Consumers
-import code.context.{UserAuthContext, UserAuthContextRequest}
+import code.context.{UserAuthContext, UserAuthContextUpdate}
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
@@ -167,8 +167,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.revokeConsent), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createUserAuthContextUpdateRequest), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.answerUserAuthContextUpdateRequest), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createUserAuthContextUpdate), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -512,7 +512,7 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-    def createUserAuthContextRequest(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContextRequest] = {
+    def createUserAuthContextRequest(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
       Connector.connector.vend.createUserAuthContextRequest(userId, key, value, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }

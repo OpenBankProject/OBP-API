@@ -1,7 +1,7 @@
 package code.context
 
-trait UserAuthContextRequest {
-  def userAuthContextRequestId : String 
+trait UserAuthContextUpdate {
+  def userAuthContextUpdateId : String 
   def userId : String 
   def key : String
   def value : String
@@ -9,7 +9,7 @@ trait UserAuthContextRequest {
   def status: String
 }
 
-object UserAuthContextUpdateRequestStatus extends Enumeration {
+object UserAuthContextUpdateStatus extends Enumeration {
   type ConsentStatus = Value
   val INITIATED, ACCEPTED, REJECTED = Value
 }

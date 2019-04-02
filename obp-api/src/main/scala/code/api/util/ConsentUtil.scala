@@ -109,19 +109,19 @@ object Consent {
           case true =>
             (System.currentTimeMillis / 1000) match {
               case currentTimeInSeconds if currentTimeInSeconds < consent.nbf =>
-                Failure("The time Consent-ID token was issued is set in the future.")
+                Failure(ErrorMessages.ConsentNotBeforeIssue)
               case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
-                Failure("Consent-Id is expired.")
+                Failure(ErrorMessages.ConsentExpiredIssue)
               case _ =>
                 checkConsumerIsActive(consent)
             }
           case false =>
-            Failure("Consent-Id JWT value couldn't be verified.")
+            Failure(ErrorMessages.ConsentVerificationIssue)
         }
       case Full(c) if c.mStatus != ConsentStatus.ACCEPTED.toString =>
-        Failure(s"Consent-Id is not in status ${ConsentStatus.ACCEPTED.toString}.")
+        Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.ACCEPTED.toString}.")
       case _ => 
-        Failure("Consent-Id cannot be found.")
+        Failure(ErrorMessages.ConsentNotFound)
     }
   }
 
@@ -227,7 +227,7 @@ object Consent {
             case failure@Failure(_, _, _) => // Handled errors
               failure
             case _ => // Unexpected errors
-              Failure("Cannot check is Consent-Id expired.")
+              Failure(ErrorMessages.ConsentCheckExpiredIssue)
           }
         } catch { // Possible exceptions
           case e: ParseException => Failure("ParseException: " + e.getMessage)
@@ -271,7 +271,7 @@ object Consent {
             case failure@Failure(_, _, _) => // Handled errors
               Future(failure)
             case _ => // Unexpected errors
-              Future(Failure("Cannot check is Consent-Id expired."))
+              Future(Failure(ErrorMessages.ConsentCheckExpiredIssue))
           }
         } catch { // Possible exceptions
           case e: ParseException => Future(Failure("ParseException: " + e.getMessage))
@@ -296,16 +296,16 @@ object Consent {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
       case (Some(consentId), true) => hasConsent(consentId, callContext)
-      case (_, false) => Future((Failure("Consents are not allowed at this instance."), callContext))
-      case (None, _) => Future((Failure("Cannot get Consent-Id"), callContext))
+      case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), callContext))
+      case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), callContext))
     }
   }  
   def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
       case (Some(consentId), true) => hasConsentOldStyle(consentId, callContext)
-      case (_, false) => (Failure("Consents are not allowed at this instance."), callContext)
-      case (None, _) => (Failure("Cannot get Consent-Id"), callContext)
+      case (_, false) => (Failure(ErrorMessages.ConsentDisabled), callContext)
+      case (None, _) => (Failure(ErrorMessages.ConsentHeaderNotFound), callContext)
     }
   }
   

@@ -45,7 +45,7 @@ import code.atms.MappedAtm
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
-import code.context.{MappedUserAuthContext, MappedUserAuthContextRequest}
+import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIDMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -573,7 +573,7 @@ object ToSchemify {
     MappedTaxResidence,
     MappedCustomerAddress,
     MappedUserAuthContext,
-    MappedUserAuthContextRequest,
+    MappedUserAuthContextUpdate,
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,

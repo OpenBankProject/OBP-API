@@ -5,11 +5,11 @@ import net.liftweb.mapper._
 
 import scala.util.Random
 
-class MappedUserAuthContextRequest extends UserAuthContextRequest with LongKeyedMapper[MappedUserAuthContextRequest] with IdPK with CreatedUpdated {
+class MappedUserAuthContextUpdate extends UserAuthContextUpdate with LongKeyedMapper[MappedUserAuthContextUpdate] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedUserAuthContextRequest
+  def getSingleton = MappedUserAuthContextUpdate
 
-  object mUserAuthContextRequestId extends MappedUUID(this)
+  object mUserAuthContextUpdateId extends MappedUUID(this)
   object mUserId extends UUIDString(this)
   object mKey extends MappedString(this, 50)
   object mValue extends MappedString(this, 50)
@@ -21,13 +21,13 @@ class MappedUserAuthContextRequest extends UserAuthContextRequest with LongKeyed
   override def userId = mUserId.get   
   override def key = mKey.get  
   override def value = mValue.get  
-  override def userAuthContextRequestId = mUserAuthContextRequestId.get
+  override def userAuthContextUpdateId = mUserAuthContextUpdateId.get
   override def challenge: String = mChallenge.get
   override def status: String = mStatus.get
   
 }
 
-object MappedUserAuthContextRequest extends MappedUserAuthContextRequest with LongKeyedMetaMapper[MappedUserAuthContextRequest] {
+object MappedUserAuthContextUpdate extends MappedUserAuthContextUpdate with LongKeyedMetaMapper[MappedUserAuthContextUpdate] {
   override def dbIndexes = UniqueIndex(mUserId, mKey) ::super.dbIndexes
 }
 

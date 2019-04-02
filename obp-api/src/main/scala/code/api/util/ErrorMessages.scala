@@ -220,7 +220,7 @@ object ErrorMessages {
   val UpdateUserAuthContextError = "OBP-30054: Could not update the UserAuthContext"
   val UpdateUserAuthContextNotFound = "OBP-30055: UserAuthContext not found. Please specify a valid value for USER_ID."
   val DeleteUserAuthContextNotFound = "OBP-30056: UserAuthContext not found by USER_AUTH_CONTEXT_ID."
-  val UserAuthContextUpdateRequestNotFound = "OBP-30057: User Auth Context Update Request not found by AUTH_CONTEXT_UPDATE_REQUEST_ID."
+  val UserAuthContextUpdateNotFound = "OBP-30057: User Auth Context Update Request not found by AUTH_CONTEXT_UPDATE_REQUEST_ID."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -281,6 +281,14 @@ object ErrorMessages {
   
   // Consents
   val ConsentNotFound = "OBP-35001: Consent not found by CONSENT_ID. "
+  val ConsentNotBeforeIssue = "OBP-35002: The time Consent-ID token was issued is set in the future. "
+  val ConsentExpiredIssue = "OBP-35003: Consent-Id is expired. "
+  val ConsentVerificationIssue = "OBP-35004: Consent-Id JWT value couldn't be verified. "
+  val ConsentStatusIssue = "OBP-35005: Consent-Id is not in status "
+  val ConsentCheckExpiredIssue = "OBP-35006: Cannot check is Consent-Id expired. "
+  val ConsentDisabled = "OBP-35007: Consents are not allowed at this instance. "
+  val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
+  val ConsentAllowedScaMethods = "OBP-35009: Only sms and email are supported as SCA methods. "
 
   // General Resource related messages above here
 

@@ -21,7 +21,7 @@ import code.common._
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.api.builder.JsonFactory_APIBuilder
-import code.context.UserAuthContextUpdateRequestStatus
+import code.context.UserAuthContextUpdateStatus
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model._
@@ -3048,12 +3048,12 @@ object SwaggerDefinitionsJSON {
     value = "78987432"
   )
 
-  val userAuthContextUpdateRequestJson = UserAuthContextUpdateRequestJson(
-    user_auth_context_update_request_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+  val userAuthContextUpdateJson = UserAuthContextUpdateJson(
+    user_auth_context_update_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     user_id = "qieuriopwoir987203984729384ipeiu",
     key = "CUSTOMER_NUMBER",
     value = "78987432",
-    status = UserAuthContextUpdateRequestStatus.INITIATED.toString
+    status = UserAuthContextUpdateStatus.INITIATED.toString
   )
   
   val userAuthContextsJson = UserAuthContextsJson(

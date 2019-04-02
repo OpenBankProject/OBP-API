@@ -20,7 +20,7 @@ import code.bankconnectors.Connector
 import code.branches.Branches.BranchId
 import code.consent.Consents
 import code.consumer.Consumers
-import code.context.{UserAuthContextRequestProvider, UserAuthContextUpdateRequestStatus}
+import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.meetings.{ContactDetails, Invitee}
@@ -3140,10 +3140,13 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createConsent),
       "POST",
-      "/banks/BANK_ID/my/consent/SCA_METHOD",
+      "/banks/BANK_ID/my/consents/SCA_METHOD",
       "Create Consent",
       s"""
          |Create consent
+         |
+         |${authenticationRequiredMessage(true)}
+         |
          |""",
       PostConsentJsonV310(email = "marko@tesobe.com", `for`="ALL_MY_ACCOUNTS", view="owner"),
       consentJsonV310,
@@ -3158,12 +3161,12 @@ trait APIMethods310 {
       apiTagConsent :: apiTagNewStyle :: Nil)
 
     lazy val createConsent : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "my" :: "consent"  :: sca_method :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "my" :: "consents"  :: sca_method :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture("Only sms and email are supported as SCA methods."){
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
               List("sms", "email").exists(_ == sca_method)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
@@ -3200,10 +3203,13 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(answerConsentChallenge),
       "POST",
-      "/banks/BANK_ID/consent/CONSENT_ID/challenge",
+      "/banks/BANK_ID/consents/CONSENT_ID/challenge",
       "Answer Consent Challenge",
       s"""
          |Answer consent challenge
+         |
+         |${authenticationRequiredMessage(true)}
+         |
          |""",
       PostConsentChallengeJsonV310(answer = "12345678"),
       ConsentChallengeJsonV310(
@@ -3222,7 +3228,7 @@ trait APIMethods310 {
       apiTagConsent :: apiTagNewStyle :: Nil)
 
     lazy val answerConsentChallenge : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "consent"  :: consentId :: "challenge" :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "challenge" :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (_, callContext) <- authorizedAccess(cc)
@@ -3247,9 +3253,9 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/my/consents",
       "Get Consents",
-      """Get Consents for current user
+      s"""Get Consents for current user
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
       emptyObjectJson,
@@ -3282,9 +3288,9 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
-      """Revoke Consent for current user specified by CONSENT_ID
+      s"""Revoke Consent for current user specified by CONSENT_ID
         |
-        |Login is required.
+        |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
       emptyObjectJson,
@@ -3320,17 +3326,17 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      createUserAuthContextUpdateRequest,
+      createUserAuthContextUpdate,
       implementedInApiVersion,
-      nameOf(createUserAuthContextUpdateRequest),
+      nameOf(createUserAuthContextUpdate),
       "POST",
-      "/users/current/auth-context-update-request",
+      "/users/current/auth-context-updates",
       "Create User Auth Context Update Request",
       s"""Create User Auth Context Update Request.
          |${authenticationRequiredMessage(true)}
          |""",
       postUserAuthContextJson,
-      userAuthContextUpdateRequestJson,
+      userAuthContextUpdateJson,
       List(
         UserNotLoggedIn,
         InvalidJsonFormat,
@@ -3340,8 +3346,8 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle))
 
-    lazy val createUserAuthContextUpdateRequest : OBPEndpoint = {
-      case "users" :: "current" ::"auth-context-update-request" :: Nil JsonPost  json -> _ => {
+    lazy val createUserAuthContextUpdate : OBPEndpoint = {
+      case "users" :: "current" ::"auth-context-updates" :: Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
@@ -3352,23 +3358,23 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.findByUserId(user.userId, callContext)
             (userAuthContextRquest, callContext) <- NewStyle.function.createUserAuthContextRequest(user.userId, postedData.key, postedData.value, callContext)
           } yield {
-            (JSONFactory310.createUserAuthContextUpdateRequestJson(userAuthContextRquest), HttpCode.`201`(callContext))
+            (JSONFactory310.createUserAuthContextUpdateJson(userAuthContextRquest), HttpCode.`201`(callContext))
           }
       }
     }
 
     resourceDocs += ResourceDoc(
-      answerUserAuthContextUpdateRequest,
+      answerUserAuthContextUpdateChallenge,
       implementedInApiVersion,
-      nameOf(answerUserAuthContextUpdateRequest),
+      nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
-      "/users/current/auth-context-update-request/AUTH_CONTEXT_UPDATE_REQUEST_ID/challenge",
+      "/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
       "Answer Auth Context Update Request Challenge",
       s"""
          |Answer Auth Context Update Request Challenge.
          |""",
-      PostUserAuthContextUpdateRequestJsonV310(answer = "12345678"),
-      userAuthContextUpdateRequestJson,
+      PostUserAuthContextUpdateJsonV310(answer = "12345678"),
+      userAuthContextUpdateJson,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -3379,31 +3385,31 @@ trait APIMethods310 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagUser :: apiTagNewStyle :: Nil)
 
-    lazy val answerUserAuthContextUpdateRequest : OBPEndpoint = {
-      case "users" :: "current" ::"auth-context-update-request"  :: authContextUpdateRequestId :: "challenge" :: Nil JsonPost json -> _  => {
+    lazy val answerUserAuthContextUpdateChallenge : OBPEndpoint = {
+      case "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (_, callContext) <- authorizedAccess(cc)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextUpdateRequestJsonV310 "
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextUpdateJsonV310 "
             postUserAuthContextRequestJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[PostUserAuthContextUpdateRequestJsonV310]
+              json.extract[PostUserAuthContextUpdateJsonV310]
             }
-            userAuthContextUpdateRequest <- UserAuthContextRequestProvider.userAuthContextRequestProvider.vend.checkAnswer(authContextUpdateRequestId, postUserAuthContextRequestJson.answer) map {
+            userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, postUserAuthContextRequestJson.answer) map {
               i => connectorEmptyResponse(i, callContext)
             }
             (_, callContext) <-
-              userAuthContextUpdateRequest.status match {
-                case status if status == UserAuthContextUpdateRequestStatus.ACCEPTED.toString => 
+              userAuthContextUpdate.status match {
+                case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString => 
                   NewStyle.function.createUserAuthContext(
-                    userAuthContextUpdateRequest.userId, 
-                    userAuthContextUpdateRequest.key, 
-                    userAuthContextUpdateRequest.value, 
+                    userAuthContextUpdate.userId, 
+                    userAuthContextUpdate.key, 
+                    userAuthContextUpdate.value, 
                     callContext).map(x => (Some(x._1), x._2))
                 case _ =>
                   Future((None, callContext))
               }
           } yield {
-            (createUserAuthContextUpdateRequestJson(userAuthContextUpdateRequest), HttpCode.`200`(callContext))
+            (createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`200`(callContext))
           }
       }
     }
