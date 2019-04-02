@@ -147,7 +147,7 @@ object Transformer {
   }
   
   def toInternalCounterparty(c: CounterpartyTrait) = {
-    CounterpartyConnector(
+    InboundCounterparty(
       createdByUserId=c.createdByUserId,
       name=c.name,
       thisBankId=c.thisBankId,
