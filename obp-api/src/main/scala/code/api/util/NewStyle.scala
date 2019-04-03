@@ -897,12 +897,12 @@ object NewStyle {
     
     def getMeetings(
       bankId : BankId, 
-      userId: User,
+      user: User,
       callContext: Option[CallContext]
     ) :OBPReturnType[List[Meeting]] ={
       Connector.connector.vend.getMeetings(
-        bankId : BankId, 
-        userId: User,
+        bankId : BankId,
+        user: User,
         callContext: Option[CallContext]
       ) map {
           i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not getMeetings in the backend. ", 400), i._2)
@@ -911,15 +911,15 @@ object NewStyle {
     
     def getMeeting(
       bankId: BankId,
-      userId: User, 
+      user: User, 
       meetingId : String,
       callContext: Option[CallContext]
     ) :OBPReturnType[Meeting]={ 
       Connector.connector.vend.getMeeting(
-      bankId: BankId,
-      userId: User, 
-      meetingId : String,
-      callContext: Option[CallContext]
+        bankId: BankId,
+        user: User,
+        meetingId : String,
+        callContext: Option[CallContext]
     ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$MeetingNotFound Current MeetingId(${meetingId}) ", 400), i._2)
       }

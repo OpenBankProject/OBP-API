@@ -1604,14 +1604,14 @@ trait Connector extends MdcLoggable{
   
   def getMeetings(
     bankId : BankId, 
-    userId: User,
+    user: User,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[List[Meeting]]] = 
     Future{(Failure(NotImplemented + currentMethodName), callContext)}
   
   def getMeeting(
     bankId: BankId,
-    userId: User, 
+    user: User, 
     meetingId : String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Meeting]]=Future{(Failure(NotImplemented + currentMethodName), callContext)}

@@ -439,12 +439,12 @@ case class InBoundCreateMeeting (authInfo: AuthInfoBasic, data: MeetingCommons)
 
 case class OutBoundGetMeetings (authInfo: AuthInfoBasic,
                                 bankId: BankId,
-                                userId: User) //TODO fixme
+                                user: User) //TODO fixme
 case class InBoundGetMeetings (authInfo: AuthInfoBasic, data: List[MeetingCommons])
 
 
 case class OutBoundGetMeeting (authInfo: AuthInfoBasic,
                                bankId: BankId,
-                               userId: User,      //TODO fixme
+                               user: User,      //TODO fixme
                                meetingId: String)
 case class InBoundGetMeeting (authInfo: AuthInfoBasic, data: MeetingCommons)
