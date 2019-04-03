@@ -29,14 +29,16 @@ import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
-import code.api.util.APIUtil.{MessageDoc, OBPReturnType, saveConnectorMetric}
+import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
+import code.api.util.ExampleValue._
 import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.KafkaHelper
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.dto.rest.{InBoundGetBanksFuture, OutBoundGetBanksFuture}
 import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, _}
@@ -50,17 +52,6 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 
-case class BankCommons (
-                         bankId: BankId,
-                         shortName: String,
-                         fullName: String,
-                         logoUrl: String,
-                         websiteUrl: String,
-                         bankRoutingScheme: String,
-                         bankRoutingAddress: String,
-                         swiftBic: String,
-                         nationalIdentifier: String) extends Bank
-
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
 
   implicit override val nameOfConnector = RestConnector_vMar2019.toString
@@ -72,7 +63,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   // If we want to add a new message format, create a new file e.g. March2017_messages.scala
   // Then add a suffix to the connector value i.e. instead of kafka we might have kafka_march_2017.
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
-  val messageFormat: String = "Mar2019"
+  val messageFormat: String = "March2019"
 
   override val messageDocs = ArrayBuffer[MessageDoc]()
 
@@ -81,6 +72,32 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
   //---------------- dynamic start ---------------------
+  messageDocs += MessageDoc(
+    process = "obp.get.Banks",
+    messageFormat = messageFormat,
+    description = "Gets the banks list on this OBP installation.",
+    outboundTopic = Some(OutBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
+    exampleOutboundMessage = (
+      OutBoundGetBanksFuture(AuthInfoBasic())
+    ),
+    exampleInboundMessage = (
+      InBoundGetBanksFuture(
+        AuthInfoBasic(),
+        List(BankCommons(
+          bankId = BankId(bankIdExample.value),
+          shortName = "The Royal Bank of Scotland",
+          fullName = "The Royal Bank of Scotland",
+          logoUrl = "http://www.red-bank-shoreditch.com/logo.gif",
+          websiteUrl = "http://www.red-bank-shoreditch.com",
+          bankRoutingScheme = "OBP",
+          bankRoutingAddress = "rbs",
+            swiftBic = "",
+            nationalIdentifier =""
+        )))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
   // url example: /getBank/bankId/{bankId}
   override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
     /**

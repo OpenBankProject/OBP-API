@@ -33,9 +33,6 @@ import com.openbankproject.commons.model._
 import scala.collection.immutable.List
 
 
-case class OutBoundBankRest (authInfo: AuthInfoBasic, bankId: BankId)
-case class InBoundBankRest (authInfo: AuthInfoBasic, data: BankCommons)
-
 //--------generated
 
 

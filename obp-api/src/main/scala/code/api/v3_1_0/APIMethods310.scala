@@ -18,14 +18,14 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
-import code.bankconnectors.rest.RestConnector
+import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.products.Products.{Product}
+import code.products.Products.Product
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
@@ -3154,7 +3154,7 @@ trait APIMethods310 {
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
-            messageDocsSwagger = RestConnector.messageDocs.map(toResourceDoc).toList
+            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
             json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(messageDocsSwagger, ApiVersion.v3_1_0)}
             //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
