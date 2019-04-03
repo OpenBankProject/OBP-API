@@ -27,10 +27,13 @@ package code.api.v3_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole.CanGetUserAuthContext
 import code.api.util.ApiVersion
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.context.UserAuthContextUpdateStatus
+import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
+import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.common.Full
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -50,6 +53,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge))
 
   val postUserAuthContextJson = SwaggerDefinitionsJSON.postUserAuthContextJson
+  val postUserAuthContextJson1 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key = "PHONE_NUMBER")
   val postUserAuthContextJson2 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key="TOKEN")
 
   feature("Create User Auth Context Update Request v3.1.0") {
@@ -61,7 +65,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       responseUserAuthContextUpdate310.code should equal(201)
       responseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson]
     }
-    scenario("We will call the Answer endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+    scenario("We will call the Answer endpoint with user credentials and wrong challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We try to answer the UserAuthContext v3.1.0")
       
       val createRequestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates").POST <@(user1)
@@ -77,6 +81,39 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       responseUserAuthContextUpdate310.code should equal(200)
       val status = responseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].status
       status should equal(UserAuthContextUpdateStatus.REJECTED.toString)
+    }
+    scenario("We will call the Answer endpoint with user credentials and right challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+      When("We try to answer the UserAuthContext v3.1.0")
+
+      val createRequestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates").POST <@(user1)
+      val createResponseUserAuthContextUpdate310 = makePostRequest(createRequestUserAuthContextUpdate310, write(postUserAuthContextJson1))
+      Then("We should get a 201")
+      createResponseUserAuthContextUpdate310.code should equal(201)
+      val authContextUpdateId = createResponseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].user_auth_context_update_id
+
+      val challenge = UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.getUserAuthContextUpdatesBox(resourceUser1.userId) match {
+        case Full(list) if list.filter(_.userAuthContextUpdateId == authContextUpdateId).size == 1 =>
+          list.filter(_.userAuthContextUpdateId == authContextUpdateId).map(_.challenge).head
+        case _ =>
+          ""
+      }
+      val rightAnswerJson = PostUserAuthContextUpdateJsonV310(answer = challenge)
+
+      val requestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge").POST <@(user1)
+      val responseUserAuthContextUpdate310 = makePostRequest(requestUserAuthContextUpdate310, write(rightAnswerJson))
+      Then("We should get a 200")
+      responseUserAuthContextUpdate310.code should equal(200)
+      val status = responseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].status
+      status should equal(UserAuthContextUpdateStatus.ACCEPTED.toString)
+
+      When("We try to make the GET request v3.1.0")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
+      val successGetReq = (v3_1_0_Request / "users" / userId.value / "auth-context").GET <@(user1)
+      val successGetRes = makeGetRequest(successGetReq)
+      Then("We should get a 200")
+      successGetRes.code should equal(200)
+      val userAuthContexts = successGetRes.body.extract[UserAuthContextsJson].user_auth_contexts
+      userAuthContexts.map(i => (i.key, i.value) == (postUserAuthContextJson1.key, postUserAuthContextJson1.value)) shouldBe (List(true))
     }
   }
 }
