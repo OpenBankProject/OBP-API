@@ -236,7 +236,7 @@ trait Connector extends MdcLoggable{
     * @param forceFresh call the MainFrame call, or only get the cache data.
     * @return all the accounts, get from Main Frame.
     */
-  def getBankAccounts(username: String, callContext: Option[CallContext]) : Box[(List[InboundAccountCommon], Option[CallContext])] = Failure(NotImplemented + currentMethodName)
+  def getBankAccountsByUsername(username: String, callContext: Option[CallContext]) : Box[(List[InboundAccountCommon], Option[CallContext])] = Failure(NotImplemented + currentMethodName)
 
   /**
     *
@@ -244,7 +244,7 @@ trait Connector extends MdcLoggable{
     * @param forceFresh call the MainFrame call, or only get the cache data.
     * @return all the accounts, get from Main Frame.
     */
-  def getBankAccountsFuture(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = Future {
+  def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = Future{
     Failure(NotImplemented + currentMethodName)
   }
 

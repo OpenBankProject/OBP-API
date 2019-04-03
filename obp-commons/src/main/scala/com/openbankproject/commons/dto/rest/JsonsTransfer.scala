@@ -77,10 +77,9 @@ case class InBoundGetBankFuture (authInfo: AuthInfoBasic, data: BankCommons)
 case class OutBoundGetBanksFuture (authInfo: AuthInfoBasic)
 case class InBoundGetBanksFuture (authInfo: AuthInfoBasic, data: List[BankCommons])
 
-//TODO FIXME, there are two method in connector have the same name of "getBankAccountsFuture", rename it and fix the follow two class name
-//case class OutBoundGetBankAccountsFuture (authInfo: AuthInfoBasic,
-//                                          username: String)
-//case class InBoundGetBankAccountsFuture (authInfo: AuthInfoBasic, data: List[InboundAccountCommonCommons])
+case class OutBoundGetBankAccountsByUsernameFuture (authInfo: AuthInfoBasic,
+                                          username: String)
+case class InBoundGetBankAccountsByUsernameFuture (authInfo: AuthInfoBasic, data: List[InboundAccountCommonCommons])
 
 
 case class OutBoundGetBankAccountFuture (authInfo: AuthInfoBasic,
