@@ -1526,11 +1526,11 @@ trait Connector extends MdcLoggable{
                             value: String,
                             callContext: Option[CallContext])
   //This method is normally used in obp side, so it has the default mapped implementation  
-  def createUserAuthContextRequest(userId: String,
-                            key: String,
-                            value: String,
-                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] =
-  LocalMappedConnector.createUserAuthContextRequest(userId: String,
+  def createUserAuthContextUpdate(userId: String,
+                                  key: String,
+                                  value: String,
+                                  callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] =
+  LocalMappedConnector.createUserAuthContextUpdate(userId: String,
                             key: String,
                             value: String,
                             callContext: Option[CallContext])

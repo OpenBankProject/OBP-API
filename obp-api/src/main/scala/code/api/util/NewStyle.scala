@@ -512,8 +512,8 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-    def createUserAuthContextRequest(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
-      Connector.connector.vend.createUserAuthContextRequest(userId, key, value, callContext) map {
+    def createUserAuthContextUpdate(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
+      Connector.connector.vend.createUserAuthContextUpdate(userId, key, value, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
