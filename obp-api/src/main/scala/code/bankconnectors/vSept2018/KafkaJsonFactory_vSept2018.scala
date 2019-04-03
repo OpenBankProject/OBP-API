@@ -245,10 +245,6 @@ case class BasicCustomer(
   legalName: String,
 )
 
-case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
-
-case class InternalBasicUsers(users: List[InternalBasicUser])
-
 case class InternalCreateChallengeSept2018(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],

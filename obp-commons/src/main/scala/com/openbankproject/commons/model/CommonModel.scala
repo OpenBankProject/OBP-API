@@ -507,6 +507,9 @@ case class InternalBasicCustomer(
   legalName: String,
   dateOfBirth: Date
 )
+case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
+
+case class InternalBasicUsers(users: List[InternalBasicUser])
 
 case class AccountBasic(
   id: String,
@@ -521,9 +524,9 @@ case class AuthView(
 )
 
 case class AuthInfoBasic(
-  username: String = "", 
-  correlationId: String = "",
-  sessionId: String = "", 
-  userAuthContexts: List[BasicUserAuthContext]= Nil,
-  authViews: List[AuthView] = Nil,
+  username: Option[String] = None,
+  correlationId: Option[String] = None,
+  sessionId: Option[String] = None,
+  userAuthContexts: Option[List[BasicUserAuthContext]]= None,
+  authViews: Option[List[AuthView]] = None
 )
