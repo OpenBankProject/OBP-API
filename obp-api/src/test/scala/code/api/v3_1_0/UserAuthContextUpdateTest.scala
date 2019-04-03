@@ -68,10 +68,10 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       val createResponseUserAuthContextUpdate310 = makePostRequest(createRequestUserAuthContextUpdate310, write(postUserAuthContextJson))
       Then("We should get a 201")
       createResponseUserAuthContextUpdate310.code should equal(201)
-      val authContextUpdateRequestId = createResponseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].user_auth_context_update_id
+      val authContextUpdateId = createResponseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].user_auth_context_update_id
       val wrongAnswerJson = PostUserAuthContextUpdateJsonV310(answer = "1234567")
       
-      val requestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates" / authContextUpdateRequestId / "challenge").POST <@(user1)
+      val requestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge").POST <@(user1)
       val responseUserAuthContextUpdate310 = makePostRequest(requestUserAuthContextUpdate310, write(wrongAnswerJson))
       Then("We should get a 200")
       responseUserAuthContextUpdate310.code should equal(200)

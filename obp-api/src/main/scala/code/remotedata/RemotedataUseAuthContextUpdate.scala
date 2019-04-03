@@ -29,6 +29,6 @@ object RemotedataUserAuthContextUpdate extends ObpActorInit with UserAuthContext
   override def deleteUserAuthContextUpdateById(userAuthContextId: String): Future[Box[Boolean]] =
     (actor ? cc.deleteUserAuthContextUpdateById(userAuthContextId)).mapTo[Box[Boolean]]
   
-  def checkAnswer(authContextUpdateRequestId: String, challenge: String): Future[Box[UserAuthContextUpdate]] =
-    (actor ? cc.checkAnswer(authContextUpdateRequestId, challenge)).mapTo[Box[UserAuthContextUpdate]]
+  def checkAnswer(authContextUpdateId: String, challenge: String): Future[Box[UserAuthContextUpdate]] =
+    (actor ? cc.checkAnswer(authContextUpdateId, challenge)).mapTo[Box[UserAuthContextUpdate]]
 }

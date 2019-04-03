@@ -24,7 +24,7 @@ trait UserAuthContextUpdateProvider {
   def getUserAuthContextUpdates(userId: String): Future[Box[List[UserAuthContextUpdate]]]
   def getUserAuthContextUpdatesBox(userId: String): Box[List[UserAuthContextUpdate]]
   def deleteUserAuthContextUpdates(userId: String): Future[Box[Boolean]]
-  def deleteUserAuthContextUpdateById(authContextUpdateRequestId: String): Future[Box[Boolean]]
+  def deleteUserAuthContextUpdateById(authContextUpdateId: String): Future[Box[Boolean]]
   def checkAnswer(authContextUpdateId: String, challenge: String): Future[Box[UserAuthContextUpdate]]
 }
 
@@ -33,7 +33,7 @@ class RemotedataUserAuthContextUpdateCaseClasses {
   case class getUserAuthContextUpdates(userId: String)
   case class getUserAuthContextUpdatesBox(userId: String)
   case class deleteUserAuthContextUpdates(userId: String)
-  case class deleteUserAuthContextUpdateById(authContextUpdateRequestId: String)
+  case class deleteUserAuthContextUpdateById(authContextUpdateId: String)
   case class checkAnswer(authContextUpdateId: String, challenge: String)
 }
 

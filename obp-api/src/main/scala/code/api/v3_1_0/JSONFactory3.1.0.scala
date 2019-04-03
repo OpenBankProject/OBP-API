@@ -655,13 +655,13 @@ object JSONFactory310{
     UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
   }
 
-  def createUserAuthContextUpdateJson(userAuthContextRequest: UserAuthContextUpdate): UserAuthContextUpdateJson = {
+  def createUserAuthContextUpdateJson(userAuthContextUpdate: UserAuthContextUpdate): UserAuthContextUpdateJson = {
     UserAuthContextUpdateJson(
-      user_auth_context_update_id= userAuthContextRequest.userAuthContextUpdateId,
-      user_id = userAuthContextRequest.userId,
-      key = userAuthContextRequest.key,
-      value = userAuthContextRequest.value,
-      status = userAuthContextRequest.status
+      user_auth_context_update_id= userAuthContextUpdate.userAuthContextUpdateId,
+      user_id = userAuthContextUpdate.userId,
+      key = userAuthContextUpdate.key,
+      value = userAuthContextUpdate.value,
+      status = userAuthContextUpdate.status
     )
   }
 

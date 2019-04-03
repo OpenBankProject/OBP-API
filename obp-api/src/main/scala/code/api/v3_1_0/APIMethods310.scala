@@ -3391,10 +3391,10 @@ trait APIMethods310 {
           for {
             (_, callContext) <- authorizedAccess(cc)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextUpdateJsonV310 "
-            postUserAuthContextRequestJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextUpdateJsonV310]
             }
-            userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, postUserAuthContextRequestJson.answer) map {
+            userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer) map {
               i => connectorEmptyResponse(i, callContext)
             }
             (_, callContext) <-
