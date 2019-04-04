@@ -68,6 +68,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.{MappedConnectorMetric, MappedMetric}
+import code.migration.MappedMigrationScriptLog
 import code.model._
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
@@ -480,7 +481,7 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    Migration.database.generateAndPopulateMissingConsumersUUIDs()
+    Migration.database.executeScripts()
 
     Glossary.glossaryItems
 
@@ -611,5 +612,6 @@ object ToSchemify {
     MappedCustomerIDMapping,
     MappedProductAttribute,
     MappedConsent,
+    MappedMigrationScriptLog,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
