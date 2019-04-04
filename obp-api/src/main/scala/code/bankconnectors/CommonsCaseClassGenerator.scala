@@ -25,9 +25,10 @@ object CommonsCaseClassGenerator extends App {
     .map(extractReturnModel)
     .filter(it => {
       val symbol = it.typeSymbol
-      val isAbstract = symbol.isAbstract
+//      val isAbstract = symbol.isAbstract
       val isOurClass = symbol.fullName.matches("(code\\.|com.openbankproject\\.).+")
-      isAbstract && isOurClass
+      //isAbstract &&
+        isOurClass
     }).toSet
 
   returnModels.map(_.typeSymbol.fullName).foreach(it => println(s"import $it"))
