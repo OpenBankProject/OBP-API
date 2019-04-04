@@ -42,7 +42,8 @@ import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
 import code.bankconnectors.ObpApiLoopback
 import code.common.Meta
-import code.context.UserAuthContext
+import code.consent.MappedConsent
+import code.context.{UserAuthContext, UserAuthContextUpdate}
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
@@ -271,6 +272,14 @@ case class UserAuthContextJson(
   key: String,
   value: String
 )
+case class UserAuthContextUpdateJson(
+  user_auth_context_update_id: String,
+  user_id: String,
+  key: String,
+  value: String,
+  status: String                                   
+)
+case class PostUserAuthContextUpdateJsonV310(answer: String)
 
 case class UserAuthContextsJson(
   user_auth_contexts: List[UserAuthContextJson]
@@ -471,6 +480,13 @@ case class MeetingsJsonV310(
   meetings: List[MeetingJsonV310]
 )
 
+case class PostConsentJsonV310(email: String, `for`: String, view: String)
+case class ConsentJsonV310(consent_id: String, jwt: String, status: String)
+case class ConsentsJsonV310(consents: List[ConsentJsonV310])
+
+case class PostConsentChallengeJsonV310(answer: String)
+case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: String)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -637,6 +653,16 @@ object JSONFactory310{
   
   def createUserAuthContextsJson(userAuthContext: List[UserAuthContext]): UserAuthContextsJson = {
     UserAuthContextsJson(userAuthContext.map(createUserAuthContextJson))
+  }
+
+  def createUserAuthContextUpdateJson(userAuthContextUpdate: UserAuthContextUpdate): UserAuthContextUpdateJson = {
+    UserAuthContextUpdateJson(
+      user_auth_context_update_id= userAuthContextUpdate.userAuthContextUpdateId,
+      user_id = userAuthContextUpdate.userId,
+      key = userAuthContextUpdate.key,
+      value = userAuthContextUpdate.value,
+      status = userAuthContextUpdate.status
+    )
   }
 
   def createTaxResidence(tr: List[TaxResidence]) = TaxResidenceJsonV310(
@@ -903,6 +929,10 @@ object JSONFactory310{
   
   def createMeetingsJson(meetings : List[Meeting]) : MeetingsJsonV310 = {
     MeetingsJsonV310(meetings.map(createMeetingJson))
+  }
+  
+  def createConsentsJsonV310(consents: List[MappedConsent]): ConsentsJsonV310= {
+    ConsentsJsonV310(consents.map(c => ConsentJsonV310(c.consentId, c.jsonWebToken, c.status)))
   }
 
 }

@@ -55,6 +55,7 @@ object ApiTag {
   val apiTagNewStyle = ResourceDocTag("New-Style")
   val apiTagWebhook = ResourceDocTag("Webhook")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
+  val apiTagConsent = ResourceDocTag("Consent")
 
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0
