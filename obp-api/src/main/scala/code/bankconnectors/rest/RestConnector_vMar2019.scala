@@ -23,6 +23,7 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
+import java.util.Date
 import java.util.UUID.randomUUID
 
 import akka.http.scaladsl.model.{HttpProtocol, _}
@@ -38,7 +39,7 @@ import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.KafkaHelper
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.dto.rest.{InBoundGetBanksFuture, OutBoundGetBanksFuture}
+import com.openbankproject.commons.dto.rest._
 import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, _}
@@ -135,7 +136,42 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     }
   }("getBanks")
     
-
+  messageDocs += MessageDoc(
+    process = "obp.get.getBankAccount",
+    messageFormat = messageFormat,
+    description = "Gets the Accounts.",
+    exampleOutboundMessage = (
+      OutBoundGetBankAccountFuture(
+        AuthInfoBasic(),
+        BankId(bankIdExample.value),
+        AccountId(accountIdExample.value))
+    ),
+    exampleInboundMessage = (
+      InBoundGetBankAccountFuture(
+        AuthInfoBasic(),
+        BankAccountCommons(
+          accountId  = AccountId(accountIdExample.value),
+          accountType = accountTypeExample.value,
+          balance = BigDecimal(balanceAmountExample.value),
+          currency = currencyExample.value,
+          name = nameExample.value,
+          label = labelExample.value,
+          swift_bic = None,
+          iban = Some(ibanExample.value),
+          number = accountNumberExample.value,
+          bankId = BankId(bankIdExample.value),
+          lastUpdate = new Date(),
+          branchId  = branchIdExample.value,
+          accountRoutingScheme = accountRoutingSchemeExample.value,
+          accountRoutingAddress = accountRoutingAddressExample.value,
+          accountRoutings = List(AccountRouting("","")),
+          accountRules = List(AccountRule("","")),
+          accountHolder = ""
+        )
+    )),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  ) 
+    
   // url example: /getBankAccount/bankId/{bankId}/accountId/{accountId}
   override def getBankAccountFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = saveConnectorMetric {
     /**
