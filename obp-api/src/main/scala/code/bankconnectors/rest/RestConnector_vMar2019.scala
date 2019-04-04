@@ -154,7 +154,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           accountType = accountTypeExample.value,
           balance = BigDecimal(balanceAmountExample.value),
           currency = currencyExample.value,
-          name = nameExample.value,
+          name = "",
           label = labelExample.value,
           swift_bic = None,
           iban = Some(ibanExample.value),

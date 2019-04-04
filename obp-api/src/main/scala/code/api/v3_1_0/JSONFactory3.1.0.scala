@@ -39,11 +39,8 @@ import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.bankconnectors.ObpApiLoopback
-import code.common.Meta
 import code.consent.MappedConsent
-import code.context.{UserAuthContext, UserAuthContextUpdate}
-import code.customeraddress.CustomerAddress
+import code.context.UserAuthContextUpdate
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}

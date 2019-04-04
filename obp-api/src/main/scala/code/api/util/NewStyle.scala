@@ -14,7 +14,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
-import code.context.{UserAuthContext, UserAuthContextUpdate}
+import code.context.UserAuthContextUpdate
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
