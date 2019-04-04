@@ -17,6 +17,8 @@ import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
 import code.context.UserAuthContextProvider
+import code.common.OpeningTimes
+import code.context.{UserAuthContext, UserAuthContextProvider, UserAuthContextUpdate, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddress
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -1964,6 +1966,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      value: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] =
     UserAuthContextProvider.userAuthContextProvider.vend.createUserAuthContext(userId, key, value) map {
+      (_, callContext)
+    }
+  override def createUserAuthContextUpdate(userId: String,
+                                           key: String,
+                                           value: String,
+                                           callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] =
+    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId, key, value) map {
       (_, callContext)
     }
   override def getUserAuthContexts(userId : String,

@@ -193,8 +193,13 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (APIUtil.hasConsentId(reqHeaders)) {
-      // TODO 1. Get or Create a User 2. Assign entitlements to it 3. Assign permissions
-      Failure(NotImplemented + RequestHeader.`Consent-Id`)
+      val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentId(reqHeaders), cc)
+      usr match {
+        case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
+        case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
+        case Failure(msg, t, c) => Failure(msg, t, c)
+        case _ => Failure("Consent error")
+      }
     } else if (hasAnOAuthHeader(authorization)) {
       val (usr, callContext) = getUserAndCallContext(cc)
       usr match {

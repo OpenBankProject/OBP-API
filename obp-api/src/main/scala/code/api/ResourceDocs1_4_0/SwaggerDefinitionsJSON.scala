@@ -18,6 +18,8 @@ import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, Obp
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
+import code.api.builder.JsonFactory_APIBuilder
+import code.context.UserAuthContextUpdateStatus
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model._
@@ -3055,6 +3057,14 @@ object SwaggerDefinitionsJSON {
     key = "CUSTOMER_NUMBER",
     value = "78987432"
   )
+
+  val userAuthContextUpdateJson = UserAuthContextUpdateJson(
+    user_auth_context_update_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    user_id = "qieuriopwoir987203984729384ipeiu",
+    key = "CUSTOMER_NUMBER",
+    value = "78987432",
+    status = UserAuthContextUpdateStatus.INITIATED.toString
+  )
   
   val userAuthContextsJson = UserAuthContextsJson(
     user_auth_contexts = List(userAuthContextJson)
@@ -3179,6 +3189,14 @@ object SwaggerDefinitionsJSON {
                       kid: String = "fr6-BxXH5gikFeZ2O6rGk0LUmJpukeswASN_TMW8U_s",
                       n: String = "hrB0OWqg6AeNU3WCnhheG18R5EbQtdNYGOaSeylTjkj2lZr0_vkhNVYvase-CroxO4HOT06InxTYwLnmJiyv2cZxReuoVjTlk--olGu-9MZooiFiqWez0JzndyKxQ27OiAjFsMh0P04kaUXeHKhXRfiU7K2FqBshR1UlnWe7iHLkq2p9rrGjxQc7ff0w-Uc0f-8PWg36Y2Od7s65493iVQwnI13egqMaSvgB1s8_dgm08noEjhr8C5m1aKmr5oipWEPNi-SBV2VNuiCLR1IEPuXq0tOwwZfv31t34KPO-2H2bbaWmzGJy9mMOGqoNrbXyGiUZoyeHRELaNtm1GilyQ")
   val severJWK = SeverJWK()
+  
+  val consentJsonV310 = ConsentJsonV310(
+    consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+    jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+    status = "INITIATED"
+  )
+  
+  val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
   
   //The common error or success format.
   //Just some helper format to use in Json 

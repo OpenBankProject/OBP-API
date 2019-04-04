@@ -2,6 +2,7 @@ package code.api.v3_1_0
 
 import java.util.UUID
 
+import code.accountattribute.AccountAttribute.AccountAttributeType
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
@@ -19,13 +20,18 @@ import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
+import code.branches.Branches.BranchId
+import code.consent.Consents
 import code.consumer.Consumers
+import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
+import code.meetings.{ContactDetails, Invitee}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.products.Products.Product
+import code.productattribute.ProductAttribute.ProductAttributeType
+import code.products.Products.{Product, ProductCode}
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
@@ -34,9 +40,10 @@ import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.util.Helpers
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.parse
+import net.liftweb.util.{Helpers, Mailer}
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import org.apache.commons.lang3.Validate
 
 import scala.collection.immutable.{List, Nil}
@@ -3166,6 +3173,287 @@ trait APIMethods310 {
         }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      createConsent,
+      implementedInApiVersion,
+      nameOf(createConsent),
+      "POST",
+      "/banks/BANK_ID/my/consents/SCA_METHOD",
+      "Create Consent",
+      s"""
+         |Create consent
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      PostConsentJsonV310(email = "marko@tesobe.com", `for`="ALL_MY_ACCOUNTS", view="owner"),
+      consentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConnectorEmptyResponse,
+        UnknownError
+      ),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagConsent :: apiTagNewStyle :: Nil)
+
+    lazy val createConsent : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consents"  :: sca_method :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
+              List("sms", "email").exists(_ == sca_method)
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentJsonV310]
+            }
+            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+            consentJWT = Consent.createConsentJWT(user, consentJson.view, createdConsent.secret, createdConsent.consentId)
+            _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            sca_method match {
+              case "email" => // Send the email
+                val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
+                Mailer.sendMail(
+                  From("challenge@tesobe.com"),
+                  Subject("Challenge request"),
+                  params :_*
+                )
+              case "sms" =>
+              case _ =>
+            }
+            (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      answerConsentChallenge,
+      implementedInApiVersion,
+      nameOf(answerConsentChallenge),
+      "POST",
+      "/banks/BANK_ID/consents/CONSENT_ID/challenge",
+      "Answer Consent Challenge",
+      s"""
+         |Answer consent challenge
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      PostConsentChallengeJsonV310(answer = "12345678"),
+      ConsentChallengeJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "INITIATED"
+      ),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConnectorEmptyResponse,
+        UnknownError
+      ),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagConsent :: apiTagNewStyle :: Nil)
+
+    lazy val answerConsentChallenge : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "challenge" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentChallengeJsonV310 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentChallengeJsonV310]
+            }
+            consent <- Future(Consents.consentProvider.vend.checkAnswer(consentId, consentJson.answer)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getConsents,
+      implementedInApiVersion,
+      "getConsents",
+      "GET",
+      "/banks/BANK_ID/my/consents",
+      "Get Consents",
+      s"""Get Consents for current user
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      consentsJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsent, apiTagNewStyle))
+
+    lazy val getConsents: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            consents <- Future(Consents.consentProvider.vend.getConsentsByUser(user.userId))
+          } yield {
+            (JSONFactory310.createConsentsJsonV310(consents), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      revokeConsent,
+      implementedInApiVersion,
+      "revokeConsent",
+      "GET",
+      "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
+      "Revoke Consent",
+      s"""Revoke Consent for current user specified by CONSENT_ID
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      consentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagConsent, apiTagNewStyle))
+
+    lazy val revokeConsent: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consents" :: consentId :: "revoke" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+              unboxFullOrFail(_, callContext, ConsentNotFound)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound) {
+              consent.mUserId == user.userId
+            }
+            consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createUserAuthContextUpdate,
+      implementedInApiVersion,
+      nameOf(createUserAuthContextUpdate),
+      "POST",
+      "/users/current/auth-context-updates",
+      "Create User Auth Context Update Request",
+      s"""Create User Auth Context Update Request.
+         |${authenticationRequiredMessage(true)}
+         |""",
+      postUserAuthContextJson,
+      userAuthContextUpdateJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        CreateUserAuthContextError,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val createUserAuthContextUpdate : OBPEndpoint = {
+      case "users" :: "current" ::"auth-context-updates" :: Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostUserAuthContextJson]
+            }
+            (_, callContext) <- NewStyle.function.findByUserId(user.userId, callContext)
+            (userAuthContextUdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(user.userId, postedData.key, postedData.value, callContext)
+          } yield {
+            (JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUdate), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      answerUserAuthContextUpdateChallenge,
+      implementedInApiVersion,
+      nameOf(answerUserAuthContextUpdateChallenge),
+      "POST",
+      "/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
+      "Answer Auth Context Update Request Challenge",
+      s"""
+         |Answer Auth Context Update Request Challenge.
+         |""",
+      PostUserAuthContextUpdateJsonV310(answer = "12345678"),
+      userAuthContextUpdateJson,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConnectorEmptyResponse,
+        UnknownError
+      ),
+      Catalogs(Core, notPSD2, OBWG),
+      apiTagUser :: apiTagNewStyle :: Nil)
+
+    lazy val answerUserAuthContextUpdateChallenge : OBPEndpoint = {
+      case "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextUpdateJsonV310 "
+            postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostUserAuthContextUpdateJsonV310]
+            }
+            userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+            (_, callContext) <-
+              userAuthContextUpdate.status match {
+                case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString => 
+                  NewStyle.function.createUserAuthContext(
+                    userAuthContextUpdate.userId, 
+                    userAuthContextUpdate.key, 
+                    userAuthContextUpdate.value, 
+                    callContext).map(x => (Some(x._1), x._2))
+                case _ =>
+                  Future((None, callContext))
+              }
+          } yield {
+            (createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
   }
 }

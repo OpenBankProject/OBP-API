@@ -561,8 +561,7 @@ featured_apis=elasticSearchWarehouseV300
 database_messages_scheduler_interval=3600
 # ---------------------------------------------------
 
-# -- Consents -----------------------------------------------
+# -- Consents -----------------------------------
 # In case isn't defined default value is "false"
 # consents.allowed=true
-# consents.jwt_secret=Cannot get your at least 256 bit secret
-# -----------------------------------------------------------
+# -----------------------------------------------

@@ -3,20 +3,29 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.accountapplication.AccountApplication
+import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
+import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.api.v1_2_1.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.atms.Atms
+import code.atms.Atms.{AtmId, AtmT}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.Branches.Branch
+import code.branches.Branches.{Branch, BranchId, BranchT}
+import code.context.{UserAuthContext, UserAuthContextUpdate}
+import code.model.{Transaction, toUserEx}
+import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
@@ -47,6 +56,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.math.BigInt
 import scala.util.Random
+import scala.concurrent.duration._
 
 /*
 So we can switch between different sources of resources e.g.
@@ -1488,6 +1498,15 @@ trait Connector extends MdcLoggable{
                             value: String,
                             callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] =
   LocalMappedConnector.createUserAuthContext(userId: String,
+                            key: String,
+                            value: String,
+                            callContext: Option[CallContext])
+  //This method is normally used in obp side, so it has the default mapped implementation  
+  def createUserAuthContextUpdate(userId: String,
+                                  key: String,
+                                  value: String,
+                                  callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] =
+  LocalMappedConnector.createUserAuthContextUpdate(userId: String,
                             key: String,
                             value: String,
                             callContext: Option[CallContext])

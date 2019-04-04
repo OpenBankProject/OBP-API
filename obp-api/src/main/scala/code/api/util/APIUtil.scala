@@ -1844,7 +1844,6 @@ Returns a string showed to the developer
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val res =
     if (APIUtil.hasConsentId(reqHeaders)) {
-      // TODO 1. Get or Create a User 2. Assign entitlements to it 3. Assign permissions
       Consent.applyRules(APIUtil.getConsentId(reqHeaders), Some(cc)) 
     } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
       getUserFromOAuthHeaderFuture(cc)

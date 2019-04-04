@@ -46,8 +46,9 @@ import code.bankconnectors.Connector
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
+import code.consent.MappedConsent
+import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
-import code.context.MappedUserAuthContext
 import code.customer.internalMapping.MappedCustomerIDMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
@@ -61,8 +62,7 @@ import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.loginattempts.MappedBadLoginAttempt
 import code.management.ImporterAPI
-import code.meetings.MappedMeeting
-import code.meetings.MappedMeetingInvitee
+import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
@@ -575,6 +575,7 @@ object ToSchemify {
     MappedTaxResidence,
     MappedCustomerAddress,
     MappedUserAuthContext,
+    MappedUserAuthContextUpdate,
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,
@@ -611,5 +612,6 @@ object ToSchemify {
     MappedAccountWebhook,
     MappedCustomerIDMapping,
     MappedProductAttribute,
+    MappedConsent,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

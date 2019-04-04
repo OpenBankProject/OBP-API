@@ -14,6 +14,8 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
+import code.context.{UserAuthContext, UserAuthContextUpdate}
+import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -144,7 +146,13 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createConsent), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.revokeConsent), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createUserAuthContextUpdate), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -485,6 +493,11 @@ object NewStyle {
 
     def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
       Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    def createUserAuthContextUpdate(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
+      Connector.connector.vend.createUserAuthContextUpdate(userId, key, value, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
