@@ -3,6 +3,7 @@ package code.api.v3_1_0
 import java.util.UUID
 
 import code.accountattribute.AccountAttribute.AccountAttributeType
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -13,6 +14,7 @@ import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
+import code.api.v2_2_0.JSONFactory220
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -3410,6 +3412,97 @@ trait APIMethods310 {
               }
           } yield {
             (createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getSystemView,
+      implementedInApiVersion,
+      "getSystemView",
+      "GET",
+      "/system-views/VIEW_ID",
+      "Get System View",
+      s"""Get System View
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      viewJSONV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canGetSystemView))
+    )
+
+    lazy val getSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, callContext)
+            view <- NewStyle.function.systemView(ViewId(viewId), callContext)
+          } yield {
+            (JSONFactory220.createViewJSON(view), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createSystemView,
+      implementedInApiVersion,
+      nameOf(createSystemView),
+      "POST",
+      "/system-views",
+      "Create System View.",
+      s"""Create a system view
+        |
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+        | The 'alias' field in the JSON can take one of three values:
+        |
+        | * _public_: to use the public alias if there is one specified for the other account.
+        | * _private_: to use the public alias if there is one specified for the other account.
+        |
+        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+        |
+        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+        |
+        | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+        | """,
+      SwaggerDefinitionsJSON.createViewJson,
+      viewJsonV300,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canCreateSystemView))
+    )
+
+    lazy val createSystemView : OBPEndpoint = {
+      //creates a system view
+      case "system-views" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateSystemView, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson "
+            createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateViewJson]
+            }
+            view <- NewStyle.function.createSystemView(createViewJson, callContext)
+          } yield {
+            (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
           }
       }
     }

@@ -45,11 +45,13 @@ trait Views {
 
   def view(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
+  def systemViewFuture(viewId : ViewId) : Future[Box[View]]
 
   //always return a view id String, not error here. 
   def getMetadataViewId(bankAccountId: BankIdAccountId, viewId : ViewId) = Views.views.vend.view(viewId, bankAccountId).map(_.metadataView).openOr(viewId.value)
   
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
+  def createSystemView(view: CreateViewJson): Future[Box[View]]
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   
@@ -107,6 +109,7 @@ class RemotedataViewsCaseClasses {
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class revokeAllPermissions(bankId: BankId, accountId: AccountId, user: User)
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
+  case class createSystemView(view: CreateViewJson)
   case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
   case class viewsForAccount(bankAccountId: BankIdAccountId)
@@ -121,6 +124,7 @@ class RemotedataViewsCaseClasses {
     def apply(viewId: ViewId, bankAccountId: BankIdAccountId): Box[View] = this (viewId, bankAccountId)
   }
   case class viewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
+  case class systemViewFuture(viewId : ViewId)
   case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
   case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String)

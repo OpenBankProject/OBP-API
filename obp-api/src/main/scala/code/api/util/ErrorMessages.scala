@@ -261,6 +261,7 @@ object ErrorMessages {
   val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
+  val CreateSystemViewError = "OBP-30250: Could not create the system view"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "

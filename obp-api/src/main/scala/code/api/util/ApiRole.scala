@@ -275,6 +275,15 @@ object ApiRole {
   case class CanMaintainProductCollection(requiresBankId: Boolean = true) extends ApiRole
   lazy val canMaintainProductCollection = CanMaintainProductCollection()
 
+  case class CanCreateSystemView(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateSystemView = CanCreateSystemView()
+  case class CanUpdateSystemView(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateSystemView = CanUpdateSystemView()
+  case class CanGetSystemView(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSystemView = CanGetSystemView()
+  case class CanDeleteSystemView(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSystemView = CanDeleteSystemView()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -358,6 +367,10 @@ object ApiRole {
         canMaintainProductCollection ::
         canDeleteBranchAtAnyBank ::
         canDeleteBranch ::
+      canCreateSystemView ::
+      canUpdateSystemView ::
+      canGetSystemView ::
+      canDeleteSystemView ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
