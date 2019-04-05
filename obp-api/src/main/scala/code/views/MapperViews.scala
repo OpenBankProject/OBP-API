@@ -207,9 +207,9 @@ object MapperViews extends Views with MdcLoggable {
   def systemViewFuture(viewId : ViewId) : Future[Box[View]] = {
     Future {
       ViewImpl.find(
-        By(ViewImpl.permalink_, viewId.value),
         NullRef(ViewImpl.bankPermalink),
-        NullRef(ViewImpl.accountPermalink)
+        NullRef(ViewImpl.accountPermalink),
+        By(ViewImpl.permalink_, viewId.value)
       )
     }
   }

@@ -528,7 +528,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
-  override def dbIndexes = UniqueIndex(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(bankPermalink, accountPermalink, permalink_) :: super.dbIndexes
 
   def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
     find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>

@@ -3536,7 +3536,7 @@ trait APIMethods310 {
             }
             view <- NewStyle.function.createSystemView(createViewJson, callContext)
           } yield {
-            (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
+            (JSONFactory300.createViewJSON(view),  HttpCode.`201`(callContext))
           }
       }
     }

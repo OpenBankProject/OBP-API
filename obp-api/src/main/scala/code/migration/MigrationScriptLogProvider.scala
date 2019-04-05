@@ -11,6 +11,6 @@ object MigrationScriptLogProvider extends SimpleInjector {
 }
 
 trait MigrationScriptLogProvider {
-  def saveLog(name: String, commitId: String, isExecuted: Boolean, executedAt: Long): Boolean
+  def saveLog(name: String, commitId: String, wasExecuted: Boolean, startDate: Long, endDate: Long, comment: String): Boolean
   def isExecuted(name: String): Boolean
 }
