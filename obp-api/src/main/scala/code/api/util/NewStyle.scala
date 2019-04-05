@@ -169,8 +169,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.revokeConsent), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createUserAuthContextUpdate), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getSystemView), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -289,11 +288,6 @@ object NewStyle {
     def systemView(viewId : ViewId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.systemViewFuture(viewId) map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
-      }
-    }
-    def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
-      Views.views.vend.createSystemView(view) map {
-        unboxFullOrFail(_, callContext, s"$CreateSystemViewError")
       }
     }
     def hasViewAccess(view: View, user: User): Future[Box[Unit]] = {

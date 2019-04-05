@@ -343,7 +343,6 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.createUserAuthContextUpdate ::
                           Implementations3_1_0.answerUserAuthContextUpdateChallenge ::
                           Implementations3_1_0.getSystemView ::
-                          Implementations3_1_0.createSystemView ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
