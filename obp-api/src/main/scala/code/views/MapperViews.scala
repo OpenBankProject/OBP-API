@@ -213,6 +213,42 @@ object MapperViews extends Views with MdcLoggable {
       )
     }
   }
+  
+  def getNewViewPermalink(name: String) = {
+    name.replaceAllLiterally(" ", "").toLowerCase
+  }
+  /*
+  Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
+  * */
+  def createSystemView(view: CreateViewJson) : Future[Box[View]] = Future {
+    if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
+      Failure(PublicViewsNotAllowedOnThisInstance)
+    } else {
+      view.name.contentEquals("") match {
+        case true => 
+          Failure("You cannot create a View with an empty Name")
+        case false =>
+          //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
+          val newViewPermalink = getNewViewPermalink(view.name)
+          val existing = ViewImpl.count(
+            By(ViewImpl.permalink_, newViewPermalink), 
+            NullRef(ViewImpl.bankPermalink),
+            NullRef(ViewImpl.accountPermalink)
+          ) == 1
+
+          existing match {
+            case true =>
+              Failure(s"There is already a view with permalink $newViewPermalink")
+            case false =>
+              val createdView = ViewImpl.create.name_(view.name).permalink_(newViewPermalink)
+              createdView.setFromViewData(view)
+              createdView.isSystem_(true)
+              createdView.isPublic_(false)
+              Full(createdView.saveMe)
+          }
+      }
+    }
+  }
 
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
@@ -227,9 +263,7 @@ object MapperViews extends Views with MdcLoggable {
       return Failure("You cannot create a View with an empty Name")
     }
     //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
-    val newViewPermalink = {
-      view.name.replaceAllLiterally(" ", "").toLowerCase
-    }
+    val newViewPermalink = getNewViewPermalink(view.name)
 
     val existing = ViewImpl.count(
       By(ViewImpl.permalink_, newViewPermalink) ::
