@@ -2441,6 +2441,9 @@ Returns a string showed to the developer
         |
       """.stripMargin
   
+  //This is used to change connector level Message Doc to api level ResouceDoc.
+  //Because we already have the code from resouceDocs --> Swagger File.
+  //Here we use the same code for MessageDoc, so we transfer them first.
   def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = ResourceDoc(
     null,
     ApiVersion.v3_1_0,
