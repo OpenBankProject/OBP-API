@@ -1,13 +1,13 @@
 package code.management
 
+import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
-import code.model.Transaction
 import code.management.ImporterAPI._
+import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.Transaction
 import net.liftweb.actor.LiftActor
 import net.liftweb.common._
 import net.liftweb.util.Helpers
-import code.util.Helper.MdcLoggable
-import code.api.util.ErrorMessages._
 
 object TransactionInserter extends LiftActor with MdcLoggable {
 

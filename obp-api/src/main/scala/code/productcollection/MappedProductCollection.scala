@@ -1,5 +1,6 @@
 package code.productcollection
 
+import com.openbankproject.commons.model.ProductCollection
 import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo

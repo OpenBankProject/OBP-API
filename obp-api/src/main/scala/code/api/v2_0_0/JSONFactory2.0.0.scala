@@ -29,20 +29,19 @@ package code.api.v2_0_0
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, ThisAccountJSON => ThisAccountJSON121, UserJSONV121 => UserJSON121}
+import code.api.v1_2_1.{JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, ThisAccountJSON => ThisAccountJSON121, UserJSONV121 => UserJSON121}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
 import code.entitlement.Entitlement
 import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
 import code.kycstatuses.KycStatus
-import code.meetings.Meeting
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.socialmedia.SocialMedia
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{BankAccount, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue

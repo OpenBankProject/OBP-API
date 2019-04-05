@@ -29,7 +29,7 @@ package code.bankconnectors.vMar2017
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{InboundMessageBase, MessageDoc, OutboundMessageBase}
+import code.api.util.APIUtil.{MessageDoc}
 import code.bankconnectors.InboundUser
 import code.fx.FXRate
 import code.model._
@@ -299,29 +299,12 @@ case class CounterpartyTrait2(counterparty: InboundCounterparty) extends Counter
   def bespoke: List[CounterpartyBespoke] = Nil
 }
 
-case class InboundStatusMessage(
-  source: String,
-  status: String,
-  errorCode: String,
-  text: String
-)
-
 case class InboundBank(
   bankId: String,
   name: String,
   logo: String,
   url: String
 )
-
-case class InboundAdapterInfoInternal(
-  errorCode: String,
-  backendMessages: List[InboundStatusMessage],
-  name: String,
-  version: String,
-  git_commit: String,
-  date: String
-) extends InboundMessageBase
-
 
 case class Bank2(r: InboundBank) extends Bank {
   

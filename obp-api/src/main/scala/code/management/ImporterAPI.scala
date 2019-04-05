@@ -5,18 +5,16 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
-import code.model.Transaction
 import code.tesobe.ErrorMessage
-import code.util.Helper
-import net.liftweb.common.Full
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.Transaction
+import net.liftweb.common.Full
 import net.liftweb.http._
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.{DefaultFormats, Extraction}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 /**
  * This is legacy code and does not handle edge cases very well and assumes certain things, e.g.

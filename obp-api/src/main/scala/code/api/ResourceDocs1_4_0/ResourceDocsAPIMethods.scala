@@ -3,14 +3,12 @@ package code.api.ResourceDocs1_4_0
 import java.util.UUID.randomUUID
 
 import code.api.builder.OBP_APIBuilder
-import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
-import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
-import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
+
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ApiRole._
-import code.api.util.ApiStandards.{ApiStandards => _, apply => _, _}
+import code.api.util.ApiStandards._
 import code.api.util._
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
@@ -602,7 +600,8 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
             // Format the data as json
             val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
             //Get definitions of objects of success responses
-            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered)
+            val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
+            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered, allSwaggerDefinitionCaseClasses)
             // Merge both results and return
             successJsonResponse(Extraction.decompose(json) merge jsonAST)
           }

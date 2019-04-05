@@ -1,9 +1,9 @@
 package code.remotedata
 
 import akka.pattern.ask
-import code.accountapplication.{AccountApplication, AccountApplicationProvider, RemotedataAccountApplicationCaseClasses}
+import code.accountapplication.{AccountApplicationProvider, RemotedataAccountApplicationCaseClasses}
 import code.actorsystem.ObpActorInit
-import code.products.Products.ProductCode
+import com.openbankproject.commons.model.{AccountApplication, ProductCode}
 import net.liftweb.common.Box
 
 import scala.concurrent.Future

@@ -15,10 +15,7 @@ import code.api.util._
 import code.api.v1_2_1.JSONFactory
 import code.api.v2_0_0.JSONFactory200
 import code.api.v3_0_0.JSONFactory300._
-import code.atms.Atms.AtmId
 import code.bankconnectors._
-import code.branches.Branches
-import code.branches.Branches.BranchId
 import code.consumer.Consumers
 import code.entitlementrequest.EntitlementRequest
 import code.metrics.APIMetrics
@@ -30,6 +27,7 @@ import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import com.grum.geocalc.{Coordinate, EarthCalc, Point}
 import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.http.S
@@ -42,9 +40,6 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import com.grum.geocalc.Coordinate
-import com.grum.geocalc.EarthCalc
-import com.grum.geocalc.Point
 
 
 trait APIMethods300 {
@@ -1010,7 +1005,7 @@ trait APIMethods300 {
             branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + " BranchJsonV300"}
             _ <- booleanToBox(branchJsonV300.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
             branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
-            success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
+            success: BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
           } yield {
             val json = JSONFactory300.createBranchJsonV300(success)
             createdJsonResponse(Extraction.decompose(json), 201)
@@ -1073,7 +1068,7 @@ trait APIMethods300 {
               postBranchJsonV300.phone_number)
             _ <- booleanToBox(branchJsonV300.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
             branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
-            success: Branches.BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
+            success: BranchT <- Connector.connector.vend.createOrUpdateBranch(branch) ?~! {ErrorMessages.CountNotSaveOrUpdateResource + " Branch"}
           } yield {
             val json = JSONFactory300.createBranchJsonV300(success)
             createdJsonResponse(Extraction.decompose(json), 201)
@@ -1354,7 +1349,7 @@ trait APIMethods300 {
                 case true => anonymousAccess(cc)
               }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (atm, callContext) <- NewStyle.function.getAtm(bankId,atmId, callContext)
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, callContext)
           } yield {
             (JSONFactory300.createAtmJsonV300(atm), HttpCode.`200`(callContext))
           }

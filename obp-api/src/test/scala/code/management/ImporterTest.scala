@@ -1,6 +1,5 @@
 package code.management
 
-import java.text.SimpleDateFormat
 import java.util.TimeZone
 
 import code.api.util.APIUtil
@@ -9,8 +8,7 @@ import code.bankconnectors.Connector
 import code.model._
 import code.setup.{APIResponse, DefaultConnectorTestSetup, ServerSetup}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.AccountId
-import net.liftweb.util.Props
+import com.openbankproject.commons.model.{AccountId, Transaction}
 import net.liftweb.util.TimeHelpers._
 
 

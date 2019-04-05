@@ -30,24 +30,23 @@ import java.util.Date
 
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
-import code.api.util.{APIUtil, OBPLimit}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, OBPLimit}
 import code.atms.Atms
-import code.atms.Atms.{AtmId, AtmT, countOfAtms}
+import code.atms.Atms.countOfAtms
 import code.bankconnectors.Connector
 import code.branches.Branches
-import code.branches.Branches.{BranchId, BranchT, countOfBranches}
 import code.crm.CrmEvent
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.model._
 import code.model.dataAccess._
 import code.products.Products
-import code.products.Products.{Product, ProductCode, countOfProducts}
+import code.products.Products.{Product, countOfProducts}
 import code.setup.{APIResponse, SendServerRequests}
 import code.users.Users
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionId}
+import com.openbankproject.commons.model._
 import dispatch._
 import net.liftweb.common.{Empty, ParamFailure}
 import net.liftweb.json.JsonAST.{JObject, JValue}
@@ -1698,7 +1697,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val existingBranches: Option[List[BranchT]] = Branches.branchesProvider.vend.getBranches(bankId1)
 
     // We want the size of the list inside the Option
-    val existingBranchesCount = countOfBranches(existingBranches)
+    val existingBranchesCount = Branches.countOfBranches(existingBranches)
     existingBranchesCount should equal (0)
 
     // Check creation succeeds
@@ -1706,7 +1705,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response.code should equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
-    val countBranchesAfter = countOfBranches(Branches.branchesProvider.vend.getBranches(bankId1))
+    val countBranchesAfter = Branches.countOfBranches(Branches.branchesProvider.vend.getBranches(bankId1))
     countBranchesAfter should equal(standardBranches.size) // We expect N branches
 
     // Check that for each branch we did indeed create something good

@@ -23,16 +23,14 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.Date
 
-import code.accountholders.AccountHolders
-import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.MessageDoc
+import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v2_1_0._
 import code.bankconnectors._
-import code.branches.Branches.{Branch, BranchT}
+import code.branches.Branches.Branch
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
@@ -44,7 +42,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.Product
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
@@ -54,16 +52,12 @@ import code.util.{Helper, TTLCache}
 import code.views.Views
 import com.openbankproject.commons.model.{Bank, _}
 import net.liftweb.common._
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.{Nil, Seq}
-import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcLoggable {
 
@@ -94,9 +88,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   val messageFormat: String  = "Mar2017"
 
-  implicit val formats = net.liftweb.json.DefaultFormats
-  override val messageDocs = ArrayBuffer[MessageDoc]()
-  val emptyObjectJson: JValue = Extraction.decompose(Nil)
   val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
 
   // Each Message Doc has a process, description, example outbound and inbound messages.
@@ -105,7 +96,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.User",
     messageFormat = messageFormat,
     description = "getUser from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundUserByUsernamePasswordBase(
         messageFormat = messageFormat,
         action = "obp.get.User",
@@ -113,7 +104,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         password = "2b78e8"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundValidatedUser(
         errorCode = "OBP-6001: ...",
         List(InboundStatusMessage("ESB", "Success", "0", "OK")),
@@ -146,7 +137,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Accounts",
     messageFormat = messageFormat,
     description = "updateUserAccountViews from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundUserAccountViewsBase(
         action = "obp.get.Accounts",
         messageFormat = messageFormat,
@@ -155,7 +146,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         bankId = "gh.29.uk"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundAccount(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -238,7 +229,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Banks",
     messageFormat = messageFormat,
     description = "getBanks",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundBanksBase(
         action = "obp.get.Banks",
         messageFormat = messageFormat,
@@ -246,7 +237,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundBank(
         bankId = "gh.29.uk",
         name = "sushan",
@@ -288,7 +279,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.ChallengeThreshold",
     messageFormat = messageFormat,
     description = "getChallengeThreshold from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundChallengeThresholdBase(
         messageFormat = messageFormat,
         action = "obp.get.ChallengeThreshold",
@@ -301,7 +292,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         username = "susan.uk.29@example.com"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundChallengeLevel(
         errorCode = "OBP-6001: ...",
         limit = "1000",
@@ -342,7 +333,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.ChargeLevel",
     messageFormat = messageFormat,
     description = "ChargeLevel from kafka ",
-    exampleOutboundMessage = Extraction.decompose(OutboundChargeLevelBase(
+    exampleOutboundMessage = (OutboundChargeLevelBase(
       action = "obp.get.ChargeLevel",
       messageFormat = messageFormat,
       bankId = "gh.29.uk",
@@ -354,7 +345,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       currency = "EUR"
     )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundChargeLevel(
         errorCode = "OBP-6001: ...",
         currency = "EUR",
@@ -401,7 +392,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.create.Challenge",
     messageFormat = messageFormat,
     description = "CreateChallenge from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundChallengeBase(
         action = "obp.create.Challenge",
         messageFormat = messageFormat,
@@ -413,7 +404,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         transactionRequestId = "1234567"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundCreateChallange(
         errorCode = "OBP-6001: ...",
         challengeId = "1234567"
@@ -448,7 +439,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.validate.ChallengeAnswer",
     messageFormat = messageFormat,
     description = "validateChallengeAnswer from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundChallengeAnswerBase(
         messageFormat = messageFormat,
         action = "obp.validate.ChallengeAnswer",
@@ -458,7 +449,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         hashOfSuppliedAnswer = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundValidateChallangeAnswer(
         errorCode = "OBP-6001: ...",
         answer = ""
@@ -488,7 +479,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Bank",
     messageFormat = messageFormat,
     description = "getBank from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OUTTBank(
         action = "obp.get.Bank",
         messageFormat = messageFormat,
@@ -497,7 +488,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         username = "susan.uk.29@example.com"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundBank(
         bankId = "gh.29.uk",
         name = "sushan",
@@ -516,7 +507,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       username = AuthUser.getCurrentUserUsername)
 
     val r = {
-      cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[InboundBank])
+      cachedBank.getOrElseUpdate(req.toString, () => process(req).extract[InboundBank])
     }
     // Return result
     Full(new Bank2(r), callContext)
@@ -526,7 +517,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
     description = "getTransaction from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundTransactionQueryBase(
         action = "obp.get.Transaction",
         messageFormat = messageFormat,
@@ -537,7 +528,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         transactionId = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InternalTransaction(
         errorCode = "OBP-6001: ...",
         List(InboundStatusMessage("ESB", "Success", "0", "OK")),
@@ -584,7 +575,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
     description = "getTransactions from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundTransactionsQueryWithParamsBase(
         messageFormat = messageFormat,
         action = "obp.get.Transactions",
@@ -595,7 +586,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         queryParams = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InternalTransaction(
         errorCode = "OBP-6001: ...",
         List(InboundStatusMessage("ESB", "Success", "0", "OK")),
@@ -656,7 +647,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Account",
     messageFormat = messageFormat,
     description = "getBankAccount from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundBankAccountBase(
         action = "obp.get.Account",
         messageFormat = messageFormat,
@@ -666,7 +657,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundAccount(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -714,7 +705,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Accounts",
     messageFormat = messageFormat,
     description = "getBankAccounts from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundBankAccountsBase(
         messageFormat = messageFormat,
         action = "obp.get.Accounts",
@@ -724,7 +715,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundAccount(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -795,7 +786,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.Account",
     messageFormat = messageFormat,
     description = "getAccountByNumber from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundAccountByNumberBase(
         action = "obp.get.Account",
         messageFormat = messageFormat,
@@ -805,7 +796,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         number = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundAccount(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -854,7 +845,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.CounterpartyByCounterpartyId",
     messageFormat = messageFormat,
     description = "getCounterpartyByCounterpartyId from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundCounterpartyByCounterpartyIdBase(
         messageFormat = messageFormat,
         action = "obp.get.CounterpartyByCounterpartyId",
@@ -863,7 +854,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         counterpartyId = "12344"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundCounterparty(
         errorCode = "OBP-6001: ...",
         name = "sushan",
@@ -907,7 +898,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.CounterpartyByIban",
     messageFormat = messageFormat,
     description = "getCounterpartyByIban from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundCounterpartyByIbanBase(
         messageFormat = messageFormat,
         action = "obp.get.CounterpartyByIban",
@@ -917,7 +908,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         otherAccountRoutingScheme = "1234"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       CounterpartyTrait2(
         InboundCounterparty(
           errorCode = "OBP-6001: ...",
@@ -960,7 +951,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.put.Transaction",
     messageFormat = messageFormat,
     description = "saveTransaction from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundSaveTransactionBase(
         action = "obp.put.Transaction",
         messageFormat = messageFormat,
@@ -993,7 +984,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         toCounterpartyBankRoutingScheme = "OBP"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundTransactionId(
         
         errorCode = "OBP-6001: ...",
@@ -1063,13 +1054,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.TransactionRequestStatusesImpl",
     messageFormat = messageFormat,
     description = "getTransactionRequestStatusesImpl from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundTransactionRequestStatusesBase(
         messageFormat = messageFormat,
         action = "obp.get.TransactionRequestStatusesImpl"
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundTransactionRequestStatus(
         transactionRequestId = "123",
         bulkTransactionsStatus = InboundTransactionStatus(
@@ -1106,7 +1097,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.CurrentFxRate",
     messageFormat = messageFormat,
     description = "getCurrentFxRate from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundCurrentFxRateBase(
         action = "obp.get.CurrentFxRate",
         messageFormat = messageFormat,
@@ -1117,7 +1108,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         toCurrencyCode = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundFXRate(
         errorCode = "OBP-6XXXX: .... ",
         bankId = "bankid654",
@@ -1152,7 +1143,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     process = "obp.get.TransactionRequestTypeCharge",
     messageFormat = messageFormat,
     description = "getTransactionRequestTypeCharge from kafka",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundTransactionRequestTypeChargeBase(
         action = "obp.get.TransactionRequestTypeCharge",
         messageFormat = messageFormat,
@@ -1164,7 +1155,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         transactionRequestType = ""
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundTransactionRequestTypeCharge(
         errorCode = "OBP-6001: ...",
         transactionRequestType = "",

@@ -30,12 +30,12 @@ import java.lang
 import java.util.Date
 
 import code.api.util.ApiRole
-import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJsonV121}
+import code.api.v1_2_1.{BankRoutingJsonV121}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200, createEntitlementJSONs}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.branches.Branches._
-import code.common._
+import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.entitlement.Entitlement
 import code.metrics.APIMetric
 import code.model.dataAccess.ResourceUser
@@ -66,14 +66,6 @@ case class CounterpartyIdJson (val counterparty_id : String)
 //For SEPA, it need the iban to find the toCounterpaty--> toBankAccount
 case class IbanJson (val iban : String)
 
-
-//high level of four different kinds of transaction request types: FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
-//They share the same AmountOfMoney and description fields
-//Note : in scala case-to-case inheritance is prohibited, so used trait instead
-trait TransactionRequestCommonBodyJSON {
-  val value : AmountOfMoneyJsonV121
-  val description: String
-}
 
 // the common parts of four types
 // note: there is TransactionRequestCommonBodyJSON trait, so this case class call TransactionRequestBodyCommonJSON

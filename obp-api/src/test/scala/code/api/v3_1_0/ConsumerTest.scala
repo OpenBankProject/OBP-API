@@ -87,7 +87,7 @@ class ConsumerTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
       response310.code should equal(200)
-      response310.body.extract[ConsumersJson]
+      response310.body.extract[ConsumersJsonV310]
     }
   }
 /*

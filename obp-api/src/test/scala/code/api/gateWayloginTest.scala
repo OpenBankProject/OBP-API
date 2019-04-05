@@ -2,7 +2,6 @@ package code.api
 
 import code.api.util.{APIUtil, ErrorMessages}
 import code.bankconnectors.vJune2017.InboundAccountJune2017
-import code.bankconnectors.vMar2017.InboundStatusMessage
 import code.setup.{APIResponse, DefaultUsers, ServerSetup}
 import net.liftweb.common.Full
 import net.liftweb.json

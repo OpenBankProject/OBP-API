@@ -5,9 +5,8 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.model.dataAccess.MappedBankAccountData
-import code.model.Transaction
 import com.openbankproject.commons.dto.{InboundAccount, InboundBank, InboundCustomer, InboundTransaction}
-import com.openbankproject.commons.model.{CreditLimit, _}
+import com.openbankproject.commons.model._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
@@ -15,8 +14,7 @@ import scala.collection.immutable.List
 import scala.math.BigDecimal
 
 object InboundTransformerDec2018 {
-
-  /*
+ /*
    * Customer
    */
   case class AkkaDec2018Customer(
@@ -61,6 +59,9 @@ object InboundTransformerDec2018 {
       creditLimit = customer.creditLimit,
       kycStatus = customer.kycStatus,
       lastOkDate = customer.lastOkDate,
+      title = "", 
+      branchId = "", 
+      nameSuffix = "",
     )
   }
 

@@ -8,7 +8,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
 import code.model.Consumer
 import com.openbankproject.commons.dto.CallContextAkka
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{AuthInfoBasic, User}
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
@@ -36,7 +36,8 @@ case class CallContext(
                        requestHeaders: List[HTTPParam] = Nil,
                        `X-Rate-Limit-Limit` : Long = -1,
                        `X-Rate-Limit-Remaining` : Long = -1,
-                       `X-Rate-Limit-Reset` : Long = -1
+                       `X-Rate-Limit-Reset` : Long = -1,
+                       authInfo: Option[AuthInfoBasic]= None // This is only used for kafka/akka connectors, the mapped connector set default as None.
                       ) {
 
   /**

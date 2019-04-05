@@ -2,8 +2,8 @@ package code.api.v3_1_0
 
 import java.util.UUID
 
-import code.accountattribute.AccountAttribute.AccountAttributeType
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -13,22 +13,21 @@ import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
+import code.api.v2_2_0.JSONFactory220
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
-import code.branches.Branches.BranchId
+import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.Consents
 import code.consumer.Consumers
 import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
-import code.meetings.{ContactDetails, Invitee}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.productattribute.ProductAttribute.ProductAttributeType
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.Product
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
@@ -37,7 +36,7 @@ import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.parse
+import net.liftweb.json.{Extraction, parse}
 import net.liftweb.util.{Helpers, Mailer}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
@@ -3132,7 +3131,44 @@ trait APIMethods310 {
           }
       }
     }
+    
+     resourceDocs += ResourceDoc(
+      getMessageDocsSwagger,
+      implementedInApiVersion,
+      nameOf(getMessageDocsSwagger),
+      "GET",
+      "/message-docs/CONNECTOR/swagger",
+      "Get Message Docs Swagger",
+      """
+        |This endpoint provide example message docs in swagger format.
+        |Only used for rest Connector. Adapter developer can follow this to design the rest Adapter.  
+        |
+        |This call is work in progress - Experimental!
+      """.stripMargin,
+      emptyObjectJson,
+      messageDocsJson,
+      List(UnknownError),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagDocumentation, apiTagApi)
+    )
 
+    lazy val getMessageDocsSwagger: OBPEndpoint = {
+      case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
+            json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(messageDocsSwagger, ApiVersion.v3_1_0)}
+            //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
+            allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
+            jsonAST <- Future{SwaggerJSONFactory.loadDefinitions(messageDocsSwagger, allSwaggerDefinitionCaseClasses)}
+          } yield {
+            // Merge both results and return
+            (Extraction.decompose(json) merge jsonAST, HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
 
 
     resourceDocs += ResourceDoc(

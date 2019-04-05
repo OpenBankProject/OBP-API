@@ -34,7 +34,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 
 
-case class CommentEx(val comment: Comment) {
+case class CommentExtended(val comment: Comment) {
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject = {

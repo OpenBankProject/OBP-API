@@ -2,6 +2,7 @@ package code.taxresidence
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataTaxResidence
+import com.openbankproject.commons.model.TaxResidence
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -22,13 +23,6 @@ trait TaxResidenceProvider {
   def getTaxResidence(customerId: String): Future[Box[List[TaxResidence]]]
   def createTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]]
   def deleteTaxResidence(taxResidenceId: String): Future[Box[Boolean]]
-}
-
-trait TaxResidence {
-  def customerId: Long
-  def taxResidenceId: String
-  def domain: String
-  def taxNumber: String
 }
 
 

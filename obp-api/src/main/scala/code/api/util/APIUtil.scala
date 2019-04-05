@@ -42,12 +42,14 @@ import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
-import code.api.util.ApiTag.{ResourceDocTag, apiTagMockedData}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagMockedData}
+import code.api.util.CallContextFilter.registerFilters
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
 import code.bankconnectors._
 import code.consumer.Consumers
+import code.context.UserAuthContextProvider
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics._
@@ -56,6 +58,7 @@ import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.views.Views
 import com.openbankproject.commons.model.{Customer, _}
 import dispatch.url
 import net.liftweb.actor.LAFuture
@@ -72,7 +75,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -1067,25 +1070,6 @@ object APIUtil extends MdcLoggable {
     Glossary.glossaryItems.toList.sortBy(_.title)
   }
 
-  /**
-    *
-    * This is the base class for all kafka outbound case class
-    * action and messageFormat are mandatory
-    * The optionalFields can be any other new fields .
-    */
-  abstract class OutboundMessageBase(
-    optionalFields: String*
-  ) {
-    def action: String
-    def messageFormat: String
-  }
-
-  abstract class InboundMessageBase(
-    optionalFields: String*
-  ) {
-    def errorCode: String
-  }
-
   // Used to document the KafkaMessage calls
   case class MessageDoc(
                          process: String,
@@ -1093,8 +1077,8 @@ object APIUtil extends MdcLoggable {
                          description: String,
                          outboundTopic: Option[String] = None,
                          inboundTopic: Option[String] = None,
-                         exampleOutboundMessage: JValue,
-                         exampleInboundMessage: JValue,
+                         exampleOutboundMessage: scala.Product,
+                         exampleInboundMessage: scala.Product,
                          outboundAvroSchema: Option[JValue] = None,
                          inboundAvroSchema: Option[JValue] = None,
                          adapterImplementation : Option[AdapterImplementation] = None
@@ -1922,8 +1906,8 @@ Returns a string showed to the developer
       x => (x._1, x._2.map(_.copy(requestHeaders = reqHeaders)))
     } map {
       x => (x._1, x._2.map(_.copy(ipAddress = getRemoteIpAddress())))
-    }
-
+    } 
+    
   }
 
   /**
@@ -2128,7 +2112,10 @@ Returns a string showed to the developer
     */
   def authorizedAccess(cc: CallContext, emptyUserErrorMsg: String = UserNotLoggedIn): OBPReturnType[Box[User]] = {
     anonymousAccess(cc) map {
-      x => (fullBoxOrException(x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))), x._2)
+      x => (fullBoxOrException(
+        x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
+        x._2.map(registerFilters.foldLeft(_)((ct, filter)=> filter(ct, null))) 
+      )
     }
   }
 
@@ -2453,5 +2440,99 @@ Returns a string showed to the developer
       """
         |
       """.stripMargin
+  
+  def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = ResourceDoc(
+    null,
+    ApiVersion.v3_1_0,
+    messageDoc.process,
+    "get",
+    s"/obp-connector/${messageDoc.process.replaceAll("obp.","").replace(".","")}",
+    messageDoc.description,
+    messageDoc.description,
+    messageDoc.exampleOutboundMessage,
+    messageDoc.exampleInboundMessage,
+    errorResponseBodies = List(InvalidJsonFormat),
+    Catalogs(notCore,notPSD2,notOBWG),
+    List(apiTagBank)
+  )
+  
+  def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfoBasic]=
+    for{
+      cc <- tryo {callContext.get} ?~! NoCallContext
+      user <- cc.user
+      username <- tryo(user.name)
+      currentResourceUserId <- Some(user.userId)
+      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload orElse (
+        Some(PayloadOfJwtJSON(login_user_name = "",
+                         is_first = false,
+                         app_id = "",
+                         app_name = "",
+                         time_stamp = "",
+                         cbs_token = Some(""),
+                         cbs_id = "",
+                         session_id = Some(""))))
+      cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
+      isFirst <- tryo(gatewayLoginPayLoad.is_first)
+      correlationId <- tryo(cc.correlationId)
+      sessionId <- tryo(cc.sessionId.getOrElse(""))
+      permission <- Views.views.vend.getPermissionForUser(user)
+      views <- tryo(permission.views)
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
+      basicUserAuthContexts = createBasicUserAuthContextJson(userAuthContexts)
+      authViews<- Full(
+        for{
+          view <- views   
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
+          internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
+          internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
+          viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
+          accountBasic =  AccountBasic(
+            account.accountId.value, 
+            account.accountRoutings, 
+            internalCustomers.customers,
+            internalUsers.users)
+        }yield 
+          AuthView(viewBasic, accountBasic)
+      )
+    } yield{
+      AuthInfoBasic(Some(username), Some(correlationId), Some(sessionId), Some(basicUserAuthContexts), Some(authViews))
+    }
+  
+  def createBasicUserAuthContext(userAuthContest : UserAuthContext) : BasicUserAuthContext = {
+    BasicUserAuthContext(
+      key = userAuthContest.key,
+      value = userAuthContest.value
+    )
+  }
+  
+  def createBasicUserAuthContextJson(userAuthContexts : List[UserAuthContext]) : List[BasicUserAuthContext] = {
+    userAuthContexts.map(createBasicUserAuthContext)
+  }
+  
+  def createAuthInfoCustomerJson(customer : Customer) : InternalBasicCustomer = {
+    InternalBasicCustomer(
+      bankId=customer.bankId,
+      customerId = customer.customerId,
+      customerNumber = customer.number,
+      legalName = customer.legalName,
+      dateOfBirth = customer.dateOfBirth
+    )
+  }
+  
+  def createAuthInfoCustomersJson(customers : List[Customer]) : InternalBasicCustomers = {
+    InternalBasicCustomers(customers.map(createAuthInfoCustomerJson))
+  }
+  
+  def createAuthInfoUserJson(user : User) : InternalBasicUser = {
+    InternalBasicUser(
+      user.userId,
+      user.emailAddress,
+      user.name,
+    )
+  }
+  
+  def createAuthInfoUsersJson(users : List[User]) : InternalBasicUsers = {
+    InternalBasicUsers(users.map(createAuthInfoUserJson))
+  }
 
 }

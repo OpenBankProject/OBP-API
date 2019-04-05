@@ -10,10 +10,10 @@ import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
-import code.kafka.Topics.TopicTrait
 import code.kafka.actor.RequestResponseActor
 import code.kafka.actor.RequestResponseActor.Request
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common.{Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
@@ -262,10 +262,5 @@ object Topics extends KafkaConfig {
       s"to.obp.api.${apiInstanceId}.caseclass.${className.replace("$", "")}"
     )
   }
-
-  // @see 'case request: TopicTrait' in  code/bankconnectors/kafkaStreamsHelper.scala 
-  // This is for Kafka topics for both North and South sides.
-  // In OBP-API, these topics will be created automatically. 
-  trait TopicTrait
 
 }

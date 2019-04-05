@@ -2,6 +2,7 @@ package code.productcollection
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataProductCollection
+import com.openbankproject.commons.model.ProductCollection
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -22,11 +23,6 @@ object ProductCollection extends SimpleInjector {
 trait ProductCollectionProvider {
   def getProductCollection(collectionCode: String): Future[Box[List[ProductCollection]]]
   def getOrCreateProductCollection(collectionCode: String, productCodes: List[String]): Future[Box[List[ProductCollection]]]
-}
-
-trait ProductCollection {
-  def collectionCode: String
-  def productCode: String
 }
 
 class RemotedataProductCollectionCaseClasses {

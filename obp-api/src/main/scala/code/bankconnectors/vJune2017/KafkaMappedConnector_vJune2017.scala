@@ -33,12 +33,10 @@ import code.api.util.APIUtil.{MessageDoc, getSecondsCache, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.util.APIUtil._
-import code.api.v3_1_0.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
-import code.atms.Atms.{AtmId, AtmT}
+import com.openbankproject.commons.model.{AccountV310Json, CardObjectJson, CheckbookOrdersJson}
 import code.bankconnectors._
 import code.bankconnectors.vMar2017._
-import code.branches.Branches.{BranchId, BranchT, Lobby}
-import code.common._
+
 import code.customer._
 import code.kafka.KafkaHelper
 import code.model._
@@ -76,10 +74,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   // Then in this file, populate the different case classes depending on the connector name and send to Kafka
   val messageFormat: String = "June2017"
 
-  implicit val formats = net.liftweb.json.DefaultFormats
-  override val messageDocs = ArrayBuffer[MessageDoc]()
-  val emptyObjectJson: JValue = decompose(Nil)
-  
   //This is special method, it is only used for the first cbs call. cbsToken can be empty here.
   def getAuthInfoFirstCbsCall (username: String, callContext: Option[CallContext]): Box[AuthInfo]=
     for{
@@ -116,10 +110,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
     description = "getAdapterInfo from Adapter, just for testing kafka and Adapter setting.  ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAdapterInfo(authInfoExample, date = DateWithSecondsExampleString)
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundAdapterInfo(
         authInfoExample,
         InboundAdapterInfoInternal(
@@ -212,10 +206,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Banks",
     messageFormat = messageFormat,
     description = "getBanks",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetBanks(authInfoExample)
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetBanks(
         authInfoExample,
         Status(
@@ -326,10 +320,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Bank",
     messageFormat = messageFormat,
     description = "getBank from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetBank(authInfoExample,"bankId")
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetBank(
         authInfoExample,
         Status(
@@ -444,7 +438,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Accounts",
     messageFormat = messageFormat,
     description = "getBankAccounts from kafka",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAccounts(
         authInfoExample,
         InternalBasicCustomers(customers =List(
@@ -456,11 +450,11 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             dateOfBirth = DateWithSecondsExampleObject
           ))))
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetAccounts(authInfoExample, statusExample, InboundAccountJune2017("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
     )
   )
-  override def getBankAccounts(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])] = saveConnectorMetric {
+  override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])] = saveConnectorMetric{
     /**
       * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -511,7 +505,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getBankAccountsFuture(username: String, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]) = saveConnectorMetric{
      /**
         * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -568,14 +562,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Account",
     messageFormat = messageFormat,
     description = "getBankAccount from kafka",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAccountbyAccountID(
         authInfoExample,
         "bankId",
         "accountId"
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetAccountbyAccountID(
         authInfoExample,
         statusExample,
@@ -623,14 +617,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
     description = "checkBankAccountExists from kafka",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundCheckBankAccountExists(
         authInfoExample,
         "bankId",
         "accountId"
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundCheckBankAccountExists(
         authInfoExample,
         statusExample,
@@ -697,14 +691,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.coreBankAccounts",
     messageFormat = messageFormat,
     description = "getCoreBankAccounts from kafka",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAccountbyAccountID(
         authInfoExample,
         "bankId",
         "accountId"
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetAccountbyAccountID(
         authInfoExample,
         statusExample, 
@@ -816,7 +810,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
     description = "getTransactions from kafka",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetTransactions(
         authInfo = authInfoExample,
         bankId = "bankId",
@@ -826,7 +820,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         toDate="DateWithSecondsExampleObject"
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetTransactions(
         authInfoExample,
         statusExample,
@@ -1002,7 +996,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
     description = "getTransaction from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetTransaction(
         authInfoExample,
         "bankId",
@@ -1010,7 +1004,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         "transactionId"
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetTransaction(authInfoExample, statusExample, Some(InternalTransaction_vJune2017(
                 transactionId = "String",
                 accountId = "String",
@@ -1088,7 +1082,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.create.Challenge",
     messageFormat = messageFormat,
     description = "CreateChallenge from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundChallengeBase(
         action = "obp.create.Challenge",
         messageFormat = messageFormat,
@@ -1100,7 +1094,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         transactionRequestId = "1234567"
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundCreateChallengeJune2017(
         authInfoExample,
         InternalCreateChallengeJune2017(
@@ -1157,7 +1151,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.create.Counterparty",
     messageFormat = messageFormat,
     description = "createCounterparty from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundCreateCounterparty(
         authInfoExample,
         OutboundCounterparty(
@@ -1180,7 +1174,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundCreateCounterparty(
         authInfoExample, 
         statusExample,
@@ -1277,7 +1271,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.transactionRequests210",
     messageFormat = messageFormat,
     description = "getTransactionRequests210 from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetTransactionRequests210(
         authInfoExample,
         OutboundTransactionRequests(
@@ -1293,7 +1287,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetTransactionRequests210(
         authInfoExample, 
         statusExample,
@@ -1400,7 +1394,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.counterparties",
     messageFormat = messageFormat,
     description = "getCounterparties from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetCounterparties(
         authInfoExample,
         InternalOutboundGetCounterparties(
@@ -1410,7 +1404,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetCounterparties(authInfoExample, statusExample,
         InternalCounterparty(
           createdByUserId = "",
@@ -1489,7 +1483,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.CounterpartyByCounterpartyId",
     messageFormat = messageFormat,
     description = "getCounterpartyByCounterpartyId from kafka ",
-    exampleOutboundMessage = Extraction.decompose(
+    exampleOutboundMessage = (
       OutboundGetCounterpartyByCounterpartyId(
         authInfoExample,
         OutboundGetCounterpartyById(
@@ -1497,7 +1491,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         )
       )
     ),
-    exampleInboundMessage = Extraction.decompose(
+    exampleInboundMessage = (
       InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     )
   )
@@ -1590,12 +1584,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.CustomersByUserIdBox",
     messageFormat = messageFormat,
     description = "getCustomersByUserIdBox from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetCustomersByUserId(
         authInfoExample
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetCustomersByUserId(
         authInfoExample,
         statusExample,
@@ -1670,7 +1664,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.getStatusOfCheckbookOrdersFuture",
     messageFormat = messageFormat,
     description = "getStatusOfCheckbookOrdersFuture from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetCheckbookOrderStatus(
         authInfoExample,
         bankId = "bankId", 
@@ -1680,7 +1674,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         primaryAccount =""//TODO not sure for now.
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetChecksOrderStatus(
         authInfoExample,
         statusExample,
@@ -1750,7 +1744,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.getStatusOfCreditCardOrderFuture",
     messageFormat = messageFormat,
     description = "getStatusOfCreditCardOrderFuture from kafka ",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetCreditCardOrderStatus(
         authInfoExample,
         bankId = "bankId", 
@@ -1760,7 +1754,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         primaryAccount = ""
       )
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetCreditCardOrderStatus(
         authInfoExample,
         statusExample,
@@ -1975,10 +1969,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Branches",
     messageFormat = messageFormat,
     description = "getBranches",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetBranches(authInfoExample,"bankid")
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetBranches(
         authInfoExample,
         Status("",
@@ -2068,10 +2062,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Branch",
     messageFormat = messageFormat,
     description = "getBranch",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetBranch(authInfoExample,"bankid", "branchid")
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetBranch(
         authInfoExample,
         Status("",
@@ -2164,10 +2158,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Atms",
     messageFormat = messageFormat,
     description = "getAtms",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAtms(authInfoExample,"bankid")
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetAtms(
         authInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),
@@ -2262,10 +2256,10 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     process = "obp.get.Atm",
     messageFormat = messageFormat,
     description = "getAtm",
-    exampleOutboundMessage = decompose(
+    exampleOutboundMessage = (
       OutboundGetAtm(authInfoExample,"bankId", "atmId")
     ),
-    exampleInboundMessage = decompose(
+    exampleInboundMessage = (
       InboundGetAtm(
         authInfoExample,
         Status(errorCodeExample, inboundStatusMessagesExample),

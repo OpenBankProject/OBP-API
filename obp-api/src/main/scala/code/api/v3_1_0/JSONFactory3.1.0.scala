@@ -29,68 +29,28 @@ package code.api.v3_1_0
 import java.lang
 import java.util.Date
 
-import code.accountapplication.AccountApplication
-import code.accountattribute.AccountAttribute.AccountAttribute
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
-import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, RateLimiting}
-import code.api.v1_4_0.JSONFactory1_4_0.{BranchRoutingJsonV141, CustomerFaceImageJson, MetaJsonV140}
-import code.api.v2_0_0.{MeetingJson, MeetingKeysJson, MeetingPresentJson}
+import code.api.v1_2_1.{RateLimiting}
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
+import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
-import code.bankconnectors.ObpApiLoopback
-import code.common.Meta
 import code.consent.MappedConsent
-import code.context.{UserAuthContext, UserAuthContextUpdate}
-import code.customeraddress.CustomerAddress
+import code.context.UserAuthContextUpdate
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
-import code.meetings.Meeting
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, User}
-import code.productattribute.ProductAttribute.ProductAttribute
-import code.productcollection.ProductCollection
-import code.productcollectionitem.ProductCollectionItem
 import code.products.Products.Product
-import code.taxresidence.TaxResidence
 import code.webhook.AccountWebhook
-import com.openbankproject.commons.model.{Customer, User}
+import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
-
-case class CheckbookOrdersJson(
-  account: AccountV310Json ,
-  orders: List[OrderJson]
-)
-
-case class AccountV310Json(
-  bank_id: String ,
-  account_id: String ,
-  account_type : String,
-  account_routings: List[AccountRoutingJsonV121],
-  branch_routings: List[BranchRoutingJsonV141]
-)
-
-case class OrderJson(order: OrderObjectJson)
-
-case class OrderObjectJson(
-  order_id: String,
-  order_date: String,
-  number_of_checkbooks: String,
-  distribution_channel: String,
-  status: String,
-  first_check_number: String,
-  shipping_code: String
-)
-
-case class CardObjectJson(
-  card_type: String,
-  card_description: String,
-  use_type: String
-)
 
 case class CreditCardOrderStatusResponseJson(
   cards: List[CardObjectJson] ,
@@ -175,7 +135,7 @@ case class CheckFundsAvailableJson(answer: String,
                                    date: Date,
                                    available_funds_request_id: String)
 
-case class ConsumerJson(consumer_id: String,
+case class ConsumerJsonV310(consumer_id: String,
                         app_name: String,
                         app_type: String,
                         description: String,
@@ -185,7 +145,7 @@ case class ConsumerJson(consumer_id: String,
                         enabled: Boolean,
                         created: Date
                        )
-case class ConsumersJson(consumers: List[ConsumerJson])
+case class ConsumersJsonV310(consumers: List[ConsumerJsonV310])
 
 case class AccountWebhookJson(account_webhook_id: String,
                               bank_id: String,
@@ -556,7 +516,7 @@ object JSONFactory310{
     CheckFundsAvailableJson(fundsAvailable,new Date(), availableFundsRequestId)
   }
 
-  def createConsumerJSON(c: Consumer, user: Box[User]): ConsumerJson = {
+  def createConsumerJSON(c: Consumer, user: Box[User]): ConsumerJsonV310 = {
     val resourceUserJSON =  user match {
       case Full(resourceUser) => ResourceUserJSON(
         user_id = resourceUser.userId,
@@ -568,7 +528,7 @@ object JSONFactory310{
       case _ => null
     }
 
-    code.api.v3_1_0.ConsumerJson(consumer_id=c.consumerId.get,
+    code.api.v3_1_0.ConsumerJsonV310(consumer_id=c.consumerId.get,
       app_name=c.name.get,
       app_type=c.appType.toString(),
       description=c.description.get,
@@ -580,16 +540,16 @@ object JSONFactory310{
     )
   }
 
-  def createConsumersJson(consumers: List[Consumer], user: Box[User]): ConsumersJson = {
+  def createConsumersJson(consumers: List[Consumer], user: Box[User]): ConsumersJsonV310 = {
     val c = consumers.map(createConsumerJSON(_, user))
-    ConsumersJson(c)
+    ConsumersJsonV310(c)
   }
 
-  def createConsumersJson(consumers: List[Consumer], users: List[User]): ConsumersJson = {
+  def createConsumersJson(consumers: List[Consumer], users: List[User]): ConsumersJsonV310 = {
     val cs = consumers.map(
       c => createConsumerJSON(c, users.filter(_.userId==c.createdByUserId.get).headOption)
     )
-    ConsumersJson(cs)
+    ConsumersJsonV310(cs)
   }
 
   def createAccountWebhookJson(wh: AccountWebhook) = {

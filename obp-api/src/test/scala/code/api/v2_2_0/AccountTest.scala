@@ -2,8 +2,8 @@ package code.api.v2_2_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
-import code.api.v1_2_1.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.setup.DefaultUsers
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 

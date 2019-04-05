@@ -5,60 +5,11 @@ package code.atms
 // Need to import these one by one because in same package!
 
 import code.api.util.OBPQueryParam
-import code.atms.Atms.{AtmId, AtmT}
-import code.common._
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model._
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
 object Atms extends SimpleInjector {
-
-  case class AtmId(value : String){
-    override def toString() = value
-  }
-
-  object AtmId {
-    def unapply(id : String) = Some(AtmId(id))
-  }
-
-  trait AtmT {
-    def atmId : AtmId
-    def bankId : BankId
-    def name : String
-    def address : AddressT
-    def location : LocationT
-    def meta : MetaT
-
-    def  OpeningTimeOnMonday : Option[String]
-    def  ClosingTimeOnMonday : Option[String]
-
-    def  OpeningTimeOnTuesday : Option[String]
-    def  ClosingTimeOnTuesday : Option[String]
-
-    def  OpeningTimeOnWednesday : Option[String]
-    def  ClosingTimeOnWednesday : Option[String]
-
-    def  OpeningTimeOnThursday : Option[String]
-    def  ClosingTimeOnThursday: Option[String]
-
-    def  OpeningTimeOnFriday : Option[String]
-    def  ClosingTimeOnFriday : Option[String]
-
-    def  OpeningTimeOnSaturday : Option[String]
-    def  ClosingTimeOnSaturday : Option[String]
-
-    def  OpeningTimeOnSunday: Option[String]
-    def  ClosingTimeOnSunday : Option[String]
-
-    def  isAccessible : Option[Boolean]
-
-    def  locatedAt : Option[String]
-    def  moreInfo : Option[String]
-    def  hasDepositCapability : Option[Boolean]
-
-
-
-  }
 
   case class Atm (
     atmId : AtmId,

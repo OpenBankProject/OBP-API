@@ -119,8 +119,6 @@ object ExampleValue {
   val accountRoutingAddressExample = ConnectorField("DE91 1000 0000 0123 4567 89", "An identifier that conforms to account_routing_scheme / accountRoutingScheme")
   glossaryItems += makeGlossaryItem("Account.account_routing_address", accountRoutingAddressExample)
 
-
-
   val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 
 
