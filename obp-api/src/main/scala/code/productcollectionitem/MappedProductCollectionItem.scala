@@ -1,8 +1,8 @@
 package code.productcollectionitem
 
 import code.productAttributeattribute.MappedProductAttribute
-import code.productattribute.ProductAttribute.ProductAttribute
 import code.products.MappedProduct
+import com.openbankproject.commons.model.{ProductAttribute, ProductCollectionItem}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo

@@ -6,13 +6,12 @@ import code.api.util.ApiRole.CanDeleteBranchAtAnyBank
 import code.api.util.{ApiVersion, ErrorMessages, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.bankconnectors.Connector
-import code.branches.Branches._
+import code.branches.Branches.Branch
 import code.branches.{Branches, BranchesProvider}
-import code.common._
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model._
 import org.scalatest.Tag
 
 /*

@@ -181,11 +181,6 @@ case class UpdateAccountJSON(
   bank_id : String
 )
 
-case class AccountRoutingJsonV121(
-  scheme: String,
-  address: String
-)
-
 case class ModeratedAccountJSON(
   id : String,
   label : String,
@@ -211,10 +206,7 @@ case class PermissionJSON(
   user : UserJSONV121,
   views : List[ViewJSONV121]
 )
-case class AmountOfMoneyJsonV121(
-  currency : String,
-  amount : String
-)
+
 case class AccountHolderJSON(
   name : String,
   is_alias : Boolean

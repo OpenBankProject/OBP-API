@@ -3,21 +3,11 @@ package code.bankconnectors.vSept2018
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.InboundMessageBase
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.api.v3_1_0.CheckbookOrdersJson
-import code.atms.Atms.{AtmId, AtmT}
-import code.bankconnectors._
 import code.bankconnectors.vJune2017.InternalCustomer
 import code.bankconnectors.vMar2017._
-import code.branches.Branches._
-import code.common.{Address, Location, Meta, Routing}
-import code.context.UserAuthContext
-import code.kafka.Topics._
+import code.branches.Branches.{DriveUpString, LobbyString}
 import code.model.dataAccess.MappedBankAccountData
-import code.model._
-import code.transactionrequests.TransactionRequests.TransactionRequest
-import com.openbankproject.commons.model.{CounterpartyTrait, Customer, _}
+import com.openbankproject.commons.model.{CounterpartyTrait, Customer, UserAuthContext, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
 
@@ -176,23 +166,6 @@ case class Status(
                    backendMessages: List[InboundStatusMessage]
                  )
 
-case class ViewBasic(
-  id: String,
-  short_name: String,
-  description: String,
-)
-
-case class AccountBasic(
-  id: String,
-  accountRoutings: List[AccountRouting],
-  customerOwners: List[InternalBasicCustomer],
-  userOwners: List[InternalBasicUser]
-)
-
-case class AuthView(
-  view: ViewBasic,
-  account:AccountBasic,
-)
 
 case class AuthInfo(
   userId: String = "", 
@@ -211,16 +184,6 @@ case class InboundAuthInfo(
   sessionId: String = ""
 )
 
-case class BasicCustomer(
-  customerId: String,
-  customerNumber: String,
-  legalName: String,
-)
-
-case class BasicUserAuthContext(
-  key: String,
-  value: String
-)
 
 case class InboundAccountSept2018(
   errorCode: String,
@@ -276,23 +239,11 @@ case class BankAccountSept2018(r: InboundAccountSept2018) extends BankAccount {
   
 }
 
-case class InternalBasicCustomer(
-  bankId:String,
+case class BasicCustomer(
   customerId: String,
   customerNumber: String,
   legalName: String,
-  dateOfBirth: Date
 )
-
-case class InternalBasicUser(
-  userId:String,
-  emailAddress: String,
-  name: String
-)
-
-case class InternalBasicCustomers(customers: List[InternalBasicCustomer])
-
-case class InternalBasicUsers(users: List[InternalBasicUser])
 
 case class InternalCreateChallengeSept2018(
   errorCode: String,

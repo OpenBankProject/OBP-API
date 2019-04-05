@@ -28,14 +28,14 @@ package code.api
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util._
-import code.bankconnectors.{Connector, InboundAccountCommon}
+import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, User}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{InboundAccountCommon, User}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
@@ -174,7 +174,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       //if isFirst = true, we create new sessionId for CallContext
       val callContextNewSessionId = ApiSession.createSessionId(callContextForRequest)
       // Call CBS, Note, this is the first time to call Adapter in GatewayLogin process
-      val res = Connector.connector.vend.getBankAccounts(username, callContextNewSessionId) // Box[List[InboundAccountJune2017]]//
+      val res = Connector.connector.vend.getBankAccountsByUsername(username,callContextNewSessionId) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full((l, callContextReturn))=>
           Full(compactRender(Extraction.decompose(l)),l, callContextReturn) // case class --> JValue --> Json string
@@ -207,7 +207,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       val callContextUpdatedSessionId = ApiSession.createSessionId(callContextForRequest)
 
       // Call CBS
-      val res = Connector.connector.vend.getBankAccountsFuture(username, callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
+      val res = Connector.connector.vend.getBankAccountsByUsernameFuture(username,callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
       res map {
         case Full((l, callContextReturn)) =>
           Full(compactRender(Extraction.decompose(l)), l, callContextReturn) // case class --> JValue --> Json string

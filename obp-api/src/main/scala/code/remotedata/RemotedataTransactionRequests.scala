@@ -2,11 +2,11 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.model._
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+
+import code.transactionrequests.TransactionRequests.{TransactionRequestBody}
+import com.openbankproject.commons.model.{TransactionRequest, TransactionRequestChallenge, TransactionRequestCharge, _}
 import code.transactionrequests.{MappedTransactionRequest, RemotedataTransactionRequestsCaseClasses, TransactionRequestProvider}
-import com.openbankproject.commons.model.{CounterpartyTrait, _}
+
 import net.liftweb.common.Box
 
 object RemotedataTransactionRequests extends ObpActorInit with TransactionRequestProvider {

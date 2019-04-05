@@ -1,9 +1,8 @@
 package code.products
 
-import code.common.{License, Meta}
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.Product
 import code.util.UUIDString
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.{BankId, License, Meta, ProductCode}
 import net.liftweb.mapper._
 
 

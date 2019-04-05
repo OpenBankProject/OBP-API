@@ -26,23 +26,16 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model
 
-import java.util.Date
-
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil.unboxFullOrFail
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.Connector
 import code.customer.Customer
-import code.metadata.comments.Comments
-import code.metadata.narrative.Narrative
-import code.metadata.tags.Tags
-import code.metadata.transactionimages.TransactionImages
-import code.metadata.wheretags.WhereTags
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, AccountRouting, Bank, BankAccount, BankAccountInMemory, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, TransactionMetadata, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, Bank, BankAccount, BankAccountInMemory, BankId, BankIdAccountId, Counterparty, CounterpartyId, CounterpartyTrait, CreateViewJson, Customer, Permission, TransactionId, UpdateViewJSON, User, UserPrimaryKey, View, ViewId, ViewIdBankIdAccountId}
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JArray, JObject}
@@ -50,10 +43,9 @@ import net.liftweb.json.{JArray, JObject}
 import scala.collection.immutable.{List, Set}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.math.BigDecimal
 
 
-case class BankEx(bank: Bank) {
+case class BankExtended(bank: Bank) {
 
   def publicAccounts(publicViewsForBank: List[View]) : List[BankAccount] = {
     publicViewsForBank
@@ -123,7 +115,7 @@ class AccountOwner(
 
 // TODO Add: @define productCode A code (no spaces, url friendly) that identifies the financial product this account is based on.
 
-case class BankAccountEx(val bankAccount: BankAccount) extends MdcLoggable {
+case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable {
 
   private val bankId = bankAccount.bankId
 
@@ -590,56 +582,3 @@ trait TransactionUUID {
   def theAccountId : AccountId
 }
 
-class Transaction(
-                   //A universally unique id
-                   val uuid: String,
-                   //id is unique for transactions of @thisAccount
-                   val id : TransactionId,
-                   val thisAccount : BankAccount,
-                   val otherAccount : Counterparty,
-                   //E.g. cash withdrawal, electronic payment, etc.
-                   val transactionType : String,
-                   val amount : BigDecimal,
-                   //ISO 4217, e.g. EUR, GBP, USD, etc.
-                   val currency : String,
-                   // Bank provided label
-                   val description : Option[String],
-                   // The date the transaction was initiated
-                   val startDate : Date,
-                   // The date when the money finished changing hands
-                   val finishDate : Date,
-                   //the new balance for the bank account
-                   val balance :  BigDecimal
-                 ) {
-
-  val bankId = thisAccount.bankId
-  val accountId = thisAccount.accountId
-
-  /**
-    * The metadata is set up using dependency injection. If you want to, e.g. override the Comments implementation
-    * for a particular scope, use Comments.comments.doWith(NewCommentsImplementation extends Comments{}){
-    *   //code in here will use NewCommentsImplementation (e.g. val t = new Transaction(...) will result in Comments.comments.vend
-    *   // return NewCommentsImplementation here below)
-    * }
-    *
-    * If you want to change the current default implementation, you would change the buildOne function in Comments to
-    * return a different value
-    *
-    */
-  val metadata : TransactionMetadata = new TransactionMetadata(
-    Narrative.narrative.vend.getNarrative(bankId, accountId, id) _,
-    Narrative.narrative.vend.setNarrative(bankId, accountId, id) _,
-    Comments.comments.vend.getComments(bankId, accountId, id) _,
-    Comments.comments.vend.addComment(bankId, accountId, id) _,
-    Comments.comments.vend.deleteComment(bankId, accountId, id) _,
-    Tags.tags.vend.getTags(bankId, accountId, id) _,
-    Tags.tags.vend.addTag(bankId, accountId, id) _,
-    Tags.tags.vend.deleteTag(bankId, accountId, id) _,
-    TransactionImages.transactionImages.vend.getImagesForTransaction(bankId, accountId, id) _,
-    TransactionImages.transactionImages.vend.addTransactionImage(bankId, accountId, id) _,
-    TransactionImages.transactionImages.vend.deleteTransactionImage(bankId, accountId, id) _,
-    WhereTags.whereTags.vend.getWhereTagForTransaction(bankId, accountId, id) _,
-    WhereTags.whereTags.vend.addWhereTag(bankId, accountId, id) _,
-    WhereTags.whereTags.vend.deleteWhereTag(bankId, accountId, id) _
-  )
-}

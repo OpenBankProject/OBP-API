@@ -2,7 +2,8 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.taxresidence.{RemotedataTaxResidenceCaseClasses, TaxResidence, TaxResidenceProvider}
+import code.taxresidence.{RemotedataTaxResidenceCaseClasses, TaxResidenceProvider}
+import com.openbankproject.commons.model.TaxResidence
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

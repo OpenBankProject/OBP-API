@@ -4,20 +4,12 @@ package code.products
 
 // Need to import these one by one because in same package!
 
-import code.products.Products.{Product, ProductCode}
-import code.common.{Address, LocationT, Meta}
-import com.openbankproject.commons.model.BankId
+import code.products.Products.Product
+import com.openbankproject.commons.model.{BankId, Meta, ProductCode}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
 object Products extends SimpleInjector {
-
-  // Good to have this as a class because when passing as argument, we get compiler error if passing the wrong type.
-  case class ProductCode(value : String)
-
-  object ProductCode {
-    def unapply(code : String) = Some(ProductCode(code))
-  }
 
   trait Product {
     def code : ProductCode

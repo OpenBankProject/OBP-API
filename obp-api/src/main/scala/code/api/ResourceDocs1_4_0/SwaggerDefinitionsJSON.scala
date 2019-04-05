@@ -2,22 +2,20 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
-import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
-import code.api.{Constant, v3_1_0}
+import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
-import code.api.util.{APIUtil, ApiTrigger}
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.Glossary.GlossaryItem
-import code.api.v1_2_1.AmountOfMoneyJsonV121
+import code.api.util.{APIUtil, ApiTrigger}
+import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
-import code.api.v3_0_0.{LobbyJsonV330, ScopeJson, _}
+import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, _}
-import code.branches.Branches.{DriveUpString, _}
-import code.common._
+import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.api.builder.JsonFactory_APIBuilder
@@ -56,7 +54,6 @@ object SwaggerDefinitionsJSON {
   // from code.model, not from normal version JSON Factory
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
-  import code.model._
 
   val amountOfMoney = AmountOfMoney(
     currency = "EUR",
@@ -405,6 +402,7 @@ object SwaggerDefinitionsJSON {
     future_date = Some("20881230")
   )
 
+  val adapterImplementationJson = AdapterImplementationJson("CORE",3)
 
   val messageDocJson = MessageDocJson(
     process = "getAccounts",
@@ -416,7 +414,7 @@ object SwaggerDefinitionsJSON {
     example_inbound_message = defaultJValue,
     outboundAvroSchema = Some(defaultJValue),
     inboundAvroSchema = Some(defaultJValue),
-    adapter_implementation = AdapterImplementationJson("CORE",3)
+    adapter_implementation = adapterImplementationJson
   )
 
   val messageDocsJson = MessageDocsJson(message_docs = List(messageDocJson))
@@ -2076,20 +2074,20 @@ object SwaggerDefinitionsJSON {
     list = List(consumerJSON)
   )
 
-  val consumersJson310 = v3_1_0.ConsumersJson(
-    List(
-      v3_1_0.ConsumerJson(
-        consumer_id = "8e716299-4668-4efd-976a-67f57a9984ec",
-        app_name = "SOFI",
-        app_type = "Web",
-        description = "Account Management",
-        developer_email = "contact@tesobe.com",
-        redirect_url = "www.openbankproject.com",
-        created_by_user = resourceUserJSON,
-        enabled = true,
-        created = DateWithDayExampleObject
-      )
-    )
+  val consumerJsonV310 = ConsumerJsonV310(
+    consumer_id = "8e716299-4668-4efd-976a-67f57a9984ec",
+    app_name = "SOFI",
+    app_type = "Web",
+    description = "Account Management",
+    developer_email = "contact@tesobe.com",
+    redirect_url = "www.openbankproject.com",
+    created_by_user = resourceUserJSON,
+    enabled = true,
+    created = DateWithDayExampleObject
+  )
+  
+  val consumersJson310 = ConsumersJsonV310(
+    List(consumerJsonV310)
   )
 
   val putEnabledJSON = PutEnabledJSON(
@@ -3000,6 +2998,18 @@ object SwaggerDefinitionsJSON {
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
   )
+  
+  val rateLimit = RateLimit(Some(-1),Some(-1))
+  
+  val redisCallLimitJson = RedisCallLimitJson(
+    Some(rateLimit),
+    Some(rateLimit),
+    Some(rateLimit),
+    Some(rateLimit),
+    Some(rateLimit),
+    Some(rateLimit)
+  )
+  
   val callLimitJson = CallLimitJson(
     per_second_call_limit = "-1",
     per_minute_call_limit = "-1",
@@ -3007,7 +3017,7 @@ object SwaggerDefinitionsJSON {
     per_day_call_limit ="-1",
     per_week_call_limit = "-1",
     per_month_call_limit = "-1",
-    None
+    Some(redisCallLimitJson)
   )
 
   val accountWebhookPostJson = AccountWebhookPostJson(

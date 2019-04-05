@@ -2,49 +2,16 @@ package code.meetings
 
 import java.util.Date
 
-import com.openbankproject.commons.model.{BankId, User}
+import com.openbankproject.commons.model.{BankId, ContactDetails, Invitee, Meeting, User}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
 
-
-trait Meeting {
-  def meetingId: String
-  def providerId: String
-  def purposeId: String
-  def bankId: String
-  def present: MeetingPresent
-  def keys: MeetingKeys
-  def when: Date
-  def creator: ContactDetails
-  def invitees: List[Invitee]
-}
-case class Invitee(
-  contactDetails: ContactDetails,
-  status: String
-)
-
 case class ContactMedium(
   `type`: String, 
   value: String
 )
-case class ContactDetails(
-                         name: String,
-                         phone: String,
-                         email: String
-                         )
-
-case class MeetingKeys (
-                         sessionId: String,
-                         customerToken: String,
-                         staffToken: String
-  )
-
-case class MeetingPresent(
-                           staffUserId: String,
-                           customerUserId: String
-                           )
 
 
 object Meeting extends SimpleInjector {
@@ -58,7 +25,7 @@ object Meeting extends SimpleInjector {
 trait MeetingProvider {
   def getMeetings(
     bankId : BankId, 
-    userId: User
+    user: User
   ) : Box[List[Meeting]]
   
   def createMeeting(
@@ -77,7 +44,7 @@ trait MeetingProvider {
   
   def getMeeting(
     bankId: BankId,
-    userId: User, 
+    user: User, 
     meetingId : String
   ) : Box[Meeting]
 }

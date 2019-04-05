@@ -2,51 +2,35 @@ package code.api.util
 
 import java.util.Date
 
-import code.accountapplication.AccountApplication
-import code.accountattribute.AccountAttribute.{AccountAttribute, AccountAttributeType}
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
-import code.api.v3_1_0.{ContactDetailsJson, InviteeJson}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.atms.Atms
-import code.atms.Atms.AtmId
-import code.bankconnectors.vMar2017.InboundAdapterInfoInternal
-import code.bankconnectors.{Connector, ObpApiLoopback}
-import code.branches.Branches
-import code.branches.Branches.{Branch, BranchId, DriveUp, DriveUpString, Lobby, LobbyString}
-import code.common.{Address, Location, Meta, Routing}
+import code.bankconnectors.Connector
+import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
-import code.context.{UserAuthContext, UserAuthContextUpdate}
+import code.context.UserAuthContextUpdate
 import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
-import code.meetings.{ContactDetails, Invitee, Meeting}
 import code.metadata.counterparties.Counterparties
 import code.model._
-import code.productattribute.ProductAttribute.{ProductAttribute, ProductAttributeType}
-import code.productcollection.ProductCollection
-import code.productcollectionitem.ProductCollectionItem
-import code.products.Products.{Product, ProductCode}
-import code.taxresidence.TaxResidence
+import code.products.Products.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
-import code.transactionrequests.TransactionRequests.TransactionRequest
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{Bank, Customer, _}
+import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.True
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
@@ -195,7 +179,7 @@ object NewStyle {
   object function {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[Branches.BranchT] = {
+    def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[BranchT] = {
       Connector.connector.vend.getBranchFuture(bankId, branchId, callContext) map {
         val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
         x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
@@ -209,7 +193,7 @@ object NewStyle {
       * @param callContext call context
       * @return true is mean delete success, false is delete fail
       */
-    def deleteBranch(branch : Branches.BranchT, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+    def deleteBranch(branch : BranchT, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       val deletedBranch = Branch(
         branch.branchId ,
         branch.bankId ,
@@ -236,7 +220,7 @@ object NewStyle {
       } map { unboxFull(_) }
     }
 
-    def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]): OBPReturnType[Atms.AtmT] = {
+    def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]): OBPReturnType[AtmT] = {
       Connector.connector.vend.getAtmFuture(bankId, atmId, callContext) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
@@ -938,12 +922,12 @@ object NewStyle {
     
     def getMeetings(
       bankId : BankId, 
-      userId: User,
+      user: User,
       callContext: Option[CallContext]
     ) :OBPReturnType[List[Meeting]] ={
       Connector.connector.vend.getMeetings(
-        bankId : BankId, 
-        userId: User,
+        bankId : BankId,
+        user: User,
         callContext: Option[CallContext]
       ) map {
           i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not getMeetings in the backend. ", 400), i._2)
@@ -952,15 +936,15 @@ object NewStyle {
     
     def getMeeting(
       bankId: BankId,
-      userId: User, 
+      user: User, 
       meetingId : String,
       callContext: Option[CallContext]
     ) :OBPReturnType[Meeting]={ 
       Connector.connector.vend.getMeeting(
-      bankId: BankId,
-      userId: User, 
-      meetingId : String,
-      callContext: Option[CallContext]
+        bankId: BankId,
+        user: User,
+        meetingId : String,
+        callContext: Option[CallContext]
     ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$MeetingNotFound Current MeetingId(${meetingId}) ", 400), i._2)
       }

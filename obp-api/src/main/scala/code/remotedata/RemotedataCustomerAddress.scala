@@ -2,7 +2,8 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
-import code.customeraddress.{CustomerAddress, CustomerAddressProvider, RemotedataCustomerAddressCaseClasses}
+import code.customeraddress.{CustomerAddressProvider, RemotedataCustomerAddressCaseClasses}
+import com.openbankproject.commons.model.CustomerAddress
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List

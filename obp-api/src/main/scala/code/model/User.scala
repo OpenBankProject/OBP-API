@@ -40,7 +40,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{BankIdAccountId, User, UserPrimaryKey, View, ViewId}
 import net.liftweb.mapper.By
 
-case class UserEx(val user: User) extends MdcLoggable {
+case class UserExtended(val user: User) extends MdcLoggable {
 
   private[this] val userPrimaryKey: UserPrimaryKey = user.userPrimaryKey
   private[this] val userId: String = user.userId

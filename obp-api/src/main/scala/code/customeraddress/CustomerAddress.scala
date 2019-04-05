@@ -1,9 +1,8 @@
 package code.customeraddress
 
-import java.util.Date
-
 import code.api.util.APIUtil
 import code.remotedata.RemotedataCustomerAddress
+import com.openbankproject.commons.model.CustomerAddress
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -47,22 +46,6 @@ trait CustomerAddressProvider {
                     status: String
                    ): Future[Box[CustomerAddress]]
   def deleteAddress(customerAddressId: String): Future[Box[Boolean]]
-}
-
-trait CustomerAddress {
-  def customerId: String
-  def customerAddressId: String
-  def line1: String
-  def line2: String
-  def line3: String
-  def city: String
-  def county: String
-  def state: String
-  def postcode: String
-  def countryCode: String
-  def status: String
-  def tags: String
-  def insertDate: Date
 }
 
 

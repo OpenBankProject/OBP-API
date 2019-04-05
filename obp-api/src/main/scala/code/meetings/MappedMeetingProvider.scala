@@ -3,11 +3,10 @@ package code.meetings
 import java.util.Date
 
 import code.api.util.ErrorMessages
-import code.cards.PinReset
 import code.model.dataAccess.ResourceUser
 import code.util.{MappedUUID, UUIDString}
-import com.openbankproject.commons.model.{BankId, User}
-import net.liftweb.common.{Box, Full}
+import com.openbankproject.commons.model.{BankId, ContactDetails, Invitee, Meeting, MeetingKeys, MeetingPresent, User}
+import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
@@ -16,7 +15,7 @@ import scala.collection.immutable.List
 object MappedMeetingProvider extends MeetingProvider {
 
 
-  override def getMeeting(bankId : BankId, userId: User, meetingId : String): Box[Meeting] = {
+  override def getMeeting(bankId : BankId, user: User, meetingId : String): Box[Meeting] = {
     // Return a Box so we can handle errors later.
     MappedMeeting.find(
       // TODO Need to check permissions (user)
@@ -26,7 +25,7 @@ object MappedMeetingProvider extends MeetingProvider {
   }
 
 
-  override def getMeetings(bankId : BankId, userId: User): Box[List[Meeting]] = {
+  override def getMeetings(bankId : BankId, user: User): Box[List[Meeting]] = {
     // Return a Box so we can handle errors later.
    tryo{MappedMeeting.findAll(By(
 //      TODO Need to check permissions (user)

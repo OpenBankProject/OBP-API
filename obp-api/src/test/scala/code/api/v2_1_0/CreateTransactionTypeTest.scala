@@ -4,7 +4,7 @@ import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateTransactionType
 import code.api.util.{ApiRole, ErrorMessages}
-import code.api.v1_2_1.AmountOfMoneyJsonV121
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v2_0_0.TransactionTypeJsonV200
 import code.setup.DefaultUsers
 import code.transaction_types.MappedTransactionType

@@ -521,12 +521,10 @@ object SwaggerJSONFactory {
     *         } ...
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-  def loadDefinitions(resourceDocList: List[ResourceDoc]): liftweb.json.JValue = {
+  def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Array[AnyRef]): liftweb.json.JValue = {
   
     implicit val formats = DefaultFormats
   
-    val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
-    
     //Translate every entity(JSON Case Class) in a list to appropriate swagger format
     val listOfExampleRequestBodyDefinition =
       for (e <- resourceDocList if e.exampleRequestBody != null)
@@ -544,7 +542,6 @@ object SwaggerJSONFactory {
           translateEntity(e)
         }
   
-    //TODO, the errors are just String, not the case classes. need to be fixed 
     val errorMessageList = ErrorMessages.allFields.toList
     val listErrorDefinition =
       for (e <- errorMessageList if e != null)

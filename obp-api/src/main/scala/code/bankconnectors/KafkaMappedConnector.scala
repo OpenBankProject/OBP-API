@@ -23,15 +23,12 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.Date
 
-import code.accountholders.AccountHolders
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v2_1_0.TransactionRequestCommonBodyJSON
-import code.bankconnectors.vMar2017.{InboundAdapterInfoInternal, KafkaMappedConnector_vMar2017}
-import code.branches.Branches.{Branch, BranchT}
+import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
+import code.branches.Branches.Branch
 import code.fx.{FXRate, fx}
 import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
@@ -43,7 +40,7 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.{Product, ProductCode}
+import code.products.Products.Product
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
@@ -55,11 +52,10 @@ import com.openbankproject.commons.model.{Bank, _}
 import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Seq}
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable {
 
@@ -89,9 +85,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   //
 
   val formatVersion: String  = "Nov2016"
-
-  implicit val formats = net.liftweb.json.DefaultFormats
-
 
   // TODO Create and use a case class for each Map so we can document each structure.
 

@@ -35,9 +35,9 @@ import code.metadata.counterparties.Counterparties
 import com.openbankproject.commons.model._
 import net.liftweb.common._
 
-case class ViewEx(val view: View) {
+case class ViewExtended(val view: View) {
 
-  val viewLogger = Logger(classOf[ViewEx])
+  val viewLogger = Logger(classOf[ViewExtended])
 
   def moderateTransaction(transaction : Transaction): Box[ModeratedTransaction] = {
     moderateTransactionUsingModeratedAccount(transaction, moderateAccount(transaction.thisAccount))

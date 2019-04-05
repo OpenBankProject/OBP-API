@@ -50,7 +50,7 @@ TESOBE (http://www.tesobe.com/)
 import java.util.{Date, UUID}
 
 import code.api.util.APIUtil
-import code.api.v1_2_1.AmountOfMoneyJsonV121
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.api.v2_0_0.JSONFactory200.UserJsonV200
 import code.api.v2_1_0.{CustomerCreditRatingJSON, PostCustomerJsonV210}
