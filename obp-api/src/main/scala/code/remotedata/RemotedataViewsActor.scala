@@ -1,19 +1,20 @@
 package code.remotedata
 
 import akka.actor.Actor
+import akka.pattern.pipe
 import code.actorsystem.ObpActorHelper
-import code.views.{MapperViews, RemotedataViewsCaseClasses}
-import code.model._
 import code.util.Helper.MdcLoggable
+import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import com.openbankproject.commons.model._
-import net.liftweb.common._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
   val mapper = MapperViews
   val cc = RemotedataViewsCaseClasses
 
-  def receive = {
+  def receive: PartialFunction[Any, Unit] = {
 
     case cc.addPermissions(views : List[ViewIdBankIdAccountId], user : User) =>
       logger.debug("addPermissions(" + views +"," + user +")")
@@ -46,6 +47,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.viewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("vieFuture(" + viewId +", "+ bankAccountId + ")")
       sender ! (mapper.view(viewId, bankAccountId))
+      
+    case cc.systemViewFuture(viewId: ViewId) =>
+      logger.debug("systemViewFuture(" + viewId + ")")
+      (mapper.systemViewFuture(viewId)) pipeTo sender
 
     case cc.createView(bankAccountId : BankIdAccountId, view: CreateViewJson) =>
       logger.debug("createView(" + bankAccountId +","+ view +")")

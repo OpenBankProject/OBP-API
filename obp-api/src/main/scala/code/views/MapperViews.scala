@@ -12,7 +12,7 @@ import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
-import net.liftweb.mapper.{By, ByList, Schemifier}
+import net.liftweb.mapper.{By, ByList, NullRef, Schemifier}
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
@@ -202,6 +202,15 @@ object MapperViews extends Views with MdcLoggable {
   def viewFuture(viewId : ViewId, account: BankIdAccountId) : Future[Box[View]] = {
     Future {
       view(viewId, account)
+    }
+  }
+  def systemViewFuture(viewId : ViewId) : Future[Box[View]] = {
+    Future {
+      ViewImpl.find(
+        By(ViewImpl.permalink_, viewId.value),
+        NullRef(ViewImpl.bankPermalink),
+        NullRef(ViewImpl.accountPermalink)
+      )
     }
   }
 

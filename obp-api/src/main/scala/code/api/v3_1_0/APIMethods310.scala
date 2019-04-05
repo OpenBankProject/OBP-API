@@ -13,6 +13,7 @@ import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
+import code.api.v2_2_0.JSONFactory220
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -3410,6 +3411,43 @@ trait APIMethods310 {
               }
           } yield {
             (createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getSystemView,
+      implementedInApiVersion,
+      "getSystemView",
+      "GET",
+      "/system-views/VIEW_ID",
+      "Get System View",
+      s"""Get System View
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      viewJSONV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagView, apiTagNewStyle))
+
+    lazy val getSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, callContext)
+            view <- NewStyle.function.systemView(ViewId(viewId), callContext)
+          } yield {
+            (JSONFactory220.createViewJSON(view), HttpCode.`200`(callContext))
           }
       }
     }
