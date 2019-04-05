@@ -303,27 +303,14 @@ kafka.host is used by the producer and kafka.zookeeper_host is used by the consu
         cd OBP-API/obp-api/
          mvn jetty:run
 
-4) OBP-JVM
-
-* Build the package:
-
-        cd OBP-JVM
-        mvn install
-
-* Run the demo:
-
-        java -jar obp-ri-demo/target/obp-ri-demo-2016.9-SNAPSHOT-jar-with-dependencies.jar&
-
-* Here be aware that the name of the jar file might be different, so make sure to use the correct name of the jar file
-
-5) OBP-Kafka-Python
+4) OBP-Kafka-Python
 
 * Run from the command line:
 
         cd OBP-Kafka-Python
         python server.py
 
-6) To test the setup, try a request
+5) To test the setup, try a request
 
 http://localhost:8080/obp/v2.0.0/banks
 
