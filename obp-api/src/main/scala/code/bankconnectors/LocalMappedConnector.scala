@@ -290,7 +290,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams : Seq[QueryParam[MappedTransaction]]) : Box[List[Transaction]]
     = {
       /**
-        * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
         * The real value will be assigned by Macro during compile time at this line of a code:
         * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
@@ -336,7 +336,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[TransactionCore]]
       = {
         /**
-          * Please noe that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+          * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
           * is just a temporary value filed with UUID values in order to prevent any ambiguity.
           * The real value will be assigned by Macro during compile time at this line of a code:
           * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49

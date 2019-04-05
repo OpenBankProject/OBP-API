@@ -3137,7 +3137,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getMessageDocsSwagger),
       "GET",
-      "/message-docs/CONNECTOR/swagger",
+      "/message-docs/CONNECTOR/swagger2.0",
       "Get Message Docs Swagger",
       """
         |This endpoint provide example message docs in swagger format.

@@ -104,69 +104,39 @@ trait AccountApplication {
 
 trait AccountAttribute {
   def bankId: BankId
-
   def accountId: AccountId
-
   def productCode: ProductCode
-
   def accountAttributeId: String
-
   def name: String
-
   def attributeType: AccountAttributeType.Value
-
   def value: String
 }
 
 trait AtmT {
   def atmId: AtmId
-
   def bankId: BankId
-
   def name: String
-
   def address: AddressT
-
   def location: LocationT
-
   def meta: MetaT
-
   def OpeningTimeOnMonday: Option[String]
-
   def ClosingTimeOnMonday: Option[String]
-
   def OpeningTimeOnTuesday: Option[String]
-
   def ClosingTimeOnTuesday: Option[String]
-
   def OpeningTimeOnWednesday: Option[String]
-
   def ClosingTimeOnWednesday: Option[String]
-
   def OpeningTimeOnThursday: Option[String]
-
   def ClosingTimeOnThursday: Option[String]
-
   def OpeningTimeOnFriday: Option[String]
-
   def ClosingTimeOnFriday: Option[String]
-
   def OpeningTimeOnSaturday: Option[String]
-
   def ClosingTimeOnSaturday: Option[String]
-
   def OpeningTimeOnSunday: Option[String]
-
   def ClosingTimeOnSunday: Option[String]
-
   def isAccessible: Option[Boolean]
-
   def locatedAt: Option[String]
-
   def moreInfo: Option[String]
-
   def hasDepositCapability: Option[Boolean]
-
 }
 
 // MappedBranch will implement this.
