@@ -334,7 +334,7 @@ object Glossary {
 		title = "API.Timeouts",
 		description =
 				s"""
-					 |<img width="1403" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50471858-b52f8900-09b6-11e9-9888-454e6d41907c.png"></img>
+					 |<img width="1000" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50471858-b52f8900-09b6-11e9-9888-454e6d41907c.png"></img>
 					 |
            |
            |
@@ -1417,6 +1417,8 @@ object Glossary {
  |### Introduction
 |Google's OAuth 2.0 APIs can be used for both authentication and authorization. This document describes our OAuth 2.0 implementation for authentication, which conforms to the OpenID Connect specification, and is OpenID Certified.
 |For complete documentation please refer to the official doc's page: [OpenID Connect](https://developers.google.com/identity/protocols/OpenIDConnect)
+|
+|<img width="1000" alt="OpenID Connect with Google Image" src="https://user-images.githubusercontent.com/29032407/51373848-76967580-1b01-11e9-9c9d-799c0c42f98b.png"></img>
 |
  |### Obtain OAuth 2.0 credentials
 |Please refer to the official doc's page: [OpenID Connect](https://developers.google.com/identity/protocols/OpenIDConnect)
