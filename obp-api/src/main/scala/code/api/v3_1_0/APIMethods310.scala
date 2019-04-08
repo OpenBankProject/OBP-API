@@ -3103,7 +3103,7 @@ trait APIMethods310 {
 
     
     resourceDocs += ResourceDoc(
-      getServerJWK,
+      getOAuth2ServerJWKsURIs,
       implementedInApiVersion,
       "getServerJWK",
       "GET",
@@ -3537,6 +3537,37 @@ trait APIMethods310 {
             view <- NewStyle.function.createSystemView(createViewJson, callContext)
           } yield {
             (JSONFactory300.createViewJSON(view),  HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getOAuth2ServerJWKsURIs,
+      implementedInApiVersion,
+      "getOAuth2ServerJWKsURIs",
+      "GET",
+      "/jwks-uris",
+      "Get JSON Web Key (JWK) URIs",
+      """Get the OAuth2 server's public JSON Web Key (JWK) URIs.
+        | It is required by client applications to validate ID tokens, self-contained access tokens and other issued objects.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      oAuth2ServerJwksUrisJson,
+      List(
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi))
+
+    lazy val getOAuth2ServerJWKsURIs: OBPEndpoint = {
+      case "jwks-uris" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+          } yield {
+            (getOAuth2ServerJwksUrisJson(), HttpCode.`200`(callContext))
           }
       }
     }

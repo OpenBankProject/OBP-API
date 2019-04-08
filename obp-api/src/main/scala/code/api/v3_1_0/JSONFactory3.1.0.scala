@@ -32,7 +32,7 @@ import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
-import code.api.v1_2_1.{RateLimiting}
+import code.api.v1_2_1.RateLimiting
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
@@ -446,6 +446,9 @@ case class ConsentsJsonV310(consents: List[ConsentJsonV310])
 
 case class PostConsentChallengeJsonV310(answer: String)
 case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: String)
+
+case class OAuth2ServerJWKURIJson(jwks_uri: String)
+case class OAuth2ServerJwksUrisJson(jwks_uris: List[OAuth2ServerJWKURIJson])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -893,6 +896,11 @@ object JSONFactory310{
   
   def createConsentsJsonV310(consents: List[MappedConsent]): ConsentsJsonV310= {
     ConsentsJsonV310(consents.map(c => ConsentJsonV310(c.consentId, c.jsonWebToken, c.status)))
+  }
+  
+  def getOAuth2ServerJwksUrisJson(): OAuth2ServerJwksUrisJson = {
+    val url = APIUtil.getPropsValue("oauth2.jwk_set.url", "Not set").split(",").toList.map(OAuth2ServerJWKURIJson)
+    OAuth2ServerJwksUrisJson(url)
   }
 
 }

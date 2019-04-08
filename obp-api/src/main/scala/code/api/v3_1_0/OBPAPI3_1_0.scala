@@ -335,7 +335,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.createMeeting ::
                           Implementations3_1_0.getMeetings ::
                           Implementations3_1_0.getMeeting ::
-                          Implementations3_1_0.getServerJWK ::
+                          Implementations3_1_0.getOAuth2ServerJWKsURIs ::
                           Implementations3_1_0.createConsent ::
                           Implementations3_1_0.answerConsentChallenge ::
                           Implementations3_1_0.getConsents ::
@@ -344,6 +344,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.answerUserAuthContextUpdateChallenge ::
                           Implementations3_1_0.getSystemView ::
                           Implementations3_1_0.createSystemView ::
+                          Implementations3_1_0.getOAuth2ServerJWKsURIs ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

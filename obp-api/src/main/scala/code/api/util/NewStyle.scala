@@ -146,7 +146,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createConsent), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
@@ -154,7 +154,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createUserAuthContextUpdate), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
