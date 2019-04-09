@@ -40,18 +40,14 @@ case class Generator(methodName: String, tp: Type) {
   val signature = s"$methodName$paramAnResult"
   val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
   val urlDemo = s"/$name" + params.map(it => s"/$it/{$it}").mkString
-  val jsonType = if(resultType.startsWith("Future[Box[")) {
-    resultType.replaceFirst("""Future\[Box\[\((.+), Option\[CallContext\]\)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  } else {
-    resultType.replaceFirst("""OBPReturnType\[Box\[(.+)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  }
-  val lastMapStatement = if(resultType.startsWith("Future[Box[")) { """
-      |                    boxedResult.map { result =>
+  val jsonType = "InBound" + methodName.capitalize
+  val lastMapStatement = if(resultType.startsWith("Future[Box[")) {
+   """|                    boxedResult.map { result =>
       |                         (result.data, buildCallContext(result.authInfo, callContext))
       |                    }
     """.stripMargin
-  } else {"""
-      |                    boxedResult match {
+  } else {
+   """|                    boxedResult match {
       |                        case Full(result) => (Full(result.data), buildCallContext(result.authInfo, callContext))
       |                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
       |                    }

@@ -279,7 +279,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
     }
   }("getTransaction")
-    
+
 
   // url example: /getCustomersByUserId/userId/{userId}
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
