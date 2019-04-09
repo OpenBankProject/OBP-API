@@ -42,7 +42,7 @@ import code.fx.FXRate
 import code.metrics.ConnectorMetric
 import code.model.dataAccess.ResourceUser
 import code.model._
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.users.Users
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}

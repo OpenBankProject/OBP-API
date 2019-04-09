@@ -309,6 +309,21 @@ trait TransactionRequestCommonBodyJSON {
   val value : AmountOfMoneyJsonV121
   val description: String
 }
+
+trait Product {
+  def code : ProductCode
+  def parentProductCode : ProductCode
+  def bankId : BankId
+  def name : String
+  def category: String
+  def family : String
+  def superFamily : String
+  def moreInfoUrl: String
+  def details :String
+  def description: String
+  def meta : Meta
+}
+
 //---------------------------------------- trait dependents of case class
 
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")

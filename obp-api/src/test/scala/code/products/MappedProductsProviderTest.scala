@@ -1,6 +1,6 @@
 package code.products
 
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.setup.ServerSetup
 import com.openbankproject.commons.model.BankId
 import net.liftweb.mapper.By

@@ -416,7 +416,7 @@ case class InBoundGetProductCollectionItem (authInfo: AuthInfoBasic, data: List[
 case class OutBoundGetProductCollectionItemsTree (authInfo: AuthInfoBasic,
                                                   collectionCode: String,
                                                   bankId: String)
-case class InBoundGetProductCollectionItemsTree (authInfo: AuthInfoBasic, data: List[(ProductCollectionItemCommons, Product, List[ProductAttribute])])
+case class InBoundGetProductCollectionItemsTree (authInfo: AuthInfoBasic, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])
 
 
 case class OutBoundCreateMeeting (authInfo: AuthInfoBasic,

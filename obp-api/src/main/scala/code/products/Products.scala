@@ -4,28 +4,12 @@ package code.products
 
 // Need to import these one by one because in same package!
 
-import code.products.Products.Product
-import com.openbankproject.commons.model.{BankId, Meta, ProductCode}
+import com.openbankproject.commons.model.{BankId, ProductCode}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
+import com.openbankproject.commons.model.Product
 
 object Products extends SimpleInjector {
-
-  trait Product {
-    def code : ProductCode
-    def parentProductCode : ProductCode
-    def bankId : BankId
-    def name : String
-    def category: String
-    def family : String
-    def superFamily : String
-    def moreInfoUrl: String
-    def details :String
-    def description: String
-    def meta : Meta
-  }
-
-
 
   val productsProvider = new Inject(buildOne _) {}
 
