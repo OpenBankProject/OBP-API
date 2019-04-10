@@ -152,6 +152,10 @@ class WebUI extends MdcLoggable{
     ".sofi-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_sofi_url", ""))
   }
 
+  // CreateDirectLoginToken
+  def createDirectLoginToken: CssSel = {
+    ".create-direct-login-token-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_create_directlogin_token_url", ""))
+  }
 
   // Points to the documentation. Probably a sandbox specific link is good.
   def apiDocumentationLink: CssSel = {
