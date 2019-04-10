@@ -3541,6 +3541,42 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      deleteSystemView,
+      implementedInApiVersion,
+      "deleteSystemView",
+      "DELETE",
+      "/system-views/VIEW_ID",
+      "Delete System View",
+      "Deletes the system view specified by VIEW_ID.",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError,
+        "user does not have owner access"
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canCreateSystemView))
+    )
+
+    lazy val deleteSystemView: OBPEndpoint = {
+      //deletes a view on an bank account
+      case "system-views" :: viewId :: Nil JsonDelete req => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canDeleteSystemView, callContext)
+            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
+            view <- NewStyle.function.deleteSystemView(ViewId(viewId), callContext)
+          } yield {
+            (Full(view),  HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     resourceDocs += ResourceDoc(
       getOAuth2ServerJWKsURIs,

@@ -308,6 +308,21 @@ object MapperViews extends Views with MdcLoggable {
       }
     }
   }
+  def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = Future {
+    if(viewId.value == "owner")
+      Failure("you cannot delete the owner view")
+    else {
+      for {
+        view <- ViewImpl.find(
+          By(ViewImpl.permalink_, viewId.value), 
+          NullRef(ViewImpl.bankPermalink),
+          NullRef(ViewImpl.accountPermalink)
+        )
+      } yield {
+        view.delete_!
+      }
+    }
+  }
 
   def viewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
     ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
