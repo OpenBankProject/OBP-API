@@ -87,6 +87,7 @@ class ConsumerRegistration extends MdcLoggable {
     def showResults(consumer : Consumer) = {
       val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
+      val createDirectLoginToken = APIUtil.getPropsValue("webui_create_directlogin_token_url", "")
       //thanks for registering, here's your key, etc.
       "#app-consumer_id *" #> consumer.id.get &
       "#app-name *" #> consumer.name.get &
@@ -100,6 +101,8 @@ class ConsumerRegistration extends MdcLoggable {
       "#oauth-endpoint a *" #> urlOAuthEndpoint &
       "#oauth-endpoint a [href]" #> urlOAuthEndpoint &
       "#directlogin-endpoint a *" #> urlDirectLoginEndpoint &
+      "#create-directlogin a *" #> createDirectLoginToken &
+      "#create-directlogin a [href]" #> createDirectLoginToken &
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
@@ -206,6 +209,7 @@ class ConsumerRegistration extends MdcLoggable {
       val directLoginDocumentationUrl = APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
       val oauthDocumentationUrl = APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
       val oauthEndpointUrl = thisApiInstance + "/oauth/initiate"
+      val createDirectLoginTokenUrl = APIUtil.getPropsValue("webui_create_directlogin_token_url", "")
       val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +
@@ -216,6 +220,7 @@ class ConsumerRegistration extends MdcLoggable {
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${oauthEndpointUrl} \n" +
         s"OAuth Documentation: ${directLoginDocumentationUrl} \n" +
+        s"Get Direct Login Token: ${createDirectLoginTokenUrl} \n" +
         s"Direct Login Endpoint: ${directLoginEndpointUrl} \n" +
         s"Direct Login Documentation: ${oauthDocumentationUrl} \n" +
         s"$registrationMoreInfoText: $registrationMoreInfoUrl"
