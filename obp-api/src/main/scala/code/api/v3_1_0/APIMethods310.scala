@@ -3177,6 +3177,18 @@ trait APIMethods310 {
     }
 
 
+    val generalObpConsentText : String =
+      """
+        |
+        |An OBP Consent allows the holder of the Consent to call one or more endpoints.
+        |
+        |Consents must be created and authorisied using SCA (Strong Customer Authentication).
+        |
+        |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
+        |
+        |
+      """.stripMargin
+
     resourceDocs += ResourceDoc(
       createConsent,
       implementedInApiVersion,
@@ -3185,6 +3197,9 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents/SCA_METHOD",
       "Create Consent",
       s"""
+         |
+         |$generalObpConsentText
+         |
          |Create consent
          |
          |${authenticationRequiredMessage(true)}
@@ -3248,7 +3263,13 @@ trait APIMethods310 {
       "/banks/BANK_ID/consents/CONSENT_ID/challenge",
       "Answer Consent Challenge",
       s"""
-         |Answer consent challenge
+         |
+         |$generalObpConsentText
+         |
+         |
+         |This endpoint is used to confirm a Consent previously created.
+         |
+         |The User must supply a code that was sent out of band (OOB) for example via an SMS.
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3295,7 +3316,12 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/my/consents",
       "Get Consents",
-      s"""Get Consents for current user
+      s"""
+         |$generalObpConsentText
+         |
+         |
+         |
+         |This endpoint gets the Consents that the current User created.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -3330,7 +3356,12 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
-      s"""Revoke Consent for current user specified by CONSENT_ID
+      s"""
+         |$generalObpConsentText
+        |
+        |
+        |Revoke Consent for current user specified by CONSENT_ID
+        |
         |
         |${authenticationRequiredMessage(true)}
         |
