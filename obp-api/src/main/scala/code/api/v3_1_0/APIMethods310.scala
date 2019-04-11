@@ -3140,10 +3140,16 @@ trait APIMethods310 {
       "/message-docs/CONNECTOR/swagger2.0",
       "Get Message Docs Swagger",
       """
-        |This endpoint provide example message docs in swagger format.
-        |Only used for rest Connector. Adapter developer can follow this to design the rest Adapter.  
+        |This endpoint provides example message docs in swagger format.
+        |It is only relavent for REST Connectors.
         |
-        |This call is work in progress - Experimental!
+        |This endpoint can be used by the developer building a REST Adapter that connects to the Core Banking System (CBS).
+        |That is, the Adapter developer can use the Swagger surfaced here to build the REST APIs that the OBP REST connector will call to consume CBS services.
+        |
+        |i.e.:
+        |
+        |OBP API (Core OBP API code) -> OBP REST Connector (OBP REST Connector code) -> OBP REST Adapter (Adapter developer code) -> CBS (Main Frame)
+        |
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
@@ -3171,6 +3177,18 @@ trait APIMethods310 {
     }
 
 
+    val generalObpConsentText : String =
+      """
+        |
+        |An OBP Consent allows the holder of the Consent to call one or more endpoints.
+        |
+        |Consents must be created and authorisied using SCA (Strong Customer Authentication).
+        |
+        |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
+        |
+        |
+      """.stripMargin
+
     resourceDocs += ResourceDoc(
       createConsent,
       implementedInApiVersion,
@@ -3179,6 +3197,9 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents/SCA_METHOD",
       "Create Consent",
       s"""
+         |
+         |$generalObpConsentText
+         |
          |Create consent
          |
          |${authenticationRequiredMessage(true)}
@@ -3242,7 +3263,13 @@ trait APIMethods310 {
       "/banks/BANK_ID/consents/CONSENT_ID/challenge",
       "Answer Consent Challenge",
       s"""
-         |Answer consent challenge
+         |
+         |$generalObpConsentText
+         |
+         |
+         |This endpoint is used to confirm a Consent previously created.
+         |
+         |The User must supply a code that was sent out of band (OOB) for example via an SMS.
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3289,7 +3316,12 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/my/consents",
       "Get Consents",
-      s"""Get Consents for current user
+      s"""
+         |$generalObpConsentText
+         |
+         |
+         |
+         |This endpoint gets the Consents that the current User created.
         |
         |${authenticationRequiredMessage(true)}
         |
@@ -3324,7 +3356,12 @@ trait APIMethods310 {
       "GET",
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
-      s"""Revoke Consent for current user specified by CONSENT_ID
+      s"""
+         |$generalObpConsentText
+        |
+        |
+        |Revoke Consent for current user specified by CONSENT_ID
+        |
         |
         |${authenticationRequiredMessage(true)}
         |
