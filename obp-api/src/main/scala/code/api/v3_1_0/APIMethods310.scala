@@ -3140,10 +3140,16 @@ trait APIMethods310 {
       "/message-docs/CONNECTOR/swagger2.0",
       "Get Message Docs Swagger",
       """
-        |This endpoint provide example message docs in swagger format.
-        |Only used for rest Connector. Adapter developer can follow this to design the rest Adapter.  
+        |This endpoint provides example message docs in swagger format.
+        |It is only relavent for REST Connectors.
         |
-        |This call is work in progress - Experimental!
+        |This endpoint can be used by the developer building a REST Adapter that connects to the Core Banking System (CBS).
+        |That is, the Adapter developer can use the Swagger surfaced here to build the REST APIs that the OBP REST connector will call to consume CBS services.
+        |
+        |i.e.:
+        |
+        |OBP API (Core OBP API code) -> OBP REST Connector (OBP REST Connector code) -> OBP REST Adapter (Adapter developer code) -> CBS (Main Frame)
+        |
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
