@@ -143,13 +143,13 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     process = "obp.get.getBankAccount",
     messageFormat = messageFormat,
     description = "Gets the Accounts.",
-    exampleOutboundMessage = (
+    exampleOutboundMessage =
       OutBoundGetBankAccountFuture(
         AuthInfoBasic(),
         BankId(bankIdExample.value),
         AccountId(accountIdExample.value))
-    ),
-    exampleInboundMessage = (
+    ,
+    exampleInboundMessage =
       InBoundGetBankAccountFuture(
         AuthInfoBasic(),
         BankAccountCommons(
@@ -171,7 +171,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           accountRules = List(AccountRule("","")),
           accountHolder = ""
         )
-    )),
+    ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   ) 
     
@@ -300,7 +300,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getCustomersByUserId")
     
 
-  //---------------- dynamic end ---------------------
+  //---------------- dynamic end ---------------------please don't modify this line
 
   private[this] def sendGetRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.GET)
