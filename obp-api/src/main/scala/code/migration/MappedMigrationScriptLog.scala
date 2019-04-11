@@ -10,7 +10,7 @@ class MappedMigrationScriptLog extends MigrationScriptLog with LongKeyedMapper[M
   object mMigrationScriptLogId extends MappedUUID(this)
   object mName extends MappedString(this, 100)
   object mCommitId extends MappedString(this, 100)
-  object mWasExecuted extends MappedBoolean(this)
+  object mIsSuccessful extends MappedBoolean(this)
   object mStartDate extends MappedLong(this)
   object mEndDate extends MappedLong(this)
   object mComment extends MappedString(this, 1024)
@@ -18,7 +18,7 @@ class MappedMigrationScriptLog extends MigrationScriptLog with LongKeyedMapper[M
   override def migrationScriptLogId: String = mMigrationScriptLogId.get
   override def name: String = mName.get
   override def commitId: String = mCommitId.get  
-  override def wasExecuted: Boolean = mWasExecuted.get  
+  override def isSuccessful: Boolean = mIsSuccessful.get  
   override def startDate: Long = mStartDate.get  
   override def endDate: Long = mEndDate.get  
   override def comment: String = mComment.get  
@@ -26,7 +26,7 @@ class MappedMigrationScriptLog extends MigrationScriptLog with LongKeyedMapper[M
 }
 
 object MappedMigrationScriptLog extends MappedMigrationScriptLog with LongKeyedMetaMapper[MappedMigrationScriptLog] {
-  override def dbIndexes: List[BaseIndex[MappedMigrationScriptLog]] = UniqueIndex(mName, mWasExecuted) :: super.dbIndexes
+  override def dbIndexes: List[BaseIndex[MappedMigrationScriptLog]] = UniqueIndex(mName, mIsSuccessful) :: super.dbIndexes
 }
 
 

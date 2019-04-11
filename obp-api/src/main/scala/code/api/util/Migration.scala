@@ -27,14 +27,14 @@ object Migration extends MdcLoggable {
           val startDate = System.currentTimeMillis()
           val commitId: String = APIUtil.gitCommit
           val comment: String = "dummy comment"
-          val wasExecuted = true
+          val isSuccessful = true
           val endDate = System.currentTimeMillis()
-          MigrationScriptLogProvider.migrationScriptLogProvider.vend.saveLog(name, commitId, wasExecuted, startDate, endDate, comment) match {
+          MigrationScriptLogProvider.migrationScriptLogProvider.vend.saveLog(name, commitId, isSuccessful, startDate, endDate, comment) match {
             case true =>
             case false =>
               logger.warn("Migration.database.dummyScript is executed at this instance but the corresponding log is not saved!!!!!!")
           }
-          wasExecuted
+          isSuccessful
         case true =>
           true
       }

@@ -4,7 +4,7 @@ trait MigrationScriptLog {
   def migrationScriptLogId: String
   def name: String
   def commitId: String
-  def wasExecuted: Boolean
+  def isSuccessful: Boolean
   def startDate: Long
   def endDate: Long
   def comment: String
