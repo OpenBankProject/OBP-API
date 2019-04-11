@@ -1,7 +1,6 @@
 package code.bankconnectors.rest
 
 import java.io.File
-import java.nio.file.Path
 import java.util.Date
 
 import code.bankconnectors.Connector
@@ -18,8 +17,11 @@ object RestConnectorBuilder extends App {
   //  val value  = this.getBanksFuture(None)
   //  val value2  = this.getBankFuture(BankId("hello-bank-id"), None)
   //  Thread.sleep(10000)
-  val genMethodNames = List("getAdapterInfoFuture", "getBanksFuture", "getBankFuture", "checkBankAccountExistsFuture", "getBankAccountFuture", "getCoreBankAccountsFuture", "getCustomersByUserIdFuture",
-    "getCounterpartiesFuture", "getTransactionsFuture", "getTransactionFuture", "getAdapterInfoFuture"
+  val genMethodNames = List(
+    //"getAdapterInfoFuture", "getBanksFuture", "getBankFuture", "checkBankAccountExistsFuture", "getBankAccountFuture", "getCoreBankAccountsFuture",
+    "getCustomersByUserIdFuture",
+    //"getCounterpartiesFuture"
+    //, "getTransactionsFuture", "getTransactionFuture", "getAdapterInfoFuture"
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -104,9 +106,9 @@ case class Generator(methodName: String, tp: Type) {
        |messageDocs += MessageDoc(
        |    process = "obp.get.$returnEntityType",
        |    messageFormat = messageFormat,
-       |    description = "$description,
-       |    outboundTopic = Some(OutBound${methodName.capitalize}.getClass.getSimpleName.replace(" $$", "")),
-       |    inboundTopic = Some(InBound${methodName.capitalize}.getClass.getSimpleName.replace(" $$", "")),
+       |    description = "$description",
+       |    outboundTopic = None,
+       |    inboundTopic = None,
        |    exampleOutboundMessage = (
        |      $outBoundExample
        |    ),

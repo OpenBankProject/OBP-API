@@ -280,27 +280,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     }
   }("getTransaction")
 
-
-  // url example: /getCustomersByUserId/userId/{userId}
-  override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val url = getUrl("getCustomersByUserId" , ("userId", userId))
-        sendGetRequest[List[CustomerCommons]](url, callContext)
-          .map(it => it.map((_ -> callContext)))
-      }
-    }
-  }("getCustomersByUserId")
     
-
-  //---------------- dynamic end ---------------------please don't modify this line
+//---------------- dynamic end ---------------------please don't modify this line
+    
 
   private[this] def sendGetRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.GET)
