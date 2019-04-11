@@ -343,6 +343,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("User", 1))
 
   )
+  //TODO This method  is not used in api level, so not CallContext here for now..
   override def getUser(username: String, password: String): Box[InboundUser] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
