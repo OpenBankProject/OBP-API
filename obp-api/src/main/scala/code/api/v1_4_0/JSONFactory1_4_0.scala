@@ -6,7 +6,7 @@ import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{ApiRole, PegdownOptions}
 import code.crm.CrmEvent.CrmEvent
 import code.customer.CustomerMessage
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.transactionrequests.TransactionRequestTypeCharge
 import code.transactionrequests.TransactionRequests._
 import com.openbankproject.commons.model._

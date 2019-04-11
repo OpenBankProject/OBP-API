@@ -40,7 +40,7 @@ import code.entitlement.Entitlement
 import code.metrics.APIMetric
 import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, _}
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.transactionrequests.TransactionRequests._
 import code.users.Users
 import com.openbankproject.commons.model._
