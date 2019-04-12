@@ -58,9 +58,12 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   //This field used ManyToMany  
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
-  object bankPermalink extends UUIDString(this)
-  object accountPermalink extends AccountIdString(this)
-
+  object bankPermalink extends UUIDString(this) {
+    override def defaultValue: Null = null
+  }
+  object accountPermalink extends AccountIdString(this) {
+    override def defaultValue: Null = null
+  }
 
   object id_ extends MappedLongIndex(this)
   object name_ extends MappedString(this, 125)
@@ -525,7 +528,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
-  override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(bankPermalink, accountPermalink, permalink_) :: super.dbIndexes
 
   def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
     find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>

@@ -261,6 +261,9 @@ object ErrorMessages {
   val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
+  val CreateSystemViewError = "OBP-30250: Could not create the system view"
+  val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
+  val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "
@@ -288,7 +291,7 @@ object ErrorMessages {
   val ConsentCheckExpiredIssue = "OBP-35006: Cannot check is Consent-Id expired. "
   val ConsentDisabled = "OBP-35007: Consents are not allowed at this instance. "
   val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
-  val ConsentAllowedScaMethods = "OBP-35009: Only sms and email are supported as SCA methods. "
+  val ConsentAllowedScaMethods = "OBP-35009: Only SMS and EMAIL are supported as SCA methods. "
 
   // General Resource related messages above here
 

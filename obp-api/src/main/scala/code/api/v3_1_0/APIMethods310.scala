@@ -37,9 +37,9 @@ import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, parse}
-import net.liftweb.util.{Helpers, Mailer}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.Validate
 
 import scala.collection.immutable.{List, Nil}
@@ -3103,7 +3103,7 @@ trait APIMethods310 {
 
     
     resourceDocs += ResourceDoc(
-      getServerJWK,
+      getOAuth2ServerJWKsURIs,
       implementedInApiVersion,
       "getServerJWK",
       "GET",
@@ -3208,7 +3208,7 @@ trait APIMethods310 {
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
          |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
-         |SCA_METHOD is typically "sms" or "email". "email" is used for testing purposes.
+         |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
@@ -3234,7 +3234,7 @@ trait APIMethods310 {
             (Full(user), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
-              List("sms", "email").exists(_ == sca_method)
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == sca_method)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3249,14 +3249,15 @@ trait APIMethods310 {
             }
           } yield {
             sca_method match {
-              case "email" => // Send the email
+              case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
+                org.scalameta.logger.elem(sca_method)
                 val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
                 Mailer.sendMail(
                   From("challenge@tesobe.com"),
                   Subject("Challenge request"),
                   params :_*
                 )
-              case "sms" =>
+              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
               case _ =>
             }
             (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
@@ -3414,8 +3415,8 @@ trait APIMethods310 {
       nameOf(createUserAuthContextUpdate),
       "POST",
       "/users/current/auth-context-updates",
-      "Create User Auth Context Update Request",
-      s"""Create User Auth Context Update Request.
+      "Create User Auth Context Update",
+      s"""Create User Auth Context Update.
          |${authenticationRequiredMessage(true)}
          |""",
       postUserAuthContextJson,
@@ -3452,9 +3453,9 @@ trait APIMethods310 {
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
       "/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
-      "Answer Auth Context Update Request Challenge",
+      "Answer Auth Context Update Challenge",
       s"""
-         |Answer Auth Context Update Request Challenge.
+         |Answer Auth Context Update Challenge.
          |""",
       PostUserAuthContextUpdateJsonV310(answer = "12345678"),
       userAuthContextUpdateJson,
@@ -3493,6 +3494,164 @@ trait APIMethods310 {
               }
           } yield {
             (createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      getSystemView,
+      implementedInApiVersion,
+      "getSystemView",
+      "GET",
+      "/system-views/VIEW_ID",
+      "Get System View",
+      s"""Get System View
+         |
+        |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      viewJSONV220,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canGetSystemView))
+    )
+
+    lazy val getSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, callContext)
+            view <- NewStyle.function.systemView(ViewId(viewId), callContext)
+          } yield {
+            (JSONFactory220.createViewJSON(view), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createSystemView,
+      implementedInApiVersion,
+      nameOf(createSystemView),
+      "POST",
+      "/system-views",
+      "Create System View.",
+      s"""Create a system view
+        |
+        | ${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+        | The 'alias' field in the JSON can take one of three values:
+        |
+        | * _public_: to use the public alias if there is one specified for the other account.
+        | * _private_: to use the public alias if there is one specified for the other account.
+        |
+        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+        |
+        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+        |
+        | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+        | """,
+      SwaggerDefinitionsJSON.createViewJson,
+      viewJsonV300,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canCreateSystemView))
+    )
+
+    lazy val createSystemView : OBPEndpoint = {
+      //creates a system view
+      case "system-views" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateSystemView, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson "
+            createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateViewJson]
+            }
+            view <- NewStyle.function.createSystemView(createViewJson, callContext)
+          } yield {
+            (JSONFactory300.createViewJSON(view),  HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteSystemView,
+      implementedInApiVersion,
+      "deleteSystemView",
+      "DELETE",
+      "/system-views/VIEW_ID",
+      "Delete System View",
+      "Deletes the system view specified by VIEW_ID.",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError,
+        "user does not have owner access"
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canCreateSystemView))
+    )
+
+    lazy val deleteSystemView: OBPEndpoint = {
+      //deletes a view on an bank account
+      case "system-views" :: viewId :: Nil JsonDelete req => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canDeleteSystemView, callContext)
+            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
+            view <- NewStyle.function.deleteSystemView(ViewId(viewId), callContext)
+          } yield {
+            (Full(view),  HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getOAuth2ServerJWKsURIs,
+      implementedInApiVersion,
+      "getOAuth2ServerJWKsURIs",
+      "GET",
+      "/jwks-uris",
+      "Get JSON Web Key (JWK) URIs",
+      """Get the OAuth2 server's public JSON Web Key (JWK) URIs.
+        | It is required by client applications to validate ID tokens, self-contained access tokens and other issued objects.
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      oAuth2ServerJwksUrisJson,
+      List(
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagApi))
+
+    lazy val getOAuth2ServerJWKsURIs: OBPEndpoint = {
+      case "jwks-uris" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+          } yield {
+            (getOAuth2ServerJwksUrisJson(), HttpCode.`200`(callContext))
           }
       }
     }

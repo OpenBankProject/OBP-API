@@ -78,6 +78,11 @@ object Glossary {
 		s"""<a href="/message-docs?connector=$latestKafkaConnector#$process">$process</a>"""
 	}
 
+	val latestAkkaConnector : String = "akka_vDec2018"
+	def messageDocLinkAkka(process: String) : String = {
+		s"""<a href="/message-docs?connector=$latestAkkaConnector#$process">$process</a>"""
+	}
+
 
 
 
@@ -138,6 +143,88 @@ object Glossary {
 |
 |For the message definitions see [here](/message-docs?connector=akka_vDec2018)
 |
+|### Installation Prerequisites
+|
+|
+|* You have OBP-API running.
+|
+|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
+|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
+|
+|
+|### Create a Customer User and an Admin User
+|
+|* Register a User who will use the API as a Customer.
+|* Register another User that will use the API as an Admin. The Admin user will need some Roles. See [here](/index#OBPv2_0_0-addEntitlement). You can bootstrap an Admin user by editing the Props file. See the README for that.
+|
+|### Add some authentication context to the Customer User
+|
+|* As the Admin User, use the [Create Auth Context](/index#OBPv3_1_0-createUserAuthContext) endpoint to add one or more attributes to the Customer User.
+|For instance you could add the name/value pair CUSTOMER_NUMBER/889763 and this will be sent to the Adapter / CBS inside the AuthInfo object.
+|
+|
+|Now you should be able to use the [Get Auth Contexts](/index#OBPv3_1_0-getUserAuthContexts) endpoint to see the data you added.
+|
+|### Write or Build an Adapter to respond to the following messages.
+|
+| When getting started, we suggest that you implement the messages in the following order:
+|
+|1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
+|
+|* ${messageDocLinkAkka("obp.get.AdapterInfo")}
+|
+|Now you should be able to use the [Adapter Info](/index#OBPv3_0_0-getAdapter) endpoint
+|
+|* ${messageDocLinkAkka("obp.get.Banks")}
+|
+|Now you should be able to use the [Get Banks](/index#OBPv3_0_0-getBanks) endpoint
+|
+|* ${messageDocLinkAkka("obp.get.Bank")}
+|
+|Now you should be able to use the [Get Bank](/index#OBPv3_0_0-bankById) endpoint
+|
+|
+|2) Get Customers by USER_ID
+|
+|* ${messageDocLinkAkka("obp.get.CustomersByUserId")}
+|
+|Now you should be able to use the [Get Customers](/index#OBPv3_0_0-get.CustomersByUserId) endpoint.
+|
+|
+|3) Get Accounts
+|
+|* ${messageDocLinkAkka("obp.check.BankAccountExists")}
+|* ${messageDocLinkAkka("obp.get.coreBankAccounts")}
+|
+| The above messages should enable at least the following endpoints:
+|
+|* [Get Accounts Held](http://localhost:8082/index#OBPv3_0_0-getAccountsHeld)
+|* [Get Account IDs](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
+|* [Get Accounts - Minimal](index#OBPv3_0_0-privateAccountsAtOneBank)
+|
+|4) Get Account
+|
+|* ${messageDocLinkAkka("obp.get.Account")}
+|
+| The above message should enable at least the following endpoints:
+|
+|* [Get Account by Id - Core](/index#OBPv3_0_0-getCoreAccountById)
+|* [Get Account by Id - Full](/index#OBPv3_0_0-getPrivateAccountById)
+|
+|5) Get Transactions
+|
+|* ${messageDocLinkAkka("obp.get.Transactions")}
+|* ${messageDocLinkAkka("obp.get.Transaction")}
+|
+|6) Manage Counterparties
+|
+|* ${messageDocLinkAkka("obp.get.counterparties")}
+|
+|7) Get Transaction Request Types
+|
+|* This is configured using OBP Props - No messages required
+|
+|
 |This glossary item is Work In Progress.
 |
 """)
@@ -157,7 +244,7 @@ object Glossary {
 					|
 					|
 					|* You have OBP-API running and it is connected to a Kafka installation.
-					| You can check OBP -> Kafka connectivity using the <a href="/#vv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
+					| You can check OBP -> Kafka connectivity using the <a href="/#OBPv3_1_0-getObpApiLoopback">"loopback" endpoint</a>.
 					|
 					|* Ideally you have API Explorer running (the application serving this page) but its not necessary - you could use any other REST client.
 					|* You might want to also run API Manager as it makes it easier to grant yourself roles, but its not necessary - you could use the API Explorer / any REST client instead.
@@ -165,15 +252,15 @@ object Glossary {
 |### Create a Customer User and an Admin User
 |
 |* Register a User who will use the API as a Customer.
-|* Register another User that will use the API as an Admin. The Admin user will need some Roles. See [here](/index#vv2_0_0-addEntitlement). You can bootstrap an Admin user by editing the Props file. See the README for that.
+|* Register another User that will use the API as an Admin. The Admin user will need some Roles. See [here](/index#OBPv2_0_0-addEntitlement). You can bootstrap an Admin user by editing the Props file. See the README for that.
 |
 |### Add some authentication context to the Customer User
 |
-|* As the Admin User, use the [Create Auth Context](/index#vv3_1_0-createUserAuthContext) endpoint to add one or more attributes to the Customer User.
+|* As the Admin User, use the [Create Auth Context](/index#OBPv3_1_0-createUserAuthContext) endpoint to add one or more attributes to the Customer User.
 |For instance you could add the name/value pair CUSTOMER_NUMBER/889763 and this will be sent to the Adapter / CBS inside the AuthInfo object.
 |
 |
-|Now you should be able to use the [Get Auth Contexts](/index#vv3_1_0-getUserAuthContexts) endpoint to see the data you added.
+|Now you should be able to use the [Get Auth Contexts](/index#OBPv3_1_0-getUserAuthContexts) endpoint to see the data you added.
 |
 |### Write or Build an Adapter to respond to the following messages.
 |
@@ -183,22 +270,22 @@ object Glossary {
  |
  |* ${messageDocLink("obp.get.AdapterInfo")}
  |
- |Now you should be able to use the [Adapter Info](/index#vv3_0_0-getAdapter) endpoint
+ |Now you should be able to use the [Adapter Info](/index#OBPv3_0_0-getAdapter) endpoint
  |
  |* ${messageDocLink("obp.get.Banks")}
  |
-|Now you should be able to use the [Get Banks](/index#vv3_0_0-getBanks) endpoint
+|Now you should be able to use the [Get Banks](/index#OBPv3_0_0-getBanks) endpoint
 |
  |* ${messageDocLink("obp.get.Bank")}
  |
- |Now you should be able to use the [Get Bank](/index#vv3_0_0-bankById) endpoint
+ |Now you should be able to use the [Get Bank](/index#OBPv3_0_0-bankById) endpoint
  |
  |
  |2) Customers for logged in User
  |
  |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
 |
- |Now you should be able to use the [Get Customers](/index#vv3_0_0-getCustomersForUser) endpoint.
+ |Now you should be able to use the [Get Customers](/index#OBPv3_0_0-getCustomersForUser) endpoint.
  |
  |
  |3) Get Accounts
@@ -209,9 +296,9 @@ object Glossary {
  |
  | The above messages should enable at least the following endpoints:
  |
- |* [Get Accounts Held](http://localhost:8082/index#vv3_0_0-getAccountsHeld)
- |* [Get Account IDs](/index#vv3_0_0-getPrivateAccountIdsbyBankId)
- |* [Get Accounts - Minimal](index#vv3_0_0-privateAccountsAtOneBank)
+ |* [Get Accounts Held](http://localhost:8082/index#OBPv3_0_0-getAccountsHeld)
+ |* [Get Account IDs](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
+ |* [Get Accounts - Minimal](index#OBPv3_0_0-privateAccountsAtOneBank)
  |
  |4) Get Account
  |
@@ -219,8 +306,8 @@ object Glossary {
  |
 | The above message should enable at least the following endpoints:
 |
- |* [Get Account by Id - Core](/index#vv3_0_0-getCoreAccountById)
- |* [Get Account by Id - Full](/index#vv3_0_0-getPrivateAccountById)
+ |* [Get Account by Id - Core](/index#OBPv3_0_0-getCoreAccountById)
+ |* [Get Account by Id - Full](/index#OBPv3_0_0-getPrivateAccountById)
  |
  |5) Get Transactions
  |
@@ -302,14 +389,14 @@ object Glossary {
   |
   |* userId is the user_id as generated by OBP
   |* username can be chosen explicitly to match an existing customer number (not recommended)
-  |* linkedCustomers is a list of Customers the User is explicitly linked to. Use the <a href="/#vv2_0_0-createUserCustomerLinks">Create User Customer Link endpoint</a> to populate this data.
+  |* linkedCustomers is a list of Customers the User is explicitly linked to. Use the <a href="/#OBPv2_0_0-createUserCustomerLinks">Create User Customer Link endpoint</a> to populate this data.
   |* userAuthContexts may contain the customer number or other tokens in order to boot strap the User Customer Links
   |or provide an alternative method of tagging the User with an authorisation context.
-  |Use the <a href="/#vv3_1_0-createUserAuthContext">Create UserAuthContext endpoint</a> to populate this data.
+  |Use the <a href="/#OBPv3_1_0-createUserAuthContext">Create UserAuthContext endpoint</a> to populate this data.
   |* cbsToken is a token used by the CBS to identify the user's session. Either generated by the CBS or Gateway.
   |* isFirst is a flag that indicates that OBP should refresh the user's list of accounts from the CBS (and flush / invalidate any User's cache)
   |* correlationId just identifies the API call.
-  |* authViews are entitlements given by account holders to third party users e.g. Sam may grant her accountant Jill read only access to her business account. See the <a href="/index#vv3_0_0-createViewForBankAccount">Create View endpoint</a>
+  |* authViews are entitlements given by account holders to third party users e.g. Sam may grant her accountant Jill read only access to her business account. See the <a href="/index#OBPv3_0_0-createViewForBankAccount">Create View endpoint</a>
   |
   |<img width="468" alt="authinfo_annotated_1" src="https://user-images.githubusercontent.com/485218/48432550-f6f0d100-e774-11e8-84dc-e94520ba186e.png"></img>
   |
@@ -334,7 +421,7 @@ object Glossary {
 		title = "API.Timeouts",
 		description =
 				s"""
-					 |<img width="1403" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50471858-b52f8900-09b6-11e9-9888-454e6d41907c.png"></img>
+					 |<img width="1000" alt="OBP Timeouts Image" src="https://user-images.githubusercontent.com/29032407/50471858-b52f8900-09b6-11e9-9888-454e6d41907c.png"></img>
 					 |
            |
            |
@@ -359,7 +446,7 @@ object Glossary {
 |
 |See [here](/index#group-Role) for related endpoints and documentation.
 |
-|Users may request Entitlement Requests [here](/index#vv3_0_0-addEntitlementRequest)
+|Users may request Entitlement Requests [here](/index#OBPv3_0_0-addEntitlementRequest)
 |
 |Entitlements and Entitlement Requests can be managed in the OBP API Manager.
 |
@@ -1417,6 +1504,8 @@ object Glossary {
  |### Introduction
 |Google's OAuth 2.0 APIs can be used for both authentication and authorization. This document describes our OAuth 2.0 implementation for authentication, which conforms to the OpenID Connect specification, and is OpenID Certified.
 |For complete documentation please refer to the official doc's page: [OpenID Connect](https://developers.google.com/identity/protocols/OpenIDConnect)
+|
+|<img width="1000" alt="OpenID Connect with Google Image" src="https://user-images.githubusercontent.com/29032407/51373848-76967580-1b01-11e9-9c9d-799c0c42f98b.png"></img>
 |
  |### Obtain OAuth 2.0 credentials
 |Please refer to the official doc's page: [OpenID Connect](https://developers.google.com/identity/protocols/OpenIDConnect)

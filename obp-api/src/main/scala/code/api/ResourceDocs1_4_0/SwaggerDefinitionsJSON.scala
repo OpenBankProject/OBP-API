@@ -3198,6 +3198,8 @@ object SwaggerDefinitionsJSON {
   
   val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
   
+  val oAuth2ServerJwksUrisJson = OAuth2ServerJwksUrisJson(List(OAuth2ServerJWKURIJson("https://www.googleapis.com/oauth2/v3/certs")))
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

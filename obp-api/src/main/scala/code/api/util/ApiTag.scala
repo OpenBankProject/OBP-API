@@ -23,6 +23,7 @@ object ApiTag {
   val apiTagCounterpartyMetaData = ResourceDocTag("Counterparty-Metadata")
   val apiTagTransactionMetaData = ResourceDocTag("Transaction-Metadata")
   val apiTagView = ResourceDocTag("View")
+  val apiTagSystemView = ResourceDocTag("System-View")
   val apiTagEntitlement = ResourceDocTag("Entitlement")
   val apiTagRole = ResourceDocTag("Role")
   val apiTagScope = ResourceDocTag("Scope")
