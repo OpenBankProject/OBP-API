@@ -3414,8 +3414,8 @@ trait APIMethods310 {
       nameOf(createUserAuthContextUpdate),
       "POST",
       "/users/current/auth-context-updates",
-      "Create User Auth Context Update Request",
-      s"""Create User Auth Context Update Request.
+      "Create User Auth Context Update",
+      s"""Create User Auth Context Update.
          |${authenticationRequiredMessage(true)}
          |""",
       postUserAuthContextJson,
@@ -3452,9 +3452,9 @@ trait APIMethods310 {
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
       "/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
-      "Answer Auth Context Update Request Challenge",
+      "Answer Auth Context Update Challenge",
       s"""
-         |Answer Auth Context Update Request Challenge.
+         |Answer Auth Context Update Challenge.
          |""",
       PostUserAuthContextUpdateJsonV310(answer = "12345678"),
       userAuthContextUpdateJson,
