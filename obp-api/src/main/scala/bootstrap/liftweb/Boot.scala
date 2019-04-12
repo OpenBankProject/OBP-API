@@ -90,7 +90,6 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
-import code.views.system.ViewUsage
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
@@ -550,7 +549,6 @@ object ToSchemify {
   val modelsRemotedata = List(
     ViewImpl,
     ViewPrivileges,
-    ViewUsage,
     ResourceUser,
     MappedComment,
     MappedTag,
