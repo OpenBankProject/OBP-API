@@ -3208,7 +3208,7 @@ trait APIMethods310 {
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
          |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
-         |SCA_METHOD is typically "sms" or "email". "email" is used for testing purposes.
+         |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
@@ -3234,7 +3234,7 @@ trait APIMethods310 {
             (Full(user), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
-              List("sms", "email").exists(_ == sca_method)
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == sca_method)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3249,14 +3249,15 @@ trait APIMethods310 {
             }
           } yield {
             sca_method match {
-              case "email" => // Send the email
+              case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
+                org.scalameta.logger.elem(sca_method)
                 val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
                 Mailer.sendMail(
                   From("challenge@tesobe.com"),
                   Subject("Challenge request"),
                   params :_*
                 )
-              case "sms" =>
+              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
               case _ =>
             }
             (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))

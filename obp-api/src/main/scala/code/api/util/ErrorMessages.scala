@@ -291,7 +291,7 @@ object ErrorMessages {
   val ConsentCheckExpiredIssue = "OBP-35006: Cannot check is Consent-Id expired. "
   val ConsentDisabled = "OBP-35007: Consents are not allowed at this instance. "
   val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
-  val ConsentAllowedScaMethods = "OBP-35009: Only sms and email are supported as SCA methods. "
+  val ConsentAllowedScaMethods = "OBP-35009: Only SMS and EMAIL are supported as SCA methods. "
 
   // General Resource related messages above here
 
