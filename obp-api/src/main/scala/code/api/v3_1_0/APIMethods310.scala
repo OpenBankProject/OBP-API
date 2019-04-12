@@ -19,7 +19,7 @@ import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
 import code.bankconnectors.rest.RestConnector_vMar2019
-import code.consent.Consents
+import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
 import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
@@ -3178,13 +3178,16 @@ trait APIMethods310 {
 
 
     val generalObpConsentText : String =
-      """
+      s"""
         |
         |An OBP Consent allows the holder of the Consent to call one or more endpoints.
         |
         |Consents must be created and authorisied using SCA (Strong Customer Authentication).
         |
         |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
+        |
+        |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
+        |
         |
         |
       """.stripMargin
@@ -3200,7 +3203,14 @@ trait APIMethods310 {
          |
          |$generalObpConsentText
          |
-         |Create consent
+         |This endpoint starts the process of creating a Consent.
+         |
+         |The Consent is created in an ${ConsentStatus.INITIATED} state.
+         |
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |SCA_METHOD is typically "sms" or "email". "email" is used for testing purposes.
+         |
+         |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
          |${authenticationRequiredMessage(true)}
          |
