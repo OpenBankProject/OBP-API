@@ -66,6 +66,8 @@ To compile and run jetty, install Maven 3, create your configuration in obp-api/
 
 * Once you have rebuilt the project without compile errors, you should be able to RunWebApp in obp-api/src/test/scala
 
+* If you have trouble (re)building, try using the IntelliJ IDEA terminal: mvn clean test-compile
+
 * Run RunWebApp by right clicking on it or selecting Run. The built in jetty server should start on localhost:8080
 
 * Browse to localhost:8080 but don't try anything else there yet.
