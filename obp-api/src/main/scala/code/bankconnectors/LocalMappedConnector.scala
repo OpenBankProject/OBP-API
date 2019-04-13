@@ -35,7 +35,7 @@ import code.productattribute.ProductAttribute
 import code.productcollection.ProductCollection
 import code.productcollectionitem.ProductCollectionItem
 import code.products.MappedProduct
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.taxresidence.TaxResidence
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests._

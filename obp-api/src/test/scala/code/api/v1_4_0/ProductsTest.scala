@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.products.{Products, ProductsProvider}
 import code.setup.{DefaultUsers, ServerSetup}
 import com.openbankproject.commons.model.{BankId, License, Meta, ProductCode}

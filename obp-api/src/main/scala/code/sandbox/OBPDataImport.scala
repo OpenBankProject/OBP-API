@@ -11,7 +11,7 @@ import code.crm.CrmEvent.CrmEvent
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.products.Products
-import code.products.Products.{Product}
+import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable

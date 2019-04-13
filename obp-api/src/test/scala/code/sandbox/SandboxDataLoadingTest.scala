@@ -42,7 +42,8 @@ import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.model._
 import code.model.dataAccess._
 import code.products.Products
-import code.products.Products.{Product, countOfProducts}
+import code.products.Products.{countOfProducts}
+import com.openbankproject.commons.model.Product
 import code.setup.{APIResponse, SendServerRequests}
 import code.users.Users
 import code.views.Views

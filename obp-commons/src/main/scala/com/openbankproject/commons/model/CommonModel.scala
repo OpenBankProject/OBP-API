@@ -270,6 +270,18 @@ case class MeetingCommons(
                            creator :ContactDetails,
                            invitees :List[Invitee]) extends Meeting
 
+case class ProductCommons(bankId: BankId,
+                       code : ProductCode,
+                       parentProductCode : ProductCode,
+                       name : String,
+                       category: String,
+                       family : String,
+                       superFamily : String,
+                       moreInfoUrl: String,
+                       details: String,
+                       description: String,
+                       meta: Meta) extends Product
+
 //----------------obp-api moved to here case classes
 
 case class BranchRoutingJsonV141(

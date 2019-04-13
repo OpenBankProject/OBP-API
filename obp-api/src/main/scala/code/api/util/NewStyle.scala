@@ -21,7 +21,7 @@ import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
 import code.model._
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.util.Helper
 import code.views.Views

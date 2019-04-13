@@ -27,7 +27,7 @@ import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.products.Products.Product
+import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
 import code.webhook.AccountWebhook
