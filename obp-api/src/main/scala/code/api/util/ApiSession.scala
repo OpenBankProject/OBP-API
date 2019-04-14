@@ -5,14 +5,47 @@ import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.RequestHeader
 import code.api.oauth1a.OauthParams._
-import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
+import code.api.util.APIUtil._
+import code.api.util.ErrorMessages.BankAccountNotFound
+import code.context.UserAuthContextProvider
+import code.customer.Customer
 import code.model.Consumer
+import code.views.Views
 import com.openbankproject.commons.dto.CallContextAkka
-import com.openbankproject.commons.model.{AuthInfoBasic, User}
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
+import code.model._
+import scala.collection.immutable.List
+
+case class AdapterCallContext(
+  correlationId: String = "",
+  sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
+  adapterAuthInfo: Option[AdapterAuthInfo]
+)
+
+
+case class BasicUserCbsContext(
+  key: String,
+  value: String
+)
+
+case class AdapterAuthInfo(
+  userId: String = "", 
+  username: String = "", 
+  linkedCustomers: Option[List[BasicLindedCustomer]] = None,
+  userAuthContexts: Option[List[BasicUserAuthContext]]= None,//be set by obp from some endpoints. 
+  userCbsContexts: Option[List[BasicUserCbsContext]]= None,  //be set by backend, send it back to the header? not finish yet.
+  authViews: Option[List[AuthView]] = None,
+)
+
+case class InboundAdapterCallContext(
+  cbsToken: String = "",
+  sessionId: String = ""
+)
 
 case class CallContext(
                        gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!  
@@ -57,6 +90,46 @@ case class CallContext(
       correlationId = this.correlationId,
       sessionId = this.sessionId
     )
+  
+  //This is only used to connect the back adapter. not useful for sandbox mode.
+  def toAdapterCallContext: Option[AdapterCallContext] = {
+    for{
+      user <- this.user
+      username <- tryo(user.name)
+      currentResourceUserId <- Some(user.userId)
+      permission <- Views.views.vend.getPermissionForUser(user)
+      views <- tryo(permission.views)
+      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
+      basicUserAuthContexts = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
+      authViews<- tryo(
+        for{
+          view <- views   
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(this)) ?~! {BankAccountNotFound}
+          internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
+          internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
+          viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
+          accountBasic =  AccountBasic(
+            account.accountId.value, 
+            account.accountRoutings, 
+            internalCustomers.customers,
+            internalUsers.users)
+        }yield 
+          AuthView(viewBasic, accountBasic)
+      )
+    } yield{
+      AdapterCallContext(
+        correlationId = this.correlationId,
+        sessionId = this.sessionId,
+        Some(AdapterAuthInfo(
+          currentResourceUserId, 
+          username, 
+          likedCustomersBasic, 
+          basicUserAuthContexts,
+          userCbsContexts = None, //Not sure how to use this field yet. 
+          if (authViews.isEmpty) None else Some(authViews))))
+    }}.toOption
   
   def toLight: CallContextLight = {
     CallContextLight(

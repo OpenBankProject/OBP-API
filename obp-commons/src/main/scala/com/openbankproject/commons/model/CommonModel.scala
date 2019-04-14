@@ -512,6 +512,11 @@ case class ViewBasic(
   short_name: String,
   description: String,
 )
+case class BasicLindedCustomer(
+  customerId: String,
+  customerNumber: String,
+  legalName: String,
+)
 case class InternalBasicCustomer(
   bankId:String,
   customerId: String,
