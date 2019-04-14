@@ -1,14 +1,89 @@
 package code.api.ResourceDocs1_4_0
 
+import java.util.Date
+
 import code.api.util.APIUtil
 import code.api.util.APIUtil.AdapterImplementation
-import com.openbankproject.commons.dto.{CallContextAkka, InboundAccount, InboundBank}
-import com.openbankproject.commons.model.{AccountRouting, AccountRule}
+import code.api.util.ExampleValue._
+import com.openbankproject.commons.dto.{InboundAccount, InboundBank}
+import com.openbankproject.commons.model._
 
 import scala.collection.immutable.{List, Nil}
 
 object MessageDocsSwaggerDefinitions
 {
+  
+  val inboundAccountDec2018Example = 
+    InboundAccount(
+      bankId = bankIdExample.value,
+      branchId = branchIdExample.value,
+      accountId = accountIdExample.value,
+      accountNumber = accountNumberExample.value,
+      accountType = accountTypeExample.value,
+      balanceAmount = balanceAmountExample.value,
+      balanceCurrency = currencyExample.value,
+      owners = owner1Example.value :: owner1Example.value :: Nil,
+      viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
+      bankRoutingScheme = bankRoutingSchemeExample.value,
+      bankRoutingAddress = bankRoutingAddressExample.value,
+      branchRoutingScheme = branchRoutingSchemeExample.value,
+      branchRoutingAddress = branchRoutingAddressExample.value,
+      accountRoutingScheme = accountRoutingSchemeExample.value,
+      accountRoutingAddress = accountRoutingAddressExample.value,
+      accountRouting = Nil,
+      accountRules = Nil
+    )
+  
+  val adapterAuthInfo = AdapterAuthInfo(
+    userId = userIdExample.value, 
+    username = usernameExample.value, 
+    linkedCustomers = Some(List(BasicLindedCustomer(customerIdExample.value,customerNumberExample.value,legalNameExample.value))),
+    userAuthContexts = Some(List(BasicUserAuthContext(keyExample.value, valueExample.value))),//be set by obp from some endpoints. 
+    userCbsContexts= Some(List(BasicUserCbsContext(keyExample.value, valueExample.value))),  //be set by backend, send it back to the header? not finish yet.
+    authViews = Some(List(AuthView(
+      view = ViewBasic(
+        id = viewIdExample.value,
+        name = viewNameExample.value,
+        description = viewDescriptionExample.value,
+        ),
+      account = AccountBasic(
+        id = accountIdExample.value,
+        accountRoutings =List(AccountRouting(
+          scheme = accountRoutingSchemeExample.value,
+          address = accountRoutingAddressExample.value
+        )),
+        customerOwners = List(InternalBasicCustomer(
+          bankId = bankIdExample.value,
+          customerId = customerIdExample.value,
+          customerNumber = customerNumberExample.value,
+          legalName = legalNameExample.value,
+          dateOfBirth =  new Date(),
+        )),
+        userOwners = List(InternalBasicUser(
+          userId = userIdExample.value,
+          emailAddress = emailExample.value,
+          name = usernameExample.value
+        )))))))
+  
+  val adapterCallContext = Some(
+    AdapterCallContext(
+      correlationIdExample.value,
+      Some(sessionIdExample.value),
+      Some(adapterAuthInfo)
+    )
+  )
+  
+  val bank = 
+    InboundBank(
+      bankId = bankIdExample.value,
+      shortName = "The Royal Bank of Scotland",
+      fullName = "The Royal Bank of Scotland",
+      logoUrl = "http://www.red-bank-shoreditch.com/logo.gif",
+      websiteUrl = "http://www.red-bank-shoreditch.com",
+      bankRoutingScheme = "OBP",
+      bankRoutingAddress = "rbs"
+    )
+  
   val accountRouting = AccountRouting("","")
   val accountRule = AccountRule("","")
   val inboundAccount = InboundAccount(
@@ -29,13 +104,6 @@ object MessageDocsSwaggerDefinitions
       accountRoutingAddress = "",
       accountRouting = List(accountRouting),
       accountRules = List(accountRule)
-    )
-  
-  val callContextAkka = CallContextAkka(
-      Some(""),
-      Some("9ddb6507-9cec-4e5e-b09a-ef1cb203825a"),
-      "",
-      Some("")
     )
   
   val inboundBank = InboundBank(

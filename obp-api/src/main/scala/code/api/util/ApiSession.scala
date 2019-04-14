@@ -6,12 +6,11 @@ import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.RequestHeader
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.BankAccountNotFound
+import code.api.util.ErrorMessages.{BankAccountNotFound, attemptedToOpenAnEmptyBox}
 import code.context.UserAuthContextProvider
 import code.customer.Customer
 import code.model.Consumer
 import code.views.Views
-import com.openbankproject.commons.dto.CallContextAkka
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
@@ -19,33 +18,8 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 import code.model._
+
 import scala.collection.immutable.List
-
-case class AdapterCallContext(
-  correlationId: String = "",
-  sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
-  adapterAuthInfo: Option[AdapterAuthInfo]
-)
-
-
-case class BasicUserCbsContext(
-  key: String,
-  value: String
-)
-
-case class AdapterAuthInfo(
-  userId: String = "", 
-  username: String = "", 
-  linkedCustomers: Option[List[BasicLindedCustomer]] = None,
-  userAuthContexts: Option[List[BasicUserAuthContext]]= None,//be set by obp from some endpoints. 
-  userCbsContexts: Option[List[BasicUserCbsContext]]= None,  //be set by backend, send it back to the header? not finish yet.
-  authViews: Option[List[AuthView]] = None,
-)
-
-case class InboundAdapterCallContext(
-  cbsToken: String = "",
-  sessionId: String = ""
-)
 
 case class CallContext(
                        gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!  
@@ -73,26 +47,8 @@ case class CallContext(
                        authInfo: Option[AuthInfoBasic]= None // This is only used for kafka/akka connectors, the mapped connector set default as None.
                       ) {
 
-  /**
-    * Purpose of this helper function is to get rid of unnecessary and heavy data before serialization.
-    * For instance before we send it from the North Side to the Adapter(the South side)
-    * @return CallContext without ResourceDoc type
-    */
-  def removeResourceDocument: CallContext = this.copy(resourceDocument = None)
-  /**
-    * Purpose of this helper function is to transform data for Akka's connector serialization.
-    * @return object which type is CallContextAkka
-    */
-  def toCallContextAkka: CallContextAkka = 
-    CallContextAkka(
-      userId = this.user.map(_.userId).toOption,
-      consumerId = this.consumer.map(_.consumerId.get).toOption,
-      correlationId = this.correlationId,
-      sessionId = this.sessionId
-    )
-  
   //This is only used to connect the back adapter. not useful for sandbox mode.
-  def toAdapterCallContext: Option[AdapterCallContext] = {
+  def toAdapterCallContext: AdapterCallContext= {
     for{
       user <- this.user
       username <- tryo(user.name)
@@ -129,7 +85,7 @@ case class CallContext(
           basicUserAuthContexts,
           userCbsContexts = None, //Not sure how to use this field yet. 
           if (authViews.isEmpty) None else Some(authViews))))
-    }}.toOption
+    }}.openOrThrowException(attemptedToOpenAnEmptyBox)
   
   def toLight: CallContextLight = {
     CallContextLight(

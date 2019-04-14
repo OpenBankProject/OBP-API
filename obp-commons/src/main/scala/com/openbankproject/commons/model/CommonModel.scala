@@ -509,7 +509,7 @@ case class BasicUserAuthContext(
 
 case class ViewBasic(
   id: String,
-  short_name: String,
+  name: String,
   description: String,
 )
 case class BasicLindedCustomer(
@@ -546,4 +546,31 @@ case class AuthInfoBasic(
   sessionId: Option[String] = None,
   userAuthContexts: Option[List[BasicUserAuthContext]]= None,
   authViews: Option[List[AuthView]] = None
+)
+
+
+case class AdapterCallContext(
+  correlationId: String = "",
+  sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
+  adapterAuthInfo: Option[AdapterAuthInfo]
+)
+
+
+case class BasicUserCbsContext(
+  key: String,
+  value: String
+)
+
+case class AdapterAuthInfo(
+  userId: String = "", 
+  username: String = "", 
+  linkedCustomers: Option[List[BasicLindedCustomer]] = None,
+  userAuthContexts: Option[List[BasicUserAuthContext]]= None,//be set by obp from some endpoints. 
+  userCbsContexts: Option[List[BasicUserCbsContext]]= None,  //be set by backend, send it back to the header? not finish yet.
+  authViews: Option[List[AuthView]] = None,
+)
+
+case class InboundAdapterCallContext(
+  cbsToken: String = "",
+  sessionId: String = ""
 )

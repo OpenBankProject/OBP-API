@@ -94,6 +94,14 @@ object ExampleValue {
   val owner1Example = ConnectorField("SusanSmith", "A username that is the owner of the account.")
   glossaryItems += makeGlossaryItem("Account.owner", owner1Example)
 
+  val viewIdExample = ConnectorField("owner", "A viewId can be owner, accountant, public ....")
+  glossaryItems += makeGlossaryItem("view.id", viewIdExample)
+  
+  val viewNameExample = ConnectorField("Owner","A viewName can be Owner, Accountant, Public ....")
+  glossaryItems += makeGlossaryItem("view.name",viewNameExample)
+  
+  val viewDescriptionExample = ConnectorField("This view is for the owner for the account.", "A description for this view.")
+  glossaryItems += makeGlossaryItem("view.description", viewDescriptionExample)
 
 
 
@@ -118,6 +126,12 @@ object ExampleValue {
 
   val accountRoutingAddressExample = ConnectorField("DE91 1000 0000 0123 4567 89", "An identifier that conforms to account_routing_scheme / accountRoutingScheme")
   glossaryItems += makeGlossaryItem("Account.account_routing_address", accountRoutingAddressExample)
+  
+  val keyExample = ConnectorField(s"${customerNumberExample.value}", s"This key should be used with Adapter.value together. They are the pair.")
+  glossaryItems += makeGlossaryItem("Adapter.key", keyExample)
+  
+  val valueExample = ConnectorField("FYIUYF6SUYFSD", s"This key should be used with Adapter.key together. They are the pair.")
+  glossaryItems += makeGlossaryItem("Adapter.value", valueExample)
 
   val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 

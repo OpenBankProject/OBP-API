@@ -40,42 +40,42 @@ import scala.math.BigDecimal
   *
   */
 case class OutboundGetAdapterInfo(date: String,
-                                  callContext: Option[CallContextAkka])
+                                  adapterCallContext : Option[AdapterCallContext])
 
-case class OutboundGetBanks(callContext: Option[CallContextAkka])
+case class OutboundGetBanks(adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundGetBank(bankId: String,
-                           callContext: Option[CallContextAkka])
+                           adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundCheckBankAccountExists(bankId: String,
                                           ccountId: String,
-                                          callContext: Option[CallContextAkka])
+                                          adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundGetAccount(bankId: String,
                               accountId: String,
-                              callContext: Option[CallContextAkka])
+                              adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundGetCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId],
-                                       callContext: Option[CallContextAkka])
+                                       adapterCallContext: Option[AdapterCallContext])
 
-case class OutboundGetCustomersByUserId(userId: String, callContext: Option[CallContextAkka])
+case class OutboundGetCustomersByUserId(userId: String, adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundGetCounterparties(thisBankId: String,
                                      thisAccountId: String,
                                      viewId: String,
-                                     callContext: Option[CallContextAkka])
+                                     adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundGetTransactions(bankId: String,
                                    accountId: String,
                                    limit: Int,
                                    fromDate: String,
                                    toDate: String,
-                                   callContext: Option[CallContextAkka])
+                                   adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundGetTransaction(bankId: String,
                                   accountId: String,
                                   transactionId: String,
-                                  callContext: Option[CallContextAkka])
+                                  adapterCallContext: Option[AdapterCallContext])
 
 /**
   *
@@ -87,35 +87,35 @@ case class InboundAdapterInfo(
                                version: String,
                                git_commit: String,
                                date: String,
-                               callContext: Option[CallContextAkka]
+                               adapterCallContext: Option[AdapterCallContext]
                              )
 
 case class InboundGetBanks(payload: Option[List[InboundBank]],
-                           callContext: Option[CallContextAkka])
+                           adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetBank(payload: Option[InboundBank],
-                          callContext: Option[CallContextAkka])
+                          adapterCallContext: Option[AdapterCallContext])
 
 case class InboundCheckBankAccountExists(payload: Option[InboundAccount],
-                                         callContext: Option[CallContextAkka])
+                                         adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetAccount(payload: Option[InboundAccount],
-                             callContext: Option[CallContextAkka])
+                             adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetCoreBankAccounts(payload: List[InboundCoreAccount],
-                                      callContext: Option[CallContextAkka])
+                                      adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetCustomersByUserId(payload: List[InboundCustomer],
-                                       callContext: Option[CallContextAkka])
+                                       adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetCounterparties(payload: List[InboundCounterparty],
-                                    callContext: Option[CallContextAkka])
+                                    adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetTransactions(payload: List[InboundTransaction],
-                                  callContext: Option[CallContextAkka])
+                                  adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetTransaction(payload: Option[InboundTransaction],
-                                 callContext: Option[CallContextAkka])
+                                 adapterCallContext: Option[AdapterCallContext])
 
 
 case class InboundBank(
