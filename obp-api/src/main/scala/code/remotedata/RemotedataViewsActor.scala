@@ -133,10 +133,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("getOwners(" + view +")")
       sender ! (mapper.getOwners(view))
 
-    case cc.grantAccessToView(user, view) =>
-      logger.debug("grantAccessToView(" + user +", "+ view +")")
-      sender ! (mapper.grantAccessToView(user, view))
-
     case cc.grantAccessToAllExistingViews(user) =>
       logger.debug("grantAccessToAllExistingViews(" + user +")")
       sender ! (mapper.grantAccessToAllExistingViews(user))

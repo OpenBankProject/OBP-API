@@ -88,8 +88,7 @@ trait Views {
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View]
 
   def getOwners(view: View): Set[User]
-
-  def grantAccessToView(user : User, view : View) : Boolean
+  
   def grantAccessToAllExistingViews(user : User) : Boolean
 
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
@@ -136,8 +135,7 @@ class RemotedataViewsCaseClasses {
   case class createRandomView(bankId: BankId, accountId: AccountId)
 
   case class getOwners(view: View)
-
-  case class grantAccessToView(user : User, view : View)
+  
   case class grantAccessToAllExistingViews(user : User)
 
   case class removeAllPermissions(bankId: BankId, accountId: AccountId)
