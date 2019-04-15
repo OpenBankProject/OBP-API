@@ -77,6 +77,10 @@ case class OutboundGetTransaction(bankId: String,
                                   transactionId: String,
                                   adapterCallContext: Option[AdapterCallContext])
 
+case class OutboundGetBankAccountsByUsername(
+                                  username: String,
+                                  adapterCallContext: Option[AdapterCallContext])
+
 /**
   *
   * case classes used to define inbound Akka messages
@@ -117,6 +121,9 @@ case class InboundGetTransactions(payload: List[InboundTransaction],
 case class InboundGetTransaction(payload: Option[InboundTransaction],
                                  adapterCallContext: Option[AdapterCallContext])
 
+case class InboundGetBankAccountsByUsername(payload: List[InboundAccountCommon],
+                                            adapterCallContext: Option[AdapterCallContext]
+)
 
 case class InboundBank(
                         bankId: String,

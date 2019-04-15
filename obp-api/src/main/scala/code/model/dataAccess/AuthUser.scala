@@ -45,7 +45,7 @@ import net.liftweb.util._
 
 import scala.collection.immutable.List
 import scala.xml.{NodeSeq, Text}
-
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -842,6 +842,13 @@ def restoreSomeSessions(): Unit = {
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
     updateUserAccountViews(user, accounts._1)
+  }
+  
+  def updateUserAccountViewsFuture(user: User, callContext: Option[CallContext]) = {
+    for{
+      Full(accounts)<- Connector.connector.vend.getBankAccountsByUsernameFuture(user.name,callContext)
+    }yield 
+       updateUserAccountViews(user, accounts._1)
   }
 
   /**

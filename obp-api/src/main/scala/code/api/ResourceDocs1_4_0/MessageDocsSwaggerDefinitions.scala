@@ -13,6 +13,46 @@ import scala.collection.immutable.{List, Nil}
 object MessageDocsSwaggerDefinitions
 {
   
+  val inboundAccountCommonCommons = InboundAccountCommonCommons(
+    errorCode = "",
+    bankId = bankIdExample.value,
+    branchId = branchIdExample.value,
+    accountId = accountIdExample.value,
+    accountNumber = accountNumberExample.value,
+    accountType = accountTypeExample.value,
+    balanceAmount = balanceAmountExample.value,
+    balanceCurrency = currencyExample.value,
+    owners = List(owner1Example.value),
+    viewsToGenerate = List("Owner", "Accountant", "Auditor"),
+    bankRoutingScheme = bankRoutingSchemeExample.value,
+    bankRoutingAddress = bankRoutingAddressExample.value,
+    branchRoutingScheme = branchRoutingSchemeExample.value,
+    branchRoutingAddress = branchRoutingAddressExample.value,
+    accountRoutingScheme = accountRoutingSchemeExample.value,
+    accountRoutingAddress = accountRoutingAddressExample.value
+  )
+  
+  val bankAccountCommons = BankAccountCommons(
+    accountId = AccountId(accountIdExample.value),
+    accountType = accountTypeExample.value,
+    balance = BigDecimal(balanceAmountExample.value),
+    currency = currencyExample.value,
+    name = usernameExample.value,
+    label = labelExample.value,
+    swift_bic = None,
+    iban = Some(ibanExample.value),
+    number = accountNumberExample.value,
+    bankId = BankId(bankIdExample.value),
+    lastUpdate = new Date(),
+    branchId = branchIdExample.value,
+    accountRoutingScheme = accountRoutingSchemeExample.value,
+    accountRoutingAddress = accountRoutingAddressExample.value,
+    accountRoutings = List(AccountRouting(accountRoutingSchemeExample.value,
+                                          accountRoutingAddressExample.value)),
+    accountRules = Nil,
+    accountHolder = ""
+  )
+  
   val inboundAccountDec2018Example = 
     InboundAccount(
       bankId = bankIdExample.value,

@@ -122,6 +122,30 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     response.map(_.payload.map(r => (toBank(r), callContext)))
   }
 
+   messageDocs += MessageDoc(
+    process = "obp.get.getBankAccountsByUsername",
+    messageFormat = messageFormat,
+    description = "Gets the list of accounts available to the User. This call sends authInfo including username.",
+    outboundTopic = Some(OutboundGetBankAccountsByUsername.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InboundGetBankAccountsByUsername.getClass.getSimpleName.replace("$", "")),
+    exampleOutboundMessage = (
+      OutboundGetBankAccountsByUsername(
+        usernameExample.value,
+        adapterCallContext)
+    ),
+    exampleInboundMessage = (
+      InboundGetBankAccountsByUsername(
+        List(inboundAccountCommonCommons),
+        adapterCallContext)
+    ),
+    adapterImplementation = Some(AdapterImplementation("Accounts", 5))
+  )
+  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = {
+    val req = OutboundGetBankAccountsByUsername(username, callContext.map(_.toAdapterCallContext))
+    val response: Future[InboundGetBankAccountsByUsername] = (southSideActor ? req).mapTo[InboundGetBankAccountsByUsername]
+    response.map(a =>(Full(a.payload, callContext)))
+  }
+  
   messageDocs += MessageDoc(
     process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
