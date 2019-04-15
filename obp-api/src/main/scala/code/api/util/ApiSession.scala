@@ -85,7 +85,10 @@ case class CallContext(
           basicUserAuthContexts,
           userCbsContexts = None, //Not sure how to use this field yet. 
           if (authViews.isEmpty) None else Some(authViews))))
-    }}.openOrThrowException(attemptedToOpenAnEmptyBox)
+    }}.openOr(AdapterCallContext( //For anonymousAccess endpoints, there are no user info
+      correlationId = this.correlationId,
+      sessionId = this.sessionId,
+      None))
   
   def toLight: CallContextLight = {
     CallContextLight(
