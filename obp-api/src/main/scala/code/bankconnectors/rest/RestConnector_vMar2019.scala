@@ -37,6 +37,7 @@ import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.KafkaHelper
+import code.model.BankAccount
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto.InboundGetBank
@@ -49,10 +50,11 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
+import net.liftweb.json.Serialization.write
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
 
@@ -81,11 +83,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = Some(OutBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBanksFuture(AuthInfoBasic())
+      OutBoundGetBanksFuture(AdapterCallContext(adapterAuthInfo = None))
     ),
     exampleInboundMessage = (
       InBoundGetBanksFuture(
-        AuthInfoBasic(),
+        AdapterCallContext(adapterAuthInfo = None),
         List(BankCommons(
           bankId = BankId(bankIdExample.value),
           shortName = "The Royal Bank of Scotland",
@@ -114,7 +116,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         val url = getUrl("getBank" , ("bankId", bankId))
         sendGetRequest[InBoundGetBankFuture](url, callContext) map { boxedResult =>
           boxedResult.map { result =>
-            (result.data, buildCallContext(result.authInfo, callContext))
+            (result.data, buildCallContext(result.adapterCallContext, callContext))
           }
         }
       }
@@ -145,13 +147,13 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     description = "Gets the Accounts.",
     exampleOutboundMessage =
       OutBoundGetBankAccountFuture(
-        AuthInfoBasic(),
+        AdapterCallContext(adapterAuthInfo = None),
         BankId(bankIdExample.value),
         AccountId(accountIdExample.value))
     ,
     exampleInboundMessage =
       InBoundGetBankAccountFuture(
-        AuthInfoBasic(),
+        AdapterCallContext(adapterAuthInfo = None),
         BankAccountCommons(
           accountId  = AccountId(accountIdExample.value),
           accountType = accountTypeExample.value,
@@ -190,33 +192,13 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundGetBankAccountFuture](url, callContext)
           .map{ boxedResult =>
             boxedResult match {
-              case Full(result) => (Full(result.data), buildCallContext(result.authInfo, callContext))
+              case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
               case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
             }
           }
       }
     }
   }("getBankAccount")
-
-
-
-  // url example: /checkBankAccountExists/bankId/{bankId}/accountId/{accountId}
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val url = getUrl("checkBankAccountExists" , ("bankId", bankId), ("accountId", accountId))
-        sendGetRequest[BankAccountCommons](url, callContext)
-          .map(it => it.map((_ -> callContext)))
-      }
-    }
-  }("checkBankAccountExists")
     
 
   // url example: /getCounterparties/thisBankId/{thisBankId}/thisAccountId/{thisAccountId}/viewId/{viewId}
@@ -234,7 +216,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundGetCounterpartiesFuture](url, callContext)
           .map { boxedResult =>
             boxedResult match {
-              case Full(result) => (Full(result.data), buildCallContext(result.authInfo, callContext))
+              case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
               case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
             }
           }
@@ -280,7 +262,113 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     }
   }("getTransaction")
 
-    
+
+// ---------- create on Mon Apr 15 09:15:18 CST 2019
+
+
+  // url example: /checkBankAccountExistsB/bankId/{bankId}/accountId/{accountId}
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("checkBankAccountExistsB", ("bankId", bankId), ("accountId", accountId))
+        sendGetRequest[InBoundCheckBankAccountExistsFuture](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("checkBankAccountExistsB")
+
+
+  // url example: /checkBankAccountExists/bankId/{bankId}/accountId/{accountId}
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("checkBankAccountExists", ("bankId", bankId), ("accountId", accountId))
+        sendGetRequest[InBoundCheckBankAccountExistsFuture](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("checkBankAccountExists")
+
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext])
+  : OBPReturnType[Box[String]] = {
+    val url = getUrl("createChallenge")
+    val jsonStr = write(new OutBoundCreateChallenge(buildAdapterCallContext(callContext), bankId, accountId, userId, transactionRequestType, transactionRequestId))
+    sendPostRequest[InBoundCreateChallenge](url, callContext, jsonStr)
+      .map{ boxedResult =>
+      boxedResult match {
+        case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
+      }
+    }
+  }
+
+  override def createCounterparty(name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext])
+  : Box[(CounterpartyTraitCommons, Option[CallContext])] = {
+    val url = getUrl("createCounterparty")
+    val jsonStr = write(new OutBoundCreateCounterparty(buildAdapterCallContext(callContext), name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke))
+    sendPostRequest[InBoundCreateCounterparty](url, callContext, jsonStr)
+      .map { boxedResult =>
+        boxedResult.map { result =>
+          (result.data, buildCallContext(result.adapterCallContext, callContext))
+        }
+      }
+  }
+
+  //  def createInMemoryTransactionCore(bankAccount: BankAccount,internalTransaction: InternalTransaction_vJune2017): Box[TransactionCore]
+  //  def createInMemoryTransaction(bankAccount: BankAccount,internalTransaction: InternalTransaction_vJune2017): Box[Transaction]
+  //  def createInMemoryTransactionsCore(bankAccount: BankAccount,internalTransactions: List[InternalTransaction_vSept2018]): Box[List[TransactionCore]]
+  //  def createInMemoryCounterparty(bankAccount: BankAccount, counterpartyName: String, counterpartyId: String): Box[Counterparty]
+
+  override def makePaymentv210(fromAccount: BankAccount,
+                               toAccount: BankAccount,
+                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                               amount: BigDecimal,
+                               description: String,
+                               transactionRequestType: TransactionRequestType,
+                               chargePolicy: String,
+                               callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
+    val url = getUrl("makePaymentv210")
+    val jsonStr = write(new OutBoundMakePaymentv210(
+      buildAdapterCallContext(callContext),
+      fromAccount,
+      toAccount,
+      transactionRequestCommonBody,
+      amount,
+      description,
+      transactionRequestType,
+      chargePolicy))
+      sendPostRequest[InBoundMakePaymentv210](url, callContext, jsonStr)
+        .map{ boxedResult =>
+          boxedResult match {
+            case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+            case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
+          }
+        }
+  }
 //---------------- dynamic end ---------------------please don't modify this line
     
 
@@ -298,6 +386,16 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   //TODO every connector should implement this method to build authorization headers with callContext
   private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = Nil
+
+  private[this] def buildAdapterCallContext(callContext: Option[CallContext]): AdapterCallContext = callContext.map(_.toAdapterCallContext).orNull
+
+  /**
+    * some methods return type is not future, this implicit method make these method have the same body, it facilitate to generate code.
+    * @param future
+    * @tparam T
+    * @return
+    */
+  private[this] implicit def convertFuture[T](future: Future[T]): T = Await.result(future, 1.minute)
 
   //TODO please modify this baseUrl to your remote api server base url of this connector
   private[this] val baseUrl = "http://127.0.0.1:9093"
@@ -333,7 +431,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
             parse(it).extract[T]
           } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", failCode, callContext.map(_.toLight))
         })
-//        .map(it => fullBoxOrException(it ))
   }
 
   /**
@@ -357,10 +454,13 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     })
   }
 
-  private[this] def buildCallContext(authInfo: AuthInfoBasic, callContext: Option[CallContext]): Option[CallContext] = for(cc <- callContext) yield cc.copy(authInfo=Option(authInfo))
+  //TODO hongwei confirm the third valu: AdapterCallContext#adapterAuthInfo
+  private[this] def buildCallContext(adapterCallContext: AdapterCallContext, callContext: Option[CallContext]): Option[CallContext] =
+    for (cc <- callContext)
+      yield cc.copy(correlationId = adapterCallContext.correlationId, sessionId = adapterCallContext.sessionId)
 
-  private[this] def buildCallContext(boxedAuthInfo: Box[AuthInfoBasic], callContext: Option[CallContext]): Option[CallContext] = boxedAuthInfo match {
-    case Full(authInfo) => buildCallContext(authInfo, callContext)
+  private[this] def buildCallContext(boxedAdapterCallContext: Box[AdapterCallContext], callContext: Option[CallContext]): Option[CallContext] = boxedAdapterCallContext match {
+    case Full(adapterCallContext) => buildCallContext(adapterCallContext, callContext)
     case _ => callContext
   }
 }

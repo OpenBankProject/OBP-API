@@ -36,15 +36,15 @@ import scala.collection.immutable.List
 //--------generated
 
 
-case class OutBoundGetObpApiLoopback (authInfo: AuthInfoBasic)
-case class InBoundGetObpApiLoopback (authInfo: AuthInfoBasic, data: ObpApiLoopback)
+case class OutBoundGetObpApiLoopback (adapterCallContext: AdapterCallContext)
+case class InBoundGetObpApiLoopback (adapterCallContext: AdapterCallContext, data: ObpApiLoopback)
 
 
-case class OutBoundGetAdapterInfoFuture (authInfo: AuthInfoBasic)
-case class InBoundGetAdapterInfoFuture (authInfo: AuthInfoBasic, data: InboundAdapterInfoInternal)
+case class OutBoundGetAdapterInfoFuture (adapterCallContext: AdapterCallContext)
+case class InBoundGetAdapterInfoFuture (adapterCallContext: AdapterCallContext, data: InboundAdapterInfoInternal)
 
 
-case class OutBoundGetChallengeThreshold (authInfo: AuthInfoBasic,
+case class OutBoundGetChallengeThreshold (adapterCallContext: AdapterCallContext,
                                           bankId: String,
                                           accountId: String,
                                           viewId: String,
@@ -52,10 +52,10 @@ case class OutBoundGetChallengeThreshold (authInfo: AuthInfoBasic,
                                           currency: String,
                                           userId: String,
                                           userName: String)
-case class InBoundGetChallengeThreshold (authInfo: AuthInfoBasic, data: AmountOfMoney)
+case class InBoundGetChallengeThreshold (adapterCallContext: AdapterCallContext, data: AmountOfMoney)
 
 
-case class OutBoundGetChargeLevel (authInfo: AuthInfoBasic,
+case class OutBoundGetChargeLevel (adapterCallContext: AdapterCallContext,
                                    bankId: BankId,
                                    accountId: AccountId,
                                    viewId: ViewId,
@@ -63,146 +63,165 @@ case class OutBoundGetChargeLevel (authInfo: AuthInfoBasic,
                                    userName: String,
                                    transactionRequestType: String,
                                    currency: String)
-case class InBoundGetChargeLevel (authInfo: AuthInfoBasic, data: AmountOfMoney)
+case class InBoundGetChargeLevel (adapterCallContext: AdapterCallContext, data: AmountOfMoney)
 
 
-case class OutBoundGetBankFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetBankFuture (adapterCallContext: AdapterCallContext,
                                   bankId: BankId)
-case class InBoundGetBankFuture (authInfo: AuthInfoBasic, data: BankCommons)
+case class InBoundGetBankFuture (adapterCallContext: AdapterCallContext, data: BankCommons)
 
 
-case class OutBoundGetBanksFuture (authInfo: AuthInfoBasic)
-case class InBoundGetBanksFuture (authInfo: AuthInfoBasic, data: List[BankCommons])
+case class OutBoundGetBanksFuture (adapterCallContext: AdapterCallContext)
+case class InBoundGetBanksFuture (adapterCallContext: AdapterCallContext, data: List[BankCommons])
 
-case class OutBoundGetBankAccountsByUsernameFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetBankAccountsByUsernameFuture (adapterCallContext: AdapterCallContext,
                                           username: String)
-case class InBoundGetBankAccountsByUsernameFuture (authInfo: AuthInfoBasic, data: List[InboundAccountCommonCommons])
+case class InBoundGetBankAccountsByUsernameFuture (adapterCallContext: AdapterCallContext, data: List[InboundAccountCommonCommons])
 
 
-case class OutBoundGetBankAccountFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetBankAccountFuture (adapterCallContext: AdapterCallContext,
                                          bankId: BankId,
                                          accountId: AccountId)
-case class InBoundGetBankAccountFuture (authInfo: AuthInfoBasic, data: BankAccountCommons)
+case class InBoundGetBankAccountFuture (adapterCallContext: AdapterCallContext, data: BankAccountCommons)
 
 
-case class OutBoundGetBankAccountsFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetBankAccountsFuture (adapterCallContext: AdapterCallContext,
                                           bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetBankAccountsFuture (authInfo: AuthInfoBasic, data: List[BankAccountCommons])
+case class InBoundGetBankAccountsFuture (adapterCallContext: AdapterCallContext, data: List[BankAccountCommons])
 
 
-case class OutBoundGetCoreBankAccountsFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCoreBankAccountsFuture (adapterCallContext: AdapterCallContext,
                                               bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetCoreBankAccountsFuture (authInfo: AuthInfoBasic, data: List[CoreAccount])
+case class InBoundGetCoreBankAccountsFuture (adapterCallContext: AdapterCallContext, data: List[CoreAccount])
 
 
-case class OutBoundGetCoreBankAccountsHeldFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCoreBankAccountsHeldFuture (adapterCallContext: AdapterCallContext,
                                                   bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetCoreBankAccountsHeldFuture (authInfo: AuthInfoBasic, data: List[AccountHeld])
+case class InBoundGetCoreBankAccountsHeldFuture (adapterCallContext: AdapterCallContext, data: List[AccountHeld])
 
 
-case class OutBoundCheckBankAccountExistsFuture (authInfo: AuthInfoBasic,
+case class OutBoundCheckBankAccountExistsFuture (adapterCallContext: AdapterCallContext,
                                                  bankId: BankId,
                                                  accountId: AccountId)
-case class InBoundCheckBankAccountExistsFuture (authInfo: AuthInfoBasic, data: BankAccountCommons)
+case class InBoundCheckBankAccountExistsFuture (adapterCallContext: AdapterCallContext, data: BankAccountCommons)
 
 
-case class OutBoundGetCounterpartyTrait (authInfo: AuthInfoBasic,
+case class OutBoundGetCounterpartyTrait (adapterCallContext: AdapterCallContext,
                                          bankId: BankId,
                                          accountId: AccountId,
                                          couterpartyId: String)
-case class InBoundGetCounterpartyTrait (authInfo: AuthInfoBasic, data: CounterpartyTraitCommons)
+case class InBoundGetCounterpartyTrait (adapterCallContext: AdapterCallContext, data: CounterpartyTraitCommons)
 
 
-case class OutBoundGetCounterpartyByCounterpartyIdFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCounterpartyByCounterpartyIdFuture (adapterCallContext: AdapterCallContext,
                                                           counterpartyId: CounterpartyId)
-case class InBoundGetCounterpartyByCounterpartyIdFuture (authInfo: AuthInfoBasic, data: CounterpartyTraitCommons)
+case class InBoundGetCounterpartyByCounterpartyIdFuture (adapterCallContext: AdapterCallContext, data: CounterpartyTraitCommons)
 
 
-case class OutBoundGetCounterpartyByIban (authInfo: AuthInfoBasic,
+case class OutBoundGetCounterpartyByIban (adapterCallContext: AdapterCallContext,
                                           iban: String)
-case class InBoundGetCounterpartyByIban (authInfo: AuthInfoBasic, data: CounterpartyTraitCommons)
+case class InBoundGetCounterpartyByIban (adapterCallContext: AdapterCallContext, data: CounterpartyTraitCommons)
 
 
-case class OutBoundGetCounterpartiesFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCounterpartiesFuture (adapterCallContext: AdapterCallContext,
                                             thisBankId: BankId,
                                             thisAccountId: AccountId,
                                             viewId: ViewId)
-case class InBoundGetCounterpartiesFuture (authInfo: AuthInfoBasic, data: List[CounterpartyTraitCommons])
+case class InBoundGetCounterpartiesFuture (adapterCallContext: AdapterCallContext, data: List[CounterpartyTraitCommons])
 
 
-case class OutBoundGetTransactionsFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetTransactionsFuture (adapterCallContext: AdapterCallContext,
                                           bankId: BankId,
                                           accountID: AccountId)
-case class InBoundGetTransactionsFuture (authInfo: AuthInfoBasic, data: List[TransactionCommons])
+case class InBoundGetTransactionsFuture (adapterCallContext: AdapterCallContext, data: List[TransactionCommons])
 
 
-case class OutBoundGetTransactionFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetTransactionFuture (adapterCallContext: AdapterCallContext,
                                          bankId: BankId,
                                          accountID: AccountId,
                                          transactionId: TransactionId)
-case class InBoundGetTransactionFuture (authInfo: AuthInfoBasic, data: TransactionCommons)
+case class InBoundGetTransactionFuture (adapterCallContext: AdapterCallContext, data: TransactionCommons)
 
 
-case class OutBoundMakePaymentv210 (authInfo: AuthInfoBasic,
+case class OutBoundMakePaymentv210 (adapterCallContext: AdapterCallContext,
                                     fromAccount: BankAccountCommons,
                                     toAccount: BankAccountCommons,
-                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON, //TODO FIXME
+                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSONCommons,
                                     amount: BigDecimal,
                                     description: String,
                                     transactionRequestType: TransactionRequestType,
-                                    chargePolicy: String)
-case class InBoundMakePaymentv210 (authInfo: AuthInfoBasic, data: TransactionId)
+                                    chargePolicy: String) {
+
+  def this(adapterCallContext: AdapterCallContext,
+           fromAccount: BankAccount,
+           toAccount: BankAccount,
+           transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+           amount: BigDecimal,
+           description: String,
+           transactionRequestType: TransactionRequestType,
+           chargePolicy: String) = this(
+    adapterCallContext,
+    BankAccountCommons(fromAccount),
+    BankAccountCommons(toAccount),
+    TransactionRequestCommonBodyJSONCommons(transactionRequestCommonBody),
+    amount: BigDecimal,
+    description: String,
+    transactionRequestType: TransactionRequestType,
+    chargePolicy)
+}
+
+case class InBoundMakePaymentv210 (adapterCallContext: AdapterCallContext, data: TransactionId)
 
 
-case class OutBoundCreateTransactionRequestv210 (authInfo: AuthInfoBasic,
+case class OutBoundCreateTransactionRequestv210 (adapterCallContext: AdapterCallContext,
                                                  initiator: User, //TODO FIXME
                                                  viewId: ViewId,
                                                  fromAccount: BankAccountCommons,
                                                  toAccount: BankAccountCommons,
                                                  transactionRequestType: TransactionRequestType,
-                                                 transactionRequestCommonBody: TransactionRequestCommonBodyJSON, //TODO FIXME
+                                                 transactionRequestCommonBody: TransactionRequestCommonBodyJSONCommons,
                                                  detailsPlain: String,
                                                  chargePolicy: String)
-case class InBoundCreateTransactionRequestv210 (authInfo: AuthInfoBasic, data: TransactionRequest)
+case class InBoundCreateTransactionRequestv210 (adapterCallContext: AdapterCallContext, data: TransactionRequest)
 
 
-case class OutBoundCreateTransactionAfterChallengeV210 (authInfo: AuthInfoBasic,
+case class OutBoundCreateTransactionAfterChallengeV210 (adapterCallContext: AdapterCallContext,
                                                         fromAccount: BankAccountCommons,
                                                         transactionRequest: TransactionRequest)
-case class InBoundCreateTransactionAfterChallengeV210 (authInfo: AuthInfoBasic, data: TransactionRequest)
+case class InBoundCreateTransactionAfterChallengeV210 (adapterCallContext: AdapterCallContext, data: TransactionRequest)
 
 
-case class OutBoundGetBranchFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetBranchFuture (adapterCallContext: AdapterCallContext,
                                     bankId: BankId,
                                     branchId: BranchId)
-case class InBoundGetBranchFuture (authInfo: AuthInfoBasic, data: BranchTCommons)
+case class InBoundGetBranchFuture (adapterCallContext: AdapterCallContext, data: BranchTCommons)
 
 
-case class OutBoundGetBranchesFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetBranchesFuture (adapterCallContext: AdapterCallContext,
                                       bankId: BankId)
-case class InBoundGetBranchesFuture (authInfo: AuthInfoBasic, data: List[BranchTCommons])
+case class InBoundGetBranchesFuture (adapterCallContext: AdapterCallContext, data: List[BranchTCommons])
 
 
-case class OutBoundGetAtmFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetAtmFuture (adapterCallContext: AdapterCallContext,
                                  bankId: BankId,
                                  atmId: AtmId)
-case class InBoundGetAtmFuture (authInfo: AuthInfoBasic, data: AtmTCommons)
+case class InBoundGetAtmFuture (adapterCallContext: AdapterCallContext, data: AtmTCommons)
 
 
-case class OutBoundGetAtmsFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetAtmsFuture (adapterCallContext: AdapterCallContext,
                                   bankId: BankId)
-case class InBoundGetAtmsFuture (authInfo: AuthInfoBasic, data: List[AtmTCommons])
+case class InBoundGetAtmsFuture (adapterCallContext: AdapterCallContext, data: List[AtmTCommons])
 
 
-case class OutBoundCreateTransactionAfterChallengev300 (authInfo: AuthInfoBasic,
+case class OutBoundCreateTransactionAfterChallengev300 (adapterCallContext: AdapterCallContext,
                                                         initiator: User,       //TODO fixme
                                                         fromAccount: BankAccountCommons,
                                                         transReqId: TransactionRequestId,
                                                         transactionRequestType: TransactionRequestType)
-case class InBoundCreateTransactionAfterChallengev300 (authInfo: AuthInfoBasic, data: TransactionRequest)
+case class InBoundCreateTransactionAfterChallengev300 (adapterCallContext: AdapterCallContext, data: TransactionRequest)
 
 
-case class OutBoundMakePaymentv300 (authInfo: AuthInfoBasic,
+case class OutBoundMakePaymentv300 (adapterCallContext: AdapterCallContext,
                                     initiator: User,      //TODO fixme
                                     fromAccount: BankAccountCommons,
                                     toAccount: BankAccountCommons,
@@ -210,10 +229,10 @@ case class OutBoundMakePaymentv300 (authInfo: AuthInfoBasic,
                                     transactionRequestCommonBody: TransactionRequestCommonBodyJSON, //TODO FIXME
                                     transactionRequestType: TransactionRequestType,
                                     chargePolicy: String)
-case class InBoundMakePaymentv300 (authInfo: AuthInfoBasic, data: TransactionId)
+case class InBoundMakePaymentv300 (adapterCallContext: AdapterCallContext, data: TransactionId)
 
 
-case class OutBoundCreateTransactionRequestv300 (authInfo: AuthInfoBasic,
+case class OutBoundCreateTransactionRequestv300 (adapterCallContext: AdapterCallContext,
                                                  initiator: User,      //TODO fixme
                                                  viewId: ViewId,
                                                  fromAccount: BankAccountCommons,
@@ -223,10 +242,10 @@ case class OutBoundCreateTransactionRequestv300 (authInfo: AuthInfoBasic,
                                                  transactionRequestCommonBody: TransactionRequestCommonBodyJSON, //TODO FIXME
                                                  detailsPlain: String,
                                                  chargePolicy: String)
-case class InBoundCreateTransactionRequestv300 (authInfo: AuthInfoBasic, data: TransactionRequest)
+case class InBoundCreateTransactionRequestv300 (adapterCallContext: AdapterCallContext, data: TransactionRequest)
 
 
-case class OutBoundCreateCustomerFuture (authInfo: AuthInfoBasic,
+case class OutBoundCreateCustomerFuture (adapterCallContext: AdapterCallContext,
                                          bankId: BankId,
                                          legalName: String,
                                          mobileNumber: String,
@@ -242,31 +261,31 @@ case class OutBoundCreateCustomerFuture (authInfo: AuthInfoBasic,
                                          lastOkDate: Date,
                                          creditRating: Option[CreditRating],
                                          creditLimit: Option[AmountOfMoney])
-case class InBoundCreateCustomerFuture (authInfo: AuthInfoBasic, data: CustomerCommons)
+case class InBoundCreateCustomerFuture (adapterCallContext: AdapterCallContext, data: CustomerCommons)
 
 
-case class OutBoundGetCustomersByUserIdFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCustomersByUserIdFuture (adapterCallContext: AdapterCallContext,
                                                userId: String)
-case class InBoundGetCustomersByUserIdFuture (authInfo: AuthInfoBasic, data: List[CustomerCommons])
+case class InBoundGetCustomersByUserIdFuture (adapterCallContext: AdapterCallContext, data: List[CustomerCommons])
 
 
-case class OutBoundGetCustomerByCustomerIdFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCustomerByCustomerIdFuture (adapterCallContext: AdapterCallContext,
                                                   customerId: String)
-case class InBoundGetCustomerByCustomerIdFuture (authInfo: AuthInfoBasic, data: CustomerCommons)
+case class InBoundGetCustomerByCustomerIdFuture (adapterCallContext: AdapterCallContext, data: CustomerCommons)
 
 
-case class OutBoundGetCustomerByCustomerNumberFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCustomerByCustomerNumberFuture (adapterCallContext: AdapterCallContext,
                                                       customerNumber: String,
                                                       bankId: BankId)
-case class InBoundGetCustomerByCustomerNumberFuture (authInfo: AuthInfoBasic, data: CustomerCommons)
+case class InBoundGetCustomerByCustomerNumberFuture (adapterCallContext: AdapterCallContext, data: CustomerCommons)
 
 
-case class OutBoundGetCustomerAddress (authInfo: AuthInfoBasic,
+case class OutBoundGetCustomerAddress (adapterCallContext: AdapterCallContext,
                                        customerId: String)
-case class InBoundGetCustomerAddress (authInfo: AuthInfoBasic, data: List[CustomerAddressCommons])
+case class InBoundGetCustomerAddress (adapterCallContext: AdapterCallContext, data: List[CustomerAddressCommons])
 
 
-case class OutBoundCreateCustomerAddress (authInfo: AuthInfoBasic,
+case class OutBoundCreateCustomerAddress (adapterCallContext: AdapterCallContext,
                                           customerId: String,
                                           line1: String,
                                           line2: String,
@@ -278,10 +297,10 @@ case class OutBoundCreateCustomerAddress (authInfo: AuthInfoBasic,
                                           countryCode: String,
                                           tags: String,
                                           status: String)
-case class InBoundCreateCustomerAddress (authInfo: AuthInfoBasic, data: CustomerAddressCommons)
+case class InBoundCreateCustomerAddress (adapterCallContext: AdapterCallContext, data: CustomerAddressCommons)
 
 
-case class OutBoundUpdateCustomerAddress (authInfo: AuthInfoBasic,
+case class OutBoundUpdateCustomerAddress (adapterCallContext: AdapterCallContext,
                                           customerAddressId: String,
                                           line1: String,
                                           line2: String,
@@ -293,72 +312,72 @@ case class OutBoundUpdateCustomerAddress (authInfo: AuthInfoBasic,
                                           countryCode: String,
                                           tags: String,
                                           status: String)
-case class InBoundUpdateCustomerAddress (authInfo: AuthInfoBasic, data: CustomerAddressCommons)
+case class InBoundUpdateCustomerAddress (adapterCallContext: AdapterCallContext, data: CustomerAddressCommons)
 
 
-case class OutBoundCreateTaxResidence (authInfo: AuthInfoBasic,
+case class OutBoundCreateTaxResidence (adapterCallContext: AdapterCallContext,
                                        customerId: String,
                                        domain: String,
                                        taxNumber: String)
-case class InBoundCreateTaxResidence (authInfo: AuthInfoBasic, data: TaxResidenceCommons)
+case class InBoundCreateTaxResidence (adapterCallContext: AdapterCallContext, data: TaxResidenceCommons)
 
 
-case class OutBoundGetTaxResidence (authInfo: AuthInfoBasic,
+case class OutBoundGetTaxResidence (adapterCallContext: AdapterCallContext,
                                     customerId: String)
-case class InBoundGetTaxResidence (authInfo: AuthInfoBasic, data: List[TaxResidenceCommons])
+case class InBoundGetTaxResidence (adapterCallContext: AdapterCallContext, data: List[TaxResidenceCommons])
 
 
-case class OutBoundGetCustomersFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCustomersFuture (adapterCallContext: AdapterCallContext,
                                        bankId: BankId)
-case class InBoundGetCustomersFuture (authInfo: AuthInfoBasic, data: List[CustomerCommons])
+case class InBoundGetCustomersFuture (adapterCallContext: AdapterCallContext, data: List[CustomerCommons])
 
 
-case class OutBoundGetCheckbookOrdersFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetCheckbookOrdersFuture (adapterCallContext: AdapterCallContext,
                                              bankId: String,
                                              accountId: String)
-case class InBoundGetCheckbookOrdersFuture (authInfo: AuthInfoBasic, data: CheckbookOrdersJson)
+case class InBoundGetCheckbookOrdersFuture (adapterCallContext: AdapterCallContext, data: CheckbookOrdersJson)
 
 
-case class OutBoundGetStatusOfCreditCardOrderFuture (authInfo: AuthInfoBasic,
+case class OutBoundGetStatusOfCreditCardOrderFuture (adapterCallContext: AdapterCallContext,
                                                      bankId: String,
                                                      accountId: String)
-case class InBoundGetStatusOfCreditCardOrderFuture (authInfo: AuthInfoBasic, data: List[CardObjectJson])
+case class InBoundGetStatusOfCreditCardOrderFuture (adapterCallContext: AdapterCallContext, data: List[CardObjectJson])
 
 
-case class OutBoundCreateUserAuthContext (authInfo: AuthInfoBasic,
+case class OutBoundCreateUserAuthContext (adapterCallContext: AdapterCallContext,
                                           userId: String,
                                           key: String,
                                           value: String)
-case class InBoundCreateUserAuthContext (authInfo: AuthInfoBasic, data: UserAuthContextCommons)
+case class InBoundCreateUserAuthContext (adapterCallContext: AdapterCallContext, data: UserAuthContextCommons)
 
 
-case class OutBoundGetUserAuthContexts (authInfo: AuthInfoBasic,
+case class OutBoundGetUserAuthContexts (adapterCallContext: AdapterCallContext,
                                         userId: String)
-case class InBoundGetUserAuthContexts (authInfo: AuthInfoBasic, data: List[UserAuthContextCommons])
+case class InBoundGetUserAuthContexts (adapterCallContext: AdapterCallContext, data: List[UserAuthContextCommons])
 
 
-case class OutBoundCreateOrUpdateProductAttribute (authInfo: AuthInfoBasic,
+case class OutBoundCreateOrUpdateProductAttribute (adapterCallContext: AdapterCallContext,
                                                    bankId: BankId,
                                                    productCode: ProductCode,
                                                    productAttributeId: Option[String],
                                                    name: String,
                                                    attributType: ProductAttributeType.Value,
                                                    value: String)
-case class InBoundCreateOrUpdateProductAttribute (authInfo: AuthInfoBasic, data: ProductAttributeCommons)
+case class InBoundCreateOrUpdateProductAttribute (adapterCallContext: AdapterCallContext, data: ProductAttributeCommons)
 
 
-case class OutBoundGetProductAttributeById (authInfo: AuthInfoBasic,
+case class OutBoundGetProductAttributeById (adapterCallContext: AdapterCallContext,
                                             productAttributeId: String)
-case class InBoundGetProductAttributeById (authInfo: AuthInfoBasic, data: ProductAttributeCommons)
+case class InBoundGetProductAttributeById (adapterCallContext: AdapterCallContext, data: ProductAttributeCommons)
 
 
-case class OutBoundGetProductAttributesByBankAndCode (authInfo: AuthInfoBasic,
+case class OutBoundGetProductAttributesByBankAndCode (adapterCallContext: AdapterCallContext,
                                                       bank: BankId,
                                                       productCode: ProductCode)
-case class InBoundGetProductAttributesByBankAndCode (authInfo: AuthInfoBasic, data: List[ProductAttributeCommons])
+case class InBoundGetProductAttributesByBankAndCode (adapterCallContext: AdapterCallContext, data: List[ProductAttributeCommons])
 
 
-case class OutBoundCreateOrUpdateAccountAttribute (authInfo: AuthInfoBasic,
+case class OutBoundCreateOrUpdateAccountAttribute (adapterCallContext: AdapterCallContext,
                                                    bankId: BankId,
                                                    accountId: AccountId,
                                                    productCode: ProductCode,
@@ -366,60 +385,60 @@ case class OutBoundCreateOrUpdateAccountAttribute (authInfo: AuthInfoBasic,
                                                    name: String,
                                                    attributType: AccountAttributeType.Value,
                                                    value: String)
-case class InBoundCreateOrUpdateAccountAttribute (authInfo: AuthInfoBasic, data: AccountAttributeCommons)
+case class InBoundCreateOrUpdateAccountAttribute (adapterCallContext: AdapterCallContext, data: AccountAttributeCommons)
 
 
-case class OutBoundCreateAccountApplication (authInfo: AuthInfoBasic,
+case class OutBoundCreateAccountApplication (adapterCallContext: AdapterCallContext,
                                              productCode: ProductCode,
                                              userId: Option[String],
                                              customerId: Option[String])
-case class InBoundCreateAccountApplication (authInfo: AuthInfoBasic, data: AccountApplicationCommons)
+case class InBoundCreateAccountApplication (adapterCallContext: AdapterCallContext, data: AccountApplicationCommons)
 
 
-case class OutBoundGetAllAccountApplication (authInfo: AuthInfoBasic)
-case class InBoundGetAllAccountApplication (authInfo: AuthInfoBasic, data: List[AccountApplicationCommons])
+case class OutBoundGetAllAccountApplication (adapterCallContext: AdapterCallContext)
+case class InBoundGetAllAccountApplication (adapterCallContext: AdapterCallContext, data: List[AccountApplicationCommons])
 
 
-case class OutBoundGetAccountApplicationById (authInfo: AuthInfoBasic,
+case class OutBoundGetAccountApplicationById (adapterCallContext: AdapterCallContext,
                                               accountApplicationId: String)
-case class InBoundGetAccountApplicationById (authInfo: AuthInfoBasic, data: AccountApplicationCommons)
+case class InBoundGetAccountApplicationById (adapterCallContext: AdapterCallContext, data: AccountApplicationCommons)
 
 
-case class OutBoundUpdateAccountApplicationStatus (authInfo: AuthInfoBasic,
+case class OutBoundUpdateAccountApplicationStatus (adapterCallContext: AdapterCallContext,
                                                    accountApplicationId: String,
                                                    status: String)
-case class InBoundUpdateAccountApplicationStatus (authInfo: AuthInfoBasic, data: AccountApplicationCommons)
+case class InBoundUpdateAccountApplicationStatus (adapterCallContext: AdapterCallContext, data: AccountApplicationCommons)
 
 
-case class OutBoundGetOrCreateProductCollection (authInfo: AuthInfoBasic,
+case class OutBoundGetOrCreateProductCollection (adapterCallContext: AdapterCallContext,
                                                  collectionCode: String,
                                                  productCodes: List[String])
-case class InBoundGetOrCreateProductCollection (authInfo: AuthInfoBasic, data: List[ProductCollectionCommons])
+case class InBoundGetOrCreateProductCollection (adapterCallContext: AdapterCallContext, data: List[ProductCollectionCommons])
 
 
-case class OutBoundGetProductCollection (authInfo: AuthInfoBasic,
+case class OutBoundGetProductCollection (adapterCallContext: AdapterCallContext,
                                          collectionCode: String)
-case class InBoundGetProductCollection (authInfo: AuthInfoBasic, data: List[ProductCollectionCommons])
+case class InBoundGetProductCollection (adapterCallContext: AdapterCallContext, data: List[ProductCollectionCommons])
 
 
-case class OutBoundGetOrCreateProductCollectionItem (authInfo: AuthInfoBasic,
+case class OutBoundGetOrCreateProductCollectionItem (adapterCallContext: AdapterCallContext,
                                                      collectionCode: String,
                                                      memberProductCodes: List[String])
-case class InBoundGetOrCreateProductCollectionItem (authInfo: AuthInfoBasic, data: List[ProductCollectionItemCommons])
+case class InBoundGetOrCreateProductCollectionItem (adapterCallContext: AdapterCallContext, data: List[ProductCollectionItemCommons])
 
 
-case class OutBoundGetProductCollectionItem (authInfo: AuthInfoBasic,
+case class OutBoundGetProductCollectionItem (adapterCallContext: AdapterCallContext,
                                              collectionCode: String)
-case class InBoundGetProductCollectionItem (authInfo: AuthInfoBasic, data: List[ProductCollectionItemCommons])
+case class InBoundGetProductCollectionItem (adapterCallContext: AdapterCallContext, data: List[ProductCollectionItemCommons])
 
 
-case class OutBoundGetProductCollectionItemsTree (authInfo: AuthInfoBasic,
+case class OutBoundGetProductCollectionItemsTree (adapterCallContext: AdapterCallContext,
                                                   collectionCode: String,
                                                   bankId: String)
-case class InBoundGetProductCollectionItemsTree (authInfo: AuthInfoBasic, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])
+case class InBoundGetProductCollectionItemsTree (adapterCallContext: AdapterCallContext, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])
 
 
-case class OutBoundCreateMeeting (authInfo: AuthInfoBasic,
+case class OutBoundCreateMeeting (adapterCallContext: AdapterCallContext,
                                   bankId: BankId,
                                   staffUser: User,      //TODO fixme
                                   customerUser: User,      //TODO fixme
@@ -431,17 +450,27 @@ case class OutBoundCreateMeeting (authInfo: AuthInfoBasic,
                                   staffToken: String,
                                   creator: ContactDetails,
                                   invitees: List[Invitee])
-case class InBoundCreateMeeting (authInfo: AuthInfoBasic, data: MeetingCommons)
+case class InBoundCreateMeeting (adapterCallContext: AdapterCallContext, data: MeetingCommons)
 
 
-case class OutBoundGetMeetings (authInfo: AuthInfoBasic,
+case class OutBoundGetMeetings (adapterCallContext: AdapterCallContext,
                                 bankId: BankId,
                                 user: User) //TODO fixme
-case class InBoundGetMeetings (authInfo: AuthInfoBasic, data: List[MeetingCommons])
+case class InBoundGetMeetings (adapterCallContext: AdapterCallContext, data: List[MeetingCommons])
 
 
-case class OutBoundGetMeeting (authInfo: AuthInfoBasic,
+case class OutBoundGetMeeting (adapterCallContext: AdapterCallContext,
                                bankId: BankId,
                                user: User,      //TODO fixme
                                meetingId: String)
-case class InBoundGetMeeting (authInfo: AuthInfoBasic, data: MeetingCommons)
+case class InBoundGetMeeting (adapterCallContext: AdapterCallContext, data: MeetingCommons)
+
+//create bound case classes
+case class OutBoundCreateChallenge(adapterCallContext: AdapterCallContext, bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)
+
+case class InBoundCreateChallenge(adapterCallContext: AdapterCallContext, data: String)
+
+case class OutBoundCreateCounterparty(adapterCallContext: AdapterCallContext, name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke])
+
+case class InBoundCreateCounterparty(adapterCallContext: AdapterCallContext, data: CounterpartyTraitCommons)
+

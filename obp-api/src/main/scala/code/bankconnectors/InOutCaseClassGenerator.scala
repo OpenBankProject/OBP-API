@@ -45,8 +45,8 @@ object InOutCaseClassGenerator extends App {
       parameters = parameters.replaceFirst("^\\(", ", ").replaceFirst(", callContext: Option.*$", "").replace(",", ",\n")
     }
     s"""
-       |case class OutBound${it.name.toString.capitalize} (authInfo: AuthInfoBasic$parameters)
-       |case class InBound${it.name.toString.capitalize} (authInfo: AuthInfoBasic, data: $payload)
+       |case class OutBound${it.name.toString.capitalize} (adapterCallContext: AdapterCallContext$parameters)
+       |case class InBound${it.name.toString.capitalize} (adapterCallContext: AdapterCallContext, data: $payload)
      """.stripMargin
   })
   code.foreach(println)
