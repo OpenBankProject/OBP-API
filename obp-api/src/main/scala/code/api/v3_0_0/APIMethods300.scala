@@ -205,7 +205,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             permission <- Future { account permission(u, provider, providerId) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
