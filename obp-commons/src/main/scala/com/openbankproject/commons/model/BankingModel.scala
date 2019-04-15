@@ -85,12 +85,12 @@ object TransactionId {
   def unapply(id : String) = Some(TransactionId(id))
 }
 
-case class TransactionRequestType(val value : String) {
-  override def toString = value
-}
-
 object TransactionRequestType {
   def unapply(id : String) = Some(TransactionRequestType(id))
+}
+
+case class TransactionRequestType(val value : String) {
+  override def toString = value
 }
 
 //Note: change case class -> trait, for kafka extends it

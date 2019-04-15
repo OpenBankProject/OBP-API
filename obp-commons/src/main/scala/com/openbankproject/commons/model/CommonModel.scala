@@ -101,6 +101,28 @@ case class BankAccountCommons(
                                accountRules :List[AccountRule],
                                accountHolder :String) extends BankAccount
 
+object BankAccountCommons{
+  def apply(bankAccount: BankAccount) =
+    new BankAccountCommons(
+    accountId = bankAccount.accountId,
+    accountType = bankAccount.accountType,
+    balance = bankAccount.balance,
+    currency = bankAccount.currency,
+    name = bankAccount.name,
+    label = bankAccount.label,
+    swift_bic = bankAccount.swift_bic,
+    iban = bankAccount.iban,
+    number = bankAccount.number,
+    bankId = bankAccount.bankId,
+    lastUpdate = bankAccount.lastUpdate,
+    branchId = bankAccount.branchId,
+    accountRoutingScheme = bankAccount.accountRoutingScheme,
+    accountRoutingAddress = bankAccount.accountRoutingAddress,
+    accountRoutings = bankAccount.accountRoutings,
+    accountRules = bankAccount.accountRules,
+    accountHolder = bankAccount.accountHolder
+  )
+}
 
 case class ProductCollectionItemCommons(
                                          collectionCode :String,
@@ -281,6 +303,13 @@ case class ProductCommons(bankId: BankId,
                        details: String,
                        description: String,
                        meta: Meta) extends Product
+
+case class TransactionRequestCommonBodyJSONCommons(
+                        value : AmountOfMoneyJsonV121,
+                        description: String) extends TransactionRequestCommonBodyJSON
+object TransactionRequestCommonBodyJSONCommons {
+  def apply(base: TransactionRequestCommonBodyJSON) = new TransactionRequestCommonBodyJSONCommons(base.value, base.description)
+}
 
 //----------------obp-api moved to here case classes
 

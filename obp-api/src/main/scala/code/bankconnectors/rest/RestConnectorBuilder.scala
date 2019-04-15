@@ -4,7 +4,7 @@ import java.io.File
 import java.util.Date
 
 import code.bankconnectors.Connector
-import com.openbankproject.commons.model._
+import code.util.reflectionUtils
 import org.apache.commons.io.FileUtils
 
 import scala.collection.immutable.List
@@ -19,9 +19,15 @@ object RestConnectorBuilder extends App {
   //  Thread.sleep(10000)
   val genMethodNames = List(
     //"getAdapterInfoFuture", "getBanksFuture", "getBankFuture", "checkBankAccountExistsFuture", "getBankAccountFuture", "getCoreBankAccountsFuture",
-    "getCustomersByUserIdFuture",
-    //"getCounterpartiesFuture"
-    //, "getTransactionsFuture", "getTransactionFuture", "getAdapterInfoFuture"
+    //  "getCustomersByUserIdFuture",
+    //"getAdapterInfo",
+    //"checkBankAccountExists",
+    //"checkBankAccountExistsFuture"
+    //"getCounterpartiesFuture",
+    //"getTransactionsFuture", "getTransactionFuture", "getAdapterInfoFuture",
+    "createChallenge",
+    "createCounterparty",
+    "makePaymentv210",
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -30,13 +36,21 @@ object RestConnectorBuilder extends App {
   private val nameSignature = ru.typeOf[Connector].decls
     .filter(_.isMethod)
     .filter(it => genMethodNames.contains(it.name.toString))
-    .map(it => Generator(it.name.toString, it.typeSignature))
+    .map(it => {
+      val (methodName, typeSignature) = (it.name.toString, it.typeSignature)
+      methodName match {
+        case name if(name.matches("(get|check).*")) => GetGenerator(methodName, typeSignature)
+        case name if(name.matches("(create|make).*")) => PostGenerator(methodName, typeSignature)
+        case _ => throw new NotImplementedError(s" not support method name: $methodName")
+      }
+
+    })
 
 
   //  private val types: Iterable[ru.Type] = symbols.map(_.typeSignature)
   //  println(symbols)
   println("-------------------")
-  nameSignature.map(_.methodCode).foreach(println(_))
+  nameSignature.map(_.toString).foreach(println(_))
   println("===================")
 
   val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""), "src/main/scala/code/bankconnectors/rest/RestConnector_vMar2019.scala")
@@ -44,9 +58,9 @@ object RestConnectorBuilder extends App {
   val placeHolderInSource = "//---------------- dynamic end ---------------------please don't modify this line"
   val insertCode =
     s"""
-      |// ---------- create on ${new Date()}
-      |${nameSignature.map(_.methodCode).mkString}
-      |$placeHolderInSource
+       |// ---------- create on ${new Date()}
+       |${nameSignature.map(_.toString).mkString}
+       |$placeHolderInSource
     """.stripMargin
   val newSource = source.replace(placeHolderInSource, insertCode)
   FileUtils.writeStringToFile(path, newSource)
@@ -57,39 +71,60 @@ object RestConnectorBuilder extends App {
   println(reflectionUtils.createDocExample(tp))
 }
 
-case class Generator(methodName: String, tp: Type) {
+case class GetGenerator(methodName: String, tp: Type) {
   private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
 
   private[this] val params = tp.paramLists(0).dropRight(1).map(_.name.toString)
-  private[this] val name = methodName.replaceFirst("Future$", "")
+
   private[this] val description = methodName.replace("Future", "").replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
   private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
 
+  private[this] val isReturnBox = resultType.startsWith("Box[")
+
+  private[this] val name = if(methodName.endsWith("Future")) {
+    methodName.replaceFirst("Future$", "")
+  } else {
+    methodName + "B" // if method return type is Box, make different with Future type, add a "B" at method name last.
+  }
+
+  private[this] val cachMethodName = if(isReturnBox) "memoizeSyncWithProvider" else "memoizeWithProvider"
+
   private[this] val outBoundExample = {
-    val outBoundType = reflectionUtils.getTypeByName(s"com.openbankproject.commons.dto.rest.OutBound${methodName.capitalize}")
+    var typeName = s"com.openbankproject.commons.dto.rest.OutBound${methodName.capitalize}"
+    if(isReturnBox) typeName += "Future"
+    val outBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(outBoundType)
   }
   private[this] val inBoundExample = {
-    val inBoundType = reflectionUtils.getTypeByName(s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}")
-    println(inBoundType)
+    var typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
+    if(isReturnBox) typeName += "Future"
+    val inBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(inBoundType)
-    //""
   }
 
   val signature = s"$methodName$paramAnResult"
   val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
   val urlDemo = s"/$name" + params.map(it => s"/$it/{$it}").mkString
-  val jsonType = "InBound" + methodName.capitalize
-
-
-  val dataType = if(resultType.startsWith("Future[Box[")) {
-    resultType.replaceFirst("""Future\[Box\[\((.+), Option\[CallContext\]\)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  val jsonType = if(isReturnBox) {
+    "InBound" + methodName.capitalize + "Future"
   } else {
+    "InBound" + methodName.capitalize
+  }
+
+
+  val dataType = if (resultType.startsWith("Future[Box[")) {
+    resultType.replaceFirst("""Future\[Box\[\((.+), Option\[CallContext\]\)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  } else if (resultType.startsWith("OBPReturnType[Box[")) {
     resultType.replaceFirst("""OBPReturnType\[Box\[(.+)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  } else if (isReturnBox) {
+    //Box[(InboundAdapterInfoInternal, Option[CallContext])]
+    resultType.replaceFirst("""Box\[\((.+), Option\[CallContext\]\)\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  } else {
+    throw new NotImplementedError(s"this return type not implemented: $resultType")
   }
   val returnEntityType = dataType.replaceFirst("Commons$", "").replaceAll(".*\\[|\\].*", "")
 
-  val lastMapStatement = if (resultType.startsWith("Future[Box[")) {
+  val lastMapStatement = if (isReturnBox || resultType.startsWith("Future[Box[")) {
     """|                    boxedResult.map { result =>
        |                         (result.data, buildCallContext(result.authInfo, callContext))
        |                    }
@@ -101,7 +136,8 @@ case class Generator(methodName: String, tp: Type) {
        |                    }
     """.stripMargin
   }
-  val methodCode =
+
+  override def toString =
     s"""
        |messageDocs += MessageDoc(
        |    process = "obp.get.$returnEntityType",
@@ -127,7 +163,7 @@ case class Generator(methodName: String, tp: Type) {
        |      */
        |    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
        |    CacheKeyFromArguments.buildCacheKey {
-       |      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+       |      Caching.${cachMethodName}(Some(cacheKey.toString()))(banksTTL second){
        |        val url = getUrl("$name" $pathVariables)
        |        sendGetRequest[$jsonType](url, callContext)
        |          .map { boxedResult =>
@@ -139,55 +175,87 @@ case class Generator(methodName: String, tp: Type) {
     """.stripMargin
 }
 
+case class PostGenerator(methodName: String, tp: Type) {
+  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
 
+  private[this] val params = tp.paramLists(0).dropRight(1).map(_.name.toString)
 
-object reflectionUtils {
-  private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
+  private[this] val description = methodName.replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
+  private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
 
-  private[this] def genericSymboToString(tp: ru.Type): String = {
-    if (tp.typeArgs.isEmpty) {
-      createDocExample(tp)
-    } else {
-      val value = tp.typeArgs.map(genericSymboToString).mkString(",")
-      s"${tp.typeSymbol.name}(${value})".replaceFirst("Tuple\\d*", "")
-    }
+  private[this] val isOBPReturnType = resultType.startsWith("OBPReturnType[")
+
+  private[this] val outBoundExample = {
+    var typeName = s"com.openbankproject.commons.dto.rest.OutBound${methodName.capitalize}"
+//    if(isOBPReturnType) typeName += "Future"
+//    val outBoundType = reflectionUtils.getTypeByName(typeName)
+//    reflectionUtils.createDocExample(outBoundType)
+    ""
+  }
+  private[this] val inBoundExample = {
+//    var typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
+//    if(isOBPReturnType) typeName += "Future"
+//    val inBoundType = reflectionUtils.getTypeByName(typeName)
+//    reflectionUtils.createDocExample(inBoundType)
+    ""
   }
 
-  def createDocExample(tp: ru.Type): String = {
-    if (tp.typeSymbol.asClass.isCaseClass) {
-      val fields = tp.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
-        val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
-        val value = if (pre <:< ru.typeOf[ProductAttributeType.type]) {
-          "ProductAttributeType.STRING"
-        } else if (pre <:< ru.typeOf[AccountAttributeType.type]) {
-          "AccountAttributeType.INTEGER"
-        } else if (args.isEmpty) {
-          createDocExample(sym.asType.toType)
-        } else {
-          val typeParamStr = args.map(genericSymboToString).mkString(",")
-          s"${sym.name}($typeParamStr)"
-        }
-        s"""$str,
-           |${symbol.name}=${value}""".stripMargin
-      }).substring(2)
-      s"${tp.typeSymbol.name}($fields)"
-    } else if (tp =:= ru.typeOf[String]) {
-      """"string""""
-    } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer]) {
-      "123"
-    } else if (tp =:= ru.typeOf[Float] || tp =:= ru.typeOf[Double] || tp =:= ru.typeOf[java.lang.Float] || tp =:= ru.typeOf[java.lang.Double]) {
-      "123.123"
-    } else if (tp =:= ru.typeOf[Date]) {
-      "new Date()"
-    } else if (tp =:= ru.typeOf[Boolean] || tp =:= ru.typeOf[java.lang.Boolean]) {
-      "true"
-    } else if (tp =:= ru.typeOf[BigDecimal]) {
-      "123.321"
-    }else {
-      throw new IllegalStateException(s"type $tp is not supported, please add this type to here.")
-    }
+  val signature = s"$methodName$paramAnResult"
+  val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
+  val urlDemo = s"/$methodName" + params.map(it => s"/$it/{$it}").mkString
+  val jsonType = if(isOBPReturnType) {
+    "InBound" + methodName.capitalize + "Future"
+  } else {
+    "InBound" + methodName.capitalize
   }
 
-  def getTypeByName(typeName: String): ru.Type = mirror.staticClass(typeName).asType.toType
 
+  val dataType = if (resultType.startsWith("Future[Box[")) {
+    resultType.replaceFirst("""Future\[Box\[\((.+), Option\[CallContext\]\)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  } else if (resultType.startsWith("OBPReturnType[Box[")) {
+    resultType.replaceFirst("""OBPReturnType\[Box\[(.+)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  } else if (isOBPReturnType) {
+    //Box[(InboundAdapterInfoInternal, Option[CallContext])]
+    resultType.replaceFirst("""Box\[\((.+), Option\[CallContext\]\)\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
+  } else {
+    throw new NotImplementedError(s"this return type not implemented: $resultType")
+  }
+  val returnEntityType = dataType.replaceFirst("Commons$", "").replaceAll(".*\\[|\\].*", "")
+
+  val lastMapStatement = if (isOBPReturnType || resultType.startsWith("Future[Box[")) {
+    """|                    boxedResult.map { result =>
+       |                         (result.data, buildCallContext(result.authInfo, callContext))
+       |                    }
+    """.stripMargin
+  } else {
+    """|                    boxedResult match {
+       |                        case Full(result) => (Full(result.data), buildCallContext(result.authInfo, callContext))
+       |                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
+       |                    }
+    """.stripMargin
+  }
+
+  override def toString =
+    s"""
+       |messageDocs += MessageDoc(
+       |    process = "obp.get.$returnEntityType",
+       |    messageFormat = messageFormat,
+       |    description = "$description",
+       |    outboundTopic = None,
+       |    inboundTopic = None,
+       |    exampleOutboundMessage = (
+       |      $outBoundExample
+       |    ),
+       |    exampleInboundMessage = (
+       |      $inBoundExample
+       |    ),
+       |    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+       |  )
+       |  // url example: $urlDemo
+       |  override def $signature = {
+       |
+       |  }
+    """.stripMargin
 }
+
+
