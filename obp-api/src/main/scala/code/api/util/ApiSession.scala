@@ -43,8 +43,7 @@ case class CallContext(
                        requestHeaders: List[HTTPParam] = Nil,
                        `X-Rate-Limit-Limit` : Long = -1,
                        `X-Rate-Limit-Remaining` : Long = -1,
-                       `X-Rate-Limit-Reset` : Long = -1,
-                       authInfo: Option[AuthInfoBasic]= None // This is only used for kafka/akka connectors, the mapped connector set default as None.
+                       `X-Rate-Limit-Reset` : Long = -1
                       ) {
 
   //This is only used to connect the back adapter. not useful for sandbox mode.

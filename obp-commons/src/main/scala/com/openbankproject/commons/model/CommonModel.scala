@@ -569,15 +569,6 @@ case class AuthView(
   account:AccountBasic,
 )
 
-case class AuthInfoBasic(
-  username: Option[String] = None,
-  correlationId: Option[String] = None,
-  sessionId: Option[String] = None,
-  userAuthContexts: Option[List[BasicUserAuthContext]]= None,
-  authViews: Option[List[AuthView]] = None
-)
-
-
 case class AdapterCallContext(
   correlationId: String = "",
   sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
