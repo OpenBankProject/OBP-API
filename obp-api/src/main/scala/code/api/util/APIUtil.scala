@@ -2263,7 +2263,8 @@ Returns a string showed to the developer
     
     //All the property will first check from system environment, if not find then from the liftweb props file 
     //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
-    val sysEnvironmentPropertyName = brandSpecificPropertyName.replace('.', '_').toUpperCase()
+    // Append "OBP_" because all Open Bank Project environment vars are namespaced with OBP
+    val sysEnvironmentPropertyName = "OBP_".concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
     val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
     sysEnvironmentPropertyValue match {
       case Full(_) => sysEnvironmentPropertyValue
