@@ -35,11 +35,11 @@ object RestConnectorBuilder extends App {
     "getCoreBankAccountsFuture", // have problem, param not simple object
     //    "exampleInternalTransactionSept2018", // not exists in connector
     //    "getTransactions", // have not callContext param
-    //    "getTransactionsCore", //have problem, OBPQueryParam can pass to remote?
+    // "getTransactionsCore", //have problem, OBPQueryParam can pass to remote? ...no OutBoundGetTransactionsCoreFuture
     "getTransaction",
     "createChallenge",
     "createCounterparty",
-    //    "getTransactionRequests210", // params are not simple object
+    "getTransactionRequests210", // params are not simple object
     "getCounterparties",
     "getCounterpartiesFuture",
     "getCounterpartyByCounterpartyIdFuture",

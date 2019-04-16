@@ -40,13 +40,14 @@ object reflectionUtils {
           val typeParamStr = args.map(genericSymboToString).mkString(",")
           s"${sym.name}($typeParamStr)"
         }
+        val valueName = if(symbol.name.toString == "type") "`type`" else symbol.name.toString
         s"""$str,
-           |${symbol.name}=${value}""".stripMargin
+           |${valueName}=${value}""".stripMargin
       }).substring(2)
       s"${tp.typeSymbol.name}($fields)"
     } else if (tp =:= ru.typeOf[String]) {
       """"string""""
-    } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer]) {
+    } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer] || tp =:= ru.typeOf[Long] || tp =:= ru.typeOf[java.lang.Long]) {
       "123"
     } else if (tp =:= ru.typeOf[Float] || tp =:= ru.typeOf[Double] || tp =:= ru.typeOf[java.lang.Float] || tp =:= ru.typeOf[java.lang.Double] || tp =:= ru.typeOf[BigDecimal] || tp =:= ru.typeOf[java.math.BigDecimal]) {
       "123.123"

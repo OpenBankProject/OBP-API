@@ -78,7 +78,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 //---------------- dynamic start ---------------------
 
 
-  // ---------- create on Tue Apr 16 14:19:12 CST 2019
+  // ---------- create on Tue Apr 16 16:38:18 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.get.InboundAdapterInfoInternal",
@@ -2121,6 +2121,178 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
 
   messageDocs += MessageDoc(
+    process = "obp.get.TransactionRequestCommons",
+    messageFormat = messageFormat,
+    description = "Get Transaction Requests210",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetTransactionRequests210(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        initiator = UserCommons(userPrimaryKey = UserPrimaryKey(value = 123),
+          userId = "string",
+          idGivenByProvider = "string",
+          provider = "string",
+          emailAddress = "string",
+          name = "string"),
+        fromAccount = BankAccountCommons(accountId = AccountId(value = "string"),
+          accountType = "string",
+          balance = 123.123,
+          currency = "string",
+          name = "string",
+          label = "string",
+          swift_bic = Option("string"),
+          iban = Option("string"),
+          number = "string",
+          bankId = BankId(value = "string"),
+          lastUpdate = new Date(),
+          branchId = "string",
+          accountRoutingScheme = "string",
+          accountRoutingAddress = "string",
+          accountRoutings = List(AccountRouting(scheme = "string",
+            address = "string")),
+          accountRules = List(AccountRule(scheme = "string",
+            value = "string")),
+          accountHolder = "string"))
+      ),
+    exampleInboundMessage = (
+      InBoundGetTransactionRequests210(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = List(TransactionRequest(id = TransactionRequestId(value = "string"),
+          `type` = "string",
+          from = TransactionRequestAccount(bank_id = "string",
+            account_id = "string"),
+          body = TransactionRequestBodyAllTypes(to_sandbox_tan = Option(TransactionRequestAccount(bank_id = "string",
+            account_id = "string")),
+            to_sepa = Option(TransactionRequestIban(iban = "string")),
+            to_counterparty = Option(TransactionRequestCounterpartyId(counterparty_id = "string")),
+            to_transfer_to_phone = Option(TransactionRequestTransferToPhone(value = AmountOfMoneyJsonV121(currency = "string",
+              amount = "string"),
+              description = "string",
+              message = "string",
+              from = FromAccountTransfer(mobile_phone_number = "string",
+                nickname = "string"),
+              to = ToAccountTransferToPhone(mobile_phone_number = "string"))),
+            to_transfer_to_atm = Option(TransactionRequestTransferToAtm(value = AmountOfMoneyJsonV121(currency = "string",
+              amount = "string"),
+              description = "string",
+              message = "string",
+              from = FromAccountTransfer(mobile_phone_number = "string",
+                nickname = "string"),
+              to = ToAccountTransferToAtm(legal_name = "string",
+                date_of_birth = "string",
+                mobile_phone_number = "string",
+                kyc_document = ToAccountTransferToAtmKycDocument(`type` = "string",
+                  number = "string")))),
+            to_transfer_to_account = Option(TransactionRequestTransferToAccount(value = AmountOfMoneyJsonV121(currency = "string",
+              amount = "string"),
+              description = "string",
+              transfer_type = "string",
+              future_date = "string",
+              to = ToAccountTransferToAccount(name = "string",
+                bank_code = "string",
+                branch_number = "string",
+                account = ToAccountTransferToAccountAccount(number = "string",
+                  iban = "string")))),
+            value = AmountOfMoney(currency = "string",
+              amount = "string"),
+            description = "string"),
+          transaction_ids = "string",
+          status = "string",
+          start_date = new Date(),
+          end_date = new Date(),
+          challenge = TransactionRequestChallenge(id = "string",
+            allowed_attempts = 123,
+            challenge_type = "string"),
+          charge = TransactionRequestCharge(summary = "string",
+            value = AmountOfMoney(currency = "string",
+              amount = "string")),
+          charge_policy = "string",
+          counterparty_id = CounterpartyId(value = "string"),
+          name = "string",
+          this_bank_id = BankId(value = "string"),
+          this_account_id = AccountId(value = "string"),
+          this_view_id = ViewId(value = "string"),
+          other_account_routing_scheme = "string",
+          other_account_routing_address = "string",
+          other_bank_routing_scheme = "string",
+          other_bank_routing_address = "string",
+          is_beneficiary = true,
+          future_date = Option("string"))))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getTransactionRequests210B/initiator/{initiator}/fromAccount/{fromAccount}
+  override def getTransactionRequests210(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]): Box[(List[TransactionRequest], Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getTransactionRequests210B", ("initiator", initiator), ("fromAccount", fromAccount))
+        sendGetRequest[InBoundGetTransactionRequests210](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getTransactionRequests210B")
+
+  messageDocs += MessageDoc(
     process = "obp.get.BranchT",
     messageFormat = messageFormat,
     description = "Get Branch",
@@ -3073,6 +3245,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getStatusOfCreditCardOrder")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
+    
+    
     
     
     

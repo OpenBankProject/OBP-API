@@ -461,5 +461,9 @@ case class OutBoundCreateCounterparty(adapterCallContext: AdapterCallContext, na
 
 case class InBoundCreateCounterparty(adapterCallContext: AdapterCallContext, data: CounterpartyTraitCommons)
 
+case class OutBoundGetTransactionRequests210(adapterCallContext: AdapterCallContext, initiator : User, fromAccount : BankAccount)
 
+case class InBoundGetTransactionRequests210(adapterCallContext: AdapterCallContext, data: List[TransactionRequest])
 
+case class OutBoundGetTransactionsCore(bankId: BankId, accountID: AccountId) //, queryParams: OBPQueryParam*
+case class InBoundGetTransactionsCore(adapterCallContext: AdapterCallContext, data: List[TransactionCore])

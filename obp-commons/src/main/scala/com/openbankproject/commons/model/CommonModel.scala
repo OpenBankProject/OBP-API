@@ -480,6 +480,8 @@ class Transaction(
   val accountId = thisAccount.accountId
 }
 
+case class UserCommons(userPrimaryKey : UserPrimaryKey, userId: String,idGivenByProvider: String, provider : String, emailAddress : String, name : String) extends User
+
 // because Transaction#thisAccount is trait, can't be deserialize, So here supply a case class to do deserialize
 case class TransactionCommons(
                    //A universally unique id
