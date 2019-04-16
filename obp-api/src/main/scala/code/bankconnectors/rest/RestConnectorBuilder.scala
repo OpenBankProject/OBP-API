@@ -3,6 +3,7 @@ package code.bankconnectors.rest
 import java.io.File
 import java.util.Date
 
+import code.api.util.CallContext
 import code.bankconnectors.Connector
 import code.util.reflectionUtils
 import org.apache.commons.io.FileUtils
@@ -20,21 +21,21 @@ object RestConnectorBuilder extends App {
   val genMethodNames = List(
     "getAdapterInfo",
     "getAdapterInfoFuture",
-    //    "getUser", // have problem
+    //    "getUser", // have problem, return type not common
     "getBanks",
     "getBanksFuture",
     "getBank",
     "getBankFuture",
     "getBankAccountsByUsername",
     "getBankAccountsByUsernameFuture",
-    //    "getBankAccount", //have problem
+    //    "getBankAccount", //have problem, return type not common
     "checkBankAccountExists",
     "checkBankAccountExistsFuture",
-    "getCoreBankAccounts",
-    "getCoreBankAccountsFuture",
+    "getCoreBankAccounts", // have problem, param not simple object
+    "getCoreBankAccountsFuture", // have problem, param not simple object
     //    "exampleInternalTransactionSept2018", // not exists in connector
     //    "getTransactions", // have not callContext param
-    //    "getTransactionsCore", //have problem, callContext not at last of param list
+    //    "getTransactionsCore", //have problem, OBPQueryParam can pass to remote?
     "getTransaction",
     "createChallenge",
     "createCounterparty",
@@ -46,9 +47,9 @@ object RestConnectorBuilder extends App {
     "getCustomersByUserIdFuture",
     "getCheckbookOrdersFuture",
     "getStatusOfCreditCardOrderFuture",
-    "getBranchesFuture",
+    "getBranchesFuture", //have problem, OBPQueryParam can pass to remote?
     "getBranchFuture",
-    "getAtmsFuture",
+    "getAtmsFuture", //have problem, OBPQueryParam can pass to remote?
     "getAtmFuture",
     "getChallengeThreshold",
     "makePaymentv210",
@@ -99,7 +100,7 @@ object RestConnectorBuilder extends App {
 case class GetGenerator(methodName: String, tp: Type) {
   private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
 
-  private[this] val params = tp.paramLists(0).dropRight(1).map(_.name.toString)
+  private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString)
 
   private[this] val description = methodName.replace("Future", "").replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
   private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
@@ -207,8 +208,7 @@ case class GetGenerator(methodName: String, tp: Type) {
 case class PostGenerator(methodName: String, tp: Type) {
   private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
 
-  private[this] val params = tp.paramLists(0).dropRight(1).map(_.name.toString).mkString(",", ",", "")
-
+  private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString).mkString(",", ",", "")
   private[this] val description = methodName.replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
 
   private[this] val entityName = methodName.replaceFirst("^[a-z]+", "")

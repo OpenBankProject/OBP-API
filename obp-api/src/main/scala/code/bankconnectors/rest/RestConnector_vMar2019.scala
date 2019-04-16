@@ -77,9 +77,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 //---------------- dynamic start ---------------------
 
-    
 
-// ---------- create on Tue Apr 16 12:07:22 CST 2019
+  // ---------- create on Tue Apr 16 14:19:12 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.get.InboundAdapterInfoInternal",
@@ -2387,7 +2386,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getBranches/bankId/{bankId}/callContext/{callContext}
+  // url example: /getBranches/bankId/{bankId}/queryParams/{queryParams}
   override def getBranchesFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Future[Box[(List[BranchT], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2398,7 +2397,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBranches", ("bankId", bankId), ("callContext", callContext))
+        val url = getUrl("getBranches", ("bankId", bankId), ("queryParams", queryParams))
         sendGetRequest[InBoundGetBranchesFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -2636,7 +2635,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getAtms/bankId/{bankId}/callContext/{callContext}
+  // url example: /getAtms/bankId/{bankId}/queryParams/{queryParams}
   override def getAtmsFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Future[Box[(List[AtmT], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2647,7 +2646,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAtms", ("bankId", bankId), ("callContext", callContext))
+        val url = getUrl("getAtms", ("bankId", bankId), ("queryParams", queryParams))
         sendGetRequest[InBoundGetAtmsFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -3074,6 +3073,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getStatusOfCreditCardOrder")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
+    
+    
     
 
   private[this] def sendGetRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext]) =
