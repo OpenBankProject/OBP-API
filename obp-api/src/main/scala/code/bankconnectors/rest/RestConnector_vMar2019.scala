@@ -40,8 +40,7 @@ import code.kafka.KafkaHelper
 import code.model.BankAccount
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.dto.InboundGetBank
-import com.openbankproject.commons.dto.rest._
+import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, _}

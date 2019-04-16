@@ -24,7 +24,7 @@ This product includes software developed at
 TESOBE (http://www.tesobe.com/)
 */
 
-package com.openbankproject.commons.dto.rest
+package com.openbankproject.commons.dto
 
 import java.util.Date
 
@@ -132,13 +132,16 @@ case class InBoundGetCounterpartiesFuture (adapterCallContext: AdapterCallContex
 
 case class OutBoundGetTransactionsFuture (adapterCallContext: AdapterCallContext,
                                           bankId: BankId,
-                                          accountID: AccountId)
+                                          accountId: AccountId,
+                                          limit: Int,
+                                          fromDate: String,
+                                          toDate: String)
 case class InBoundGetTransactionsFuture (adapterCallContext: AdapterCallContext, data: List[TransactionCommons])
 
 
 case class OutBoundGetTransactionFuture (adapterCallContext: AdapterCallContext,
                                          bankId: BankId,
-                                         accountID: AccountId,
+                                         accountId: AccountId,
                                          transactionId: TransactionId)
 case class InBoundGetTransactionFuture (adapterCallContext: AdapterCallContext, data: TransactionCommons)
 

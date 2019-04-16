@@ -39,17 +39,6 @@ import scala.math.BigDecimal
   * case classes used to define outbound Akka messages
   *
   */
-case class OutboundGetAdapterInfo(date: String,
-                                  adapterCallContext : Option[AdapterCallContext])
-
-case class OutboundGetBanks(adapterCallContext: Option[AdapterCallContext])
-
-case class OutboundGetBank(bankId: String,
-                           adapterCallContext: Option[AdapterCallContext])
-
-case class OutboundCheckBankAccountExists(bankId: String,
-                                          ccountId: String,
-                                          adapterCallContext: Option[AdapterCallContext])
 
 case class OutboundGetAccount(bankId: String,
                               accountId: String,
@@ -77,31 +66,11 @@ case class OutboundGetTransaction(bankId: String,
                                   transactionId: String,
                                   adapterCallContext: Option[AdapterCallContext])
 
-case class OutboundGetBankAccountsByUsername(
-                                  username: String,
-                                  adapterCallContext: Option[AdapterCallContext])
-
 /**
   *
   * case classes used to define inbound Akka messages
   *
   */
-case class InboundAdapterInfo(
-                               name: String,
-                               version: String,
-                               git_commit: String,
-                               date: String,
-                               adapterCallContext: Option[AdapterCallContext]
-                             )
-
-case class InboundGetBanks(payload: Option[List[InboundBank]],
-                           adapterCallContext: Option[AdapterCallContext])
-
-case class InboundGetBank(payload: Option[InboundBank],
-                          adapterCallContext: Option[AdapterCallContext])
-
-case class InboundCheckBankAccountExists(payload: Option[InboundAccount],
-                                         adapterCallContext: Option[AdapterCallContext])
 
 case class InboundGetAccount(payload: Option[InboundAccount],
                              adapterCallContext: Option[AdapterCallContext])
@@ -120,20 +89,6 @@ case class InboundGetTransactions(payload: List[InboundTransaction],
 
 case class InboundGetTransaction(payload: Option[InboundTransaction],
                                  adapterCallContext: Option[AdapterCallContext])
-
-case class InboundGetBankAccountsByUsername(payload: List[InboundAccountCommon],
-                                            adapterCallContext: Option[AdapterCallContext]
-)
-
-case class InboundBank(
-                        bankId: String,
-                        shortName: String,
-                        fullName: String,
-                        logoUrl: String,
-                        websiteUrl: String,
-                        bankRoutingScheme: String,
-                        bankRoutingAddress: String
-                      )
 
 case class InboundAccount(
                            bankId: String,

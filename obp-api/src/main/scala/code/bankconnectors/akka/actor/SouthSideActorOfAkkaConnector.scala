@@ -3,6 +3,8 @@ package code.bankconnectors.akka.actor
 import java.util.Date
 
 import akka.actor.{Actor, ActorLogging}
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions._
+import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util.{APIUtil, OBPFromDate, OBPLimit, OBPToDate}
 import code.bankconnectors.LocalMappedConnector._
 import code.model.dataAccess.MappedBank
@@ -23,55 +25,54 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
   def receive: Receive = waitingForRequest
 
   private def waitingForRequest: Receive = {
-    case OutboundGetAdapterInfo(_, cc) =>
+    case OutBoundGetAdapterInfoFuture(cc) =>
       val result = 
-        InboundAdapterInfo(
-          "The south side of Akka connector",
-          "Dec2018", 
-          APIUtil.gitCommit,
-          APIUtil.DateWithMsFormat.format(new Date()),
-          cc
+        InBoundGetAdapterInfoFuture(
+          cc,
+          inboundAdapterInfoInternal
         )
       sender ! result   
     
-    case OutboundGetBanks(cc) =>
+    case OutBoundGetBanksFuture(cc) =>
       val result: Box[List[MappedBank]] = getBanks(None).map(r => r._1)
-      sender ! InboundGetBanks(result.map(l => l.map(Transformer.bank(_))).toOption, cc)
+      sender ! InBoundGetBanksFuture(cc, result.map(l => l.map(Transformer.bank(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
     
-    case OutboundGetBank(bankId, cc) =>
-      val result: Box[MappedBank] = getBank(BankId(bankId), None).map(r => r._1)
-      sender ! InboundGetBank(result.map(Transformer.bank(_)).toOption, cc)  
+    case OutBoundGetBankFuture(cc, bankId) =>
+      val result: Box[MappedBank] = getBank(bankId, None).map(r => r._1)
+      sender ! InBoundGetBankFuture(cc, result.map(Transformer.bank(_)).openOrThrowException(attemptedToOpenAnEmptyBox) )  
       
-    case OutboundCheckBankAccountExists(bankId, accountId, cc) =>
-      val result: Box[BankAccount] = checkBankAccountExists(BankId(bankId), AccountId(accountId), None).map(r => r._1)
-      sender ! InboundCheckBankAccountExists(result.map(Transformer.bankAccount(_)).toOption, cc)
+    case OutBoundCheckBankAccountExistsFuture(cc, bankId, accountId) =>
+      val result: Box[BankAccount] = checkBankAccountExists(bankId, accountId, None).map(r => r._1)
+      sender ! InBoundCheckBankAccountExistsFuture(cc, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       
-    case OutboundGetAccount(bankId, accountId, cc) =>
-      val result: Box[BankAccount] = getBankAccount(BankId(bankId), AccountId(accountId), None).map(r => r._1)
+    case OutBoundGetBankAccountFuture(cc, bankId, accountId) =>
+      val result: Box[BankAccount] = getBankAccount(bankId, accountId, None).map(r => r._1)
       org.scalameta.logger.elem(result)
-      sender ! InboundGetAccount(result.map(Transformer.bankAccount(_)).toOption, cc)
+      sender ! InBoundGetBankAccountFuture(cc, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       
-    case OutboundGetCoreBankAccounts(bankIdAccountIds, cc) =>
+    case OutBoundGetCoreBankAccountsFuture(cc, bankIdAccountIds) =>
       val result: Box[List[CoreAccount]] = getCoreBankAccounts(bankIdAccountIds, None).map(r => r._1)
-      sender ! InboundGetCoreBankAccounts(result.getOrElse(Nil).map(Transformer.coreAccount(_)), cc)
+      sender ! InBoundGetCoreBankAccountsFuture(cc, result.map(l => l.map(Transformer.coreAccount(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
+      
+      
        
-    case OutboundGetCustomersByUserId(userId, cc) =>
-      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
-      sender ! InboundGetCustomersByUserId(result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)), cc)
-       
-    case OutboundGetCounterparties(thisBankId, thisAccountId, viewId, cc) =>
-      val result: Box[List[CounterpartyTrait]] = getCounterparties(BankId(thisBankId), AccountId(thisAccountId), ViewId(viewId), None).map(r => r._1)
-      sender ! InboundGetCounterparties(result.getOrElse(Nil).map(Transformer.toInternalCounterparty(_)), cc)
-        
-    case OutboundGetTransactions(bankId, accountId, limit, fromDate, toDate, cc) =>
-      val from = APIUtil.DateWithMsFormat.parse(fromDate)
-      val to = APIUtil.DateWithMsFormat.parse(toDate)
-      val result = getTransactions(BankId(bankId), AccountId(accountId), None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
-      sender ! InboundGetTransactions(result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)), cc)
-        
-    case OutboundGetTransaction(bankId, accountId, transactionId, cc) =>
-      val result = getTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId),  None).map(r => r._1)
-      sender ! InboundGetTransaction(result.map(Transformer.toInternalTransaction(_)), cc)
+//    case OutBoundGetCustomersByUserIdFuture(cc, userId) =>
+//      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
+//      sender ! InBoundGetCustomersByUserIdFuture(cc, result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
+//       
+//    case OutboundGetCounterparties(thisBankId, thisAccountId, viewId, cc) =>
+//      val result: Box[List[CounterpartyTrait]] = getCounterparties(BankId(thisBankId), AccountId(thisAccountId), ViewId(viewId), None).map(r => r._1)
+//      sender ! InboundGetCounterparties(result.getOrElse(Nil).map(Transformer.toInternalCounterparty(_)), cc)
+//        
+//    case OutboundGetTransactions(bankId, accountId, limit, fromDate, toDate, cc) =>
+//      val from = APIUtil.DateWithMsFormat.parse(fromDate)
+//      val to = APIUtil.DateWithMsFormat.parse(toDate)
+//      val result = getTransactions(BankId(bankId), AccountId(accountId), None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
+//      sender ! InboundGetTransactions(result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)), cc)
+//        
+//    case OutboundGetTransaction(bankId, accountId, transactionId, cc) =>
+//      val result = getTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId),  None).map(r => r._1)
+//      sender ! InboundGetTransaction(result.map(Transformer.toInternalTransaction(_)), cc)
 
     case message => 
       logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
@@ -83,40 +84,44 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
 
 
 object Transformer {
-  def bank(mb: MappedBank): InboundBank = 
-    InboundBank(
-      bankId=mb.bankId.value,
+  def bank(mb: MappedBank): BankCommons = 
+    BankCommons(
+      bankId=mb.bankId,
       shortName=mb.shortName,
       fullName=mb.fullName,
       logoUrl=mb.logoUrl,
       websiteUrl=mb.websiteUrl,
       bankRoutingScheme=mb.bankRoutingScheme,
-      bankRoutingAddress=mb.bankRoutingAddress
+      bankRoutingAddress=mb.bankRoutingAddress,
+      swiftBic ="", //Not useful 
+      nationalIdentifier ="" //Not useful 
     )
+  
   
   def bankAccount(acc: BankAccount) =
-    InboundAccount(
-      bankId = acc.bankId.value,
-      branchId = acc.branchId,
-      accountId = acc.accountId.value,
-      accountNumber = acc.number,
+    BankAccountCommons(
+      accountId = acc.accountId,
       accountType = acc.accountType,
-      balanceAmount = acc.balance.toString(),
-      balanceCurrency = acc.currency,
-      owners = acc.customerOwners.map(_.customerId).toList,
-      viewsToGenerate = Nil,
-      bankRoutingScheme = acc.bankRoutingScheme,
-      bankRoutingAddress = acc.bankRoutingAddress,
-      branchRoutingScheme = "",
-      branchRoutingAddress = "",
+      balance = acc.balance,
+      currency = acc.currency,
+      name = acc.name,
+      label = acc.label,
+      swift_bic = None,
+      iban = None,
+      number = acc.number,
+      bankId = acc.bankId,
+      lastUpdate = acc.lastUpdate,
+      branchId = acc.branchId,
       accountRoutingScheme = acc.accountRoutingScheme,
       accountRoutingAddress = acc.accountRoutingAddress,
-      accountRouting = Nil,
-      accountRules = Nil
+      accountRoutings = Nil,
+      accountRules = Nil,
+      accountHolder = acc.accountHolder
     )
   
+  
   def coreAccount(a: CoreAccount) =
-    InboundCoreAccount(
+    CoreAccount(
       id = a.id,
       label = a.label,
       bankId = a.bankId,

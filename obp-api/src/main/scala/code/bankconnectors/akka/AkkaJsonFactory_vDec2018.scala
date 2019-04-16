@@ -5,7 +5,7 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.model.dataAccess.MappedBankAccountData
-import com.openbankproject.commons.dto.{InboundAccount, InboundBank, InboundCustomer, InboundTransaction}
+import com.openbankproject.commons.dto.{InboundAccount, InboundCustomer, InboundTransaction}
 import com.openbankproject.commons.model._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.today
@@ -95,27 +95,8 @@ object InboundTransformerDec2018 {
   /*
    * Bank
    */
-  case class BankAkka(b: InboundBank) extends Bank {
-    override def bankId = BankId(b.bankId)
+  
 
-    override def fullName = b.fullName
-
-    override def shortName = b.shortName
-
-    override def logoUrl = b.logoUrl
-
-    override def websiteUrl = b.websiteUrl
-
-    override def bankRoutingScheme = b.bankRoutingScheme
-
-    override def bankRoutingAddress = b.bankRoutingAddress
-
-    override def swiftBic = ""
-
-    override def nationalIdentifier: String = ""
-  }
-
-  def toBank(b: InboundBank): Bank = BankAkka(b)
 
   /*
    * Account
