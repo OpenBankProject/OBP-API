@@ -144,31 +144,13 @@ case class InBoundGetTransactionFuture (adapterCallContext: AdapterCallContext, 
 
 
 case class OutBoundMakePaymentv210 (adapterCallContext: AdapterCallContext,
-                                    fromAccount: BankAccountCommons,
-                                    toAccount: BankAccountCommons,
-                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSONCommons,
+                                    fromAccount: BankAccount,
+                                    toAccount: BankAccount,
+                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                     amount: BigDecimal,
                                     description: String,
                                     transactionRequestType: TransactionRequestType,
-                                    chargePolicy: String) {
-
-  def this(adapterCallContext: AdapterCallContext,
-           fromAccount: BankAccount,
-           toAccount: BankAccount,
-           transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
-           amount: BigDecimal,
-           description: String,
-           transactionRequestType: TransactionRequestType,
-           chargePolicy: String) = this(
-    adapterCallContext,
-    BankAccountCommons(fromAccount),
-    BankAccountCommons(toAccount),
-    TransactionRequestCommonBodyJSONCommons(transactionRequestCommonBody),
-    amount: BigDecimal,
-    description: String,
-    transactionRequestType: TransactionRequestType,
-    chargePolicy)
-}
+                                    chargePolicy: String)
 
 case class InBoundMakePaymentv210 (adapterCallContext: AdapterCallContext, data: TransactionId)
 

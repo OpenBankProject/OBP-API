@@ -316,7 +316,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext])
   : OBPReturnType[Box[String]] = {
     val url = getUrl("createChallenge")
-    val jsonStr = write(new OutBoundCreateChallenge(buildAdapterCallContext(callContext), bankId, accountId, userId, transactionRequestType, transactionRequestId))
+    val jsonStr = write(OutBoundCreateChallenge(buildAdapterCallContext(callContext), bankId, accountId, userId, transactionRequestType, transactionRequestId))
     sendPostRequest[InBoundCreateChallenge](url, callContext, jsonStr)
       .map{ boxedResult =>
       boxedResult match {
@@ -329,7 +329,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   override def createCounterparty(name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext])
   : Box[(CounterpartyTraitCommons, Option[CallContext])] = {
     val url = getUrl("createCounterparty")
-    val jsonStr = write(new OutBoundCreateCounterparty(buildAdapterCallContext(callContext), name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke))
+    val jsonStr = write(OutBoundCreateCounterparty(buildAdapterCallContext(callContext), name, description, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke))
     sendPostRequest[InBoundCreateCounterparty](url, callContext, jsonStr)
       .map { boxedResult =>
         boxedResult.map { result =>
@@ -352,7 +352,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                                chargePolicy: String,
                                callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
     val url = getUrl("makePaymentv210")
-    val jsonStr = write(new OutBoundMakePaymentv210(
+    val jsonStr = write(OutBoundMakePaymentv210(
       buildAdapterCallContext(callContext),
       fromAccount,
       toAccount,

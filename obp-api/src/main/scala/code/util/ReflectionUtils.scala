@@ -1,6 +1,9 @@
 package code.util
 
 import java.util.Date
+
+import com.openbankproject.commons.dto.rest.OutBoundMakePaymentv210
+
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
@@ -28,7 +31,10 @@ object reflectionUtils {
           "ProductAttributeType.STRING"
         } else if (pre <:< ru.typeOf[AccountAttributeType.type]) {
           "AccountAttributeType.INTEGER"
-        } else if (args.isEmpty) {
+        } else if (args.isEmpty && sym.isAbstract) {
+          val commonClass = reflectionUtils.getTypeByName(s"com.openbankproject.commons.model.${sym.name}Commons")
+            createDocExample(commonClass)
+        } else if (args.isEmpty && !sym.isAbstract) {
           createDocExample(sym.asType.toType)
         } else {
           val typeParamStr = args.map(genericSymboToString).mkString(",")
