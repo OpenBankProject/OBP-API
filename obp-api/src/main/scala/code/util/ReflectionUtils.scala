@@ -40,7 +40,7 @@ object reflectionUtils {
           val typeParamStr = args.map(genericSymboToString).mkString(",")
           s"${sym.name}($typeParamStr)"
         }
-        val valueName = if(symbol.name.toString == "type") "`type`" else symbol.name.toString
+        val valueName = symbol.name.toString.replaceFirst("^type$", "`type`")
         s"""$str,
            |${valueName}=${value}""".stripMargin
       }).substring(2)

@@ -78,7 +78,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 //---------------- dynamic start ---------------------
 
 
-  // ---------- create on Tue Apr 16 16:38:18 CST 2019
+// ---------- create on Tue Apr 16 16:50:32 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.get.InboundAdapterInfoInternal",
@@ -3245,6 +3245,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getStatusOfCreditCardOrder")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
     
     
     
