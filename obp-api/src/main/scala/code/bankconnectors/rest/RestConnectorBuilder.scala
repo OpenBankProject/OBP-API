@@ -18,16 +18,41 @@ object RestConnectorBuilder extends App {
   //  val value2  = this.getBankFuture(BankId("hello-bank-id"), None)
   //  Thread.sleep(10000)
   val genMethodNames = List(
-    //"getAdapterInfoFuture", "getBanksFuture", "getBankFuture", "checkBankAccountExistsFuture", "getBankAccountFuture", "getCoreBankAccountsFuture",
-    //  "getCustomersByUserIdFuture",
-    //"getAdapterInfo",
-    //"checkBankAccountExists",
-    //"checkBankAccountExistsFuture"
-    //"getCounterpartiesFuture",
-    //"getTransactionsFuture", "getTransactionFuture", "getAdapterInfoFuture",
+    "getAdapterInfo",
+    "getAdapterInfoFuture",
+    //    "getUser", // have problem
+    "getBanks",
+    "getBanksFuture",
+    "getBank",
+    "getBankFuture",
+    "getBankAccountsByUsername",
+    "getBankAccountsByUsernameFuture",
+    //    "getBankAccount", //have problem
+    "checkBankAccountExists",
+    "checkBankAccountExistsFuture",
+    "getCoreBankAccounts",
+    "getCoreBankAccountsFuture",
+    //    "exampleInternalTransactionSept2018", // not exists in connector
+    //    "getTransactions", // have not callContext param
+    //    "getTransactionsCore", //have problem, callContext not at last of param list
+    "getTransaction",
     "createChallenge",
     "createCounterparty",
+    //    "getTransactionRequests210", // params are not simple object
+    "getCounterparties",
+    "getCounterpartiesFuture",
+    "getCounterpartyByCounterpartyIdFuture",
+    "getCounterpartyTrait",
+    "getCustomersByUserIdFuture",
+    "getCheckbookOrdersFuture",
+    "getStatusOfCreditCardOrderFuture",
+    "getBranchesFuture",
+    "getBranchFuture",
+    "getAtmsFuture",
+    "getAtmFuture",
+    "getChallengeThreshold",
     "makePaymentv210",
+    //    "getCoreBankAccountsHeldFuture", // param is not simple object, and return type is not common
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -91,13 +116,13 @@ case class GetGenerator(methodName: String, tp: Type) {
 
   private[this] val outBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.rest.OutBound${methodName.capitalize}"
-    if(isReturnBox) typeName += "Future"
+    if(!reflectionUtils.isTypeExists(typeName)) typeName += "Future"
     val outBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(outBoundType)
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
-    if(isReturnBox) typeName += "Future"
+    if(!reflectionUtils.isTypeExists(typeName)) typeName += "Future"
     val inBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(inBoundType)
   }
@@ -105,10 +130,14 @@ case class GetGenerator(methodName: String, tp: Type) {
   val signature = s"$methodName$paramAnResult"
   val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
   val urlDemo = s"/$name" + params.map(it => s"/$it/{$it}").mkString
-  val jsonType = if(isReturnBox) {
-    "InBound" + methodName.capitalize + "Future"
-  } else {
-    "InBound" + methodName.capitalize
+  val jsonType = {
+      val typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
+      if(reflectionUtils.isTypeExists(typeName)) {
+        s"InBound${methodName.capitalize}"
+      }
+      else {
+        s"InBound${methodName.capitalize}Future"
+      }
   }
 
 
@@ -126,12 +155,12 @@ case class GetGenerator(methodName: String, tp: Type) {
 
   val lastMapStatement = if (isReturnBox || resultType.startsWith("Future[Box[")) {
     """|                    boxedResult.map { result =>
-       |                         (result.data, buildCallContext(result.authInfo, callContext))
+       |                         (result.data, buildCallContext(result.adapterCallContext, callContext))
        |                    }
     """.stripMargin
   } else {
     """|                    boxedResult match {
-       |                        case Full(result) => (Full(result.data), buildCallContext(result.authInfo, callContext))
+       |                        case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
        |                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
        |                    }
     """.stripMargin
@@ -178,67 +207,47 @@ case class GetGenerator(methodName: String, tp: Type) {
 case class PostGenerator(methodName: String, tp: Type) {
   private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
 
-  private[this] val params = tp.paramLists(0).dropRight(1).map(_.name.toString)
+  private[this] val params = tp.paramLists(0).dropRight(1).map(_.name.toString).mkString(",", ",", "")
 
   private[this] val description = methodName.replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
+
+  private[this] val entityName = methodName.replaceFirst("^[a-z]+", "")
+
   private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
 
   private[this] val isOBPReturnType = resultType.startsWith("OBPReturnType[")
 
   private[this] val outBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.rest.OutBound${methodName.capitalize}"
-//    if(isOBPReturnType) typeName += "Future"
-//    val outBoundType = reflectionUtils.getTypeByName(typeName)
-//    reflectionUtils.createDocExample(outBoundType)
-    ""
+    val outBoundType = reflectionUtils.getTypeByName(typeName)
+    reflectionUtils.createDocExample(outBoundType)
   }
   private[this] val inBoundExample = {
-//    var typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
-//    if(isOBPReturnType) typeName += "Future"
-//    val inBoundType = reflectionUtils.getTypeByName(typeName)
-//    reflectionUtils.createDocExample(inBoundType)
-    ""
+    var typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
+    val inBoundType = reflectionUtils.getTypeByName(typeName)
+    reflectionUtils.createDocExample(inBoundType)
   }
 
   val signature = s"$methodName$paramAnResult"
-  val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
-  val urlDemo = s"/$methodName" + params.map(it => s"/$it/{$it}").mkString
-  val jsonType = if(isOBPReturnType) {
-    "InBound" + methodName.capitalize + "Future"
-  } else {
-    "InBound" + methodName.capitalize
-  }
+  val urlDemo = s"/$methodName"
 
-
-  val dataType = if (resultType.startsWith("Future[Box[")) {
-    resultType.replaceFirst("""Future\[Box\[\((.+), Option\[CallContext\]\)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  } else if (resultType.startsWith("OBPReturnType[Box[")) {
-    resultType.replaceFirst("""OBPReturnType\[Box\[(.+)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  } else if (isOBPReturnType) {
-    //Box[(InboundAdapterInfoInternal, Option[CallContext])]
-    resultType.replaceFirst("""Box\[\((.+), Option\[CallContext\]\)\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  } else {
-    throw new NotImplementedError(s"this return type not implemented: $resultType")
-  }
-  val returnEntityType = dataType.replaceFirst("Commons$", "").replaceAll(".*\\[|\\].*", "")
-
-  val lastMapStatement = if (isOBPReturnType || resultType.startsWith("Future[Box[")) {
-    """|                    boxedResult.map { result =>
-       |                         (result.data, buildCallContext(result.authInfo, callContext))
-       |                    }
+  val lastMapStatement = if (isOBPReturnType) {
+    """|boxedResult match {
+       |        case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+       |        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
+       |      }
     """.stripMargin
   } else {
-    """|                    boxedResult match {
-       |                        case Full(result) => (Full(result.data), buildCallContext(result.authInfo, callContext))
-       |                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
-       |                    }
+    """|boxedResult.map { result =>
+       |          (result.data, buildCallContext(result.adapterCallContext, callContext))
+       |        }
     """.stripMargin
   }
 
   override def toString =
     s"""
        |messageDocs += MessageDoc(
-       |    process = "obp.get.$returnEntityType",
+       |    process = "obp.post.$entityName",
        |    messageFormat = messageFormat,
        |    description = "$description",
        |    outboundTopic = None,
@@ -253,7 +262,12 @@ case class PostGenerator(methodName: String, tp: Type) {
        |  )
        |  // url example: $urlDemo
        |  override def $signature = {
-       |
+       |    val url = getUrl("$methodName")
+       |    val jsonStr = write(OutBound${methodName.capitalize}(buildAdapterCallContext(callContext) $params))
+       |    sendPostRequest[InBound${methodName.capitalize}](url, callContext, jsonStr)
+       |      .map{ boxedResult =>
+       |      $lastMapStatement
+       |    }
        |  }
     """.stripMargin
 }

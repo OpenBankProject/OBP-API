@@ -577,3 +577,11 @@ case class InboundAdapterCallContext(
   cbsToken: String = "",
   sessionId: String = ""
 )
+
+
+//Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
+case class InboundUser(
+                        email: String,
+                        password: String,
+                        displayName: String
+                      )

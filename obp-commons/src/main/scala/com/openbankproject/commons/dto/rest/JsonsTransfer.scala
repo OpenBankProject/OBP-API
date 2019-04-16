@@ -447,6 +447,11 @@ case class OutBoundGetMeeting (adapterCallContext: AdapterCallContext,
                                meetingId: String)
 case class InBoundGetMeeting (adapterCallContext: AdapterCallContext, data: MeetingCommons)
 
+case class OutBoundGetUser(adapterCallContext: AdapterCallContext, name: String, password: String)
+
+case class InBoundGetUser(adapterCallContext: AdapterCallContext, data: InboundUser)
+
+
 //create bound case classes
 case class OutBoundCreateChallenge(adapterCallContext: AdapterCallContext, bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)
 
@@ -455,4 +460,6 @@ case class InBoundCreateChallenge(adapterCallContext: AdapterCallContext, data: 
 case class OutBoundCreateCounterparty(adapterCallContext: AdapterCallContext, name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke])
 
 case class InBoundCreateCounterparty(adapterCallContext: AdapterCallContext, data: CounterpartyTraitCommons)
+
+
 

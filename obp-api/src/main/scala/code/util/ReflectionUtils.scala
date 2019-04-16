@@ -31,10 +31,10 @@ object reflectionUtils {
           "ProductAttributeType.STRING"
         } else if (pre <:< ru.typeOf[AccountAttributeType.type]) {
           "AccountAttributeType.INTEGER"
-        } else if (args.isEmpty && sym.isAbstract) {
+        } else if (args.isEmpty && sym.isClass && sym.asClass.isTrait) {
           val commonClass = reflectionUtils.getTypeByName(s"com.openbankproject.commons.model.${sym.name}Commons")
             createDocExample(commonClass)
-        } else if (args.isEmpty && !sym.isAbstract) {
+        } else if (args.isEmpty) {
           createDocExample(sym.asType.toType)
         } else {
           val typeParamStr = args.map(genericSymboToString).mkString(",")
@@ -60,6 +60,13 @@ object reflectionUtils {
   }
 
   def getTypeByName(typeName: String, mirror: ru.Mirror = this.mirror): ru.Type = mirror.staticClass(typeName).asType.toType
+
+  def isTypeExists(typeName: String): Boolean = try {
+    getTypeByName(typeName)
+    true
+  } catch {
+    case e => false
+  }
 
   /**
     * get all nest type, e.g:

@@ -30,7 +30,6 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{MessageDoc}
-import code.bankconnectors.InboundUser
 import code.fx.FXRate
 import code.model._
 import code.model.dataAccess.MappedBankAccountData

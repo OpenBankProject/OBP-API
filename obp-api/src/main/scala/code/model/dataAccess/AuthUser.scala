@@ -31,7 +31,7 @@ import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
-import code.bankconnectors.{Connector, InboundUser}
+import code.bankconnectors.{Connector}
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
