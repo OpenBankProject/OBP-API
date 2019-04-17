@@ -4,7 +4,7 @@ import code.api.util.APIUtil.getPropsAsBoolValue
 import code.consumer.Consumers
 import code.customer.Customer
 import code.migration.MigrationScriptLogProvider
-import code.model.dataAccess.{MappedBank, MappedBankAccount, ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
@@ -69,14 +69,13 @@ object Migration extends MdcLoggable {
             view <- views
             permission <- ViewPrivileges.findAll(By(ViewPrivileges.view, view.id))
           } yield {
-            val bankPrimaryKey = MappedBank.find(By(MappedBank.permalink, view.bankPermalink.get))
-            val accountPrimaryKey = MappedBankAccount.find(By(MappedBankAccount.theAccountId, view.accountPermalink.get))
+            val viewId = ViewImpl.find(By(ViewImpl.id_, permission.view.get)).map(_.permalink_.get).getOrElse("")
             AccountAccess
               .create
-              .bank(bankPrimaryKey)
-              .account(accountPrimaryKey)
-              .user(permission.user.get)
-              .view(permission.view.get)
+              .bank_id(view.bankPermalink.get)
+              .account_id(view.accountPermalink.get)
+              .user_fk(permission.user.get)
+              .view_id(viewId)
               .save()
           }
         val isSuccessful = insertedRows.forall(_ == true)
