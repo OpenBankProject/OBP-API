@@ -2,8 +2,6 @@ package code.util
 
 import java.util.Date
 
-import com.openbankproject.commons.dto.rest.OutBoundMakePaymentv210
-
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
@@ -24,7 +22,7 @@ object reflectionUtils {
   }
 
   def createDocExample(tp: ru.Type): String = {
-    if (tp.typeSymbol.asClass.isCaseClass) {
+    if (tp.typeSymbol.fullName.startsWith("com.openbankproject.commons.")) {
       val fields = tp.decls.find(it => it.isConstructor).toList.flatMap(_.asMethod.paramLists(0)).foldLeft("")((str, symbol) => {
         val TypeRef(pre: Type, sym: Symbol, args: List[Type]) = symbol.info
         val value = if (pre <:< ru.typeOf[ProductAttributeType.type]) {
@@ -44,7 +42,8 @@ object reflectionUtils {
         s"""$str,
            |${valueName}=${value}""".stripMargin
       }).substring(2)
-      s"${tp.typeSymbol.name}($fields)"
+      val withNew = if(!tp.typeSymbol.asClass.isCaseClass) "new" else ""
+      s"$withNew ${tp.typeSymbol.name}($fields)"
     } else if (tp =:= ru.typeOf[String]) {
       """"string""""
     } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer] || tp =:= ru.typeOf[Long] || tp =:= ru.typeOf[java.lang.Long]) {

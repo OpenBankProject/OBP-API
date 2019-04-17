@@ -38,3 +38,18 @@ case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends 
 case class OBPFunctionName(value: String) extends OBPQueryParam
 case class OBPConnectorName(value: String) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam
+
+object OBPQueryParam {
+  def getLimit(queryParams: OBPQueryParam*) : Int = {
+     queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
+  }
+  def getOffset(queryParams: OBPQueryParam*) : Int = {
+    queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
+  }
+  def getFromDate(queryParams: OBPQueryParam*) : String = {
+    queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
+  }
+  def getToDate(queryParams: OBPQueryParam*) : String = {
+    queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
+  }
+}

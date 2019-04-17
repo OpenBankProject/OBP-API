@@ -77,7 +77,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 //---------------- dynamic start ---------------------
 
 
-  // ---------- create on Wed Apr 17 19:01:17 CST 2019
+  // ---------- create on Wed Apr 17 20:27:50 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.get.InboundAdapterInfoInternal",
@@ -1975,6 +1975,218 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getCounterpartiesFuture")
 
   messageDocs += MessageDoc(
+    process = "obp.get.TransactionCommons",
+    messageFormat = messageFormat,
+    description = "Get Transactions",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetTransactions(bankId = BankId(value = "string"),
+        accountID = AccountId(value = "string"),
+        limit = 123,
+        offset = 123,
+        fromDate = "string",
+        toDate = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundGetTransactions(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = List(new Transaction(uuid = "string",
+          id = TransactionId(value = "string"),
+          thisAccount = BankAccountCommons(accountId = AccountId(value = "string"),
+            accountType = "string",
+            balance = 123.123,
+            currency = "string",
+            name = "string",
+            label = "string",
+            swift_bic = Option("string"),
+            iban = Option("string"),
+            number = "string",
+            bankId = BankId(value = "string"),
+            lastUpdate = new Date(),
+            branchId = "string",
+            accountRoutingScheme = "string",
+            accountRoutingAddress = "string",
+            accountRoutings = List(AccountRouting(scheme = "string",
+              address = "string")),
+            accountRules = List(AccountRule(scheme = "string",
+              value = "string")),
+            accountHolder = "string"),
+          otherAccount = Counterparty(nationalIdentifier = "string",
+            kind = "string",
+            counterpartyId = "string",
+            counterpartyName = "string",
+            thisBankId = BankId(value = "string"),
+            thisAccountId = AccountId(value = "string"),
+            otherBankRoutingScheme = "string",
+            otherBankRoutingAddress = Option("string"),
+            otherAccountRoutingScheme = "string",
+            otherAccountRoutingAddress = Option("string"),
+            otherAccountProvider = "string",
+            isBeneficiary = true),
+          transactionType = "string",
+          amount = 123.123,
+          currency = "string",
+          description = Option("string"),
+          startDate = new Date(),
+          finishDate = new Date(),
+          balance = 123.123)))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getTransactions/bankId/{bankId}/accountID/{accountID}/queryParams/{queryParams}
+  override def getTransactions(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[Transaction], Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getTransactions", ("bankId", bankId), ("accountID", accountID), ("queryParams", queryParams))
+        sendGetRequest[InBoundGetTransactions](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getTransactions")
+
+  messageDocs += MessageDoc(
+    process = "obp.get.TransactionCoreCommons",
+    messageFormat = messageFormat,
+    description = "Get Transactions Core",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetTransactionsCore(bankId = BankId(value = "string"),
+        accountID = AccountId(value = "string"),
+        limit = 123,
+        offset = 123,
+        fromDate = "string",
+        toDate = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundGetTransactionsCore(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = List(TransactionCore(id = TransactionId(value = "string"),
+          thisAccount = BankAccountCommons(accountId = AccountId(value = "string"),
+            accountType = "string",
+            balance = 123.123,
+            currency = "string",
+            name = "string",
+            label = "string",
+            swift_bic = Option("string"),
+            iban = Option("string"),
+            number = "string",
+            bankId = BankId(value = "string"),
+            lastUpdate = new Date(),
+            branchId = "string",
+            accountRoutingScheme = "string",
+            accountRoutingAddress = "string",
+            accountRoutings = List(AccountRouting(scheme = "string",
+              address = "string")),
+            accountRules = List(AccountRule(scheme = "string",
+              value = "string")),
+            accountHolder = "string"),
+          otherAccount = CounterpartyCore(kind = "string",
+            counterpartyId = "string",
+            counterpartyName = "string",
+            thisBankId = BankId(value = "string"),
+            thisAccountId = AccountId(value = "string"),
+            otherBankRoutingScheme = "string",
+            otherBankRoutingAddress = Option("string"),
+            otherAccountRoutingScheme = "string",
+            otherAccountRoutingAddress = Option("string"),
+            otherAccountProvider = "string",
+            isBeneficiary = true),
+          transactionType = "string",
+          amount = 123.123,
+          currency = "string",
+          description = Option("string"),
+          startDate = new Date(),
+          finishDate = new Date(),
+          balance = 123.123)))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getTransactionsCore/bankId/{bankId}/accountID/{accountID}/queryParams/{queryParams}
+  override def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getTransactionsCore", ("bankId", bankId), ("accountID", accountID), ("queryParams", queryParams))
+        sendGetRequest[InBoundGetTransactionsCore](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getTransactionsCore")
+
+  messageDocs += MessageDoc(
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
     description = "Get Transaction",
@@ -2575,7 +2787,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
               userOwners = List(InternalBasicUser(userId = "string",
                 emailAddress = "string",
                 name = "string"))))))))),
-        bankId = BankId(value = "string"))
+        bankId = BankId(value = "string"),
+        limit = 123,
+        offset = 123,
+        fromDate = "string",
+        toDate = "string")
       ),
     exampleInboundMessage = (
       InBoundGetBranchesFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
@@ -2844,7 +3060,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
               userOwners = List(InternalBasicUser(userId = "string",
                 emailAddress = "string",
                 name = "string"))))))))),
-        bankId = BankId(value = "string"))
+        bankId = BankId(value = "string"),
+        limit = 123,
+        offset = 123,
+        fromDate = "string",
+        toDate = "string")
       ),
     exampleInboundMessage = (
       InBoundGetAtmsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
@@ -3353,9 +3573,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 //---------------- dynamic end ---------------------please don't modify this line
     
     
-    
-    
 
+    
   private[this] def sendGetRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.GET)
 

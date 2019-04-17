@@ -183,7 +183,7 @@ case class InBoundGetBranchFuture (adapterCallContext: AdapterCallContext, data:
 
 
 case class OutBoundGetBranchesFuture (adapterCallContext: AdapterCallContext,
-                                      bankId: BankId)
+                                      bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String)
 case class InBoundGetBranchesFuture (adapterCallContext: AdapterCallContext, data: List[BranchTCommons])
 
 
@@ -194,7 +194,7 @@ case class InBoundGetAtmFuture (adapterCallContext: AdapterCallContext, data: At
 
 
 case class OutBoundGetAtmsFuture (adapterCallContext: AdapterCallContext,
-                                  bankId: BankId)
+                                  bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String)
 case class InBoundGetAtmsFuture (adapterCallContext: AdapterCallContext, data: List[AtmTCommons])
 
 
@@ -468,11 +468,13 @@ case class OutBoundGetTransactionRequests210(adapterCallContext: AdapterCallCont
 
 case class InBoundGetTransactionRequests210(adapterCallContext: AdapterCallContext, data: List[TransactionRequest])
 
-case class OutBoundGetTransactionsCore(bankId: BankId, accountID: AccountId) //, queryParams: OBPQueryParam*
+case class OutBoundGetTransactionsCore(bankId: BankId, accountID: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String)
 case class InBoundGetTransactionsCore(adapterCallContext: AdapterCallContext, data: List[TransactionCore])
 
+case class OutBoundGetTransactions(bankId: BankId, accountID: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String)
+case class InBoundGetTransactions(adapterCallContext: AdapterCallContext, data: List[Transaction])
 
-//-------- return type are not Future
+//-------- return type are not Future--------------------------------------------------------------------------------------------------
 
 case class OutBoundGetAdapterInfo (adapterCallContext: AdapterCallContext)
 case class InBoundGetAdapterInfo (adapterCallContext: AdapterCallContext, data: InboundAdapterInfoInternal)

@@ -587,5 +587,3 @@ case class InboundUser(
                         password: String,
                         displayName: String
                       )
-
-case class QueryParam(limit: Int, offset: Int, fromDate: Long, toDate: Long)

@@ -33,12 +33,12 @@ object RestConnectorBuilder extends App {
     "checkBankAccountExistsFuture",
     "getCoreBankAccounts", // have problem, param not simple object
     "getCoreBankAccountsFuture", // have problem, param not simple object
-    //    "getTransactions", // reload methods, one have not callContext param, both have OBPQueryParam
-    // "getTransactionsCore", //have problem, OBPQueryParam can pass to remote?
+    "getTransactions", // have OBPQueryParam
+    "getTransactionsCore", //have OBPQueryParam
     "getTransaction",
     "createChallenge",
     "createCounterparty",
-    "getTransactionRequests210", // params are not simple object
+    "getTransactionRequests210", //have problem params are not simple object
     "getCounterparties",
     "getCounterpartiesFuture",
     "getCounterpartyByCounterpartyIdFuture",
@@ -46,9 +46,9 @@ object RestConnectorBuilder extends App {
     "getCustomersByUserIdFuture",
     "getCheckbookOrdersFuture",
     "getStatusOfCreditCardOrderFuture",
-    "getBranchesFuture", //have problem, OBPQueryParam can pass to remote?
+    "getBranchesFuture", //have OBPQueryParam
     "getBranchFuture",
-    "getAtmsFuture", //have problem, OBPQueryParam can pass to remote?
+    "getAtmsFuture", //have OBPQueryParam
     "getAtmFuture",
     "getChallengeThreshold",
     "makePaymentv210",
