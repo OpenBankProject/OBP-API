@@ -19,7 +19,7 @@ object InOutCaseClassGenerator extends App {
     val isMethod = symbol.isMethod && !symbol.asMethod.isVal && !symbol.asMethod.isVar && !symbol.asMethod.isConstructor
     isMethod
   }).map(it => it.asMethod)
-    .filter(it => it.returnType <:< ru.typeOf[Future[_]])
+    .filterNot(it => it.returnType <:< ru.typeOf[Future[_]])
     .filter(it => {
       extractReturnModel(it.returnType).typeSymbol.fullName.matches("(code\\.|com.openbankproject\\.).+")
     })

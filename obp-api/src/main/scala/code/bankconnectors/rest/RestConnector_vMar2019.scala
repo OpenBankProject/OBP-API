@@ -78,7 +78,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 //---------------- dynamic start ---------------------
 
 
-// ---------- create on Tue Apr 16 16:50:32 CST 2019
+// ---------- create on Wed Apr 17 18:35:54 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.get.InboundAdapterInfoInternal",
@@ -87,7 +87,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetAdapterInfoFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetAdapterInfo(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -114,102 +114,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                 name = "string"))))))))))
       ),
     exampleInboundMessage = (
-      InBoundGetAdapterInfoFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = InboundAdapterInfoInternal(errorCode = "string",
-          backendMessages = List(InboundStatusMessage(source = "string",
-            status = "string",
-            errorCode = "string",
-            text = "string")),
-          name = "string",
-          version = "string",
-          git_commit = "string",
-          date = "string"))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getAdapterInfoB
-  override def getAdapterInfo(callContext: Option[CallContext]): Box[(InboundAdapterInfoInternal, Option[CallContext])] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAdapterInfoB")
-        sendGetRequest[InBoundGetAdapterInfoFuture](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getAdapterInfoB")
-
-  messageDocs += MessageDoc(
-    process = "obp.get.InboundAdapterInfoInternal",
-    messageFormat = messageFormat,
-    description = "Get Adapter Info",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetAdapterInfoFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))))
-      ),
-    exampleInboundMessage = (
-      InBoundGetAdapterInfoFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetAdapterInfo(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -248,6 +153,101 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getAdapterInfo
+  override def getAdapterInfo(callContext: Option[CallContext]): Box[(InboundAdapterInfoInternal, Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getAdapterInfo")
+        sendGetRequest[InBoundGetAdapterInfo](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getAdapterInfo")
+
+  messageDocs += MessageDoc(
+    process = "obp.get.InboundAdapterInfoInternal",
+    messageFormat = messageFormat,
+    description = "Get Adapter Info",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetAdapterInfoFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))))
+      ),
+    exampleInboundMessage = (
+      InBoundGetAdapterInfoFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = InboundAdapterInfoInternal(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string")),
+          name = "string",
+          version = "string",
+          git_commit = "string",
+          date = "string"))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getAdapterInfoFuture
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -258,7 +258,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAdapterInfo")
+        val url = getUrl("getAdapterInfoFuture")
         sendGetRequest[InBoundGetAdapterInfoFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -268,7 +268,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getAdapterInfo")
+  }("getAdapterInfoFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.AmountOfMoney",
@@ -342,7 +342,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getChallengeThresholdB/bankId/{bankId}/accountId/{accountId}/viewId/{viewId}/transactionRequestType/{transactionRequestType}/currency/{currency}/userId/{userId}/userName/{userName}
+  // url example: /getChallengeThreshold/bankId/{bankId}/accountId/{accountId}/viewId/{viewId}/transactionRequestType/{transactionRequestType}/currency/{currency}/userId/{userId}/userName/{userName}
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -353,7 +353,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getChallengeThresholdB", ("bankId", bankId), ("accountId", accountId), ("viewId", viewId), ("transactionRequestType", transactionRequestType), ("currency", currency), ("userId", userId), ("userName", userName))
+        val url = getUrl("getChallengeThreshold", ("bankId", bankId), ("accountId", accountId), ("viewId", viewId), ("transactionRequestType", transactionRequestType), ("currency", currency), ("userId", userId), ("userName", userName))
         sendGetRequest[InBoundGetChallengeThreshold](url, callContext)
           .map { boxedResult =>
             boxedResult match {
@@ -364,7 +364,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getChallengeThresholdB")
+  }("getChallengeThreshold")
 
   messageDocs += MessageDoc(
     process = "obp.post.Challenge",
@@ -456,7 +456,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetBankFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetBank(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -484,7 +484,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         bankId = BankId(value = "string"))
       ),
     exampleInboundMessage = (
-      InBoundGetBankFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetBank(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -522,7 +522,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getBankB/bankId/{bankId}
+  // url example: /getBank/bankId/{bankId}
   override def getBank(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -533,8 +533,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBankB", ("bankId", bankId))
-        sendGetRequest[InBoundGetBankFuture](url, callContext)
+        val url = getUrl("getBank", ("bankId", bankId))
+        sendGetRequest[InBoundGetBank](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.adapterCallContext, callContext))
@@ -543,7 +543,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getBankB")
+  }("getBank")
 
   messageDocs += MessageDoc(
     process = "obp.get.Bank",
@@ -618,7 +618,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getBank/bankId/{bankId}
+  // url example: /getBankFuture/bankId/{bankId}
   override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -629,7 +629,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBank", ("bankId", bankId))
+        val url = getUrl("getBankFuture", ("bankId", bankId))
         sendGetRequest[InBoundGetBankFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -639,7 +639,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getBank")
+  }("getBankFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.BankCommons",
@@ -648,7 +648,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetBanksFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetBanks(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -675,102 +675,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                 name = "string"))))))))))
       ),
     exampleInboundMessage = (
-      InBoundGetBanksFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = List(BankCommons(bankId = BankId(value = "string"),
-          shortName = "string",
-          fullName = "string",
-          logoUrl = "string",
-          websiteUrl = "string",
-          bankRoutingScheme = "string",
-          bankRoutingAddress = "string",
-          swiftBic = "string",
-          nationalIdentifier = "string")))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getBanksB
-  override def getBanks(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBanksB")
-        sendGetRequest[InBoundGetBanksFuture](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getBanksB")
-
-  messageDocs += MessageDoc(
-    process = "obp.get.BankCommons",
-    messageFormat = messageFormat,
-    description = "Get Banks",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetBanksFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))))
-      ),
-    exampleInboundMessage = (
-      InBoundGetBanksFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetBanks(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -809,7 +714,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getBanks
-  override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -818,9 +723,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
         val url = getUrl("getBanks")
-        sendGetRequest[InBoundGetBanksFuture](url, callContext)
+        sendGetRequest[InBoundGetBanks](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.adapterCallContext, callContext))
@@ -832,13 +737,13 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getBanks")
 
   messageDocs += MessageDoc(
-    process = "obp.get.InboundAccountCommonCommons",
+    process = "obp.get.BankCommons",
     messageFormat = messageFormat,
-    description = "Get Bank Accounts By Username",
+    description = "Get Banks",
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetBankAccountsByUsernameFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetBanksFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -862,11 +767,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                 dateOfBirth = new Date())),
               userOwners = List(InternalBasicUser(userId = "string",
                 emailAddress = "string",
-                name = "string"))))))))),
-        username = "string")
+                name = "string"))))))))))
       ),
     exampleInboundMessage = (
-      InBoundGetBankAccountsByUsernameFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetBanksFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -891,28 +795,21 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
               userOwners = List(InternalBasicUser(userId = "string",
                 emailAddress = "string",
                 name = "string"))))))))),
-        data = List(InboundAccountCommonCommons(errorCode = "string",
-          bankId = "string",
-          branchId = "string",
-          accountId = "string",
-          accountNumber = "string",
-          accountType = "string",
-          balanceAmount = "string",
-          balanceCurrency = "string",
-          owners = List("string"),
-          viewsToGenerate = List("string"),
+        data = List(BankCommons(bankId = BankId(value = "string"),
+          shortName = "string",
+          fullName = "string",
+          logoUrl = "string",
+          websiteUrl = "string",
           bankRoutingScheme = "string",
           bankRoutingAddress = "string",
-          branchRoutingScheme = "string",
-          branchRoutingAddress = "string",
-          accountRoutingScheme = "string",
-          accountRoutingAddress = "string")))
+          swiftBic = "string",
+          nationalIdentifier = "string")))
       ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getBankAccountsByUsernameB/username/{username}
-  override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])] = saveConnectorMetric {
+  // url example: /getBanksFuture
+  override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -921,9 +818,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBankAccountsByUsernameB", ("username", username))
-        sendGetRequest[InBoundGetBankAccountsByUsernameFuture](url, callContext)
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getBanksFuture")
+        sendGetRequest[InBoundGetBanksFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.adapterCallContext, callContext))
@@ -932,7 +829,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getBankAccountsByUsernameB")
+  }("getBanksFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.InboundAccountCommonCommons",
@@ -941,7 +838,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetBankAccountsByUsernameFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetBankAccountsByUsername(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -969,7 +866,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         username = "string")
       ),
     exampleInboundMessage = (
-      InBoundGetBankAccountsByUsernameFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetBankAccountsByUsername(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1015,7 +912,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getBankAccountsByUsername/username/{username}
-  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = saveConnectorMetric {
+  override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1024,9 +921,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
         val url = getUrl("getBankAccountsByUsername", ("username", username))
-        sendGetRequest[InBoundGetBankAccountsByUsernameFuture](url, callContext)
+        sendGetRequest[InBoundGetBankAccountsByUsername](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.adapterCallContext, callContext))
@@ -1038,13 +935,13 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getBankAccountsByUsername")
 
   messageDocs += MessageDoc(
-    process = "obp.get.CoreAccountCommons",
+    process = "obp.get.InboundAccountCommonCommons",
     messageFormat = messageFormat,
-    description = "Get Core Bank Accounts",
+    description = "Get Bank Accounts By Username",
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetCoreBankAccountsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetBankAccountsByUsernameFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1069,11 +966,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
               userOwners = List(InternalBasicUser(userId = "string",
                 emailAddress = "string",
                 name = "string"))))))))),
-        bankIdAccountIds = List(BankIdAccountId(bankId = BankId(value = "string"),
-          accountId = AccountId(value = "string"))))
+        username = "string")
       ),
     exampleInboundMessage = (
-      InBoundGetCoreBankAccountsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetBankAccountsByUsernameFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1098,112 +994,28 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
               userOwners = List(InternalBasicUser(userId = "string",
                 emailAddress = "string",
                 name = "string"))))))))),
-        data = List(CoreAccount(id = "string",
-          label = "string",
+        data = List(InboundAccountCommonCommons(errorCode = "string",
           bankId = "string",
+          branchId = "string",
+          accountId = "string",
+          accountNumber = "string",
           accountType = "string",
-          accountRoutings = List(AccountRouting(scheme = "string",
-            address = "string")))))
+          balanceAmount = "string",
+          balanceCurrency = "string",
+          owners = List("string"),
+          viewsToGenerate = List("string"),
+          bankRoutingScheme = "string",
+          bankRoutingAddress = "string",
+          branchRoutingScheme = "string",
+          branchRoutingAddress = "string",
+          accountRoutingScheme = "string",
+          accountRoutingAddress = "string")))
       ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getCoreBankAccountsB/bankIdAccountIds/{bankIdAccountIds}
-  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[(List[CoreAccount], Option[CallContext])] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCoreBankAccountsB", ("bankIdAccountIds", bankIdAccountIds))
-        sendGetRequest[InBoundGetCoreBankAccountsFuture](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getCoreBankAccountsB")
-
-  messageDocs += MessageDoc(
-    process = "obp.get.CoreAccountCommons",
-    messageFormat = messageFormat,
-    description = "Get Core Bank Accounts",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetCoreBankAccountsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankIdAccountIds = List(BankIdAccountId(bankId = BankId(value = "string"),
-          accountId = AccountId(value = "string"))))
-      ),
-    exampleInboundMessage = (
-      InBoundGetCoreBankAccountsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = List(CoreAccount(id = "string",
-          label = "string",
-          bankId = "string",
-          accountType = "string",
-          accountRoutings = List(AccountRouting(scheme = "string",
-            address = "string")))))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getCoreBankAccounts/bankIdAccountIds/{bankIdAccountIds}
-  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric {
+  // url example: /getBankAccountsByUsernameFuture/username/{username}
+  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1213,8 +1025,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCoreBankAccounts", ("bankIdAccountIds", bankIdAccountIds))
-        sendGetRequest[InBoundGetCoreBankAccountsFuture](url, callContext)
+        val url = getUrl("getBankAccountsByUsernameFuture", ("username", username))
+        sendGetRequest[InBoundGetBankAccountsByUsernameFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.adapterCallContext, callContext))
@@ -1223,16 +1035,16 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getCoreBankAccounts")
+  }("getBankAccountsByUsernameFuture")
 
   messageDocs += MessageDoc(
-    process = "obp.get.BankAccount",
+    process = "obp.get.BankAccountCommons",
     messageFormat = messageFormat,
-    description = "Check Bank Account Exists",
+    description = "Get Bank Account",
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundCheckBankAccountExistsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetBankAccountFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1261,7 +1073,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         accountId = AccountId(value = "string"))
       ),
     exampleInboundMessage = (
-      InBoundCheckBankAccountExistsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetBankAccountFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1309,8 +1121,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /checkBankAccountExistsB/bankId/{bankId}/accountId/{accountId}
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = saveConnectorMetric {
+  // url example: /getBankAccount/bankId/{bankId}/accountId/{accountId}
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1320,8 +1132,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("checkBankAccountExistsB", ("bankId", bankId), ("accountId", accountId))
-        sendGetRequest[InBoundCheckBankAccountExistsFuture](url, callContext)
+        val url = getUrl("getBankAccount", ("bankId", bankId), ("accountId", accountId))
+        sendGetRequest[InBoundGetBankAccountFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.adapterCallContext, callContext))
@@ -1330,16 +1142,16 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("checkBankAccountExistsB")
+  }("getBankAccount")
 
   messageDocs += MessageDoc(
     process = "obp.get.BankAccount",
     messageFormat = messageFormat,
-    description = "Check Bank Account Exists",
+    description = "Get Bank Account",
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundCheckBankAccountExistsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetBankAccountFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1368,7 +1180,302 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         accountId = AccountId(value = "string"))
       ),
     exampleInboundMessage = (
-      InBoundCheckBankAccountExistsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetBankAccountFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = BankAccountCommons(accountId = AccountId(value = "string"),
+          accountType = "string",
+          balance = 123.123,
+          currency = "string",
+          name = "string",
+          label = "string",
+          swift_bic = Option("string"),
+          iban = Option("string"),
+          number = "string",
+          bankId = BankId(value = "string"),
+          lastUpdate = new Date(),
+          branchId = "string",
+          accountRoutingScheme = "string",
+          accountRoutingAddress = "string",
+          accountRoutings = List(AccountRouting(scheme = "string",
+            address = "string")),
+          accountRules = List(AccountRule(scheme = "string",
+            value = "string")),
+          accountHolder = "string"))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getBankAccount/bankId/{bankId}/accountId/{accountId}
+  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getBankAccount", ("bankId", bankId), ("accountId", accountId))
+        sendGetRequest[InBoundGetBankAccountFuture](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getBankAccount")
+
+  messageDocs += MessageDoc(
+    process = "obp.get.CoreAccountCommons",
+    messageFormat = messageFormat,
+    description = "Get Core Bank Accounts",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetCoreBankAccounts(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankIdAccountIds = List(BankIdAccountId(bankId = BankId(value = "string"),
+          accountId = AccountId(value = "string"))))
+      ),
+    exampleInboundMessage = (
+      InBoundGetCoreBankAccounts(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = List(CoreAccount(id = "string",
+          label = "string",
+          bankId = "string",
+          accountType = "string",
+          accountRoutings = List(AccountRouting(scheme = "string",
+            address = "string")))))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getCoreBankAccounts/bankIdAccountIds/{bankIdAccountIds}
+  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[(List[CoreAccount], Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getCoreBankAccounts", ("bankIdAccountIds", bankIdAccountIds))
+        sendGetRequest[InBoundGetCoreBankAccounts](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getCoreBankAccounts")
+
+  messageDocs += MessageDoc(
+    process = "obp.get.CoreAccountCommons",
+    messageFormat = messageFormat,
+    description = "Get Core Bank Accounts",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetCoreBankAccountsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankIdAccountIds = List(BankIdAccountId(bankId = BankId(value = "string"),
+          accountId = AccountId(value = "string"))))
+      ),
+    exampleInboundMessage = (
+      InBoundGetCoreBankAccountsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = List(CoreAccount(id = "string",
+          label = "string",
+          bankId = "string",
+          accountType = "string",
+          accountRoutings = List(AccountRouting(scheme = "string",
+            address = "string")))))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getCoreBankAccountsFuture/bankIdAccountIds/{bankIdAccountIds}
+  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getCoreBankAccountsFuture", ("bankIdAccountIds", bankIdAccountIds))
+        sendGetRequest[InBoundGetCoreBankAccountsFuture](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getCoreBankAccountsFuture")
+
+  messageDocs += MessageDoc(
+    process = "obp.get.BankAccount",
+    messageFormat = messageFormat,
+    description = "Check Bank Account Exists",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCheckBankAccountExists(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankId = BankId(value = "string"),
+        accountId = AccountId(value = "string"))
+      ),
+    exampleInboundMessage = (
+      InBoundCheckBankAccountExists(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1417,6 +1524,113 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /checkBankAccountExists/bankId/{bankId}/accountId/{accountId}
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("checkBankAccountExists", ("bankId", bankId), ("accountId", accountId))
+        sendGetRequest[InBoundCheckBankAccountExists](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("checkBankAccountExists")
+
+  messageDocs += MessageDoc(
+    process = "obp.get.BankAccount",
+    messageFormat = messageFormat,
+    description = "Check Bank Account Exists",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCheckBankAccountExistsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankId = BankId(value = "string"),
+        accountId = AccountId(value = "string"))
+      ),
+    exampleInboundMessage = (
+      InBoundCheckBankAccountExistsFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = BankAccountCommons(accountId = AccountId(value = "string"),
+          accountType = "string",
+          balance = 123.123,
+          currency = "string",
+          name = "string",
+          label = "string",
+          swift_bic = Option("string"),
+          iban = Option("string"),
+          number = "string",
+          bankId = BankId(value = "string"),
+          lastUpdate = new Date(),
+          branchId = "string",
+          accountRoutingScheme = "string",
+          accountRoutingAddress = "string",
+          accountRoutings = List(AccountRouting(scheme = "string",
+            address = "string")),
+          accountRules = List(AccountRule(scheme = "string",
+            value = "string")),
+          accountHolder = "string"))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /checkBankAccountExistsFuture/bankId/{bankId}/accountId/{accountId}
   override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -1427,7 +1641,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("checkBankAccountExists", ("bankId", bankId), ("accountId", accountId))
+        val url = getUrl("checkBankAccountExistsFuture", ("bankId", bankId), ("accountId", accountId))
         sendGetRequest[InBoundCheckBankAccountExistsFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -1437,7 +1651,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("checkBankAccountExists")
+  }("checkBankAccountExistsFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyTrait",
@@ -1523,7 +1737,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getCounterpartyTraitB/bankId/{bankId}/accountId/{accountId}/couterpartyId/{couterpartyId}
+  // url example: /getCounterpartyTrait/bankId/{bankId}/accountId/{accountId}/couterpartyId/{couterpartyId}
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -1534,7 +1748,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCounterpartyTraitB", ("bankId", bankId), ("accountId", accountId), ("couterpartyId", couterpartyId))
+        val url = getUrl("getCounterpartyTrait", ("bankId", bankId), ("accountId", accountId), ("couterpartyId", couterpartyId))
         sendGetRequest[InBoundGetCounterpartyTrait](url, callContext)
           .map { boxedResult =>
             boxedResult match {
@@ -1545,7 +1759,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getCounterpartyTraitB")
+  }("getCounterpartyTrait")
 
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyTrait",
@@ -1629,7 +1843,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getCounterpartyByCounterpartyId/counterpartyId/{counterpartyId}
+  // url example: /getCounterpartyByCounterpartyIdFuture/counterpartyId/{counterpartyId}
   override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -1640,7 +1854,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCounterpartyByCounterpartyId", ("counterpartyId", counterpartyId))
+        val url = getUrl("getCounterpartyByCounterpartyIdFuture", ("counterpartyId", counterpartyId))
         sendGetRequest[InBoundGetCounterpartyByCounterpartyIdFuture](url, callContext)
           .map { boxedResult =>
             boxedResult match {
@@ -1651,7 +1865,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getCounterpartyByCounterpartyId")
+  }("getCounterpartyByCounterpartyIdFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.CounterpartyTraitCommons",
@@ -1660,7 +1874,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetCounterpartiesFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetCounterparties(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1690,114 +1904,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         viewId = ViewId(value = "string"))
       ),
     exampleInboundMessage = (
-      InBoundGetCounterpartiesFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = List(CounterpartyTraitCommons(createdByUserId = "string",
-          name = "string",
-          description = "string",
-          thisBankId = "string",
-          thisAccountId = "string",
-          thisViewId = "string",
-          counterpartyId = "string",
-          otherAccountRoutingScheme = "string",
-          otherAccountRoutingAddress = "string",
-          otherAccountSecondaryRoutingScheme = "string",
-          otherAccountSecondaryRoutingAddress = "string",
-          otherBankRoutingScheme = "string",
-          otherBankRoutingAddress = "string",
-          otherBranchRoutingScheme = "string",
-          otherBranchRoutingAddress = "string",
-          isBeneficiary = true,
-          bespoke = List(CounterpartyBespoke(key = "string",
-            value = "string")))))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getCounterpartiesB/thisBankId/{thisBankId}/thisAccountId/{thisAccountId}/viewId/{viewId}
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): Box[(List[CounterpartyTrait], Option[CallContext])] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCounterpartiesB", ("thisBankId", thisBankId), ("thisAccountId", thisAccountId), ("viewId", viewId))
-        sendGetRequest[InBoundGetCounterpartiesFuture](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getCounterpartiesB")
-
-  messageDocs += MessageDoc(
-    process = "obp.get.CounterpartyTraitCommons",
-    messageFormat = messageFormat,
-    description = "Get Counterparties",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetCounterpartiesFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        thisBankId = BankId(value = "string"),
-        thisAccountId = AccountId(value = "string"),
-        viewId = ViewId(value = "string"))
-      ),
-    exampleInboundMessage = (
-      InBoundGetCounterpartiesFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetCounterparties(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1845,6 +1952,113 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getCounterparties/thisBankId/{thisBankId}/thisAccountId/{thisAccountId}/viewId/{viewId}
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): Box[(List[CounterpartyTrait], Option[CallContext])] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getCounterparties", ("thisBankId", thisBankId), ("thisAccountId", thisAccountId), ("viewId", viewId))
+        sendGetRequest[InBoundGetCounterparties](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.adapterCallContext, callContext))
+            }
+
+          }
+      }
+    }
+  }("getCounterparties")
+
+  messageDocs += MessageDoc(
+    process = "obp.get.CounterpartyTraitCommons",
+    messageFormat = messageFormat,
+    description = "Get Counterparties",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetCounterpartiesFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        thisBankId = BankId(value = "string"),
+        thisAccountId = AccountId(value = "string"),
+        viewId = ViewId(value = "string"))
+      ),
+    exampleInboundMessage = (
+      InBoundGetCounterpartiesFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
+          username = "string",
+          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        data = List(CounterpartyTraitCommons(createdByUserId = "string",
+          name = "string",
+          description = "string",
+          thisBankId = "string",
+          thisAccountId = "string",
+          thisViewId = "string",
+          counterpartyId = "string",
+          otherAccountRoutingScheme = "string",
+          otherAccountRoutingAddress = "string",
+          otherAccountSecondaryRoutingScheme = "string",
+          otherAccountSecondaryRoutingAddress = "string",
+          otherBankRoutingScheme = "string",
+          otherBankRoutingAddress = "string",
+          otherBranchRoutingScheme = "string",
+          otherBranchRoutingAddress = "string",
+          isBeneficiary = true,
+          bespoke = List(CounterpartyBespoke(key = "string",
+            value = "string")))))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getCounterpartiesFuture/thisBankId/{thisBankId}/thisAccountId/{thisAccountId}/viewId/{viewId}
   override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): OBPReturnType[Box[List[CounterpartyTrait]]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -1855,7 +2069,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCounterparties", ("thisBankId", thisBankId), ("thisAccountId", thisAccountId), ("viewId", viewId))
+        val url = getUrl("getCounterpartiesFuture", ("thisBankId", thisBankId), ("thisAccountId", thisAccountId), ("viewId", viewId))
         sendGetRequest[InBoundGetCounterpartiesFuture](url, callContext)
           .map { boxedResult =>
             boxedResult match {
@@ -1866,7 +2080,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getCounterparties")
+  }("getCounterpartiesFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.Transaction",
@@ -1875,7 +2089,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetTransactionFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      OutBoundGetTransaction(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1905,7 +2119,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         transactionId = TransactionId(value = "string"))
       ),
     exampleInboundMessage = (
-      InBoundGetTransactionFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
+      InBoundGetTransaction(adapterCallContext = AdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
           username = "string",
@@ -1974,7 +2188,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getTransactionB/bankId/{bankId}/accountID/{accountID}/transactionId/{transactionId}
+  // url example: /getTransaction/bankId/{bankId}/accountID/{accountID}/transactionId/{transactionId}
   override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): Box[(Transaction, Option[CallContext])] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -1985,8 +2199,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getTransactionB", ("bankId", bankId), ("accountID", accountID), ("transactionId", transactionId))
-        sendGetRequest[InBoundGetTransactionFuture](url, callContext)
+        val url = getUrl("getTransaction", ("bankId", bankId), ("accountID", accountID), ("transactionId", transactionId))
+        sendGetRequest[InBoundGetTransaction](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.adapterCallContext, callContext))
@@ -1995,7 +2209,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getTransactionB")
+  }("getTransaction")
 
   messageDocs += MessageDoc(
     process = "obp.post.Paymentv210",
@@ -2269,7 +2483,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getTransactionRequests210B/initiator/{initiator}/fromAccount/{fromAccount}
+  // url example: /getTransactionRequests210/initiator/{initiator}/fromAccount/{fromAccount}
   override def getTransactionRequests210(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]): Box[(List[TransactionRequest], Option[CallContext])] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2280,7 +2494,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getTransactionRequests210B", ("initiator", initiator), ("fromAccount", fromAccount))
+        val url = getUrl("getTransactionRequests210", ("initiator", initiator), ("fromAccount", fromAccount))
         sendGetRequest[InBoundGetTransactionRequests210](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -2290,7 +2504,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getTransactionRequests210B")
+  }("getTransactionRequests210")
 
   messageDocs += MessageDoc(
     process = "obp.get.BranchT",
@@ -2414,7 +2628,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getBranch/bankId/{bankId}/branchId/{branchId}
+  // url example: /getBranchFuture/bankId/{bankId}/branchId/{branchId}
   override def getBranchFuture(bankId: BankId, branchId: BranchId, callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2425,7 +2639,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBranch", ("bankId", bankId), ("branchId", branchId))
+        val url = getUrl("getBranchFuture", ("bankId", bankId), ("branchId", branchId))
         sendGetRequest[InBoundGetBranchFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -2435,7 +2649,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getBranch")
+  }("getBranchFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.BranchTCommons",
@@ -2558,7 +2772,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getBranches/bankId/{bankId}/queryParams/{queryParams}
+  // url example: /getBranchesFuture/bankId/{bankId}/queryParams/{queryParams}
   override def getBranchesFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Future[Box[(List[BranchT], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2569,7 +2783,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBranches", ("bankId", bankId), ("queryParams", queryParams))
+        val url = getUrl("getBranchesFuture", ("bankId", bankId), ("queryParams", queryParams))
         sendGetRequest[InBoundGetBranchesFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -2579,7 +2793,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getBranches")
+  }("getBranchesFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.AtmT",
@@ -2683,7 +2897,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getAtm/bankId/{bankId}/atmId/{atmId}
+  // url example: /getAtmFuture/bankId/{bankId}/atmId/{atmId}
   override def getAtmFuture(bankId: BankId, atmId: AtmId, callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2694,7 +2908,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAtm", ("bankId", bankId), ("atmId", atmId))
+        val url = getUrl("getAtmFuture", ("bankId", bankId), ("atmId", atmId))
         sendGetRequest[InBoundGetAtmFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -2704,7 +2918,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getAtm")
+  }("getAtmFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.AtmTCommons",
@@ -2807,7 +3021,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getAtms/bankId/{bankId}/queryParams/{queryParams}
+  // url example: /getAtmsFuture/bankId/{bankId}/queryParams/{queryParams}
   override def getAtmsFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Future[Box[(List[AtmT], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -2818,7 +3032,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAtms", ("bankId", bankId), ("queryParams", queryParams))
+        val url = getUrl("getAtmsFuture", ("bankId", bankId), ("queryParams", queryParams))
         sendGetRequest[InBoundGetAtmsFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -2828,7 +3042,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getAtms")
+  }("getAtmsFuture")
 
   messageDocs += MessageDoc(
     process = "obp.post.Counterparty",
@@ -3028,7 +3242,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getCustomersByUserId/userId/{userId}
+  // url example: /getCustomersByUserIdFuture/userId/{userId}
   override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -3039,7 +3253,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCustomersByUserId", ("userId", userId))
+        val url = getUrl("getCustomersByUserIdFuture", ("userId", userId))
         sendGetRequest[InBoundGetCustomersByUserIdFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -3049,7 +3263,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getCustomersByUserId")
+  }("getCustomersByUserIdFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.CheckbookOrdersJson",
@@ -3130,7 +3344,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getCheckbookOrders/bankId/{bankId}/accountId/{accountId}
+  // url example: /getCheckbookOrdersFuture/bankId/{bankId}/accountId/{accountId}
   override def getCheckbookOrdersFuture(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(CheckbookOrdersJson, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -3141,7 +3355,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCheckbookOrders", ("bankId", bankId), ("accountId", accountId))
+        val url = getUrl("getCheckbookOrdersFuture", ("bankId", bankId), ("accountId", accountId))
         sendGetRequest[InBoundGetCheckbookOrdersFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -3151,7 +3365,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getCheckbookOrders")
+  }("getCheckbookOrdersFuture")
 
   messageDocs += MessageDoc(
     process = "obp.get.CardObjectJsonCommons",
@@ -3221,7 +3435,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getStatusOfCreditCardOrder/bankId/{bankId}/accountId/{accountId}
+  // url example: /getStatusOfCreditCardOrderFuture/bankId/{bankId}/accountId/{accountId}
   override def getStatusOfCreditCardOrderFuture(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(List[CardObjectJson], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -3232,7 +3446,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getStatusOfCreditCardOrder", ("bankId", bankId), ("accountId", accountId))
+        val url = getUrl("getStatusOfCreditCardOrderFuture", ("bankId", bankId), ("accountId", accountId))
         sendGetRequest[InBoundGetStatusOfCreditCardOrderFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
@@ -3242,14 +3456,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getStatusOfCreditCardOrder")
+  }("getStatusOfCreditCardOrderFuture")
     
 //---------------- dynamic end ---------------------please don't modify this line
-    
-    
-    
-    
-    
     
     
     

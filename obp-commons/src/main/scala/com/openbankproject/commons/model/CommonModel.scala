@@ -285,6 +285,11 @@ case class TransactionRequestCommonBodyJSONCommons(
                         value : AmountOfMoneyJsonV121,
                         description: String) extends TransactionRequestCommonBodyJSON
 
+case class TransactionRequestStatusCommons(
+                                            transactionRequestId: String,
+                                            bulkTransactionsStatus: List[TransactionStatus]
+                                          ) extends TransactionRequestStatus
+
 //----------------obp-api moved to here case classes
 
 case class BranchRoutingJsonV141(
@@ -451,8 +456,12 @@ case class TransactionRequest (
                                 val other_bank_routing_address : String,
                                 val is_beneficiary :Boolean,
                                 val future_date :Option[String] = None
-
                               )
+case class TransactionRequestBody (
+                                    val to: TransactionRequestAccount,
+                                    val value : AmountOfMoney,
+                                    val description : String
+                                  )
 
 class Transaction(
                    //A universally unique id

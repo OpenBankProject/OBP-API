@@ -28,14 +28,13 @@ object RestConnectorBuilder extends App {
     "getBankFuture",
     "getBankAccountsByUsername",
     "getBankAccountsByUsernameFuture",
-    //    "getBankAccount", //have problem, return type not common
+    "getBankAccount",
     "checkBankAccountExists",
     "checkBankAccountExistsFuture",
     "getCoreBankAccounts", // have problem, param not simple object
     "getCoreBankAccountsFuture", // have problem, param not simple object
-    //    "exampleInternalTransactionSept2018", // not exists in connector
-    //    "getTransactions", // have not callContext param
-    // "getTransactionsCore", //have problem, OBPQueryParam can pass to remote? ...no OutBoundGetTransactionsCoreFuture
+    //    "getTransactions", // reload methods, one have not callContext param, both have OBPQueryParam
+    // "getTransactionsCore", //have problem, OBPQueryParam can pass to remote?
     "getTransaction",
     "createChallenge",
     "createCounterparty",
@@ -107,12 +106,6 @@ case class GetGenerator(methodName: String, tp: Type) {
 
   private[this] val isReturnBox = resultType.startsWith("Box[")
 
-  private[this] val name = if(methodName.endsWith("Future")) {
-    methodName.replaceFirst("Future$", "")
-  } else {
-    methodName + "B" // if method return type is Box, make different with Future type, add a "B" at method name last.
-  }
-
   private[this] val cachMethodName = if(isReturnBox) "memoizeSyncWithProvider" else "memoizeWithProvider"
 
   private[this] val outBoundExample = {
@@ -130,7 +123,7 @@ case class GetGenerator(methodName: String, tp: Type) {
 
   val signature = s"$methodName$paramAnResult"
   val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
-  val urlDemo = s"/$name" + params.map(it => s"/$it/{$it}").mkString
+  val urlDemo = s"/$methodName" + params.map(it => s"/$it/{$it}").mkString
   val jsonType = {
       val typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
       if(reflectionUtils.isTypeExists(typeName)) {
@@ -194,14 +187,14 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
        |    CacheKeyFromArguments.buildCacheKey {
        |      Caching.${cachMethodName}(Some(cacheKey.toString()))(banksTTL second){
-       |        val url = getUrl("$name" $pathVariables)
+       |        val url = getUrl("$methodName" $pathVariables)
        |        sendGetRequest[$jsonType](url, callContext)
        |          .map { boxedResult =>
        |             $lastMapStatement
        |          }
        |      }
        |    }
-       |  }("$name")
+       |  }("$methodName")
     """.stripMargin
 }
 

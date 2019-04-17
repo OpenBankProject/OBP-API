@@ -467,3 +467,327 @@ case class InBoundGetTransactionRequests210(adapterCallContext: AdapterCallConte
 
 case class OutBoundGetTransactionsCore(bankId: BankId, accountID: AccountId) //, queryParams: OBPQueryParam*
 case class InBoundGetTransactionsCore(adapterCallContext: AdapterCallContext, data: List[TransactionCore])
+
+
+//-------- return type are not Future
+
+case class OutBoundGetAdapterInfo (adapterCallContext: AdapterCallContext)
+case class InBoundGetAdapterInfo (adapterCallContext: AdapterCallContext, data: InboundAdapterInfoInternal)
+
+
+case class OutBoundGetBank (adapterCallContext: AdapterCallContext,
+                            bankId: BankId)
+case class InBoundGetBank (adapterCallContext: AdapterCallContext, data: BankCommons)
+
+
+case class OutBoundGetBanks (adapterCallContext: AdapterCallContext)
+case class InBoundGetBanks (adapterCallContext: AdapterCallContext, data: List[BankCommons])
+
+
+case class OutBoundGetBankAccounts (adapterCallContext: AdapterCallContext,
+                                    accounts: List[(BankId, AccountId)])
+case class InBoundGetBankAccounts (adapterCallContext: AdapterCallContext, data: List[BankAccountCommons])
+
+
+case class OutBoundGetBankAccountsByUsername (adapterCallContext: AdapterCallContext,
+                                              username: String)
+case class InBoundGetBankAccountsByUsername (adapterCallContext: AdapterCallContext, data: List[InboundAccountCommonCommons])
+
+
+case class OutBoundGetCoreBankAccounts (adapterCallContext: AdapterCallContext,
+                                        bankIdAccountIds: List[BankIdAccountId])
+case class InBoundGetCoreBankAccounts (adapterCallContext: AdapterCallContext, data: List[CoreAccount])
+
+
+case class OutBoundGetBankAccountsHeld (adapterCallContext: AdapterCallContext,
+                                        bankIdAccountIds: List[BankIdAccountId])
+case class InBoundGetBankAccountsHeld (adapterCallContext: AdapterCallContext, data: List[AccountHeld])
+
+
+case class OutBoundCheckBankAccountExists (adapterCallContext: AdapterCallContext,
+                                           bankId: BankId,
+                                           accountId: AccountId)
+case class InBoundCheckBankAccountExists (adapterCallContext: AdapterCallContext, data: BankAccountCommons)
+
+
+case class OutBoundGetEmptyBankAccount (adapterCallContext: AdapterCallContext)
+case class InBoundGetEmptyBankAccount (adapterCallContext: AdapterCallContext, data: BankAccountCommons)
+
+
+case class OutBoundGetCounterpartyFromTransaction (adapterCallContext: AdapterCallContext,
+                                                   bankId: BankId,
+                                                   accountId: AccountId,
+                                                   counterpartyId: String)
+case class InBoundGetCounterpartyFromTransaction (adapterCallContext: AdapterCallContext, data: Counterparty)
+
+
+case class OutBoundGetCounterpartiesFromTransaction (adapterCallContext: AdapterCallContext,
+                                                     bankId: BankId,
+                                                     accountId: AccountId)
+case class InBoundGetCounterpartiesFromTransaction (adapterCallContext: AdapterCallContext, data: List[Counterparty])
+
+
+case class OutBoundGetCounterparty (adapterCallContext: AdapterCallContext,
+                                    thisBankId: BankId,
+                                    thisAccountId: AccountId,
+                                    couterpartyId: String)
+case class InBoundGetCounterparty (adapterCallContext: AdapterCallContext, data: Counterparty)
+
+
+case class OutBoundGetCounterpartyByCounterpartyId (adapterCallContext: AdapterCallContext,
+                                                    counterpartyId: CounterpartyId)
+case class InBoundGetCounterpartyByCounterpartyId (adapterCallContext: AdapterCallContext, data: CounterpartyTraitCommons)
+
+
+case class OutBoundGetCounterparties (adapterCallContext: AdapterCallContext,
+                                      thisBankId: BankId,
+                                      thisAccountId: AccountId,
+                                      viewId: ViewId)
+case class InBoundGetCounterparties (adapterCallContext: AdapterCallContext, data: List[CounterpartyTraitCommons])
+
+
+case class OutBoundGetTransaction (adapterCallContext: AdapterCallContext,
+                                   bankId: BankId,
+                                   accountID: AccountId,
+                                   transactionId: TransactionId)
+case class InBoundGetTransaction (adapterCallContext: AdapterCallContext, data: TransactionCommons)
+
+
+case class OutBoundGetPhysicalCards (adapterCallContext: AdapterCallContext,
+                                     user: User)
+case class InBoundGetPhysicalCards (adapterCallContext: AdapterCallContext, data: List[PhysicalCard])
+
+
+case class OutBoundGetPhysicalCardsForBank (adapterCallContext: AdapterCallContext,
+                                            bank: Bank,
+                                            user: User)
+case class InBoundGetPhysicalCardsForBank (adapterCallContext: AdapterCallContext, data: List[PhysicalCard])
+
+
+case class OutBoundCreateOrUpdatePhysicalCard (adapterCallContext: AdapterCallContext,
+                                               bankCardNumber: String,
+                                               nameOnCard: String,
+                                               issueNumber: String,
+                                               serialNumber: String,
+                                               validFrom: Date,
+                                               expires: Date,
+                                               enabled: Boolean,
+                                               cancelled: Boolean,
+                                               onHotList: Boolean,
+                                               technology: String,
+                                               networks: List[String],
+                                               allows: List[String],
+                                               accountId: String,
+                                               bankId: String,
+                                               replacement: Option[CardReplacementInfo],
+                                               pinResets: List[PinResetInfo],
+                                               collected: Option[CardCollectionInfo],
+                                               posted: Option[CardPostedInfo])
+case class InBoundCreateOrUpdatePhysicalCard (adapterCallContext: AdapterCallContext, data: PhysicalCard)
+
+
+case class OutBoundMakePayment (adapterCallContext: AdapterCallContext,
+                                initiator: User,
+                                fromAccountUID: BankIdAccountId,
+                                toAccountUID: BankIdAccountId,
+                                amt: BigDecimal,
+                                description: String,
+                                transactionRequestType: TransactionRequestType)
+case class InBoundMakePayment (adapterCallContext: AdapterCallContext, data: TransactionId)
+
+
+case class OutBoundMakePaymentv200 (adapterCallContext: AdapterCallContext,
+                                    fromAccount: BankAccount,
+                                    toAccount: BankAccount,
+                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                    amount: BigDecimal,
+                                    description: String,
+                                    transactionRequestType: TransactionRequestType,
+                                    chargePolicy: String)
+case class InBoundMakePaymentv200 (adapterCallContext: AdapterCallContext, data: TransactionId)
+
+
+case class OutBoundMakePaymentImpl (adapterCallContext: AdapterCallContext,
+                                    fromAccount: BankAccount,
+                                    toAccount: BankAccount,
+                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                    amt: BigDecimal,
+                                    description: String,
+                                    transactionRequestType: TransactionRequestType,
+                                    chargePolicy: String)
+case class InBoundMakePaymentImpl (adapterCallContext: AdapterCallContext, data: TransactionId)
+
+
+case class OutBoundCreateTransactionRequest (adapterCallContext: AdapterCallContext,
+                                             initiator: User,
+                                             fromAccount: BankAccount,
+                                             toAccount: BankAccount,
+                                             transactionRequestType: TransactionRequestType,
+                                             body: TransactionRequestBody)
+case class InBoundCreateTransactionRequest (adapterCallContext: AdapterCallContext, data: TransactionRequest)
+
+
+case class OutBoundCreateTransactionRequestv200 (adapterCallContext: AdapterCallContext,
+                                                 initiator: User,
+                                                 fromAccount: BankAccount,
+                                                 toAccount: BankAccount,
+                                                 transactionRequestType: TransactionRequestType,
+                                                 body: TransactionRequestBody)
+case class InBoundCreateTransactionRequestv200 (adapterCallContext: AdapterCallContext, data: TransactionRequest)
+
+
+case class OutBoundCreateTransactionRequestImpl (adapterCallContext: AdapterCallContext,
+                                                 transactionRequestId: TransactionRequestId,
+                                                 transactionRequestType: TransactionRequestType,
+                                                 fromAccount: BankAccount,
+                                                 counterparty: BankAccount,
+                                                 body: TransactionRequestBody,
+                                                 status: String,
+                                                 charge: TransactionRequestCharge)
+case class InBoundCreateTransactionRequestImpl (adapterCallContext: AdapterCallContext, data: TransactionRequest)
+
+
+case class OutBoundCreateTransactionRequestImpl210 (adapterCallContext: AdapterCallContext,
+                                                    transactionRequestId: TransactionRequestId,
+                                                    transactionRequestType: TransactionRequestType,
+                                                    fromAccount: BankAccount,
+                                                    toAccount: BankAccount,
+                                                    transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                    details: String,
+                                                    status: String,
+                                                    charge: TransactionRequestCharge,
+                                                    chargePolicy: String)
+case class InBoundCreateTransactionRequestImpl210 (adapterCallContext: AdapterCallContext, data: TransactionRequest)
+
+
+case class OutBoundGetTransactionRequests (adapterCallContext: AdapterCallContext,
+                                           initiator: User,
+                                           fromAccount: BankAccount)
+case class InBoundGetTransactionRequests (adapterCallContext: AdapterCallContext, data: List[TransactionRequest])
+
+
+case class OutBoundGetTransactionRequestStatuses (adapterCallContext: AdapterCallContext,
+                                                 )
+case class InBoundGetTransactionRequestStatuses (adapterCallContext: AdapterCallContext, data: TransactionRequestStatusCommons)
+
+
+case class OutBoundGetTransactionRequestStatusesImpl (adapterCallContext: AdapterCallContext,
+                                                     )
+case class InBoundGetTransactionRequestStatusesImpl (adapterCallContext: AdapterCallContext, data: TransactionRequestStatusCommons)
+
+
+case class OutBoundGetTransactionRequestsImpl (adapterCallContext: AdapterCallContext,
+                                               fromAccount: BankAccount)
+case class InBoundGetTransactionRequestsImpl (adapterCallContext: AdapterCallContext, data: List[TransactionRequest])
+
+
+case class OutBoundGetTransactionRequestsImpl210 (adapterCallContext: AdapterCallContext,
+                                                  fromAccount: BankAccount)
+case class InBoundGetTransactionRequestsImpl210 (adapterCallContext: AdapterCallContext, data: List[TransactionRequest])
+
+
+case class OutBoundGetTransactionRequestImpl (adapterCallContext: AdapterCallContext,
+                                              transactionRequestId: TransactionRequestId)
+case class InBoundGetTransactionRequestImpl (adapterCallContext: AdapterCallContext, data: TransactionRequest)
+
+
+case class OutBoundGetTransactionRequestTypes (adapterCallContext: AdapterCallContext,
+                                               initiator: User,
+                                               fromAccount: BankAccount)
+case class InBoundGetTransactionRequestTypes (adapterCallContext: AdapterCallContext, data: List[TransactionRequestType])
+
+
+case class OutBoundGetTransactionRequestTypesImpl (adapterCallContext: AdapterCallContext,
+                                                   fromAccount: BankAccount)
+case class InBoundGetTransactionRequestTypesImpl (adapterCallContext: AdapterCallContext, data: List[TransactionRequestType])
+
+
+case class OutBoundCreateTransactionAfterChallenge (adapterCallContext: AdapterCallContext,
+                                                    initiator: User,
+                                                    transReqId: TransactionRequestId)
+case class InBoundCreateTransactionAfterChallenge (adapterCallContext: AdapterCallContext, data: TransactionRequest)
+
+
+case class OutBoundCreateTransactionAfterChallengev200 (adapterCallContext: AdapterCallContext,
+                                                        fromAccount: BankAccount,
+                                                        toAccount: BankAccount,
+                                                        transactionRequest: TransactionRequest)
+case class InBoundCreateTransactionAfterChallengev200 (adapterCallContext: AdapterCallContext, data: TransactionRequest)
+
+
+case class OutBoundCreateBankAndAccount (adapterCallContext: AdapterCallContext,
+                                         bankName: String,
+                                         bankNationalIdentifier: String,
+                                         accountNumber: String,
+                                         accountType: String,
+                                         accountLabel: String,
+                                         currency: String,
+                                         accountHolderName: String,
+                                         branchId: String,
+                                         accountRoutingScheme: String,
+                                         accountRoutingAddress: String)
+case class InBoundCreateBankAndAccount (adapterCallContext: AdapterCallContext, data: (BankCommons, BankAccountCommons))
+
+
+case class OutBoundGetProducts (adapterCallContext: AdapterCallContext,
+                                bankId: BankId)
+case class InBoundGetProducts (adapterCallContext: AdapterCallContext, data: List[ProductCommons])
+
+
+case class OutBoundGetProduct (adapterCallContext: AdapterCallContext,
+                               bankId: BankId,
+                               productCode: ProductCode)
+case class InBoundGetProduct (adapterCallContext: AdapterCallContext, data: ProductCommons)
+
+
+case class OutBoundCreateOrUpdateBank (adapterCallContext: AdapterCallContext,
+                                       bankId: String,
+                                       fullBankName: String,
+                                       shortBankName: String,
+                                       logoURL: String,
+                                       websiteURL: String,
+                                       swiftBIC: String,
+                                       national_identifier: String,
+                                       bankRoutingScheme: String,
+                                       bankRoutingAddress: String)
+case class InBoundCreateOrUpdateBank (adapterCallContext: AdapterCallContext, data: BankCommons)
+
+
+case class OutBoundCreateOrUpdateProduct (adapterCallContext: AdapterCallContext,
+                                          bankId: String,
+                                          code: String,
+                                          parentProductCode: Option[String],
+                                          name: String,
+                                          category: String,
+                                          family: String,
+                                          superFamily: String,
+                                          moreInfoUrl: String,
+                                          details: String,
+                                          description: String,
+                                          metaLicenceId: String,
+                                          metaLicenceName: String)
+case class InBoundCreateOrUpdateProduct (adapterCallContext: AdapterCallContext, data: ProductCommons)
+
+
+case class OutBoundGetBranch (adapterCallContext: AdapterCallContext,
+                              bankId: BankId,
+                              branchId: BranchId)
+case class InBoundGetBranch (adapterCallContext: AdapterCallContext, data: BranchTCommons)
+
+
+case class OutBoundGetAtm (adapterCallContext: AdapterCallContext,
+                           bankId: BankId,
+                           atmId: AtmId)
+case class InBoundGetAtm (adapterCallContext: AdapterCallContext, data: AtmTCommons)
+
+
+case class OutBoundGetTransactionRequestTypeCharge (adapterCallContext: AdapterCallContext,
+                                                    bankId: BankId,
+                                                    accountId: AccountId,
+                                                    viewId: ViewId,
+                                                    transactionRequestType: TransactionRequestType)
+
+
+case class OutBoundGetCustomerByCustomerId (adapterCallContext: AdapterCallContext,
+                                            customerId: String)
+case class InBoundGetCustomerByCustomerId (adapterCallContext: AdapterCallContext, data: CustomerCommons)
