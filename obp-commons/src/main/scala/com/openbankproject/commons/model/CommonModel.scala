@@ -144,7 +144,7 @@ case class CustomerCommons(
                             highestEducationAttained :String,
                             employmentStatus :String,
                             creditRating :CreditRating,
-                            creditLimit :AmountOfMoney,
+                            creditLimit :CreditLimit,
                             kycStatus : java.lang.Boolean,
                             lastOkDate :Date,
                             title :String,

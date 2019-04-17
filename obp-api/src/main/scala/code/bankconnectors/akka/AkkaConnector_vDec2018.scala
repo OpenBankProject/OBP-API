@@ -5,14 +5,13 @@ import java.util.Date
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.{bankAccountCommons, bankCommons, transactionCommons, _}
-import code.api.util.APIUtil.{AdapterImplementation, DateWithDayExampleObject, MessageDoc, OBPReturnType}
+import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType}
 import code.api.util.ExampleValue._
 import code.api.util._
 import code.bankconnectors._
-import code.bankconnectors.akka.InboundTransformerDec2018._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
 import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model.{CounterpartyTrait, CreditLimit, _}
+import com.openbankproject.commons.model._
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.parse
@@ -226,7 +225,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.CustomersByUserId",
     messageFormat = messageFormat,
     description = "Get Customers represented by the User.",
-    outboundTopic = Some(OutboundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetCustomersByUserIdFuture.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InBoundGetCustomersByUserIdFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetCustomersByUserIdFuture(
@@ -306,19 +305,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
   override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
-    val req = OutboundGetTransaction(bankId.value, accountId.value, transactionId.value, callContext.map(_.toAdapterCallContext))
+    val req = OutBoundGetTransactionFuture(callContext.map(_.toAdapterCallContext).get, bankId, accountId, transactionId)
     val response= (southSideActor ? req).mapTo[InBoundGetTransactionFuture]
     response.map(a =>(Full(a.data), callContext))
   }
-
-
-
-  }
-
-object Examples {
-  
-    
-  
+ 
 }
-
-

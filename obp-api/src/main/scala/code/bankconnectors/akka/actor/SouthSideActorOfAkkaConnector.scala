@@ -8,10 +8,9 @@ import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util.{APIUtil, OBPFromDate, OBPLimit, OBPToDate}
 import code.bankconnectors.LocalMappedConnector._
 import code.model.dataAccess.MappedBank
-import code.model._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model.{CounterpartyTrait, CreditLimit, _}
+import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List
@@ -54,25 +53,19 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       val result: Box[List[CoreAccount]] = getCoreBankAccounts(bankIdAccountIds, None).map(r => r._1)
       sender ! InBoundGetCoreBankAccountsFuture(cc, result.map(l => l.map(Transformer.coreAccount(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
       
-      
-       
-//    case OutBoundGetCustomersByUserIdFuture(cc, userId) =>
-//      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
-//      sender ! InBoundGetCustomersByUserIdFuture(cc, result.getOrElse(Nil).map(Transformer.toInternalCustomer(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
-//       
-//    case OutboundGetCounterparties(thisBankId, thisAccountId, viewId, cc) =>
-//      val result: Box[List[CounterpartyTrait]] = getCounterparties(BankId(thisBankId), AccountId(thisAccountId), ViewId(viewId), None).map(r => r._1)
-//      sender ! InboundGetCounterparties(result.getOrElse(Nil).map(Transformer.toInternalCounterparty(_)), cc)
-//        
-//    case OutboundGetTransactions(bankId, accountId, limit, fromDate, toDate, cc) =>
-//      val from = APIUtil.DateWithMsFormat.parse(fromDate)
-//      val to = APIUtil.DateWithMsFormat.parse(toDate)
-//      val result = getTransactions(BankId(bankId), AccountId(accountId), None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
-//      sender ! InboundGetTransactions(result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)), cc)
-//        
-//    case OutboundGetTransaction(bankId, accountId, transactionId, cc) =>
-//      val result = getTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId),  None).map(r => r._1)
-//      sender ! InboundGetTransaction(result.map(Transformer.toInternalTransaction(_)), cc)
+    case OutBoundGetCustomersByUserIdFuture(cc, userId) =>
+      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
+      sender ! InBoundGetCustomersByUserIdFuture(cc, result.map(l => l.map(Transformer.toInternalCustomer(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
+
+    case OutBoundGetTransactionsFuture(cc, bankId, accountId, limit, fromDate, toDate) =>
+      val from = APIUtil.DateWithMsFormat.parse(fromDate)
+      val to = APIUtil.DateWithMsFormat.parse(toDate)
+      val result = getTransactions(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
+      sender ! InBoundGetTransactionsFuture(cc, result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
+
+    case OutBoundGetTransactionFuture(cc, bankId, accountId, transactionId) =>
+      val result = getTransaction(bankId, accountId, transactionId,  None).map(r => r._1)
+      sender ! InBoundGetTransactionFuture(cc, result.map(Transformer.toInternalTransaction(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
 
     case message => 
       logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
@@ -80,7 +73,6 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
   }
 
 }
-
 
 
 object Transformer {
@@ -129,8 +121,8 @@ object Transformer {
       accountRoutings = a.accountRoutings
     )
 
-  def toInternalCustomer(customer: Customer): InboundCustomer = {
-    InboundCustomer(
+  def toInternalCustomer(customer: Customer): CustomerCommons = {
+    CustomerCommons(
       customerId = customer.customerId,
       bankId = customer.bankId,
       number = customer.number,
@@ -148,36 +140,36 @@ object Transformer {
       creditLimit = CreditLimit(customer.creditLimit.amount,customer.creditLimit.currency),
       kycStatus = customer.kycStatus,
       lastOkDate = customer.lastOkDate,
+      title = customer.title,
+      branchId = customer.branchId,
+      nameSuffix = customer.nameSuffix
     )
   }
   
-  def toInternalCounterparty(c: CounterpartyTrait) = {
-    InboundCounterparty(
-      createdByUserId=c.createdByUserId,
-      name=c.name,
-      thisBankId=c.thisBankId,
-      thisAccountId=c.thisAccountId,
-      thisViewId=c.thisViewId,
-      counterpartyId=c.counterpartyId,
-      otherAccountRoutingScheme=c.otherAccountRoutingScheme,
-      otherAccountRoutingAddress=c.otherAccountRoutingAddress,
-      otherBankRoutingScheme=c.otherBankRoutingScheme,
-      otherBankRoutingAddress=c.otherBankRoutingAddress,
-      otherBranchRoutingScheme=c.otherBankRoutingScheme,
-      otherBranchRoutingAddress=c.otherBranchRoutingAddress,
-      isBeneficiary=c.isBeneficiary,
-      description=c.description,
-      otherAccountSecondaryRoutingScheme=c.otherAccountSecondaryRoutingScheme,
-      otherAccountSecondaryRoutingAddress=c.otherAccountSecondaryRoutingAddress,
-      bespoke=c.bespoke
-    )
-  }
 
-  def toInternalTransaction(t: Transaction): InboundTransaction = {
-    InboundTransaction(
+  def toInternalTransaction(t: Transaction): TransactionCommons = {
+    TransactionCommons(
       uuid = t.uuid ,
       id  = t.id ,
-      thisAccount = t.thisAccount ,
+      thisAccount = BankAccountCommons(
+        accountId = t.thisAccount.accountId,
+        accountType = t.thisAccount.accountType,
+        balance = t.thisAccount.balance,
+        currency = t.thisAccount.currency,
+        name = t.thisAccount.name,
+        label = t.thisAccount.label,
+        swift_bic = t.thisAccount.swift_bic,
+        iban = t.thisAccount.iban,
+        number = t.thisAccount.number,
+        bankId = t.thisAccount.bankId,
+        lastUpdate = t.thisAccount.lastUpdate,
+        branchId = t.thisAccount.branchId,
+        accountRoutingScheme = t.thisAccount.accountRoutingScheme,
+        accountRoutingAddress = t.thisAccount.accountRoutingAddress,
+        accountRoutings = t.thisAccount.accountRoutings,
+        accountRules = t.thisAccount.accountRules,
+        accountHolder = t.thisAccount.accountHolder
+      ) ,
       otherAccount = t.otherAccount ,
       transactionType = t.transactionType ,
       amount = t.amount ,

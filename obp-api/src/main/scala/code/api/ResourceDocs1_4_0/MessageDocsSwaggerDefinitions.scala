@@ -5,7 +5,6 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.api.util.ExampleValue._
-import com.openbankproject.commons.dto.InboundAccount
 import com.openbankproject.commons.model.{BankAccountCommons, CustomerCommons, InboundAdapterInfoInternal, InboundStatusMessage, _}
 
 import scala.collection.immutable.{List, Nil}
@@ -52,27 +51,6 @@ object MessageDocsSwaggerDefinitions
     accountRules = Nil,
     accountHolder = ""
   )
-  
-  val inboundAccountDec2018Example = 
-    InboundAccount(
-      bankId = bankIdExample.value,
-      branchId = branchIdExample.value,
-      accountId = accountIdExample.value,
-      accountNumber = accountNumberExample.value,
-      accountType = accountTypeExample.value,
-      balanceAmount = balanceAmountExample.value,
-      balanceCurrency = currencyExample.value,
-      owners = owner1Example.value :: owner1Example.value :: Nil,
-      viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-      bankRoutingScheme = bankRoutingSchemeExample.value,
-      bankRoutingAddress = bankRoutingAddressExample.value,
-      branchRoutingScheme = branchRoutingSchemeExample.value,
-      branchRoutingAddress = branchRoutingAddressExample.value,
-      accountRoutingScheme = accountRoutingSchemeExample.value,
-      accountRoutingAddress = accountRoutingAddressExample.value,
-      accountRouting = Nil,
-      accountRules = Nil
-    )
   
   val adapterAuthInfo = AdapterAuthInfo(
     userId = userIdExample.value, 
@@ -151,6 +129,11 @@ object MessageDocsSwaggerDefinitions
     source = sourceExample.value
   )
   
+  val creditLimit = CreditLimit(
+    currency = currencyExample.value,
+    amount = balanceAmountExample.value
+  )
+  
   val customerCommons = CustomerCommons(
     customerId = customerIdExample.value,
     bankId = bankIdExample.value,
@@ -166,7 +149,7 @@ object MessageDocsSwaggerDefinitions
     highestEducationAttained = highestEducationAttainedExample.value,
     employmentStatus =employmentStatusExample.value,
     creditRating = creditRating,
-    creditLimit = SwaggerDefinitionsJSON.amountOfMoney,
+    creditLimit = creditLimit,
     kycStatus = kycStatusExample.value.toBoolean,
     lastOkDate = DateWithDayExampleObject,
     title =titleExample.value,
@@ -205,25 +188,6 @@ object MessageDocsSwaggerDefinitions
   
   val accountRouting = AccountRouting("","")
   val accountRule = AccountRule("","")
-  val inboundAccount = InboundAccount(
-      bankId = "",
-      branchId = "",
-      accountId = "",
-      accountNumber = "",
-      accountType = "",
-      balanceAmount = "",
-      balanceCurrency = "",
-      owners = "" :: "" :: Nil,
-      viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-      bankRoutingScheme = "",
-      bankRoutingAddress = "",
-      branchRoutingScheme = "",
-      branchRoutingAddress = "",
-      accountRoutingScheme = "",
-      accountRoutingAddress = "",
-      accountRouting = List(accountRouting),
-      accountRules = List(accountRule)
-    )
   
   val adapterImplementation = AdapterImplementation("- Core", 2)
   
