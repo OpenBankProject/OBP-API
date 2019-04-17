@@ -43,7 +43,6 @@ import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.oauth1a.Arithmetics
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagMockedData}
-import code.api.util.CallContextFilter.registerFilters
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
@@ -2114,7 +2113,7 @@ Returns a string showed to the developer
     anonymousAccess(cc) map {
       x => (fullBoxOrException(
         x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
-        x._2.map(registerFilters.foldLeft(_)((ct, filter)=> filter(ct, null))) 
+        x._2
       )
     }
   }
@@ -2459,47 +2458,6 @@ Returns a string showed to the developer
     List(apiTagBank)
   )
   
-  def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfoBasic]=
-    for{
-      cc <- tryo {callContext.get} ?~! NoCallContext
-      user <- cc.user
-      username <- tryo(user.name)
-      currentResourceUserId <- Some(user.userId)
-      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload orElse (
-        Some(PayloadOfJwtJSON(login_user_name = "",
-                         is_first = false,
-                         app_id = "",
-                         app_name = "",
-                         time_stamp = "",
-                         cbs_token = Some(""),
-                         cbs_id = "",
-                         session_id = Some(""))))
-      cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
-      isFirst <- tryo(gatewayLoginPayLoad.is_first)
-      correlationId <- tryo(cc.correlationId)
-      sessionId <- tryo(cc.sessionId.getOrElse(""))
-      permission <- Views.views.vend.getPermissionForUser(user)
-      views <- tryo(permission.views)
-      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
-      basicUserAuthContexts = createBasicUserAuthContextJson(userAuthContexts)
-      authViews<- Full(
-        for{
-          view <- views   
-          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
-          internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
-          internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
-          viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
-          accountBasic =  AccountBasic(
-            account.accountId.value, 
-            account.accountRoutings, 
-            internalCustomers.customers,
-            internalUsers.users)
-        }yield 
-          AuthView(viewBasic, accountBasic)
-      )
-    } yield{
-      AuthInfoBasic(Some(username), Some(correlationId), Some(sessionId), Some(basicUserAuthContexts), Some(authViews))
-    }
   
   def createBasicUserAuthContext(userAuthContest : UserAuthContext) : BasicUserAuthContext = {
     BasicUserAuthContext(

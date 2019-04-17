@@ -121,7 +121,7 @@ case class CustomerCommons(
                             highestEducationAttained :String,
                             employmentStatus :String,
                             creditRating :CreditRating,
-                            creditLimit :AmountOfMoney,
+                            creditLimit :CreditLimit,
                             kycStatus : java.lang.Boolean,
                             lastOkDate :Date,
                             title :String,
@@ -553,15 +553,6 @@ case class AuthView(
   view: ViewBasic,
   account:AccountBasic,
 )
-
-case class AuthInfoBasic(
-  username: Option[String] = None,
-  correlationId: Option[String] = None,
-  sessionId: Option[String] = None,
-  userAuthContexts: Option[List[BasicUserAuthContext]]= None,
-  authViews: Option[List[AuthView]] = None
-)
-
 
 case class AdapterCallContext(
   correlationId: String = "",

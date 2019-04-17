@@ -3,10 +3,9 @@ package code.api.ResourceDocs1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.AdapterImplementation
+import code.api.util.APIUtil._
 import code.api.util.ExampleValue._
-import com.openbankproject.commons.dto.{InboundAccount, InboundBank}
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{BankAccountCommons, CustomerCommons, InboundAdapterInfoInternal, InboundStatusMessage, _}
 
 import scala.collection.immutable.{List, Nil}
 
@@ -53,27 +52,6 @@ object MessageDocsSwaggerDefinitions
     accountHolder = ""
   )
   
-  val inboundAccountDec2018Example = 
-    InboundAccount(
-      bankId = bankIdExample.value,
-      branchId = branchIdExample.value,
-      accountId = accountIdExample.value,
-      accountNumber = accountNumberExample.value,
-      accountType = accountTypeExample.value,
-      balanceAmount = balanceAmountExample.value,
-      balanceCurrency = currencyExample.value,
-      owners = owner1Example.value :: owner1Example.value :: Nil,
-      viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-      bankRoutingScheme = bankRoutingSchemeExample.value,
-      bankRoutingAddress = bankRoutingAddressExample.value,
-      branchRoutingScheme = branchRoutingSchemeExample.value,
-      branchRoutingAddress = branchRoutingAddressExample.value,
-      accountRoutingScheme = accountRoutingSchemeExample.value,
-      accountRoutingAddress = accountRoutingAddressExample.value,
-      accountRouting = Nil,
-      accountRules = Nil
-    )
-  
   val adapterAuthInfo = AdapterAuthInfo(
     userId = userIdExample.value, 
     username = usernameExample.value, 
@@ -105,56 +83,111 @@ object MessageDocsSwaggerDefinitions
           name = usernameExample.value
         )))))))
   
-  val adapterCallContext = Some(
+  val adapterCallContext = 
     AdapterCallContext(
       correlationIdExample.value,
       Some(sessionIdExample.value),
       Some(adapterAuthInfo)
     )
+  
+  
+  val inboundStatusMessage = InboundStatusMessage(
+    source ="String",
+    status ="String",
+    errorCode ="String",
+    text= "String"
   )
   
-  val bank = 
-    InboundBank(
-      bankId = bankIdExample.value,
+  val inboundAdapterInfoInternal = InboundAdapterInfoInternal(
+    errorCode ="",
+    backendMessages = List(inboundStatusMessage),
+    name = usernameExample.value,
+    version = "",
+    git_commit = "String",
+    date = DateWithMsExampleString
+  )
+  
+  val bankCommons = BankCommons(
+      bankId = BankId(bankIdExample.value),
       shortName = "The Royal Bank of Scotland",
       fullName = "The Royal Bank of Scotland",
       logoUrl = "http://www.red-bank-shoreditch.com/logo.gif",
       websiteUrl = "http://www.red-bank-shoreditch.com",
       bankRoutingScheme = "OBP",
-      bankRoutingAddress = "rbs"
+      bankRoutingAddress = "rbs",
+      swiftBic = "String",
+      nationalIdentifier = "String"
     )
+  
+  val customerFaceImage= CustomerFaceImage(
+    date = DateWithDayExampleObject,
+    url = urlExample.value
+  )
+  
+  val creditRating= CreditRating(
+    rating = ratingExample.value, 
+    source = sourceExample.value
+  )
+  
+  val creditLimit = CreditLimit(
+    currency = currencyExample.value,
+    amount = balanceAmountExample.value
+  )
+  
+  val customerCommons = CustomerCommons(
+    customerId = customerIdExample.value,
+    bankId = bankIdExample.value,
+    number = accountNumberExample.value,
+    legalName = legalNameExample.value,
+    mobileNumber = mobileNumberExample.value,
+    email = emailExample.value,
+    faceImage = customerFaceImage,
+    dateOfBirth = DateWithDayExampleObject,
+    relationshipStatus  =relationshipStatusExample.value,
+    dependents = dependentsExample.value.toInt,
+    dobOfDependents = List(DateWithDayExampleObject),
+    highestEducationAttained = highestEducationAttainedExample.value,
+    employmentStatus =employmentStatusExample.value,
+    creditRating = creditRating,
+    creditLimit = creditLimit,
+    kycStatus = kycStatusExample.value.toBoolean,
+    lastOkDate = DateWithDayExampleObject,
+    title =titleExample.value,
+    branchId = branchIdExample.value,
+    nameSuffix = nameSuffixExample.value
+  )
+  
+  val counterparty = Counterparty(
+    nationalIdentifier= "", // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+    kind ="", // Type of bank account.
+    counterpartyId = counterpartyIdExample.value,
+    counterpartyName = counterpartyNameExample.value,
+    thisBankId = BankId(bankIdExample.value), // i.e. the Account that sends/receives money to/from this Counterparty
+    thisAccountId = AccountId(accountIdExample.value), // These 2 fields specify the account that uses this Counterparty
+    otherBankRoutingScheme = bankRoutingSchemeExample.value, // This is the scheme a consumer would use to specify the bank e.g. BIC
+    otherBankRoutingAddress= Some(bankRoutingAddressExample.value), // The (BIC) value e.g. 67895
+    otherAccountRoutingScheme = accountRoutingSchemeExample.value, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+    otherAccountRoutingAddress = Some(accountRoutingAddressExample.value), // The (IBAN) value e.g. 2349870987820374
+    otherAccountProvider = otherAccountProviderExample.value , // hasBankId and hasAccountId would refer to an OBP account
+    isBeneficiary = isBeneficiaryExample.value.toBoolean // True if the originAccount can send money to the Counterparty
+  )
+  
+  val transactionCommons = TransactionCommons(
+    `uuid`= transactionIdExample.value,
+    id = TransactionId(transactionIdExample.value),
+    thisAccount = bankAccountCommons,
+    otherAccount = counterparty,
+    transactionType = transactionTypeExample.value,
+    amount = BigDecimal(balanceAmountExample.value),
+    currency = currencyExample.value,
+    description = Some(transactionDescriptionExample.value),
+    startDate = DateWithDayExampleObject,
+    finishDate = DateWithDayExampleObject,
+    balance  = BigDecimal(balanceAmountExample.value)
+  )
   
   val accountRouting = AccountRouting("","")
   val accountRule = AccountRule("","")
-  val inboundAccount = InboundAccount(
-      bankId = "",
-      branchId = "",
-      accountId = "",
-      accountNumber = "",
-      accountType = "",
-      balanceAmount = "",
-      balanceCurrency = "",
-      owners = "" :: "" :: Nil,
-      viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil,
-      bankRoutingScheme = "",
-      bankRoutingAddress = "",
-      branchRoutingScheme = "",
-      branchRoutingAddress = "",
-      accountRoutingScheme = "",
-      accountRoutingAddress = "",
-      accountRouting = List(accountRouting),
-      accountRules = List(accountRule)
-    )
-  
-  val inboundBank = InboundBank(
-      bankId = "",
-      shortName = "The Royal Bank of Scotland",
-      fullName = "The Royal Bank of Scotland",
-      logoUrl = "http://www.red-bank-shoreditch.com/logo.gif",
-      websiteUrl = "http://www.red-bank-shoreditch.com",
-      bankRoutingScheme = "OBP",
-      bankRoutingAddress = "rbs"
-    )
   
   val adapterImplementation = AdapterImplementation("- Core", 2)
   
