@@ -61,6 +61,9 @@ object RestConnectorBuilder extends App {
   private val nameSignature = ru.typeOf[Connector].decls
     .filter(_.isMethod)
     .filter(it => genMethodNames.contains(it.name.toString))
+    .filter(it => {
+      it.typeSignature.paramLists(0).find(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).isDefined
+    })
     .map(it => {
       val (methodName, typeSignature) = (it.name.toString, it.typeSignature)
       methodName match {
@@ -91,7 +94,7 @@ object RestConnectorBuilder extends App {
   FileUtils.writeStringToFile(path, newSource)
 
   // to check whether example is correct.
-  private val tp: ru.Type = reflectionUtils.getTypeByName("com.openbankproject.commons.dto.rest.InBoundGetProductCollectionItemsTree")
+  private val tp: ru.Type = reflectionUtils.getTypeByName("com.openbankproject.commons.dto.InBoundGetProductCollectionItemsTree")
 
   println(reflectionUtils.createDocExample(tp))
 }
@@ -109,13 +112,13 @@ case class GetGenerator(methodName: String, tp: Type) {
   private[this] val cachMethodName = if(isReturnBox) "memoizeSyncWithProvider" else "memoizeWithProvider"
 
   private[this] val outBoundExample = {
-    var typeName = s"com.openbankproject.commons.dto.rest.OutBound${methodName.capitalize}"
+    var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     if(!reflectionUtils.isTypeExists(typeName)) typeName += "Future"
     val outBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(outBoundType)
   }
   private[this] val inBoundExample = {
-    var typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
+    var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     if(!reflectionUtils.isTypeExists(typeName)) typeName += "Future"
     val inBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(inBoundType)
@@ -125,7 +128,7 @@ case class GetGenerator(methodName: String, tp: Type) {
   val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
   val urlDemo = s"/$methodName" + params.map(it => s"/$it/{$it}").mkString
   val jsonType = {
-      val typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
+      val typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
       if(reflectionUtils.isTypeExists(typeName)) {
         s"InBound${methodName.capitalize}"
       }
@@ -211,12 +214,12 @@ case class PostGenerator(methodName: String, tp: Type) {
   private[this] val isOBPReturnType = resultType.startsWith("OBPReturnType[")
 
   private[this] val outBoundExample = {
-    var typeName = s"com.openbankproject.commons.dto.rest.OutBound${methodName.capitalize}"
+    var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     val outBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(outBoundType)
   }
   private[this] val inBoundExample = {
-    var typeName = s"com.openbankproject.commons.dto.rest.InBound${methodName.capitalize}"
+    var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     val inBoundType = reflectionUtils.getTypeByName(typeName)
     reflectionUtils.createDocExample(inBoundType)
   }

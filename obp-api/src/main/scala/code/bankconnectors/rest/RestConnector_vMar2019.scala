@@ -77,7 +77,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 //---------------- dynamic start ---------------------
 
 
-// ---------- create on Wed Apr 17 18:35:54 CST 2019
+  // ---------- create on Wed Apr 17 19:01:17 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.get.InboundAdapterInfoInternal",
@@ -1035,113 +1035,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
     }
   }("getBankAccountsByUsernameFuture")
-
-  messageDocs += MessageDoc(
-    process = "obp.get.BankAccountCommons",
-    messageFormat = messageFormat,
-    description = "Get Bank Account",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetBankAccountFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankId = BankId(value = "string"),
-        accountId = AccountId(value = "string"))
-      ),
-    exampleInboundMessage = (
-      InBoundGetBankAccountFuture(adapterCallContext = AdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = BankAccountCommons(accountId = AccountId(value = "string"),
-          accountType = "string",
-          balance = 123.123,
-          currency = "string",
-          name = "string",
-          label = "string",
-          swift_bic = Option("string"),
-          iban = Option("string"),
-          number = "string",
-          bankId = BankId(value = "string"),
-          lastUpdate = new Date(),
-          branchId = "string",
-          accountRoutingScheme = "string",
-          accountRoutingAddress = "string",
-          accountRoutings = List(AccountRouting(scheme = "string",
-            address = "string")),
-          accountRules = List(AccountRule(scheme = "string",
-            value = "string")),
-          accountHolder = "string"))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getBankAccount/bankId/{bankId}/accountId/{accountId}
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBankAccount", ("bankId", bankId), ("accountId", accountId))
-        sendGetRequest[InBoundGetBankAccountFuture](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getBankAccount")
 
   messageDocs += MessageDoc(
     process = "obp.get.BankAccount",
@@ -3230,7 +3123,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           employmentStatus = "string",
           creditRating = CreditRating(rating = "string",
             source = "string"),
-          creditLimit = AmountOfMoney(currency = "string",
+          creditLimit = CreditLimit(currency = "string",
             amount = "string"),
           kycStatus = true,
           lastOkDate = new Date(),
@@ -3458,6 +3351,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getStatusOfCreditCardOrderFuture")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
     
     
     
