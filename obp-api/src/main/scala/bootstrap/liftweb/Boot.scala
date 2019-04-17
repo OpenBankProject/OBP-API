@@ -90,7 +90,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
-import code.views.system.AccountAccess
+import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
@@ -551,6 +551,7 @@ object ToSchemify {
     ViewImpl,
     ViewPrivileges,
     AccountAccess,
+    ViewDefinition,
     ResourceUser,
     MappedComment,
     MappedTag,
