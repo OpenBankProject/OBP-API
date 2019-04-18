@@ -89,4 +89,52 @@ object reflectionUtils {
     * @return
     */
   def isCaseClass(symbol: Symbol): Boolean = symbol.isType && symbol.asType.isClass && symbol.asType.asClass.isCaseClass
+
+
+  /**
+    * convert a object to it's sibling, please have a loot the example:
+    * trait Base {
+    *     def value: String
+    *     def size: Long
+    * }
+    * class SomeImp extends Base {
+    *     override def value: String = "some value"
+    *     override def size: Long = 123L
+    * }
+    * case class BaseCommons(value: String, size: Long) extends Base
+    *
+    * val base: Base = new SomeImp()
+    *
+    * val commons: BaseCommons = toOther[BaseCommons](base)
+    *
+    * So in this way, we can get the sibling object of SomeImp.
+    *
+    * @param t will do convert object
+    * @tparam T expected type, it should have no default constructor
+    * @return the expected value
+    */
+  def toOther[T: TypeTag](t: Any): T = {
+    val expectType: ru.Type = typeTag[T].tpe
+    if(expectType.typeSymbol.isAbstract) {
+      throw new IllegalArgumentException(s"expected type is abstract: $expectType")
+    }
+    val constructor: ru.MethodSymbol = expectType.decl(ru.termNames.CONSTRUCTOR).asMethod
+    val mirrorClass: ru.ClassMirror = mirror.reflectClass(expectType.typeSymbol.asClass)
+
+    val paramNames = constructor.paramLists(0).map(_.name.toString)
+    val mirrorObj = mirror.reflect(t)
+    val methodSymbols = paramNames.map(name => mirrorObj.symbol.info.decl(ru.TermName(name)).asMethod)
+    val methodMirrors: Seq[ru.MethodMirror] = methodSymbols.map(mirrorObj.reflectMethod(_))
+    val seq = methodMirrors.map(_())
+
+    mirrorClass.reflectConstructor(constructor).apply(seq :_*).asInstanceOf[T]
+  }
+
+  /**
+    * convert a group of object to it's siblings
+    * @param items will do convert
+    * @tparam T expected type
+    * @return expected values
+    */
+  def toOther[T: TypeTag](items: List[_]): List[T] = items.map(toOther[T](_))
 }
