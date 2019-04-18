@@ -2,15 +2,15 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.saveLog
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
-import code.views.system.AccountAccess
+import code.model.dataAccess.ViewPrivileges
+import code.views.system.{AccountAccess, ViewDefinition}
 import net.liftweb.mapper.{By, ByList}
 
 object TableAccountAccess {
   def populate(name: String): Boolean = {
     val startDate = System.currentTimeMillis()
     val commitId: String = APIUtil.gitCommit
-    val views = ViewImpl.findAll()
+    val views = ViewDefinition.findAll()
 
     // Delete all rows at the table
     AccountAccess.bulkDelete_!!()
@@ -21,13 +21,13 @@ object TableAccountAccess {
         view <- views
         permission <- ViewPrivileges.findAll(By(ViewPrivileges.view, view.id))
       } yield {
-        val viewId = ViewImpl.find(By(ViewImpl.id_, permission.view.get)).map(_.permalink_.get).getOrElse("")
         AccountAccess
           .create
-          .bank_id(view.bankPermalink.get)
-          .account_id(view.accountPermalink.get)
+          .bank_id(view.bank_id.get)
+          .account_id(view.account_id.get)
           .user_fk(permission.user.get)
-          .view_id(viewId)
+          .view_id(view.view_id.get)
+          .view_fk(view.id)
           .save()
       }
     val isSuccessful = insertedRows.forall(_ == true)
@@ -47,6 +47,7 @@ object TableAccountAccess {
          |View privileges size: $viewPrivilegesSize;
          |List of dead foreign keys at the field ViewPrivileges.view_c: ${deadForeignKeys.mkString(",")};
          |Duration: ${endDate - startDate} ms;
+         |Primary keys of the inserted rows: (${accountAccess.map(_.id).mkString(",")});
              """.stripMargin
     saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
     isSuccessful

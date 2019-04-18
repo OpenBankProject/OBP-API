@@ -1,6 +1,6 @@
 package code.views.system
 
-import code.util.UUIDString
+import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.mapper._
 
@@ -15,6 +15,12 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object id_ extends MappedLongIndex(this)
   object name_ extends MappedString(this, 125)
   object description_ extends MappedString(this, 255)
+  object bank_id extends UUIDString(this) {
+    override def defaultValue: Null = null
+  }
+  object account_id extends AccountIdString(this) {
+    override def defaultValue: Null = null
+  }
   object view_id extends UUIDString(this)
   object metadataView_ extends UUIDString(this)
   object isSystem_ extends MappedBoolean(this){
@@ -360,8 +366,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   //if metadataView_ = null or empty, we need use the current view's viewId.
   def metadataView = if (metadataView_.get ==null || metadataView_.get == "") view_id.get else metadataView_.get
   def users : List[User] = Nil
-  def bankId = BankId("")
-  def accountId = AccountId("")
+  def bankId = BankId(bank_id.get)
+  def accountId = AccountId(account_id.get)
   def name: String = name_.get
   def description : String = description_.get
   def isPublic : Boolean = isPublic_.get
@@ -465,5 +471,5 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 }
 
 object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {
-  override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(view_id) :: super.dbIndexes
+  override def dbIndexes: List[BaseIndex[ViewDefinition]] = super.dbIndexes
 }

@@ -4,7 +4,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.saveLog
 import code.model.dataAccess.ViewImpl
 import code.views.system.ViewDefinition
-import net.liftweb.mapper.Like
 
 object TableViewDefinition {
   def populate(name: String): Boolean = {
@@ -20,13 +19,14 @@ object TableViewDefinition {
       for {
         view: ViewImpl <- views
       } yield {
-        val count = ((ViewDefinition.findAll(Like(ViewDefinition.view_id, view.permalink_.get + "%"))).size)
         ViewDefinition
           .create
           .isSystem_(view.isSystem)
           .isFirehose_(view.isFirehose)
           .name_(view.name)
-          .view_id(view.permalink_.get + {if (count==0) "" else count.toString()})
+          .bank_id(view.bankId.value)
+          .account_id(view.accountId.value)
+          .view_id(view.viewId.value)
           .description_(view.description)
           .isPublic_(view.isPublic)
           .usePrivateAliasIfOneExists_(view.usePrivateAliasIfOneExists)
@@ -113,6 +113,7 @@ object TableViewDefinition {
       s"""View implementation size: ${views.size};
          |View definition size: $viewDefinitionSize;
          |Duration: ${endDate - startDate} ms;
+         |Primary keys of the inserted rows: (${viewDefinition.map(_.id).mkString(",")});
              """.stripMargin
     saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
     isSuccessful
