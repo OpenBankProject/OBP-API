@@ -1,7 +1,7 @@
-package code.api.util.migratin
+package code.api.util.migration
 
 import code.api.util.APIUtil
-import code.api.util.migratin.Migration.saveLog
+import code.api.util.migration.Migration.saveLog
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.views.system.AccountAccess
 import net.liftweb.mapper.{By, ByList}

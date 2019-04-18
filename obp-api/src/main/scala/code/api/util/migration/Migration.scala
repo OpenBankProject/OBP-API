@@ -1,4 +1,4 @@
-package code.api.util.migratin
+package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.getPropsAsBoolValue
