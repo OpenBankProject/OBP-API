@@ -55,6 +55,7 @@ trait Views {
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit]
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]]
   def updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
+  def updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON): Future[Box[View]]
   
   /**
     * This will return all the public views, no requirements for accountId or userId.
@@ -113,6 +114,7 @@ class RemotedataViewsCaseClasses {
   case class removeView(viewId: ViewId, bankAccountId: BankIdAccountId)
   case class removeSystemView(viewId: ViewId)
   case class updateView(bankAccountId: BankIdAccountId, viewId: ViewId, viewUpdateJson: UpdateViewJSON)
+  case class updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON)
   case class viewsForAccount(bankAccountId: BankIdAccountId)
   case class viewsUserCanAccess(user: User)
   case class privateViewsUserCanAccess(user: User)

@@ -2,6 +2,7 @@ package code.api.v3_1_0
 
 import java.util.UUID
 
+import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
@@ -30,6 +31,7 @@ import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
+import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreditLimit, _}
@@ -3621,6 +3623,52 @@ trait APIMethods310 {
             view <- NewStyle.function.deleteSystemView(ViewId(viewId), callContext)
           } yield {
             (Full(view),  HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      updateSystemView,
+      implementedInApiVersion,
+      nameOf(updateSystemView),
+      "PUT",
+      "/system-views/VIEW_ID",
+      "Update System View.",
+      s"""Update an existing view on a bank account
+         |
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         |
+        |The json sent is the same as during view creation (above), with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateViewJSON,
+      viewJsonV300,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canUpdateSystemView))
+    )
+
+    lazy val updateSystemView : OBPEndpoint = {
+      //updates a view on a bank account
+      case "system-views" :: viewId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <-  authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateSystemView, callContext)
+            updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
+              val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
+            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)
+          } yield {
+            (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
           }
       }
     }

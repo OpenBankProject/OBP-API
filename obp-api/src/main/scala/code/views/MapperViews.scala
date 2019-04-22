@@ -295,6 +295,15 @@ object MapperViews extends Views with MdcLoggable {
       view.saveMe
     }
   }
+  /* Update the specification of the system view (what data/actions are allowed) */
+  def updateSystemView(viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Future[Box[View]] = Future {
+    for {
+      view <- ViewDefinition.find(By(ViewDefinition.view_id, viewId.value))
+    } yield {
+      view.setFromViewData(viewUpdateJson)
+      view.saveMe
+    }
+  }
 
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] = {
 

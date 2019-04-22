@@ -156,6 +156,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteSystemView), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString)
   )
 
@@ -280,6 +281,11 @@ object NewStyle {
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.createSystemView(view) map {
         unboxFullOrFail(_, callContext, s"$CreateSystemViewError")
+      }
+    }
+    def updateSystemView(viewId: ViewId, view: UpdateViewJSON, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.updateSystemView(viewId, view) map {
+        unboxFullOrFail(_, callContext, s"$UpdateSystemViewError")
       }
     }
     def deleteSystemView(viewId : ViewId, callContext: Option[CallContext]) : Future[Boolean] = {
