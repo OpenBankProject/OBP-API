@@ -3,16 +3,16 @@ package code.views
 import bootstrap.liftweb.ToSchemify
 import code.accountholders.MapperAccountHolders
 import code.api.APIFailure
+import code.api.util.APIUtil
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ErrorMessages._
-import code.customer.MappedCustomer
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.util.Helper.MdcLoggable
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
-import net.liftweb.mapper.{By, ByList, NullRef, Schemifier}
+import net.liftweb.mapper.{By, NullRef, Schemifier}
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
@@ -206,10 +206,10 @@ object MapperViews extends Views with MdcLoggable {
   }
   def systemViewFuture(viewId : ViewId) : Future[Box[View]] = {
     Future {
-      ViewImpl.find(
-        NullRef(ViewImpl.bankPermalink),
-        NullRef(ViewImpl.accountPermalink),
-        By(ViewImpl.permalink_, viewId.value)
+      ViewDefinition.find(
+        NullRef(ViewDefinition.bank_id),
+        NullRef(ViewDefinition.account_id),
+        By(ViewDefinition.view_id, viewId.value)
       )
     }
   }
@@ -230,17 +230,17 @@ object MapperViews extends Views with MdcLoggable {
         case false =>
           //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
           val newViewPermalink = getNewViewPermalink(view.name)
-          val existing = ViewImpl.count(
-            By(ViewImpl.permalink_, newViewPermalink), 
-            NullRef(ViewImpl.bankPermalink),
-            NullRef(ViewImpl.accountPermalink)
+          val existing = ViewDefinition.count(
+            By(ViewDefinition.view_id, newViewPermalink), 
+            NullRef(ViewDefinition.bank_id),
+            NullRef(ViewDefinition.account_id)
           ) == 1
 
           existing match {
             case true =>
               Failure(s"There is already a view with permalink $newViewPermalink")
             case false =>
-              val createdView = ViewImpl.create.name_(view.name).permalink_(newViewPermalink)
+              val createdView = ViewDefinition.create.name_(view.name).view_id(newViewPermalink)
               createdView.setFromViewData(view)
               createdView.isSystem_(true)
               createdView.isPublic_(false)
@@ -313,10 +313,10 @@ object MapperViews extends Views with MdcLoggable {
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- ViewImpl.find(
-          By(ViewImpl.permalink_, viewId.value), 
-          NullRef(ViewImpl.bankPermalink),
-          NullRef(ViewImpl.accountPermalink)
+        view <- ViewDefinition.find(
+          By(ViewDefinition.view_id, viewId.value), 
+          NullRef(ViewDefinition.bank_id),
+          NullRef(ViewDefinition.account_id)
         )
       } yield {
         view.delete_!
