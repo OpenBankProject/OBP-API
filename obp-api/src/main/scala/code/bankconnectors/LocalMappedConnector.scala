@@ -16,7 +16,6 @@ import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
-import code.context.UserAuthContextProvider
 import code.context.{UserAuthContextProvider, UserAuthContextUpdate, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddress
@@ -38,7 +37,6 @@ import code.products.MappedProduct
 import com.openbankproject.commons.model.Product
 import code.taxresidence.TaxResidence
 import code.transaction.MappedTransaction
-import code.transactionrequests.TransactionRequests._
 import code.transactionrequests._
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
@@ -189,7 +187,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBank(bankId, callContext)
   }
   
-  //gets banks handled by this connector
+
   override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
      Full(MappedBank
         .findAll()
@@ -206,7 +204,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getBanksFuture(callContext: Option[CallContext]) = Future {
     getBanks(callContext)
   }
-
 
   override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])]= {
     val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
