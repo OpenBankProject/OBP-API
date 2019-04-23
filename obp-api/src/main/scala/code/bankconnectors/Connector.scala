@@ -15,6 +15,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.atms.Atms
 import code.bankconnectors.akka.AkkaConnector_vDec2018
+import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
@@ -81,6 +82,7 @@ object Connector extends SimpleInjector {
       case "kafka_vMar2017" => KafkaMappedConnector_vMar2017
       case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
+      case "rest_vMar2019" => RestConnector_vMar2019
       case _ => throw new RuntimeException(s"Do not Support this connector version: $connectorVersion")
     }
   }
