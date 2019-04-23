@@ -2,6 +2,7 @@ package code.views.system
 
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
+import net.liftweb.common.Box
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
@@ -472,4 +473,12 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 
 object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {
   override def dbIndexes: List[BaseIndex[ViewDefinition]] = super.dbIndexes
+  
+  def findByViewId(viewId: String): Box[ViewDefinition] = {
+    ViewDefinition.find(
+      NullRef(ViewDefinition.bank_id),
+      NullRef(ViewDefinition.account_id),
+      By(ViewDefinition.view_id, viewId)
+    )
+  }
 }

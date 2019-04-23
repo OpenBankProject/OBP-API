@@ -9,7 +9,7 @@ import code.api.util.ErrorMessages._
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.util.Helper.MdcLoggable
-import code.views.system.ViewDefinition
+import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, NullRef, Schemifier}
@@ -25,31 +25,20 @@ import scala.concurrent.Future
 object MapperViews extends Views with MdcLoggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
-
-  def permissions(account : BankIdAccountId) : List[Permission] = {
-
-    val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
-      ViewImpl.accountFilter(account.bankId, account.accountId): _*)
-    //all the user that have access to at least to a view
-    val users = views.map(_.users).flatten.distinct
-    val usersPerView = views.map(v  =>(v, v.users))
-    val permissions = users.map(u => {
-      new Permission(
-        u,
-        usersPerView.filter(_._2.contains(u)).map(_._1)
-      )
-    })
-
-    permissions
-  }
-
-  def permission(account: BankIdAccountId, user: User): Box[Permission] = {
-
-    //search ViewPrivileges to get all views for user and then filter the views
-    // by bankPermalink and accountPermalink
-    //TODO: do it in a single query with a join
-    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryKey.value))
-    val views = privileges.flatMap(_.view.obj).filter(v =>
+  
+  private def getViewsForUser(user: User): List[View] = {
+    val privileges = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
+    val bankIdAccountIds: List[(String, String)] = privileges.map(x => (x.bank_id.get, x.account_id.get)).distinct
+    val views = for {
+      (bankId, accountId) <- bankIdAccountIds
+    } yield {
+      getViewsForUserAndAccount(user, BankIdAccountId(BankId(bankId), AccountId(accountId)))
+    }
+    views.flatten
+  }  
+  private def getViewsForUserAndAccount(user: User, account : BankIdAccountId): List[View] = {
+    val privileges = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
+    val views: List[ViewDefinition] = privileges.flatMap(x => ViewDefinition.find(By(ViewDefinition.id_, x.view_fk.get))).filter(v =>
       if (ALLOW_PUBLIC_VIEWS) {
         v.accountId == account.accountId &&
           v.bankId == account.bankId
@@ -59,42 +48,67 @@ object MapperViews extends Views with MdcLoggable {
           v.isPrivate
       }
     )
-    Full(Permission(user, views))
+    views.map(
+      x => x.bank_id(account.bankId.value).account_id(account.accountId.value)
+    )
+  }
+
+  def permissions(account : BankIdAccountId) : List[Permission] = {
+    
+    val users = AccountAccess.findAll(
+      By(AccountAccess.bank_id, account.bankId.value),
+      By(AccountAccess.account_id, account.accountId.value)
+    ).flatMap(_.user_fk.obj.toList).distinct
+    
+    for {
+      user <- users
+    } yield {
+      Permission(user, getViewsForUserAndAccount(user, account))
+    }
+  }
+
+  def permission(account: BankIdAccountId, user: User): Box[Permission] = {
+    Full(Permission(user, getViewsForUserAndAccount(user, account)))
   }
 
   def getPermissionForUser(user: User): Box[Permission] = {
-    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryKey.value))
-    val views = privileges.flatMap(_.view.obj)
-    Full(Permission(user, views))
+    Full(Permission(user, getViewsForUser(user)))
   }
   
-  private def getOrCreateViewPrivilege(user: User, viewImpl: ViewImpl): Box[ViewImpl] = {
-    if (ViewPrivileges.count(By(ViewPrivileges.user, user.userPrimaryKey.value), By(ViewPrivileges.view, viewImpl.id)) == 0) {
+  private def getOrCreateViewPrivilege(user: User, viewDefinition: ViewDefinition, bankId: String, accountId: String): Box[ViewDefinition] = {
+    if (AccountAccess.count(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value), 
+      By(AccountAccess.bank_id, bankId), 
+      By(AccountAccess.account_id, accountId), 
+      By(AccountAccess.view_fk, viewDefinition.id)) == 0) {
       //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
       // SQL Insert ViewPrivileges
-      val saved = ViewPrivileges.create.
-        user(user.userPrimaryKey.value).
-        view(viewImpl.id).
+      val saved = AccountAccess.create.
+        user_fk(user.userPrimaryKey.value).
+        bank_id(viewDefinition.bankId.value).
+        account_id(viewDefinition.accountId.value).
+        view_id(viewDefinition.viewId.value).
+        view_fk(viewDefinition.id).
         save
       if (saved) {
         //logger.debug("saved ViewPrivileges")
-        Full(viewImpl)
+        Full(viewDefinition)
       } else {
         //logger.debug("failed to save ViewPrivileges")
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
-    } else Full(viewImpl) //privilege already exists, no need to create one
+    } else Full(viewDefinition) //privilege already exists, no need to create one
   }
   // TODO Accept the whole view as a parameter so we don't have to select it here.
   def addPermission(viewIdBankIdAccountId: ViewIdBankIdAccountId, user: User): Box[View] = {
     logger.debug(s"addPermission says viewUID is $viewIdBankIdAccountId user is $user")
-    val viewImpl = ViewImpl.find(viewIdBankIdAccountId) // SQL Select View where
+    val viewDefinition = ViewDefinition.findByViewId(viewIdBankIdAccountId.viewId.value)
 
-    viewImpl match {
-      case Full(vImpl) => {
-        if(vImpl.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    viewDefinition match {
+      case Full(v) => {
+        if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
         // SQL Select Count ViewPrivileges where
-        getOrCreateViewPrivilege(user, vImpl) //privilege already exists, no need to create one
+        getOrCreateViewPrivilege(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //privilege already exists, no need to create one
       }
       case _ => {
         Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
@@ -103,61 +117,58 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def addPermissions(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = {
-    val viewImpls = views.map(uid => ViewImpl.find(uid)).collect { case Full(v) => v}
+    val viewDefinitions: List[(ViewDefinition, ViewIdBankIdAccountId)] = views.map {
+      uid => ViewDefinition.findByViewId(uid.viewId.value).map((_, uid))
+    }.collect { case Full(v) => v}
 
-    if (viewImpls.size != views.size) {
-      val failMsg = s"not all viewimpls could be found for views ${viewImpls} (${viewImpls.size} != ${views.size}"
+    if (viewDefinitions.size != views.size) {
+      val failMsg = s"not all viewimpls could be found for views ${viewDefinitions} (${viewDefinitions.size} != ${views.size}"
       //logger.debug(failMsg)
       Failure(failMsg) ~>
         APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
       //TODO: APIFailures with http response codes belong at a higher level in the code
     } else {
-      viewImpls.foreach(v => {
-        if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
-        getOrCreateViewPrivilege(user, v)
+      viewDefinitions.foreach(v => {
+        if(v._1.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+        val viewDefinition = v._1
+        val viewIdBankIdAccountId = v._2
+        getOrCreateViewPrivilege(user, viewDefinition, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value)
       })
-      Full(viewImpls)
+      Full(viewDefinitions.map(_._1))
     }
   }
 
   def revokePermission(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
     val res =
     for {
-      viewImpl <- ViewImpl.find(viewUID)
-      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.userPrimaryKey.value), By(ViewPrivileges.view, viewImpl.id))
-      deletable <- accessRemovableAsBox(viewImpl, user)
+      viewDefinition <- ViewDefinition.findByViewId(viewUID.viewId.value)
+      aa  <- AccountAccess.find(By(AccountAccess.user_fk, user.userPrimaryKey.value),
+        By(AccountAccess.bank_id, viewUID.bankId.value),
+        By(AccountAccess.account_id, viewUID.accountId.value),
+        By(AccountAccess.view_fk, viewDefinition.id))
+      _ <- accessRemovableAsBox(viewDefinition, user)
     } yield {
-      vp.delete_!
+      aa.delete_!
     }
     res
   }
 
   //returns Full if deletable, Failure if not
-  def accessRemovableAsBox(viewImpl : ViewImpl, user : User) : Box[Unit] = {
+  def accessRemovableAsBox(viewImpl : ViewDefinition, user : User) : Box[Unit] = {
     if(accessRemovable(viewImpl, user)) Full(Unit)
     else Failure("access cannot be revoked")
   }
 
 
-  def accessRemovable(viewImpl: ViewImpl, user : User) : Boolean = {
-    if(viewImpl.viewId == ViewId("owner")) {
-
-      //if the user is an account holder, we can't revoke access to the owner view
-      val accountHolders = MapperAccountHolders.getAccountHolders(viewImpl.bankId, viewImpl.accountId)
-      if(accountHolders.map {h =>
-        h.userPrimaryKey
-      }.contains(user.userPrimaryKey)) {
-        false
-      } else {
-        // if it's the owner view, we can only revoke access if there would then still be someone else
-        // with access
-        viewImpl.users.length > 1
-      }
-
-    } else true
+  def accessRemovable(viewDefinition: ViewDefinition, user : User) : Boolean = {
+    //if the user is an account holder, we can't revoke access to the owner view
+    val accountHolders = MapperAccountHolders.getAccountHolders(viewDefinition.bankId, viewDefinition.accountId)
+    if(accountHolders.map(h => h.userPrimaryKey).contains(user.userPrimaryKey)) {
+      true
+    } else {
+      false
+    }
   }
-
-
 
 
   /*
@@ -166,16 +177,11 @@ object MapperViews extends Views with MdcLoggable {
 
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
-    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.userPrimaryKey.value))
+    val allUserPrivs = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
 
-    val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
-      case Full(v) => {
-        v.bankId == bankId && v.accountId == accountId
-      }
-      case _ => false
-    })
+    val relevantAccountPrivs = allUserPrivs.filter(p => p.bank_id == bankId && p.account_id == accountId)
 
-    val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => p.view.obj match {
+    val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => ViewDefinition.find(By(ViewDefinition.id_, p.view_fk.get)) match {
       case Full(v) => accessRemovable(v, user)
       case _ => false
     })
