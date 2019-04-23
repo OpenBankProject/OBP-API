@@ -47,7 +47,7 @@ case class CallContext(
                       ) {
 
   //This is only used to connect the back adapter. not useful for sandbox mode.
-  def toAdapterCallContext: AdapterCallContext= {
+  def toAdapterCallContext: OutboundAdapterCallContext= {
     for{
       user <- this.user
       username <- tryo(user.name)
@@ -74,19 +74,21 @@ case class CallContext(
           AuthView(viewBasic, accountBasic)
       )
     } yield{
-      AdapterCallContext(
+      OutboundAdapterCallContext(
         correlationId = this.correlationId,
         sessionId = this.sessionId,
-        Some(AdapterAuthInfo(
-          currentResourceUserId, 
-          username, 
-          likedCustomersBasic, 
+        None,
+        Some(OutboundAdapterAuthInfo(
+          currentResourceUserId,
+          username,
+          likedCustomersBasic,
           basicUserAuthContexts,
-          userCbsContexts = None, //Not sure how to use this field yet. 
+          generalContext = None, //Not sure how to use this field yet. 
           if (authViews.isEmpty) None else Some(authViews))))
-    }}.openOr(AdapterCallContext( //For anonymousAccess endpoints, there are no user info
+    }}.openOr(OutboundAdapterCallContext( //For anonymousAccess endpoints, there are no user info
       correlationId = this.correlationId,
       sessionId = this.sessionId,
+      None,
       None))
   
   def toLight: CallContextLight = {
@@ -249,3 +251,49 @@ object ApiSession {
   }
 
 }
+
+object App1 extends App{
+  
+val a = OutboundAdapterCallContext(
+  correlationId  = "1",
+  sessionId = Some("1"), //Only this value must be used for cache key !!!
+  consumerId = Some("2"),
+  outboundAdapterAuthInfo = Some(OutboundAdapterAuthInfo(
+    linkedCustomers = Some(List(BasicLindedCustomer("customerIdExample.value","customerNumberExample.value","legalNameExample.value"))),
+    userAuthContext = Some(List(BasicUserAuthContext("keyExample.value","valueExample.value"))), //be set by obp from some endpoints. 
+    generalContext= Some(List(BasicGeneralContext("keyExample.value","valueExample.value"))), //be set by backend, send it back to the header? not finish yet.
+    authViews = Some(List(AuthView(
+      view = ViewBasic(
+        id = "viewIdExample.value",
+        name = "viewNameExample.value",
+        description = "viewDescriptionExample.value",
+        ),
+      account = AccountBasic(
+        id = "accountIdExample.value",
+        accountRoutings =List(AccountRouting(
+          scheme = "accountRoutingSchemeExample.value",
+          address = "accountRoutingAddressExample.value"
+        )),
+        customerOwners = List(InternalBasicCustomer(
+          bankId = "bankIdExample.value",
+          customerId = "customerIdExample.value",
+          customerNumber = "customerNumberExample.value",
+          legalName = "legalNameExample.value",
+          dateOfBirth =  new Date(),
+        )),
+        userOwners = List(InternalBasicUser(
+          userId = "userIdExample.value",
+          emailAddress = "emailExample.value",
+          name = "usernameExample.value"
+        )))))))))
+  
+import net.liftweb.json._
+
+implicit val formats = net.liftweb.json.DefaultFormats
+  
+
+val jValueToStringCompact: String = compactRender(Extraction.decompose(a))
+  
+  println(jValueToStringCompact)
+}
+

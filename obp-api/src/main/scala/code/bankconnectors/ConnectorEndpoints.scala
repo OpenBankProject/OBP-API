@@ -43,7 +43,7 @@ object ConnectorEndpoints extends RestHelper{
     }
   }
 
-//  def buildInboundObject(adapterCallContext: AdapterCallContext, data: Any, methodName: String): Any = {
+//  def buildInboundObject(adapterCallContext: OutboundAdapterCallContext, data: Any, methodName: String): Any = {
 //    val inboundType = getTypeByName(s"com.openbankproject.commons.dto.InBound${methodName.capitalize}")
 //    val dataType = inboundType.decl(ru.termNames.CONSTRUCTOR).asMethod.paramLists(0)(1).info
 //    val convertedData = toOther[Any](data, dataType)

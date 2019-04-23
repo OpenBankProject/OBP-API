@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.api.util.ExampleValue._
-import com.openbankproject.commons.model.{BankAccountCommons, CustomerCommons, InboundAdapterInfoInternal, InboundStatusMessage, _}
+import com.openbankproject.commons.model.{BankAccountCommons, CustomerCommons, InboundAdapterCallContext, InboundAdapterInfoInternal, InboundStatusMessage, _}
 
 import scala.collection.immutable.{List, Nil}
 
@@ -52,12 +52,11 @@ object MessageDocsSwaggerDefinitions
     accountHolder = ""
   )
   
-  val adapterAuthInfo = AdapterAuthInfo(
-    userId = userIdExample.value, 
-    username = usernameExample.value, 
+  val outboundAdapterAuthInfo = OutboundAdapterAuthInfo(
+    userId = Some(userIdExample.value),
+    username = Some(usernameExample.value),
     linkedCustomers = Some(List(BasicLindedCustomer(customerIdExample.value,customerNumberExample.value,legalNameExample.value))),
-    userAuthContexts = Some(List(BasicUserAuthContext(keyExample.value, valueExample.value))),//be set by obp from some endpoints. 
-    userCbsContexts= Some(List(BasicUserCbsContext(keyExample.value, valueExample.value))),  //be set by backend, send it back to the header? not finish yet.
+    userAuthContext = Some(List(BasicUserAuthContext(keyExample.value,valueExample.value))), //be set by obp from some endpoints.
     authViews = Some(List(AuthView(
       view = ViewBasic(
         id = viewIdExample.value,
@@ -83,12 +82,19 @@ object MessageDocsSwaggerDefinitions
           name = usernameExample.value
         )))))))
   
-  val adapterCallContext = 
-    AdapterCallContext(
+  val outboundAdapterCallContext = OutboundAdapterCallContext(
       correlationIdExample.value,
       Some(sessionIdExample.value),
-      Some(adapterAuthInfo)
+      Some(consumerIdExample.value),
+      generalContext = Some(List(BasicGeneralContext(keyExample.value,valueExample.value))), 
+      Some(outboundAdapterAuthInfo)
     )
+  
+  val inboundAdapterCallContext = InboundAdapterCallContext(
+    correlationIdExample.value,
+    Some(sessionIdExample.value),
+    Some(List(BasicGeneralContext(keyExample.value,valueExample.value)))
+  )
   
   
   val inboundStatusMessage = InboundStatusMessage(

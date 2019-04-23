@@ -18,6 +18,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
+import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
@@ -3161,7 +3162,7 @@ trait APIMethods310 {
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
-            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
+            messageDocsSwagger = AkkaConnector_vDec2018.messageDocs.map(toResourceDoc).toList
             json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(messageDocsSwagger, ApiVersion.v3_1_0)}
             //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields

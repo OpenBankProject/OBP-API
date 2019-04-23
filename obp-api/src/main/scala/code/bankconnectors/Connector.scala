@@ -156,7 +156,11 @@ trait Connector extends MdcLoggable{
     }
   }
   
+  //
   def getAdapterInfo(callContext: Option[CallContext]) : Box[(InboundAdapterInfoInternal, Option[CallContext])] = Failure(NotImplemented + currentMethodName)
+  
+  
+  
   def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(Failure(NotImplemented + "getAdapterInfoFuture"))
 
   // Gets current challenge level for transaction request

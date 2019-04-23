@@ -35,11 +35,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetAdapterInfoFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetAdapterInfoFuture(
-        adapterCallContext
+        outboundAdapterCallContext
     )),
     exampleInboundMessage = (
       InBoundGetAdapterInfoFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         inboundAdapterInfoInternal)
     ),
     outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetAdapterInfoFuture]().toString(true))),
@@ -59,11 +59,11 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     outboundTopic = Some(OutBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
     inboundTopic = Some(InBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBanksFuture(adapterCallContext)
+      OutBoundGetBanksFuture(outboundAdapterCallContext)
     ),
     exampleInboundMessage = (
       InBoundGetBanksFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         List(bankCommons)
         )
     ),
@@ -86,12 +86,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetBankFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetBankFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         BankId(bankIdExample.value))
     ),
     exampleInboundMessage = (
       InBoundGetBankFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         bankCommons
       )
     ),
@@ -113,12 +113,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetBankAccountsByUsernameFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetBankAccountsByUsernameFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         usernameExample.value)
     ),
     exampleInboundMessage = (
       InBoundGetBankAccountsByUsernameFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         List(inboundAccountCommonCommons)
       )
     ),
@@ -138,14 +138,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundCheckBankAccountExistsFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundCheckBankAccountExistsFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         BankId(bankIdExample.value),
         AccountId(accountIdExample.value)
       )
     ),
     exampleInboundMessage = (
       InBoundCheckBankAccountExistsFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         bankAccountCommons
       )
     ),
@@ -166,14 +166,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetBankAccountFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetBankAccountFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         BankId(bankIdExample.value),
         AccountId(accountIdExample.value),
       )
     ),
     exampleInboundMessage = (
       InBoundGetBankAccountFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         bankAccountCommons
       )
     ),
@@ -193,13 +193,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetCoreBankAccountsFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetCoreBankAccountsFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         List(BankIdAccountId(BankId(bankIdExample.value), AccountId(accountIdExample.value)))
       )
     ),
     exampleInboundMessage = (
       InBoundGetCoreBankAccountsFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         List(
           CoreAccount(
             accountIdExample.value, 
@@ -229,13 +229,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetCustomersByUserIdFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetCustomersByUserIdFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         userIdExample.value
       )
     ),
     exampleInboundMessage = (
       InBoundGetCustomersByUserIdFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         customerCommons:: Nil,
       )
     ),
@@ -257,7 +257,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetTransactionsFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetTransactionsFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         bankId = BankId(bankIdExample.value),
         accountId = AccountId(accountIdExample.value),
         limit = limitExample.value.toInt,     
@@ -266,7 +266,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     exampleInboundMessage = (
       InBoundGetTransactionsFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         List(transactionCommons)
       )
     ),
@@ -290,7 +290,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = Some(InBoundGetTransactionFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
       OutBoundGetTransactionFuture(
-        adapterCallContext,
+        outboundAdapterCallContext,
         bankId = BankId(bankIdExample.value),
         accountId = AccountId(accountIdExample.value),
         transactionId = TransactionId(transactionIdExample.value)
@@ -298,7 +298,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     exampleInboundMessage = (
       InBoundGetTransactionFuture(
-        adapterCallContext,
+        inboundAdapterCallContext,
         transactionCommons
       )
     ),

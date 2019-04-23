@@ -152,12 +152,12 @@ case class GetGenerator(methodName: String, tp: Type) {
 
   val lastMapStatement = if (isReturnBox || resultType.startsWith("Future[Box[")) {
     """|                    boxedResult.map { result =>
-       |                         (result.data, buildCallContext(result.adapterCallContext, callContext))
+       |                         (result.data, buildCallContext(result.OutboundAdapterCallContext, callContext))
        |                    }
     """.stripMargin
   } else {
     """|                    boxedResult match {
-       |                        case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+       |                        case Full(result) => (Full(result.data), buildCallContext(result.OutboundAdapterCallContext, callContext))
        |                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
        |                    }
     """.stripMargin
@@ -229,13 +229,13 @@ case class PostGenerator(methodName: String, tp: Type) {
 
   val lastMapStatement = if (isOBPReturnType) {
     """|boxedResult match {
-       |        case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+       |        case Full(result) => (Full(result.data), buildCallContext(result.OutboundAdapterCallContext, callContext))
        |        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
        |      }
     """.stripMargin
   } else {
     """|boxedResult.map { result =>
-       |          (result.data, buildCallContext(result.adapterCallContext, callContext))
+       |          (result.data, buildCallContext(result.OutboundAdapterCallContext, callContext))
        |        }
     """.stripMargin
   }
@@ -259,7 +259,7 @@ case class PostGenerator(methodName: String, tp: Type) {
        |  // url example: $urlDemo
        |  override def $signature = {
        |    val url = getUrl("$methodName")
-       |    val jsonStr = write(OutBound${methodName.capitalize}(buildAdapterCallContext(callContext) $params))
+       |    val jsonStr = write(OutBound${methodName.capitalize}(buildOutboundAdapterCallContext(callContext) $params))
        |    sendPostRequest[InBound${methodName.capitalize}](url, callContext, jsonStr)
        |      .map{ boxedResult =>
        |      $lastMapStatement

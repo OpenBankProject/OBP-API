@@ -46,7 +46,7 @@ object InOutCaseClassGenerator extends App {
     }
     s"""
        |case class OutBound${it.name.toString.capitalize} (adapterCallContext: AdapterCallContext$parameters)
-       |case class InBound${it.name.toString.capitalize} (adapterCallContext: AdapterCallContext, data: $payload)
+       |case class InBound${it.name.toString.capitalize} (adapterCallContext: OutboundAdapterCallContext, data: $payload)
      """.stripMargin
   })
   code.foreach(println)

@@ -602,30 +602,31 @@ case class AuthView(
   account:AccountBasic,
 )
 
-case class AdapterCallContext(
+case class OutboundAdapterCallContext(
   correlationId: String = "",
-  sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
-  adapterAuthInfo: Option[AdapterAuthInfo]
+  sessionId: Option[String] = None, //Only this value must be used for cache key !!!
+  consumerId: Option[String] = None,
+  generalContext: Option[List[BasicGeneralContext]]= None,
+  outboundAdapterAuthInfo: Option[OutboundAdapterAuthInfo]
 )
 
-
-case class BasicUserCbsContext(
+case class BasicGeneralContext(
   key: String,
   value: String
 )
 
-case class AdapterAuthInfo(
-  userId: String = "", 
-  username: String = "", 
+case class OutboundAdapterAuthInfo(
+  userId: Option[String]= None, 
+  username: Option[String]= None, 
   linkedCustomers: Option[List[BasicLindedCustomer]] = None,
-  userAuthContexts: Option[List[BasicUserAuthContext]]= None,//be set by obp from some endpoints. 
-  userCbsContexts: Option[List[BasicUserCbsContext]]= None,  //be set by backend, send it back to the header? not finish yet.
+  userAuthContext: Option[List[BasicUserAuthContext]]= None,//be set by obp from some endpoints. 
   authViews: Option[List[AuthView]] = None,
 )
 
 case class InboundAdapterCallContext(
-  cbsToken: String = "",
-  sessionId: String = ""
+  correlationId: String = "",
+  sessionId: Option[String] = None,
+  generalContext: Option[List[BasicGeneralContext]]= None,  //be set by backend, send it back to the header? not finish yet.
 )
 
 
