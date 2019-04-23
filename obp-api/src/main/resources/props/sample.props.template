@@ -15,6 +15,9 @@ connector=mapped
 #connector=obpjvm
 #connector=...
 
+## whether export LocalMappedConnector methods as endpoints, it is just for develop, default is false
+#connector.export.LocalMappedConnector=false
+
 ## Connector cache time-to-live in seconds, caching defaults to 10 seconds
 #connector.cache.ttl.seconds=3
 #connector.cache.ttl.seconds.getBank=10
