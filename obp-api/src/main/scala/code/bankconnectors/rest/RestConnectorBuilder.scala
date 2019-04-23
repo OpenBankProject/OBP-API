@@ -152,12 +152,12 @@ case class GetGenerator(methodName: String, tp: Type) {
 
   val lastMapStatement = if (isReturnBox || resultType.startsWith("Future[Box[")) {
     """|                    boxedResult.map { result =>
-       |                         (result.data, buildCallContext(result.OutboundAdapterCallContext, callContext))
+       |                         (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
        |                    }
     """.stripMargin
   } else {
     """|                    boxedResult match {
-       |                        case Full(result) => (Full(result.data), buildCallContext(result.OutboundAdapterCallContext, callContext))
+       |                        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
        |                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
        |                    }
     """.stripMargin
@@ -229,13 +229,13 @@ case class PostGenerator(methodName: String, tp: Type) {
 
   val lastMapStatement = if (isOBPReturnType) {
     """|boxedResult match {
-       |        case Full(result) => (Full(result.data), buildCallContext(result.OutboundAdapterCallContext, callContext))
+       |        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
        |        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
        |      }
     """.stripMargin
   } else {
     """|boxedResult.map { result =>
-       |          (result.data, buildCallContext(result.OutboundAdapterCallContext, callContext))
+       |          (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
        |        }
     """.stripMargin
   }

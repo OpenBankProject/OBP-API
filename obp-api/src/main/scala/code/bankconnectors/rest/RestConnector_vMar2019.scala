@@ -94,7 +94,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundGetAdapterInfo](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
+              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
             }
 
           }
@@ -144,7 +144,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundGetAdapterInfoFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
+              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
             }
 
           }
@@ -239,7 +239,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundGetChallengeThreshold](url, callContext)
           .map { boxedResult =>
             boxedResult match {
-              case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+              case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
               case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
             }
 
@@ -324,7 +324,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     sendPostRequest[InBoundCreateChallenge](url, callContext, jsonStr)
       .map { boxedResult =>
         boxedResult match {
-          case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+          case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
           case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
         }
 
@@ -418,7 +418,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         val url = getUrl("getBank" , ("bankId", bankId))
         sendGetRequest[InBoundGetBankFuture](url, callContext) map { boxedResult =>
           boxedResult.map { result =>
-            (result.data, buildCallContext(result.adapterCallContext, callContext))
+            (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
           }
         }
       }
@@ -494,7 +494,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundGetBankAccountFuture](url, callContext)
           .map{ boxedResult =>
             boxedResult match {
-              case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+              case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
               case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
             }
           }
@@ -518,7 +518,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundGetCounterpartiesFuture](url, callContext)
           .map { boxedResult =>
             boxedResult match {
-              case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+              case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
               case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
             }
           }
@@ -583,7 +583,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundCheckBankAccountExistsFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
+              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
             }
 
           }
@@ -607,7 +607,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sendGetRequest[InBoundCheckBankAccountExistsFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
-              (result.data, buildCallContext(result.adapterCallContext, callContext))
+              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
             }
 
           }
@@ -622,7 +622,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     sendPostRequest[InBoundCreateChallenge](url, callContext, jsonStr)
       .map{ boxedResult =>
       boxedResult match {
-        case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
         case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
       }
     }
@@ -635,7 +635,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     sendPostRequest[InBoundCreateCounterparty](url, callContext, jsonStr)
       .map { boxedResult =>
         boxedResult.map { result =>
-          (result.data, buildCallContext(result.adapterCallContext, callContext))
+          (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
         }
       }
   }
@@ -666,7 +666,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       sendPostRequest[InBoundMakePaymentv210](url, callContext, jsonStr)
         .map{ boxedResult =>
           boxedResult match {
-            case Full(result) => (Full(result.data), buildCallContext(result.adapterCallContext, callContext))
+            case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
             case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
           }
         }
@@ -757,12 +757,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }
 
   //TODO hongwei confirm the third valu: OutboundAdapterCallContext#adapterAuthInfo
-  private[this] def buildCallContext(adapterCallContext: OutboundAdapterCallContext, callContext: Option[CallContext]): Option[CallContext] =
+  private[this] def buildCallContext(inboundAdapterCallContext: InboundAdapterCallContext, callContext: Option[CallContext]): Option[CallContext] =
     for (cc <- callContext)
-      yield cc.copy(correlationId = adapterCallContext.correlationId, sessionId = adapterCallContext.sessionId)
+      yield cc.copy(correlationId = inboundAdapterCallContext.correlationId, sessionId = inboundAdapterCallContext.sessionId)
 
-  private[this] def buildCallContext(boxedAdapterCallContext: Box[OutboundAdapterCallContext], callContext: Option[CallContext]): Option[CallContext] = boxedAdapterCallContext match {
-    case Full(adapterCallContext) => buildCallContext(adapterCallContext, callContext)
+  private[this] def buildCallContext(boxedInboundAdapterCallContext: Box[InboundAdapterCallContext], callContext: Option[CallContext]): Option[CallContext] = boxedInboundAdapterCallContext match {
+    case Full(inboundAdapterCallContext) => buildCallContext(inboundAdapterCallContext, callContext)
     case _ => callContext
   }
 }
