@@ -3601,10 +3601,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   private[this] implicit def convertFuture[T](future: Future[T]): T = Await.result(future, 1.minute)
 
   //TODO please modify this baseUrl to your remote api server base url of this connector
-  private[this] val baseUrl = "http://127.0.0.1:9093"
+  private[this] val baseUrl = "http://localhost:8080/restConnector"
 
   private[this] def getUrl(methodName: String, variables: (String, Any)*):String = {
-    variables.foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/$pair._1/$pair._2"))
+    variables.foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${pair._2}"))
   }
 
   private[this] def sendRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext], method: HttpMethod, entityJsonString: String = "") :Future[Box[T]] = {

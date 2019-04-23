@@ -42,8 +42,7 @@ import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.atms.MappedAtm
-import code.bankconnectors.{Connector, ConnectorEndpoints}
-import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
+import code.bankconnectors.ConnectorEndpoints
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
