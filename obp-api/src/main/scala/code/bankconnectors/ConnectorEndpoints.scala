@@ -1,12 +1,13 @@
 package code.bankconnectors
 
+import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPEndpoint, _}
-import code.api.util.CallContext
 import code.api.util.NewStyle.HttpCode
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
 import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.rest.RestHelper
 import org.apache.commons.lang3.StringUtils
 
@@ -22,17 +23,28 @@ object ConnectorEndpoints extends RestHelper{
   }
 
   lazy val connectorGetMethod: OBPEndpoint = {
-    case "restConnector" :: methodName :: params JsonGet _  if(hashMethod(methodName, params)) => {
+    case "restConnector" :: methodName :: params JsonGet req  if(hashMethod(methodName, params)) => {
       cc => {
         val methodSymbol = getMethod(methodName, params).get
         val optionCC = Option(cc)
-        val paramValues: List[Any] = getParamValues(params, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC)
+        val queryParams: Seq[OBPQueryParam] = List(
+          OBPQueryParam.toLimit(req.param("limit")),
+          OBPQueryParam.toOffset(req.param("offset")),
+          OBPQueryParam.toFromDate(req.param("fromDate")),
+          OBPQueryParam.toToDate(req.param("toDate"))
+        ).filter(_.isDefined).map(_.openOrThrowException("Impossible exception!"))
+
+        val paramValues: Seq[Any] = getParamValues(params, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
         val  value = invokeMethod(methodSymbol, paramValues :_*)
+
         // convert any to Future[(Box[_], Option[CallContext])]  type
         val futureValue: Future[(Box[_], Option[CallContext])] = toStandaredFuture(value)
 
         for {
-          (Full(data), callContext) <- futureValue
+          (Full(data), callContext) <- futureValue.map {it =>
+            APIUtil.fullBoxOrException(it._1 ~> APIFailureNewStyle("", 400, optionCC.map(_.toLight)))
+            it
+          }
           adapterCallContext = callContext.orElse(optionCC).map(_.toAdapterCallContext).orNull
         } yield {
           // NOTE: if any filed type is BigDecimal, it is can't be serialized by lift json
@@ -68,39 +80,54 @@ object ConnectorEndpoints extends RestHelper{
     }
   }
 
-  def getParamValues(params: List[String], symbols: List[ru.Symbol], optionCC: Option[CallContext]): List[Any] = {
+  def getParamValues(params: List[String], symbols: List[ru.Symbol], optionCC: Option[CallContext], queryParams: Seq[OBPQueryParam]): Seq[Any] = {
     val paramNameToValue: Map[String, String] = params.grouped(2).map{
       case name::value::Nil => (name.asInstanceOf[String], value)
       case name::Nil => (name.asInstanceOf[String], null)
     }.toMap
 
-    symbols.map {symbol =>
+    val queryParamValues: Seq[OBPQueryParam] = symbols.lastOption.find(_.info <:< paramsType).map(_ => queryParams).getOrElse(Seq[OBPQueryParam]())
+
+    val otherValues: List[Any] = symbols.filterNot(_.info <:< paramsType)
+      .map {symbol =>
       (symbol.name.toString, symbol.info) match {
         case ("callContext", _) => optionCC
         case(name, tp) => convertValue(paramNameToValue(name),tp)
         case _ => throw new IllegalArgumentException("impossible exception! just a placeholder.")
       }
     }
+    otherValues :+ queryParamValues
   }
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
   private val mirrorObj: ru.InstanceMirror = mirror.reflect(LocalMappedConnector)
+
+  // it is impossible to get the type of OBPQueryParam*, ru.typeOf[OBPQueryParam*] not work, it is Seq type indeed
+  private val paramsType = ru.typeOf[Seq[OBPQueryParam]]
 
   // (methodName, paramNames, method)
   lazy val allMethods: List[(String, List[String], ru.MethodSymbol)] = {
      val mirror: ru.Mirror = ru.runtimeMirror(this.getClass.getClassLoader)
      val objMirror = mirror.reflect(LocalMappedConnector)
 
+     val isCallContextOrQueryParams = (tp: ru.Type) => {
+       tp <:< ru.typeOf[Option[CallContext]] || tp <:< paramsType
+     }
      objMirror.symbol.toType.members
        .filter(_.isMethod)
-       .map(it => (it.name.toString, it.asMethod.paramLists.headOption.getOrElse(Nil).map(_.name.toString), it.asMethod))
+       .map(it => {
+         val names = it.asMethod.paramLists.headOption.getOrElse(Nil)
+           .filterNot(symbol => isCallContextOrQueryParams(symbol.info))
+           .map(_.name.toString)
+         (it.name.toString, names, it.asMethod)
+       })
       .toList
   }
 
   def getMethod(methodName: String, params: List[String]): Option[ru.MethodSymbol] = {
     val paramNames: Seq[String] = (0 until (params.size, 2)).map(params)
     this.allMethods.filter { triple =>
-      triple._1 == methodName && triple._2.filterNot("callContext" ==) == paramNames
+      triple._1 == methodName && triple._2 == paramNames
     }
       .sortBy(_._2.size)
       .lastOption
@@ -137,11 +164,13 @@ object ConnectorEndpoints extends RestHelper{
           }
         }
       }
-      case Empty => toStandaredFuture(Future((Empty, None)))
-      case _ => {
-        val wrappedObj = (Full(obj), None)
-        toStandaredFuture(Future(wrappedObj))
+      case failure: Failure => {
+        Future((failure.asInstanceOf[Failure], None))
       }
+      case Empty => {
+        Future((Full(null), None))
+      }
+      case _ => Future((Full(obj), None))
     }
   }
 }

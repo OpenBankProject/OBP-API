@@ -2,6 +2,10 @@ package code.api.util
 
 import java.util.Date
 
+import code.api.util.APIUtil._
+import net.liftweb.common.Box
+import org.apache.commons.lang3.StringUtils
+
 import scala.collection.immutable.List
 
 class OBPQueryParam
@@ -52,4 +56,12 @@ object OBPQueryParam {
   def getToDate(queryParams: OBPQueryParam*) : String = {
     queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
   }
+
+  def toLimit(limit: Box[String]): Box[OBPLimit] = limit.filter(StringUtils.isNotBlank).map(_.toInt).map(OBPLimit(_))
+
+  def toOffset(offset: Box[String]): Box[OBPOffset] = offset.filter(StringUtils.isNotBlank).map(_.toInt).map(OBPOffset(_))
+
+  def toFromDate(fromDate: Box[String]): Box[OBPFromDate] = fromDate.filter(StringUtils.isNotBlank).map(DateWithMsFormat.parse).map(OBPFromDate(_))
+
+  def toToDate(toDate: Box[String]): Box[OBPToDate] = toDate.filter(StringUtils.isNotBlank).map(DateWithMsFormat.parse).map(OBPToDate(_))
 }
