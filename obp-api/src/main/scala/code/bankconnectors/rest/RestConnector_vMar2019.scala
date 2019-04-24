@@ -101,34 +101,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
     }
   }("getAdapterInfo")
-
-  messageDocs += MessageDoc(
-    process = "obp.get.Banks",
-    messageFormat = messageFormat,
-    description = "Gets the banks list on this OBP installation.",
-    outboundTopic = Some(OutBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
-    exampleOutboundMessage = (
-      OutBoundGetBanksFuture(OutboundAdapterCallContext(outboundAdapterAuthInfo = None))
-    ),
-    exampleInboundMessage = (
-      InBoundGetBanksFuture(
-        InboundAdapterCallContext(outboundAdapterAuthInfo = None),
-        List(BankCommons(
-          bankId = BankId(bankIdExample.value),
-          shortName = "The Royal Bank of Scotland",
-          fullName = "The Royal Bank of Scotland",
-          logoUrl = "http://www.red-bank-shoreditch.com/logo.gif",
-          websiteUrl = "http://www.red-bank-shoreditch.com",
-          bankRoutingScheme = "OBP",
-          bankRoutingAddress = "rbs",
-            swiftBic = "",
-            nationalIdentifier =""
-        )))
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
+  
   // url example: /getAdapterInfoFuture
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
     /**
@@ -151,78 +124,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
     }
   }("getAdapterInfoFuture")
-
-  messageDocs += MessageDoc(
-    process = "obp.get.AmountOfMoney",
-    messageFormat = messageFormat,
-    description = "Get Challenge Threshold",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetChallengeThreshold(adapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",`
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankId = "string",
-        accountId = "string",
-        viewId = "string",
-        transactionRequestType = "string",
-        currency = "string",
-        userId = "string",
-        userName = "string")
-      ),
-    exampleInboundMessage = (
-      InBoundGetChallengeThreshold(adapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = AmountOfMoney(currency = "string",
-          amount = "string"))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
 
   // url example: /getChallengeThreshold/bankId/{bankId}/accountId/{accountId}/viewId/{viewId}/transactionRequestType/{transactionRequestType}/currency/{currency}/userId/{userId}/userName/{userName}
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = saveConnectorMetric {
@@ -249,161 +150,31 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getChallengeThreshold")
 
   messageDocs += MessageDoc(
-    process = "obp.post.Challenge",
+    process = "obp.get.Banks",
     messageFormat = messageFormat,
-    description = "Create Challenge",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Gets the banks list on this OBP installation.",
+    outboundTopic = Some(OutBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundCreateChallenge(adapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankId = BankId(value = "string"),
-        accountId = AccountId(value = "string"),
-        userId = "string",
-        transactionRequestType = TransactionRequestType(value = "string"),
-        transactionRequestId = "string")
+      OutBoundGetBanksFuture(OutboundAdapterCallContext(outboundAdapterAuthInfo = None))
       ),
     exampleInboundMessage = (
-      InBoundCreateChallenge(adapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = "string")
+      InBoundGetBanksFuture(
+        InboundAdapterCallContext(generalContext = None),
+        List(BankCommons(
+          bankId = BankId(bankIdExample.value),
+          shortName = "The Royal Bank of Scotland",
+          fullName = "The Royal Bank of Scotland",
+          logoUrl = "http://www.red-bank-shoreditch.com/logo.gif",
+          websiteUrl = "http://www.red-bank-shoreditch.com",
+          bankRoutingScheme = "OBP",
+          bankRoutingAddress = "rbs",
+          swiftBic = "",
+          nationalIdentifier =""
+        )))
       ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-
-  // url example: /createChallenge
-  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, callContext: Option[CallContext]): OBPReturnType[Box[String]] = {
-    val url = getUrl("createChallenge")
-    val jsonStr = write(OutBoundCreateChallenge(buildAdapterCallContext(callContext), bankId, accountId, userId, transactionRequestType, transactionRequestId))
-    sendPostRequest[InBoundCreateChallenge](url, callContext, jsonStr)
-      .map { boxedResult =>
-        boxedResult match {
-          case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
-          case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
-        }
-
-      }
-  }
-
-  messageDocs += MessageDoc(
-    process = "obp.get.Bank",
-    messageFormat = messageFormat,
-    description = "Get Bank",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetBank(adapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankId = BankId(value = "string"))
-      ),
-    exampleInboundMessage = (
-      InBoundGetBank(adapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        adapterAuthInfo = Option(AdapterAuthInfo(userId = "string",
-          username = "string",
-          linkedCustomers = Option(List(BasicLindedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContexts = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          userCbsContexts = Option(List(BasicUserCbsContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        data = BankCommons(bankId = BankId(value = "string"),
-          shortName = "string",
-          fullName = "string",
-          logoUrl = "string",
-          websiteUrl = "string",
-          bankRoutingScheme = "string",
-          bankRoutingAddress = "string",
-          swiftBic = "string",
-          nationalIdentifier = "string"))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
   // url example: /getBank/bankId/{bankId}
   override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
     /**
@@ -442,42 +213,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
     }
   }("getBanks")
-    
-  messageDocs += MessageDoc(
-    process = "obp.get.getBankAccount",
-    messageFormat = messageFormat,
-    description = "Gets the Accounts.",
-    exampleOutboundMessage =
-      OutBoundGetBankAccountFuture(
-        OutboundAdapterCallContext(outboundAdapterAuthInfo = None),
-        BankId(bankIdExample.value),
-        AccountId(accountIdExample.value))
-    ,
-    exampleInboundMessage =
-      InBoundGetBankAccountFuture(
-        OutboundAdapterCallContext(outboundAdapterAuthInfo = None),
-        BankAccountCommons(
-          accountId  = AccountId(accountIdExample.value),
-          accountType = accountTypeExample.value,
-          balance = BigDecimal(balanceAmountExample.value),
-          currency = currencyExample.value,
-          name = "",
-          label = labelExample.value,
-          swift_bic = None,
-          iban = Some(ibanExample.value),
-          number = accountNumberExample.value,
-          bankId = BankId(bankIdExample.value),
-          lastUpdate = new Date(),
-          branchId  = branchIdExample.value,
-          accountRoutingScheme = accountRoutingSchemeExample.value,
-          accountRoutingAddress = accountRoutingAddressExample.value,
-          accountRoutings = List(AccountRouting("","")),
-          accountRules = List(AccountRule("","")),
-          accountHolder = ""
-        )
-    ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  ) 
     
   // url example: /getBankAccount/bankId/{bankId}/accountId/{accountId}
   override def getBankAccountFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = saveConnectorMetric {

@@ -36,6 +36,9 @@ object ExampleValue {
 
    val customerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
   glossaryItems += makeGlossaryItem("Adapter.customerId", customerIdExample)
+
+  val consumerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the consumer. It is the app which calls the apis")
+  glossaryItems += makeGlossaryItem("Adapter.consumerId", consumerIdExample)
   
   val nameSuffixExample = ConnectorField("Sr", s"suffix of the name")
   glossaryItems += makeGlossaryItem("Adapter.nameSuffix", nameSuffixExample)

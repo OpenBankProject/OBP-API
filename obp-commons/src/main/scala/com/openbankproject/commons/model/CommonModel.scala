@@ -607,7 +607,7 @@ case class OutboundAdapterCallContext(
   sessionId: Option[String] = None, //Only this value must be used for cache key !!!
   consumerId: Option[String] = None,
   generalContext: Option[List[BasicGeneralContext]]= None,
-  outboundAdapterAuthInfo: Option[OutboundAdapterAuthInfo]
+  outboundAdapterAuthInfo: Option[OutboundAdapterAuthInfo] = None,
 )
 
 case class BasicGeneralContext(
