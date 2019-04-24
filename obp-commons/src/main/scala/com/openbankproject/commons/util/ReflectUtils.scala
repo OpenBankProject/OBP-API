@@ -213,6 +213,7 @@ object ReflectUtils {
   def toValueObject(t: Any): Any = {
     t match {
       case null => null
+      case v if(getType(v).typeSymbol.asClass.isCaseClass) => v
       case seq: Seq[_] => seq.map(toValueObject)
       case array: Array[_] => array.map(toValueObject)
       case other => {
