@@ -213,9 +213,9 @@ object ReflectUtils {
   def toValueObject(t: Any): Any = {
     t match {
       case null => null
-      case v if(getType(v).typeSymbol.asClass.isCaseClass) => v
-      case seq: Seq[_] => seq.map(toValueObject)
+      case it: Iterable[_] => it.map(toValueObject)
       case array: Array[_] => array.map(toValueObject)
+      case v if(getType(v).typeSymbol.asClass.isCaseClass) => v
       case other => {
         val mirrorObj = mirror.reflect(other)
         mirrorObj.symbol.info.decls
