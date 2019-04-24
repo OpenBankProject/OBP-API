@@ -49,9 +49,10 @@ case class CallContext(
   //This is only used to connect the back adapter. not useful for sandbox mode.
   def toAdapterCallContext: OutboundAdapterCallContext= {
     for{
-      user <- this.user
-      username <- tryo(user.name)
-      currentResourceUserId <- Some(user.userId)
+      user <- this.user //If there is no user, then will go to `.openOr` method, to return anonymousAccess box.
+      username <- tryo(Some(user.name))
+      currentResourceUserId <- tryo(Some(user.userId))
+      consumerId <- this.consumer.map(_.consumerId.get) //If there is no consumer, then will go to `.openOr` method, to return anonymousAccess box.
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
       linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
@@ -77,19 +78,18 @@ case class CallContext(
       OutboundAdapterCallContext(
         correlationId = this.correlationId,
         sessionId = this.sessionId,
-        None,
-        Some(OutboundAdapterAuthInfo(
-          currentResourceUserId,
-          username,
-          likedCustomersBasic,
-          basicUserAuthContexts,
-          generalContext = None, //Not sure how to use this field yet. 
-          if (authViews.isEmpty) None else Some(authViews))))
+        consumerId = Some(consumerId),
+        generalContext = None,
+        outboundAdapterAuthInfo = Some(OutboundAdapterAuthInfo(
+          userId = currentResourceUserId,
+          username = username,
+          linkedCustomers = likedCustomersBasic,
+          userAuthContext = basicUserAuthContexts,
+          if (authViews.isEmpty) None else Some(authViews)))
+      )
     }}.openOr(OutboundAdapterCallContext( //For anonymousAccess endpoints, there are no user info
-      correlationId = this.correlationId,
-      sessionId = this.sessionId,
-      None,
-      None))
+      this.correlationId,
+      this.sessionId))
   
   def toLight: CallContextLight = {
     CallContextLight(
@@ -251,49 +251,3 @@ object ApiSession {
   }
 
 }
-
-object App1 extends App{
-  
-val a = OutboundAdapterCallContext(
-  correlationId  = "1",
-  sessionId = Some("1"), //Only this value must be used for cache key !!!
-  consumerId = Some("2"),
-  outboundAdapterAuthInfo = Some(OutboundAdapterAuthInfo(
-    linkedCustomers = Some(List(BasicLindedCustomer("customerIdExample.value","customerNumberExample.value","legalNameExample.value"))),
-    userAuthContext = Some(List(BasicUserAuthContext("keyExample.value","valueExample.value"))), //be set by obp from some endpoints. 
-    generalContext= Some(List(BasicGeneralContext("keyExample.value","valueExample.value"))), //be set by backend, send it back to the header? not finish yet.
-    authViews = Some(List(AuthView(
-      view = ViewBasic(
-        id = "viewIdExample.value",
-        name = "viewNameExample.value",
-        description = "viewDescriptionExample.value",
-        ),
-      account = AccountBasic(
-        id = "accountIdExample.value",
-        accountRoutings =List(AccountRouting(
-          scheme = "accountRoutingSchemeExample.value",
-          address = "accountRoutingAddressExample.value"
-        )),
-        customerOwners = List(InternalBasicCustomer(
-          bankId = "bankIdExample.value",
-          customerId = "customerIdExample.value",
-          customerNumber = "customerNumberExample.value",
-          legalName = "legalNameExample.value",
-          dateOfBirth =  new Date(),
-        )),
-        userOwners = List(InternalBasicUser(
-          userId = "userIdExample.value",
-          emailAddress = "emailExample.value",
-          name = "usernameExample.value"
-        )))))))))
-  
-import net.liftweb.json._
-
-implicit val formats = net.liftweb.json.DefaultFormats
-  
-
-val jValueToStringCompact: String = compactRender(Extraction.decompose(a))
-  
-  println(jValueToStringCompact)
-}
-

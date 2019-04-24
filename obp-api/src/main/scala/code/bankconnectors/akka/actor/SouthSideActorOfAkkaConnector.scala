@@ -27,45 +27,45 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     case OutBoundGetAdapterInfoFuture(cc) =>
       val result = 
         InBoundGetAdapterInfoFuture(
-          cc,
+          InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),
           inboundAdapterInfoInternal
         )
       sender ! result   
     
     case OutBoundGetBanksFuture(cc) =>
       val result: Box[List[MappedBank]] = getBanks(None).map(r => r._1)
-      sender ! InBoundGetBanksFuture(cc, result.map(l => l.map(Transformer.bank(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
+      sender ! InBoundGetBanksFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), result.map(l => l.map(Transformer.bank(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
     
     case OutBoundGetBankFuture(cc, bankId) =>
       val result: Box[MappedBank] = getBank(bankId, None).map(r => r._1)
-      sender ! InBoundGetBankFuture(cc, result.map(Transformer.bank(_)).openOrThrowException(attemptedToOpenAnEmptyBox) )  
+      sender ! InBoundGetBankFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),result.map(Transformer.bank(_)).openOrThrowException(attemptedToOpenAnEmptyBox) )  
       
     case OutBoundCheckBankAccountExistsFuture(cc, bankId, accountId) =>
       val result: Box[BankAccount] = checkBankAccountExists(bankId, accountId, None).map(r => r._1)
-      sender ! InBoundCheckBankAccountExistsFuture(cc, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
+      sender ! InBoundCheckBankAccountExistsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       
     case OutBoundGetBankAccountFuture(cc, bankId, accountId) =>
       val result: Box[BankAccount] = getBankAccount(bankId, accountId, None).map(r => r._1)
       org.scalameta.logger.elem(result)
-      sender ! InBoundGetBankAccountFuture(cc, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
+      sender ! InBoundGetBankAccountFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       
     case OutBoundGetCoreBankAccountsFuture(cc, bankIdAccountIds) =>
       val result: Box[List[CoreAccount]] = getCoreBankAccounts(bankIdAccountIds, None).map(r => r._1)
-      sender ! InBoundGetCoreBankAccountsFuture(cc, result.map(l => l.map(Transformer.coreAccount(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
+      sender ! InBoundGetCoreBankAccountsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),result.map(l => l.map(Transformer.coreAccount(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
       
     case OutBoundGetCustomersByUserIdFuture(cc, userId) =>
       val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
-      sender ! InBoundGetCustomersByUserIdFuture(cc, result.map(l => l.map(Transformer.toInternalCustomer(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
+      sender ! InBoundGetCustomersByUserIdFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),result.map(l => l.map(Transformer.toInternalCustomer(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
 
     case OutBoundGetTransactionsFuture(cc, bankId, accountId, limit, fromDate, toDate) =>
       val from = APIUtil.DateWithMsFormat.parse(fromDate)
       val to = APIUtil.DateWithMsFormat.parse(toDate)
       val result = getTransactions(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
-      sender ! InBoundGetTransactionsFuture(cc, result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
+      sender ! InBoundGetTransactionsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
 
     case OutBoundGetTransactionFuture(cc, bankId, accountId, transactionId) =>
       val result = getTransaction(bankId, accountId, transactionId,  None).map(r => r._1)
-      sender ! InBoundGetTransactionFuture(cc, result.map(Transformer.toInternalTransaction(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
+      sender ! InBoundGetTransactionFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),result.map(Transformer.toInternalTransaction(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
 
     case message => 
       logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
