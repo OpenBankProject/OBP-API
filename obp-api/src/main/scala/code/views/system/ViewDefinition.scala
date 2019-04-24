@@ -2,6 +2,7 @@ package code.views.system
 
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
+import net.liftweb.common.Box.tryo
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
@@ -22,6 +23,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     override def defaultValue: Null = null
   }
   object view_id extends UUIDString(this)
+  object view_id_internal extends MappedString(this, 512)
   object metadataView_ extends UUIDString(this)
   object isSystem_ extends MappedBoolean(this){
     override def defaultValue = false
@@ -363,6 +365,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 
   def id: Long = id_.get
   def viewId : ViewId = ViewId(view_id.get)
+  def viewIdInternal: String = view_id_internal.get
   //if metadataView_ = null or empty, we need use the current view's viewId.
   def metadataView = if (metadataView_.get ==null || metadataView_.get == "") view_id.get else metadataView_.get
   def users : List[User] = Nil
@@ -471,5 +474,12 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 }
 
 object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {
-  override def dbIndexes: List[BaseIndex[ViewDefinition]] = super.dbIndexes
+  override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(view_id_internal) :: super.dbIndexes
+  override def beforeSave = List(
+    t =>
+      tryo {
+        val viewId = List(t.bank_id.get, t.account_id.get, t.view_id).mkString("|__|")
+        t.view_id_internal(viewId)
+      }
+  )
 }
