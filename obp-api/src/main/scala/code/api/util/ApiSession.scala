@@ -47,7 +47,7 @@ case class CallContext(
                       ) {
 
   //This is only used to connect the back adapter. not useful for sandbox mode.
-  def toAdapterCallContext: OutboundAdapterCallContext= {
+  def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
     for{
       user <- this.user //If there is no user, then will go to `.openOr` method, to return anonymousAccess box.
       username <- tryo(Some(user.name))

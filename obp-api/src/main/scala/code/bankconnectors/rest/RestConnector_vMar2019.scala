@@ -206,10 +206,14 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val url = getUrl("getBanks" )
-        sendGetRequest[List[BankCommons]](url, callContext)
-          .map(it => it.map((_ -> callContext)))
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getBanksFuture")
+        sendGetRequest[InBoundGetBanksFuture](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
+            }
+          }
       }
     }
   }("getBanks")
@@ -424,7 +428,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   //TODO every connector should implement this method to build authorization headers with callContext
   private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = Nil
 
-  private[this] def buildAdapterCallContext(callContext: Option[CallContext]): OutboundAdapterCallContext = callContext.map(_.toAdapterCallContext).orNull
+  private[this] def buildAdapterCallContext(callContext: Option[CallContext]): OutboundAdapterCallContext = callContext.map(_.toOutboundAdapterCallContext).orNull
 
   /**
     * some methods return type is not future, this implicit method make these method have the same body, it facilitate to generate code.
