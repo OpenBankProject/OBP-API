@@ -1060,7 +1060,7 @@ trait APIMethods310 {
       nameOf(getAdapterInfo),
       "GET",
       "/adapter",
-      "Get Adapter Info (general)",
+      "Get Adapter Info",
       s"""Get basic information about the Adapter.
          |
         |${authenticationRequiredMessage(true)}
@@ -1949,6 +1949,8 @@ trait APIMethods310 {
       "/users/USER_ID/refresh",
       "Refresh User.",
       s""" The endpoint is used for updating the accounts, views, account holders for the user.
+         | As to the Json body, you can leave it as Empty. 
+         | This call will get data from backend, no need to prepare the json body in api side.
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -1960,7 +1962,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canRefreshUser))
+    )
 
     lazy val refreshUser : OBPEndpoint = {
       case "users" :: userId :: "refresh" :: Nil JsonPost _ => {

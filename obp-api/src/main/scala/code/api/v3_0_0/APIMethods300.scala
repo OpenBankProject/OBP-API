@@ -928,7 +928,7 @@ trait APIMethods300 {
       nameOf(getAdapter),
       "GET",
       "/banks/BANK_ID/adapter",
-      "Get Adapter Info",
+      "Get Adapter Info for a bank",
       s"""Get basic information about the Adapter listening on behalf of this bank.
         |
         |${authenticationRequiredMessage(true)}

@@ -612,7 +612,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getBank")
 
   messageDocs += MessageDoc(
-    process = "obp.get.Accounts",
+    process = "obp.get.BankAccountsByUsername",
     messageFormat = messageFormat,
     description = "Gets the list of accounts available to the User. This call sends authInfo including username.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccounts.getClass.getSimpleName).request),
