@@ -333,7 +333,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.updateView(BankIdAccountId(bankId,accountId), viewId, v)
-
+org.scalameta.logger.elem(view)
       //if(view.isDefined) {
       //  logger.debug("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
       //      " for account " + accountId + "at bank " + bankId)

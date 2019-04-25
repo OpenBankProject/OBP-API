@@ -622,6 +622,7 @@ trait APIMethods121 {
         InvalidJsonFormat,
         UserNotLoggedIn,
         BankAccountNotFound,
+        ViewNotFound,
         UnknownError,
         "user does not have owner access"
       ),
@@ -640,7 +641,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId)) ?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             updateViewJson = UpdateViewJSON(
               updateJsonV121.description,
@@ -686,7 +687,7 @@ trait APIMethods121 {
           for {
             //customer views are started ith `_`,eg _lift, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
-            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
+            view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId)) ?~ ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             
             u <- cc.user ?~  UserNotLoggedIn

@@ -28,19 +28,15 @@ package code.api.v1_2_1
 
 import _root_.net.liftweb.json.Serialization.write
 import code.api.util.APIUtil
-import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.OAuth._
 import code.bankconnectors.Connector
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
+import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
 import code.views.Views
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonDSL._
+import com.openbankproject.commons.model._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import _root_.net.liftweb.util.{Props, _}
-import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
-import com.openbankproject.commons.model._
 import org.scalatest.Tag
+import code.api.util.ErrorMessages._
 
 import scala.util.Random._
 
@@ -1571,8 +1567,9 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       When("we try to update that view")
       val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
-      Then("We should get a 404")
-      reply.code should equal(404)
+      Then("We should get a 400")
+      reply.code should equal(400)
+      reply.body.extract[ErrorMessage].message should equal (ViewNotFound)
     }
 
     scenario("We will not update a view on a bank account due to missing token", API1_2_1, PutView){
@@ -1985,6 +1982,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
       Then("we should get a 204 no content code")
+      org.scalameta.logger.elem(reply)
       reply.code should equal (204)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore -1)
@@ -4345,7 +4343,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   feature("transactions with params"){
-    import java.text.SimpleDateFormat
     import java.util.{Calendar, Date}
 
     val defaultFormat = APIUtil.DateWithMsFormat

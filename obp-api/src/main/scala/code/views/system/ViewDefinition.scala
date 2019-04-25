@@ -1,5 +1,7 @@
 package code.views.system
 
+import code.api.APIFailure
+import code.api.util.ErrorMessages
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
@@ -479,16 +481,20 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
   override def beforeSave = List(
     t =>
       tryo {
-        val viewId = List(t.bank_id.get, t.account_id.get, t.view_id).mkString("|__|")
+        val viewId = getUniqueKey(t.bank_id.get, t.account_id.get, t.view_id.get)
         t.view_id_internal(viewId)
       }
   )
 
-  def findByViewId(viewId: String): Box[ViewDefinition] = {
+  def findByUniqueKey(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
+    val uniqueKey = getUniqueKey(bankId, accountId, viewId)
     ViewDefinition.find(
-      NullRef(ViewDefinition.bank_id),
-      NullRef(ViewDefinition.account_id),
-      By(ViewDefinition.view_id, viewId)
+      By(ViewDefinition.view_id_internal, uniqueKey)
     )
   }
+
+  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewDefinition]] = {
+    By(bank_id, bankId.value) :: By(account_id, accountId.value) :: Nil
+  }
+  def getUniqueKey(bankId: String, accountId: String, viewId: String) = List(bankId, accountId, viewId).mkString("|__|")
 }

@@ -13,5 +13,5 @@ class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with Create
   object view_fk extends MappedLongForeignKey(this, ViewDefinition)
 }
 object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAccess] {
-  override def dbIndexes: List[BaseIndex[AccountAccess]] = UniqueIndex(bank_id, account_id, view_id, user_fk) :: super.dbIndexes
+  override def dbIndexes: List[BaseIndex[AccountAccess]] = UniqueIndex(bank_id, account_id, view_fk, user_fk) :: super.dbIndexes
 }

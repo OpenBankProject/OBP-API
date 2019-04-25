@@ -6,6 +6,7 @@ import code.connector.MockedJune2017Connector
 import code.model.dataAccess.{AuthUser, ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.MapperViews
+import code.views.system.{AccountAccess, ViewDefinition}
 
 /**
   * Created by zhanghongwei on 17/07/2017.
@@ -47,7 +48,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       Then("We check the views")  //"Owner"::"Public" :: "Accountant" :: "Auditor"
       val allViewsForAccount1 = MapperViews.viewsForAccount(bankIdAccountId)
       val allViewsForAccount2 = MapperViews.viewsForAccount(bankIdAccountId)
-      val allViews = ViewImpl.findAll()
+      val allViews = ViewDefinition.findAll()
       allViewsForAccount1.toString().contains("owner") should equal(true)
       allViewsForAccount1.toString().contains("public") should equal(true)
       allViewsForAccount1.toString().contains("accountant") should equal(true)
@@ -59,7 +60,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       allViews.length should equal(8)
 
       Then("We check the ViewPrivileges")
-      val numberOfPrivileges = ViewPrivileges.findAll().length
+      val numberOfPrivileges = AccountAccess.findAll().length
       numberOfPrivileges should equal(8)
 
     }
