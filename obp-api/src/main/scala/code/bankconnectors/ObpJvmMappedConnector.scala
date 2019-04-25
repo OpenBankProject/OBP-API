@@ -301,7 +301,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         //we don't care about the intended sort field and only sort on finish date for now
         case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
       val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
-      implicit val formats = net.liftweb.json.DefaultFormats
 
       val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT)
 

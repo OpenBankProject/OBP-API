@@ -354,7 +354,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       "accountId" -> accountId.toString,
       "queryParams" -> queryParams.toString
       )
-    implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(req).extract[List[KafkaInboundTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
@@ -383,7 +382,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       "accountId" -> accountId.value
       )
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundAccount])
     }
@@ -414,7 +412,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
           "bankId" -> a._1.value,
           "accountId" -> a._2.value
         )
-        implicit val formats = net.liftweb.json.DefaultFormats
         val r = {
           cachedAccounts.getOrElseUpdate( req.toString, () => process(req).extract[List[KafkaInboundAccount]])
         }
@@ -447,7 +444,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       "number" -> number
     )
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundAccount])
     }
@@ -507,7 +503,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
         "counterpartyId" -> counterpartyId.toString
       )
       // Since result is single account, we need only first list entry
-      implicit val formats = net.liftweb.json.DefaultFormats
       val r = {
         cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
       }

@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.api.Constant
 import code.api.util.APIUtil.DateWithDayExampleObject
+import code.api.util.CustomJsonFormats
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.model.{ModeratedBankAccount, ModeratedTransaction}
 import code.model.toBankAccountExtended
@@ -12,9 +13,7 @@ import com.openbankproject.commons.model.BankAccount
 
 import scala.collection.immutable.List
 
-object JSONFactory_UKOpenBanking_200 {
-
-  implicit val formats = net.liftweb.json.DefaultFormats
+object JSONFactory_UKOpenBanking_200 extends CustomJsonFormats {
 
   case class Accounts(Data: AccountList, Links: Links, Meta: MetaUK)
   case class AccountList(Account: List[Account])

@@ -3,7 +3,7 @@ package code.bankconnectors
 import java.util.{Date, TimeZone}
 
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, CallContext, OBPQueryParam}
+import code.api.util._
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
@@ -511,7 +511,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = {
     import net.liftweb.mongodb.BsonDSL._
 
-    implicit val formats =  net.liftweb.json.DefaultFormats.lossless
+    implicit val formats =  CustomJsonFormats.losslessFormats
     val asJValue = Extraction.decompose(transaction)
 
     for {

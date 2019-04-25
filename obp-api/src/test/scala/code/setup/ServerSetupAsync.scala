@@ -31,13 +31,12 @@ import java.text.SimpleDateFormat
 
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
 import dispatch._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{DefaultFormats, ShortTypeHints}
 import org.scalatest._
 
 trait ServerSetupAsync extends AsyncFeatureSpec with SendServerRequests
@@ -45,10 +44,8 @@ trait ServerSetupAsync extends AsyncFeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with Matchers with MdcLoggable {
 
-  implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
-  
-  
+  implicit val formats = CustomJsonFormats.emptyHintFormats
+
   val server = TestServer
   def baseRequest = host(server.host, server.port)
   val secured = APIUtil.getPropsAsBoolValue("external.https", false)

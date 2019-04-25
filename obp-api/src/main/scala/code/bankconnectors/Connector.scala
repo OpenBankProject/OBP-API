@@ -97,10 +97,9 @@ object Connector extends SimpleInjector {
 
 }
 
-trait Connector extends MdcLoggable{
+trait Connector extends MdcLoggable with CustomJsonFormats{
 
-  implicit val formats = net.liftweb.json.DefaultFormats
-  val emptyObjectJson: JValue = decompose(Nil)(net.liftweb.json.DefaultFormats)
+  val emptyObjectJson: JValue = decompose(Nil)
   
   val messageDocs = ArrayBuffer[MessageDoc]()
   implicit val nameOfConnector = Connector.getClass.getSimpleName

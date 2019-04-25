@@ -2,6 +2,7 @@ package code.connector
 
 
 import code.api.util.APIUtil.MessageDoc
+import code.api.util.CustomJsonFormats
 import code.bankconnectors.vJune2017.{InboundGetTransactionRequests210, InternalGetTransactionRequests, KafkaMappedConnector_vJune2017, OutboundGetTransactionRequests210}
 import com.openbankproject.commons.model.TransactionRequest
 import code.util.Helper.MdcLoggable
@@ -13,10 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class June2017UnitTest extends FunSuite
   with Matchers
-  with MdcLoggable{
-  
-  
-  implicit val formats = net.liftweb.json.DefaultFormats
+  with MdcLoggable with CustomJsonFormats {
   
   
   test("getTransactionRequests210 kafka message") {
