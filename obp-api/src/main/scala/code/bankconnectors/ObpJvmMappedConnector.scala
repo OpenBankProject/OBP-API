@@ -1084,7 +1084,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     def balance : BigDecimal        = BigDecimal(if (r.balance.amount.isEmpty) "-0.00" else r.balance.amount)
     def currency : String           = r.balance.currency
     def name : String               = r.owners.head
-    def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.IBAN)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bank)

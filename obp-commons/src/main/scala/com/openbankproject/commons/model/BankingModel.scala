@@ -181,8 +181,6 @@ trait BankAccount{
   def name : String // Is this used?
   def label : String
   @deprecated("Used the account scheme and address instead")
-  def swift_bic : Option[String]   //TODO: deduplication, bank field should not be in account fields
-  @deprecated("Used the account scheme and address instead")
   def iban : Option[String]
   def number : String
   def bankId : BankId

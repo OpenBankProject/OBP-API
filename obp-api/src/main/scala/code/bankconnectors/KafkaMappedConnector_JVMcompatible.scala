@@ -1345,7 +1345,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def balance : BigDecimal        = BigDecimal(r.balanceAmount)
     def currency : String           = r.balanceCurrency
     def name : String               = "NONE" //TODO
-    def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.iban)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bankId)

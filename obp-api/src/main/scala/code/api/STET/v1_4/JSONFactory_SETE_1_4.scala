@@ -123,7 +123,7 @@ object JSONFactory_STET_1_4 extends CustomJsonFormats {
       accounts =accounts.map(
         account => CoreAccountJsonV1(
           resourceId = account.accountId.value,
-          bicFi = account.swift_bic.getOrElse(account.iban.getOrElse("")),
+          bicFi = "",
           currency = account.currency,
           accountType = account.accountType,
           cashAccountType = "CACC",

@@ -349,8 +349,6 @@ case class BankAccount2(r: InboundAccount) extends BankAccount {
   def balance: BigDecimal = BigDecimal(r.balanceAmount)
   def currency: String = r.balanceCurrency
   def name: String = r.owners.head
-  // Note: swift_bic--> swiftBic, but it extends from BankAccount
-  def swift_bic: Option[String] = Some("swift_bic")
   def iban: Option[String] = Some(r.iban)
   def number: String = r.number
   def bankId: BankId = BankId(r.bankId)

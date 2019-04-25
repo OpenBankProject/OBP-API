@@ -38,7 +38,6 @@ object MessageDocsSwaggerDefinitions
     currency = currencyExample.value,
     name = usernameExample.value,
     label = labelExample.value,
-    swift_bic = None,
     iban = Some(ibanExample.value),
     number = accountNumberExample.value,
     bankId = BankId(bankIdExample.value),

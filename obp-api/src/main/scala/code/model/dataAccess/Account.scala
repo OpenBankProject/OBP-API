@@ -169,7 +169,6 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     if (i.isEmpty) None else Some(i)
   }
   override def currency: String = accountCurrency.get
-  override def swift_bic: Option[String] = None
   override def number: String = accountNumber.get
   override def balance: BigDecimal = accountBalance.get
   override def name: String = accountName.get

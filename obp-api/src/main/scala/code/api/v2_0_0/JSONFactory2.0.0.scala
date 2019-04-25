@@ -624,7 +624,7 @@ object JSONFactory200 extends CustomJsonFormats {
       stringOptionOrNull(account.accountType),
       JSONFactory121.createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       stringOptionOrNull(account.iban),
-      stringOptionOrNull(account.swift_bic),
+      stringOptionOrNull(None),//set it None for V200
       stringOrNull(account.bankId.value),
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )

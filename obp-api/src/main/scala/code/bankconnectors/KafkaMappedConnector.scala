@@ -1135,7 +1135,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def balance : BigDecimal        = BigDecimal(r.balanceAmount)
     def currency : String           = r.balanceCurrency
     def name : String               = r.owners.head
-    def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.iban)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bankId)

@@ -111,7 +111,6 @@ case class BankAccountCommons(
                                currency :String,
                                name :String,
                                label :String,
-                               swift_bic :Option[String],
                                iban :Option[String],
                                number :String,
                                bankId :BankId,
