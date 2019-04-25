@@ -79,29 +79,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   // ---------- create on Wed Apr 17 20:27:50 CST 2019
 
-  // url example: /getAdapterInfo
-  override def getAdapterInfo(callContext: Option[CallContext]): Box[(InboundAdapterInfoInternal, Option[CallContext])] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAdapterInfo")
-        sendGetRequest[InBoundGetAdapterInfo](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getAdapterInfo")
-  
   // url example: /getAdapterInfoFuture
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
     /**
