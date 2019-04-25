@@ -31,14 +31,14 @@ import java.text.SimpleDateFormat
 
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, BigDecimalSerializer, CustomJsonFormats}
 import code.api.util.APIUtil._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
 import dispatch._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{DefaultFormats, ShortTypeHints}
+import net.liftweb.json.{DefaultFormats, Formats, ShortTypeHints}
 import org.scalatest._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
@@ -46,8 +46,9 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with Matchers with MdcLoggable {
 
-  implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
-  implicit val dateFormats = net.liftweb.json.DefaultFormats
+  implicit val formats:Formats = new DefaultFormats {
+      override val typeHints = ShortTypeHints(List())
+    } + BigDecimalSerializer
   
   
   val server = TestServer

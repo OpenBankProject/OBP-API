@@ -8,7 +8,7 @@ import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import code.actorsystem.ObpLookupSystem
-import code.api.util.ApiTrigger
+import code.api.util.{ApiTrigger, CustomJsonFormats}
 import code.api.util.ApiTrigger.{OnBalanceChange, OnCreditTransaction, OnDebitTransaction}
 import code.util.Helper.MdcLoggable
 import code.webhook.WebhookActor.{WebhookFailure, WebhookRequest, WebhookResponse}
@@ -70,7 +70,7 @@ object WebhookHttpClient extends MdcLoggable {
   private def getEventPayload(request: WebhookRequest): RequestEntity = {
     request.trigger match {
       case OnBalanceChange() | OnCreditTransaction() | OnDebitTransaction() =>
-        implicit val formats = net.liftweb.json.DefaultFormats
+        implicit val formats = CustomJsonFormats.formats
         val json = liftweb.json.compactRender(Extraction.decompose(request.toEventPayload))
         val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
         entity
@@ -209,7 +209,7 @@ object WebhookHttpClient extends MdcLoggable {
     )
     makeRequest(getHttpRequest(uri, "GET", "HTTP/1.1"), request)
 
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     case class User(name: String, job: String)
     val user = User("morpheus", "leader")
     val json = liftweb.json.compactRender(Extraction.decompose(user))

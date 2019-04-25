@@ -603,7 +603,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //          "accountId" -> accountId.value,
 //          "userId" -> accountHolder
 //        )
-//        implicit val formats = net.liftweb.json.DefaultFormats
 //        val r = {process(req).extract[List[KafkaInboundAccount]]}
 //        r
 //      }
@@ -632,7 +631,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //      "userId" -> primaryUserIdentifier
 //    )
 //    // Since result is single account, we need only first list entry
-//    implicit val formats = net.liftweb.json.DefaultFormats
 //    val r = process(req).extract[KafkaInboundAccount]
 //    createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
 //    Full(new KafkaBankAccount(r))

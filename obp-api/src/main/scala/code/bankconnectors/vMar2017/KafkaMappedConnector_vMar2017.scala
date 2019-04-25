@@ -627,7 +627,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       accountId = accountId.toString,
       queryParams = queryParams.toString)
 
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     val rList = process(req).extract[List[InternalTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
@@ -687,7 +687,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
 
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount])
     }
@@ -762,7 +762,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
           bankId = a._1.value,
           accountId = a._2.value)
 
-        implicit val formats = net.liftweb.json.DefaultFormats
+        implicit val formats = CustomJsonFormats.formats
         val r = {
           cachedAccounts.getOrElseUpdate( req.toString, () => process(req).extract[List[InboundAccount]])
         }
@@ -827,7 +827,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
 
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount])
     }
@@ -886,7 +886,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         counterpartyId = counterpartyId.toString
       )
       // Since result is single account, we need only first list entry
-      implicit val formats = net.liftweb.json.DefaultFormats
+      implicit val formats = CustomJsonFormats.formats
       val r = {
         cachedCounterparty.getOrElseUpdate(req.toString, () => process(req).extract[InboundCounterparty])
       }

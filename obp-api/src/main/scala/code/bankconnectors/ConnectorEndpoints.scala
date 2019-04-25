@@ -86,7 +86,7 @@ object ConnectorEndpoints extends RestHelper{
       case name::Nil => (name.asInstanceOf[String], null)
     }.toMap
 
-    val queryParamValues: Seq[OBPQueryParam] = symbols.lastOption.find(_.info <:< paramsType).map(_ => queryParams).getOrElse(Seq[OBPQueryParam]())
+    val queryParamValues: Seq[OBPQueryParam] = symbols.lastOption.find(_.info <:< paramsType).map(_ => queryParams).getOrElse(Nil)
 
     val otherValues: List[Any] = symbols.filterNot(_.info <:< paramsType)
       .map {symbol =>

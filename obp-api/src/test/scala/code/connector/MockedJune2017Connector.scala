@@ -1,6 +1,6 @@
 package code.connector
 
-import code.api.util.CallContext
+import code.api.util.{CallContext, CustomJsonFormats}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.model._
@@ -20,7 +20,7 @@ object MockedJune2017Connector extends ServerSetup
   with Connector with DefaultUsers  
   with DefaultConnectorTestSetup with MdcLoggable {
   
-  override implicit val formats = net.liftweb.json.DefaultFormats
+  override implicit val formats = CustomJsonFormats.formats
   implicit override val nameOfConnector = "MockedCardConnector"
   
   

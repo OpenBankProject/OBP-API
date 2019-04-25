@@ -436,7 +436,7 @@ class Boot extends MdcLoggable {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
 
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     LiftRules.exceptionHandler.prepend{
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)

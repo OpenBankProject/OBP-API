@@ -384,7 +384,7 @@ trait APIMethods_APIBuilder
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = code.api.util.CustomJsonFormats.formats
 
     $errorMessageVal;
     def endpointsOfBuilderAPI = getTemplatesFromFile :: getTemplate :: createTemplate :: getTemplates :: deleteTemplate :: Nil
@@ -452,7 +452,7 @@ $modelTrait
   
   //def createTemplates(templates: List[Template]) = templates.map(template => TemplateJson(template.templateId, template.author, template.tutor, template.pages, template.points))
   val createTemplatesDef: Defn.Def = q"""def createTemplates(templates: List[Template])= templates.map(template => $createTemplateJsonApply)"""
-  
+
   val jsonFactorySource: Source =source"""
 /** 
 Open Bank Project - API       

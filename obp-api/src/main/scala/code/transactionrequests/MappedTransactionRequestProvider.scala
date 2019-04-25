@@ -1,8 +1,8 @@
 package code.transactionrequests
 
+import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
-
 import code.model._
 import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, _}
 import code.util.{AccountIdString, UUIDString}
@@ -159,11 +159,9 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
 }
 
-class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated {
+class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated with CustomJsonFormats {
 
   private val logger = Logger(classOf[MappedTransactionRequest])
-  
-  implicit val formats = net.liftweb.json.DefaultFormats
 
   override def getSingleton = MappedTransactionRequest
 

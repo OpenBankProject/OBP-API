@@ -333,7 +333,7 @@ trait APIMethods_APIBuilder
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = code.api.util.CustomJsonFormats.formats
 
     $errorMessageVal;
     def endpointsOfBuilderAPI =  getTemplates :: createTemplate :: getTemplate :: deleteTemplate:: Nil

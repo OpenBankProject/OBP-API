@@ -2,15 +2,13 @@ package code.api.STET.v1_4
 
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.{ModeratedBankAccount, ModeratedTransaction}
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest}
 
 import scala.collection.immutable.List
 
-object JSONFactory_STET_1_4 {
-
-  implicit val formats = net.liftweb.json.DefaultFormats
+object JSONFactory_STET_1_4 extends CustomJsonFormats {
 
   trait Links
   case class Balances(balances: String) extends Links

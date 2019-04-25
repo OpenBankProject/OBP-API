@@ -55,11 +55,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val implementedInApiVersion = ApiVersion.v1_4_0
 
-    implicit val formats = new Formats {
-      val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
-
-      override val typeHints = ShortTypeHints(rolesMappedToClasses)
-    }
+    implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
 
     def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
     {

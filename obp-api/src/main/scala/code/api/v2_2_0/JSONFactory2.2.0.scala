@@ -30,9 +30,9 @@ package code.api.v2_2_0
 import java.util.Date
 
 import code.actorsystem.ObpActorConfig
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.util.APIUtil.MessageDoc
-import code.api.v1_2_1.{ BankRoutingJsonV121}
+import code.api.v1_2_1.BankRoutingJsonV121
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
@@ -365,9 +365,7 @@ case class CustomerViewJsonV220(
 
 
 
-object JSONFactory220{
-
-  implicit val formats = net.liftweb.json.DefaultFormats
+object JSONFactory220 extends CustomJsonFormats {
   
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
