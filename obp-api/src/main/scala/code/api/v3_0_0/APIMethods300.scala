@@ -947,9 +947,7 @@ trait APIMethods300 {
             for {
               (_, callContext) <- anonymousAccess(cc)
               (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-              (ai, callContext) <- Future(Connector.connector.vend.getAdapterInfo(callContext)) map {
-                connectorEmptyResponse(_, callContext)
-              }
+              (ai, callContext) <- NewStyle.function.getAdapterInfo(callContext)
             } yield {
               (createAdapterInfoJson(ai), callContext)
             }

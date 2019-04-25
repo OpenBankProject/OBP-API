@@ -73,7 +73,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
-
+  //
+  override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(
+    Full(InboundAdapterInfoInternal(
+      errorCode = "",
+      backendMessages = Nil,
+      name ="LocalMappedConnector",
+      version ="Just for testing.",
+      git_commit ="",
+      date =""
+    ), callContext))
+  
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, 
                                      accountId: String, 

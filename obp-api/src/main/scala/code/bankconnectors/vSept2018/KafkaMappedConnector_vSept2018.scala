@@ -243,41 +243,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  override def getAdapterInfo(callContext: Option[CallContext]) = {
-    val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
-
-    logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
-
-    val box = for {
-      kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
-      received = liftweb.json.compactRender(kafkaMessage)
-      expected = SchemaFor[InboundAdapterInfoInternal]().toString(false)
-      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! {
-        val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-        sendOutboundAdapterError(error)
-        error
-      }
-      inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
-    } yield{
-      inboundAdapterInfoInternal
-    }
-
-
-    logger.debug(s"Kafka getAdapterInfo Res says:  is: $box")
-
-    val res = box match {
-      case Full(list) if (list.errorCode=="") =>
-        Full(list, callContext)
-      case Full(list) if (list.errorCode!="") =>
-        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
-      case Failure(msg, e, c)  =>
-        Failure(msg, e, c)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
-    }
-
-    res
-  }
+  
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
     val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
 

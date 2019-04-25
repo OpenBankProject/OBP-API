@@ -129,37 +129,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAdapterInfo]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true)))
   )
-  override def getAdapterInfo(callContext: Option[CallContext]) = {
-    val req = OutboundGetAdapterInfo(
-      AuthInfo(sessionId = callContext.get.correlationId),
-      DateWithSecondsExampleString
-    )
-    
-    logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
-  
-    val box = for {
-      kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
-      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"$InboundAdapterInfo extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-    } yield{
-      inboundAdapterInfo
-    }
-    
-    logger.debug(s"Kafka getAdapterInfo Res says:  is: $box")
-    
-    val res = box match {
-      case Full(inboundAdapterInfo) if (inboundAdapterInfo.data.errorCode=="") =>
-         val callContextUpdated = ApiSession.updateSessionId(callContext, inboundAdapterInfo.authInfo.sessionId)
-        Full(inboundAdapterInfo.data, callContextUpdated)
-      case Full(inboundAdapterInfo) if (inboundAdapterInfo.data.errorCode!="") =>
-        Failure("INTERNAL-"+ inboundAdapterInfo.data.errorCode+". + CoreBank-Status:"+ inboundAdapterInfo.data.backendMessages)
-      case Failure(msg, e, c)  =>
-        Failure(msg, e, c)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
-    }
-    
-    res
-  }
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
     val req = OutboundGetAdapterInfo(
       AuthInfo(sessionId = callContext.get.correlationId),

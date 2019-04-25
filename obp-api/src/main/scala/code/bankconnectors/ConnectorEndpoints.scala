@@ -5,9 +5,11 @@ import code.api.util.APIUtil.{OBPEndpoint, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
+import com.openbankproject.commons.model.InboundAdapterCallContext
 import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
+import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.http.rest.RestHelper
 import org.apache.commons.lang3.StringUtils
 
@@ -45,10 +47,13 @@ object ConnectorEndpoints extends RestHelper{
             APIUtil.fullBoxOrException(it._1 ~> APIFailureNewStyle("", 400, optionCC.map(_.toLight)))
             it
           }
-          adapterCallContext = callContext.orElse(optionCC).map(_.toAdapterCallContext).orNull
+          inboundAdapterCallContext = nameOf(InboundAdapterCallContext)
+          //convert first letter to small case
+          inboundAdapterCallContextKey = Character.toLowerCase(inboundAdapterCallContext.charAt(0)) + inboundAdapterCallContext.substring(1)
+          inboundAdapterCallContextValue = InboundAdapterCallContext(cc.correlationId)
         } yield {
           // NOTE: if any filed type is BigDecimal, it is can't be serialized by lift json
-          val json = Map(("adapterCallContext", adapterCallContext),("data", toValueObject(data)))
+          val json = Map((inboundAdapterCallContextKey, inboundAdapterCallContextValue),("data", toValueObject(data)))
           (json, HttpCode.`200`(cc))
         }
       }
