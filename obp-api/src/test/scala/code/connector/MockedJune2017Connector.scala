@@ -20,9 +20,7 @@ object MockedJune2017Connector extends ServerSetup
   with Connector with DefaultUsers  
   with DefaultConnectorTestSetup with MdcLoggable {
   
-  override implicit val formats = CustomJsonFormats.formats
   implicit override val nameOfConnector = "MockedCardConnector"
-  
   
   //These bank id and account ids are real data over adapter  
   val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))

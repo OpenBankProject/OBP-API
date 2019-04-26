@@ -13,7 +13,7 @@ import net.liftweb.http._
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
-import net.liftweb.json.{DefaultFormats, Extraction}
+import net.liftweb.json.{Extraction}
 import net.liftweb.util.Helpers._
 
 /**
@@ -64,7 +64,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
   def whenAddedJson(t : Transaction) : JObject = {
 
     def formatDate(date : Date) : String = {
-      DefaultFormats.lossless.dateFormat.format(date)
+      CustomJsonFormats.losslessFormats.dateFormat.format(date)
     }
 
     val thisBank = Connector.connector.vend.getBank(t.bankId, None).map(_._1)

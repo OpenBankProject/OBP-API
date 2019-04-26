@@ -40,6 +40,7 @@ TESOBE (http://www.tesobe.com/)
 * into your props file.
 * */
 
+import code.api.util.CustomJsonFormats
 import code.setup.SendServerRequests
 import code.util.ObpJson.{BarebonesAccountsJson, _}
 import code.util.{Header, OAuthClient, ObpGet, ObpPost}
@@ -72,7 +73,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
 
   def main(args : Array[String]) {
-    implicit val formats = DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
 
     //load json for counterpaties
     // val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/korea/loaded_06/OBP_sandbox_counterparties_pretty.json"

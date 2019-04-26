@@ -48,7 +48,7 @@ TESOBE (http://www.tesobe.com/)
 
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.v2_2_0.FXRateJsonV220
 import code.setup.SendServerRequests
 import code.util.ObpJson._
@@ -78,7 +78,7 @@ object PutFX extends SendServerRequests {
   def main(args : Array[String]) {
 
     // this sets the date format to "yyyy-MM-dd'T'HH:mm:ss'Z'" i.e. ISO 8601 No milliseconds UTC
-    implicit val formats = DefaultFormats // Brings in default date formats etc.
+    implicit val formats = CustomJsonFormats.formats // Brings in default date formats etc.
 
     val adminUserUsername = APIUtil.getPropsValue("import.admin_user.username").getOrElse("ERROR")
     println(s"adminUserUsername is $adminUserUsername")

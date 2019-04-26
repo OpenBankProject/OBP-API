@@ -1,7 +1,7 @@
 package code.api.util
 
 import code.api.util.ApiRole.rolesMappedToClasses
-import net.liftweb.json._
+import net.liftweb.json.{DefaultFormats, Formats, ShortTypeHints, TypeInfo, JString, JValue, MappingException, Serializer}
 
 trait CustomJsonFormats {
   implicit val formats: Formats = CustomJsonFormats.formats
