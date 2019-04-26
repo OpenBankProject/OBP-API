@@ -1726,14 +1726,35 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getCounterpartyByCounterpartyId")
 
 
-  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String, callContext: Option[CallContext]) = saveConnectorMetric{
+  messageDocs += MessageDoc(
+    process = "obp.get.CounterpartyTrait",
+    messageFormat = messageFormat,
+    description = "Get a Counterparty by its bankId, accountId and counterpartyId",
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterparty.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterparty.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+      OutboundGetCounterparty(
+        authInfoExample,
+        "BankId",
+        "AccountId",
+        "counterpartyId"
+      )
+      ),
+    exampleInboundMessage = (
+      InboundGetCounterparty(inboundAuthInfoExample, 
+        statusExample, 
+        Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
+      ),
+    adapterImplementation = Some(AdapterImplementation("Payments", 1))
+  )
+  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, counterpartyId: String, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
-    val req = OutboundGetCounterparty(getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox), thisBankId.value, thisAccountId.value, couterpartyId)
+    val req = OutboundGetCounterparty(getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox), thisBankId.value, thisAccountId.value, counterpartyId)
     logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req")
 
     val future = for {
