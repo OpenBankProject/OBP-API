@@ -441,7 +441,13 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   private[this] val baseUrl = "http://localhost:8080/restConnector"
 
   private[this] def getUrl(methodName: String, variables: (String, Any)*):String = {
-    variables.foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${pair._2}"))
+    // TODO need wait for confirm the rule, after that do refactor
+    val urlValueConverter = (obj: Any) => obj match {
+      case null => ""
+      case seq: Seq[_] => seq.map(_.toString.replaceFirst("^\\w+\\((.*)\\)$", "$1")).mkString(";")
+      case other => other.toString
+    }
+    variables.foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${urlValueConverter(pair._2)}"))
   }
 
   private[this] def sendRequest[T : TypeTag: Manifest](url: String, callContext: Option[CallContext], method: HttpMethod, entityJsonString: String = "") :Future[Box[T]] = {

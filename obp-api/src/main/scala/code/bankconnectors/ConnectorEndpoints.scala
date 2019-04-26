@@ -5,7 +5,7 @@ import code.api.util.APIUtil.{OBPEndpoint, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
-import com.openbankproject.commons.model.InboundAdapterCallContext
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, InboundAdapterCallContext}
 import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -36,7 +36,18 @@ object ConnectorEndpoints extends RestHelper{
           OBPQueryParam.toToDate(req.param("toDate"))
         ).filter(_.isDefined).map(_.openOrThrowException("Impossible exception!"))
 
-        val paramValues: Seq[Any] = getParamValues(params, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
+        // TODO need wait for confirm the rule, after that do refactor
+        val paramValues: Seq[Any] =
+          if(methodName == "getCoreBankAccounts"){
+            val bankIdAcountIds = params(1).split(";").map(it => {
+              val bkIdAnAcId = it.split(",", 2)
+              BankIdAccountId(BankId(bkIdAnAcId(0)), AccountId(bkIdAnAcId(1)))
+            }).toList
+            Seq(bankIdAcountIds, optionCC)
+          } else {
+            getParamValues(params, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
+          }
+
         val  value = invokeMethod(methodSymbol, paramValues :_*)
 
         // convert any to Future[(Box[_], Option[CallContext])]  type
