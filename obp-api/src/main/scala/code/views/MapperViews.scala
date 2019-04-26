@@ -148,6 +148,7 @@ object MapperViews extends Views with MdcLoggable {
         By(AccountAccess.bank_id, viewUID.bankId.value),
         By(AccountAccess.account_id, viewUID.accountId.value),
         By(AccountAccess.view_fk, viewDefinition.id))
+      _ <- accessRemovableAsBox(viewDefinition, user)
     } yield {
       aa.delete_!
     }
@@ -168,7 +169,9 @@ object MapperViews extends Views with MdcLoggable {
       if(accountHolders.map(h => h.userPrimaryKey).contains(user.userPrimaryKey)) {
         false
       } else {
-        true
+        // if it's the owner view, we can only revoke access if there would then still be someone else
+        // with access
+        AccountAccess.findAll(By(AccountAccess.view_fk, viewDefinition.id)).length > 1
       }
     } else {
       true
@@ -184,10 +187,21 @@ object MapperViews extends Views with MdcLoggable {
     //TODO: make this more efficient by using one query (with a join)
     val allUserPrivs = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
 
-    val relevantAccountPrivs = allUserPrivs.filter(p => p.bank_id == bankId && p.account_id == accountId)
-    
-    relevantAccountPrivs.foreach(_.delete_!)
-    Full(true)
+    val relevantAccountPrivs = allUserPrivs.filter(p => p.bank_id == bankId.value && p.account_id == accountId.value)
+
+    val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => p.view_fk.obj match {
+      case Full(v) => accessRemovable(v, user)
+      case _ => false
+    })
+
+
+    if(allRelevantPrivsRevokable) {
+      relevantAccountPrivs.foreach(_.delete_!)
+      Full(true)
+    } else {
+      Failure("One of the views this user has access to is the owner view, and there would be no one with access" +
+        " to this owner view if access to the user was revoked. No permissions to any views on the account have been revoked.")
+    }
 
   }
 
@@ -288,7 +302,7 @@ object MapperViews extends Views with MdcLoggable {
   def updateView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
 
     for {
-      view <- ViewDefinition.findByUniqueKey(viewId.value, bankAccountId.bankId.value, bankAccountId.accountId.value)
+      view <- ViewDefinition.findByUniqueKey(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
@@ -410,7 +424,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, "Owner") match {
+    getExistingView(bankId, accountId, "owner") match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -419,7 +433,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String = "Firehose View") : Box[View] = {
-    getExistingView(bankId, accountId, "Firehose") match {
+    getExistingView(bankId, accountId, "firehose") match {
       case Empty => createDefaultFirehoseView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -436,7 +450,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
-    getExistingView(bankId, accountId, "Public") match {
+    getExistingView(bankId, accountId, "public") match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -445,7 +459,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
-    getExistingView(bankId, accountId, "Accountant") match {
+    getExistingView(bankId, accountId, "accountant") match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -454,7 +468,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
-    getExistingView(bankId, accountId, "Auditor") match {
+    getExistingView(bankId, accountId, "auditor") match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)

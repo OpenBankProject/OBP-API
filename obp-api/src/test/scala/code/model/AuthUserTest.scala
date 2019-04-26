@@ -16,14 +16,14 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
   override def beforeAll() = {
     super.beforeAll()
     Connector.connector.default.set(MockedJune2017Connector)
-    ViewImpl.bulkDelete_!!()
+    ViewDefinition.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
   }
   
   override def afterEach() = {
     super.afterEach()
     Connector.connector.default.set(Connector.buildOne)
-    ViewImpl.bulkDelete_!!()
+    ViewDefinition.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
   }
   

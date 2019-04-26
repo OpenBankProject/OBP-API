@@ -322,7 +322,7 @@ trait OBPDataImport extends MdcLoggable {
   }
 
   final protected def createAccountsAndViews(data : SandboxDataImport, banks : List[BankType]) : Box[List[(Saveable[AccountType], List[ViewType], List[AccountOwnerUsername])]] = {
-
+org.scalameta.logger.elem(data)
     val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
       if(data.banks.exists(b => b.id == acc.bank)) None
       else Some(acc.bank)
@@ -358,7 +358,9 @@ trait OBPDataImport extends MdcLoggable {
       Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
     } else {
 
-      val validatedAccounts = dataOrFirstFailure(data.accounts.map(validateAccount(_, data)))
+      val validatedAccounts: Box[List[SandboxAccountImport]] = dataOrFirstFailure(data.accounts.map(validateAccount(_, data)))
+      
+      org.scalameta.logger.elem(validatedAccounts)
 
       validatedAccounts.flatMap(createSaveableAccountResults(_, banks))
     }

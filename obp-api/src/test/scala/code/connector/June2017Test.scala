@@ -4,6 +4,7 @@ import code.accountholders.MapperAccountHolders
 import code.bankconnectors.Connector
 import code.model.dataAccess.ViewImpl
 import code.setup.{DefaultUsers, ServerSetup}
+import code.views.system.ViewDefinition
 
 class June2017Test extends ServerSetup with DefaultUsers {
 
@@ -11,7 +12,7 @@ class June2017Test extends ServerSetup with DefaultUsers {
   override def beforeAll() = {
     super.beforeAll()
     Connector.connector.default.set(MockedJune2017Connector)
-    ViewImpl.bulkDelete_!!()
+    ViewDefinition.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
   }
   

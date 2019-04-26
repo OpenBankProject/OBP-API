@@ -305,7 +305,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
       for{
-        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
+        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
         isRevoked <- Views.views.vend.revokeAllPermissions(bankId, accountId, otherUser)
       } yield isRevoked
     else
