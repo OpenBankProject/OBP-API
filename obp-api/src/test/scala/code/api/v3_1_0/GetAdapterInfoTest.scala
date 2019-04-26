@@ -51,7 +51,7 @@ class GetAdapterInfoTest extends V310ServerSetup {
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
       response310.code should equal(200)
-      response310.body.extract[AdapterInfoJsonV300].version should equal("LocalMappedConnector")
+      response310.body.extract[AdapterInfoJsonV300].name should equal("LocalMappedConnector")
       
     }
   }
