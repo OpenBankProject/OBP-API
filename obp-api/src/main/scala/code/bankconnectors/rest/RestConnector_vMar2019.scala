@@ -194,7 +194,29 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
     }
   }("getBanks")
-    
+
+  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
+        val url = getUrl("getBankAccountsByUsernameFuture",("username", username))
+        sendGetRequest[InBoundGetBankAccountsByUsernameFuture](url, callContext)
+          .map { boxedResult =>
+            boxedResult.map { result =>
+              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
+            }
+          }
+      }
+    }
+  }("getBankAccountsByUsernameFuture")
+
+  
   // url example: /getBankAccount/bankId/{bankId}/accountId/{accountId}
   override def getBankAccountFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = saveConnectorMetric {
     /**
