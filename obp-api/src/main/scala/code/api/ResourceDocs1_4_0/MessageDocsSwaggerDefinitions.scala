@@ -13,7 +13,6 @@ object MessageDocsSwaggerDefinitions
 {
   
   val inboundAccountCommonCommons = InboundAccountCommonCommons(
-    errorCode = "",
     bankId = bankIdExample.value,
     branchId = branchIdExample.value,
     accountId = accountIdExample.value,

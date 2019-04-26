@@ -175,7 +175,6 @@ object CustomerAddressCommons extends Converter[CustomerAddress, CustomerAddress
 
 
 case class InboundAccountCommonCommons(
-                                        errorCode :String,
                                         bankId :String,
                                         branchId :String,
                                         accountId :String,

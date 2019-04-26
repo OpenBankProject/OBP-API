@@ -747,39 +747,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       ) :: Nil
     )
   )
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
-    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
-
-    val r:List[InboundAccount] = accts.flatMap { a => {
-
-        logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
-
-        val req = OutboundBankAccountsBase(
-          messageFormat = messageFormat,
-          action = "obp.get.Accounts",
-          userId = currentResourceUserId,
-          username = AuthUser.getCurrentUserUsername,
-          bankId = a._1.value,
-          accountId = a._2.value)
-
-        implicit val formats = CustomJsonFormats.formats
-        val r = {
-          cachedAccounts.getOrElseUpdate( req.toString, () => process(req).extract[List[InboundAccount]])
-        }
-        r
-      }
-    }
-
-    // Check does the response data match the requested data
-    val accRes = for(row <- r) yield {
-      (BankId(row.bankId), AccountId(row.accountId))
-    }
-    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidConnectorResponseForGetBankAccounts)
-
-    r.map { t =>
-      createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)
-      new BankAccount2(t) }
-  }
 
   //TODO the method name is different from action
   messageDocs += MessageDoc(

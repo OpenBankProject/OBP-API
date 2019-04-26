@@ -584,41 +584,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     }
   }("getBankAccount")
 
-  //TODO not used yet
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = List()
-  // memoizeSync(getAccountsTTL millisecond) {
-//    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
-//
-//    val r:List[KafkaInboundAccount] = accts.flatMap { a => {
-//      val bankId= BankId(a._1.value)
-//      val accountId =AccountId(a._2.value)
-//      val accountHolder = getAccountHolderCached(bankId,accountId)
-//      logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${bankId.value} and  ${accountId.value} and primaryUserIdentifier is $primaryUserIdentifier")
-//      
-//        val req = Map(
-//          "version" -> formatVersion,
-//          "name" -> "get",
-//          "target" -> "account",
-//          "bankId" -> bankId.value,
-//          "accountId" -> accountId.value,
-//          "userId" -> accountHolder
-//        )
-//        val r = {process(req).extract[List[KafkaInboundAccount]]}
-//        r
-//      }
-//    }
-//
-//    // Check does the response data match the requested data
-////    val accRes = for(row <- r) yield {
-////      (BankId(row.bankId), AccountId(row.accountId))
-////    }
-////    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountsConnectorResponse)
-//
-//    r.map { t =>
-//      createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)
-//      new KafkaBankAccount(t) }
-//  }
-
   private def getAccountByNumber(bankId : BankId, number : String) : Box[BankAccount] = Empty
   // memoizeSync(getAccountTTL millisecond) {
 //    val accountHolder = getAccountHolderCached(bankId,accountId)

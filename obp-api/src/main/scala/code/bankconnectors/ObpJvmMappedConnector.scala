@@ -405,7 +405,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
+  @deprecated("No sense to use list of its to get bankaccount back.","26/04/2019")
+  def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
 
     logger.info(s"hello from ObpJvmMappedConnnector.getBankAccounts accts is $accts")
 

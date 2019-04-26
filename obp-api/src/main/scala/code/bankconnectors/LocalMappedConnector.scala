@@ -5,6 +5,7 @@ import java.util.UUID.randomUUID
 
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute
+import code.accountholders.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
@@ -38,6 +39,7 @@ import com.openbankproject.commons.model.Product
 import code.taxresidence.TaxResidence
 import code.transaction.MappedTransaction
 import code.transactionrequests._
+import code.users.Users
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
@@ -215,49 +217,38 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBanks(callContext)
   }
 
+  //This method is only for testing now. Normall this method 
   override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])]= {
-    val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
-    val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
-    Full(
-      InboundAccountJune2017(
-        "",
-        cbsToken = "cbsToken",
-        bankId = bankIdAccountId.bankId.value,
-        branchId = "222",
-        accountId = bankIdAccountId.accountId.value,
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = Nil,
-        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress",
-        accountRouting = Nil, accountRules = Nil) ::
-      InboundAccountJune2017(
-        "",
-        cbsToken = "cbsToken",
-        bankId = bankIdAccountId2.bankId.value,
-        branchId = "222", accountId = bankIdAccountId2.accountId.value,
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = Nil,
-        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress",
-        accountRouting = Nil, accountRules = Nil
-      ) :: Nil,
-      None
-    )
+    val inboundAccountCommonCommonsBox: Box[Set[InboundAccountCommonCommons]] =for{
+      //1 get all the accounts for one user
+      user <- Users.users.vend.getUserByUserName(username)
+      bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
+    } yield{
+      for{
+        bankAccountId <- bankAccountIds
+        (bankAccount, callContext) <- getBankAccountCommon(bankAccountId.bankId, bankAccountId.accountId,callContext)
+        inboundAccountCommonCommons = InboundAccountCommonCommons(
+          bankId = bankAccount.bankId.value,
+          branchId = bankAccount.branchId,
+          accountId = bankAccount.accountId.value,
+          accountNumber = bankAccount.number,
+          accountType = bankAccount.accountType,
+          balanceAmount = bankAccount.balance.toString(),
+          balanceCurrency = bankAccount.currency,
+          owners = bankAccount.userOwners.map(_.name).toList,
+          viewsToGenerate = List("Owner","Public","Auditor","Accountant"),
+          bankRoutingScheme = bankAccount.bankRoutingScheme,
+          bankRoutingAddress = bankAccount.bankRoutingAddress,
+          branchRoutingScheme = "",
+          branchRoutingAddress ="",
+          accountRoutingScheme = bankAccount.accountRoutingScheme,
+          accountRoutingAddress = bankAccount.accountRoutingAddress
+        )
+      } yield {
+        inboundAccountCommonCommons
+      }
+    }
+    inboundAccountCommonCommonsBox.map( inboundAccountCommonCommons => (inboundAccountCommonCommons.toList, callContext))
   }
 
   override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = Future{

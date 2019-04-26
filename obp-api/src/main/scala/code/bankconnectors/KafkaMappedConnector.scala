@@ -395,7 +395,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     Full(new KafkaBankAccount(r),callContext)
   }
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
+   @deprecated("No sense to use list of its to get bankaccount back.","26/04/2019")
+   def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[KafkaInboundAccount] = accts.flatMap { a => {

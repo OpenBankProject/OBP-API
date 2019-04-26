@@ -220,16 +220,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   
   def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = Future {Failure(NotImplemented + currentMethodName)}
 
-  def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
-    for {
-      acc <- accounts
-      a <- getBankAccount(acc._1, acc._2)
-    } yield a
-  }
-  
-
-  
-  
   /**
     * 
     * @param username username of the user.
@@ -1243,10 +1233,10 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   }
 
   //This method is only existing in mapper
-  def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Box[Boolean]= {
+  def accountOwnerExists(user: User, bankId: BankId, accountId: AccountId): Box[Boolean]= {
     val res =
       MapperAccountHolders.findAll(
-        By(MapperAccountHolders.user, user),
+        By(MapperAccountHolders.user, user.asInstanceOf[ResourceUser]),
         By(MapperAccountHolders.accountBankPermalink, bankId.value),
         By(MapperAccountHolders.accountPermalink, accountId.value)
       )
