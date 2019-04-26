@@ -176,7 +176,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     }
   }
 
-  def getResourceUserByUsername(username: String) : Box[ResourceUser] = {
+  def getResourceUserByUsername(username: String) : Box[User] = {
     Users.users.vend.getUserByUserName(username)
   }
 
