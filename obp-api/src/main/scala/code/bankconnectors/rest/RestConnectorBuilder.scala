@@ -36,8 +36,8 @@ object RestConnectorBuilder extends App {
     "getTransactions", // have OBPQueryParam
     "getTransactionsCore", //have OBPQueryParam
     "getTransaction",
-    "createChallenge",
-    "createCounterparty",
+//    "createChallenge",
+//    "createCounterparty",
     "getTransactionRequests210", //have problem params are not simple object
     "getCounterparties",
     "getCounterpartiesFuture",
@@ -51,7 +51,7 @@ object RestConnectorBuilder extends App {
     "getAtmsFuture", //have OBPQueryParam
     "getAtmFuture",
     "getChallengeThreshold",
-    "makePaymentv210",
+//    "makePaymentv210",
     //    "getCoreBankAccountsHeldFuture", // param is not simple object, and return type is not common
   )
 
