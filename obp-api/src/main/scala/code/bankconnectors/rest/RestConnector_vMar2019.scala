@@ -23,7 +23,7 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
-import java.util.Date
+import java.net.URLEncoder
 import java.util.UUID.randomUUID
 
 import akka.http.scaladsl.model.{HttpProtocol, _}
@@ -37,7 +37,6 @@ import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.KafkaHelper
-import code.model.BankAccount
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
@@ -441,12 +440,17 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   private[this] val baseUrl = "http://localhost:8080/restConnector"
 
   private[this] def getUrl(methodName: String, variables: (String, Any)*):String = {
-    // TODO need wait for confirm the rule, after that do refactor
-    val urlValueConverter = (obj: Any) => obj match {
-      case null => ""
-      case seq: Seq[_] => seq.map(_.toString.replaceFirst("^\\w+\\((.*)\\)$", "$1")).mkString(";")
-      case other => other.toString
+    // convert any type value to string, to fill in the url
+    val urlValueConverter = (obj: Any) => {
+      val value = obj match {
+        case null => ""
+        case seq: Seq[_] => seq.map(_.toString.replaceFirst("^\\w+\\((.*)\\)$", "$1")).mkString(";")
+        case seq: Array[_] => seq.map(_.toString.replaceFirst("^\\w+\\((.*)\\)$", "$1")).mkString(";")
+        case other => other.toString
+      }
+      URLEncoder.encode(value, "UTF-8")
     }
+
     variables.foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${urlValueConverter(pair._2)}"))
   }
 
