@@ -37,16 +37,7 @@ object ConnectorEndpoints extends RestHelper{
         ).filter(_.isDefined).map(_.openOrThrowException("Impossible exception!"))
 
         // TODO need wait for confirm the rule, after that do refactor
-        val paramValues: Seq[Any] =
-          if(methodName == "getCoreBankAccounts"){
-            val bankIdAcountIds = params(1).split(";").map(it => {
-              val bkIdAnAcId = it.split(",", 2)
-              BankIdAccountId(BankId(bkIdAnAcId(0)), AccountId(bkIdAnAcId(1)))
-            }).toList
-            Seq(bankIdAcountIds, optionCC)
-          } else {
-            getParamValues(params, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
-          }
+        val paramValues: Seq[Any] = getParamValues(params, methodSymbol.paramLists.headOption.getOrElse(Nil), optionCC, queryParams)
 
         val  value = invokeMethod(methodSymbol, paramValues :_*)
 
@@ -79,18 +70,26 @@ object ConnectorEndpoints extends RestHelper{
 //  }
 
   def convertValue(str: String, tp: ru.Type): Any = {
+    val typeArg = tp.typeArgs.headOption
+
     tp match {
       case _ if(tp =:= ru.typeOf[String]) => str
       case _ if(StringUtils.isBlank(str)) => null
       case _ if(tp =:= ru.typeOf[Int]) => str.toInt
       case _ if(tp =:= ru.typeOf[BigDecimal]) => BigDecimal(str)
       case _ if(tp =:= ru.typeOf[Boolean]) => "true" equalsIgnoreCase str
+      case _ if(tp <:< ru.typeOf[List[_]]) => str.split(";").map(convertValue(_, typeArg.get)).toList
+      case _ if(tp <:< ru.typeOf[Set[_]]) => str.split(";").map(convertValue(_, typeArg.get)).toSet
+      case _ if(tp <:< ru.typeOf[Array[_]]) => str.split(";").map(convertValue(_, typeArg.get))
         // have single param constructor case class
-      case _ if(tp.typeSymbol.asClass.isCaseClass && tp.decl(ru.termNames.CONSTRUCTOR).asMethod.paramLists.headOption.getOrElse(Nil).size == 1) => {
-        ReflectUtils.invokeConstructor(tp) { tps =>
-          val value = convertValue(str, tps.head)
-          List(value)
+      case _ if(tp.typeSymbol.asClass.isCaseClass) => {
+        val paramList: Seq[ru.Symbol] = tp.decl(ru.termNames.CONSTRUCTOR).asMethod.paramLists.headOption.getOrElse(Nil)
+        val params: Seq[Any] = paramList.size match {
+          case 1 => Seq(convertValue(str, paramList.head.info))
+          case size if(size > 1) => str.split(",", size).zipAll(paramList, null, null).map(it => convertValue(it._1, it._2.info))
+          case _ => throw new IllegalStateException(s"constructor must have at lest one parameter, but $tp constructor have no parameter.")
         }
+        ReflectUtils.invokeConstructor(tp, params:_*)
       }
       case _ => throw new IllegalAccessException(s"$tp type  is not support in the url, it means Shuang have not supply this type, please contact with Shuang to ask support it")
     }
