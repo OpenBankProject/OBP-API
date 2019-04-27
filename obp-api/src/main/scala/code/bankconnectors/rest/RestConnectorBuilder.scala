@@ -31,10 +31,10 @@ object RestConnectorBuilder extends App {
     "getBankAccount",
     "checkBankAccountExists",
     "checkBankAccountExistsFuture",
-    "getCoreBankAccounts", // have problem, param not simple object
-    "getCoreBankAccountsFuture", // have problem, param not simple object
-    "getTransactions", // have OBPQueryParam
-    "getTransactionsCore", //have OBPQueryParam
+    "getCoreBankAccounts",
+    "getCoreBankAccountsFuture",
+    "getTransactions",
+    "getTransactionsCore",
     "getTransaction",
 //    "createChallenge",
 //    "createCounterparty",
@@ -46,9 +46,9 @@ object RestConnectorBuilder extends App {
     "getCustomersByUserIdFuture",
     "getCheckbookOrdersFuture",
     "getStatusOfCreditCardOrderFuture",
-    "getBranchesFuture", //have OBPQueryParam
+    "getBranchesFuture",
     "getBranchFuture",
-    "getAtmsFuture", //have OBPQueryParam
+    "getAtmsFuture",
     "getAtmFuture",
     "getChallengeThreshold",
 //    "makePaymentv210",

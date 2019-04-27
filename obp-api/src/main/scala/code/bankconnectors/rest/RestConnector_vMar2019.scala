@@ -53,6 +53,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import net.liftweb.json.Serialization.write
+import org.apache.commons.lang3.StringUtils
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
 
@@ -476,11 +477,12 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   private[this] def extractEntity[T: Manifest](responseEntity: ResponseEntity, callContext: Option[CallContext], failCode: Int = 400): Future[Box[T]] = {
     this.extractBody(responseEntity)
-        .map(it => {
-          tryo {
-            parse(it).extract[T]
-          } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", failCode, callContext.map(_.toLight))
-        })
+      .map({
+        case null => Empty
+        case str => tryo {
+          parse(str).extract[T]
+        } ~> APIFailureNewStyle(s"$InvalidJsonFormat The Json body should be the ${manifest[T]} ", failCode, callContext.map(_.toLight))
+      })
   }
 
   /**
