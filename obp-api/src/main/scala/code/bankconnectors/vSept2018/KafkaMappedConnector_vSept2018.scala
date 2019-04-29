@@ -2800,20 +2800,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     res
   }
   
-  //This is not a independent kafka method, it call the internal method `getCoreBankAccountsFuture`, so there is no message doc here.
-  override def getCoreBankAccountsHeldFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
-    for{
-      (accounts, callContext) <- getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) map {
-        connectorEmptyResponse(_, callContext)}
-    } yield {
-      tryo{accounts.map(account =>AccountHeld(
-                 account.id,
-                 account.bankId,
-                 "",
-                 account.accountRoutings))}
-    }
-  }
-
 }
 
 

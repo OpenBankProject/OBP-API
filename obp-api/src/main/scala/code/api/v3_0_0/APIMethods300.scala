@@ -2033,7 +2033,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
-            accounts <- Connector.connector.vend.getCoreBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
+            accounts <- Connector.connector.vend.getBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {

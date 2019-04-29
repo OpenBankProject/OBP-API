@@ -52,7 +52,6 @@ object RestConnectorBuilder extends App {
     "getAtmFuture",
     "getChallengeThreshold",
 //    "makePaymentv210",
-    //    "getCoreBankAccountsHeldFuture", // param is not simple object, and return type is not common
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
