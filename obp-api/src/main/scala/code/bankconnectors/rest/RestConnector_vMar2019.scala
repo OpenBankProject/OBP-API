@@ -25,6 +25,7 @@ Berlin 13359, Germany
 
 import java.net.URLEncoder
 import java.util.UUID.randomUUID
+import java.util.Date
 
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.util.ByteString
@@ -74,7 +75,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
 
-//---------------- dynamic start ---------------------
+//---------------- dynamic start -------------------please don't modify this line
 
 
   // ---------- create on Wed Apr 17 20:27:50 CST 2019

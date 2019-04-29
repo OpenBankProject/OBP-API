@@ -83,14 +83,17 @@ object RestConnectorBuilder extends App {
 
   val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""), "src/main/scala/code/bankconnectors/rest/RestConnector_vMar2019.scala")
   val source = FileUtils.readFileToString(path)
-  val placeHolderInSource = "//---------------- dynamic end ---------------------please don't modify this line"
+  val start = "//---------------- dynamic start -------------------please don't modify this line"
+  val end   = "//---------------- dynamic end ---------------------please don't modify this line"
+  val placeHolderInSource = s"""(?s)$start.+$end"""
   val insertCode =
     s"""
+       |$start
        |// ---------- create on ${new Date()}
        |${nameSignature.map(_.toString).mkString}
-       |$placeHolderInSource
+       |$end
     """.stripMargin
-  val newSource = source.replace(placeHolderInSource, insertCode)
+  val newSource = source.replaceFirst(placeHolderInSource, insertCode)
   FileUtils.writeStringToFile(path, newSource)
 
   // to check whether example is correct.
