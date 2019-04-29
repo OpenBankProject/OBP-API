@@ -281,11 +281,14 @@ object Glossary {
  |Now you should be able to use the [Get Bank](/index#OBPv3_0_0-bankById) endpoint
  |
  |
- |2) Core (Authentications) -The step1 apis are all anonymous access. If you want to propagate some data over the OBP authentication access. Then you need link OBP user with Bank user/customer.
+ |2) Core (Authentications) -The step1 Apis are all anonymous access. If you want to propagate some data over the OBP authentication server. 
+ | Then you need link OBP user with Bank user/customer using the [Create User Auth Context]((/index#OBPv3_1_0-createUserAuthContext)). Also 
+ | check the description for this endpoint. Once you create the user-auth-context for one user, then these user-auth-context can be propagated
+ | over connector message. Than the Adapter can use it to map OBP user and Bank user/customer. 
  | 
  |* ${messageDocLink("obp.get.BankAccountsByUsername")}
  |
- |Now you should be able to use the [Get Bank](/index#OBPv3_1_0-refreshUser) endpoint 
+ |Now you should be able to use the [Refresh User](/index#OBPv3_1_0-refreshUser) endpoint 
  |
  |3) Customers for logged in User
  |

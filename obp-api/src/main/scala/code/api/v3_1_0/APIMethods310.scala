@@ -1397,7 +1397,8 @@ trait APIMethods310 {
       "POST",
       "/users/USER_ID/auth-context",
       "Create User Auth Context",
-      s"""Create User Auth Context.
+      s"""Create User Auth Context. These key value pairs will be propagated over connector to adapter. Normally used for mapping OBP user and 
+        | Bank User/Customer. 
         |${authenticationRequiredMessage(true)}
         |""",
       postUserAuthContextJson,
