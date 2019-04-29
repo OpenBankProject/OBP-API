@@ -19,39 +19,40 @@ object RestConnectorBuilder extends App {
   //  val value2  = this.getBankFuture(BankId("hello-bank-id"), None)
   //  Thread.sleep(10000)
   val genMethodNames = List(
-    "getAdapterInfo",
+//    "getAdapterInfo",
     "getAdapterInfoFuture",
     //    "getUser", // have problem, return type not common
-    "getBanks",
+//    "getBanks",
     "getBanksFuture",
-    "getBank",
+//    "getBank",
     "getBankFuture",
-    "getBankAccountsForUser",
+//    "getBankAccountsForUser",
     "getBankAccountsForUserFuture",
-    "getBankAccount",
-    "checkBankAccountExists",
-    "checkBankAccountExistsFuture",
-    "getCoreBankAccounts",
-    "getCoreBankAccountsFuture",
-    "getTransactions",
-    "getTransactionsCore",
-    "getTransaction",
-//    "createChallenge",
-//    "createCounterparty",
-    "getTransactionRequests210", //have problem params are not simple object
-    "getCounterparties",
-    "getCounterpartiesFuture",
-    "getCounterpartyByCounterpartyIdFuture",
-    "getCounterpartyTrait",
     "getCustomersByUserIdFuture",
-    "getCheckbookOrdersFuture",
-    "getStatusOfCreditCardOrderFuture",
-    "getBranchesFuture",
-    "getBranchFuture",
-    "getAtmsFuture",
-    "getAtmFuture",
-    "getChallengeThreshold",
-//    "makePaymentv210",
+//    "getBankAccount",
+//    "checkBankAccountExists",
+    "checkBankAccountExistsFuture",
+//    "getCoreBankAccounts",
+    "getCoreBankAccountsFuture",
+//    "getTransactions",
+//    "getTransactionsCore",
+//    "getTransaction",
+//    "getTransactionRequests210", //have problem params are not simple object
+//    "getCounterparties",
+//    "getCounterpartiesFuture",
+//    "getCounterpartyByCounterpartyIdFuture",
+//    "getCounterpartyTrait",
+//    "getCheckbookOrdersFuture",
+//    "getStatusOfCreditCardOrderFuture",
+//    "getBranchesFuture",
+//    "getBranchFuture",
+//    "getAtmsFuture",
+//    "getAtmFuture",
+//    "getChallengeThreshold",
+    
+//    "makePaymentv210",//not support
+//    "createChallenge",//not support
+//    "createCounterparty" // not support
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)

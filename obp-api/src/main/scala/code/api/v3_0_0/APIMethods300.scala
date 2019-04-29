@@ -308,7 +308,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             _ <- NewStyle.function.hasViewAccess(view, u)
             moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
@@ -397,7 +397,7 @@ trait APIMethods300 {
         cc =>
           for {
           (Full(u), callContext) <-  authorizedAccess(cc)
-          (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+          (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           // Assume owner view was requested
           view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
           _ <- NewStyle.function.hasViewAccess(view, u)
