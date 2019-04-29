@@ -219,11 +219,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   def systemViewFuture(viewId : ViewId) : Future[Box[View]] = {
     Future {
-      ViewDefinition.find(
-        NullRef(ViewDefinition.bank_id),
-        NullRef(ViewDefinition.account_id),
-        By(ViewDefinition.view_id, viewId.value)
-      )
+      ViewDefinition.findSystemView(viewId.value)
     }
   }
   
@@ -311,7 +307,7 @@ object MapperViews extends Views with MdcLoggable {
   /* Update the specification of the system view (what data/actions are allowed) */
   def updateSystemView(viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Future[Box[View]] = Future {
     for {
-      view <- ViewDefinition.find(By(ViewDefinition.view_id, viewId.value))
+      view <- ViewDefinition.findSystemView(viewId.value)
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
@@ -335,11 +331,7 @@ object MapperViews extends Views with MdcLoggable {
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- ViewDefinition.find(
-          By(ViewDefinition.view_id, viewId.value), 
-          NullRef(ViewDefinition.bank_id),
-          NullRef(ViewDefinition.account_id)
-        )
+        view <- ViewDefinition.findSystemView(viewId.value)
       } yield {
         view.delete_!
       }
@@ -443,7 +435,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def getOwners(view: View) : Set[User] = {
     val uniqueKey = ViewDefinition.getUniqueKey(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value)
-    val id: Long = ViewDefinition.find(By(ViewDefinition.view_id_internal, uniqueKey)).map(_.id).openOr(0)
+    val id: Long = ViewDefinition.find(By(ViewDefinition.composite_unique_key, uniqueKey)).map(_.id).openOr(0)
     val privileges = AccountAccess.findAll(By(AccountAccess.view_fk, id))
     val users: List[User] = privileges.flatMap(_.user_fk.obj)
     users.toSet
