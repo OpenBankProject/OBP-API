@@ -336,27 +336,23 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendPasswordReset(name: String) {
-    findUserByUsernameLocally(name) match {
-      case Full(user) if user.validated_? =>
+    findUserByUsernameLocally(name).toList ::: findUsersByEmailLocally(name) map {
+      case user if user.validated_? =>
         user.resetUniqueId().save
         val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
           passwordResetPath.mkString("/", "/", "/")+urlEncode(user.getUniqueId())
-
-        Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject),
+        Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + user.username),
           To(user.getEmail) ::
             generateResetEmailBodies(user, resetLink) :::
             (bccEmail.toList.map(BCC(_))) :_*)
-
-        S.notice(S.?(userNameNotFoundString))
-        S.redirectTo(homePage)
-
-      case Full(user) =>
+      case user =>
         sendValidationEmail(user)
-        S.notice(S.?("account.validation.resent"))
-        S.redirectTo(homePage)
-
-      case _ => S.error(userNameNotFoundString)
+      case _ => 
+        // Avoid any action
     }
+    // In order to prevent any leakage of information we use the same message for all cases
+    S.notice(userNameNotFoundString)
+    S.redirectTo(homePage)
   }
 
   override def lostPasswordXhtml = {
@@ -866,6 +862,14 @@ def restoreSomeSessions(): Unit = {
     */
   protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
+  }
+  /**
+    * Find the authUsers by author email(authUser and resourceUser are the same).
+    * Only search for the local database. 
+    */
+  protected def findUsersByEmailLocally(email: String): List[TheUserType] = {
+    val usernames: List[String] = this.getResourceUsersByEmail(email).map(_.user.name)
+    findAll(ByList(this.username, usernames))
   }
 
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
