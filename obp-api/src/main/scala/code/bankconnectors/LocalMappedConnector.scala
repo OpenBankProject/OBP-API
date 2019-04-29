@@ -236,7 +236,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           balanceAmount = bankAccount.balance.toString(),
           balanceCurrency = bankAccount.currency,
           owners = bankAccount.userOwners.map(_.name).toList,
-          viewsToGenerate = List("Owner","Public","Auditor","Accountant"),
+          viewsToGenerate = List("Owner"),
           bankRoutingScheme = bankAccount.bankRoutingScheme,
           bankRoutingAddress = bankAccount.bankRoutingAddress,
           branchRoutingScheme = "",
