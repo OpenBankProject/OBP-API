@@ -169,7 +169,7 @@ object Glossary {
 |
 | When getting started, we suggest that you implement the messages in the following order:
 |
-|1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
+|1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank
 |
 |* ${messageDocLinkAkka("obp.get.AdapterInfo")}
 |
@@ -198,8 +198,9 @@ object Glossary {
 |
 | The above messages should enable at least the following endpoints:
 |
-|* [Get Account IDs](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
-|* [Get Accounts - Minimal](index#OBPv3_0_0-privateAccountsAtOneBank)
+|* [Get Accounts at Bank (IDs only)](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
+|* [Get Accounts at Bank (Minimal).](/index#OBPv3_0_0-privateAccountsAtOneBank)
+|* [Get Accounts at all Banks (private)](/index#OBPv3_0_0-corePrivateAccountsAllBanks)
 |
 |4) Get Account
 |
@@ -265,7 +266,7 @@ object Glossary {
 |
 | When getting started, we suggest that you implement the messages in the following order:
 |
- |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
+ |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank
  |
  |* ${messageDocLink("obp.get.AdapterInfo")}
  |
@@ -298,16 +299,18 @@ object Glossary {
  |
  |4) Get Accounts
  |
- |* ${messageDocLink("obp.check.BankAccountExists")}
+ |Now you should already be able to use the [Get Accounts at Bank (IDs only).](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId) endpoint.
+ |
  |* ${messageDocLink("obp.get.coreBankAccounts")}
  |
  | The above messages should enable at least the following endpoints:
  |
- |* [Get Account IDs](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
- |* [Get Accounts - Minimal](index#OBPv3_0_0-privateAccountsAtOneBank)
+ |* [Get Accounts at Bank (Minimal).](/index#OBPv3_0_0-privateAccountsAtOneBank)
+ |* [Get Accounts at all Banks (private)](/index#OBPv3_0_0-corePrivateAccountsAllBanks)
  |
  |5) Get Account
  |
+ |* ${messageDocLink("obp.check.BankAccountExists")}
  |* ${messageDocLink("obp.get.Account")}
  |
 | The above message should enable at least the following endpoints:
