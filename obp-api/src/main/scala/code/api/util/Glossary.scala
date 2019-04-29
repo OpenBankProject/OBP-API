@@ -198,7 +198,6 @@ object Glossary {
 |
 | The above messages should enable at least the following endpoints:
 |
-|* [Get Accounts Held](http://localhost:8082/index#OBPv3_0_0-getAccountsHeld)
 |* [Get Account IDs](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
 |* [Get Accounts - Minimal](index#OBPv3_0_0-privateAccountsAtOneBank)
 |
