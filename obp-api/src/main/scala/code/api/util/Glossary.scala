@@ -286,7 +286,7 @@ object Glossary {
  | check the description for this endpoint. Once you create the user-auth-context for one user, then these user-auth-context can be propagated
  | over connector message. Than the Adapter can use it to map OBP user and Bank user/customer. 
  | 
- |* ${messageDocLink("obp.get.BankAccountsByUsername")}
+ |* ${messageDocLink("obp.get.BankAccountsForUser")}
  |
  |Now you should be able to use the [Refresh User](/index#OBPv3_1_0-refreshUser) endpoint 
  |

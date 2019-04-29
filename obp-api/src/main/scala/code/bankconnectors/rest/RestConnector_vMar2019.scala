@@ -195,7 +195,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     }
   }("getBanks")
 
-  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = saveConnectorMetric {
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -205,8 +205,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBankAccountsByUsernameFuture",("username", username))
-        sendGetRequest[InBoundGetBankAccountsByUsernameFuture](url, callContext)
+        val url = getUrl("getBankAccountsForUserFuture",("username", username))
+        sendGetRequest[InBoundGetBankAccountsForUserFuture](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
@@ -214,7 +214,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getBankAccountsByUsernameFuture")
+  }("getBankAccountsForUserFuture")
 
   
   // url example: /getBankAccount/bankId/{bankId}/accountId/{accountId}

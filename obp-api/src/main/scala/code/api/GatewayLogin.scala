@@ -174,7 +174,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       //if isFirst = true, we create new sessionId for CallContext
       val callContextNewSessionId = ApiSession.createSessionId(callContextForRequest)
       // Call CBS, Note, this is the first time to call Adapter in GatewayLogin process
-      val res = Connector.connector.vend.getBankAccountsByUsername(username,callContextNewSessionId) // Box[List[InboundAccountJune2017]]//
+      val res = Connector.connector.vend.getBankAccountsForUser(username,callContextNewSessionId) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full((l, callContextReturn))=>
           Full(compactRender(Extraction.decompose(l)),l, callContextReturn) // case class --> JValue --> Json string
@@ -207,7 +207,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       val callContextUpdatedSessionId = ApiSession.createSessionId(callContextForRequest)
 
       // Call CBS
-      val res = Connector.connector.vend.getBankAccountsByUsernameFuture(username,callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
+      val res = Connector.connector.vend.getBankAccountsForUserFuture(username,callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
       res map {
         case Full((l, callContextReturn)) =>
           Full(compactRender(Extraction.decompose(l)), l, callContextReturn) // case class --> JValue --> Json string

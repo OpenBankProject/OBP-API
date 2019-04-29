@@ -106,27 +106,27 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
    messageDocs += MessageDoc(
-    process = "obp.get.getBankAccountsByUsername",
+    process = "obp.get.BankAccountsForUser",
     messageFormat = messageFormat,
     description = "Gets the list of accounts available to the User. This call sends authInfo including username.",
-    outboundTopic = Some(OutBoundGetBankAccountsByUsernameFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBankAccountsByUsernameFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetBankAccountsForUserFuture.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBankAccountsForUserFuture.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBankAccountsByUsernameFuture(
+      OutBoundGetBankAccountsForUserFuture(
         outboundAdapterCallContext,
         usernameExample.value)
     ),
     exampleInboundMessage = (
-      InBoundGetBankAccountsByUsernameFuture(
+      InBoundGetBankAccountsForUserFuture(
         inboundAdapterCallContext,
         List(inboundAccountCommonCommons)
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
-  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = {
-    val req = OutBoundGetBankAccountsByUsernameFuture(callContext.map(_.toOutboundAdapterCallContext).get, username)
-    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsByUsernameFuture]
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = {
+    val req = OutBoundGetBankAccountsForUserFuture(callContext.map(_.toOutboundAdapterCallContext).get, username)
+    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUserFuture]
     response.map(a =>(Full(a.data, callContext)))
   }
   
