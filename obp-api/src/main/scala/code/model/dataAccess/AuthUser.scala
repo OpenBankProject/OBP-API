@@ -846,9 +846,11 @@ def restoreSomeSessions(): Unit = {
   
   def updateUserAccountViewsFuture(user: User, callContext: Option[CallContext]) = {
     for{
-      Full(accounts)<- Connector.connector.vend.getBankAccountsForUserFuture(user.name,callContext)
+      (accounts, _) <- Connector.connector.vend.getBankAccountsForUserFuture(user.name,callContext) map {
+        connectorEmptyResponse(_, callContext)
+      }
     }yield 
-       updateUserAccountViews(user, accounts._1)
+       updateUserAccountViews(user, accounts)
   }
 
   /**
