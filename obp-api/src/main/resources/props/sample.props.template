@@ -30,6 +30,9 @@ connector=mapped
 ## enable logging all the database queries in log file
 #logging.database.queries.enable=true
 
+##Added Props property_name_prefix, default is OBP_. This adds the prefix only for the system environment property name, eg: db.driver --> OBP_db.driver
+#system_environment_property_name_prefix=OBP_
+
 ## OBP-JVM transport type. currently supported: kafka, mock
 #obpjvm.transport=kafka
 

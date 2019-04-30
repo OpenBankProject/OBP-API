@@ -2259,12 +2259,12 @@ Returns a string showed to the developer
 
     val brandSpecificPropertyName = getBrandSpecificPropertyName(nameOfProperty)
 
-//    logger.debug(s"Standard property $nameOfProperty has bankSpecificPropertyName: $brandSpecificPropertyName")
-    
+    //Note: this property name prefix is only used for system environment, not for Liftweb props.
+    val sysEnvironmentPropertyNamePrefix = Props.get("system_environment_property_name_prefix").openOr("OBP_")
     //All the property will first check from system environment, if not find then from the liftweb props file 
     //Replace "." with "_" (environment vars cannot include ".") and convert to upper case
     // Append "OBP_" because all Open Bank Project environment vars are namespaced with OBP
-    val sysEnvironmentPropertyName = "OBP_".concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
+    val sysEnvironmentPropertyName = sysEnvironmentPropertyNamePrefix.concat(brandSpecificPropertyName.replace('.', '_').toUpperCase())
     val sysEnvironmentPropertyValue: Box[String] = tryo{sys.env(sysEnvironmentPropertyName)}
     sysEnvironmentPropertyValue match {
       case Full(_) => sysEnvironmentPropertyValue
