@@ -27,15 +27,9 @@ TESOBE (http://www.tesobe.com/)
 
 package code.model.dataAccess
 
-import code.api.APIFailure
-import code.api.util.ErrorMessages
 import code.util.{AccountIdString, UUIDString}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.mapper._
-import code.model._
-import code.users.Users
-import code.views.Views
 import com.openbankproject.commons.model._
+import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 
@@ -529,19 +523,4 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   override def dbIndexes = UniqueIndex(bankPermalink, accountPermalink, permalink_) :: super.dbIndexes
-
-  def find(viewUID : ViewIdBankIdAccountId) : Box[ViewImpl] = {
-    find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
-      APIFailure(s"${ErrorMessages.ViewNotFound}. Current ACCOUNT_ID(${viewUID.accountId.value}) and VIEW_ID (${viewUID.viewId.value})", 404)
-    //TODO: APIFailures with http response codes belong at a higher level in the code
-  }
-
-  def find(viewId : ViewId, bankAccountId : BankIdAccountId): Box[ViewImpl] = {
-    find(ViewIdBankIdAccountId(viewId, bankAccountId.bankId, bankAccountId.accountId))
-  }
-
-  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {
-    By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
-  }
-
 }
