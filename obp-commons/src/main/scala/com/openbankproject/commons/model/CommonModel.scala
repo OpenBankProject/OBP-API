@@ -572,7 +572,7 @@ case class ViewBasic(
   name: String,
   description: String,
 )
-case class BasicLindedCustomer(
+case class BasicLinkedCustomer(
   customerId: String,
   customerNumber: String,
   legalName: String,
@@ -616,7 +616,7 @@ case class BasicGeneralContext(
 case class OutboundAdapterAuthInfo(
   userId: Option[String]= None, 
   username: Option[String]= None, 
-  linkedCustomers: Option[List[BasicLindedCustomer]] = None,
+  linkedCustomers: Option[List[BasicLinkedCustomer]] = None,
   userAuthContext: Option[List[BasicUserAuthContext]]= None,//be set by obp from some endpoints. 
   authViews: Option[List[AuthView]] = None,
 )

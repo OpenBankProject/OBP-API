@@ -2478,8 +2478,8 @@ Returns a string showed to the developer
     )
   }
   
-  def createInternalLinkedBasicCustomerJson(customer : Customer) : BasicLindedCustomer = {
-    BasicLindedCustomer(
+  def createInternalLinkedBasicCustomerJson(customer : Customer) : BasicLinkedCustomer = {
+    BasicLinkedCustomer(
       customerId = customer.customerId,
       customerNumber = customer.number,
       legalName = customer.legalName,
@@ -2490,7 +2490,7 @@ Returns a string showed to the developer
     InternalBasicUsers(users.map(createAuthInfoUserJson))
   }
   
-  def createInternalLinkedBasicCustomersJson(customers : List[Customer]) : List[BasicLindedCustomer] = {
+  def createInternalLinkedBasicCustomersJson(customers : List[Customer]) : List[BasicLinkedCustomer] = {
     customers.map(createInternalLinkedBasicCustomerJson)
   }
 

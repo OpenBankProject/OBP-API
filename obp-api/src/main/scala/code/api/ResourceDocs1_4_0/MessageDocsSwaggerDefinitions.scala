@@ -53,7 +53,7 @@ object MessageDocsSwaggerDefinitions
   val outboundAdapterAuthInfo = OutboundAdapterAuthInfo(
     userId = Some(userIdExample.value),
     username = Some(usernameExample.value),
-    linkedCustomers = Some(List(BasicLindedCustomer(customerIdExample.value,customerNumberExample.value,legalNameExample.value))),
+    linkedCustomers = Some(List(BasicLinkedCustomer(customerIdExample.value,customerNumberExample.value,legalNameExample.value))),
     userAuthContext = Some(List(BasicUserAuthContext(keyExample.value,valueExample.value))), //be set by obp from some endpoints.
     authViews = Some(List(AuthView(
       view = ViewBasic(
