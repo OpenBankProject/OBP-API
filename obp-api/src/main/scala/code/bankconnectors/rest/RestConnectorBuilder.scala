@@ -3,7 +3,7 @@ package code.bankconnectors.rest
 import java.io.File
 import java.util.Date
 
-import code.api.util.CallContext
+import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
 import com.openbankproject.commons.util.ReflectUtils
 import org.apache.commons.io.FileUtils
@@ -35,7 +35,7 @@ object RestConnectorBuilder extends App {
 //    "getCoreBankAccounts",
     "getCoreBankAccountsFuture",
 //    "getTransactions",
-//    "getTransactionsCore",
+    "getTransactionsCore",
 //    "getTransaction",
 //    "getTransactionRequests210", //have problem params are not simple object
 //    "getCounterparties",
@@ -128,7 +128,16 @@ case class GetGenerator(methodName: String, tp: Type) {
   }
 
   val signature = s"$methodName$paramAnResult"
-  val pathVariables = params.map(it => s""", ("$it", $it)""").mkString
+
+  val pathVariables = tp.paramLists(0)
+    .filterNot(_.info =:= ru.typeOf[Option[CallContext]])
+    .map { it =>
+        // make sure if param signature is: queryParams: OBPQueryParam* , the param name must be queryParams
+        val paramName = if(it.info <:< typeOf[Seq[OBPQueryParam]]) "queryParams" else it.name.toString
+        val paramValue = it.name.toString
+        s""", ("$paramName", $paramValue)"""
+      }.mkString
+
   val urlDemo = s"/$methodName" + params.map(it => s"/$it/{$it}").mkString
   val jsonType = {
       val typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
