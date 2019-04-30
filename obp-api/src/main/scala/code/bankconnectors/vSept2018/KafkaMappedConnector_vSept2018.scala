@@ -1789,7 +1789,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.CustomersByUserIdBox",
+    process = "obp.get.CustomersByUserIdFuture",
     messageFormat = messageFormat,
     description = "Get Customers represented by the User.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCustomersByUserId.getClass.getSimpleName).request),
@@ -1871,7 +1871,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.getStatusOfCheckbookOrdersFuture",
+    process = "obp.get.CheckbookOrdersFuture",
     messageFormat = messageFormat,
     description = "Get the status of CheckbookOrders for an Account.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCheckbookOrderStatus.getClass.getSimpleName).request),
@@ -1958,7 +1958,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.getStatusOfCreditCardOrderFuture",
+    process = "obp.get.StatusOfCreditCardOrderFuture",
     messageFormat = messageFormat,
     description = "Get the status of CreditCardOrders",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCreditCardOrderStatus.getClass.getSimpleName).request),
