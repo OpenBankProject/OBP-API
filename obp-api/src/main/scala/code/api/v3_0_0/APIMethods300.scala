@@ -601,7 +601,7 @@ trait APIMethods300 {
         cc =>
           for {
             (user, callContext) <-  authorizedAccess(cc)
-            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
@@ -660,7 +660,7 @@ trait APIMethods300 {
         cc =>
           for {
             (user, callContext) <-  authorizedAccess(cc)
-            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
