@@ -3,7 +3,6 @@ package code.transactionrequests
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataTransactionRequests
-import code.transactionrequests.TransactionRequests.{TransactionRequestBody}
 import com.openbankproject.commons.model.{TransactionRequest,TransactionRequestChallenge, TransactionRequestCharge, _}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
@@ -26,12 +25,6 @@ object TransactionRequests extends SimpleInjector {
   }
 
   def updatestatus(newStatus: String) = {}
-
-  case class TransactionRequestBody (
-    val to: TransactionRequestAccount,
-    val value : AmountOfMoney,
-    val description : String
-  )
 
   val transactionRequestProvider = new Inject(buildOne _) {}
 

@@ -5,14 +5,21 @@ import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.RequestHeader
 import code.api.oauth1a.OauthParams._
-import code.api.util.APIUtil.{ResourceDoc, useISO20022Spelling, useOBPSpelling}
+import code.api.util.APIUtil._
+import code.api.util.ErrorMessages.{BankAccountNotFound, attemptedToOpenAnEmptyBox}
+import code.context.UserAuthContextProvider
+import code.customer.Customer
 import code.model.Consumer
-import com.openbankproject.commons.dto.CallContextAkka
-import com.openbankproject.commons.model.{AuthInfoBasic, User}
+import code.views.Views
+import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
+import code.model._
+
+import scala.collection.immutable.List
 
 case class CallContext(
                        gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!  
@@ -36,27 +43,53 @@ case class CallContext(
                        requestHeaders: List[HTTPParam] = Nil,
                        `X-Rate-Limit-Limit` : Long = -1,
                        `X-Rate-Limit-Remaining` : Long = -1,
-                       `X-Rate-Limit-Reset` : Long = -1,
-                       authInfo: Option[AuthInfoBasic]= None // This is only used for kafka/akka connectors, the mapped connector set default as None.
+                       `X-Rate-Limit-Reset` : Long = -1
                       ) {
 
-  /**
-    * Purpose of this helper function is to get rid of unnecessary and heavy data before serialization.
-    * For instance before we send it from the North Side to the Adapter(the South side)
-    * @return CallContext without ResourceDoc type
-    */
-  def removeResourceDocument: CallContext = this.copy(resourceDocument = None)
-  /**
-    * Purpose of this helper function is to transform data for Akka's connector serialization.
-    * @return object which type is CallContextAkka
-    */
-  def toCallContextAkka: CallContextAkka = 
-    CallContextAkka(
-      userId = this.user.map(_.userId).toOption,
-      consumerId = this.consumer.map(_.consumerId.get).toOption,
-      correlationId = this.correlationId,
-      sessionId = this.sessionId
-    )
+  //This is only used to connect the back adapter. not useful for sandbox mode.
+  def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
+    for{
+      user <- this.user //If there is no user, then will go to `.openOr` method, to return anonymousAccess box.
+      username <- tryo(Some(user.name))
+      currentResourceUserId <- tryo(Some(user.userId))
+      consumerId <- this.consumer.map(_.consumerId.get) //If there is no consumer, then will go to `.openOr` method, to return anonymousAccess box.
+      permission <- Views.views.vend.getPermissionForUser(user)
+      views <- tryo(permission.views)
+      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
+      basicUserAuthContexts = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
+      authViews<- tryo(
+        for{
+          view <- views   
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(this)) ?~! {BankAccountNotFound}
+          internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
+          internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
+          viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
+          accountBasic =  AccountBasic(
+            account.accountId.value, 
+            account.accountRoutings, 
+            internalCustomers.customers,
+            internalUsers.users)
+        }yield 
+          AuthView(viewBasic, accountBasic)
+      )
+    } yield{
+      OutboundAdapterCallContext(
+        correlationId = this.correlationId,
+        sessionId = this.sessionId,
+        consumerId = Some(consumerId),
+        generalContext = None,
+        outboundAdapterAuthInfo = Some(OutboundAdapterAuthInfo(
+          userId = currentResourceUserId,
+          username = username,
+          linkedCustomers = likedCustomersBasic,
+          userAuthContext = basicUserAuthContexts,
+          if (authViews.isEmpty) None else Some(authViews)))
+      )
+    }}.openOr(OutboundAdapterCallContext( //For anonymousAccess endpoints, there are no user info
+      this.correlationId,
+      this.sessionId))
   
   def toLight: CallContextLight = {
     CallContextLight(

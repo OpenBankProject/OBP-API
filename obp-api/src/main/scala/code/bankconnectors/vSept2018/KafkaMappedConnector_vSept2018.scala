@@ -243,41 +243,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  override def getAdapterInfo(callContext: Option[CallContext]) = {
-    val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
-
-    logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
-
-    val box = for {
-      kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
-      received = liftweb.json.compactRender(kafkaMessage)
-      expected = SchemaFor[InboundAdapterInfoInternal]().toString(false)
-      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! {
-        val error = s"Extraction Failed: You received this ($received). We expected this ($expected)"
-        sendOutboundAdapterError(error)
-        error
-      }
-      inboundAdapterInfoInternal <- Full(inboundAdapterInfo.data)
-    } yield{
-      inboundAdapterInfoInternal
-    }
-
-
-    logger.debug(s"Kafka getAdapterInfo Res says:  is: $box")
-
-    val res = box match {
-      case Full(list) if (list.errorCode=="") =>
-        Full(list, callContext)
-      case Full(list) if (list.errorCode!="") =>
-        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
-      case Failure(msg, e, c)  =>
-        Failure(msg, e, c)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
-    }
-
-    res
-  }
+  
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
     val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
 
@@ -646,11 +612,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getBank")
 
   messageDocs += MessageDoc(
-    process = "obp.get.Accounts",
+    process = "obp.get.BankAccountsForUser",
     messageFormat = messageFormat,
     description = "Gets the list of accounts available to the User. This call sends authInfo including username.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccounts.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccounts.getClass.getSimpleName).response),
+    inboundTopic = Some(Topics.createTopicByClassName(InboundGetAccounts.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutboundGetAccounts(
         authInfoExample,
@@ -664,7 +630,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
-  override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])] = saveConnectorMetric{
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -712,7 +678,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountSept2018], Option[CallContext])]] = saveConnectorMetric{
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountSept2018], Option[CallContext])]] = saveConnectorMetric{
      /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1760,14 +1726,35 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getCounterpartyByCounterpartyId")
 
 
-  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String, callContext: Option[CallContext]) = saveConnectorMetric{
+  messageDocs += MessageDoc(
+    process = "obp.get.CounterpartyTrait",
+    messageFormat = messageFormat,
+    description = "Get a Counterparty by its bankId, accountId and counterpartyId",
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterparty.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetCounterparty.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+      OutboundGetCounterparty(
+        authInfoExample,
+        "BankId",
+        "AccountId",
+        "counterpartyId"
+      )
+      ),
+    exampleInboundMessage = (
+      InboundGetCounterparty(inboundAuthInfoExample, 
+        statusExample, 
+        Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
+      ),
+    adapterImplementation = Some(AdapterImplementation("Payments", 1))
+  )
+  override def getCounterpartyTrait(thisBankId: BankId, thisAccountId: AccountId, counterpartyId: String, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
-    val req = OutboundGetCounterparty(getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox), thisBankId.value, thisAccountId.value, couterpartyId)
+    val req = OutboundGetCounterparty(getAuthInfo(callContext).openOrThrowException(attemptedToOpenAnEmptyBox), thisBankId.value, thisAccountId.value, counterpartyId)
     logger.debug(s"Kafka getCounterpartyTrait Req says: is: $req")
 
     val future = for {
@@ -1802,7 +1789,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.CustomersByUserIdBox",
+    process = "obp.get.CustomersByUserIdFuture",
     messageFormat = messageFormat,
     description = "Get Customers represented by the User.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCustomersByUserId.getClass.getSimpleName).request),
@@ -1884,7 +1871,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.getStatusOfCheckbookOrdersFuture",
+    process = "obp.get.CheckbookOrdersFuture",
     messageFormat = messageFormat,
     description = "Get the status of CheckbookOrders for an Account.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCheckbookOrderStatus.getClass.getSimpleName).request),
@@ -1971,7 +1958,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.getStatusOfCreditCardOrderFuture",
+    process = "obp.get.StatusOfCreditCardOrderFuture",
     messageFormat = messageFormat,
     description = "Get the status of CreditCardOrders",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetCreditCardOrderStatus.getClass.getSimpleName).request),
@@ -2813,20 +2800,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     res
   }
   
-  //This is not a independent kafka method, it call the internal method `getCoreBankAccountsFuture`, so there is no message doc here.
-  override def getCoreBankAccountsHeldFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
-    for{
-      (accounts, callContext) <- getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) map {
-        connectorEmptyResponse(_, callContext)}
-    } yield {
-      tryo{accounts.map(account =>AccountHeld(
-                 account.id,
-                 account.bankId,
-                 "",
-                 account.accountRoutings))}
-    }
-  }
-
 }
 
 

@@ -35,7 +35,7 @@ import code.model.{Consumer, User}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
-import com.openbankproject.commons.model.{InboundAccountCommon, User}
+import com.openbankproject.commons.model.{InboundAccount, User}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
@@ -158,7 +158,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def refreshBankAccounts(jwtPayload: String, callContext: Option[CallContext]) : Box[(String, List[InboundAccountCommon], Option[CallContext])] = {
+  def refreshBankAccounts(jwtPayload: String, callContext: Option[CallContext]) : Box[(String, List[InboundAccount], Option[CallContext])] = {
     val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
     val cbsToken = getFieldFromPayloadJson(jwtPayload, "cbs_token")
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
@@ -174,7 +174,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       //if isFirst = true, we create new sessionId for CallContext
       val callContextNewSessionId = ApiSession.createSessionId(callContextForRequest)
       // Call CBS, Note, this is the first time to call Adapter in GatewayLogin process
-      val res = Connector.connector.vend.getBankAccountsByUsername(username,callContextNewSessionId) // Box[List[InboundAccountJune2017]]//
+      val res = Connector.connector.vend.getBankAccountsForUser(username,callContextNewSessionId) // Box[List[InboundAccountJune2017]]//
       res match {
         case Full((l, callContextReturn))=>
           Full(compactRender(Extraction.decompose(l)),l, callContextReturn) // case class --> JValue --> Json string
@@ -190,7 +190,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def refreshBankAccountsFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(String, List[InboundAccountCommon], Option[CallContext])]] = {
+  def refreshBankAccountsFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(String, List[InboundAccount], Option[CallContext])]] = {
     val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
     val cbsToken = getFieldFromPayloadJson(jwtPayload, "cbs_token")
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
@@ -207,7 +207,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
       val callContextUpdatedSessionId = ApiSession.createSessionId(callContextForRequest)
 
       // Call CBS
-      val res = Connector.connector.vend.getBankAccountsByUsernameFuture(username,callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
+      val res = Connector.connector.vend.getBankAccountsForUserFuture(username,callContextUpdatedSessionId) // Box[List[InboundAccountJune2017]]//
       res map {
         case Full((l, callContextReturn)) =>
           Full(compactRender(Extraction.decompose(l)), l, callContextReturn) // case class --> JValue --> Json string

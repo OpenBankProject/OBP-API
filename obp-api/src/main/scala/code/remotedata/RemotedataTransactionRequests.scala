@@ -3,7 +3,6 @@ package code.remotedata
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 
-import code.transactionrequests.TransactionRequests.{TransactionRequestBody}
 import com.openbankproject.commons.model.{TransactionRequest, TransactionRequestChallenge, TransactionRequestCharge, _}
 import code.transactionrequests.{MappedTransactionRequest, RemotedataTransactionRequestsCaseClasses, TransactionRequestProvider}
 

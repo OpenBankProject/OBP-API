@@ -129,37 +129,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAdapterInfo]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true)))
   )
-  override def getAdapterInfo(callContext: Option[CallContext]) = {
-    val req = OutboundGetAdapterInfo(
-      AuthInfo(sessionId = callContext.get.correlationId),
-      DateWithSecondsExampleString
-    )
-    
-    logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
-  
-    val box = for {
-      kafkaMessage <- processToBox[OutboundGetAdapterInfo](req)
-      inboundAdapterInfo <- tryo{kafkaMessage.extract[InboundAdapterInfo]} ?~! s"$InboundAdapterInfo extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-    } yield{
-      inboundAdapterInfo
-    }
-    
-    logger.debug(s"Kafka getAdapterInfo Res says:  is: $box")
-    
-    val res = box match {
-      case Full(inboundAdapterInfo) if (inboundAdapterInfo.data.errorCode=="") =>
-         val callContextUpdated = ApiSession.updateSessionId(callContext, inboundAdapterInfo.authInfo.sessionId)
-        Full(inboundAdapterInfo.data, callContextUpdated)
-      case Full(inboundAdapterInfo) if (inboundAdapterInfo.data.errorCode!="") =>
-        Failure("INTERNAL-"+ inboundAdapterInfo.data.errorCode+". + CoreBank-Status:"+ inboundAdapterInfo.data.backendMessages)
-      case Failure(msg, e, c)  =>
-        Failure(msg, e, c)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
-    }
-    
-    res
-  }
   override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
     val req = OutboundGetAdapterInfo(
       AuthInfo(sessionId = callContext.get.correlationId),
@@ -454,7 +423,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetAccounts(authInfoExample, statusExample, InboundAccountJune2017("", cbsToken ="cbsToken", bankId = "gh.29.uk", branchId = "222", accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = "Susan" :: " Frank" :: Nil, viewsToGenerate = "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil)
     )
   )
-  override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])] = saveConnectorMetric{
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -505,7 +474,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]) = saveConnectorMetric{
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]) = saveConnectorMetric{
      /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.

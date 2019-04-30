@@ -198,7 +198,7 @@ object Consent {
   }
  
   private def hasConsentInternalOldStyle(consentIdAsJwt: String): Box[User] = {
-    implicit val dateFormats = net.liftweb.json.DefaultFormats
+    implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Box[User] = {
       // 1. Get or Create a User
@@ -242,7 +242,7 @@ object Consent {
   } 
   
   private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
-    implicit val dateFormats = net.liftweb.json.DefaultFormats
+    implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
       // 1. Get or Create a User
@@ -340,7 +340,7 @@ object Consent {
       views=views.getOrElse(Nil)
     )
     
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)

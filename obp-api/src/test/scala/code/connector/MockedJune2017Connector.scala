@@ -1,6 +1,6 @@
 package code.connector
 
-import code.api.util.CallContext
+import code.api.util.{CallContext, CustomJsonFormats}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.model._
@@ -20,23 +20,21 @@ object MockedJune2017Connector extends ServerSetup
   with Connector with DefaultUsers  
   with DefaultConnectorTestSetup with MdcLoggable {
   
-  override implicit val formats = net.liftweb.json.DefaultFormats
   implicit override val nameOfConnector = "MockedCardConnector"
-  
   
   //These bank id and account ids are real data over adapter  
   val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
   val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
-  override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountJune2017], Option[CallContext])] = {
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountJune2017], Option[CallContext])] = {
     Full(
       InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId.bankId.value, branchId = "222", accountId = bankIdAccountId.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId2.bankId.value, branchId = "222", accountId = bankIdAccountId2.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil,
       callContext
     )
   }
 
-  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountJune2017], Option[CallContext])]] = Future{
-    getBankAccountsByUsername(username,callContext)
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountJune2017], Option[CallContext])]] = Future{
+    getBankAccountsForUser(username,callContext)
   }
 }
 

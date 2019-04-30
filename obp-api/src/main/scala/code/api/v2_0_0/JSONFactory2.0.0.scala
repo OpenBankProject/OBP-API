@@ -29,6 +29,7 @@ package code.api.v2_0_0
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
+import code.api.util.CustomJsonFormats
 import code.api.v1_2_1.{JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, ThisAccountJSON => ThisAccountJSON121, UserJSONV121 => UserJSON121}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
 import code.entitlement.Entitlement
@@ -349,10 +350,7 @@ case class CreateEntitlementJSON(bank_id: String, role_name: String)
 case class EntitlementJSON(entitlement_id: String, role_name: String, bank_id: String)
 case class EntitlementJSONs(list: List[EntitlementJSON])
 
-object JSONFactory200{
-
-
-  implicit val formats = net.liftweb.json.DefaultFormats
+object JSONFactory200 extends CustomJsonFormats {
 
   def privateBankAccountsListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccess : List[View]): JValue = {
     val accJson : List[BasicAccountJSON] = bankAccounts.map( account => {
@@ -626,7 +624,7 @@ object JSONFactory200{
       stringOptionOrNull(account.accountType),
       JSONFactory121.createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       stringOptionOrNull(account.iban),
-      stringOptionOrNull(account.swift_bic),
+      stringOptionOrNull(None),//set it None for V200
       stringOrNull(account.bankId.value),
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
     )

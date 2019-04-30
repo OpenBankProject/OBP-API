@@ -5,6 +5,7 @@ import java.util.UUID.randomUUID
 
 import code.accountapplication.AccountApplication
 import code.accountattribute.AccountAttribute
+import code.accountholders.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, isValidCurrencyISOCode, saveConnectorMetric, stringOrNull}
@@ -16,7 +17,6 @@ import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cards.MappedPhysicalCard
-import code.context.UserAuthContextProvider
 import code.context.{UserAuthContextProvider, UserAuthContextUpdate, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddress
@@ -38,8 +38,8 @@ import code.products.MappedProduct
 import com.openbankproject.commons.model.Product
 import code.taxresidence.TaxResidence
 import code.transaction.MappedTransaction
-import code.transactionrequests.TransactionRequests._
 import code.transactionrequests._
+import code.users.Users
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
@@ -75,7 +75,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
-
+  //
+  override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(
+    Full(InboundAdapterInfoInternal(
+      errorCode = "",
+      backendMessages = Nil,
+      name ="LocalMappedConnector",
+      version ="Just for testing.",
+      git_commit ="",
+      date =""
+    ), callContext))
+  
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String, 
                                      accountId: String, 
@@ -189,7 +199,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBank(bankId, callContext)
   }
   
-  //gets banks handled by this connector
+
   override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
      Full(MappedBank
         .findAll()
@@ -207,54 +217,42 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBanks(callContext)
   }
 
-
-  override def getBankAccountsByUsername(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])]= {
-    val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
-    val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"), AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
-    Full(
-      InboundAccountJune2017(
-        "",
-        cbsToken = "cbsToken",
-        bankId = bankIdAccountId.bankId.value,
-        branchId = "222",
-        accountId = bankIdAccountId.accountId.value,
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = Nil,
-        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban",
-        bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress",
-        accountRouting = Nil, accountRules = Nil) ::
-      InboundAccountJune2017(
-        "",
-        cbsToken = "cbsToken",
-        bankId = bankIdAccountId2.bankId.value,
-        branchId = "222", accountId = bankIdAccountId2.accountId.value,
-        accountNumber = "123",
-        accountType = "AC",
-        balanceAmount = "50",
-        balanceCurrency = "EUR",
-        owners = Nil,
-        viewsToGenerate = "Owner" :: "Public" :: "Accountant" :: "Auditor" :: Nil,
-        bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress",
-        branchRoutingScheme = "branchRoutingScheme",
-        branchRoutingAddress = " branchRoutingAddress",
-        accountRoutingScheme = "accountRoutingScheme",
-        accountRoutingAddress = "accountRoutingAddress",
-        accountRouting = Nil, accountRules = Nil
-      ) :: Nil,
-      None
-    )
+  //This method is only for testing now. Normall this method 
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])]= {
+    val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] =for{
+      //1 get all the accounts for one user
+      user <- Users.users.vend.getUserByUserName(username)
+      bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
+    } yield{
+      for{
+        bankAccountId <- bankAccountIds
+        (bankAccount, callContext) <- getBankAccountCommon(bankAccountId.bankId, bankAccountId.accountId,callContext)
+        inboundAccountCommons = InboundAccountCommons(
+          bankId = bankAccount.bankId.value,
+          branchId = bankAccount.branchId,
+          accountId = bankAccount.accountId.value,
+          accountNumber = bankAccount.number,
+          accountType = bankAccount.accountType,
+          balanceAmount = bankAccount.balance.toString(),
+          balanceCurrency = bankAccount.currency,
+          owners = bankAccount.userOwners.map(_.name).toList,
+          viewsToGenerate = List("Owner"),
+          bankRoutingScheme = bankAccount.bankRoutingScheme,
+          bankRoutingAddress = bankAccount.bankRoutingAddress,
+          branchRoutingScheme = "",
+          branchRoutingAddress ="",
+          accountRoutingScheme = bankAccount.accountRoutingScheme,
+          accountRoutingAddress = bankAccount.accountRoutingAddress
+        )
+      } yield {
+        inboundAccountCommons
+      }
+    }
+    inboundAccountCommonsBox.map( inboundAccountCommons => (inboundAccountCommons.toList, callContext))
   }
 
-  override def getBankAccountsByUsernameFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = Future{
-    getBankAccountsByUsername(username,callContext)
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
+    getBankAccountsForUser(username,callContext)
   }
 
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
@@ -392,6 +390,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBankAccountCommon(bankId, accountId, callContext)
   }
 
+  override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future
+  {
+    val accountAndCallcontext = getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])
+    (accountAndCallcontext.map(_._1), accountAndCallcontext.map(_._2).getOrElse(callContext))
+  }
+  
   def getBankAccountCommon(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     MappedBankAccount
       .find(By(MappedBankAccount.bank, bankId.value),
@@ -404,10 +408,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       ).map(bankAccount => (bankAccount, callContext))
   }
 
-  override def getBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]] = {
+  override def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]] = {
     Future {
       Full(
-        bankIdAcountIds.map(
+        bankIdAccountIds.map(
           bankIdAccountId =>
             getBankAccount(
               bankIdAccountId.bankId,
@@ -425,9 +429,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getBankAccount(bankId: BankId, accountId: AccountId, callContext)
     }
   
-  override def getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {
+  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {
     Full(
-      bankIdAcountIds
+      bankIdAccountIds
         .map(bankIdAccountId =>
           getBankAccount(
             bankIdAccountId.bankId, 
@@ -444,10 +448,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getCoreBankAccountsFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
-    Future {getCoreBankAccounts(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext])}
+  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
+    Future {getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])}
   }
-  
+  // localConnector/getBankAccountsHeld/bankIdAccountIds/{bankIdAccountIds}
   override def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[AccountHeld]]= {
     Full(
       bankIdAccountIds
@@ -465,8 +469,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
   
-  override def getCoreBankAccountsHeldFuture(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
-    Future {getBankAccountsHeld(bankIdAcountIds: List[BankIdAccountId], callContext: Option[CallContext])}
+  override def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
+    Future {getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])}
   }
   
 

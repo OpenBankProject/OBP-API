@@ -28,7 +28,7 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.util.APIUtil.getRemoteIpAddress
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.js.JsCmd
@@ -36,12 +36,10 @@ import net.liftweb.http.js.JsCmds.Run
 import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
-
-import net.liftweb.util.{Props}
+import net.liftweb.util.Props
 import code.api.util.APIUtil.activeBrand
 
-import scala.xml.{XML, NodeSeq}
-
+import scala.xml.{NodeSeq, XML}
 import scala.io.Source
 
 
@@ -364,7 +362,7 @@ class WebUI extends MdcLoggable{
   def createMainPartners: CssSel = {
 
     import net.liftweb.json._
-    implicit val formats = DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
 
 
     val mainPartners: Option[String] = {

@@ -181,8 +181,7 @@ trait CustomerAddress {
 }
 
 // This is the common InboundAccount from all Kafka/remote, not finished yet.
-trait InboundAccountCommon{
-  def errorCode: String
+trait InboundAccount{
   def bankId: String
   def branchId: String
   def accountId: String

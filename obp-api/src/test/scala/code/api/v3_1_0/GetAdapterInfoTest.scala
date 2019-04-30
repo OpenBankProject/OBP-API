@@ -25,9 +25,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
-import code.api.ErrorMessage
 import code.api.util.ApiVersion
-import code.api.util.ErrorMessages._
+import code.api.v3_0_0.AdapterInfoJsonV300
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
@@ -50,10 +49,10 @@ class GetAdapterInfoTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "adapter").GET
       val response310 = makeGetRequest(request310)
-      Then("We should get a 400")
-      response310.code should equal(400)
-      And("error should be " + NotImplemented)
-      response310.body.extract[ErrorMessage].message should include (NotImplemented + "getAdapterInfoFuture")
+      Then("We should get a 200")
+      response310.code should equal(200)
+      response310.body.extract[AdapterInfoJsonV300].name should equal("LocalMappedConnector")
+      
     }
   }
 

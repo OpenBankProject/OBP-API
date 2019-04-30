@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiVersion, ErrorMessages, PegdownOptions}
+import code.api.util._
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -179,7 +179,7 @@ object SwaggerJSONFactory {
       Some(ResponseObjectSchemaJson(s"#/definitions/${caseClassName}"))
     }
 
-    implicit val formats = DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
 
     val infoTitle = "Open Bank Project API"
     val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences."
@@ -523,7 +523,7 @@ object SwaggerJSONFactory {
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Array[AnyRef]): liftweb.json.JValue = {
   
-    implicit val formats = DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
   
     //Translate every entity(JSON Case Class) in a list to appropriate swagger format
     val listOfExampleRequestBodyDefinition =

@@ -49,7 +49,7 @@ TESOBE (http://www.tesobe.com/)
 
 import java.util.{Date, UUID}
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.api.v2_0_0.JSONFactory200.UserJsonV200
@@ -89,7 +89,7 @@ object PostCustomer extends SendServerRequests {
   def main(args : Array[String]) {
 
     // this sets the date format to "yyyy-MM-dd'T'HH:mm:ss'Z'" i.e. ISO 8601 No milliseconds UTC
-    implicit val formats = DefaultFormats // Brings in default date formats etc.
+    implicit val formats = CustomJsonFormats.formats // Brings in default date formats etc.
 
     val adminUserUsername = APIUtil.getPropsValue("import.admin_user.username").getOrElse("ERROR")
     println(s"adminUserUsername is $adminUserUsername")

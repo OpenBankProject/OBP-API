@@ -19,6 +19,12 @@
             <artifactId>lift-common_${scala.version}</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <scope>compile</scope>
+            <version>${scala.compiler}</version>
+        </dependency>
+        <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.version}</artifactId>
             <version>3.0.5</version>

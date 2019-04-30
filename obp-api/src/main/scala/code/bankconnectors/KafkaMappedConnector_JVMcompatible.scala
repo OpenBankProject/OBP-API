@@ -584,42 +584,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     }
   }("getBankAccount")
 
-  //TODO not used yet
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = List()
-  // memoizeSync(getAccountsTTL millisecond) {
-//    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
-//
-//    val r:List[KafkaInboundAccount] = accts.flatMap { a => {
-//      val bankId= BankId(a._1.value)
-//      val accountId =AccountId(a._2.value)
-//      val accountHolder = getAccountHolderCached(bankId,accountId)
-//      logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${bankId.value} and  ${accountId.value} and primaryUserIdentifier is $primaryUserIdentifier")
-//      
-//        val req = Map(
-//          "version" -> formatVersion,
-//          "name" -> "get",
-//          "target" -> "account",
-//          "bankId" -> bankId.value,
-//          "accountId" -> accountId.value,
-//          "userId" -> accountHolder
-//        )
-//        implicit val formats = net.liftweb.json.DefaultFormats
-//        val r = {process(req).extract[List[KafkaInboundAccount]]}
-//        r
-//      }
-//    }
-//
-//    // Check does the response data match the requested data
-////    val accRes = for(row <- r) yield {
-////      (BankId(row.bankId), AccountId(row.accountId))
-////    }
-////    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountsConnectorResponse)
-//
-//    r.map { t =>
-//      createMappedAccountDataIfNotExisting(t.bankId, t.accountId, t.label)
-//      new KafkaBankAccount(t) }
-//  }
-
   private def getAccountByNumber(bankId : BankId, number : String) : Box[BankAccount] = Empty
   // memoizeSync(getAccountTTL millisecond) {
 //    val accountHolder = getAccountHolderCached(bankId,accountId)
@@ -632,7 +596,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
 //      "userId" -> primaryUserIdentifier
 //    )
 //    // Since result is single account, we need only first list entry
-//    implicit val formats = net.liftweb.json.DefaultFormats
 //    val r = process(req).extract[KafkaInboundAccount]
 //    createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
 //    Full(new KafkaBankAccount(r))
@@ -1347,7 +1310,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     def balance : BigDecimal        = BigDecimal(r.balanceAmount)
     def currency : String           = r.balanceCurrency
     def name : String               = "NONE" //TODO
-    def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.iban)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bankId)

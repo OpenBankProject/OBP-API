@@ -12,8 +12,12 @@ connector=mapped
 #connector=kafka
 #conenctor=kafka_vMar2017
 #connector=akka_vDec2018
+#connector=rest_vMar2019
 #connector=obpjvm
 #connector=...
+
+## whether export LocalMappedConnector methods as endpoints, it is just for develop, default is false
+#connector.export.LocalMappedConnector=false
 
 ## Connector cache time-to-live in seconds, caching defaults to 10 seconds
 #connector.cache.ttl.seconds=3

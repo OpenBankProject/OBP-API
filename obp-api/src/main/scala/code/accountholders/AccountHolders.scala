@@ -23,6 +23,7 @@ trait AccountHolders {
 
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User]
   def getAccountsHeld(bankId: BankId, user: User): Set[BankIdAccountId]
+  def getAccountsHeldByUser(user: User): Set[BankIdAccountId]
   def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] //There is no AccountHolder trait, database structure different with view
   def bulkDeleteAllAccountHolders(): Box[Boolean]
 }
@@ -30,6 +31,7 @@ trait AccountHolders {
 class RemotedataAccountHoldersCaseClasses {
   case class getAccountHolders(bankId: BankId, accountId: AccountId)
   case class getAccountsHeld(bankId: BankId, user: User)
+  case class getAccountsHeldByUser(user: User)
   case class getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId)
   case class bulkDeleteAllAccountHolders()
 }

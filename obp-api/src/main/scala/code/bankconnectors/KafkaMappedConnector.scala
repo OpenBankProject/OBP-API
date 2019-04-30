@@ -354,7 +354,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       "accountId" -> accountId.toString,
       "queryParams" -> queryParams.toString
       )
-    implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(req).extract[List[KafkaInboundTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
@@ -383,7 +382,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       "accountId" -> accountId.value
       )
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundAccount])
     }
@@ -397,7 +395,8 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     Full(new KafkaBankAccount(r),callContext)
   }
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
+   @deprecated("No sense to use list of its to get bankaccount back.","26/04/2019")
+   def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[KafkaInboundAccount] = accts.flatMap { a => {
@@ -414,7 +413,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
           "bankId" -> a._1.value,
           "accountId" -> a._2.value
         )
-        implicit val formats = net.liftweb.json.DefaultFormats
         val r = {
           cachedAccounts.getOrElseUpdate( req.toString, () => process(req).extract[List[KafkaInboundAccount]])
         }
@@ -447,7 +445,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       "number" -> number
     )
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundAccount])
     }
@@ -507,7 +504,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
         "counterpartyId" -> counterpartyId.toString
       )
       // Since result is single account, we need only first list entry
-      implicit val formats = net.liftweb.json.DefaultFormats
       val r = {
         cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
       }
@@ -1140,7 +1136,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     def balance : BigDecimal        = BigDecimal(r.balanceAmount)
     def currency : String           = r.balanceCurrency
     def name : String               = r.owners.head
-    def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.iban)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bankId)

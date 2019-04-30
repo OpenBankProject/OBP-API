@@ -28,6 +28,9 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 
+import com.openbankproject.commons.util.ReflectUtils
+import scala.reflect.runtime.universe._
+
 import scala.collection.immutable.List
 //import code.customeraddress.CustomerAddress
 //import code.bankconnectors.InboundAccountCommon
@@ -42,6 +45,17 @@ import scala.collection.immutable.List
 //import code.accountattribute.AccountAttribute.AccountAttribute
 //import code.accountapplication.AccountApplication
 
+abstract class Converter[T, D <% T: TypeTag]{
+  //this method declared as common method to avoid conflict with Predf#$confirms
+  implicit def toCommons(t: T): D = ReflectUtils.toSibling[T, D].apply(t)
+
+  implicit val toCommonsList = ReflectUtils.toSiblings[T, D]
+
+  implicit val toCommonsBox = ReflectUtils.toSiblingBox[T, D]
+
+  implicit val toCommonsBoxList = ReflectUtils.toSiblingsBox[T, D]
+}
+
 case class ProductAttributeCommons(
                                     bankId :BankId,
                                     productCode :ProductCode,
@@ -55,6 +69,8 @@ case class ProductCollectionCommons(
                                      collectionCode :String,
                                      productCode :String) extends ProductCollection
 
+object ProductCollectionCommons extends Converter[ProductCollection, ProductCollectionCommons]
+
 
 case class AccountAttributeCommons(
                                     bankId :BankId,
@@ -65,6 +81,8 @@ case class AccountAttributeCommons(
                                     attributeType : AccountAttributeType.Value,
                                     value :String) extends AccountAttribute
 
+object AccountAttributeCommons extends Converter[AccountAttribute, AccountAttributeCommons]
+
 
 case class AccountApplicationCommons(
                                       accountApplicationId :String,
@@ -74,12 +92,16 @@ case class AccountApplicationCommons(
                                       dateOfApplication :Date,
                                       status :String) extends AccountApplication
 
+object AccountApplicationCommons extends Converter[AccountApplication, AccountApplicationCommons]
+
 
 case class UserAuthContextCommons(
                                    userAuthContextId :String,
                                    userId :String,
                                    key :String,
                                    value :String) extends UserAuthContext
+
+object UserAuthContextCommons extends Converter[UserAuthContext, UserAuthContextCommons]
 
 
 case class BankAccountCommons(
@@ -89,7 +111,6 @@ case class BankAccountCommons(
                                currency :String,
                                name :String,
                                label :String,
-                               swift_bic :Option[String],
                                iban :Option[String],
                                number :String,
                                bankId :BankId,
@@ -101,10 +122,13 @@ case class BankAccountCommons(
                                accountRules :List[AccountRule],
                                accountHolder :String) extends BankAccount
 
+object BankAccountCommons extends Converter[BankAccount, BankAccountCommons]
 
 case class ProductCollectionItemCommons(
                                          collectionCode :String,
                                          memberProductCode :String) extends ProductCollectionItem
+
+object ProductCollectionItemCommons extends Converter[ProductCollectionItem, ProductCollectionItemCommons]
 
 
 case class CustomerCommons(
@@ -122,12 +146,14 @@ case class CustomerCommons(
                             highestEducationAttained :String,
                             employmentStatus :String,
                             creditRating :CreditRating,
-                            creditLimit :AmountOfMoney,
+                            creditLimit :CreditLimit,
                             kycStatus : java.lang.Boolean,
                             lastOkDate :Date,
                             title :String,
                             branchId :String,
                             nameSuffix :String) extends Customer
+
+object CustomerCommons extends Converter[Customer, CustomerCommons]
 
 
 case class CustomerAddressCommons(
@@ -145,9 +171,10 @@ case class CustomerAddressCommons(
                                    tags :String,
                                    insertDate :Date) extends CustomerAddress
 
+object CustomerAddressCommons extends Converter[CustomerAddress, CustomerAddressCommons]
 
-case class InboundAccountCommonCommons(
-                                        errorCode :String,
+
+case class InboundAccountCommons(
                                         bankId :String,
                                         branchId :String,
                                         accountId :String,
@@ -162,7 +189,9 @@ case class InboundAccountCommonCommons(
                                         branchRoutingScheme :String,
                                         branchRoutingAddress :String,
                                         accountRoutingScheme :String,
-                                        accountRoutingAddress :String) extends InboundAccountCommon
+                                        accountRoutingAddress :String) extends InboundAccount
+
+object InboundAccountCommons extends Converter[InboundAccount, InboundAccountCommons]
 
 
 case class AtmTCommons(
@@ -199,6 +228,8 @@ case class AtmTCommons(
                         moreInfo : Option[String],
                         hasDepositCapability : Option[Boolean]) extends AtmT
 
+object AtmTCommons extends Converter[AtmT, AtmTCommons]
+
 
 case class BankCommons(
                         bankId :BankId,
@@ -211,6 +242,8 @@ case class BankCommons(
                         swiftBic :String,
                         nationalIdentifier :String) extends Bank
 
+
+object BankCommons extends Converter[Bank, BankCommons]
 
 case class CounterpartyTraitCommons(
                                      createdByUserId :String,
@@ -231,12 +264,16 @@ case class CounterpartyTraitCommons(
                                      isBeneficiary :Boolean,
                                      bespoke :List[CounterpartyBespoke]) extends CounterpartyTrait
 
+object CounterpartyTraitCommons extends Converter[CounterpartyTrait, CounterpartyTraitCommons]
+
 
 case class TaxResidenceCommons(
                                 customerId :Long,
                                 taxResidenceId :String,
                                 domain :String,
                                 taxNumber :String) extends TaxResidence
+
+object TaxResidenceCommons extends Converter[TaxResidence, TaxResidenceCommons]
 
 
 case class BranchTCommons(
@@ -258,6 +295,8 @@ case class BranchTCommons(
                            phoneNumber : Option[String],
                            isDeleted : Option[Boolean]) extends BranchT
 
+object BranchTCommons extends Converter[BranchT, BranchTCommons]
+
 
 case class MeetingCommons(
                            meetingId :String,
@@ -270,6 +309,8 @@ case class MeetingCommons(
                            creator :ContactDetails,
                            invitees :List[Invitee]) extends Meeting
 
+object MeetingCommons extends Converter[Meeting, MeetingCommons]
+
 case class ProductCommons(bankId: BankId,
                        code : ProductCode,
                        parentProductCode : ProductCode,
@@ -281,6 +322,19 @@ case class ProductCommons(bankId: BankId,
                        details: String,
                        description: String,
                        meta: Meta) extends Product
+
+object ProductCommons extends Converter[Product, ProductCommons]
+
+case class TransactionRequestCommonBodyJSONCommons(
+                        value : AmountOfMoneyJsonV121,
+                        description: String) extends TransactionRequestCommonBodyJSON
+
+object TransactionRequestCommonBodyJSONCommons extends Converter[TransactionRequestCommonBodyJSON, TransactionRequestCommonBodyJSONCommons]
+
+case class TransactionRequestStatusCommons(
+                                            transactionRequestId: String,
+                                            bulkTransactionsStatus: List[TransactionStatus]
+                                          ) extends TransactionRequestStatus
 
 //----------------obp-api moved to here case classes
 
@@ -448,8 +502,12 @@ case class TransactionRequest (
                                 val other_bank_routing_address : String,
                                 val is_beneficiary :Boolean,
                                 val future_date :Option[String] = None
-
                               )
+case class TransactionRequestBody (
+                                    val to: TransactionRequestAccount,
+                                    val value : AmountOfMoney,
+                                    val description : String
+                                  )
 
 class Transaction(
                    //A universally unique id
@@ -476,6 +534,8 @@ class Transaction(
   val bankId = thisAccount.bankId
   val accountId = thisAccount.accountId
 }
+
+case class UserCommons(userPrimaryKey : UserPrimaryKey, userId: String,idGivenByProvider: String, provider : String, emailAddress : String, name : String) extends User
 
 // because Transaction#thisAccount is trait, can't be deserialize, So here supply a case class to do deserialize
 case class TransactionCommons(
@@ -509,8 +569,13 @@ case class BasicUserAuthContext(
 
 case class ViewBasic(
   id: String,
-  short_name: String,
+  name: String,
   description: String,
+)
+case class BasicLinkedCustomer(
+  customerId: String,
+  customerNumber: String,
+  legalName: String,
 )
 case class InternalBasicCustomer(
   bankId:String,
@@ -535,10 +600,37 @@ case class AuthView(
   account:AccountBasic,
 )
 
-case class AuthInfoBasic(
-  username: Option[String] = None,
-  correlationId: Option[String] = None,
-  sessionId: Option[String] = None,
-  userAuthContexts: Option[List[BasicUserAuthContext]]= None,
-  authViews: Option[List[AuthView]] = None
+case class OutboundAdapterCallContext(
+  correlationId: String = "",
+  sessionId: Option[String] = None, //Only this value must be used for cache key !!!
+  consumerId: Option[String] = None,
+  generalContext: Option[List[BasicGeneralContext]]= None,
+  outboundAdapterAuthInfo: Option[OutboundAdapterAuthInfo] = None,
 )
+
+case class BasicGeneralContext(
+  key: String,
+  value: String
+)
+
+case class OutboundAdapterAuthInfo(
+  userId: Option[String]= None, 
+  username: Option[String]= None, 
+  linkedCustomers: Option[List[BasicLinkedCustomer]] = None,
+  userAuthContext: Option[List[BasicUserAuthContext]]= None,//be set by obp from some endpoints. 
+  authViews: Option[List[AuthView]] = None,
+)
+
+case class InboundAdapterCallContext(
+  correlationId: String = "",
+  sessionId: Option[String] = None,
+  generalContext: Option[List[BasicGeneralContext]]= None,  //be set by backend, send it back to the header? not finish yet.
+)
+
+
+//Note: this is used for connector method: 'def getUser(name: String, password: String): Box[InboundUser]'
+case class InboundUser(
+                        email: String,
+                        password: String,
+                        displayName: String
+                      )

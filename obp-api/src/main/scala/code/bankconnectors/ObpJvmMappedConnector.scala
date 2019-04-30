@@ -301,7 +301,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
         //we don't care about the intended sort field and only sort on finish date for now
         case OBPOrdering(field, direction) => OBPOrdering(field, direction)}.headOption.get
       val optionalParams = Seq(limit, offset, fromDate, toDate, ordering)
-      implicit val formats = net.liftweb.json.DefaultFormats
 
       val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT)
 
@@ -406,7 +405,8 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
+  @deprecated("No sense to use list of its to get bankaccount back.","26/04/2019")
+  def getBankAccounts(accts: List[(BankId, AccountId)]): List[BankAccount] = {
 
     logger.info(s"hello from ObpJvmMappedConnnector.getBankAccounts accts is $accts")
 
@@ -1085,7 +1085,6 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     def balance : BigDecimal        = BigDecimal(if (r.balance.amount.isEmpty) "-0.00" else r.balance.amount)
     def currency : String           = r.balance.currency
     def name : String               = r.owners.head
-    def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.IBAN)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bank)

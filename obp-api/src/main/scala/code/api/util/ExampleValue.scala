@@ -37,19 +37,61 @@ object ExampleValue {
    val customerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
   glossaryItems += makeGlossaryItem("Adapter.customerId", customerIdExample)
 
+  val consumerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the consumer. It is the app which calls the apis")
+  glossaryItems += makeGlossaryItem("Adapter.consumerId", consumerIdExample)
+  
+  val nameSuffixExample = ConnectorField("Sr", s"suffix of the name")
+  glossaryItems += makeGlossaryItem("Adapter.nameSuffix", nameSuffixExample)
 
+  val titleExample = ConnectorField("Dr.", s"title of the name")
+  glossaryItems += makeGlossaryItem("Adapter.title", titleExample)
+  
+  val highestEducationAttainedExample = ConnectorField("Master", s"highest education attained")
+  glossaryItems += makeGlossaryItem("Adapter.highestEducationAttained", highestEducationAttainedExample)
+  
+  val employmentStatusExample = ConnectorField("worker", s"employment status")
+  glossaryItems += makeGlossaryItem("Adapter.employmentStatus", employmentStatusExample)
+  
+  val relationshipStatusExample = ConnectorField("single", s"relationship status")
+  glossaryItems += makeGlossaryItem("Adapter.relationshipStatus", relationshipStatusExample)
+  
+  val dependentsExample = ConnectorField("10", s"the number of dependents")
+  glossaryItems += makeGlossaryItem("Adapter.dependents", dependentsExample)
+  
+  val kycStatusExample = ConnectorField("true", s"This is boolean to indicate if the cusomter's KYC has been checked.") 
+  glossaryItems += makeGlossaryItem("Adapter.kycStatus", kycStatusExample)
+  
+  val urlExample = ConnectorField("http://www.example.com/id-docs/123/image.png", s"The URL ") 
+  glossaryItems += makeGlossaryItem("Adapter.url", urlExample)
+  
   val customerNumberExample = ConnectorField("5987953", s"The human friendly customer identifier that MUST uniquely identify the Customer at the Bank ID. Customer Number is NOT used in URLs.")
   glossaryItems += makeGlossaryItem("Adapter.customerNumber", customerNumberExample)
 
   val labelExample = ConnectorField("My Account", s"A lable that describes the Account")
   val legalNameExample = ConnectorField("Eveline Tripman", s"The legal name of the Customer.")
   glossaryItems += makeGlossaryItem("Adapter.legalName", legalNameExample)
+  
+  val mobileNumberExample = ConnectorField("+44 07972 444 876", s"The mobile number name of the Customer.")
+  glossaryItems += makeGlossaryItem("Adapter.mobileNumber", mobileNumberExample)
+  
+  val ratingExample = ConnectorField("", s".") //TODO, not sure what is this filed for?
+  glossaryItems += makeGlossaryItem("Adapter.rating", ratingExample)
+  
+  val sourceExample = ConnectorField("", s".")//TODO, not sure what is this filed for?
+  glossaryItems += makeGlossaryItem("Adapter.source", sourceExample)
+  
 
   val cbsTokenExample = ConnectorField("FYIUYF6SUYFSD", s"A token provided by the Gateway for use by the Core Banking System")
   glossaryItems += makeGlossaryItem("Adapter.cbsToken", cbsTokenExample)
 
   val counterpartyIdExample = ConnectorField("9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"The Counterparty ID used in URLs. This SHOULD NOT be a name of a Counterparty.")
   glossaryItems += makeGlossaryItem("Adapter.counterpartyId", counterpartyIdExample)
+  
+  val otherAccountProviderExample = ConnectorField("", s"")//TODO, not sure what is this filed for?
+  glossaryItems += makeGlossaryItem("Adapter.otherAccountProvider", otherAccountProviderExample)
+  
+  val isBeneficiaryExample = ConnectorField("true", s"This is a boolean. True if the originAccount can send money to the Counterparty")
+  glossaryItems += makeGlossaryItem("Adapter.isBeneficiary", isBeneficiaryExample)
 
   val counterpartyNameExample = ConnectorField("John Smith Ltd.", s"The name of a Counterparty. Ideally unique for an Account")
   glossaryItems += makeGlossaryItem("Adapter.counterpartyName", counterpartyNameExample)
@@ -62,6 +104,9 @@ object ExampleValue {
 
   val transactionTypeExample = ConnectorField("DEBIT", s"A code for the type of transaction")
   glossaryItems += makeGlossaryItem("Adapter.transactionType", transactionTypeExample)
+  
+  val limitExample = ConnectorField("100", s"The query number of transactions")
+  glossaryItems += makeGlossaryItem("Adapter.limit", limitExample)
 
 
   val ibanExample = ConnectorField("DE91 1000 0000 0123 4567 89", s"MUST uniquely identify the bank account globally.")
@@ -94,6 +139,14 @@ object ExampleValue {
   val owner1Example = ConnectorField("SusanSmith", "A username that is the owner of the account.")
   glossaryItems += makeGlossaryItem("Account.owner", owner1Example)
 
+  val viewIdExample = ConnectorField("owner", "A viewId can be owner, accountant, public ....")
+  glossaryItems += makeGlossaryItem("view.id", viewIdExample)
+  
+  val viewNameExample = ConnectorField("Owner","A viewName can be Owner, Accountant, Public ....")
+  glossaryItems += makeGlossaryItem("view.name",viewNameExample)
+  
+  val viewDescriptionExample = ConnectorField("This view is for the owner for the account.", "A description for this view.")
+  glossaryItems += makeGlossaryItem("view.description", viewDescriptionExample)
 
 
 
@@ -118,6 +171,12 @@ object ExampleValue {
 
   val accountRoutingAddressExample = ConnectorField("DE91 1000 0000 0123 4567 89", "An identifier that conforms to account_routing_scheme / accountRoutingScheme")
   glossaryItems += makeGlossaryItem("Account.account_routing_address", accountRoutingAddressExample)
+  
+  val keyExample = ConnectorField(s"${customerNumberExample.value}", s"This key should be used with Adapter.value together. They are the pair.")
+  glossaryItems += makeGlossaryItem("Adapter.key", keyExample)
+  
+  val valueExample = ConnectorField("FYIUYF6SUYFSD", s"This key should be used with Adapter.key together. They are the pair.")
+  glossaryItems += makeGlossaryItem("Adapter.value", valueExample)
 
   val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 

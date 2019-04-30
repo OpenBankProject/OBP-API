@@ -60,7 +60,7 @@ object Glossary {
 	// NOTE! Some glossary items are defined in ExampleValue.scala
 
 
-	//implicit val formats = DefaultFormats
+	//implicit val formats = CustomJsonFormats.formats
 	//val prettyJson: String = extraction(decompose(authInfoExample))
 
 
@@ -169,7 +169,7 @@ object Glossary {
 |
 | When getting started, we suggest that you implement the messages in the following order:
 |
-|1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
+|1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank
 |
 |* ${messageDocLinkAkka("obp.get.AdapterInfo")}
 |
@@ -198,9 +198,9 @@ object Glossary {
 |
 | The above messages should enable at least the following endpoints:
 |
-|* [Get Accounts Held](http://localhost:8082/index#OBPv3_0_0-getAccountsHeld)
-|* [Get Account IDs](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
-|* [Get Accounts - Minimal](index#OBPv3_0_0-privateAccountsAtOneBank)
+|* [Get Accounts at Bank (IDs only)](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
+|* [Get Accounts at Bank (Minimal).](/index#OBPv3_0_0-privateAccountsAtOneBank)
+|* [Get Accounts at all Banks (private)](/index#OBPv3_0_0-corePrivateAccountsAllBanks)
 |
 |4) Get Account
 |
@@ -266,11 +266,11 @@ object Glossary {
 |
 | When getting started, we suggest that you implement the messages in the following order:
 |
- |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank)
+ |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank
  |
  |* ${messageDocLink("obp.get.AdapterInfo")}
  |
- |Now you should be able to use the [Adapter Info](/index#OBPv3_0_0-getAdapter) endpoint
+ |Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapter) endpoint
  |
  |* ${messageDocLink("obp.get.Banks")}
  |
@@ -281,27 +281,36 @@ object Glossary {
  |Now you should be able to use the [Get Bank](/index#OBPv3_0_0-bankById) endpoint
  |
  |
- |2) Customers for logged in User
+ |2) Core (Authentications) -The step1 Apis are all anonymous access. If you want to propagate some data over the OBP authentication server. 
+ | Then you need link OBP user with Bank user/customer using the [Create User Auth Context]((/index#OBPv3_1_0-createUserAuthContext)). Also 
+ | check the description for this endpoint. Once you create the user-auth-context for one user, then these user-auth-context can be propagated
+ | over connector message. Than the Adapter can use it to map OBP user and Bank user/customer. 
+ | 
+ |* ${messageDocLink("obp.get.BankAccountsForUser")}
+ |
+ |Now you should be able to use the [Refresh User](/index#OBPv3_1_0-refreshUser) endpoint 
+ |
+ |3) Customers for logged in User
  |
  |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
-|
+ |
  |Now you should be able to use the [Get Customers](/index#OBPv3_0_0-getCustomersForUser) endpoint.
  |
  |
- |3) Get Accounts
+ |4) Get Accounts
  |
- |* ${messageDocLink("obp.check.BankAccountExists")}
+ |Now you should already be able to use the [Get Accounts at Bank (IDs only).](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId) endpoint.
+ |
  |* ${messageDocLink("obp.get.coreBankAccounts")}
- |* ${messageDocLink("obp.get.Accounts")}
  |
  | The above messages should enable at least the following endpoints:
  |
- |* [Get Accounts Held](http://localhost:8082/index#OBPv3_0_0-getAccountsHeld)
- |* [Get Account IDs](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId)
- |* [Get Accounts - Minimal](index#OBPv3_0_0-privateAccountsAtOneBank)
+ |* [Get Accounts at Bank (Minimal).](/index#OBPv3_0_0-privateAccountsAtOneBank)
+ |* [Get Accounts at all Banks (private)](/index#OBPv3_0_0-corePrivateAccountsAllBanks)
  |
- |4) Get Account
+ |5) Get Account
  |
+ |* ${messageDocLink("obp.check.BankAccountExists")}
  |* ${messageDocLink("obp.get.Account")}
  |
 | The above message should enable at least the following endpoints:
@@ -309,63 +318,63 @@ object Glossary {
  |* [Get Account by Id - Core](/index#OBPv3_0_0-getCoreAccountById)
  |* [Get Account by Id - Full](/index#OBPv3_0_0-getPrivateAccountById)
  |
- |5) Get Transactions
+ |6) Get Transactions
  |
 					 |* ${messageDocLink("obp.get.Transactions")}
 					 |* ${messageDocLink("obp.get.Transaction")}
 					 |
- |6) Manage Counterparties
+ |7) Manage Counterparties
  |
 					 |* ${messageDocLink("obp.get.counterparties")}
 					 |* ${messageDocLink("obp.get.CounterpartyByCounterpartyId")}
 					 |* ${messageDocLink("obp.create.Counterparty")}
 					 |
- |7) Get Transaction Request Types
+ |8) Get Transaction Request Types
  |
 					 |* This is configured using OBP Props - No messages required
 					 |
- |8) Get Challenge Threshold (CBS)
+ |9) Get Challenge Threshold (CBS)
  |
 					 |* ${messageDocLink("obp.get.getChallengeThreshold")}
 					 |
- |9)  Make Payment (used by Create Transaction Request)
+ |10)  Make Payment (used by Create Transaction Request)
  |
 					 |* ${messageDocLink("obp.get.makePaymentv210")}
  						|* This also requires 8,9,10 for high value payments.
 					 |
- |10) Get Transaction Requests.
+ |11) Get Transaction Requests.
  |
 					 |* ${messageDocLink("obp.get.transactionRequests210")}
 					 |
- |11) Generate Security Challenges (CBS)
+ |12) Generate Security Challenges (CBS)
  |
 					 |* ${messageDocLink("obp.create.Challenge")}
 					 |
- |12) Answer Security Challenges (Validate)
+ |13) Answer Security Challenges (Validate)
  |
 					 |* Optional / Internal OBP (No additional messages required)
 					 |
- |13) Manage Counterparty Metadata
+ |14) Manage Counterparty Metadata
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |14) Get Entitlements
+ |15) Get Entitlements
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |15) Manage Roles
+ |16) Manage Roles
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |16) Manage Entitlements
+ |17) Manage Entitlements
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |17) Manage Views
+ |18) Manage Views
  |
 					 |* Internal OBP (No additional messages required)
 					 |
- |18) Manage Transaction Metadata
+ |19) Manage Transaction Metadata
  |
 					 |* Internal OBP (No additional messages required)
 					 |

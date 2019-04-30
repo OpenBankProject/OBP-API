@@ -859,13 +859,11 @@ object MapperViews extends Views with MdcLoggable {
       canSeeBankAccountCurrency_(true).
       canSeeBankAccountLabel_(true).
       canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountSwift_bic_(true).
       canSeeBankAccountIban_(true).
       canSeeBankAccountNumber_(true).
       canSeeBankAccountBankName_(true).
       canSeeBankAccountBankPermalink_(true).
       canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountSWIFT_BIC_(true).
       canSeeOtherAccountIBAN_ (true).
       canSeeOtherAccountBankName_(true).
       canSeeOtherAccountNumber_(true).
@@ -956,13 +954,11 @@ object MapperViews extends Views with MdcLoggable {
       canSeeBankAccountCurrency_(true).
       canSeeBankAccountLabel_(true).
       canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountSwift_bic_(true).
       canSeeBankAccountIban_(true).
       canSeeBankAccountNumber_(true).
       canSeeBankAccountBankName_(true).
       canSeeBankAccountBankPermalink_(true).
       canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountSWIFT_BIC_(true).
       canSeeOtherAccountIBAN_ (true).
       canSeeOtherAccountBankName_(true).
       canSeeOtherAccountNumber_(true).
@@ -1052,13 +1048,11 @@ Auditors
       canSeeBankAccountCurrency_(true).
       canSeeBankAccountLabel_(true).
       canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountSwift_bic_(true).
       canSeeBankAccountIban_(true).
       canSeeBankAccountNumber_(true).
       canSeeBankAccountBankName_(true).
       canSeeBankAccountBankPermalink_(true).
       canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountSWIFT_BIC_(true).
       canSeeOtherAccountIBAN_ (true).
       canSeeOtherAccountBankName_(true).
       canSeeOtherAccountNumber_(true).
