@@ -48,7 +48,6 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       
     case OutboundGetAccount(bankId, accountId, cc) =>
       val result: Box[BankAccount] = getBankAccount(BankId(bankId), AccountId(accountId), None).map(r => r._1)
-      org.scalameta.logger.elem(result)
       sender ! InboundGetAccount(result.map(Transformer.bankAccount(_)).toOption, cc)
       
     case OutboundGetCoreBankAccounts(bankIdAccountIds, cc) =>

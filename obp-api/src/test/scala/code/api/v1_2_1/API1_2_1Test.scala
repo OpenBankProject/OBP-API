@@ -1982,7 +1982,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
       Then("we should get a 204 no content code")
-      org.scalameta.logger.elem(reply)
       reply.code should equal (204)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore -1)

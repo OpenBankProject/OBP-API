@@ -3252,7 +3252,6 @@ trait APIMethods310 {
           } yield {
             sca_method match {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-                org.scalameta.logger.elem(sca_method)
                 val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
                 Mailer.sendMail(
                   From("challenge@tesobe.com"),

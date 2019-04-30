@@ -434,8 +434,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOwners(view: View) : Set[User] = {
-    val uniqueKey = ViewDefinition.getUniqueKey(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value)
-    val id: Long = ViewDefinition.find(By(ViewDefinition.composite_unique_key, uniqueKey)).map(_.id).openOr(0)
+    val id: Long = ViewDefinition.findByUniqueKey(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value).map(_.id).openOr(0)
     val privileges = AccountAccess.findAll(By(AccountAccess.view_fk, id))
     val users: List[User] = privileges.flatMap(_.user_fk.obj)
     users.toSet
@@ -567,7 +566,6 @@ object MapperViews extends Views with MdcLoggable {
   def grantAccessToAllExistingViews(user : User) = {
     ViewDefinition.findAll.foreach(
       v => {
-        org.scalameta.logger.elem(v.id)
         //Get All the views from ViewImpl table, and create the link user <--> each view. The link record the access permission. 
         if ( AccountAccess.find(By(AccountAccess.view_fk, v.id_.get), By(AccountAccess.user_fk, user.userPrimaryKey.value) ).isEmpty )
           //If the user and one view has no link, it will create one .

@@ -126,7 +126,6 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 201")
       response310.code should equal(201)
       val taxResidenceJson = response310.body.extract[TaxResidenceJsonV310]
-      org.scalameta.logger.elem(taxResidenceJson)
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
       When("We make a request v3.1.0 with the Role " + canGetTaxResidence)
