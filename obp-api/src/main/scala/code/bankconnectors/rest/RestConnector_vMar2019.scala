@@ -762,7 +762,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     }
     //build queryParams: OBPQueryParam* as query parameters
     val queryParams: Option[String] = variables.lastOption
-      .filter(it => it._1 == "queryParams" && it.isInstanceOf[Seq[_]])
+      .filter(it => it._1 == "queryParams" && it._2.isInstanceOf[Seq[_]])
       .map(_._2.asInstanceOf[Seq[OBPQueryParam]])
       .map { queryParams =>
         val limit = OBPQueryParam.getLimit(queryParams: _*)
