@@ -123,6 +123,7 @@ class FundsAvailableTest extends V310ServerSetup {
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params")
       val viewId = getThirdPartyAppView(bankId, bankAccount.id).id
+      grantUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, viewId)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / viewId / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "1"))
       Then("We should get a 200")
