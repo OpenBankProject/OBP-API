@@ -3,7 +3,7 @@ package code.util
 import java.net.{Socket, SocketException}
 import java.util.{Date, GregorianCalendar}
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import net.liftweb.common._
@@ -157,7 +157,7 @@ object Helper{
   Returns a pretty json representation of the input
    */
   def prettyJson(input: JValue) : String = {
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     prettyRender(decompose(input))
   }
 

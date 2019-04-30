@@ -31,7 +31,7 @@ import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{DirectLogin, GatewayLogin, OAuthHandshake}
-import code.bankconnectors.{Connector, InboundUser}
+import code.bankconnectors.{Connector}
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -45,7 +45,7 @@ import net.liftweb.util._
 
 import scala.collection.immutable.List
 import scala.xml.{NodeSeq, Text}
-
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -176,7 +176,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     }
   }
 
-  def getResourceUserByUsername(username: String) : Box[ResourceUser] = {
+  def getResourceUserByUsername(username: String) : Box[User] = {
     Users.users.vend.getUserByUserName(username)
   }
 
@@ -834,10 +834,19 @@ def restoreSomeSessions(): Unit = {
     */
   def updateUserAccountViews(user: User, callContext: Option[CallContext]): Unit = {
     //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccountsByUsername(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val accounts = Connector.connector.vend.getBankAccountsForUser(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
     updateUserAccountViews(user, accounts._1)
+  }
+  
+  def updateUserAccountViewsFuture(user: User, callContext: Option[CallContext]) = {
+    for{
+      (accounts, _) <- Connector.connector.vend.getBankAccountsForUserFuture(user.name,callContext) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }yield 
+       updateUserAccountViews(user, accounts)
   }
 
   /**
@@ -845,7 +854,7 @@ def restoreSomeSessions(): Unit = {
     * update the views, accountHolders for OBP side when sign up new remote user
     *
     */
-  def updateUserAccountViews(user: User, accounts: List[InboundAccountCommon]): Unit = {
+  def updateUserAccountViews(user: User, accounts: List[InboundAccount]): Unit = {
     for {
       account <- accounts
       viewId <- account.viewsToGenerate

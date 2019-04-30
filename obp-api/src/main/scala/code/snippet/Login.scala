@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.OpenIdConnectConfig
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.dataAccess.{Admin, AuthUser}
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
@@ -89,7 +89,7 @@ class Login {
     def customiseLogin : CssSel = {
       val specialLoginInstructions  = scala.xml.Unparsed(APIUtil.getPropsValue("webui_login_page_special_instructions", ""))
       // In case we use Extraction.decompose
-      implicit val formats = net.liftweb.json.DefaultFormats
+      implicit val formats = CustomJsonFormats.formats
       "#login-special-instructions *" #> specialLoginInstructions &
       "#brand [value]" #> activeBrand
     }

@@ -30,7 +30,6 @@ import java.util.Date
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{MessageDoc}
-import code.bankconnectors.InboundUser
 import code.fx.FXRate
 import code.model._
 import code.model.dataAccess.MappedBankAccountData
@@ -48,7 +47,7 @@ import scala.collection.immutable.List
 case class InboundAccountData(
   banks: List[InboundBank],
   users: List[InboundUser],
-  accounts: List[InboundAccount]
+  accounts: List[InboundAccount_vMar2017]
 )
 
 case class OutboundUserByUsernamePasswordBase(
@@ -319,7 +318,7 @@ case class Bank2(r: InboundBank) extends Bank {
   def bankRoutingAddress = "None"
 }
 
-case class InboundAccount(
+case class InboundAccount_vMar2017(
   errorCode: String,
   accountId: String,
   bankId: String,
@@ -343,15 +342,13 @@ case class InboundAccount(
 
 
 
-case class BankAccount2(r: InboundAccount) extends BankAccount {
+case class BankAccount2(r: InboundAccount_vMar2017) extends BankAccount {
   
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.`type`
   def balance: BigDecimal = BigDecimal(r.balanceAmount)
   def currency: String = r.balanceCurrency
   def name: String = r.owners.head
-  // Note: swift_bic--> swiftBic, but it extends from BankAccount
-  def swift_bic: Option[String] = Some("swift_bic")
   def iban: Option[String] = Some(r.iban)
   def number: String = r.number
   def bankId: BankId = BankId(r.bankId)

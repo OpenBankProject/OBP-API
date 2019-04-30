@@ -6,14 +6,14 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.stream.ActorMaterializer
+import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
 
 import scala.concurrent.Future
 
 
-object AkkaHttpClient extends MdcLoggable {
+object AkkaHttpClient extends MdcLoggable with CustomJsonFormats {
 
-   implicit val formats = net.liftweb.json.DefaultFormats
   /**
     * This function makes HttpRequest object according to the DB's data related to an account's webhook
     * @param uri In most cases it's a URL

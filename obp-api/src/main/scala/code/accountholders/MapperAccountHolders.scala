@@ -91,6 +91,17 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
     }.toSet
   }
 
+  def getAccountsHeldByUser(user: User): Set[BankIdAccountId] = {
+    val accountHolders = MapperAccountHolders.findAll(
+      By(MapperAccountHolders.user, user.asInstanceOf[ResourceUser])
+    )
+
+    //accountHolders --> BankIdAccountIds
+    accountHolders.map { accHolder =>
+      BankIdAccountId(BankId(accHolder.accountBankPermalink.get),AccountId(accHolder.accountPermalink.get))
+    }.toSet
+  }
+  
   def bulkDeleteAllAccountHolders(): Box[Boolean] = {
     Full( MapperAccountHolders.bulkDelete_!!() )
   }

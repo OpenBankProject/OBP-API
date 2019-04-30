@@ -199,7 +199,6 @@ class ModeratedBankAccount(
                             val currency : Moderated[String],
                             val label : Moderated[String],
                             val nationalIdentifier : Moderated[String],
-                            val swift_bic : Moderated[String],
                             val iban : Moderated[String],
                             val number: Moderated[String],
                             val bankName: Moderated[String],

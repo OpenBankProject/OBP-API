@@ -43,8 +43,7 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
-import code.bankconnectors.Connector
-import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
+import code.bankconnectors.ConnectorEndpoints
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
@@ -439,7 +438,7 @@ class Boot extends MdcLoggable {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
 
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     LiftRules.exceptionHandler.prepend{
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
@@ -488,6 +487,11 @@ class Boot extends MdcLoggable {
     Migration.database.executeScripts()
 
     Glossary.glossaryItems
+
+    // whether export LocalMappedConnector methods as endpoints, it is just for develop
+    if (APIUtil.getPropsAsBoolValue("connector.export.LocalMappedConnector", false)){
+      ConnectorEndpoints.registerConnectorEndpoints
+    }
 
   }
 

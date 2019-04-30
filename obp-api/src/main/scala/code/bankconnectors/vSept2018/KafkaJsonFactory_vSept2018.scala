@@ -165,7 +165,16 @@ case class Status(
                    errorCode: String,
                    backendMessages: List[InboundStatusMessage]
                  )
+case class ViewBasic(
+  id: String,
+  short_name: String,
+  description: String,
+)
 
+case class AuthView(
+  view: ViewBasic,
+  account:AccountBasic,
+)
 
 case class AuthInfo(
   userId: String = "", 
@@ -205,7 +214,7 @@ case class InboundAccountSept2018(
   accountRoutingAddress: String,
   accountRouting: List[AccountRouting],
   accountRules: List[AccountRule]
-) extends InboundMessageBase with InboundAccountCommon
+) extends InboundMessageBase with InboundAccount
 
 case class BankAccountSept2018(r: InboundAccountSept2018) extends BankAccount {
 

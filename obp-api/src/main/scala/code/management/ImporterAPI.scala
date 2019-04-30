@@ -2,7 +2,7 @@ package code.management
 
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, BigDecimalSerializer, CustomJsonFormats}
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.tesobe.ErrorMessage
@@ -13,7 +13,7 @@ import net.liftweb.http._
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
-import net.liftweb.json.{DefaultFormats, Extraction}
+import net.liftweb.json.{Extraction}
 import net.liftweb.util.Helpers._
 
 /**
@@ -64,7 +64,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
   def whenAddedJson(t : Transaction) : JObject = {
 
     def formatDate(date : Date) : String = {
-      DefaultFormats.lossless.dateFormat.format(date)
+      CustomJsonFormats.losslessFormats.dateFormat.format(date)
     }
 
     val thisBank = Connector.connector.vend.getBank(t.bankId, None).map(_._1)
@@ -139,7 +139,7 @@ object ImporterAPI extends RestHelper with MdcLoggable {
           " json transactions to insert from ip address " + ipAddress)
 
         //importer api expects dates that also include milliseconds (lossless)
-        val losslessFormats =  net.liftweb.json.DefaultFormats.lossless
+        val losslessFormats =  CustomJsonFormats.losslessFormats
         val mf = implicitly[Manifest[ImporterTransaction]]
         val importerTransactions = rawTransactions.flatMap(j => j.extractOpt[ImporterTransaction](losslessFormats, mf))
 

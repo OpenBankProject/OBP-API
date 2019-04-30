@@ -312,7 +312,6 @@ case class ViewExtended(val view: View) {
       val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
       val nationalIdentifier = if(view.canSeeBankAccountNationalIdentifier) Some(bankAccount.nationalIdentifier) else None
-      val swiftBic = if(view.canSeeBankAccountSwift_bic) bankAccount.swift_bic else None
       val iban = if(view.canSeeBankAccountIban) bankAccount.iban else None
       val number = if(view.canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(view.canSeeBankAccountBankName) Some(bankAccount.bankName) else None
@@ -334,7 +333,6 @@ case class ViewExtended(val view: View) {
           currency = currency,
           label = label,
           nationalIdentifier = nationalIdentifier,
-          swift_bic = swiftBic,
           iban = iban,
           number = number,
           bankName = bankName,

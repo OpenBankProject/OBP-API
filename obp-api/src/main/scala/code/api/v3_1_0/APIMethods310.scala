@@ -19,6 +19,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
+import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
@@ -1061,7 +1062,7 @@ trait APIMethods310 {
       nameOf(getAdapterInfo),
       "GET",
       "/adapter",
-      "Get Adapter Info (general)",
+      "Get Adapter Info",
       s"""Get basic information about the Adapter.
          |
         |${authenticationRequiredMessage(true)}
@@ -1398,7 +1399,8 @@ trait APIMethods310 {
       "POST",
       "/users/USER_ID/auth-context",
       "Create User Auth Context",
-      s"""Create User Auth Context.
+      s"""Create User Auth Context. These key value pairs will be propagated over connector to adapter. Normally used for mapping OBP user and 
+        | Bank User/Customer. 
         |${authenticationRequiredMessage(true)}
         |""",
       postUserAuthContextJson,
@@ -1950,6 +1952,8 @@ trait APIMethods310 {
       "/users/USER_ID/refresh",
       "Refresh User.",
       s""" The endpoint is used for updating the accounts, views, account holders for the user.
+         | As to the Json body, you can leave it as Empty. 
+         | This call will get data from backend, no need to prepare the json body in api side.
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -1961,7 +1965,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canRefreshUser))
+    )
 
     lazy val refreshUser : OBPEndpoint = {
       case "users" :: userId :: "refresh" :: Nil JsonPost _ => {
@@ -1971,9 +1977,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", userId, canRefreshUser, callContext)
             startTime <- Future{Helpers.now}
             _ <- NewStyle.function.findByUserId(userId, callContext)
-            _ <- if (APIUtil.isSandboxMode) Future{} else Future{ tryo {AuthUser.updateUserAccountViews(u, callContext)}} map {
-              unboxFullOrFail(_, callContext, RefreshUserError)
-            }
+            _ <- if (APIUtil.isSandboxMode) Future{} else AuthUser.updateUserAccountViewsFuture(u, callContext) 
             endTime <- Future{Helpers.now}
             durationTime = endTime.getTime - startTime.getTime
           } yield {
@@ -3165,7 +3169,7 @@ trait APIMethods310 {
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
-            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
+            messageDocsSwagger = AkkaConnector_vDec2018.messageDocs.map(toResourceDoc).toList
             json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(messageDocsSwagger, ApiVersion.v3_1_0)}
             //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields

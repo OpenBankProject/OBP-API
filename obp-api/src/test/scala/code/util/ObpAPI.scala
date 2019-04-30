@@ -5,7 +5,7 @@ import java.net.{HttpURLConnection, URL}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import code.util.ObpJson._
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -19,7 +19,7 @@ case class Header(key: String, value: String)
 case class ObpError(error :String)
 
 object ObpAPI extends MdcLoggable {
-  implicit val formats = DefaultFormats
+  implicit val formats = CustomJsonFormats.formats
   val dateFormat = APIUtil.DateWithMsRollbackFormat
   
   val defaultProvider = APIUtil.getPropsValue("defaultAuthProvider").getOrElse("")
@@ -218,7 +218,7 @@ object ObpAPI extends MdcLoggable {
 
 
 object OBPRequest extends MdcLoggable {
-  implicit val formats = DefaultFormats
+  implicit val formats = CustomJsonFormats.formats
   //returns a tuple of the status code and response body as a string
   def apply(apiPath : String, jsonBody : Option[JValue], method : String, headers : List[Header]) : Box[(Int, String)] = {
     val statusAndBody = tryo {
@@ -282,7 +282,7 @@ object OBPRequest extends MdcLoggable {
 //Ugly duplicate of above to be able to get rid of /obp prefix.
 //Should be done without it
 object OBPInternalRequest extends MdcLoggable {
-  implicit val formats = DefaultFormats
+  implicit val formats = CustomJsonFormats.formats
   //returns a tuple of the status code and response body as a string
   def apply(apiPath : String, jsonBody : Option[JValue], method : String, headers : List[Header]) : Box[(Int, String)] = {
     val statusAndBody = tryo {
@@ -391,7 +391,7 @@ object ObpInternalDelete {
 }
 
 object APIUtils extends MdcLoggable {
-  implicit val formats = DefaultFormats
+  implicit val formats = CustomJsonFormats.formats
 
   def getAPIResponseBody(responseCode : Int, body : String) : Box[JValue] = {
     responseCode match {
@@ -413,8 +413,7 @@ object APIUtils extends MdcLoggable {
 }
 
 object ObpJson {
-  import net.liftweb.json._
-  implicit val formats = DefaultFormats
+  implicit val formats = CustomJsonFormats.formats
   case class BanksJson(banks : Option[List[BankJson]]) {
     def bankJsons: List[BankJson] = {
       banks.toList.flatten

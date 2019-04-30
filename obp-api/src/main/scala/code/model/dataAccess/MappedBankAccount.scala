@@ -16,7 +16,6 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object theAccountId extends AccountIdString(this)
   object accountIban extends MappedString(this, 50)
   object accountCurrency extends MappedString(this, 10)
-  object accountSwiftBic extends MappedString(this, 50)
   object accountNumber extends MappedAccountNumber(this)
 
   @deprecated
@@ -51,10 +50,6 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   }
   override def bankId: BankId = BankId(bank.get)
   override def currency: String = accountCurrency.get
-  override def swift_bic: Option[String] = {
-    val sb = accountSwiftBic.get
-    if(sb.isEmpty) None else Some(sb)
-  }
   override def number: String = accountNumber.get
   override def balance: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(accountBalance.get, currency)
   override def name: String = accountName.get

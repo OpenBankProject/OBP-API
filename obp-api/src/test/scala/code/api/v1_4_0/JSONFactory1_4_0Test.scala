@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
 import code.api.v2_1_0.OBPAPI2_1_0
@@ -53,9 +53,7 @@ case class AllCases(
 
 class JSONFactory1_4_0Test extends FlatSpec
   with Matchers
-  with MdcLoggable {
-  
-  implicit val formats = net.liftweb.json.DefaultFormats
+  with MdcLoggable with CustomJsonFormats {
   
   "JSONFactory1_4_0.createResourceDocJson" should "work well, no exception is good enough" in {
     val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)

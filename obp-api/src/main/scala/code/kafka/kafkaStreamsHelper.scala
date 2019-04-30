@@ -7,7 +7,7 @@ import akka.kafka.ProducerSettings
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
 import code.kafka.actor.RequestResponseActor
@@ -16,7 +16,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common.{Failure, Full}
 import net.liftweb.json
-import net.liftweb.json.{DefaultFormats, Extraction, JsonAST}
+import net.liftweb.json.{Extraction, JsonAST}
 import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.StringSerializer
 
@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionException, Future, TimeoutException}
   */
 class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelper with MdcLoggable with KafkaConfig with AvroSerializer {
 
-  implicit val formats = DefaultFormats
+  implicit val formats = CustomJsonFormats.formats
 
   implicit val materializer = ActorMaterializer()
 

@@ -962,6 +962,13 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$MeetingNotFound Current MeetingId(${meetingId}) ", 400), i._2)
       }
     }
+
+    def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[CoreAccount]] = 
+      {
+        Connector.connector.vend.getCoreBankAccountsFuture(bankIdAccountIds, callContext) map {
+          i => (unboxFullOrFail(i, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getCoreBankAccountsFuture(bankIdAccountIds, callContext))} in the backend. ", 400))
+        }
+      }
     
   }
 

@@ -22,7 +22,7 @@ import code.api.builder.JsonFactory_APIBuilder
 import code.context.UserAuthContextUpdateStatus
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{GeoTag, _}
 import net.liftweb.json
 
 import scala.collection.immutable.List
@@ -1931,7 +1931,7 @@ object SwaggerDefinitionsJSON {
     username = "OBP"
   )
 
-  val locationJSON =
+  val locationJsonV210 =
     LocationJsonV210(
       latitude = 11.45,
       longitude = 11.45,
@@ -2304,7 +2304,16 @@ object SwaggerDefinitionsJSON {
     bespoke = postCounterpartyJSON.bespoke
   )
   
-  val counterpartyMetadataJson = CounterpartyMetadataJson(publicAlias = "String")
+  val counterpartyMetadataJson = CounterpartyMetadataJson(
+    public_alias = "String",
+    more_info = "String",
+    url = "String",
+    image_url = "String",
+    open_corporates_url = "String",
+    corporate_location = locationJsonV210,
+    physical_location = locationJsonV210,
+    private_alias ="String"
+  )
   
   val counterpartyWithMetadataJson = CounterpartyWithMetadataJson(
     name = postCounterpartyJSON.name,

@@ -205,7 +205,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <-  authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             permission <- Future { account permission(u, provider, providerId) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
@@ -308,7 +308,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             _ <- NewStyle.function.hasViewAccess(view, u)
             moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
@@ -397,7 +397,7 @@ trait APIMethods300 {
         cc =>
           for {
           (Full(u), callContext) <-  authorizedAccess(cc)
-          (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+          (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           // Assume owner view was requested
           view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
           _ <- NewStyle.function.hasViewAccess(view, u)
@@ -439,7 +439,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            Full((coreAccounts, callContext)) <- {Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)}
+            (coreAccounts, callContext) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), HttpCode.`200`(callContext))
           }
@@ -601,7 +601,7 @@ trait APIMethods300 {
         cc =>
           for {
             (user, callContext) <-  authorizedAccess(cc)
-            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             // Assume owner view was requested
             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
@@ -660,7 +660,7 @@ trait APIMethods300 {
         cc =>
           for {
             (user, callContext) <-  authorizedAccess(cc)
-            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
@@ -928,7 +928,7 @@ trait APIMethods300 {
       nameOf(getAdapter),
       "GET",
       "/banks/BANK_ID/adapter",
-      "Get Adapter Info",
+      "Get Adapter Info for a bank",
       s"""Get basic information about the Adapter listening on behalf of this bank.
         |
         |${authenticationRequiredMessage(true)}
@@ -947,9 +947,7 @@ trait APIMethods300 {
             for {
               (_, callContext) <- anonymousAccess(cc)
               (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-              (ai, callContext) <- Future(Connector.connector.vend.getAdapterInfo(callContext)) map {
-                connectorEmptyResponse(_, callContext)
-              }
+              (ai, callContext) <- NewStyle.function.getAdapterInfo(callContext)
             } yield {
               (createAdapterInfoJson(ai), callContext)
             }
@@ -2035,7 +2033,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
-            accounts <- Connector.connector.vend.getCoreBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
+            accounts <- Connector.connector.vend.getBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {

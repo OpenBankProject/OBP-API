@@ -155,7 +155,7 @@ case class InboundAccountJune2017(
   accountRoutingAddress: String,
   accountRouting: List[AccountRouting],
   accountRules: List[AccountRule]
-) extends InboundMessageBase with InboundAccountCommon
+) extends InboundMessageBase with InboundAccount
 
 case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
 
@@ -164,8 +164,6 @@ case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
   def balance: BigDecimal = BigDecimal(r.balanceAmount)
   def currency: String = r.balanceCurrency
   def name: String = r.owners.head
-  // Note: swift_bic--> swiftBic, but it extends from BankAccount
-  def swift_bic: Option[String] = Some("swift_bic")
   // Note: deprecated, extends from BankAccount
   def iban: Option[String] = Some("iban")
   def number: String = r.accountNumber

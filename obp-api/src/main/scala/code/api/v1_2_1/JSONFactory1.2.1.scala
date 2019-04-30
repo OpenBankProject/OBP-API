@@ -471,7 +471,7 @@ object JSONFactory{
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       stringOptionOrNull(account.iban),
-      stringOptionOrNull(account.swift_bic),
+      stringOptionOrNull(None),//set it None for V121
       viewsAvailable,
       stringOrNull(account.bankId.value),
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress))
@@ -599,7 +599,7 @@ object JSONFactory{
       number = stringOptionOrNull(bankAccount.number),
       kind = stringOptionOrNull(bankAccount.accountType),
       IBAN = stringOptionOrNull(bankAccount.iban),
-      swift_bic = stringOptionOrNull(bankAccount.swift_bic),
+      swift_bic = stringOptionOrNull(None),//set it None for V121
       bank = createMinimalBankJSON(bankAccount),
       holders = bankAccount.owners.map(x => x.toList.map(h => createAccountHolderJSON(h, false))).getOrElse(null)
     )
@@ -638,7 +638,7 @@ object JSONFactory{
       number = stringOptionOrNull(bankAccount.number),
       kind = stringOptionOrNull(bankAccount.kind),
       IBAN = stringOptionOrNull(bankAccount.iban),
-      swift_bic = stringOptionOrNull(bankAccount.swift_bic),
+      swift_bic = stringOptionOrNull(None),//set it None for V121
       bank = createMinimalBankJSON(bankAccount),
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)

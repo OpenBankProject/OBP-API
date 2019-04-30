@@ -31,25 +31,18 @@ import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.{Date, UUID}
 
-import code.api.builder.OBP_APIBuilder
-import code.api.oauth1a.OauthParams._
 import code.api.Constant._
-import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
-import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
-import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
-import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
+import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
-import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagMockedData}
-import code.api.util.CallContextFilter.registerFilters
+import code.api.oauth1a.OauthParams._
+import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
-import code.bankconnectors._
 import code.consumer.Consumers
-import code.context.UserAuthContextProvider
 import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics._
@@ -58,7 +51,6 @@ import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
-import code.views.Views
 import com.openbankproject.commons.model.{Customer, _}
 import dispatch.url
 import net.liftweb.actor.LAFuture
@@ -79,10 +71,9 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.reflect.ClassTag
 import scala.xml.{Elem, XML}
 
-object APIUtil extends MdcLoggable {
+object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   val DateWithDay = "yyyy-MM-dd"
   val DateWithDay2 = "yyyyMMdd"
@@ -117,9 +108,7 @@ object APIUtil extends MdcLoggable {
   
   val DefaultFromDate = DateWithMsFormat.parse(DateWithMsForFilteringFromDateString)
   val DefaultToDate = DateWithMsFormat.parse(DateWithMsForFilteringEenDateString)
-  
-  
-  implicit val formats = net.liftweb.json.DefaultFormats
+
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
   val defaultJValue = Extraction.decompose(EmptyClassJson())
@@ -882,13 +871,11 @@ object APIUtil extends MdcLoggable {
 
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
-    import javax.crypto
-
     import dispatch.{Req => Request}
     import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
-    import scala.collection.immutable.{TreeMap, Map => IMap}
+    import scala.collection.immutable.{Map => IMap}
 
     case class ReqData (
                       url: String,
@@ -1567,7 +1554,6 @@ Returns a string showed to the developer
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
-    import java.util.Locale
     val format = new SimpleDateFormat(dateFormat)
     format.setLenient(false)
     format.parse(value)
@@ -1678,7 +1664,6 @@ Returns a string showed to the developer
     }
 
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
-    implicit val formats = net.liftweb.json.DefaultFormats
     try {
       val parseJValue: JValue = parse(in)
       val t: T = parseJValue.extract[T]
@@ -2114,7 +2099,7 @@ Returns a string showed to the developer
     anonymousAccess(cc) map {
       x => (fullBoxOrException(
         x._1 ~> APIFailureNewStyle(emptyUserErrorMsg, 400, Some(cc.toLight))),
-        x._2.map(registerFilters.foldLeft(_)((ct, filter)=> filter(ct, null))) 
+        x._2
       )
     }
   }
@@ -2460,47 +2445,6 @@ Returns a string showed to the developer
     List(apiTagBank)
   )
   
-  def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfoBasic]=
-    for{
-      cc <- tryo {callContext.get} ?~! NoCallContext
-      user <- cc.user
-      username <- tryo(user.name)
-      currentResourceUserId <- Some(user.userId)
-      gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload orElse (
-        Some(PayloadOfJwtJSON(login_user_name = "",
-                         is_first = false,
-                         app_id = "",
-                         app_name = "",
-                         time_stamp = "",
-                         cbs_token = Some(""),
-                         cbs_id = "",
-                         session_id = Some(""))))
-      cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
-      isFirst <- tryo(gatewayLoginPayLoad.is_first)
-      correlationId <- tryo(cc.correlationId)
-      sessionId <- tryo(cc.sessionId.getOrElse(""))
-      permission <- Views.views.vend.getPermissionForUser(user)
-      views <- tryo(permission.views)
-      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
-      basicUserAuthContexts = createBasicUserAuthContextJson(userAuthContexts)
-      authViews<- Full(
-        for{
-          view <- views   
-          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
-          internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
-          internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
-          viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
-          accountBasic =  AccountBasic(
-            account.accountId.value, 
-            account.accountRoutings, 
-            internalCustomers.customers,
-            internalUsers.users)
-        }yield 
-          AuthView(viewBasic, accountBasic)
-      )
-    } yield{
-      AuthInfoBasic(Some(username), Some(correlationId), Some(sessionId), Some(basicUserAuthContexts), Some(authViews))
-    }
   
   def createBasicUserAuthContext(userAuthContest : UserAuthContext) : BasicUserAuthContext = {
     BasicUserAuthContext(
@@ -2535,8 +2479,20 @@ Returns a string showed to the developer
     )
   }
   
+  def createInternalLinkedBasicCustomerJson(customer : Customer) : BasicLinkedCustomer = {
+    BasicLinkedCustomer(
+      customerId = customer.customerId,
+      customerNumber = customer.number,
+      legalName = customer.legalName,
+    )
+  }
+  
   def createAuthInfoUsersJson(users : List[User]) : InternalBasicUsers = {
     InternalBasicUsers(users.map(createAuthInfoUserJson))
+  }
+  
+  def createInternalLinkedBasicCustomersJson(customers : List[Customer]) : List[BasicLinkedCustomer] = {
+    customers.map(createInternalLinkedBasicCustomerJson)
   }
 
 }

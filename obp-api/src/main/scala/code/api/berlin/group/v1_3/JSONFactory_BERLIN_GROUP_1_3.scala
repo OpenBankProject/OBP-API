@@ -2,7 +2,7 @@ package code.api.berlin.group.v1_3
 
 import java.util.Date
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{BankAccount, CoreAccount, TransactionRequest}
 import net.liftweb.json.JValue
@@ -11,9 +11,7 @@ import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
-object JSONFactory_BERLIN_GROUP_1_3 {
-
-  implicit val formats = net.liftweb.json.DefaultFormats
+object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
   trait links
   case class Balances(balances: String) extends links

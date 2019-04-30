@@ -14,7 +14,6 @@ import net.liftweb.json.Serialization.write
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
-  implicit val format = APIUtil.formats
 
   //TODO: need better tests
   feature("Customer messages") {

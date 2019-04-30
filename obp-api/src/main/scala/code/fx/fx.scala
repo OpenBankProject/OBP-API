@@ -3,14 +3,14 @@ package code.fx
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Full
 import net.liftweb.http.LiftRules
-import net.liftweb.json.{DefaultFormats, _}
+import net.liftweb.json._
 
 import scala.concurrent.duration._
 
@@ -69,7 +69,7 @@ object fx extends MdcLoggable {
       date: String,
       inverseRate: Double
     )
-    implicit val formats = DefaultFormats
+    implicit val formats = CustomJsonFormats.formats
     fromCurrency == toCurrency match {
       case true => 
         Some(1)

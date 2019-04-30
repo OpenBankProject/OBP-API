@@ -30,12 +30,12 @@ package code.api.v2_2_0
 import java.util.Date
 
 import code.actorsystem.ObpActorConfig
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.util.APIUtil.MessageDoc
-import code.api.v1_2_1.{ BankRoutingJsonV121}
+import code.api.v1_2_1.BankRoutingJsonV121
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
-import code.api.v2_1_0.{PostCounterpartyBespokeJson, ResourceUserJSON}
+import code.api.v2_1_0.{JSONFactory210, LocationJsonV210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.atms.Atms.Atm
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.fx.FXRate
@@ -185,14 +185,14 @@ case class CounterpartyJsonV220(
                            )
 
 case class CounterpartyMetadataJson(
-   publicAlias : String, // Only have this value when we create explict counterparty
-   moreInfo : String  = null,
-   url : String = null,
-   imageURL : String = null,
-   openCorporatesURL : String = null,
-   corporateLocation : GeoTag = null,
-   physicalLocation :  GeoTag = null,
-   privateAlias : String  = null
+  public_alias : String, // Only have this value when we create explict counterparty
+  more_info : String,
+  url : String,
+  image_url : String,
+  open_corporates_url : String,
+  corporate_location : LocationJsonV210,
+  physical_location :  LocationJsonV210,
+  private_alias : String
 )
 case class CounterpartiesJsonV220(
                                   counterparties: List[CounterpartyJsonV220]
@@ -365,9 +365,7 @@ case class CustomerViewJsonV220(
 
 
 
-object JSONFactory220{
-
-  implicit val formats = net.liftweb.json.DefaultFormats
+object JSONFactory220 extends CustomJsonFormats {
   
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
@@ -490,14 +488,14 @@ object JSONFactory220{
       is_beneficiary = counterparty.isBeneficiary,
       bespoke = counterparty.bespoke.map(bespoke =>PostCounterpartyBespokeJson(bespoke.key,bespoke.value)),
       metadata=CounterpartyMetadataJson(
-        publicAlias = counterpartyMetadata.getPublicAlias,
-        moreInfo = counterpartyMetadata.getMoreInfo,
+        public_alias = counterpartyMetadata.getPublicAlias,
+        more_info = counterpartyMetadata.getMoreInfo,
         url = counterpartyMetadata.getUrl,
-        imageURL = counterpartyMetadata.getImageURL,
-        openCorporatesURL = counterpartyMetadata.getOpenCorporatesURL,
-        corporateLocation = counterpartyMetadata.getCorporateLocation.getOrElse(null),
-        physicalLocation = counterpartyMetadata.getPhysicalLocation.getOrElse(null),
-        privateAlias = counterpartyMetadata.getPrivateAlias
+        image_url = counterpartyMetadata.getImageURL,
+        open_corporates_url = counterpartyMetadata.getOpenCorporatesURL,
+        corporate_location = JSONFactory210.createLocationJSON(counterpartyMetadata.getCorporateLocation),
+        physical_location = JSONFactory210.createLocationJSON(counterpartyMetadata.getPhysicalLocation),
+        private_alias = counterpartyMetadata.getPrivateAlias
       )
     )
   }
