@@ -304,7 +304,7 @@ nationalIdentifier="string")))
   }("getBanksFuture")
     
 messageDocs += MessageDoc(
-    process = "obp.get.InboundAccountCommonCommons",
+    process = "obp.get.InboundAccountCommons",
     messageFormat = messageFormat,
     description = "Get Bank Accounts For User",
     outboundTopic = None,
@@ -343,7 +343,7 @@ username="string")
 sessionId=Option("string"),
 generalContext=Option(List( BasicGeneralContext(key="string",
 value="string")))),
-data=List( InboundAccountCommonCommons(bankId="string",
+data=List( InboundAccountCommons(bankId="string",
 branchId="string",
 accountId="string",
 accountNumber="string",
@@ -362,7 +362,7 @@ accountRoutingAddress="string")))
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getBankAccountsForUserFuture/username/{username}
-  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = saveConnectorMetric {
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

@@ -12,7 +12,7 @@ import scala.collection.immutable.{List, Nil}
 object MessageDocsSwaggerDefinitions
 {
   
-  val inboundAccountCommonCommons = InboundAccountCommonCommons(
+  val inboundAccountCommons = InboundAccountCommons(
     bankId = bankIdExample.value,
     branchId = branchIdExample.value,
     accountId = accountIdExample.value,

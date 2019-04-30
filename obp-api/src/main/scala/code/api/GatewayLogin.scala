@@ -35,7 +35,7 @@ import code.model.{Consumer, User}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
-import com.openbankproject.commons.model.{InboundAccountCommon, User}
+import com.openbankproject.commons.model.{InboundAccount, User}
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
@@ -158,7 +158,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def refreshBankAccounts(jwtPayload: String, callContext: Option[CallContext]) : Box[(String, List[InboundAccountCommon], Option[CallContext])] = {
+  def refreshBankAccounts(jwtPayload: String, callContext: Option[CallContext]) : Box[(String, List[InboundAccount], Option[CallContext])] = {
     val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
     val cbsToken = getFieldFromPayloadJson(jwtPayload, "cbs_token")
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
@@ -190,7 +190,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     }
   }
 
-  def refreshBankAccountsFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(String, List[InboundAccountCommon], Option[CallContext])]] = {
+  def refreshBankAccountsFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(String, List[InboundAccount], Option[CallContext])]] = {
     val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
     val cbsToken = getFieldFromPayloadJson(jwtPayload, "cbs_token")
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")

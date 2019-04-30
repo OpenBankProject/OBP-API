@@ -75,7 +75,7 @@ case class InBoundGetBanksFuture  (inboundAdapterCallContext: InboundAdapterCall
 
 case class OutBoundGetBankAccountsForUserFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                           username: String)
-case class InBoundGetBankAccountsForUserFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[InboundAccountCommonCommons])
+case class InBoundGetBankAccountsForUserFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[InboundAccountCommons])
 
 
 case class OutBoundGetBankAccountFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -495,7 +495,7 @@ case class InBoundGetBankAccounts  (inboundAdapterCallContext: InboundAdapterCal
 
 case class OutBoundGetBankAccountsForUser  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                               username: String)
-case class InBoundGetBankAccountsForUser  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[InboundAccountCommonCommons])
+case class InBoundGetBankAccountsForUser  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[InboundAccountCommons])
 
 
 case class OutBoundGetCoreBankAccounts  (outboundAdapterCallContext: OutboundAdapterCallContext,

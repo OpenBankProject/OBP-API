@@ -858,7 +858,7 @@ def restoreSomeSessions(): Unit = {
     * update the views, accountHolders for OBP side when sign up new remote user
     *
     */
-  def updateUserAccountViews(user: User, accounts: List[InboundAccountCommon]): Unit = {
+  def updateUserAccountViews(user: User, accounts: List[InboundAccount]): Unit = {
     for {
       account <- accounts
       viewId <- account.viewsToGenerate

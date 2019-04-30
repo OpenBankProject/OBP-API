@@ -47,7 +47,7 @@ import scala.collection.immutable.List
 case class InboundAccountData(
   banks: List[InboundBank],
   users: List[InboundUser],
-  accounts: List[InboundAccount]
+  accounts: List[InboundAccount_vMar2017]
 )
 
 case class OutboundUserByUsernamePasswordBase(
@@ -318,7 +318,7 @@ case class Bank2(r: InboundBank) extends Bank {
   def bankRoutingAddress = "None"
 }
 
-case class InboundAccount(
+case class InboundAccount_vMar2017(
   errorCode: String,
   accountId: String,
   bankId: String,
@@ -342,7 +342,7 @@ case class InboundAccount(
 
 
 
-case class BankAccount2(r: InboundAccount) extends BankAccount {
+case class BankAccount2(r: InboundAccount_vMar2017) extends BankAccount {
   
   def accountId: AccountId = AccountId(r.accountId)
   def accountType: String = r.`type`

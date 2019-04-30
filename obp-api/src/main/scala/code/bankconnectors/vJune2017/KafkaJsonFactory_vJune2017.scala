@@ -155,7 +155,7 @@ case class InboundAccountJune2017(
   accountRoutingAddress: String,
   accountRouting: List[AccountRouting],
   accountRules: List[AccountRule]
-) extends InboundMessageBase with InboundAccountCommon
+) extends InboundMessageBase with InboundAccount
 
 case class BankAccountJune2017(r: InboundAccountJune2017) extends BankAccount {
 

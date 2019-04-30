@@ -218,8 +218,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //This method is only for testing now. Normall this method 
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountCommon], Option[CallContext])]= {
-    val inboundAccountCommonCommonsBox: Box[Set[InboundAccountCommonCommons]] =for{
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])]= {
+    val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] =for{
       //1 get all the accounts for one user
       user <- Users.users.vend.getUserByUserName(username)
       bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
@@ -227,7 +227,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       for{
         bankAccountId <- bankAccountIds
         (bankAccount, callContext) <- getBankAccountCommon(bankAccountId.bankId, bankAccountId.accountId,callContext)
-        inboundAccountCommonCommons = InboundAccountCommonCommons(
+        inboundAccountCommons = InboundAccountCommons(
           bankId = bankAccount.bankId.value,
           branchId = bankAccount.branchId,
           accountId = bankAccount.accountId.value,
@@ -245,13 +245,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           accountRoutingAddress = bankAccount.accountRoutingAddress
         )
       } yield {
-        inboundAccountCommonCommons
+        inboundAccountCommons
       }
     }
-    inboundAccountCommonCommonsBox.map( inboundAccountCommonCommons => (inboundAccountCommonCommons.toList, callContext))
+    inboundAccountCommonsBox.map( inboundAccountCommons => (inboundAccountCommons.toList, callContext))
   }
 
-  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = Future{
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
     getBankAccountsForUser(username,callContext)
   }
 

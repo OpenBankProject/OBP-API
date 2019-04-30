@@ -67,11 +67,11 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   val cacheTTL              = APIUtil.getPropsValue("connector.cache.ttl.seconds", "10").toInt
   val cachedUser            = TTLCache[InboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[InboundBank](cacheTTL)
-  val cachedAccount         = TTLCache[InboundAccount](cacheTTL)
+  val cachedAccount         = TTLCache[InboundAccount_vMar2017](cacheTTL)
   val cachedBanks           = TTLCache[List[InboundBank]](cacheTTL)
-  val cachedAccounts        = TTLCache[List[InboundAccount]](cacheTTL)
-  val cachedPublicAccounts  = TTLCache[List[InboundAccount]](cacheTTL)
-  val cachedUserAccounts    = TTLCache[List[InboundAccount]](cacheTTL)
+  val cachedAccounts        = TTLCache[List[InboundAccount_vMar2017]](cacheTTL)
+  val cachedPublicAccounts  = TTLCache[List[InboundAccount_vMar2017]](cacheTTL)
+  val cachedUserAccounts    = TTLCache[List[InboundAccount_vMar2017]](cacheTTL)
   val cachedFxRate          = TTLCache[InboundFXRate](cacheTTL)
   val cachedCounterparty    = TTLCache[InboundCounterparty](cacheTTL)
   val cachedTransactionRequestTypeCharge = TTLCache[InboundTransactionRequestTypeCharge](cacheTTL)
@@ -147,7 +147,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     ),
     exampleInboundMessage = (
-      InboundAccount(
+      InboundAccount_vMar2017(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
@@ -162,7 +162,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         generateAccountantsView = true,
         generateAuditorsView = true
       )
-        :: InboundAccount(
+        :: InboundAccount_vMar2017(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
@@ -182,7 +182,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   )
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[InboundAccount] = getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
+    val accounts: List[InboundAccount_vMar2017] = getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -196,7 +196,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
         // Generate random uuid to be used as request-response match id
         } yield {
-          cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccount]])
+          cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[InboundAccount_vMar2017]])
         }
       }
     }.flatten
@@ -658,7 +658,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     ),
     exampleInboundMessage = (
-      InboundAccount(
+      InboundAccount_vMar2017(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
@@ -689,7 +689,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Since result is single account, we need only first list entry
     implicit val formats = CustomJsonFormats.formats
     val r = {
-      cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount])
+      cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount_vMar2017])
     }
     // Check does the response data match the requested data
     val accResp = List((BankId(r.bankId), AccountId(r.accountId))).toSet
@@ -716,7 +716,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     ),
     exampleInboundMessage = (
-      InboundAccount(
+      InboundAccount_vMar2017(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
@@ -730,7 +730,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         generatePublicView = true,
         generateAccountantsView = true,
         generateAuditorsView = true
-      ) :: InboundAccount(
+      ) :: InboundAccount_vMar2017(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
@@ -764,7 +764,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       )
     ),
     exampleInboundMessage = (
-      InboundAccount(
+      InboundAccount_vMar2017(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",
@@ -796,7 +796,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Since result is single account, we need only first list entry
     implicit val formats = CustomJsonFormats.formats
     val r = {
-      cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount])
+      cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount_vMar2017])
     }
     createMappedAccountDataIfNotExisting(r.bankId, r.accountId, r.label)
     Full(new BankAccount2(r))
@@ -1558,7 +1558,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   override def getEmptyBankAccount(): Box[BankAccount] = {
     Full(new BankAccount2(
-      InboundAccount(
+      InboundAccount_vMar2017(
         errorCode = "OBP-6001: ...",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         bankId = "gh.29.uk",

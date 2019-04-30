@@ -174,7 +174,7 @@ case class CustomerAddressCommons(
 object CustomerAddressCommons extends Converter[CustomerAddress, CustomerAddressCommons]
 
 
-case class InboundAccountCommonCommons(
+case class InboundAccountCommons(
                                         bankId :String,
                                         branchId :String,
                                         accountId :String,
@@ -189,9 +189,9 @@ case class InboundAccountCommonCommons(
                                         branchRoutingScheme :String,
                                         branchRoutingAddress :String,
                                         accountRoutingScheme :String,
-                                        accountRoutingAddress :String) extends InboundAccountCommon
+                                        accountRoutingAddress :String) extends InboundAccount
 
-object InboundAccountCommonCommons extends Converter[InboundAccountCommon, InboundAccountCommonCommons]
+object InboundAccountCommons extends Converter[InboundAccount, InboundAccountCommons]
 
 
 case class AtmTCommons(

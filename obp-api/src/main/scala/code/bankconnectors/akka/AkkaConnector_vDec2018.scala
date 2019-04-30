@@ -119,12 +119,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBankAccountsForUserFuture(
         inboundAdapterCallContext,
-        List(inboundAccountCommonCommons)
+        List(inboundAccountCommons)
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
-  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccountCommon], Option[CallContext])]] = {
+  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
     val req = OutBoundGetBankAccountsForUserFuture(callContext.map(_.toOutboundAdapterCallContext).get, username)
     val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUserFuture]
     response.map(a =>(Full(a.data, callContext)))
