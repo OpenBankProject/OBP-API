@@ -3232,13 +3232,13 @@ trait APIMethods310 {
       apiTagConsent :: apiTagNewStyle :: Nil)
 
     lazy val createConsent : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "my" :: "consents"  :: sca_method :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "my" :: "consents"  :: scaMethod :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
-              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == sca_method)
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3252,9 +3252,9 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            sca_method match {
+            scaMethod match {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-                org.scalameta.logger.elem(sca_method)
+                org.scalameta.logger.elem(scaMethod)
                 val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
                 Mailer.sendMail(
                   From("challenge@tesobe.com"),
