@@ -1294,7 +1294,7 @@ Returns a string showed to the developer
     }
   }
   def checkScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
-    REQUIRE_SCOPES match {
+    requireScopes(role) match {
       case false => true // if the props require_scopes == false, we do not need to check the Scope stuff..
       case true => !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
     }
@@ -1320,13 +1320,20 @@ Returns a string showed to the developer
     reason: Option[String] = None, //for Later
     errorMessage: String,
   )
-  
-  val REQUIRE_SCOPES: Boolean = getPropsAsBoolValue("require_scopes", false)
+
+  def requireScopes(role: ApiRole) = {
+      getPropsAsBoolValue("require_scopes", false) match {
+      case false =>
+        getPropsValue("enable_scopes_for_roles", "").split(",").toList.exists(_ == role.toString())
+      case true => 
+        true
+    }
+  }
   
   def hasEntitlementAndScope(bankId: String, userId: String, consumerId: String, role: ApiRole): Box[EntitlementAndScopeStatus]= {
     for{
       hasEntitlement <- tryo{ !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty} ?~! s"$UnknownError"
-      hasScope <- REQUIRE_SCOPES match {
+      hasScope <- requireScopes(role) match {
         case false => Full(true) // if the props require_scopes == false, we need not check the Scope stuff..
         case true => tryo{ !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty} ?~! s"$UnknownError "
       }
