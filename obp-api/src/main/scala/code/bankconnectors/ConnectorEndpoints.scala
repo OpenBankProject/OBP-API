@@ -30,10 +30,10 @@ object ConnectorEndpoints extends RestHelper{
         val methodSymbol = getMethod(methodName, params).get
         val optionCC = Option(cc)
         val queryParams: Seq[OBPQueryParam] = List(
-          OBPQueryParam.toLimit(req.param("limit")),
-          OBPQueryParam.toOffset(req.param("offset")),
-          OBPQueryParam.toFromDate(req.param("fromDate")),
-          OBPQueryParam.toToDate(req.param("toDate"))
+          OBPQueryParam.toLimit(req.param(OBPQueryParam.LIMIT)),
+          OBPQueryParam.toOffset(req.param(OBPQueryParam.OFFSET)),
+          OBPQueryParam.toFromDate(req.param(OBPQueryParam.FROM_DATE)),
+          OBPQueryParam.toToDate(req.param(OBPQueryParam.TO_DATE))
         ).filter(_.isDefined).map(_.openOrThrowException("Impossible exception!"))
 
         // TODO need wait for confirm the rule, after that do refactor

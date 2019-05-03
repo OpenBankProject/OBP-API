@@ -152,7 +152,10 @@ class WebUI extends MdcLoggable{
 
   // CreateDirectLoginToken
   def createDirectLoginToken: CssSel = {
-    ".create-direct-login-token-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_create_directlogin_token_url", ""))
+    APIUtil.getPropsValue("webui_create_directlogin_token_url", "") match {
+      case "" => ".create-direct-login-token-link " #> scala.xml.Unparsed("")
+      case value => ".create-direct-login-token-link a [href]" #> scala.xml.Unparsed(value)
+    }
   }
 
   // Points to the documentation. Probably a sandbox specific link is good.

@@ -49,8 +49,10 @@ object ReflectUtils {
       """"string""""
     } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer] || tp =:= ru.typeOf[Long] || tp =:= ru.typeOf[java.lang.Long]) {
       "123"
-    } else if (tp =:= ru.typeOf[Float] || tp =:= ru.typeOf[Double] || tp =:= ru.typeOf[java.lang.Float] || tp =:= ru.typeOf[java.lang.Double] || tp =:= ru.typeOf[BigDecimal] || tp =:= ru.typeOf[java.math.BigDecimal]) {
+    } else if (tp =:= ru.typeOf[Float] || tp =:= ru.typeOf[Double] || tp =:= ru.typeOf[java.lang.Float] || tp =:= ru.typeOf[java.lang.Double]) {
       "123.123"
+    } else if (tp =:= ru.typeOf[BigDecimal]) {
+      """BigDecimal("123.321")"""
     } else if (tp =:= ru.typeOf[Date]) {
       "new Date()"
     } else if (tp =:= ru.typeOf[Boolean] || tp =:= ru.typeOf[java.lang.Boolean]) {
@@ -92,7 +94,7 @@ object ReflectUtils {
   def isCaseClass(symbol: Symbol): Boolean = symbol.isType && symbol.asType.isClass && symbol.asType.asClass.isCaseClass
 
 
-  def invokeMethod(obj: AnyRef, methodName: String, args: Any*): Any = {
+  def invokeMethod(obj: Any, methodName: String, args: Any*): Any = {
     val objMirror = mirror.reflect(obj)
     val methodSymbol: Option[ru.MethodSymbol] = findMethod(obj, methodName) { nameToType => {
         args.size == args.size && nameToType.values.zip(args).forall(it => isTypeOf(it._1, it._2))
@@ -146,6 +148,9 @@ object ReflectUtils {
 
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
 
+  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).asMethod
+
+  def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
 
   /**
     * convert a object to it's sibling, please have a loot the example:
