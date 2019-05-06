@@ -22,6 +22,9 @@ import code.customer._
 import code.customeraddress.CustomerAddress
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.kycchecks.{KycCheck, KycChecks}
+import code.kycdocuments.{KycDocument, KycDocuments}
+import code.kycmedias.{KycMedia, KycMedias}
+import code.kycstatuses.{KycStatus, KycStatuses}
 import code.management.ImporterAPI.ImporterTransaction
 import code.meetings.Meeting
 import code.metadata.comments.Comments
@@ -2179,6 +2182,71 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                        comments: String,
                                        callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = Future {
     val boxedData = KycChecks.kycCheckProvider.vend.addKycChecks(bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments)
+    (boxedData, callContext)
+  }
+
+  override def createOrUpdateKycDocument(bankId: String,
+                                         customerId: String,
+                                         id: String,
+                                         customerNumber: String,
+                                         `type`: String,
+                                         number: String,
+                                         issueDate: Date,
+                                         issuePlace: String,
+                                         expiryDate: Date,
+                                         callContext: Option[CallContext]): OBPReturnType[Box[KycDocument]] = Future {
+    val boxedData = KycDocuments.kycDocumentProvider.vend.addKycDocuments(
+      bankId,
+      customerId,
+      id,
+      customerNumber,
+      `type`,
+      number,
+      issueDate,
+      issuePlace,
+      expiryDate
+    )
+    (boxedData, callContext)
+  }
+
+  override def createOrUpdateKycMedia(bankId: String,
+                                        customerId: String,
+                                        id: String,
+                                        customerNumber: String,
+                                        `type`: String,
+                                        url: String,
+                                        date: Date,
+                                        relatesToKycDocumentId: String,
+                                        relatesToKycCheckId: String,
+                                        callContext: Option[CallContext]): OBPReturnType[Box[KycMedia]] = Future {
+    val boxedData = KycMedias.kycMediaProvider.vend.addKycMedias(
+      bankId,
+      customerId,
+      id,
+      customerNumber,
+      `type`,
+      url,
+      date,
+      relatesToKycDocumentId,
+      relatesToKycCheckId
+    )
+    (boxedData, callContext)
+  }
+
+
+  override def createOrUpdateKycStatus(bankId: String,
+                                         customerId: String,
+                                         customerNumber: String,
+                                         ok: Boolean,
+                                         date: Date,
+                                         callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = Future {
+    val boxedData = KycStatuses.kycStatusProvider.vend.addKycStatus(
+      bankId,
+      customerId,
+      customerNumber,
+      ok,
+      date
+    )
     (boxedData, callContext)
   }
 }

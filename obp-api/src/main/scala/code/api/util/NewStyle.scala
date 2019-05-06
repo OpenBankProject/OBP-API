@@ -20,6 +20,9 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.kycchecks.KycCheck
+import code.kycdocuments.KycDocument
+import code.kycmedias.KycMedia
+import code.kycstatuses.KycStatus
 import code.metadata.counterparties.Counterparties
 import code.model._
 import com.openbankproject.commons.model.Product
@@ -985,8 +988,78 @@ object NewStyle {
                                 callContext: Option[CallContext]): OBPReturnType[KycCheck] = {
       Connector.connector.vend.createOrUpdateKycCheck(bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments, callContext)
        .map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycChecks in the backend. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycCheck in the backend. ", 400), i._2)
        }
+    }
+
+    def createOrUpdateKycDocument(bankId: String,
+                                  customerId: String,
+                                  id: String,
+                                  customerNumber: String,
+                                  `type`: String,
+                                  number: String,
+                                  issueDate: Date,
+                                  issuePlace: String,
+                                  expiryDate: Date,
+                                  callContext: Option[CallContext]): OBPReturnType[KycDocument] = {
+      Connector.connector.vend.createOrUpdateKycDocument(
+          bankId,
+          customerId,
+          id,
+          customerNumber,
+          `type`,
+          number,
+          issueDate,
+          issuePlace,
+          expiryDate,
+          callContext)
+        .map {
+          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycDocument in the backend. ", 400), i._2)
+        }
+    }
+
+    def createOrUpdateKycMedia(bankId: String,
+                               customerId: String,
+                               id: String,
+                               customerNumber: String,
+                               `type`: String,
+                               url: String,
+                               date: Date,
+                               relatesToKycDocumentId: String,
+                               relatesToKycCheckId: String,
+                               callContext: Option[CallContext]): OBPReturnType[KycMedia] = {
+      Connector.connector.vend.createOrUpdateKycMedia(
+        bankId,
+        customerId,
+        id,
+        customerNumber,
+        `type`,
+        url,
+        date,
+        relatesToKycDocumentId,
+        relatesToKycCheckId,
+        callContext
+      ).map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycMedia in the backend. ", 400), i._2)
+      }
+    }
+
+    def createOrUpdateKycStatus(bankId: String,
+      customerId: String,
+      customerNumber: String,
+      ok: Boolean,
+      date: Date,
+      callContext: Option[CallContext]): OBPReturnType[KycStatus] = {
+      Connector.connector.vend.createOrUpdateKycStatus(
+        bankId,
+        customerId,
+        customerNumber,
+        ok,
+        date,
+        callContext
+      ).map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycStatus in the backend. ", 400), i._2)
+      }
     }
   }
 
