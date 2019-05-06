@@ -336,6 +336,63 @@ case class TransactionRequestStatusCommons(
                                             bulkTransactionsStatus: List[TransactionStatus]
                                           ) extends TransactionRequestStatus
 
+object TransactionRequestStatusCommons extends Converter[TransactionRequestStatus, TransactionRequestStatusCommons]
+
+
+
+case class KycCheckCommons(
+                            override val bankId: String,
+                            override val customerId: String,
+                            override val idKycCheck : String,
+                            override val customerNumber : String,
+                            override val date : Date,
+                            override val how : String,
+                            override val staffUserId : String,
+                            override val staffName : String,
+                            override val satisfied: Boolean,
+                            override val comments : String
+                          ) extends KycCheck
+
+object KycCheckCommons extends Converter[KycCheck, KycCheckCommons]
+
+case class KycDocumentCommons(
+  override val bankId: String,
+  override val customerId: String,
+  override val idKycDocument : String,
+  override val customerNumber : String,
+  override val `type` : String,
+  override val number : String,
+  override val issueDate : Date,
+  override val issuePlace : String,
+  override val expiryDate : Date
+) extends KycDocument
+
+object KycDocumentCommons extends Converter[KycDocument, KycDocumentCommons]
+
+case class KycMediaCommons (
+  override val bankId: String,
+  override val customerId: String,
+  override val idKycMedia : String,
+  override val customerNumber : String,
+  override val `type` : String,
+  override val url : String,
+  override val date : Date,
+  override val relatesToKycDocumentId : String,
+  override val relatesToKycCheckId : String
+) extends KycMedia
+
+object KycMediaCommons extends Converter[KycMedia, KycMediaCommons]
+
+case class KycStatusCommons (
+  override val bankId: String,
+  override val customerId: String,
+  override val customerNumber : String,
+  override val ok : Boolean,
+  override val date : Date
+) extends KycStatus
+
+object KycStatusCommons extends Converter[KycStatus, KycStatusCommons]
+
 //----------------obp-api moved to here case classes
 
 case class BranchRoutingJsonV141(
@@ -552,8 +609,6 @@ case class TransactionCommons(
                    override val finishDate : Date,
                    override val balance :  BigDecimal
                  )  extends Transaction(uuid, id, thisAccount, otherAccount, transactionType, amount, currency,description, startDate, finishDate, balance)
-
-
 
 case class InternalBasicUser(
   userId:String,

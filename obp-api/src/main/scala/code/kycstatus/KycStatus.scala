@@ -1,8 +1,10 @@
 package code.kycstatuses
 
 import java.util.Date
+
+import com.openbankproject.commons.model.KycStatus
 import net.liftweb.util.SimpleInjector
-import net.liftweb.common.{Box}
+import net.liftweb.common.Box
 
 
 object KycStatuses extends SimpleInjector {
@@ -19,12 +21,4 @@ trait KycStatusProvider {
 
   def addKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date) : Box[KycStatus]
 
-}
-
-trait KycStatus {
-  def bankId: String
-  def customerId: String
-  def customerNumber : String
-  def ok : Boolean
-  def date : Date
 }

@@ -4,7 +4,8 @@ import java.util.Date
 
 import net.liftweb.common.{Box, Full}
 import code.model.dataAccess.ResourceUser
-import code.util.{UUIDString}
+import code.util.UUIDString
+import com.openbankproject.commons.model.KycDocument
 import net.liftweb.mapper._
 
 object MappedKycDocumentsProvider extends KycDocumentProvider {
