@@ -1,8 +1,10 @@
 package code.kycchecks
 
 import java.util.Date
+
 import code.model.dataAccess.ResourceUser
-import code.util.{UUIDString}
+import code.util.UUIDString
+import com.openbankproject.commons.model.KycCheck
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 

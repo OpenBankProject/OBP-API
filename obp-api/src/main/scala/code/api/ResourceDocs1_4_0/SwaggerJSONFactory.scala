@@ -15,7 +15,6 @@ import scala.reflect.runtime.universe._
 import java.lang.{Boolean => JBoolean, Double => JDouble, Float => JFloat, Integer => JInt, Long => JLong}
 import java.math.{BigDecimal => JBigDecimal}
 
-import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 
 object SwaggerJSONFactory {
@@ -409,8 +408,8 @@ object SwaggerJSONFactory {
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 
-      def getRefEntityName(tp: Type, value: Any, indexes: Int*): String = {
-        val symbol = indexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
+      def getRefEntityName(tp: Type, value: Any, typeParamIndexes: Int*): String = {
+        val symbol = typeParamIndexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
         if(symbol.asClass.isAbstract) {
           val nestValue = value match {
               case Some(head::_) => head
@@ -475,81 +474,92 @@ object SwaggerJSONFactory {
         case t if(isOneOfType[List[_], Option[_]])                => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0)}"}}"""
         //Single object
         case t                                                    => s""""$paramName": {"$$ref":"#/definitions/${getRefEntityName(t, paramValue)}"}"""
-        // TODO resolve the warning patterns after a variable pattern cannot match (SLS 8.1.1)
-        // case _ => "unknown"
       }
     })
 
     //Exclude all unrecognised fields and make part of fields definition
-    // add comment and filter unknow
+    // add comment
     // fields --> "id" : {"type":"integer", "format":"int32"} ,"name" : {"type":"string"} ,"bank": {"$ref":"#/definitions/Bank"} ,"banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
-    val fields: String = paramNameToType filterNot (_.contains("unknown")) mkString (",")
+    val fields: String = paramNameToType mkString (",")
     val definition = s""""${entityType.typeSymbol.name}":{$requiredFieldsPart "properties": {$fields}}"""
     definition
   }
 
-  private[this] def isRefType(tp: Type): Boolean = {
-    val noneRefTypes = List(
-        typeOf[JValue]
-      , typeOf[Option[JValue]]
-      , typeOf[List[JValue]]
-      , typeOf[Option[List[JValue]]]
+  /**
+    * all not swagger ref type
+    */
+  private[this] val noneRefTypes = List(
+    typeOf[JValue]
+    , typeOf[Option[JValue]]
+    , typeOf[List[JValue]]
+    , typeOf[Option[List[JValue]]]
 
-      //Boolean - 4 kinds
-      , typeOf[Boolean], typeOf[JBoolean]
-      , typeOf[Option[Boolean]], typeOf[ Option[JBoolean]]
-      , typeOf[List[Boolean]], typeOf[ List[JBoolean]]
-      , typeOf[Option[List[Boolean]]], typeOf[Option[List[JBoolean]]]
-      //String
-      , typeOf[String]
-      , typeOf[Option[String]]
-      , typeOf[List[String]]
-      , typeOf[Option[List[String]]]
-      //Int
-      , typeOf[Int], typeOf[JInt]
-      , typeOf[Option[Int]], typeOf[ Option[JInt]]
-      , typeOf[List[Int]], typeOf[ List[JInt]]
-      , typeOf[Option[List[Int]]], typeOf[ Option[List[JInt]]]
-      //Long
-      , typeOf[Long], typeOf[JLong]
-      , typeOf[Option[Long]], typeOf[ Option[JLong]]
-      , typeOf[List[Long]], typeOf[ List[JLong]]
-      , typeOf[Option[List[Long]]], typeOf[ Option[List[JLong]]]
-      //Float
-      , typeOf[Float], typeOf[JFloat]
-      , typeOf[Option[Float]], typeOf[ Option[JFloat]]
-      , typeOf[List[Float]], typeOf[ List[JFloat]]
-      , typeOf[Option[List[Float]]], typeOf[ Option[List[JFloat]]]
-      //Double
-      , typeOf[Double], typeOf[JDouble]
-      , typeOf[Option[Double]], typeOf[ Option[JDouble]]
-      , typeOf[List[Double]], typeOf[ List[JDouble]]
-      , typeOf[Option[List[Double]]], typeOf[ Option[List[JDouble]]]
-      //BigDecimal
-      , typeOf[BigDecimal], typeOf[JBigDecimal]
-      , typeOf[Option[BigDecimal]], typeOf[ Option[JBigDecimal]]
-      , typeOf[List[BigDecimal]], typeOf[ List[JBigDecimal]]
-      , typeOf[Option[List[BigDecimal]]], typeOf[ Option[List[JBigDecimal]]]
-      //Date
-      , typeOf[Date], typeOf[Option[Date]]
-      , typeOf[List[Date]], typeOf[ Option[List[Date]]]
-    )
+    //Boolean - 4 kinds
+    , typeOf[Boolean], typeOf[JBoolean]
+    , typeOf[Option[Boolean]], typeOf[ Option[JBoolean]]
+    , typeOf[List[Boolean]], typeOf[ List[JBoolean]]
+    , typeOf[Option[List[Boolean]]], typeOf[Option[List[JBoolean]]]
+    //String
+    , typeOf[String]
+    , typeOf[Option[String]]
+    , typeOf[List[String]]
+    , typeOf[Option[List[String]]]
+    //Int
+    , typeOf[Int], typeOf[JInt]
+    , typeOf[Option[Int]], typeOf[ Option[JInt]]
+    , typeOf[List[Int]], typeOf[ List[JInt]]
+    , typeOf[Option[List[Int]]], typeOf[ Option[List[JInt]]]
+    //Long
+    , typeOf[Long], typeOf[JLong]
+    , typeOf[Option[Long]], typeOf[ Option[JLong]]
+    , typeOf[List[Long]], typeOf[ List[JLong]]
+    , typeOf[Option[List[Long]]], typeOf[ Option[List[JLong]]]
+    //Float
+    , typeOf[Float], typeOf[JFloat]
+    , typeOf[Option[Float]], typeOf[ Option[JFloat]]
+    , typeOf[List[Float]], typeOf[ List[JFloat]]
+    , typeOf[Option[List[Float]]], typeOf[ Option[List[JFloat]]]
+    //Double
+    , typeOf[Double], typeOf[JDouble]
+    , typeOf[Option[Double]], typeOf[ Option[JDouble]]
+    , typeOf[List[Double]], typeOf[ List[JDouble]]
+    , typeOf[Option[List[Double]]], typeOf[ Option[List[JDouble]]]
+    //BigDecimal
+    , typeOf[BigDecimal], typeOf[JBigDecimal]
+    , typeOf[Option[BigDecimal]], typeOf[ Option[JBigDecimal]]
+    , typeOf[List[BigDecimal]], typeOf[ List[JBigDecimal]]
+    , typeOf[Option[List[BigDecimal]]], typeOf[ Option[List[JBigDecimal]]]
+    //Date
+    , typeOf[Date], typeOf[Option[Date]]
+    , typeOf[List[Date]], typeOf[ Option[List[Date]]]
+  )
 
-    ! noneRefTypes.exists(tp <:< _)
-  }
+  /**
+    * check whether given type is a swagger ref type in definitions
+     * @param tp
+    * @return
+    */
+  private[this] def isSwaggerRefType(tp: Type): Boolean = ! noneRefTypes.exists(tp <:< _)
 
-  private[this] def getAllRefType(obj: Any, excludeTypes: Seq[Type]): List[Any] = {
+  /**
+    * extract all nest swagger ref type objects, exclude given types,
+    * swagger ref type is this ref type in swagger definitions, for example : "$ref": "#/definitions/AccountId"
+    * @param obj to do extract
+    * @param excludeTypes exclude these types
+    * @return all nest swagger ref type object, include all deep nest ref object
+    */
+  private[this] def getNestRefEntities(obj: Any, excludeTypes: Seq[Type]): List[Any] = {
     val entityType = ReflectUtils.getType(obj)
     val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
     // if exclude current obj, the result list tail will be Nil
     val resultTail = if(excludeTypes.exists(entityType =:=)) Nil else List(obj)
 
     val refValues: List[Any] = constructorParamList
-      .filter(it => isRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
+      .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
       .map(it => {
         val paramName = it.name.toString
         val value = ReflectUtils.invokeMethod(obj, paramName)
-        if(Objects.isNull(value) && isRefType(it.info)) {
+        if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
           throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
         }
         value match {
@@ -561,7 +571,7 @@ object SwaggerJSONFactory {
         }
       }).filterNot(it => it == null || it == Nil || it == None)
 
-    refValues.flatMap(getAllRefType(_, excludeTypes)) ::: resultTail
+    refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
   }
 
 
@@ -613,7 +623,7 @@ object SwaggerJSONFactory {
     val baseEntities = (resourceDocList.map(_.exampleRequestBody) ::: resourceDocList.map(_.successResponseBody) ::: allSwaggerDefinitionCaseClasses.toList)
         .filterNot(Objects.isNull)
     val existsEntityTypes = baseEntities.map(ReflectUtils.getType)
-    val nestEntities = baseEntities.flatMap(getAllRefType(_, existsEntityTypes))
+    val nestEntities = baseEntities.flatMap(getNestRefEntities(_, existsEntityTypes))
     val a = (nestEntities ::: baseEntities)
     val b = a.distinctBy(_.getClass)
     val translatedEntities = b.map(translateEntity)

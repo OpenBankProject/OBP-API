@@ -7,7 +7,7 @@ import code.accountapplication.AccountApplication
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.cache.Caching
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.util._
@@ -1622,4 +1622,62 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     meetingId : String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Meeting]]=Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateKycCheck(bankId: String,
+                              customerId: String,
+                              id: String,
+                              customerNumber: String,
+                              date: Date,
+                              how: String,
+                              staffUserId: String,
+                              mStaffName: String,
+                              mSatisfied: Boolean,
+                              comments: String,
+                              callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateKycDocument(bankId: String,
+                                customerId: String,
+                                id: String,
+                                customerNumber: String,
+                                `type`: String,
+                                number: String,
+                                issueDate: Date,
+                                issuePlace: String,
+                                expiryDate: Date,
+                                callContext: Option[CallContext]): OBPReturnType[Box[KycDocument]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateKycMedia(bankId: String,
+                             customerId: String,
+                             id: String,
+                             customerNumber: String,
+                             `type`: String,
+                             url: String,
+                             date: Date,
+                             relatesToKycDocumentId: String,
+                             relatesToKycCheckId: String,
+                             callContext: Option[CallContext]): OBPReturnType[Box[KycMedia]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateKycStatus(bankId: String,
+                              customerId: String,
+                              customerNumber: String,
+                              ok: Boolean,
+                              date: Date,
+                              callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getKycChecks(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycCheck]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getKycDocuments(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycDocument]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getKycMedias(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycMedia]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getKycStatuses(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycStatus]]] = Future{(Failure(setUnimplementedError), callContext)}
+  )
 }

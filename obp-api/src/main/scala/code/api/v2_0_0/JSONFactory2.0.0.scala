@@ -33,14 +33,9 @@ import code.api.util.CustomJsonFormats
 import code.api.v1_2_1.{JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, ThisAccountJSON => ThisAccountJSON121, UserJSONV121 => UserJSON121}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, CustomerFaceImageJson, TransactionRequestAccountJsonV140}
 import code.entitlement.Entitlement
-import code.kycchecks.KycCheck
-import code.kycdocuments.KycDocument
-import code.kycmedias.KycMedia
-import code.kycstatuses.KycStatus
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.socialmedia.SocialMedia
-import code.transactionrequests.TransactionRequests._
 import code.users.Users
 import com.openbankproject.commons.model.{BankAccount, _}
 import net.liftweb.common.{Box, Full}

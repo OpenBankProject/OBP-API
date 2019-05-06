@@ -40,6 +40,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
+import scala.Option
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -463,14 +464,14 @@ trait APIMethods200 {
 
     lazy val getKycDocuments  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_documents" :: Nil JsonGet _ => {
-        cc =>{
+        cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycDocuments, callContxt) <- NewStyle.function.getKycDocuments(customerId, callContext)
           } yield {
-            val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(customerId)
             val json = JSONFactory200.createKycDocumentsJSON(kycDocuments)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -497,12 +498,12 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycMedias, callContxt) <- NewStyle.function.getKycMedias(customerId, callContext)
           } yield {
-            val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(customerId)
             val json = JSONFactory200.createKycMediasJSON(kycMedias)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -530,12 +531,12 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycChecks, callContxt) <- NewStyle.function.getKycChecks(customerId, callContext)
           } yield {
-            val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(customerId)
             val json = JSONFactory200.createKycChecksJSON(kycChecks)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -560,12 +561,12 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
         cc => {
           for {
-            _ <-cc. user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycStatuses, callContxt) <- NewStyle.function.getKycStatuses(customerId, callContext)
           } yield {
-            val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(customerId)
             val json = JSONFactory200.createKycStatusesJSON(kycStatuses)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -618,7 +619,7 @@ trait APIMethods200 {
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       postKycDocumentJSON,
       kycDocumentJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer)
     )
@@ -630,13 +631,16 @@ trait APIMethods200 {
         // customerNumber is duplicated in postedData. remove from that?
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[PostKycDocumentJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycDocumentCreated <-
-              KycDocuments.kycDocumentProvider.vend.addKycDocuments(
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycDocumentJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostKycDocumentJSON]
+            }
+
+            (kycDocumentCreated, callContext) <-
+              NewStyle.function.createOrUpdateKycDocument(
                 bankId.value,
                 customerId,
                 documentId,
@@ -645,11 +649,11 @@ trait APIMethods200 {
                 postedData.number,
                 postedData.issue_date,
                 postedData.issue_place,
-                postedData.expiry_date) ?~
-              "Server error: could not add KycDocument"
+                postedData.expiry_date,
+                callContext)
           } yield {
             val json = JSONFactory200.createKycDocumentJSON(kycDocumentCreated)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`201`(callContext))
           }
         }
       }
@@ -665,7 +669,7 @@ trait APIMethods200 {
       "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
       postKycMediaJSON,
       kycMediaJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer)
     )
@@ -675,12 +679,15 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[PostKycMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycMediaCreated <- KycMedias.kycMediaProvider.vend.addKycMedias(
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycMediaJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostKycMediaJSON]
+            }
+
+            (kycMediaCreated, callContext) <- NewStyle.function.createOrUpdateKycMedia(
                 bankId.value,
                 customerId,
                 mediaId,
@@ -689,10 +696,12 @@ trait APIMethods200 {
                 postedData.url,
                 postedData.date,
                 postedData.relates_to_kyc_document_id,
-                postedData.relates_to_kyc_check_id) ?~! ServerAddDataError //TODO Use specific message!
+                postedData.relates_to_kyc_check_id,
+              callContext
+            )
           } yield {
             val json = JSONFactory200.createKycMediaJSON(kycMediaCreated)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`201`(callContext))
           }
         }
       }
@@ -708,7 +717,7 @@ trait APIMethods200 {
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
       postKycCheckJSON,
       kycCheckJSON,
-      List(UserNotLoggedIn, InvalidJsonFormat,InvalidBankIdFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
+      List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagKyc, apiTagCustomer)
     )
@@ -718,25 +727,30 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[PostKycCheckJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycCheckCreated <- KycChecks.kycCheckProvider.vend.addKycChecks(
-                bankId.value,
-                customerId,
-                checkId,
-                postedData.customer_number,
-                postedData.date,
-                postedData.how,
-                postedData.staff_user_id,
-                postedData.staff_name,
-                postedData.satisfied,
-                postedData.comments) ?~! ServerAddDataError //TODO Use specific message!
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycCheckJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostKycCheckJSON]
+            }
+
+            (kycCheck, callContext) <- NewStyle.function.createOrUpdateKycCheck(
+                                    bankId.value,
+                                    customerId,
+                                    checkId,
+                                    postedData.customer_number,
+                                    postedData.date,
+                                    postedData.how,
+                                    postedData.staff_user_id,
+                                    postedData.staff_name,
+                                    postedData.satisfied,
+                                    postedData.comments,
+                                    callContext
+                                    )
           } yield {
-            val json = JSONFactory200.createKycCheckJSON(kycCheckCreated)
-            successJsonResponse(Extraction.decompose(json))
+            val json = JSONFactory200.createKycCheckJSON(kycCheck)
+            (json, HttpCode.`201`(callContext))
           }
         }
       }
@@ -762,20 +776,23 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[PostKycStatusJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycStatusCreated <- KycStatuses.kycStatusProvider.vend.addKycStatus(
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycStatusJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostKycStatusJSON]
+            }
+
+            (kycStatus, callContext) <- NewStyle.function.createOrUpdateKycStatus(
                 bankId.value,
                 customerId,
                 postedData.customer_number,
                 postedData.ok,
-                postedData.date) ?~! ServerAddDataError //TODO Use specific message!
+                postedData.date, callContext)
           } yield {
-            val json = JSONFactory200.createKycStatusJSON(kycStatusCreated)
-            successJsonResponse(Extraction.decompose(json))
+            val json = JSONFactory200.createKycStatusJSON(kycStatus)
+            (json, HttpCode.`201`(callContext))
           }
         }
       }
