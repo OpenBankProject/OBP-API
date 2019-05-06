@@ -19,10 +19,10 @@ import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
-import code.kycchecks.KycCheck
-import code.kycdocuments.KycDocument
-import code.kycmedias.KycMedia
-import code.kycstatuses.KycStatus
+import code.kycchecks.{KycCheck, KycChecks}
+import code.kycdocuments.{KycDocument, KycDocuments}
+import code.kycmedias.{KycMedia, KycMedias}
+import code.kycstatuses.{KycStatus, KycStatuses}
 import code.metadata.counterparties.Counterparties
 import code.model._
 import com.openbankproject.commons.model.Product
@@ -1059,6 +1059,38 @@ object NewStyle {
         callContext
       ).map {
         i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycStatus in the backend. ", 400), i._2)
+      }
+    }
+
+    def getKycChecks(customerId: String,
+                              callContext: Option[CallContext]
+                             ): OBPReturnType[List[KycCheck]] = {
+      Connector.connector.vend.getKycChecks(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+      }
+    }
+
+    def getKycDocuments(customerId: String,
+                                 callContext: Option[CallContext]
+                                ): OBPReturnType[List[KycDocument]] = {
+      Connector.connector.vend.getKycDocuments(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+      }
+    }
+
+    def getKycMedias(customerId: String,
+                              callContext: Option[CallContext]
+                             ): OBPReturnType[List[KycMedia]] = {
+      Connector.connector.vend.getKycMedias(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+      }
+    }
+
+    def getKycStatuses(customerId: String,
+                                callContext: Option[CallContext]
+                               ): OBPReturnType[List[KycStatus]] = {
+      Connector.connector.vend.getKycStatuses(customerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
   }

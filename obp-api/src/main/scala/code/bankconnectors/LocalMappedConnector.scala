@@ -2249,4 +2249,34 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
     (boxedData, callContext)
   }
+
+
+  override def getKycChecks(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycCheck]]] = Future {
+    val boxedData = Box !! KycChecks.kycCheckProvider.vend.getKycChecks(customerId)
+    (boxedData, callContext)
+  }
+
+  override def getKycDocuments(customerId: String,
+                      callContext: Option[CallContext]
+                     ): OBPReturnType[Box[List[KycDocument]]] = Future {
+    val boxedData = Box !!  KycDocuments.kycDocumentProvider.vend.getKycDocuments(customerId)
+    (boxedData, callContext)
+  }
+
+  override def getKycMedias(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycMedia]]] = Future {
+    val boxedData = Box !!  KycMedias.kycMediaProvider.vend.getKycMedias(customerId)
+    (boxedData, callContext)
+  }
+
+  override def getKycStatuses(customerId: String,
+                     callContext: Option[CallContext]
+                    ): OBPReturnType[Box[List[KycStatus]]] = Future {
+    val boxedData = Box !!  KycStatuses.kycStatusProvider.vend.getKycStatuses(customerId)
+    (boxedData, callContext)
+  }
+
 }

@@ -1659,4 +1659,20 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                               ok: Boolean,
                               date: Date,
                               callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getKycChecks(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycCheck]]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getKycDocuments(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycDocument]]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getKycMedias(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycMedia]]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def getKycStatuses(customerId: String,
+                   callContext: Option[CallContext]
+                  ): OBPReturnType[Box[List[KycStatus]]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

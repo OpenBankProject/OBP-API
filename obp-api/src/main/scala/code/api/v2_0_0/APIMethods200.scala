@@ -464,14 +464,14 @@ trait APIMethods200 {
 
     lazy val getKycDocuments  : OBPEndpoint = {
       case "customers" :: customerId :: "kyc_documents" :: Nil JsonGet _ => {
-        cc =>{
+        cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycDocuments, callContxt) <- NewStyle.function.getKycDocuments(customerId, callContext)
           } yield {
-            val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(customerId)
             val json = JSONFactory200.createKycDocumentsJSON(kycDocuments)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -498,12 +498,12 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycMedias, callContxt) <- NewStyle.function.getKycMedias(customerId, callContext)
           } yield {
-            val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(customerId)
             val json = JSONFactory200.createKycMediasJSON(kycMedias)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -531,12 +531,12 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycChecks, callContxt) <- NewStyle.function.getKycChecks(customerId, callContext)
           } yield {
-            val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(customerId)
             val json = JSONFactory200.createKycChecksJSON(kycChecks)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -561,12 +561,12 @@ trait APIMethods200 {
       case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
         cc => {
           for {
-            _ <-cc. user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (kycStatuses, callContxt) <- NewStyle.function.getKycStatuses(customerId, callContext)
           } yield {
-            val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(customerId)
             val json = JSONFactory200.createKycStatusesJSON(kycStatuses)
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
         }
       }
@@ -650,7 +650,7 @@ trait APIMethods200 {
                 postedData.issue_date,
                 postedData.issue_place,
                 postedData.expiry_date,
-                Option(cc))
+                callContext)
           } yield {
             val json = JSONFactory200.createKycDocumentJSON(kycDocumentCreated)
             (json, HttpCode.`201`(callContext))
@@ -697,7 +697,7 @@ trait APIMethods200 {
                 postedData.date,
                 postedData.relates_to_kyc_document_id,
                 postedData.relates_to_kyc_check_id,
-              Option(cc)
+              callContext
             )
           } yield {
             val json = JSONFactory200.createKycMediaJSON(kycMediaCreated)
@@ -746,7 +746,7 @@ trait APIMethods200 {
                                     postedData.staff_name,
                                     postedData.satisfied,
                                     postedData.comments,
-                                    Option(cc)
+                                    callContext
                                     )
           } yield {
             val json = JSONFactory200.createKycCheckJSON(kycCheck)
@@ -789,7 +789,7 @@ trait APIMethods200 {
                 customerId,
                 postedData.customer_number,
                 postedData.ok,
-                postedData.date, Option(cc))
+                postedData.date, callContext)
           } yield {
             val json = JSONFactory200.createKycStatusJSON(kycStatus)
             (json, HttpCode.`201`(callContext))
