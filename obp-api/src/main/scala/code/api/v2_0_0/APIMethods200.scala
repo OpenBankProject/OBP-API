@@ -40,6 +40,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
+import scala.Option
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -718,25 +719,29 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         cc => {
           for {
-            _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[PostKycCheckJSON]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycCheckCreated <- KycChecks.kycCheckProvider.vend.addKycChecks(
-                bankId.value,
-                customerId,
-                checkId,
-                postedData.customer_number,
-                postedData.date,
-                postedData.how,
-                postedData.staff_user_id,
-                postedData.staff_name,
-                postedData.satisfied,
-                postedData.comments) ?~! ServerAddDataError //TODO Use specific message!
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostKycCheckJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostKycCheckJSON]
+            }
+
+            (kycCheck, callContext) <- NewStyle.function.createOrUpdateKycCheck(
+                                    bankId.value,
+                                    customerId,
+                                    checkId,
+                                    postedData.customer_number,
+                                    postedData.date,
+                                    postedData.how,
+                                    postedData.staff_user_id,
+                                    postedData.staff_name,
+                                    postedData.satisfied,
+                                    postedData.comments,
+                                    Option(cc)
+                                    )
           } yield {
-            val json = JSONFactory200.createKycCheckJSON(kycCheckCreated)
-            successJsonResponse(Extraction.decompose(json))
+            (JSONFactory200.createKycCheckJSON(kycCheck), HttpCode.`201`(callContext))
           }
         }
       }

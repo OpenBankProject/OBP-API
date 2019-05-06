@@ -26,6 +26,7 @@ import code.model.toUserExtended
 import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.fx.fx.TTL
+import code.kycchecks.KycCheck
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
 import code.model.toUserExtended
@@ -1614,4 +1615,16 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     meetingId : String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Meeting]]=Future{(Failure(NotImplemented + currentMethodName), callContext)}
+
+  def createOrUpdateKycCheck(bankId: String,
+                              customerId: String,
+                              id: String,
+                              customerNumber: String,
+                              date: Date,
+                              how: String,
+                              staffUserId: String,
+                              mStaffName: String,
+                              mSatisfied: Boolean,
+                              comments: String,
+                              callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = Future{(Failure(NotImplemented + currentMethodName), callContext)}
 }

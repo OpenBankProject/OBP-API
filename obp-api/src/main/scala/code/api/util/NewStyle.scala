@@ -19,6 +19,7 @@ import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
+import code.kycchecks.KycCheck
 import code.metadata.counterparties.Counterparties
 import code.model._
 import com.openbankproject.commons.model.Product
@@ -970,7 +971,23 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
       }
     }
-    
+
+    def createOrUpdateKycCheck(bankId: String,
+                                customerId: String,
+                                id: String,
+                                customerNumber: String,
+                                date: Date,
+                                how: String,
+                                staffUserId: String,
+                                mStaffName: String,
+                                mSatisfied: Boolean,
+                                comments: String,
+                                callContext: Option[CallContext]): OBPReturnType[KycCheck] = {
+      Connector.connector.vend.createOrUpdateKycCheck(bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments, callContext)
+       .map {
+          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycChecks in the backend. ", 400), i._2)
+       }
+    }
   }
 
 }

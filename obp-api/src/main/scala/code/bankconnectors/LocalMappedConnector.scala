@@ -21,6 +21,7 @@ import code.context.{UserAuthContextProvider, UserAuthContextUpdate, UserAuthCon
 import code.customer._
 import code.customeraddress.CustomerAddress
 import code.fx.{FXRate, MappedFXRate, fx}
+import code.kycchecks.{KycCheck, KycChecks}
 import code.management.ImporterAPI.ImporterTransaction
 import code.meetings.Meeting
 import code.metadata.comments.Comments
@@ -2165,4 +2166,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         user: User,
         meetingId : String), 
       callContext)}
+
+  override def createOrUpdateKycCheck(bankId: String,
+                                       customerId: String,
+                                       id: String,
+                                       customerNumber: String,
+                                       date: Date,
+                                       how: String,
+                                       staffUserId: String,
+                                       mStaffName: String,
+                                       mSatisfied: Boolean,
+                                       comments: String,
+                                       callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = Future {
+    val boxedData = KycChecks.kycCheckProvider.vend.addKycChecks(bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments)
+    (boxedData, callContext)
+  }
 }
