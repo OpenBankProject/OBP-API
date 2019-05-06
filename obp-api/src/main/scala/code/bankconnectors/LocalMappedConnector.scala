@@ -21,10 +21,10 @@ import code.context.{UserAuthContextProvider, UserAuthContextUpdate, UserAuthCon
 import code.customer._
 import code.customeraddress.CustomerAddress
 import code.fx.{FXRate, MappedFXRate, fx}
-import code.kycchecks.{KycCheck, KycChecks}
-import code.kycdocuments.{KycDocument, KycDocuments}
-import code.kycmedias.{KycMedia, KycMedias}
-import code.kycstatuses.{KycStatus, KycStatuses}
+import code.kycchecks.{ KycChecks}
+import code.kycdocuments.{KycDocuments}
+import code.kycmedias.{KycMedias}
+import code.kycstatuses.{KycStatuses}
 import code.management.ImporterAPI.ImporterTransaction
 import code.meetings.Meeting
 import code.metadata.comments.Comments

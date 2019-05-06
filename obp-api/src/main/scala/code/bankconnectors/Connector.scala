@@ -26,10 +26,6 @@ import code.model.toUserExtended
 import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.fx.fx.TTL
-import code.kycchecks.KycCheck
-import code.kycdocuments.KycDocument
-import code.kycmedias.KycMedia
-import code.kycstatuses.KycStatus
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
 import code.model.toUserExtended

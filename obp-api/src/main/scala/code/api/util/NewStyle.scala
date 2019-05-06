@@ -19,10 +19,6 @@ import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
-import code.kycchecks.{KycCheck, KycChecks}
-import code.kycdocuments.{KycDocument, KycDocuments}
-import code.kycmedias.{KycMedia, KycMedias}
-import code.kycstatuses.{KycStatus, KycStatuses}
 import code.metadata.counterparties.Counterparties
 import code.model._
 import com.openbankproject.commons.model.Product
