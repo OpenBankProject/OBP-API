@@ -963,6 +963,13 @@ object NewStyle {
           i => (unboxFullOrFail(i, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getCoreBankAccountsFuture(bankIdAccountIds, callContext))} in the backend. ", 400))
         }
       }
+
+    def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] =
+    {
+      Connector.connector.vend.getBankAccountsHeldFuture(bankIdAccountIds, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
+      }
+    }
     
   }
 

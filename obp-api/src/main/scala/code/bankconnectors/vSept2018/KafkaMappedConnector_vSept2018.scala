@@ -798,7 +798,81 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getBankAccount")
-  
+
+  messageDocs += MessageDoc(
+    process = "obp.get.getBankAccountsHeldFuture",
+    messageFormat = messageFormat,
+    description = "Get Accounts held by the current User if even the User has not been assigned the owner View yet.",
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundGetBankAccountsHeld.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundGetBankAccountsHeld.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+      OutboundGetBankAccountsHeld(
+        authInfoExample,
+        List(
+          BankIdAccountId(BankId(bankIdExample.value),
+          AccountId(accountIdExample.value))
+        )
+      )),
+    exampleInboundMessage = (
+      InboundGetBankAccountsHeld(
+        inboundAuthInfoExample,
+        statusExample,
+        List(AccountHeld(
+          accountIdExample.value,
+          bankIdExample.value,
+          number = accountNumberExample.value,
+          accountRoutings =List(accountRoutingExample)
+          
+        )))),
+    adapterImplementation = Some(AdapterImplementation("Accounts", 1))
+  )
+  override def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])  = {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second){
+
+        val req = OutboundGetBankAccountsHeld(
+          authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
+          bankIdAccountIds
+        )
+        logger.debug(s"Kafka getBankAccountsHeldFuture says: req is: $req")
+
+        val future = for {
+          res <- processToFuture[OutboundGetBankAccountsHeld](req) map {
+            f =>
+              try {
+                f.extract[InboundGetBankAccountsHeld]
+              } catch {
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InboundGetBankAccountsHeld]().toString(false)
+                  val err = s"Extraction Failed: You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(err)
+                  throw new MappingException(err, e)
+              }
+          } map { x => (x.inboundAuthInfo, x.status, x.data) }
+        } yield {
+          res
+        }
+        val res = future map {
+          case (authInfo,x, data) if (x.errorCode=="")  =>
+            (Full(data), callContext)
+          case (authInfo, x,_) if (x.errorCode!="") =>
+            (Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages), callContext)
+          case _ =>
+            (Failure(ErrorMessages.UnknownError), callContext)
+        }
+        res
+      }
+    }
+  }
+
   messageDocs += MessageDoc(
     process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
@@ -896,7 +970,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           )))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
-  override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
+  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -910,7 +984,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           authInfo <- getAuthInfo(callContext)
           req = OutboundGetCoreBankAccounts(
             authInfo = authInfo,
-            BankIdAccountIds
+            bankIdAccountIds
           )
           _<-Full(logger.debug(s"Kafka getCoreBankAccounts says: req is: $req"))
           kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
@@ -943,7 +1017,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccounts")
 
-  override def getCoreBankAccountsFuture(BankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
+  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -956,7 +1030,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val req = OutboundGetCoreBankAccounts(
           authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
-          BankIdAccountIds
+          bankIdAccountIds
         )
         logger.debug(s"Kafka getCoreBankAccountsFuture says: req is: $req")
 

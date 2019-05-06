@@ -469,8 +469,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
   
-  override def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[AccountHeld]]] = {
-    Future {getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])}
+  override def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])  = {
+    Future {(getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]),callContext)}
   }
   
 
