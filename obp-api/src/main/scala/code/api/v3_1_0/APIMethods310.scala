@@ -3443,8 +3443,8 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContext) {
-              checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContext)
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate) {
+              checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
             }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){

@@ -59,10 +59,10 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
 
   feature("Create User Auth Context Update Request v3.1.0") {
     scenario("We will call the Create endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
-      When("We try to create the UserAuthContext v3.1.0")
+      When("We try to create the User Auth Context Update v3.1.0")
       val bankId = randomBankId
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
-      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContext.toString())
+      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
@@ -79,10 +79,10 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       responseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson]
     }
     scenario("We will call the Answer endpoint with user credentials and wrong challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
-      When("We try to answer the UserAuthContext v3.1.0")
+      When("We try to answer the User Auth Context Update v3.1.0")
       val bankId = randomBankId
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
-      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContext.toString())
+      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
@@ -107,10 +107,10 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       status should equal(UserAuthContextUpdateStatus.REJECTED.toString)
     }
     scenario("We will call the Answer endpoint with user credentials and right challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
-      When("We try to answer the UserAuthContext v3.1.0")
+      When("We try to answer the User Auth Context Update v3.1.0")
       val bankId = randomBankId
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
-      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContext.toString())
+      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)

@@ -31,7 +31,7 @@ import java.util.Date
 
 import code.actorsystem.ObpActorConfig
 import code.api.util.{APIUtil, CustomJsonFormats}
-import code.api.util.APIUtil.MessageDoc
+import code.api.util.APIUtil.{MessageDoc, getPropsAsBoolValue, getPropsValue}
 import code.api.v1_2_1.BankRoutingJsonV121
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -276,7 +276,8 @@ case class AkkaJSON(ports: List[PortJSON], log_level: String, remote_data_secret
 case class MetricsJSON(property: String, value: String)
 case class WarehouseJSON(property: String, value: String)
 case class ElasticSearchJSON(metrics: List[MetricsJSON], warehouse: List[WarehouseJSON])
-case class ConfigurationJSON(akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
+case class ScopesJSON(require_scopes_for_all_roles: Boolean, require_scopes_for_listed_roles: List[String])
+case class ConfigurationJSON(akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON], scopes: ScopesJSON)
 
 case class ConnectorMetricJson(
                                connector_name: String,
@@ -802,8 +803,14 @@ object JSONFactory220 extends CustomJsonFormats {
     val warehouse = WarehouseJSON("es.warehouse.port.tcp", APIUtil.getPropsValue("es.warehouse.port.tcp", "9300")) ::
                     WarehouseJSON("es.warehouse.port.http", APIUtil.getPropsValue("es.warehouse.port.http", "9200")) ::
                     Nil
+    
+    val scopes = 
+      ScopesJSON(
+        getPropsAsBoolValue("require_scopes", false),
+        getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).flatten
+      )
 
-    ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache)
+    ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache, scopes)
   }
 
 
