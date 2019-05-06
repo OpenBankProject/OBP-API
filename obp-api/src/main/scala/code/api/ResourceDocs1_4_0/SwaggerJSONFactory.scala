@@ -1,17 +1,22 @@
 package code.api.ResourceDocs1_4_0
 
-import java.util.Date
+import java.util.{Date, Objects}
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
 import code.api.util._
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 
 import scala.collection.immutable.ListMap
-import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
+import java.lang.{Boolean => JBoolean, Double => JDouble, Float => JFloat, Integer => JInt, Long => JLong}
+import java.math.{BigDecimal => JBigDecimal}
+
+import scala.collection.immutable
+import scala.collection.mutable.ListBuffer
 
 object SwaggerJSONFactory {
   //Info Object
@@ -383,125 +388,204 @@ object SwaggerJSONFactory {
     *         }
     */
   def translateEntity(entity: Any): String = {
-  
-    //Collect all mandatory fields and make an appropriate string
-    // eg return :  "required": ["id","name","bank","banks"],  
-    val required =
-      for {
-        f <- entity.getClass.getDeclaredFields //get all the field name in the class
-        if f.getType.toString.contains("Option") == false
-      } yield {
-        f.getName
-      }
-    val requiredFields = required.toList mkString("[\"", "\",\"", "\"]")
-    //Make part of mandatory fields
-    val requiredFieldsPart = if (required.length > 0) """"required": """ + requiredFields + "," else ""
-    //Make whole swagger definition of an entity
-    
-    //Get fields of runtime entities and put they into structure Map(nameOfField -> fieldAsObject)
-    //eg: 
-    //  ExampleJSON (                   
-    //   id = 5,                         
-    //   name = "Tesobe",                
-    //   bank = Bank("gh.29.uk")        
-    //   banks = List(Bank("gh.29.uk")) 
-    //  )                               
-    // -->
-    //   mapOfFields = Map(
-    //     id -> 5,
-    //     name -> Tesobe,
-    //     bank -> Bank(gh.29.uk),
-    //     banks -> List(Bank(gh.29.uk))
-    //   )
-    //TODO this maybe not so useful now, the input is the case-classes now.
-    val r = currentMirror.reflect(entity)
-    val mapOfFields = r.symbol.typeSignature.members.toStream
-      .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
-      .map(r => r.symbol.name.toString.trim -> r.get)
-      .toMap
 
-    //Iterate over Map and use pattern matching to extract type of field of runtime entity and make an appropriate swagger Data Types for it
-    //reference to https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types
-    // two pattern matching here: 
-    //     Swagger Data Types, eg: (name -> Tesobe) Boolean --> "name": {"type":"string"}
-    //     Specific OBP JSON Classes,(bank -> Bank(gh.29.uk)) --> "bank": {"$ref":"#/definitions/Bank"}
-    // from up mapOfFields[String, Any]  --> List[String]
-    //      id -> 5                      --> "id" : {"type":"integer", "format":"int32"}             
-    //      name -> Tesobe,              --> "name" : {"type":"string"}              
-    //      bank -> Bank(gh.29.uk),      --> "bank": {"$ref":"#/definitions/Bank"}    
-    //      banks -> List(Bank(gh.29.uk) --> "banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
-    val properties = for {
-      (key, value) <- mapOfFields
-      // Uncomment this to debug problems with json data etc.
-      // _ = print("\n val properties for comprehension: " + key + " is " + value)
-    } yield {
-      value match {
+    val entityType = ReflectUtils.getType(entity)
+    val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
+
+    //Collect all mandatory fields and make an appropriate string
+    // eg return :  "required": ["id","name","bank","banks"],
+    val required = constructorParamList
+      .filterNot(_.info <:< typeOf[Option[_]])
+      .map(_.name.toString)
+      .map(it => s""" "$it" """)
+
+    //Make part of mandatory fields
+    val requiredFieldsPart = if (required.isEmpty) "" else  required.mkString(""" "required": [""", ",", """], """)
+
+    val paramNameToType: List[String] = constructorParamList.map(it => {
+      val paramName = it.name.toString
+      val paramType = it.info
+      val paramValue = ReflectUtils.invokeMethod(entity, paramName)
+      def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
+      def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
+
+      def getRefEntityName(tp: Type, value: Any, indexes: Int*): String = {
+        val symbol = indexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
+        if(symbol.asClass.isAbstract) {
+          val nestValue = value match {
+              case Some(head::_) => head
+              case Some(v) => v
+              case Some(head)::_ => head
+              case head::_ => head
+              case other => other
+            }
+          ReflectUtils.getType(nestValue).typeSymbol.name.toString
+        } else {
+          symbol.name.toString
+        }
+      }
+      paramType match {
         //TODO: this maybe wrong, JValue will have many types: JObject, JBool, JInt, JDouble , but here we just map one type `String`
-        case i:JValue                     => "\""  + key + """": {"type":"string","example":"This is a json String."}"""
-        case Some(i:JValue)               => "\""  + key + """": {"type":"string","example":"This is a json String."}"""
-        case List(i: JValue, _*)          => "\""  + key + """": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
-        case Some(List(i: JValue, _*))    => "\""  + key + """": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
-          
+        case _ if(isTypeOf[JValue])                   => s""""$paramName": {"type":"string","example":"This is a json String."}"""
+        case _ if(isTypeOf[Option[JValue]])           => s""""$paramName": {"type":"string","example":"This is a json String."}"""
+        case _ if(isTypeOf[List[JValue]])             => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
+        case _ if(isTypeOf[Option[List[JValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
+
         //Boolean - 4 kinds
-        case i: Boolean                    => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
-        case Some(i: Boolean)              => "\""  + key + """": {"type":"boolean", "example":"""" +i+"\"}"
-        case List(i: Boolean, _*)          => "\""  + key + """": {"type":"array", "items":{"type": "boolean"}}"""
-        case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type":"array", "items":{"type": "boolean"}}"""
-        //String   
-        case i: String                     => "\""  + key + """": {"type":"string","example":"""" +i+"\"}"
-        case Some(i: String)               => "\""  + key + """": {"type":"string","example":"""" +i+"\"}"
-        case List(i: String, _*)           => "\""  + key + """": {"type":"array", "items":{"type": "string"}}"""
-        case Some(List(i: String, _*))     => "\""  + key + """": {"type":"array", "items":{"type": "string"}}"""
-        //Int 
-        case i: Int                        => "\""  + key + """": {"type":"integer", "format":"int32","example":"""" +i+"\"}"
-        case Some(i: Int)                  => "\""  + key + """": {"type":"integer", "format":"int32","example":"""" +i+"\"}"
-        case List(i: Int, _*)              => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-        case Some(List(i: Int, _*))        => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case _ if(isOneOfType[Boolean, JBoolean])                            => s""""$paramName": {"type":"boolean", "example": "$paramValue"}"""
+        case _ if(isOneOfType[Option[Boolean], Option[JBoolean]])            => s""""$paramName": {"type":"boolean", "example": "$paramValue"}"""
+        case _ if(isOneOfType[List[Boolean], List[JBoolean]])                => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
+        case _ if(isOneOfType[Option[List[Boolean]],Option[List[JBoolean]]]) => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
+        //String
+        case _ if(isTypeOf[String])                   => s""""$paramName": {"type":"string","example":"$paramValue"}"""
+        case _ if(isTypeOf[Option[String]])           => s""""$paramName": {"type":"string","example":"$paramValue"}"""
+        case _ if(isTypeOf[List[String]])             => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+        case _ if(isTypeOf[Option[List[String]]])     => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+        //Int
+        case _ if(isOneOfType[Int, JInt])                             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
+        case _ if(isOneOfType[Option[Int], Option[JInt]])             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
+        case _ if(isOneOfType[List[Int], List[JInt]])                 => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case _ if(isOneOfType[Option[List[Int]], Option[List[JInt]]]) => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         //Long
-        case i: Long                       => "\""  + key + """": {"type":"integer", "format":"int64","example":"""" +i+"\"}"
-        case Some(i: Long)                 => "\""  + key + """": {"type":"integer", "format":"int64","example":"""" +i+"\"}"
-        case List(i: Long, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-        case Some(List(i: Long, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case _ if(isOneOfType[Long, JLong])                             => s""""$paramName": {"type":"integer", "format":"int64","example":"$paramValue"}"""
+        case _ if(isOneOfType[Option[Long], Option[JLong]])             => s""""$paramName": {"type":"integer", "format":"int64","example":"$paramValue"}"""
+        case _ if(isOneOfType[List[Long], List[JLong]])                 => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case _ if(isOneOfType[Option[List[Long]], Option[List[JLong]]]) => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         //Float
-        case i: Float                      => "\""  + key + """": {"type":"number", "format":"float","example":"""" +i+"\"}"
-        case Some(i: Float)                => "\""  + key + """": {"type":"number", "format":"float","example":"""" +i+"\"}"
-        case List(i: Float, _*)            => "\""  + key + """": {"type":"array", "items":{"type": "float"}}"""
-        case Some(List(i: Float, _*))      => "\""  + key + """": {"type":"array", "items":{"type": "float"}}"""
+        case _ if(isOneOfType[Float, JFloat])                             => s""""$paramName": {"type":"number", "format":"float","example":"$paramValue"}"""
+        case _ if(isOneOfType[Option[Float], Option[JFloat]])             => s""""$paramName": {"type":"number", "format":"float","example":"$paramValue"}"""
+        case _ if(isOneOfType[List[Float], List[JFloat]])                 => s""""$paramName": {"type":"array", "items":{"type": "float"}}"""
+        case _ if(isOneOfType[Option[List[Float]], Option[List[JFloat]]]) => s""""$paramName": {"type":"array", "items":{"type": "float"}}"""
         //Double
-        case i: Double                     => "\""  + key + """": {"type":"number", "format":"double","example":"""" +i+"\"}"
-        case Some(i: Double)               => "\""  + key + """": {"type":"number", "format":"double","example":"""" +i+"\"}"
-        case List(i: Double, _*)           => "\""  + key + """": {"type":"array", "items":{"type": "double"}}"""
-        case Some(List(i: Double, _*))     => "\""  + key + """": {"type":"array", "items":{"type": "double"}}"""
+        case _ if(isOneOfType[Double, JDouble])                             => s""""$paramName": {"type":"number", "format":"double","example":"$paramValue"}"""
+        case _ if(isOneOfType[Option[Double], Option[JDouble]])             => s""""$paramName": {"type":"number", "format":"double","example":"$paramValue"}"""
+        case _ if(isOneOfType[List[Double], List[JDouble]])                 => s""""$paramName": {"type":"array", "items":{"type": "double"}}"""
+        case _ if(isOneOfType[Option[List[Double]], Option[List[JDouble]]]) => s""""$paramName": {"type":"array", "items":{"type": "double"}}"""
+        //BigDecimal
+        case _ if(isOneOfType[BigDecimal, JBigDecimal])                             => s""""$paramName": {"type":"string", "format":"double","example":"$paramValue"}"""
+        case _ if(isOneOfType[Option[BigDecimal], Option[JBigDecimal]])             => s""""$paramName": {"type":"string", "format":"double","example":"$paramValue"}"""
+        case _ if(isOneOfType[List[BigDecimal], List[JBigDecimal]])                 => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
+        case _ if(isOneOfType[Option[List[BigDecimal]], Option[List[JBigDecimal]]]) => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         //Date
-        case i: Date                       => "\""  + key + """": {"type":"string", "format":"date","example":"""" +i+"\"}"
-        case Some(i: Date)                 => "\""  + key + """": {"type":"string", "format":"date","example":"""" +i+"\"}"
-        case List(i: Date, _*)             => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
-        case Some(List(i: Date, _*))       => "\""  + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
-       
-        //List case classes.  
-        case List(f)                       => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
-        case List(f,_*)                    => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
-        case List(Some(f))                 => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
-        case List(Some(f),_*)              => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
-        case Some(List(f))                 => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
-        case Some(List(f,_*))              => "\""  + key + """": {"type": "array", "items":{"$ref": "#/definitions/""" +f.getClass.getSimpleName ++"\"}}"
+        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"$paramValue"}"""
+        case _ if(isOneOfType[List[Date], Option[List[Date]]])       => s""""$paramName": {"type":"array", "items":{"type":"string", "format":"date"}}"""
+
+        //List case classes.
+        case t if(isOneOfType[List[Option[_]], Option[List[_]]])  => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0, 0)}"}}"""
+        case t if(isOneOfType[List[_], Option[_]])                => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0)}"}}"""
         //Single object
-        case Some(f)                       => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
-        case null                          => "unknown"
-        case f                             => "\""  + key + """": {"$ref":"#/definitions/""" +f.getClass.getSimpleName +"\"}"
+        case t                                                    => s""""$paramName": {"$$ref":"#/definitions/${getRefEntityName(t, paramValue)}"}"""
         // TODO resolve the warning patterns after a variable pattern cannot match (SLS 8.1.1)
         // case _ => "unknown"
       }
-    }
+    })
+
     //Exclude all unrecognised fields and make part of fields definition
     // add comment and filter unknow
     // fields --> "id" : {"type":"integer", "format":"int32"} ,"name" : {"type":"string"} ,"bank": {"$ref":"#/definitions/Bank"} ,"banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
-    val fields: String = properties filter (_.contains("unknown") == false) mkString (",")
-    //val definition = "\"" + entity.getClass.getSimpleName + "\":{" + requiredFieldsPart + """"properties": {""" + fields + """}}"""
-    val definition = "\"" + entity.getClass.getSimpleName + "\":{" +requiredFieldsPart+ """"properties": {""" + fields + """}}"""
+    val fields: String = paramNameToType filterNot (_.contains("unknown")) mkString (",")
+    val definition = s""""${entityType.typeSymbol.name}":{$requiredFieldsPart "properties": {$fields}}"""
     definition
   }
-       
+
+  private[this] def isRefType(tp: Type): Boolean = {
+    val noneRefTypes = List(
+        typeOf[JValue]
+      , typeOf[Option[JValue]]
+      , typeOf[List[JValue]]
+      , typeOf[Option[List[JValue]]]
+
+      //Boolean - 4 kinds
+      , typeOf[Boolean], typeOf[JBoolean]
+      , typeOf[Option[Boolean]], typeOf[ Option[JBoolean]]
+      , typeOf[List[Boolean]], typeOf[ List[JBoolean]]
+      , typeOf[Option[List[Boolean]]], typeOf[Option[List[JBoolean]]]
+      //String
+      , typeOf[String]
+      , typeOf[Option[String]]
+      , typeOf[List[String]]
+      , typeOf[Option[List[String]]]
+      //Int
+      , typeOf[Int], typeOf[JInt]
+      , typeOf[Option[Int]], typeOf[ Option[JInt]]
+      , typeOf[List[Int]], typeOf[ List[JInt]]
+      , typeOf[Option[List[Int]]], typeOf[ Option[List[JInt]]]
+      //Long
+      , typeOf[Long], typeOf[JLong]
+      , typeOf[Option[Long]], typeOf[ Option[JLong]]
+      , typeOf[List[Long]], typeOf[ List[JLong]]
+      , typeOf[Option[List[Long]]], typeOf[ Option[List[JLong]]]
+      //Float
+      , typeOf[Float], typeOf[JFloat]
+      , typeOf[Option[Float]], typeOf[ Option[JFloat]]
+      , typeOf[List[Float]], typeOf[ List[JFloat]]
+      , typeOf[Option[List[Float]]], typeOf[ Option[List[JFloat]]]
+      //Double
+      , typeOf[Double], typeOf[JDouble]
+      , typeOf[Option[Double]], typeOf[ Option[JDouble]]
+      , typeOf[List[Double]], typeOf[ List[JDouble]]
+      , typeOf[Option[List[Double]]], typeOf[ Option[List[JDouble]]]
+      //BigDecimal
+      , typeOf[BigDecimal], typeOf[JBigDecimal]
+      , typeOf[Option[BigDecimal]], typeOf[ Option[JBigDecimal]]
+      , typeOf[List[BigDecimal]], typeOf[ List[JBigDecimal]]
+      , typeOf[Option[List[BigDecimal]]], typeOf[ Option[List[JBigDecimal]]]
+      //Date
+      , typeOf[Date], typeOf[Option[Date]]
+      , typeOf[List[Date]], typeOf[ Option[List[Date]]]
+    )
+
+    ! noneRefTypes.exists(tp <:< _)
+  }
+
+  private[this] def getAllRefType(obj: Any, excludeTypes: Seq[Type]): List[Any] = {
+    val entityType = ReflectUtils.getType(obj)
+    val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
+    // if exclude current obj, the result list tail will be Nil
+    val resultTail = if(excludeTypes.exists(entityType =:=)) Nil else List(obj)
+
+    val refValues: List[Any] = constructorParamList
+      .filter(it => isRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
+      .map(it => {
+        val paramName = it.name.toString
+        val value = ReflectUtils.invokeMethod(obj, paramName)
+        if(Objects.isNull(value) && isRefType(it.info)) {
+          throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
+        }
+        value match {
+          case Some(head::_) => head
+          case Some(v) => v
+          case Some(head)::_ => head
+          case head::_ => head
+          case other => other
+        }
+      }).filterNot(it => it == null || it == Nil || it == None)
+
+    refValues.flatMap(getAllRefType(_, excludeTypes)) ::: resultTail
+  }
+
+
+  /**
+    * exclude duplicate items for a list, if found duplicate items, previous will be kept
+    * @param list to do distinct list
+    * @tparam T element type
+    * @return no duplicated items
+    */
+  private[this] implicit class DistinctList[T](list: List[T]) {
+    def distinctBy[D](f: T=>D): List[T] = {
+      val existsElements = ListBuffer.empty[D]
+      val collectElements = ListBuffer.empty[T]
+      list.foreach{ it=>
+        val checkValue = f(it)
+        if(!existsElements.contains(checkValue)) {
+          existsElements += checkValue
+          collectElements += it
+        }
+      }
+      collectElements.toList
+    }
+  }
+
   /**
     * @param resourceDocList 
     * @return - JValue, with Swagger format, many following Strings
@@ -526,22 +610,14 @@ object SwaggerJSONFactory {
     implicit val formats = CustomJsonFormats.formats
   
     //Translate every entity(JSON Case Class) in a list to appropriate swagger format
-    val listOfExampleRequestBodyDefinition =
-      for (e <- resourceDocList if e.exampleRequestBody != null)
-        yield {
-          translateEntity(e.exampleRequestBody)
-        }
-    val listOfSuccessRequestBodyDefinition =
-      for (e <- resourceDocList if e.successResponseBody != null)
-        yield {
-          translateEntity(e.successResponseBody)
-        }
-    val listNestingMissDefinition =
-      for (e <- allSwaggerDefinitionCaseClasses.toList if e!= null)
-        yield {
-          translateEntity(e)
-        }
-  
+    val baseEntities = (resourceDocList.map(_.exampleRequestBody) ::: resourceDocList.map(_.successResponseBody) ::: allSwaggerDefinitionCaseClasses.toList)
+        .filterNot(Objects.isNull)
+    val existsEntityTypes = baseEntities.map(ReflectUtils.getType)
+    val nestEntities = baseEntities.flatMap(getAllRefType(_, existsEntityTypes))
+    val a = (nestEntities ::: baseEntities)
+    val b = a.distinctBy(_.getClass)
+    val translatedEntities = b.map(translateEntity)
+
     val errorMessageList = ErrorMessages.allFields.toList
     val listErrorDefinition =
       for (e <- errorMessageList if e != null)
@@ -559,9 +635,7 @@ object SwaggerJSONFactory {
     //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
       listErrorDefinition 
-        :::listOfExampleRequestBodyDefinition 
-        :::listNestingMissDefinition
-        :::listOfSuccessRequestBodyDefinition
+        :::translatedEntities
       ) mkString (",")
   
     //Make a final string
@@ -569,4 +643,5 @@ object SwaggerJSONFactory {
     //Make a jsonAST from a string
     parse(definitions)
   }
+
 }
