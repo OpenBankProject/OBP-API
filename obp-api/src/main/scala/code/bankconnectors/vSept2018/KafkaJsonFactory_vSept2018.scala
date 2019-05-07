@@ -167,17 +167,6 @@ case class Status(
                    errorCode: String,
                    backendMessages: List[InboundStatusMessage]
                  )
-case class ViewBasic(
-  id: String,
-  short_name: String,
-  description: String,
-)
-
-case class AuthView(
-  view: ViewBasic,
-  account:AccountBasic,
-)
-
 case class AuthInfo(
   userId: String = "", 
   username: String = "", 
