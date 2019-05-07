@@ -37,6 +37,7 @@ object NorthSideConsumer {
     "OutboundGetCustomersByUserId",
     "OutboundGetCheckbookOrderStatus",
     "OutboundGetCreditCardOrderStatus",
+    "OutboundGetBankAccountsHeld",
     "ObpApiLoopback" //This topic is tricky now, it is just used in api side: api produce and consumer it. Not used over adapter. Only for test api <--> kafka. 
   )
 
