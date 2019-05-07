@@ -5,12 +5,13 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
 
 object ApiProperty extends MdcLoggable {
-  val requireScopesForAllRoles = {
-    val actualName = getPropsValue("require_scopes_for_all_roles")
-    val deprecatedName = getPropsValue("require_scopes")
-    (actualName, deprecatedName) match {
+  
+  val requireScopesForAllRoles = getValueByNameOrAlias("require_scopes_for_all_roles", "require_scopes")
+
+  private def getValueByNameOrAlias(name: String, alias: String): Boolean = {
+    (getPropsValue(name), getPropsValue(alias)) match {
       case (Full(actual), Full(deprecated)) => // Both properties are defined. Use actual one and log warning. {true/false}
-        logger.warn("The props file has defined actual property name require_scopes_for_all_roles as well as deprecated require_scopes. The deprecated one is ignored!")
+        logger.warn(s"The props file has defined actual property name $name as well as deprecated $alias. The deprecated one is ignored!")
         actual.toBoolean
       case (Full(actual), _) => // Only actual name of the property is defined. {true/false}
         actual.toBoolean
