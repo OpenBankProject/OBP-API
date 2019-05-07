@@ -3167,7 +3167,7 @@ trait APIMethods310 {
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
-            messageDocsSwagger = AkkaConnector_vDec2018.messageDocs.map(toResourceDoc).toList
+            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
             json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(messageDocsSwagger, ApiVersion.v3_1_0)}
             //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields

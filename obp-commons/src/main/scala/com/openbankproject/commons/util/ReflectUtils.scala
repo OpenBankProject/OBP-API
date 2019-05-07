@@ -68,7 +68,7 @@ object ReflectUtils {
     getTypeByName(typeName)
     true
   } catch {
-    case _ => false
+    case _: Throwable => false
   }
 
   /**

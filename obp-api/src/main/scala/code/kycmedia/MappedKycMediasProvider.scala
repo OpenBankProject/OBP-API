@@ -2,8 +2,9 @@ package code.kycmedias
 
 import java.util.Date
 
-import code.util.{UUIDString}
-import net.liftweb.common.{Box,Full}
+import code.util.UUIDString
+import com.openbankproject.commons.model.KycMedia
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 object MappedKycMediasProvider extends KycMediaProvider {
