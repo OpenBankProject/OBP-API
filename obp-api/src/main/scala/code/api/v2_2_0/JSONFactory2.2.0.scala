@@ -30,8 +30,8 @@ package code.api.v2_2_0
 import java.util.Date
 
 import code.actorsystem.ObpActorConfig
-import code.api.util.{APIUtil, CustomJsonFormats}
-import code.api.util.APIUtil.{MessageDoc, getPropsAsBoolValue, getPropsValue}
+import code.api.util.{APIUtil, ApiProperty, CustomJsonFormats}
+import code.api.util.APIUtil.{MessageDoc, getPropsValue}
 import code.api.v1_2_1.BankRoutingJsonV121
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -806,7 +806,7 @@ object JSONFactory220 extends CustomJsonFormats {
     
     val scopes = 
       ScopesJSON(
-        getPropsAsBoolValue("require_scopes", false),
+        ApiProperty.requireScopesForAllRoles,
         getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).flatten
       )
 
