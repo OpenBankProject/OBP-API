@@ -624,9 +624,9 @@ object SwaggerJSONFactory {
         .filterNot(Objects.isNull)
     val existsEntityTypes = baseEntities.map(ReflectUtils.getType)
     val nestEntities = baseEntities.flatMap(getNestRefEntities(_, existsEntityTypes))
-    val a = (nestEntities ::: baseEntities)
-    val b = a.distinctBy(_.getClass)
-    val translatedEntities = b.map(translateEntity)
+    val translatedEntities = (baseEntities ::: nestEntities)
+                              .distinctBy(_.getClass)
+                              .map(translateEntity)
 
     val errorMessageList = ErrorMessages.allFields.toList
     val listErrorDefinition =
