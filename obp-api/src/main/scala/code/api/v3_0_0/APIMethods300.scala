@@ -2033,9 +2033,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
-            accounts <- Connector.connector.vend.getBankAccountsHeldFuture(availableAccounts.toList, callContext) map {
-              connectorEmptyResponse(_, callContext)
-            }
+            (accounts, callContext) <- NewStyle.function.getBankAccountsHeldFuture(availableAccounts.toList, callContext)
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
           }

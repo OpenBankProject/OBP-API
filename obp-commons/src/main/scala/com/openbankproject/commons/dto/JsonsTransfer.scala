@@ -795,3 +795,72 @@ case class OutBoundGetTransactionRequestTypeCharge  (outboundAdapterCallContext:
 case class OutBoundGetCustomerByCustomerId  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                             customerId: String)
 case class InBoundGetCustomerByCustomerId  (inboundAdapterCallContext: InboundAdapterCallContext, data: CustomerCommons)
+
+case class OutBoundCreateOrUpdateKycCheck(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                          bankId: String,
+                                          customerId: String,
+                                          id: String,
+                                          customerNumber: String,
+                                          date: Date,
+                                          how: String,
+                                          staffUserId: String,
+                                          mStaffName: String,
+                                          mSatisfied: Boolean,
+                                          comments: String)
+
+case class InBoundCreateOrUpdateKycCheck(inboundAdapterCallContext: InboundAdapterCallContext, data: KycCheckCommons)
+
+case class OutBoundCreateOrUpdateKycDocument(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                             bankId: String,
+                                             customerId: String,
+                                             id: String,
+                                             customerNumber: String,
+                                             `type`: String,
+                                             number: String,
+                                             issueDate: Date,
+                                             issuePlace: String,
+                                             expiryDate: Date)
+
+case class InBoundCreateOrUpdateKycDocument(inboundAdapterCallContext: InboundAdapterCallContext, data: KycDocument)
+
+case class OutBoundCreateOrUpdateKycMedia(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                          bankId: String,
+                                          customerId: String,
+                                          id: String,
+                                          customerNumber: String,
+                                          `type`: String,
+                                          url: String,
+                                          date: Date,
+                                          relatesToKycDocumentId: String,
+                                          relatesToKycCheckId: String)
+
+case class InBoundCreateOrUpdateKycMedia(inboundAdapterCallContext: InboundAdapterCallContext, data: KycMediaCommons)
+
+case class OutBoundCreateOrUpdateKycStatus(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                           bankId: String,
+                                           customerId: String,
+                                           customerNumber: String,
+                                           ok: Boolean,
+                                           date: Date)
+
+case class InBoundCreateOrUpdateKycStatus(inboundAdapterCallContext: InboundAdapterCallContext, data: KycStatusCommons)
+
+case class OutBoundGetKycChecks(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                customerId: String)
+
+case class InBoundGetKycChecks(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycCheckCommons])
+
+case class OutBoundGetDocuments(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                customerId: String)
+
+case class InBoundGetDocuments(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycDocumentCommons])
+
+case class OutBoundGetMedias(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                customerId: String)
+
+case class InBoundGetMedias(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycMediaCommons])
+
+case class OutBoundGetStatuses(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                customerId: String)
+
+case class InBoundGetStatuses(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycStatusCommons])
