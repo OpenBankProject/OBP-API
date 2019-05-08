@@ -13,23 +13,39 @@ object NorthSideConsumer {
 
   private[this] val outboundNamePattern= Pattern.compile("""com\.openbankproject\.commons\..*(OutBound.+)""")
 
-  val listOfTopics = List(
+  val listOfTopics : List[String] = (Set(
+    "OutboundGetAdapterInfo",
+    "OutboundGetBanks",
+    "OutboundGetBank",
     "OutboundGetUserByUsernamePassword",
     "OutboundGetAccounts",
     "OutboundGetAccountbyAccountID",
+    "OutboundCheckBankAccountExists",
+    "OutboundGetCoreBankAccounts",
+    "OutboundGetCoreBankAccounts",
+    "OutboundGetTransactions",
+    "OutboundGetTransaction",
     "OutboundCreateTransaction",
     "OutboundGetBranches",
+    "OutboundGetBranch",
     "OutboundGetAtms",
+    "OutboundGetAtm",
     "OutboundCreateChallengeJune2017",
+    "OutboundCreateCounterparty",
+    "OutboundGetTransactionRequests210",
+    "OutboundGetCounterparties",
+    "OutboundGetCounterpartyByCounterpartyId",
+    "OutboundGetCounterparty",
     "OutboundCounterparty",
     "OutboundGetCounterpartyById",
     "OutboundTransactionRequests",
     "OutboundGetCustomersByUserId",
     "OutboundGetCheckbookOrderStatus",
     "OutboundGetCreditCardOrderStatus",
+    "OutboundGetBankAccountsHeld",
     "ObpApiLoopback" //This topic is tricky now, it is just used in api side: api produce and consumer it. Not used over adapter. Only for test api <--> kafka.
   ) ++ ClassScanUtils.findTypes(classInfo => outboundNamePattern.matcher(classInfo.name).matches())
-    .map(outboundNamePattern.matcher(_).replaceFirst("$1"))
+    .map(outboundNamePattern.matcher(_).replaceFirst("$1"))).toList
 
   def consumerProperties(brokers: String, group: String, keyDeserealizer: String, valueDeserealizer: String): Map[String, String] = {
     if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
@@ -71,7 +87,7 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
   //The following topic is for loopback, only for testing api <--> kafka
   val apiLoopbackTopic = s"from.${clientId}.to.adapter.mf.caseclass.ObpApiLoopback"
   val allTopicsOverAdapter= listOfTopics.map(t => s"to.${clientId}.caseclass.$t")
-  val allTopicsApiListening: List[String] = allTopicsOverAdapter:+ apiLoopbackTopic
+  val allTopicsApiListening: List[String] = allTopicsOverAdapter :+ apiLoopbackTopic
   consumer.subscribe(allTopicsApiListening)
 
   var completed = false
