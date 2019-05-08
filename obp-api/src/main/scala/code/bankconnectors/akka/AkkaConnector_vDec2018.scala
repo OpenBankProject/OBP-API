@@ -40,6 +40,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetAdapterInfoFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         inboundAdapterInfoInternal)
     ),
     outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetAdapterInfoFuture]().toString(true))),
@@ -64,6 +65,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBanksFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(bankCommons)
         )
     ),
@@ -92,6 +94,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBankFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         bankCommons
       )
     ),
@@ -119,6 +122,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBankAccountsForUserFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(inboundAccountCommons)
       )
     ),
@@ -146,6 +150,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundCheckBankAccountExistsFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         bankAccountCommons
       )
     ),
@@ -174,6 +179,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBankAccountFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         bankAccountCommons
       )
     ),
@@ -200,6 +206,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetCoreBankAccountsFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(
           CoreAccount(
             accountIdExample.value, 
@@ -236,6 +243,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetCustomersByUserIdFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         customerCommons:: Nil,
       )
     ),
@@ -267,6 +275,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetTransactionsFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(transactionCommons)
       )
     ),
@@ -299,6 +308,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetTransactionFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         transactionCommons
       )
     ),
