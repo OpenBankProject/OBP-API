@@ -900,7 +900,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def sign(method: String, url: String, user_params: Map[String, String], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]): IMap[String, String] = {
       val oauth_params = IMap(
         "oauth_consumer_key" -> consumer.key,
-        SignatureMethodName -> "HMAC-SHA1",
+        SignatureMethodName -> "HMAC-SHA256",
         TimestampName -> (System.currentTimeMillis / 1000).toString,
         NonceName -> System.nanoTime.toString,
         VersionName -> "1.0"
@@ -909,7 +909,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         callback.map { CallbackName -> _ }
 
       val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
-      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha1Algorithm)
+      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha256Algorithm)
       logger.debug("signatureBase: " + signatureBase)
       logger.debug("computedSignature: " + computedSignature)
       oauth_params + (SignatureName -> computedSignature)
