@@ -163,10 +163,7 @@ case class InternalInboundCoreAccount(
   accountType: String, 
   accountRoutings: List[AccountRouting]
 )
-case class Status(
-                   errorCode: String,
-                   backendMessages: List[InboundStatusMessage]
-                 )
+
 case class AuthInfo(
   userId: String = "", 
   username: String = "", 

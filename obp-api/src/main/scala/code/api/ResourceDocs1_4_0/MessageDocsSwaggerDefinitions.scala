@@ -101,7 +101,9 @@ object MessageDocsSwaggerDefinitions
     errorCode ="String",
     text= "String"
   )
-  
+
+  val inboundStatus = Status("Status errorCode", List(inboundStatusMessage))
+
   val inboundAdapterInfoInternal = InboundAdapterInfoInternal(
     errorCode ="",
     backendMessages = List(inboundStatusMessage),

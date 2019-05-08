@@ -36,11 +36,11 @@ import scala.collection.immutable.List
 //--------generated
 
 case class OutBoundGetObpApiLoopback  (outboundAdapterCallContext: OutboundAdapterCallContext)
-case class InBoundGetObpApiLoopback  (inboundAdapterCallContext: InboundAdapterCallContext, data: ObpApiLoopback)
+case class InBoundGetObpApiLoopback  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ObpApiLoopback)
 
 
 case class OutBoundGetAdapterInfoFuture  (outboundAdapterCallContext: OutboundAdapterCallContext)
-case class InBoundGetAdapterInfoFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: InboundAdapterInfoInternal)
+case class InBoundGetAdapterInfoFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: InboundAdapterInfoInternal)
 
 
 case class OutBoundGetChallengeThreshold  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -51,7 +51,7 @@ case class OutBoundGetChallengeThreshold  (outboundAdapterCallContext: OutboundA
                                           currency: String,
                                           userId: String,
                                           userName: String)
-case class InBoundGetChallengeThreshold  (inboundAdapterCallContext: InboundAdapterCallContext, data: AmountOfMoney)
+case class InBoundGetChallengeThreshold  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney)
 
 
 case class OutBoundGetChargeLevel  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -62,71 +62,71 @@ case class OutBoundGetChargeLevel  (outboundAdapterCallContext: OutboundAdapterC
                                    userName: String,
                                    transactionRequestType: String,
                                    currency: String)
-case class InBoundGetChargeLevel  (inboundAdapterCallContext: InboundAdapterCallContext, data: AmountOfMoney)
+case class InBoundGetChargeLevel  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney)
 
 
 case class OutBoundGetBankFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                   bankId: BankId)
-case class InBoundGetBankFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: BankCommons)
+case class InBoundGetBankFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankCommons)
 
 
 case class OutBoundGetBanksFuture  (outboundAdapterCallContext: OutboundAdapterCallContext)
-case class InBoundGetBanksFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[BankCommons])
+case class InBoundGetBanksFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankCommons])
 
 case class OutBoundGetBankAccountsForUserFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                           username: String)
-case class InBoundGetBankAccountsForUserFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[InboundAccountCommons])
+case class InBoundGetBankAccountsForUserFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[InboundAccountCommons])
 
 
 case class OutBoundGetBankAccountFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                          bankId: BankId,
                                          accountId: AccountId)
-case class InBoundGetBankAccountFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: BankAccountCommons)
+case class InBoundGetBankAccountFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons)
 
 
 case class OutBoundGetBankAccountsFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                           bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetBankAccountsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[BankAccountCommons])
+case class InBoundGetBankAccountsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankAccountCommons])
 
 
 case class OutBoundGetCoreBankAccountsFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                               bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetCoreBankAccountsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CoreAccount])
+case class InBoundGetCoreBankAccountsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CoreAccount])
 
 
 case class OutBoundGetCoreBankAccountsHeldFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                   bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetCoreBankAccountsHeldFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[AccountHeld])
+case class InBoundGetCoreBankAccountsHeldFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountHeld])
 
 
 case class OutBoundCheckBankAccountExistsFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                  bankId: BankId,
                                                  accountId: AccountId)
-case class InBoundCheckBankAccountExistsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: BankAccountCommons)
+case class InBoundCheckBankAccountExistsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons)
 
 
 case class OutBoundGetCounterpartyTrait  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                          bankId: BankId,
                                          accountId: AccountId,
                                          couterpartyId: String)
-case class InBoundGetCounterpartyTrait  (inboundAdapterCallContext: InboundAdapterCallContext, data: CounterpartyTraitCommons)
+case class InBoundGetCounterpartyTrait  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons)
 
 
 case class OutBoundGetCounterpartyByCounterpartyIdFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                           counterpartyId: CounterpartyId)
-case class InBoundGetCounterpartyByCounterpartyIdFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: CounterpartyTraitCommons)
+case class InBoundGetCounterpartyByCounterpartyIdFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons)
 
 
 case class OutBoundGetCounterpartyByIban  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                           iban: String)
-case class InBoundGetCounterpartyByIban  (inboundAdapterCallContext: InboundAdapterCallContext, data: CounterpartyTraitCommons)
+case class InBoundGetCounterpartyByIban  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons)
 
 
 case class OutBoundGetCounterpartiesFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                             thisBankId: BankId,
                                             thisAccountId: AccountId,
                                             viewId: ViewId)
-case class InBoundGetCounterpartiesFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CounterpartyTraitCommons])
+case class InBoundGetCounterpartiesFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CounterpartyTraitCommons])
 
 
 case class OutBoundGetTransactionsFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -135,14 +135,14 @@ case class OutBoundGetTransactionsFuture  (outboundAdapterCallContext: OutboundA
                                           limit: Int,
                                           fromDate: String,
                                           toDate: String)
-case class InBoundGetTransactionsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionCommons])
+case class InBoundGetTransactionsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCommons])
 
 
 case class OutBoundGetTransactionFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                          bankId: BankId,
                                          accountId: AccountId,
                                          transactionId: TransactionId)
-case class InBoundGetTransactionFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionCommons)
+case class InBoundGetTransactionFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionCommons)
 
 case class OutBoundMakePaymentv210  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                     fromAccount: BankAccountCommons,
@@ -153,7 +153,7 @@ case class OutBoundMakePaymentv210  (outboundAdapterCallContext: OutboundAdapter
                                     transactionRequestType: TransactionRequestType,
                                     chargePolicy: String)
 
-case class InBoundMakePaymentv210  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionId)
+case class InBoundMakePaymentv210  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId)
 
 
 case class OutBoundCreateTransactionRequestv210  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -165,36 +165,36 @@ case class OutBoundCreateTransactionRequestv210  (outboundAdapterCallContext: Ou
                                                  transactionRequestCommonBody: TransactionRequestCommonBodyJSONCommons,
                                                  detailsPlain: String,
                                                  chargePolicy: String)
-case class InBoundCreateTransactionRequestv210  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionRequestv210  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundCreateTransactionAfterChallengeV210  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                         fromAccount: BankAccountCommons,
                                                         transactionRequest: TransactionRequest)
-case class InBoundCreateTransactionAfterChallengeV210  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionAfterChallengeV210  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundGetBranchFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                     bankId: BankId,
                                     branchId: BranchId)
-case class InBoundGetBranchFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: BranchTCommons)
+case class InBoundGetBranchFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BranchTCommons)
 
 
 case class OutBoundGetBranchesFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                       bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String)
-case class InBoundGetBranchesFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[BranchTCommons])
+case class InBoundGetBranchesFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BranchTCommons])
 
 
 
 case class OutBoundGetAtmFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                  bankId: BankId,
                                  atmId: AtmId)
-case class InBoundGetAtmFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: AtmTCommons)
+case class InBoundGetAtmFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AtmTCommons)
 
 
 case class OutBoundGetAtmsFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                   bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String)
-case class InBoundGetAtmsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[AtmTCommons])
+case class InBoundGetAtmsFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AtmTCommons])
 
 
 case class OutBoundCreateTransactionAfterChallengev300  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -202,7 +202,7 @@ case class OutBoundCreateTransactionAfterChallengev300  (outboundAdapterCallCont
                                                         fromAccount: BankAccountCommons,
                                                         transReqId: TransactionRequestId,
                                                         transactionRequestType: TransactionRequestType)
-case class InBoundCreateTransactionAfterChallengev300  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionAfterChallengev300  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundMakePaymentv300  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -213,7 +213,7 @@ case class OutBoundMakePaymentv300  (outboundAdapterCallContext: OutboundAdapter
                                     transactionRequestCommonBody: TransactionRequestCommonBodyJSON, //TODO FIXME
                                     transactionRequestType: TransactionRequestType,
                                     chargePolicy: String)
-case class InBoundMakePaymentv300  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionId)
+case class InBoundMakePaymentv300  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId)
 
 
 case class OutBoundCreateTransactionRequestv300  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -226,7 +226,7 @@ case class OutBoundCreateTransactionRequestv300  (outboundAdapterCallContext: Ou
                                                  transactionRequestCommonBody: TransactionRequestCommonBodyJSON, //TODO FIXME
                                                  detailsPlain: String,
                                                  chargePolicy: String)
-case class InBoundCreateTransactionRequestv300  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionRequestv300  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundCreateCustomerFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -245,28 +245,28 @@ case class OutBoundCreateCustomerFuture  (outboundAdapterCallContext: OutboundAd
                                          lastOkDate: Date,
                                          creditRating: Option[CreditRating],
                                          creditLimit: Option[AmountOfMoney])
-case class InBoundCreateCustomerFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: CustomerCommons)
+case class InBoundCreateCustomerFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons)
 
 
 case class OutBoundGetCustomersByUserIdFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                userId: String)
-case class InBoundGetCustomersByUserIdFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CustomerCommons])
+case class InBoundGetCustomersByUserIdFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerCommons])
 
 
 case class OutBoundGetCustomerByCustomerIdFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                   customerId: String)
-case class InBoundGetCustomerByCustomerIdFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: CustomerCommons)
+case class InBoundGetCustomerByCustomerIdFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons)
 
 
 case class OutBoundGetCustomerByCustomerNumberFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                       customerNumber: String,
                                                       bankId: BankId)
-case class InBoundGetCustomerByCustomerNumberFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: CustomerCommons)
+case class InBoundGetCustomerByCustomerNumberFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons)
 
 
 case class OutBoundGetCustomerAddress  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                        customerId: String)
-case class InBoundGetCustomerAddress  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CustomerAddressCommons])
+case class InBoundGetCustomerAddress  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerAddressCommons])
 
 
 case class OutBoundCreateCustomerAddress  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -281,7 +281,7 @@ case class OutBoundCreateCustomerAddress  (outboundAdapterCallContext: OutboundA
                                           countryCode: String,
                                           tags: String,
                                           status: String)
-case class InBoundCreateCustomerAddress  (inboundAdapterCallContext: InboundAdapterCallContext, data: CustomerAddressCommons)
+case class InBoundCreateCustomerAddress  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerAddressCommons)
 
 
 case class OutBoundUpdateCustomerAddress  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -296,48 +296,48 @@ case class OutBoundUpdateCustomerAddress  (outboundAdapterCallContext: OutboundA
                                           countryCode: String,
                                           tags: String,
                                           status: String)
-case class InBoundUpdateCustomerAddress  (inboundAdapterCallContext: InboundAdapterCallContext, data: CustomerAddressCommons)
+case class InBoundUpdateCustomerAddress  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerAddressCommons)
 
 
 case class OutBoundCreateTaxResidence  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                        customerId: String,
                                        domain: String,
                                        taxNumber: String)
-case class InBoundCreateTaxResidence  (inboundAdapterCallContext: InboundAdapterCallContext, data: TaxResidenceCommons)
+case class InBoundCreateTaxResidence  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TaxResidenceCommons)
 
 
 case class OutBoundGetTaxResidence  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                     customerId: String)
-case class InBoundGetTaxResidence  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TaxResidenceCommons])
+case class InBoundGetTaxResidence  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TaxResidenceCommons])
 
 
 case class OutBoundGetCustomersFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                        bankId: BankId)
-case class InBoundGetCustomersFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CustomerCommons])
+case class InBoundGetCustomersFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerCommons])
 
 
 case class OutBoundGetCheckbookOrdersFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                              bankId: String,
                                              accountId: String)
-case class InBoundGetCheckbookOrdersFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: CheckbookOrdersJson)
+case class InBoundGetCheckbookOrdersFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CheckbookOrdersJson)
 
 
 case class OutBoundGetStatusOfCreditCardOrderFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                      bankId: String,
                                                      accountId: String)
-case class InBoundGetStatusOfCreditCardOrderFuture  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CardObjectJson])
+case class InBoundGetStatusOfCreditCardOrderFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CardObjectJson])
 
 
 case class OutBoundCreateUserAuthContext  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                           userId: String,
                                           key: String,
                                           value: String)
-case class InBoundCreateUserAuthContext  (inboundAdapterCallContext: InboundAdapterCallContext, data: UserAuthContextCommons)
+case class InBoundCreateUserAuthContext  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: UserAuthContextCommons)
 
 
 case class OutBoundGetUserAuthContexts  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                         userId: String)
-case class InBoundGetUserAuthContexts  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[UserAuthContextCommons])
+case class InBoundGetUserAuthContexts  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[UserAuthContextCommons])
 
 
 case class OutBoundCreateOrUpdateProductAttribute  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -347,18 +347,18 @@ case class OutBoundCreateOrUpdateProductAttribute  (outboundAdapterCallContext: 
                                                    name: String,
                                                    attributType: ProductAttributeType.Value,
                                                    value: String)
-case class InBoundCreateOrUpdateProductAttribute  (inboundAdapterCallContext: InboundAdapterCallContext, data: ProductAttributeCommons)
+case class InBoundCreateOrUpdateProductAttribute  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductAttributeCommons)
 
 
 case class OutBoundGetProductAttributeById  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                             productAttributeId: String)
-case class InBoundGetProductAttributeById  (inboundAdapterCallContext: InboundAdapterCallContext, data: ProductAttributeCommons)
+case class InBoundGetProductAttributeById  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductAttributeCommons)
 
 
 case class OutBoundGetProductAttributesByBankAndCode  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                       bank: BankId,
                                                       productCode: ProductCode)
-case class InBoundGetProductAttributesByBankAndCode  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[ProductAttributeCommons])
+case class InBoundGetProductAttributesByBankAndCode  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductAttributeCommons])
 
 
 case class OutBoundCreateOrUpdateAccountAttribute  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -369,57 +369,57 @@ case class OutBoundCreateOrUpdateAccountAttribute  (outboundAdapterCallContext: 
                                                    name: String,
                                                    attributType: AccountAttributeType.Value,
                                                    value: String)
-case class InBoundCreateOrUpdateAccountAttribute  (inboundAdapterCallContext: InboundAdapterCallContext, data: AccountAttributeCommons)
+case class InBoundCreateOrUpdateAccountAttribute  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountAttributeCommons)
 
 
 case class OutBoundCreateAccountApplication  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                              productCode: ProductCode,
                                              userId: Option[String],
                                              customerId: Option[String])
-case class InBoundCreateAccountApplication  (inboundAdapterCallContext: InboundAdapterCallContext, data: AccountApplicationCommons)
+case class InBoundCreateAccountApplication  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountApplicationCommons)
 
 
 case class OutBoundGetAllAccountApplication  (outboundAdapterCallContext: OutboundAdapterCallContext)
-case class InBoundGetAllAccountApplication  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[AccountApplicationCommons])
+case class InBoundGetAllAccountApplication  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountApplicationCommons])
 
 
 case class OutBoundGetAccountApplicationById  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                               accountApplicationId: String)
-case class InBoundGetAccountApplicationById  (inboundAdapterCallContext: InboundAdapterCallContext, data: AccountApplicationCommons)
+case class InBoundGetAccountApplicationById  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountApplicationCommons)
 
 
 case class OutBoundUpdateAccountApplicationStatus  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                    accountApplicationId: String,
                                                    status: String)
-case class InBoundUpdateAccountApplicationStatus  (inboundAdapterCallContext: InboundAdapterCallContext, data: AccountApplicationCommons)
+case class InBoundUpdateAccountApplicationStatus  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountApplicationCommons)
 
 
 case class OutBoundGetOrCreateProductCollection  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                  collectionCode: String,
                                                  productCodes: List[String])
-case class InBoundGetOrCreateProductCollection  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[ProductCollectionCommons])
+case class InBoundGetOrCreateProductCollection  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCollectionCommons])
 
 
 case class OutBoundGetProductCollection  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                          collectionCode: String)
-case class InBoundGetProductCollection  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[ProductCollectionCommons])
+case class InBoundGetProductCollection  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCollectionCommons])
 
 
 case class OutBoundGetOrCreateProductCollectionItem  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                      collectionCode: String,
                                                      memberProductCodes: List[String])
-case class InBoundGetOrCreateProductCollectionItem  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[ProductCollectionItemCommons])
+case class InBoundGetOrCreateProductCollectionItem  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCollectionItemCommons])
 
 
 case class OutBoundGetProductCollectionItem  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                              collectionCode: String)
-case class InBoundGetProductCollectionItem  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[ProductCollectionItemCommons])
+case class InBoundGetProductCollectionItem  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCollectionItemCommons])
 
 
 case class OutBoundGetProductCollectionItemsTree  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                   collectionCode: String,
                                                   bankId: String)
-case class InBoundGetProductCollectionItemsTree  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])
+case class InBoundGetProductCollectionItemsTree  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[(ProductCollectionItemCommons, ProductCommons, List[ProductAttributeCommons])])
 
 
 case class OutBoundCreateMeeting  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -434,138 +434,138 @@ case class OutBoundCreateMeeting  (outboundAdapterCallContext: OutboundAdapterCa
                                   staffToken: String,
                                   creator: ContactDetails,
                                   invitees: List[Invitee])
-case class InBoundCreateMeeting  (inboundAdapterCallContext: InboundAdapterCallContext, data: MeetingCommons)
+case class InBoundCreateMeeting  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: MeetingCommons)
 
 
 case class OutBoundGetMeetings  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                 bankId: BankId,
                                 user: User) //TODO fixme
-case class InBoundGetMeetings  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[MeetingCommons])
+case class InBoundGetMeetings  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[MeetingCommons])
 
 
 case class OutBoundGetMeeting  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                bankId: BankId,
                                user: User,      //TODO fixme
                                meetingId: String)
-case class InBoundGetMeeting  (inboundAdapterCallContext: InboundAdapterCallContext, data: MeetingCommons)
+case class InBoundGetMeeting  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: MeetingCommons)
 
 case class OutBoundGetUser (outboundAdapterCallContext: OutboundAdapterCallContext, name: String, password: String)
 
-case class InBoundGetUser (inboundAdapterCallContext: InboundAdapterCallContext, data: InboundUser)
+case class InBoundGetUser (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: InboundUser)
 
 
 //create bound case classes
 case class OutBoundCreateChallenge (outboundAdapterCallContext: OutboundAdapterCallContext, bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String)
 
-case class InBoundCreateChallenge (inboundAdapterCallContext: InboundAdapterCallContext, data: String)
+case class InBoundCreateChallenge (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: String)
 
 case class OutBoundCreateCounterparty (outboundAdapterCallContext: OutboundAdapterCallContext, name: String, description: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke])
 
-case class InBoundCreateCounterparty (inboundAdapterCallContext: InboundAdapterCallContext, data: CounterpartyTraitCommons)
+case class InBoundCreateCounterparty (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons)
 
 case class OutBoundGetTransactionRequests210 (outboundAdapterCallContext: OutboundAdapterCallContext, initiator : User, fromAccount : BankAccount)
 
-case class InBoundGetTransactionRequests210 (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionRequest])
+case class InBoundGetTransactionRequests210 (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequest])
 
 case class OutBoundGetTransactionsCore(bankId: BankId, accountID: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String)
-case class InBoundGetTransactionsCore (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionCore])
+case class InBoundGetTransactionsCore (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCore])
 
 case class OutBoundGetTransactions(bankId: BankId, accountID: AccountId, limit: Int, offset: Int, fromDate: String, toDate: String)
-case class InBoundGetTransactions (inboundAdapterCallContext: InboundAdapterCallContext, data: List[Transaction])
+case class InBoundGetTransactions (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[Transaction])
 
 //-------- return type are not Future--------------------------------------------------------------------------------------------------
 
 case class OutBoundGetAdapterInfo  (outboundAdapterCallContext: OutboundAdapterCallContext)
-case class InBoundGetAdapterInfo  (inboundAdapterCallContext: InboundAdapterCallContext, data: InboundAdapterInfoInternal)
+case class InBoundGetAdapterInfo  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: InboundAdapterInfoInternal)
 
 
 case class OutBoundGetBank  (outboundAdapterCallContext: OutboundAdapterCallContext,
                             bankId: BankId)
-case class InBoundGetBank  (inboundAdapterCallContext: InboundAdapterCallContext, data: BankCommons)
+case class InBoundGetBank  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankCommons)
 
 
 case class OutBoundGetBanks  (outboundAdapterCallContext: OutboundAdapterCallContext)
-case class InBoundGetBanks  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[BankCommons])
+case class InBoundGetBanks  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankCommons])
 
 
 case class OutBoundGetBankAccounts  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                     accounts: List[(BankId, AccountId)])
-case class InBoundGetBankAccounts  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[BankAccountCommons])
+case class InBoundGetBankAccounts  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankAccountCommons])
 
 
 case class OutBoundGetBankAccountsForUser  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                               username: String)
-case class InBoundGetBankAccountsForUser  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[InboundAccountCommons])
+case class InBoundGetBankAccountsForUser  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[InboundAccountCommons])
 
 
 case class OutBoundGetCoreBankAccounts  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                         bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetCoreBankAccounts  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CoreAccount])
+case class InBoundGetCoreBankAccounts  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CoreAccount])
 
 
 case class OutBoundGetBankAccountsHeld  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                         bankIdAccountIds: List[BankIdAccountId])
-case class InBoundGetBankAccountsHeld  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[AccountHeld])
+case class InBoundGetBankAccountsHeld  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountHeld])
 
 
 case class OutBoundCheckBankAccountExists  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                            bankId: BankId,
                                            accountId: AccountId)
-case class InBoundCheckBankAccountExists  (inboundAdapterCallContext: InboundAdapterCallContext, data: BankAccountCommons)
+case class InBoundCheckBankAccountExists  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons)
 
 
 case class OutBoundGetEmptyBankAccount  (outboundAdapterCallContext: OutboundAdapterCallContext)
-case class InBoundGetEmptyBankAccount  (inboundAdapterCallContext: InboundAdapterCallContext, data: BankAccountCommons)
+case class InBoundGetEmptyBankAccount  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons)
 
 
 case class OutBoundGetCounterpartyFromTransaction  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                    bankId: BankId,
                                                    accountId: AccountId,
                                                    counterpartyId: String)
-case class InBoundGetCounterpartyFromTransaction  (inboundAdapterCallContext: InboundAdapterCallContext, data: Counterparty)
+case class InBoundGetCounterpartyFromTransaction  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Counterparty)
 
 
 case class OutBoundGetCounterpartiesFromTransaction  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                      bankId: BankId,
                                                      accountId: AccountId)
-case class InBoundGetCounterpartiesFromTransaction  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[Counterparty])
+case class InBoundGetCounterpartiesFromTransaction  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[Counterparty])
 
 
 case class OutBoundGetCounterparty  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                     thisBankId: BankId,
                                     thisAccountId: AccountId,
                                     couterpartyId: String)
-case class InBoundGetCounterparty  (inboundAdapterCallContext: InboundAdapterCallContext, data: Counterparty)
+case class InBoundGetCounterparty  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Counterparty)
 
 
 case class OutBoundGetCounterpartyByCounterpartyId  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                     counterpartyId: CounterpartyId)
-case class InBoundGetCounterpartyByCounterpartyId  (inboundAdapterCallContext: InboundAdapterCallContext, data: CounterpartyTraitCommons)
+case class InBoundGetCounterpartyByCounterpartyId  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons)
 
 
 case class OutBoundGetCounterparties  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                       thisBankId: BankId,
                                       thisAccountId: AccountId,
                                       viewId: ViewId)
-case class InBoundGetCounterparties  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[CounterpartyTraitCommons])
+case class InBoundGetCounterparties  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CounterpartyTraitCommons])
 
 
 case class OutBoundGetTransaction  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                    bankId: BankId,
                                    accountID: AccountId,
                                    transactionId: TransactionId)
-case class InBoundGetTransaction  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionCommons)
+case class InBoundGetTransaction  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionCommons)
 
 
 case class OutBoundGetPhysicalCards  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                      user: User)
-case class InBoundGetPhysicalCards  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[PhysicalCard])
+case class InBoundGetPhysicalCards  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[PhysicalCard])
 
 
 case class OutBoundGetPhysicalCardsForBank  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                             bank: Bank,
                                             user: User)
-case class InBoundGetPhysicalCardsForBank  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[PhysicalCard])
+case class InBoundGetPhysicalCardsForBank  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[PhysicalCard])
 
 
 case class OutBoundCreateOrUpdatePhysicalCard  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -587,7 +587,7 @@ case class OutBoundCreateOrUpdatePhysicalCard  (outboundAdapterCallContext: Outb
                                                pinResets: List[PinResetInfo],
                                                collected: Option[CardCollectionInfo],
                                                posted: Option[CardPostedInfo])
-case class InBoundCreateOrUpdatePhysicalCard  (inboundAdapterCallContext: InboundAdapterCallContext, data: PhysicalCard)
+case class InBoundCreateOrUpdatePhysicalCard  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard)
 
 
 case class OutBoundMakePayment  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -597,7 +597,7 @@ case class OutBoundMakePayment  (outboundAdapterCallContext: OutboundAdapterCall
                                 amt: BigDecimal,
                                 description: String,
                                 transactionRequestType: TransactionRequestType)
-case class InBoundMakePayment  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionId)
+case class InBoundMakePayment  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId)
 
 
 case class OutBoundMakePaymentv200  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -608,7 +608,7 @@ case class OutBoundMakePaymentv200  (outboundAdapterCallContext: OutboundAdapter
                                     description: String,
                                     transactionRequestType: TransactionRequestType,
                                     chargePolicy: String)
-case class InBoundMakePaymentv200  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionId)
+case class InBoundMakePaymentv200  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId)
 
 
 case class OutBoundMakePaymentImpl  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -619,7 +619,7 @@ case class OutBoundMakePaymentImpl  (outboundAdapterCallContext: OutboundAdapter
                                     description: String,
                                     transactionRequestType: TransactionRequestType,
                                     chargePolicy: String)
-case class InBoundMakePaymentImpl  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionId)
+case class InBoundMakePaymentImpl  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId)
 
 
 case class OutBoundCreateTransactionRequest  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -628,7 +628,7 @@ case class OutBoundCreateTransactionRequest  (outboundAdapterCallContext: Outbou
                                              toAccount: BankAccount,
                                              transactionRequestType: TransactionRequestType,
                                              body: TransactionRequestBody)
-case class InBoundCreateTransactionRequest  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionRequest  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundCreateTransactionRequestv200  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -637,7 +637,7 @@ case class OutBoundCreateTransactionRequestv200  (outboundAdapterCallContext: Ou
                                                  toAccount: BankAccount,
                                                  transactionRequestType: TransactionRequestType,
                                                  body: TransactionRequestBody)
-case class InBoundCreateTransactionRequestv200  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionRequestv200  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundCreateTransactionRequestImpl  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -648,7 +648,7 @@ case class OutBoundCreateTransactionRequestImpl  (outboundAdapterCallContext: Ou
                                                  body: TransactionRequestBody,
                                                  status: String,
                                                  charge: TransactionRequestCharge)
-case class InBoundCreateTransactionRequestImpl  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionRequestImpl  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundCreateTransactionRequestImpl210  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -661,62 +661,62 @@ case class OutBoundCreateTransactionRequestImpl210  (outboundAdapterCallContext:
                                                     status: String,
                                                     charge: TransactionRequestCharge,
                                                     chargePolicy: String)
-case class InBoundCreateTransactionRequestImpl210  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionRequestImpl210  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundGetTransactionRequests  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                            initiator: User,
                                            fromAccount: BankAccount)
-case class InBoundGetTransactionRequests  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionRequest])
+case class InBoundGetTransactionRequests  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequest])
 
 
 case class OutBoundGetTransactionRequestStatuses  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                  )
-case class InBoundGetTransactionRequestStatuses  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequestStatusCommons)
+case class InBoundGetTransactionRequestStatuses  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestStatusCommons)
 
 
 case class OutBoundGetTransactionRequestStatusesImpl  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                      )
-case class InBoundGetTransactionRequestStatusesImpl  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequestStatusCommons)
+case class InBoundGetTransactionRequestStatusesImpl  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestStatusCommons)
 
 
 case class OutBoundGetTransactionRequestsImpl  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                fromAccount: BankAccount)
-case class InBoundGetTransactionRequestsImpl  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionRequest])
+case class InBoundGetTransactionRequestsImpl  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequest])
 
 
 case class OutBoundGetTransactionRequestsImpl210  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                   fromAccount: BankAccount)
-case class InBoundGetTransactionRequestsImpl210  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionRequest])
+case class InBoundGetTransactionRequestsImpl210  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequest])
 
 
 case class OutBoundGetTransactionRequestImpl  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                               transactionRequestId: TransactionRequestId)
-case class InBoundGetTransactionRequestImpl  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundGetTransactionRequestImpl  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundGetTransactionRequestTypes  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                initiator: User,
                                                fromAccount: BankAccount)
-case class InBoundGetTransactionRequestTypes  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionRequestType])
+case class InBoundGetTransactionRequestTypes  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequestType])
 
 
 case class OutBoundGetTransactionRequestTypesImpl  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                    fromAccount: BankAccount)
-case class InBoundGetTransactionRequestTypesImpl  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[TransactionRequestType])
+case class InBoundGetTransactionRequestTypesImpl  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionRequestType])
 
 
 case class OutBoundCreateTransactionAfterChallenge  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                     initiator: User,
                                                     transReqId: TransactionRequestId)
-case class InBoundCreateTransactionAfterChallenge  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionAfterChallenge  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundCreateTransactionAfterChallengev200  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                                         fromAccount: BankAccount,
                                                         toAccount: BankAccount,
                                                         transactionRequest: TransactionRequest)
-case class InBoundCreateTransactionAfterChallengev200  (inboundAdapterCallContext: InboundAdapterCallContext, data: TransactionRequest)
+case class InBoundCreateTransactionAfterChallengev200  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
 case class OutBoundCreateBankAndAccount  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -730,18 +730,18 @@ case class OutBoundCreateBankAndAccount  (outboundAdapterCallContext: OutboundAd
                                          branchId: String,
                                          accountRoutingScheme: String,
                                          accountRoutingAddress: String)
-case class InBoundCreateBankAndAccount  (inboundAdapterCallContext: InboundAdapterCallContext, data: (BankCommons, BankAccountCommons))
+case class InBoundCreateBankAndAccount  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: (BankCommons, BankAccountCommons))
 
 
 case class OutBoundGetProducts  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                 bankId: BankId)
-case class InBoundGetProducts  (inboundAdapterCallContext: InboundAdapterCallContext, data: List[ProductCommons])
+case class InBoundGetProducts  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ProductCommons])
 
 
 case class OutBoundGetProduct  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                bankId: BankId,
                                productCode: ProductCode)
-case class InBoundGetProduct  (inboundAdapterCallContext: InboundAdapterCallContext, data: ProductCommons)
+case class InBoundGetProduct  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductCommons)
 
 
 case class OutBoundCreateOrUpdateBank  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -754,7 +754,7 @@ case class OutBoundCreateOrUpdateBank  (outboundAdapterCallContext: OutboundAdap
                                        national_identifier: String,
                                        bankRoutingScheme: String,
                                        bankRoutingAddress: String)
-case class InBoundCreateOrUpdateBank  (inboundAdapterCallContext: InboundAdapterCallContext, data: BankCommons)
+case class InBoundCreateOrUpdateBank  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankCommons)
 
 
 case class OutBoundCreateOrUpdateProduct  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -770,19 +770,19 @@ case class OutBoundCreateOrUpdateProduct  (outboundAdapterCallContext: OutboundA
                                           description: String,
                                           metaLicenceId: String,
                                           metaLicenceName: String)
-case class InBoundCreateOrUpdateProduct  (inboundAdapterCallContext: InboundAdapterCallContext, data: ProductCommons)
+case class InBoundCreateOrUpdateProduct  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductCommons)
 
 
 case class OutBoundGetBranch  (outboundAdapterCallContext: OutboundAdapterCallContext,
                               bankId: BankId,
                               branchId: BranchId)
-case class InBoundGetBranch  (inboundAdapterCallContext: InboundAdapterCallContext, data: BranchTCommons)
+case class InBoundGetBranch  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BranchTCommons)
 
 
 case class OutBoundGetAtm  (outboundAdapterCallContext: OutboundAdapterCallContext,
                            bankId: BankId,
                            atmId: AtmId)
-case class InBoundGetAtm  (inboundAdapterCallContext: InboundAdapterCallContext, data: AtmTCommons)
+case class InBoundGetAtm  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AtmTCommons)
 
 
 case class OutBoundGetTransactionRequestTypeCharge  (outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -794,7 +794,7 @@ case class OutBoundGetTransactionRequestTypeCharge  (outboundAdapterCallContext:
 
 case class OutBoundGetCustomerByCustomerId  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                             customerId: String)
-case class InBoundGetCustomerByCustomerId  (inboundAdapterCallContext: InboundAdapterCallContext, data: CustomerCommons)
+case class InBoundGetCustomerByCustomerId  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons)
 
 case class OutBoundCreateOrUpdateKycCheck(outboundAdapterCallContext: OutboundAdapterCallContext,
                                           bankId: String,
@@ -808,7 +808,7 @@ case class OutBoundCreateOrUpdateKycCheck(outboundAdapterCallContext: OutboundAd
                                           mSatisfied: Boolean,
                                           comments: String)
 
-case class InBoundCreateOrUpdateKycCheck(inboundAdapterCallContext: InboundAdapterCallContext, data: KycCheckCommons)
+case class InBoundCreateOrUpdateKycCheck(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: KycCheckCommons)
 
 case class OutBoundCreateOrUpdateKycDocument(outboundAdapterCallContext: OutboundAdapterCallContext,
                                              bankId: String,
@@ -821,7 +821,7 @@ case class OutBoundCreateOrUpdateKycDocument(outboundAdapterCallContext: Outboun
                                              issuePlace: String,
                                              expiryDate: Date)
 
-case class InBoundCreateOrUpdateKycDocument(inboundAdapterCallContext: InboundAdapterCallContext, data: KycDocument)
+case class InBoundCreateOrUpdateKycDocument(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: KycDocument)
 
 case class OutBoundCreateOrUpdateKycMedia(outboundAdapterCallContext: OutboundAdapterCallContext,
                                           bankId: String,
@@ -834,7 +834,7 @@ case class OutBoundCreateOrUpdateKycMedia(outboundAdapterCallContext: OutboundAd
                                           relatesToKycDocumentId: String,
                                           relatesToKycCheckId: String)
 
-case class InBoundCreateOrUpdateKycMedia(inboundAdapterCallContext: InboundAdapterCallContext, data: KycMediaCommons)
+case class InBoundCreateOrUpdateKycMedia(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: KycMediaCommons)
 
 case class OutBoundCreateOrUpdateKycStatus(outboundAdapterCallContext: OutboundAdapterCallContext,
                                            bankId: String,
@@ -843,24 +843,24 @@ case class OutBoundCreateOrUpdateKycStatus(outboundAdapterCallContext: OutboundA
                                            ok: Boolean,
                                            date: Date)
 
-case class InBoundCreateOrUpdateKycStatus(inboundAdapterCallContext: InboundAdapterCallContext, data: KycStatusCommons)
+case class InBoundCreateOrUpdateKycStatus(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: KycStatusCommons)
 
 case class OutBoundGetKycChecks(outboundAdapterCallContext: OutboundAdapterCallContext,
                                 customerId: String)
 
-case class InBoundGetKycChecks(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycCheckCommons])
+case class InBoundGetKycChecks(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycCheckCommons])
 
 case class OutBoundGetDocuments(outboundAdapterCallContext: OutboundAdapterCallContext,
                                 customerId: String)
 
-case class InBoundGetDocuments(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycDocumentCommons])
+case class InBoundGetDocuments(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycDocumentCommons])
 
 case class OutBoundGetMedias(outboundAdapterCallContext: OutboundAdapterCallContext,
                                 customerId: String)
 
-case class InBoundGetMedias(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycMediaCommons])
+case class InBoundGetMedias(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycMediaCommons])
 
 case class OutBoundGetStatuses(outboundAdapterCallContext: OutboundAdapterCallContext,
                                 customerId: String)
 
-case class InBoundGetStatuses(inboundAdapterCallContext: InboundAdapterCallContext, data: List[KycStatusCommons])
+case class InBoundGetStatuses(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycStatusCommons])

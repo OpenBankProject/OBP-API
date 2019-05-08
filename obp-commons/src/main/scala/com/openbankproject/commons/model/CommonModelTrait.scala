@@ -83,6 +83,11 @@ case class InboundStatusMessage(
   text: String
 )
 
+case class Status(
+                   errorCode: String,
+                   backendMessages: List[InboundStatusMessage]
+                 )
+
 case class InboundAdapterInfoInternal(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],

@@ -30,6 +30,7 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.inboundStatus
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
@@ -195,6 +196,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = InboundAdapterInfoInternal(errorCode = "string",
           backendMessages = List(InboundStatusMessage(source = "string",
             status = "string",
@@ -271,6 +273,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = BankCommons(bankId = BankId(value = "string"),
           shortName = "string",
           fullName = "string",
@@ -346,6 +349,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(BankCommons(bankId = BankId(value = "string"),
           shortName = "string",
           fullName = "string",
@@ -422,6 +426,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(InboundAccountCommons(bankId = "string",
           branchId = "string",
           accountId = "string",
@@ -505,6 +510,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(CoreAccount(id = "string",
           label = "string",
           bankId = "string",
@@ -579,6 +585,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = BankAccountCommons(accountId = AccountId(value = "string"),
           accountType = "string",
           balance = BigDecimal("123.321"),
@@ -643,6 +650,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(TransactionCore(id = TransactionId(value = "string"),
           thisAccount = BankAccountCommons(accountId = AccountId(value = "string"),
             accountType = "string",
@@ -747,6 +755,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(CustomerCommons(customerId = "string",
           bankId = "string",
           number = "string",
