@@ -1,45 +1,51 @@
 package code.kafka
 
 
+import java.util.regex.Pattern
+
 import code.api.util.APIUtil
+import code.util.ClassScanUtils
 import code.util.Helper.MdcLoggable
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.common.serialization.StringDeserializer
 
 object NorthSideConsumer {
 
+  private[this] val outboundNamePattern= Pattern.compile("""com\.openbankproject\.commons\..*(OutBound.+)""")
+
   val listOfTopics = List(
-    "OutboundGetAdapterInfo",
-    "OutboundGetBanks",
-    "OutboundGetBank",
+    //"OutboundGetAdapterInfo",
+    //"OutboundGetBanks",
+    //"OutboundGetBank",
     "OutboundGetUserByUsernamePassword",
     "OutboundGetAccounts",
     "OutboundGetAccountbyAccountID",
-    "OutboundCheckBankAccountExists",
-    "OutboundGetCoreBankAccounts",
-    "OutboundGetCoreBankOutboundGetTransactionsAccounts",
-    "OutboundGetTransactions",
-    "OutboundGetTransaction",
+    //"OutboundCheckBankAccountExists",
+    //"OutboundGetCoreBankAccounts",
+    //"OutboundGetCoreBankAccounts",
+    //"OutboundGetTransactions",
+    //"OutboundGetTransaction",
     "OutboundCreateTransaction",
     "OutboundGetBranches",
-    "OutboundGetBranch",
+    //"OutboundGetBranch",
     "OutboundGetAtms",
-    "OutboundGetAtm",
+    //"OutboundGetAtm",
     "OutboundCreateChallengeJune2017",
-    "OutboundCreateCounterparty",
-    "OutboundGetTransactionRequests210",
-    "OutboundGetCounterparties",
-    "OutboundGetCounterpartyByCounterpartyId",
-    "OutboundGetCounterparty",
+    //"OutboundCreateCounterparty",
+    //"OutboundGetTransactionRequests210",
+    //"OutboundGetCounterparties",
+    //"OutboundGetCounterpartyByCounterpartyId",
+    //"OutboundGetCounterparty",
     "OutboundCounterparty",
     "OutboundGetCounterpartyById",
     "OutboundTransactionRequests",
     "OutboundGetCustomersByUserId",
     "OutboundGetCheckbookOrderStatus",
     "OutboundGetCreditCardOrderStatus",
-    "OutboundGetBankAccountsHeld",
+    //"OutboundGetBankAccountsHeld",
     "ObpApiLoopback" //This topic is tricky now, it is just used in api side: api produce and consumer it. Not used over adapter. Only for test api <--> kafka. 
-  )
+  ) ++ ClassScanUtils.findTypes(classInfo => outboundNamePattern.matcher(classInfo.name).matches())
+    .map(outboundNamePattern.matcher(_).replaceFirst("$1"))
 
   def consumerProperties(brokers: String, group: String, keyDeserealizer: String, valueDeserealizer: String): Map[String, String] = {
     if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
