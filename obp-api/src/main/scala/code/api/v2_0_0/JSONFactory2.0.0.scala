@@ -828,7 +828,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       coreAccount.label,
       coreAccount.bankId,
       views_available = Views.views.vend
-        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id)))
+        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id))).filter(_.isPrivate)
         .map(mappedView =>
           BasicViewJson(
             mappedView.viewId.value,

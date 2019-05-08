@@ -15,7 +15,8 @@ object TestServer {
   val context = new WebAppContext()
   context.setServer(server)
   context.setContextPath("/")
-  context.setWar("src/main/webapp")
+  val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
+  context.setWar(s"${basePath}src/main/webapp")
 
   server.setHandler(context)
 

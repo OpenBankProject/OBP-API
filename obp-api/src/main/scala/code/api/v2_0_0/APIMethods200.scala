@@ -270,7 +270,6 @@ trait APIMethods200 {
     )
   
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
-      //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
