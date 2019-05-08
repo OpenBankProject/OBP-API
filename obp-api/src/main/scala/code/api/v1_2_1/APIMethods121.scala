@@ -324,7 +324,6 @@ trait APIMethods121 {
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
-    //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same now.
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
       //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {

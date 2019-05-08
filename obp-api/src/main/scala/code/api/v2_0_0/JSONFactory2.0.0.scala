@@ -37,6 +37,7 @@ import code.model._
 import code.model.dataAccess.AuthUser
 import code.socialmedia.SocialMedia
 import code.users.Users
+import code.views.Views
 import com.openbankproject.commons.model.{BankAccount, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.Extraction
@@ -821,6 +822,20 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       case _ => null
     }
 
+  def createBasicAccountsJson(coreAccounts : List[CoreAccount]): BasicAccountsJSON =
+    BasicAccountsJSON(coreAccounts.map(coreAccount => BasicAccountJSON(
+      coreAccount.id,
+      coreAccount.label,
+      coreAccount.bankId,
+      views_available = Views.views.vend
+        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id)))
+        .map(mappedView =>
+          BasicViewJson(
+            mappedView.viewId.value,
+            mappedView.name,
+            mappedView.isPublic
+          ))
+    )))
 
 
 
