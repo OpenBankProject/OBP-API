@@ -19,40 +19,40 @@ object RestConnectorBuilder extends App {
   //  val value2  = this.getBankFuture(BankId("hello-bank-id"), None)
   //  Thread.sleep(10000)
   val genMethodNames = List(
-//    "getAdapterInfo",
+    //    "getAdapterInfo",
     "getAdapterInfoFuture",
     //    "getUser", // have problem, return type not common
-//    "getBanks",
+    //    "getBanks",
     "getBanksFuture",
-//    "getBank",
+    //    "getBank",
     "getBankFuture",
-//    "getBankAccountsForUser",
+    //    "getBankAccountsForUser",
     "getBankAccountsForUserFuture",
     "getCustomersByUserIdFuture",
-//    "getBankAccount",
-//    "checkBankAccountExists",
+    //    "getBankAccount",
+    //    "checkBankAccountExists",
     "checkBankAccountExistsFuture",
-//    "getCoreBankAccounts",
+    //    "getCoreBankAccounts",
     "getCoreBankAccountsFuture",
-//    "getTransactions",
+    //    "getTransactions",
     "getTransactionsCore",
-//    "getTransaction",
-//    "getTransactionRequests210", //have problem params are not simple object
-//    "getCounterparties",
-//    "getCounterpartiesFuture",
-//    "getCounterpartyByCounterpartyIdFuture",
-//    "getCounterpartyTrait",
-//    "getCheckbookOrdersFuture",
-//    "getStatusOfCreditCardOrderFuture",
-//    "getBranchesFuture",
-//    "getBranchFuture",
-//    "getAtmsFuture",
-//    "getAtmFuture",
-//    "getChallengeThreshold",
-    
-//    "makePaymentv210",//not support
-//    "createChallenge",//not support
-//    "createCounterparty" // not support
+    //    "getTransaction",
+    //    "getTransactionRequests210", //have problem params are not simple object
+    //    "getCounterparties",
+    //    "getCounterpartiesFuture",
+    //    "getCounterpartyByCounterpartyIdFuture",
+    //    "getCounterpartyTrait",
+    //    "getCheckbookOrdersFuture",
+    //    "getStatusOfCreditCardOrderFuture",
+    //    "getBranchesFuture",
+    //    "getBranchFuture",
+    //    "getAtmsFuture",
+    //    "getAtmFuture",
+    //    "getChallengeThreshold",
+
+    //    "makePaymentv210",//not support
+    //    "createChallenge",//not support
+    //    "createCounterparty" // not support
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -103,7 +103,7 @@ object RestConnectorBuilder extends App {
 }
 
 case class GetGenerator(methodName: String, tp: Type) {
-  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
+  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ").replaceFirst("""\btype\b""", "`type`")
 
   private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString)
 
@@ -214,12 +214,12 @@ case class GetGenerator(methodName: String, tp: Type) {
 }
 
 case class PostGenerator(methodName: String, tp: Type) {
-  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ")
+  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ").replaceFirst("""\btype\b""", "`type`")
 
-  private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString).mkString(",", ",", "")
+  private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString).mkString(", ", ", ", "").replaceFirst("""\btype\b""", "`type`")
   private[this] val description = methodName.replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
 
-  private[this] val entityName = methodName.replaceFirst("^[a-z]+", "")
+  private[this] val entityName = methodName.replaceFirst("^[a-z]+(OrUpdate)?", "")
 
   private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
 
@@ -270,8 +270,11 @@ case class PostGenerator(methodName: String, tp: Type) {
        |  )
        |  // url example: $urlDemo
        |  override def $signature = {
+       |    import net.liftweb.json.Serialization.write
+       |
        |    val url = getUrl("$methodName")
-       |    val jsonStr = write(OutBound${methodName.capitalize}(buildOutboundAdapterCallContext(callContext) $params))
+       |    val outboundAdapterCallContext = Box(callContext.map(_.toOutboundAdapterCallContext)).openOrThrowException(NoCallContext)
+       |    val jsonStr = write(OutBound${methodName.capitalize}(outboundAdapterCallContext $params))
        |    sendPostRequest[InBound${methodName.capitalize}](url, callContext, jsonStr)
        |      .map{ boxedResult =>
        |      $lastMapStatement
