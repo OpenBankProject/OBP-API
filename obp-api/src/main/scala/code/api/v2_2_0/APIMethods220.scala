@@ -728,25 +728,49 @@ trait APIMethods220 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         cc =>{
           for {
-            jsonBody <- tryo (json.extract[CreateAccountJSONV220]) ?~! InvalidJsonFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            loggedInUser <- cc.user ?~! UserNotLoggedIn
-            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~! InvalidUserId
-            _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
-            _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidBankIdFormat
-            postedOrLoggedInUser <- User.findByUserId(user_id) ?~! UserNotFoundById
+            (Full(u), callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateAccountJSONV220]
+            }
+
+            user_id = if (consentJson.user_id.nonEmpty) consentJson.user_id else u.userId
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+              isValidID(accountId.value)
+            }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat){
+              isValidID(accountId.value)
+            }
+
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(user_id, callContext)
+
             // User can create account for self or an account for another user if they have CanCreateAccount role
-            _ <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, canCreateAccount) == true || (user_id == loggedInUser.userId) ,
-              s"${UserHasMissingRoles} CanCreateAccount or create account for self")
-            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! InvalidAccountBalanceAmount
-            accountType <- tryo(jsonBody.`type`) ?~! InvalidAccountType
-            accountLabel <- tryo(jsonBody.label) //?~! ErrorMessages.InvalidAccountLabel
-            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! InvalidAccountInitialBalance
-            _ <- booleanToBox(0 == initialBalanceAsNumber) ?~! InitialBalanceMustBeZero
-            _ <- booleanToBox(isValidCurrencyISOCode(jsonBody.balance.currency), InvalidISOCurrencyCode)
-            currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
-            _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExists)
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+              isValidID(accountId.value)
+            }
+
+            _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
+              hasEntitlement("", user_id, canCreateAccount) || user_id ==u.userId
+            }
+            initialBalanceAsString = consentJson.balance.amount
+            accountType = consentJson.`type`
+            accountLabel = consentJson.label
+            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
+              BigDecimal(initialBalanceAsString)
+            }
+
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
+
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(consentJson.balance.currency)}
+
+
+            currency = consentJson.balance.currency
+
+            (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+
+            (_, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+
+            (bankAccount,callContext) <- NewStyle.function.createSandboxBankAccount(
               bankId,
               accountId,
               accountType,
@@ -754,9 +778,10 @@ trait APIMethods220 {
               currency,
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
-              jsonBody.branch_id,
-              jsonBody.account_routing.scheme,
-              jsonBody.account_routing.address
+              consentJson.branch_id,
+              consentJson.account_routing.scheme,
+              consentJson.account_routing.address,
+              callContext
             )
           } yield {
             //1 Create or Update the `Owner` for the new account
@@ -764,9 +789,8 @@ trait APIMethods220 {
             //3 Set the user as the account holder
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
 
-            val json = JSONFactory220.createAccountJSON(user_id, bankAccount)
+            (JSONFactory220.createAccountJSON(user_id, bankAccount), HttpCode.`200`(callContext))
 
-            successJsonResponse(Extraction.decompose(json))
           }
         }
       }

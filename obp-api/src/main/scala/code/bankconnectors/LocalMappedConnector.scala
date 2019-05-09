@@ -813,7 +813,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(
+  override def createSandboxBankAccountLegacy(
     bankName: String,
     bankNationalIdentifier: String,
     accountNumber: String,
@@ -905,8 +905,48 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted)
 }
 
-  //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(
+                                bankId: BankId,
+                                accountId: AccountId,
+                                accountType: String,
+                                accountLabel: String,
+                                currency: String,
+                                initialBalance: BigDecimal,
+                                accountHolderName: String,
+                                branchId: String,
+                                accountRoutingScheme: String,
+                                accountRoutingAddress: String,
+                                callContext: Option[CallContext]
+                              ): OBPReturnType[Box[BankAccount]] = Future {
+    val uniqueAccountNumber = {
+      def exists(number : String) = accountExists(bankId, "").openOrThrowException(attemptedToOpenAnEmptyBox)
+
+      def appendUntilOkay(number : String) : String = {
+        val newNumber = number + Random.nextInt(10)
+        if(!exists(newNumber)) newNumber
+        else appendUntilOkay(newNumber)
+      }
+
+      //generates a random 8 digit account number
+      val firstTry = (Random.nextDouble() * 10E8).toInt.toString
+      appendUntilOkay(firstTry)
+    }
+    
+    (createSandboxBankAccountLegacy(
+      bankId: BankId,
+      accountId: AccountId,
+      accountNumber = uniqueAccountNumber,
+      accountType: String,
+      accountLabel: String,
+      currency: String,
+      initialBalance: BigDecimal,
+      accountHolderName: String,
+      branchId: String,
+      accountRoutingScheme: String,
+      accountRoutingAddress: String), callContext)}
+  
+  //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
+  override def createSandboxBankAccountLegacy(
     bankId: BankId,
     accountId: AccountId,
     accountNumber: String,
@@ -920,6 +960,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     accountRoutingAddress: String
   ): Box[BankAccount] = {
 
+    val uniqueAccountNumber = {
+      def exists(number : String) = accountExists(bankId, accountNumber).openOrThrowException(attemptedToOpenAnEmptyBox)
+
+      def appendUntilOkay(number : String) : String = {
+        val newNumber = number + Random.nextInt(10)
+        if(!exists(newNumber)) newNumber
+        else appendUntilOkay(newNumber)
+      }
+
+      //generates a random 8 digit account number
+      val firstTry = (Random.nextDouble() * 10E8).toInt.toString
+      appendUntilOkay(firstTry)
+    }
+    
     for {
       (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
@@ -928,7 +982,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       createAccountIfNotExisting(
         bankId,
         accountId,
-        accountNumber,
+        uniqueAccountNumber,
         accountType,
         accountLabel,
         currency,

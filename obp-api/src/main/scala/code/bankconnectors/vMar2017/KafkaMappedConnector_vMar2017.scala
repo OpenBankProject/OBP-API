@@ -1246,7 +1246,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(
+  override def createSandboxBankAccountLegacy(
     bankName: String,
     bankNationalIdentifier: String,
     accountNumber: String,
@@ -1339,7 +1339,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(
+  override def createSandboxBankAccountLegacy(
     bankId: BankId,
     accountId: AccountId,
     accountNumber: String,

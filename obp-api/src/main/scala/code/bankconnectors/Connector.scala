@@ -1052,13 +1052,26 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  def createSandboxBankAccount(
+                                bankId: BankId,
+                                accountId: AccountId,
+                                accountType: String,
+                                accountLabel: String,
+                                currency: String,
+                                initialBalance: BigDecimal,
+                                accountHolderName: String,
+                                branchId: String,
+                                accountRoutingScheme: String,
+                                accountRoutingAddress: String,
+                                callContext: Option[CallContext]
+                              ): OBPReturnType[Box[BankAccount]] = Future {(Failure(setUnimplementedError), callContext)}
  
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  def createBankAndAccount(
+  def createSandboxBankAccountLegacy(
     bankName: String,
     bankNationalIdentifier: String,
     accountNumber: String,
@@ -1071,51 +1084,8 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     accountRoutingAddress: String   //added field in V220
   ): Box[(Bank, BankAccount)] = Failure(setUnimplementedError)
 
-  //generates an unused account number and then creates the sandbox account using that number
-  def createSandboxBankAccount(
-    bankId: BankId,
-    accountId: AccountId,
-    accountType: String,
-    accountLabel: String,
-    currency: String,
-    initialBalance: BigDecimal,
-    accountHolderName: String,
-    branchId: String,
-    accountRoutingScheme: String,
-    accountRoutingAddress: String
-  ): Box[BankAccount] = {
-    val uniqueAccountNumber = {
-      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
-
-      def appendUntilOkay(number : String) : String = {
-        val newNumber = number + Random.nextInt(10)
-        if(!exists(newNumber)) newNumber
-        else appendUntilOkay(newNumber)
-      }
-
-      //generates a random 8 digit account number
-      val firstTry = (Random.nextDouble() * 10E8).toInt.toString
-      appendUntilOkay(firstTry)
-    }
-
-    createSandboxBankAccount(
-      bankId,
-      accountId,
-      uniqueAccountNumber,
-      accountType,
-      accountLabel,
-      currency,
-      initialBalance,
-      accountHolderName,
-      branchId: String,//added field in V220
-      accountRoutingScheme, //added field in V220
-      accountRoutingAddress //added field in V220
-    )
-
-  }
-
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  def createSandboxBankAccount(
+  def createSandboxBankAccountLegacy(
     bankId: BankId,
     accountId: AccountId,
     accountNumber: String,

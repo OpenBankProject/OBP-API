@@ -375,7 +375,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  override def createBankAndAccount(
+  override def createSandboxBankAccountLegacy(
     bankName: String,
     bankNationalIdentifier: String,
     accountNumber: String,
@@ -451,7 +451,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
   }
 
   //creates a bank account for an existing bank, with the appropriate values set
-  override def createSandboxBankAccount(
+  override def createSandboxBankAccountLegacy(
     bankId: BankId,
     accountId: AccountId,
     accountNumber: String,

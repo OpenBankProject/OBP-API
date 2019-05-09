@@ -1135,8 +1135,8 @@ trait APIMethods200 {
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(
-              bankId, accountId, accountType, 
+            bankAccount <- Connector.connector.vend.createSandboxBankAccountLegacy(
+              bankId, accountId ,"",accountType, 
               accountLabel, currency, initialBalanceAsNumber, 
               postedOrLoggedInUser.name,
               "", //added new field in V220

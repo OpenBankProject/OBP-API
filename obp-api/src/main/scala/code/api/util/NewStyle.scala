@@ -59,6 +59,7 @@ object NewStyle {
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartyById), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.createAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -813,7 +814,7 @@ object NewStyle {
       accountRoutingScheme: String,
       accountRoutingAddress: String, 
       callContext: Option[CallContext]
-    ): OBPReturnType[BankAccount] = Future {
+    ): OBPReturnType[BankAccount] = 
       Connector.connector.vend.createSandboxBankAccount(
         bankId: BankId,
         accountId: AccountId,
@@ -824,9 +825,10 @@ object NewStyle {
         accountHolderName: String,
         branchId: String,
         accountRoutingScheme: String,
-        accountRoutingAddress: String
-      )} map {
-        i => (unboxFullOrFail(i, callContext, UnknownError, 400), callContext)
+        accountRoutingAddress: String,
+        callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
       }
 
     def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {

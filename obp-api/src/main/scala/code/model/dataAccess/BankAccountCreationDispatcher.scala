@@ -159,7 +159,7 @@ package code.model.dataAccess {
           val result = for {
             user <- foundUser ?~!
               s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view"
-            (_, bankAccount) <- Connector.connector.vend.createBankAndAccount(
+            (_, bankAccount) <- Connector.connector.vend.createSandboxBankAccountLegacy(
               message.bankName,
               message.bankIdentifier,
               message.accountNumber,
