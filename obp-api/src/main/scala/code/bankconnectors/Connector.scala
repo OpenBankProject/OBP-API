@@ -127,7 +127,29 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   val atmTTL = getSecondsCache("getAtm")
   val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
   val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
-  
+
+  /**
+    * convert original return type future to OBPReturnType
+    *
+    * @param future original return type
+    * @tparam T future success value type
+    * @return OBPReturnType type future
+    */
+  implicit def futureReturnTypeToOBPReturnType[T](future: Future[Box[(T, Option[CallContext])]]): OBPReturnType[Box[T]] = future map {
+    boxedTuple => (boxedTuple.map(_._1), boxedTuple.map(_._2).getOrElse(None))
+  }
+
+  /**
+    * convert OBPReturnType return type to original future type
+    *
+    * @param future OBPReturnType return type
+    * @tparam T future success value type
+    * @return original future type
+    */
+  implicit def OBPReturnTypeToFutureReturnType[T](value: OBPReturnType[Box[T]]): Future[Box[(T, Option[CallContext])]] = value.map {
+    tuple => tuple._1.map((_, tuple._2))
+  }
+
   /**
     * This method will return the method name of the current calling method.
     * The scala compiler will tweak the method name, so we need clean the `getMethodName` return value. 
@@ -140,9 +162,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
 
     NotImplemented + currentMethodName + s" Please check `Get Message Docs`endpoint and implement the process `obp.$currentMethodName` in Adapter side."
   }
-    
-  
-  
+
   //This method is used for testing API<-->Kafka connection. not need sent it to Adapter.
   def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[Box[ObpApiLoopback]] = 
   {

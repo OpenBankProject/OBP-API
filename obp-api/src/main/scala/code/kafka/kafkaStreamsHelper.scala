@@ -1,5 +1,6 @@
 package code.kafka
 
+import java.util
 import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
@@ -14,13 +15,16 @@ import code.kafka.actor.RequestResponseActor
 import code.kafka.actor.RequestResponseActor.Request
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
-import net.liftweb.common.{Failure, Full}
+import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.{Extraction, JsonAST}
 import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.StringSerializer
 
 import scala.concurrent.{ExecutionException, Future, TimeoutException}
+import java.util.concurrent.{Future => JFuture}
+
+import scala.util.{Success, Try}
 
 /**
   * Actor for accessing kafka from North side.
@@ -79,26 +83,40 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
       * @param key Kafka Message key
       * @param value Kafka Message value
       */
-    def sendAsync(requestTopic: String, key: String, value: String): Unit = {
+    def sendAsync(requestTopic: String, key: String, value: String): JFuture[RecordMetadata] = {
       val message = new ProducerRecord[String, String](requestTopic, key, value)
       logger.debug(s" kafka producer : $message")
-      producer.send(message, new Callback {
-        override def onCompletion(metadata: RecordMetadata, e: Exception): Unit = {
+      producer.send(message, (_: RecordMetadata, e: Exception) => {
           if (e != null) {
-            val msg = e.printStackTrace()
+            e.printStackTrace()
             logger.error(s"unknown error happened in kafka producer,the following message to do producer properly: $message")
             actorListener ! PoisonPill
           }
-        }
-      })
-
+        })
     }
-    //producer publishes the message to a broker
-    sendAsync(requestTopic, key, value)
 
-    import akka.pattern.ask
-    // Listen to a message which will be sent by NorthSideConsumer
-    (actorListener ? Request(key, value)).mapTo[String]
+    def listenResponse: Future[String] = {
+      import akka.pattern.ask
+      // Listen to a message which will be sent by NorthSideConsumer
+      (actorListener ? Request(key, value)).mapTo[String] // this future will be fail future with AskTimeoutException
+    }
+
+    //producer publishes the message to a broker
+   try {
+      import scala.util.{Failure=>JFailure, Success=>JSuccess}
+
+      val jFuture = sendAsync(requestTopic, key, value)
+      if(jFuture.isDone) Try(jFuture.get()) match {
+        case JSuccess(_) => listenResponse
+        // reference KafkaProducer#send method source code, it may return  KafkaProducer#FutureFailure, this case return fail future of ApiException
+        case JFailure(e: ExecutionException) => Future.failed(e.getCause)
+        case JFailure(e) => Future.failed(e) // impossible case, just add this case as insurance
+      } else {
+        listenResponse// here will not block, so don't worry sync thread
+      }
+    } catch {
+      case e:Throwable => Future.failed(e)
+    }
   }
 
   private val stringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
@@ -134,29 +152,6 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
     //self ? conn
   }
 
-  /**
-    * Check the Future, if there are Exceptions, recover the Exceptions to specific JValue 
-    * @param sender the sender who send the message to the Actor
-    * @param future the future need to be checked 
-    *
-    * @return If there is no exception, pipeTo sender
-    *         If there is exception, recover to JValue to sender 
-    */
-  def pipeToSender(sender: ActorRef, future: Future[Any]) = future recover {
-    case e: InterruptedException =>
-      logger.error(KafkaInterruptedException,e)
-      Failure(KafkaInterruptedException+e.toString,Full(e),None)
-    case e: ExecutionException =>
-      logger.error(KafkaExecutionException,e)
-      Failure(KafkaExecutionException+e.toString,Full(e),None)
-    case e: TimeoutException =>
-      logger.error(KafkaStreamTimeoutException,e)
-      Failure(KafkaStreamTimeoutException+e.toString,Full(e),None)
-    case e: Throwable =>
-      logger.error(KafkaUnknownError,e)
-      Failure(KafkaUnknownError+e.toString,Full(e),None)
-  } pipeTo sender
-
   def receive = {
     case value: String =>
       logger.debug("kafka_request[value]: " + value)
@@ -164,26 +159,30 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         t <- Future(Topics.topicPairHardCode) // Just have two Topics: obp.request.version and obp.response.version
         r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, value)
         jv <- stringToJValueF(r)
-        any <- extractJValueToAnyF(jv)
       } yield {
         logger.debug("South Side recognises version info")
-        any
+        jv
       }
 
-    // This is for KafkaMappedConnector_vJune2017, the request is TopicTrait  
+      // This is for KafkaMappedConnector_vJune2017, the request is TopicTrait
+    /**
+      * the follow matched case, if pipTo sender, then all exception will in Future, exception means:
+      * > net.liftweb.json.JsonParser.ParseException is response parse JValue fail
+      * > AskTimeoutException timeout but have no response return
+      * > (AuthenticationException| AuthorizationException| IllegalStateException| InterruptException| SerializationException| TimeoutException| KafkaException| ApiException) send message to kafka server fail
+      */
     case request: TopicTrait =>
       logger.debug("kafka_request[TopicCaseClass]: " + request)
       val f = for {
         t <- Future(Topics.createTopicByClassName(request.getClass.getSimpleName))
         d <- anyToJValueF(request)
         s <- serializeF(d)
-        r <- sendRequestAndGetResponseFromKafka(t,keyAndPartition, s)
-        jv <- stringToJValueF(r)
-        any <- extractJValueToAnyF(jv)
+        r <- sendRequestAndGetResponseFromKafka(t,keyAndPartition, s) //send s to kafka server,and get message, may case fail Futures:
+        jv <- stringToJValueF(r)// String to JValue, may return fail Future of net.liftweb.json.JsonParser.ParseException.ParseException
       } yield {
-        any
+        jv
       }
-      pipeToSender(sender, f)
+      f pipeTo sender
 
     // This is for KafkaMappedConnector_JVMcompatible, KafkaMappedConnector_vMar2017 and KafkaMappedConnector, the request is Map[String, String]  
     case request: Map[_, _] =>
@@ -195,11 +194,10 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         v <- serializeF(d)
         r <- sendRequestAndGetResponseFromKafka(t, keyAndPartition, v)
         jv <- stringToJValueF(r)
-        any <- extractJValueToAnyF(jv)
       } yield {
-        any
+        jv
       }
-      pipeToSender(orgSender, f)
+      f pipeTo orgSender
       
     // This is used to send Outbound Adapter Error to Kafka topic responsable for it
     case request: OutboundAdapterError =>

@@ -86,7 +86,10 @@ case class InboundStatusMessage(
 case class Status(
                    errorCode: String,
                    backendMessages: List[InboundStatusMessage]
-                 )
+                 ) {
+  def hasError = this.errorCode != null && errorCode.trim != ""
+  def hasNoError = !hasError
+}
 
 case class InboundAdapterInfoInternal(
   errorCode: String,

@@ -1,12 +1,18 @@
 package code.kafka
 
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 import code.actorsystem.{ObpActorInit, ObpLookupSystem}
+import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.Box
-import net.liftweb.json.JValue
+import com.openbankproject.commons.model.TopicTrait
+import net.liftweb.common._
+import net.liftweb.json.{JValue, MappingException}
 
+import scala.reflect.runtime.{universe => ru}
 import scala.concurrent.Future
+import net.liftweb.json.JsonParser.ParseException
+import org.apache.kafka.common.KafkaException
+import org.apache.kafka.common.errors._
 
 object KafkaHelper extends KafkaHelper
 
@@ -66,7 +72,34 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
   def processToFuture[T](request: T): Future[JValue] = {
     (actor ? request).mapTo[JValue]
   }
-  
+  /**
+    * This function is used for send request to kafka, and get the result extract to Box result.
+    * It processes Kafka's Outbound message to JValue wrapped into Box.
+    * @param request The request we send to Kafka
+    * @tparam T the type of the Inbound message
+    * @return Kafka's Inbound message into Future
+    */
+  def processRequest[T: Manifest](request: TopicTrait): Future[Box[T]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    implicit val formats = CustomJsonFormats.formats
+    val tp = manifest[T].runtimeClass
+
+    (actor ? request)
+      .mapTo[JValue]
+      .map(_.extract[T])
+      .map(Full(_))
+      .recover {
+        case e: ParseException => Failure("xxx  parse response payload to JValue fail", Full(e), Empty)
+        case e: MappingException => Failure(s"xxx extract response payload to type ${tp} fail.", Full(e), Empty)
+        case e: AskTimeoutException => Failure("xxx timeout but no response return from kafka server.", Full(e), Empty)
+        case e @ (_:AuthenticationException| _:AuthorizationException|
+                  _:IllegalStateException| _:InterruptException|
+                  _:SerializationException| _:TimeoutException|
+                  _:KafkaException| _:ApiException)
+          => Failure("xxx send message to kafka server fail", Full(e), Empty)
+      }
+  }
+
   def sendOutboundAdapterError(error: String): Unit = actor ! OutboundAdapterError(error)
 
 }

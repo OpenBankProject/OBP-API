@@ -1959,36 +1959,18 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val req = OutboundGetCustomersByUserId(getAuthInfo(callContext).openOrThrowException(NoCallContext))
         logger.debug(s"Kafka getCustomersByUserIdFuture Req says: is: $req")
 
-        val future = for {
-          res <- processToFuture[OutboundGetCustomersByUserId](req) map {
-            f =>
-              try {
-                f.extract[InboundGetCustomersByUserId]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetCustomersByUserId]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCustomersByUserId class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(error)
-                  throw new MappingException(error, e)
-              }
-          } map {x => (x.data, x.status)}
-        } yield{
-          res
-        }
+        val future = processRequest[InboundGetCustomersByUserId](req)
         logger.debug(s"Kafka getCustomersByUserIdFuture Res says: is: $future")
 
-        val res = future map {
-          case (list, status) if (status.errorCode=="") =>
-            Full(JsonFactory_vJune2017.createObpCustomers(list), callContext)
-          case (list, status) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:" + status.backendMessages)
-          case (List(),status) =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
+        future map {
+          case Full(inbound) if (inbound.status.hasNoError) =>
+            Full(JsonFactory_vJune2017.createObpCustomers(inbound.data))
+          case Full(inbound) if (inbound.status.hasError) =>
+            Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+          case failureOrEmpty => failureOrEmpty
+        } map {it =>
+          (it.asInstanceOf[Box[List[Customer]]], callContext)
         }
-        res
       }
     }
   }("getCustomersByUserIdFuture")
