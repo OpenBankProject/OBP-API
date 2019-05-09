@@ -864,3 +864,20 @@ case class OutBoundGetKycStatuses(outboundAdapterCallContext: OutboundAdapterCal
                                 customerId: String) extends TopicTrait
 
 case class InBoundGetKycStatuses(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycStatusCommons])
+
+
+case class OutBoundCreateBankAccount(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                     bankId: BankId,
+                                     accountId: AccountId,
+                                     accountType: String,
+                                     accountLabel: String,
+                                     currency: String,
+                                     initialBalance: BigDecimal,
+                                     accountHolderName: String,
+                                     branchId: String,
+                                     accountRoutingScheme: String,
+                                     accountRoutingAddress: String) extends TopicTrait
+
+case class InBoundCreateBankAccount(inboundAdapterCallContext: InboundAdapterCallContext,
+                                    status: Status,
+                                    data: BankAccountCommons)

@@ -149,6 +149,42 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     } yield{
       AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, sessionId, likedCustomersBasic, basicUserAuthContexts, authViews)
     }
+
+
+
+  val outboundAdapterCallContext = OutboundAdapterCallContext(
+    correlationId = "string",
+    sessionId = Option("string"),
+    consumerId = Option("string"),
+    generalContext = Option(List(BasicGeneralContext(key = "string",
+      value = "string"))),
+    outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+      username = Option("string"),
+      linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+        customerNumber = "string",
+        legalName = "string"))),
+      userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+        value = "string"))),
+      authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+        name = "string",
+        description = "string"),
+        account = AccountBasic(id = "string",
+          accountRoutings = List(AccountRouting(scheme = "string",
+            address = "string")),
+          customerOwners = List(InternalBasicCustomer(bankId = "string",
+            customerId = "string",
+            customerNumber = "string",
+            legalName = "string",
+            dateOfBirth = new Date())),
+          userOwners = List(InternalBasicUser(userId = "string",
+            emailAddress = "string",
+            name = "string")))))))))
+
+  val inboundAdapterCallContext = InboundAdapterCallContext(
+    correlationId = "string",
+    sessionId = Option("string"),
+    generalContext = Option(List(BasicGeneralContext(key = "string",
+      value = "string"))))
   
   val viewBasicExample = ViewBasic("owner","Owner", "This is the owner view")
 
@@ -3430,7 +3466,69 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
   // url example: /getKycStatuses/customerId/{customerId}
   override def getKycStatuses(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycStatus]]] = ???
+
+
+  messageDocs += MessageDoc(
+    process = "obp.createSandboxBankAccount",
+    messageFormat = messageFormat,
+    description = "create a new  bank account",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateBankAccount.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateBankAccount.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+      OutBoundCreateBankAccount(
+        outboundAdapterCallContext,
+        bankId = BankId(bankIdExample.value),
+        accountId = AccountId(accountIdExample.value),
+        accountType = accountTypeExample.value,
+        accountLabel = labelExample.value,
+        currency = currencyExample.value,
+        initialBalance = BigDecimal(0),
+        accountHolderName = "accountHolderName",
+        branchId = branchIdExample.value,
+        accountRoutingScheme = accountRoutingSchemeExample.value,
+        accountRoutingAddress =accountRoutingAddressExample.value,
+      )),
+    exampleInboundMessage = (
+      InBoundCreateBankAccount(
+        inboundAdapterCallContext,
+        Status(errorCodeExample, inboundStatusMessagesExample),
+        BankAccountCommons(
+          accountId = AccountId(accountIdExample.value),
+          accountType = accountTypeExample.value,
+          balance = BigDecimal(balanceAmountExample.value),
+          currency  = currencyExample.value,
+          name = "String",
+          label = "String",
+          iban = None,
+          number = accountNumberExample.value,
+          bankId = BankId(bankIdExample.value),
+          lastUpdate = new Date(),
+          branchId = branchIdExample.value,
+          accountRoutingScheme = accountRoutingSchemeExample.value,
+          accountRoutingAddress = accountRoutingAddressExample.value,
+          accountRoutings = List(AccountRouting(scheme = "string",
+            address = "string")),
+          accountRules = List(AccountRule(scheme = "string",
+            value = "string")),
+          accountHolder = "String"
+        )
+      )
+      ),
+    adapterImplementation = Some(AdapterImplementation("Accounts", 1))
+  )
   
+  override def createSandboxBankAccount(
+                                bankId: BankId,
+                                accountId: AccountId,
+                                accountType: String,
+                                accountLabel: String,
+                                currency: String,
+                                initialBalance: BigDecimal,
+                                accountHolderName: String,
+                                branchId: String,
+                                accountRoutingScheme: String,
+                                accountRoutingAddress: String
+                              ): Box[BankAccount] = ??? 
 }
 
 
