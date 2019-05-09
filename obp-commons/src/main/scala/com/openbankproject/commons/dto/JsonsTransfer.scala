@@ -850,17 +850,17 @@ case class OutBoundGetKycChecks(outboundAdapterCallContext: OutboundAdapterCallC
 
 case class InBoundGetKycChecks(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycCheckCommons])
 
-case class OutBoundGetDocuments(outboundAdapterCallContext: OutboundAdapterCallContext,
+case class OutBoundGetKycDocuments(outboundAdapterCallContext: OutboundAdapterCallContext,
                                 customerId: String) extends TopicTrait
 
-case class InBoundGetDocuments(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycDocumentCommons])
+case class InBoundGetKycDocuments(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycDocumentCommons])
 
-case class OutBoundGetMedias(outboundAdapterCallContext: OutboundAdapterCallContext,
+case class OutBoundGetKycMedias(outboundAdapterCallContext: OutboundAdapterCallContext,
                                 customerId: String) extends TopicTrait
 
-case class InBoundGetMedias(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycMediaCommons])
+case class InBoundGetKycMedias(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycMediaCommons])
 
-case class OutBoundGetStatuses(outboundAdapterCallContext: OutboundAdapterCallContext,
+case class OutBoundGetKycStatuses(outboundAdapterCallContext: OutboundAdapterCallContext,
                                 customerId: String) extends TopicTrait
 
-case class InBoundGetStatuses(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycStatusCommons])
+case class InBoundGetKycStatuses(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[KycStatusCommons])
