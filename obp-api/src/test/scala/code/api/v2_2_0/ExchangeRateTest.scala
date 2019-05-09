@@ -2,8 +2,10 @@ package code.api.v2_2_0
 
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiVersion
+import code.api.util.{ApiRole, ApiVersion}
 import code.api.util.ErrorMessages.InvalidISOCurrencyCode
+import code.consumer.Consumers
+import code.scope.Scope
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
@@ -32,6 +34,8 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
 
     scenario("We Get Current FxRate", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "EUR" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       And("We should get a 200")
@@ -40,6 +44,8 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
     
     scenario("We Get Current FxRate with wrong ISO from currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR1" / "EUR" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       And("We should get a 400")
@@ -49,6 +55,8 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
 
     scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "EUR1" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       And("We should get a 400")
