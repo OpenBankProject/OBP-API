@@ -1679,5 +1679,4 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def getKycStatuses(customerId: String,
                    callContext: Option[CallContext]
                   ): OBPReturnType[Box[List[KycStatus]]] = Future{(Failure(setUnimplementedError), callContext)}
-  )
 }
