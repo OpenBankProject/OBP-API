@@ -489,7 +489,7 @@ case class InBoundGetBanks  (inboundAdapterCallContext: InboundAdapterCallContex
 
 
 case class OutBoundGetBankAccounts  (outboundAdapterCallContext: OutboundAdapterCallContext,
-                                    accounts: List[(BankId, AccountId) extends TopicTrait])
+                                    accounts: List[(BankId, AccountId) ]) extends TopicTrait
 case class InBoundGetBankAccounts  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankAccountCommons])
 
 
