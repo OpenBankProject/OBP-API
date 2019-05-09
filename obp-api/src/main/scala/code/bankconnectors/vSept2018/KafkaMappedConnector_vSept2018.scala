@@ -24,6 +24,7 @@ Berlin 13359, Germany
 */
 
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -45,6 +46,7 @@ import code.model.dataAccess._
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.{CounterpartyTrait, _}
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
@@ -2921,6 +2923,531 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
     res
   }
+
+  messageDocs += MessageDoc(
+    process = "obp.post.createOrUpdateKycCheck",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Check",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCreateOrUpdateKycCheck(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankId = "string",
+        customerId = "string",
+        id = "string",
+        customerNumber = "string",
+        date = new Date(),
+        how = "string",
+        staffUserId = "string",
+        mStaffName = "string",
+        mSatisfied = true,
+        comments = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundCreateOrUpdateKycCheck(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = KycCheckCommons(bankId = "string",
+          customerId = "string",
+          idKycCheck = "string",
+          customerNumber = "string",
+          date = new Date(),
+          how = "string",
+          staffUserId = "string",
+          staffName = "string",
+          satisfied = true,
+          comments = "string"))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /createOrUpdateKycCheck
+  override def createOrUpdateKycCheck(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String, callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = ???
+
+  messageDocs += MessageDoc(
+    process = "obp.post.createOrUpdateKycDocument",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Document",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCreateOrUpdateKycDocument(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankId = "string",
+        customerId = "string",
+        id = "string",
+        customerNumber = "string",
+        `type` = "string",
+        number = "string",
+        issueDate = new Date(),
+        issuePlace = "string",
+        expiryDate = new Date())
+      ),
+    exampleInboundMessage = (
+      InBoundCreateOrUpdateKycDocument(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = KycDocumentCommons(bankId = "string",
+          customerId = "string",
+          idKycDocument = "string",
+          customerNumber = "string",
+          `type` = "string",
+          number = "string",
+          issueDate = new Date(),
+          issuePlace = "string",
+          expiryDate = new Date()))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /createOrUpdateKycDocument
+  override def createOrUpdateKycDocument(bankId: String, customerId: String, id: String, customerNumber: String,
+                                         `type`: String
+                                         , number: String
+                                         , issueDate: Date
+                                         , issuePlace: String
+                                         , expiryDate: Date
+                                         , callContext: Option[CallContext]
+                                        ): OBPReturnType[Box[KycDocument]] = ???
+
+  messageDocs += MessageDoc(
+    process = "obp.post.createOrUpdateKycMedia",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Media",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCreateOrUpdateKycMedia(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankId = "string",
+        customerId = "string",
+        id = "string",
+        customerNumber = "string",
+        `type` = "string",
+        url = "string",
+        date = new Date(),
+        relatesToKycDocumentId = "string",
+        relatesToKycCheckId = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundCreateOrUpdateKycMedia(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = KycMediaCommons(bankId = "string",
+          customerId = "string",
+          idKycMedia = "string",
+          customerNumber = "string",
+          `type` = "string",
+          url = "string",
+          date = new Date(),
+          relatesToKycDocumentId = "string",
+          relatesToKycCheckId = "string"))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /createOrUpdateKycMedia
+  override def createOrUpdateKycMedia(bankId: String, customerId: String, id: String, customerNumber: String,
+                                      `type`: String
+                                      , url: String
+                                      , date: Date
+                                      , relatesToKycDocumentId: String
+                                      , relatesToKycCheckId: String
+                                      , callContext: Option[CallContext]
+                                     ): OBPReturnType[Box[KycMedia]] = ???
+
+  messageDocs += MessageDoc(
+    process = "obp.post.createOrUpdateKycStatus",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Status",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCreateOrUpdateKycStatus(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        bankId = "string",
+        customerId = "string",
+        customerNumber = "string",
+        ok = true,
+        date = new Date())
+      ),
+    exampleInboundMessage = (
+      InBoundCreateOrUpdateKycStatus(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = KycStatusCommons(bankId = "string",
+          customerId = "string",
+          customerNumber = "string",
+          ok = true,
+          date = new Date()))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /createOrUpdateKycStatus
+  override def createOrUpdateKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = ???
+
+  messageDocs += MessageDoc(
+    process = "obp.get.KycCheckCommons",
+    messageFormat = messageFormat,
+    description = "Get Kyc Checks",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetKycChecks(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        customerId = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundGetKycChecks(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = List(KycCheckCommons(bankId = "string",
+          customerId = "string",
+          idKycCheck = "string",
+          customerNumber = "string",
+          date = new Date(),
+          how = "string",
+          staffUserId = "string",
+          staffName = "string",
+          satisfied = true,
+          comments = "string")))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getKycChecks/customerId/{customerId}
+  override def getKycChecks(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycCheck]]] = ???
+
+  messageDocs += MessageDoc(
+    process = "obp.get.KycDocumentCommons",
+    messageFormat = messageFormat,
+    description = "Get Kyc Documents",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetKycDocuments(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        customerId = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundGetKycDocuments(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = List(KycDocumentCommons(bankId = "string",
+          customerId = "string",
+          idKycDocument = "string",
+          customerNumber = "string",
+          `type` = "string",
+          number = "string",
+          issueDate = new Date(),
+          issuePlace = "string",
+          expiryDate = new Date())))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getKycDocuments/customerId/{customerId}
+  override def getKycDocuments(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycDocument]]] = ???
+
+  messageDocs += MessageDoc(
+    process = "obp.get.KycMediaCommons",
+    messageFormat = messageFormat,
+    description = "Get Kyc Medias",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetKycMedias(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        customerId = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundGetKycMedias(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = List(KycMediaCommons(bankId = "string",
+          customerId = "string",
+          idKycMedia = "string",
+          customerNumber = "string",
+          `type` = "string",
+          url = "string",
+          date = new Date(),
+          relatesToKycDocumentId = "string",
+          relatesToKycCheckId = "string")))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getKycMedias/customerId/{customerId}
+  override def getKycMedias(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycMedia]]] = ???
+
+  messageDocs += MessageDoc(
+    process = "obp.get.KycStatusCommons",
+    messageFormat = messageFormat,
+    description = "Get Kyc Statuses",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundGetKycStatuses(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        consumerId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string"))),
+        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
+          username = Option("string"),
+          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
+            customerNumber = "string",
+            legalName = "string"))),
+          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
+            value = "string"))),
+          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
+            name = "string",
+            description = "string"),
+            account = AccountBasic(id = "string",
+              accountRoutings = List(AccountRouting(scheme = "string",
+                address = "string")),
+              customerOwners = List(InternalBasicCustomer(bankId = "string",
+                customerId = "string",
+                customerNumber = "string",
+                legalName = "string",
+                dateOfBirth = new Date())),
+              userOwners = List(InternalBasicUser(userId = "string",
+                emailAddress = "string",
+                name = "string"))))))))),
+        customerId = "string")
+      ),
+    exampleInboundMessage = (
+      InBoundGetKycStatuses(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+        sessionId = Option("string"),
+        generalContext = Option(List(BasicGeneralContext(key = "string",
+          value = "string")))),
+        status = Status(errorCode = "string",
+          backendMessages = List(InboundStatusMessage(source = "string",
+            status = "string",
+            errorCode = "string",
+            text = "string"))),
+        data = List(KycStatusCommons(bankId = "string",
+          customerId = "string",
+          customerNumber = "string",
+          ok = true,
+          date = new Date())))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  // url example: /getKycStatuses/customerId/{customerId}
+  override def getKycStatuses(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycStatus]]] = ???
   
 }
 
