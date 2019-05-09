@@ -87,6 +87,8 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
   //The following topic is for loopback, only for testing api <--> kafka
   val apiLoopbackTopic = s"from.${clientId}.to.adapter.mf.caseclass.ObpApiLoopback"
   val allTopicsOverAdapter= listOfTopics.map(t => s"to.${clientId}.caseclass.$t")
+  //we use the same topic to send to Kakfa and listening the same topic to get the message back.
+  //So there is no to.obp.api.1.caseclass..ObpApiLoopback at all. Just use `apiLoopbackTopic` in the response topic.
   val allTopicsApiListening: List[String] = allTopicsOverAdapter :+ apiLoopbackTopic
   consumer.subscribe(allTopicsApiListening)
 
