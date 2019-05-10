@@ -130,13 +130,13 @@ case class GetGenerator(methodName: String, tp: Type) {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType)
+    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType)
+    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
@@ -196,10 +196,10 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
        |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
        |    exampleOutboundMessage = (
-       |      $outBoundExample
+       |    $outBoundExample
        |    ),
        |    exampleInboundMessage = (
-       |      $inBoundExample
+       |    $inBoundExample
        |    ),
        |    adapterImplementation = Some(AdapterImplementation("- Core", 1))
        |  )
@@ -240,12 +240,12 @@ case class PostGenerator(methodName: String, tp: Type) {
   private[this] val outBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType)
+    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType)
+    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
@@ -273,10 +273,10 @@ case class PostGenerator(methodName: String, tp: Type) {
        |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
        |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
        |    exampleOutboundMessage = (
-       |      $outBoundExample
+       |    $outBoundExample
        |    ),
        |    exampleInboundMessage = (
-       |      $inBoundExample
+       |    $inBoundExample
        |    ),
        |    adapterImplementation = Some(AdapterImplementation("- Core", 1))
        |  )

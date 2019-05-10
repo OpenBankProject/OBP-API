@@ -38,7 +38,7 @@ import code.api.util.ExampleValue._
 import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
-import code.kafka.KafkaHelper
+import code.kafka.{KafkaHelper, Topics}
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
