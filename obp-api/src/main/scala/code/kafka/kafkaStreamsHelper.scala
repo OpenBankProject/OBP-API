@@ -1,30 +1,26 @@
 package code.kafka
 
-import java.util
-import java.util.UUID
+import java.util.concurrent.{Future => JFuture}
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import akka.actor.{Actor, PoisonPill, Props}
 import akka.kafka.ProducerSettings
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import code.actorsystem.{ObpActorHelper, ObpActorInit}
 import code.api.util.{APIUtil, CustomJsonFormats}
-import code.api.util.ErrorMessages._
 import code.bankconnectors.AvroSerializer
 import code.kafka.actor.RequestResponseActor
 import code.kafka.actor.RequestResponseActor.Request
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
-import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.json
+import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, JsonAST}
 import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.StringSerializer
 
-import scala.concurrent.{ExecutionException, Future, TimeoutException}
-import java.util.concurrent.{Future => JFuture}
-
-import scala.util.{Success, Try}
+import scala.concurrent.{ExecutionException, Future}
+import scala.util.Try
 
 /**
   * Actor for accessing kafka from North side.
@@ -103,7 +99,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
     //producer publishes the message to a broker
    try {
-      import scala.util.{Failure=>JFailure, Success=>JSuccess}
+      import scala.util.{Failure => JFailure, Success => JSuccess}
 
       val jFuture = sendAsync(requestTopic, key, value)
       if(jFuture.isDone) Try(jFuture.get()) match {
@@ -121,7 +117,9 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
 
   private val stringToJValueF: (String => Future[JsonAST.JValue]) = { r =>
     logger.debug("kafka-consumer-stringToJValueF:" + r)
-    Future(json.parse(r))
+    Future(json.parse(r)).recover {
+      case e: ParseException => throw new ParseException(s"parse json fail, the wrong json String is: $r", e)
+    }
   }
 
   val extractJValueToAnyF: (JsonAST.JValue => Future[Any]) = { r =>
@@ -178,7 +176,7 @@ class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelpe
         d <- anyToJValueF(request)
         s <- serializeF(d)
         r <- sendRequestAndGetResponseFromKafka(t,keyAndPartition, s) //send s to kafka server,and get message, may case fail Futures:
-        jv <- stringToJValueF(r)// String to JValue, may return fail Future of net.liftweb.json.JsonParser.ParseException.ParseException
+        jv <- stringToJValueF(r)// String to JValue, may return fail Future of net.liftweb.json.JsonParser.ParseException
       } yield {
         jv
       }
