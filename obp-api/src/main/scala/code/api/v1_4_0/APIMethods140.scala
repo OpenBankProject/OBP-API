@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, ApiRole, ApiVersion, NewStyle}
+import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.CreateCustomerJson
 import code.atms.Atms
@@ -20,7 +20,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
-import scala.collection.immutable.Nil
+import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
 // JObject creation
@@ -129,11 +129,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     resourceDocs += ResourceDoc(
       addCustomerMessage,
       apiVersion,
-      "addCustomerMessage",
+      "createCustomerMessage",
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_ID/messages",
-      "Add Customer Message.",
-      "Add a message for the customer specified by CUSTOMER_ID",
+      "Create Customer Message.",
+      "Create a message for the customer specified by CUSTOMER_ID",
       // We use Extraction.decompose to convert to json
       addCustomerMessageJson,
       successMessage,
@@ -148,17 +148,19 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "customer" :: customerId ::  "messages" :: Nil JsonPost json -> _ => {
         cc =>{
           for {
-            postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customer.customerId) ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
-            user <- User.findByUserId(userCustomerLink.userId) ?~! ErrorMessages.UserNotFoundById
-            _ <- booleanToBox(
-              CustomerMessages.customerMessageProvider.vend.addMessage(
-                user, bankId, postedData.message, postedData.from_department, postedData.from_person),
-              "Server error: could not add message")
+            (Full(user), callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AddCustomerMessageJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AddCustomerMessageJson]
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (userCustomerLink, callContext) <- NewStyle.function.getUserCustomerLinkByCustomerId(customerId, callContext)
+            (user, callContext) <- NewStyle.function.findByUserId(userCustomerLink.userId, callContext)
+            (_, callContext)<- NewStyle.function.createMessage(user, bankId, postedData.message, postedData.from_department, postedData.from_person, callContext)
+            
           } yield {
-            successJsonResponse(Extraction.decompose(successMessage), 201)
+            (successMessage, HttpCode.`201`(callContext))
           } 
         }
       }

@@ -15,7 +15,6 @@ import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
 import code.context.UserAuthContextUpdate
-import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -23,6 +22,7 @@ import code.metadata.counterparties.Counterparties
 import code.model._
 import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
+import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -39,6 +39,7 @@ import scala.concurrent.Future
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
+    (nameOf(Implementations1_4_0.addCustomerMessage), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.publicAccountsAtOneBank), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.privateAccountsAtOneBank), ApiVersion.v2_0_0.toString),
@@ -1097,6 +1098,31 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
+
+
+    def createMessage(user : User,
+                      bankId : BankId,
+                      message : String,
+                      fromDepartment : String,
+                      fromPerson : String,
+                      callContext: Option[CallContext]) : OBPReturnType[CustomerMessage] = {
+      Connector.connector.vend.createMessage(
+        user : User,
+        bankId : BankId,
+        message : String,
+        fromDepartment : String,
+        fromPerson : String,
+        callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Can not create message in the backend.", 400), i._2)
+      }
+    }
+
+    def getUserCustomerLinkByCustomerId(customerId: String, callContext: Option[CallContext]) : OBPReturnType[UserCustomerLink] = {
+      Future {UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customerId)}   map {
+        i => (unboxFullOrFail(i, callContext, s"$UserCustomerLinksNotFoundForUser Current customerId ($customerId)", 400), callContext)
+      }
+    }
+    
   }
 
 }

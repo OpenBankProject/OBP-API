@@ -2279,4 +2279,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (boxedData, callContext)
   }
 
+  override def createMessage(user: User,
+                             bankId: BankId,
+                             message: String,
+                             fromDepartment: String,
+                             fromPerson: String,
+                             callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{
+    val boxedData = Box !! CustomerMessages.customerMessageProvider.vend.addMessage(user, bankId, message, fromDepartment, fromPerson)
+    (boxedData, callContext)
+  }
+
 }

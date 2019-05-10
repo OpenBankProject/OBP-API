@@ -393,6 +393,17 @@ case class KycStatusCommons (
 
 object KycStatusCommons extends Converter[KycStatus, KycStatusCommons]
 
+case class CustomerMessageCommons(
+  override val messageId: String,
+  override val date: Date,
+  override val message: String,
+  override val fromDepartment: String,
+  override val fromPerson: String
+) extends CustomerMessage
+object CustomerMessageCommons extends Converter[CustomerMessage, CustomerMessageCommons]
+
+
+
 //----------------obp-api moved to here case classes
 
 case class BranchRoutingJsonV141(

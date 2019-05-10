@@ -376,6 +376,15 @@ trait KycStatus {
   def ok : Boolean
   def date : Date
 }
+
+trait CustomerMessage {
+  //TODO: message language?
+  def messageId : String
+  def date : Date
+  def message : String
+  def fromDepartment : String
+  def fromPerson : String
+}
 //---------------------------------------- trait dependents of case class
 
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")

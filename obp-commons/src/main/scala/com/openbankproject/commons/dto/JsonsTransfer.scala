@@ -881,3 +881,14 @@ case class OutBoundCreateBankAccount(outboundAdapterCallContext: OutboundAdapter
 case class InBoundCreateBankAccount(inboundAdapterCallContext: InboundAdapterCallContext,
                                     status: Status,
                                     data: BankAccountCommons)
+           
+case class OutBoundCreateMessage(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                 user: User,
+                                 bankId: BankId,
+                                 message: String,
+                                 fromDepartment: String,
+                                 fromPerson : String) extends TopicTrait
+
+case class InBoundCreateMessage(inboundAdapterCallContext: InboundAdapterCallContext,
+                                status: Status,
+                                data: CustomerMessageCommons)

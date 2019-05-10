@@ -3016,7 +3016,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             value="string")),
           accountHolder="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Account", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3105,7 +3105,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           branchId="string",
           nameSuffix="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Customer", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3196,7 +3196,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             email="string"),
             status="string"))))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Meeting", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3264,7 +3264,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           satisfied=true,
           comments="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3330,7 +3330,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           issuePlace="string",
           expiryDate=new Date()))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3396,7 +3396,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           relatesToKycDocumentId="string",
           relatesToKycCheckId="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3454,7 +3454,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           ok=true,
           date=new Date()))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3512,7 +3512,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           issuePlace="string",
           expiryDate=new Date())))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3570,7 +3570,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           relatesToKycDocumentId="string",
           relatesToKycCheckId="string")))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3624,7 +3624,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           ok=true,
           date=new Date())))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
 
   messageDocs += MessageDoc(
@@ -3683,9 +3683,73 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           satisfied=true,
           comments="string")))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
   )
-  
+
+  messageDocs += MessageDoc(
+    process = "obp.createMessage",
+    messageFormat = messageFormat,
+    description = "Create Message",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundCreateMessage(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
+        sessionId=Option("string"),
+        consumerId=Option("string"),
+        generalContext=Option(List( BasicGeneralContext(key="string",
+          value="string"))),
+        outboundAdapterAuthInfo=Option( OutboundAdapterAuthInfo(userId=Option("string"),
+          username=Option("string"),
+          linkedCustomers=Option(List( BasicLinkedCustomer(customerId="string",
+            customerNumber="string",
+            legalName="string"))),
+          userAuthContext=Option(List( BasicUserAuthContext(key="string",
+            value="string"))),
+          authViews=Option(List( AuthView(view= ViewBasic(id="string",
+            name="string",
+            description="string"),
+            account= AccountBasic(id="string",
+              accountRoutings=List( AccountRouting(scheme="string",
+                address="string")),
+              customerOwners=List( InternalBasicCustomer(bankId="string",
+                customerId="string",
+                customerNumber="string",
+                legalName="string",
+                dateOfBirth=new Date())),
+              userOwners=List( InternalBasicUser(userId="string",
+                emailAddress="string",
+                name="string"))))))))),
+        user= UserCommons(userPrimaryKey= UserPrimaryKey(value=123),
+          userId="string",
+          idGivenByProvider="string",
+          provider="string",
+          emailAddress="string",
+          name="string"),
+        bankId= BankId(value="string"),
+        message="string",
+        fromDepartment="string",
+        fromPerson="string")
+      ),
+    exampleInboundMessage = (
+      InBoundCreateMessage(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
+        sessionId=Option("string"),
+        generalContext=Option(List( BasicGeneralContext(key="string",
+          value="string")))),
+        status= Status(errorCode="string",
+          backendMessages=List( InboundStatusMessage(source="string",
+            status="string",
+            errorCode="string",
+            text="string"))),
+        data= CustomerMessageCommons(messageId="string",
+          date=new Date(),
+          message="string",
+          fromDepartment="string",
+          fromPerson="string"))
+      ),
+    adapterImplementation = Some(AdapterImplementation("- Customer", 1))
+  )
+
+
 }
 
 

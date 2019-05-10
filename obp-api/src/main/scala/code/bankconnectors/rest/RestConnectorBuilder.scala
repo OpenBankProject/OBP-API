@@ -67,6 +67,7 @@ object RestConnectorBuilder extends App {
 //    "createBankAccount",
 //    "createCustomer",
 //    "createMeeting",
+    "createMessage"
   )
   
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
