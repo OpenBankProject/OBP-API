@@ -1,70 +1,27 @@
-package code.bankconnectors.rest
+package code.bankconnectors.vSept2018
 
 import java.io.File
 import java.util.Date
+import java.util.regex.Matcher
 
 import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
 import com.openbankproject.commons.util.ReflectUtils
 import org.apache.commons.io.FileUtils
+import org.apache.commons.lang3.StringUtils._
 
 import scala.collection.immutable.List
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 
-object RestConnectorBuilder extends App {
+object KafkaConnectorBuilder extends App {
 
-  val genMethodNames1 = List(
-    //    "getAdapterInfo",
-    "getAdapterInfoFuture",
-    //    "getUser", // have problem, return type not common
-    //    "getBanks",
-    "getBanksFuture",
-    //    "getBank",
-    "getBankFuture",
-    //    "getBankAccountsForUser",
-    "getBankAccountsForUserFuture",
-    "getCustomersByUserIdFuture",
-    //    "getBankAccount",
-    //    "checkBankAccountExists",
-    "checkBankAccountExistsFuture",
-    //    "getCoreBankAccounts",
-    "getCoreBankAccountsFuture",
-    //    "getTransactions",
-    "getTransactionsCore",
-    //    "getTransaction",
-    //    "getTransactionRequests210", //have problem params are not simple object
-    //    "getCounterparties",
-    //    "getCounterpartiesFuture",
-    //    "getCounterpartyByCounterpartyIdFuture",
-    //    "getCounterpartyTrait",
-    //    "getCheckbookOrdersFuture",
-    //    "getStatusOfCreditCardOrderFuture",
-    //    "getBranchesFuture",
-    //    "getBranchFuture",
-    //    "getAtmsFuture",
-    //    "getAtmFuture",
-    //    "getChallengeThreshold",
-
-    //    "makePaymentv210",//not support
-    //    "createChallenge",//not support
-    //    "createCounterparty" // not support
-  )
-  //For vSept2018
   val genMethodNames = List(
-    //    "createOrUpdateKycCheck",
-    //    "createOrUpdateKycDocument",
-    //    "createOrUpdateKycMedia",
-    //    "createOrUpdateKycStatus",
-    //    "getKycChecks",
-    //    "getKycDocuments",
-    //    "getKycMedias",
-    //    "getKycStatuses",
-    //    "createBankAccount",
-    "createCustomer",
-    //    "createMeeting",
-    //    "createMessage"
+    "getKycChecks",
+    "getKycDocuments",
+    "getKycMedias",
+    "getKycStatuses",
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -93,7 +50,7 @@ object RestConnectorBuilder extends App {
   nameSignature.map(_.toString).foreach(println(_))
   println("===================")
 
-  val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""), "src/main/scala/code/bankconnectors/rest/RestConnector_vMar2019.scala")
+  val path = new File(getClass.getResource("").toURI.toString.replaceFirst("target/.*", "").replace("file:", ""), "src/main/scala/code/bankconnectors/vSept2018/KafkaMappedConnector_vSept2018.scala")
   val source = FileUtils.readFileToString(path)
   val start = "//---------------- dynamic start -------------------please don't modify this line"
   val end   = "//---------------- dynamic end ---------------------please don't modify this line"
@@ -105,7 +62,7 @@ object RestConnectorBuilder extends App {
        |${nameSignature.map(_.toString).mkString}
        |$end
     """.stripMargin
-  val newSource = source.replaceFirst(placeHolderInSource, insertCode)
+  val newSource = source.replaceFirst(placeHolderInSource, Matcher.quoteReplacement(insertCode))
   FileUtils.writeStringToFile(path, newSource)
 
   // to check whether example is correct.
@@ -117,7 +74,13 @@ object RestConnectorBuilder extends App {
 case class GetGenerator(methodName: String, tp: Type) {
   private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ").replaceFirst("""\btype\b""", "`type`")
 
-  private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString)
+  private[this] val params = tp.paramLists(0)
+    .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
+    .map(_.name.toString) match {
+    case Nil => ""
+    case list:List[String] => list.mkString(", ", ", ", "")
+  }
+
 
   private[this] val description = methodName.replace("Future", "").replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
   private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
@@ -125,6 +88,11 @@ case class GetGenerator(methodName: String, tp: Type) {
   private[this] val isReturnBox = resultType.startsWith("Box[")
 
   private[this] val cachMethodName = if(isReturnBox) "memoizeSyncWithProvider" else "memoizeWithProvider"
+
+  private[this] val timeoutFieldName = uncapitalize(methodName.replaceFirst("^[a-z]+", "")) + "TTL"
+  private[this] val cacheTimeout = ReflectUtils.findMethod(ru.typeOf[KafkaMappedConnector_vSept2018], timeoutFieldName)(_ => true)
+                                  .map(_.name.toString)
+                                  .getOrElse("accountTTL")
 
   private[this] val outBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
@@ -141,51 +109,8 @@ case class GetGenerator(methodName: String, tp: Type) {
 
   val signature = s"$methodName$paramAnResult"
 
-  val pathVariables = tp.paramLists(0) //For a method or poly type, a list of its value parameter sections.
-    .filterNot(_.info =:= ru.typeOf[Option[CallContext]])
-    .map { it =>
-      // make sure if param signature is: queryParams: OBPQueryParam* , the param name must be queryParams
-      val paramName = if(it.info <:< typeOf[Seq[OBPQueryParam]]) "queryParams" else it.name.toString
-      val paramValue = it.name.toString
-      s""", ("$paramName", $paramValue)"""
-    }.mkString
-
-  val urlDemo = s"/$methodName" + params.map(it => s"/$it/{$it}").mkString
-  val jsonType = {
-    val typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
-    if(ReflectUtils.isTypeExists(typeName)) {
-      s"InBound${methodName.capitalize}"
-    }
-    else {
-      s"InBound${methodName.capitalize}Future"
-    }
-  }
-
-
-  val dataType = if (resultType.startsWith("Future[Box[")) {
-    resultType.replaceFirst("""Future\[Box\[\((.+), Option\[CallContext\]\)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  } else if (resultType.startsWith("OBPReturnType[Box[")) {
-    resultType.replaceFirst("""OBPReturnType\[Box\[(.+)\]\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  } else if (isReturnBox) {
-    //Box[(InboundAdapterInfoInternal, Option[CallContext])]
-    resultType.replaceFirst("""Box\[\((.+), Option\[CallContext\]\)\]""", "$1").replaceFirst("(\\])|$", "Commons$1")
-  } else {
-    throw new NotImplementedError(s"this return type not implemented: $resultType")
-  }
-  val returnEntityType = dataType.replaceFirst("Commons$", "").replaceAll(".*\\[|\\].*", "")
-
-  val lastMapStatement = if (isReturnBox || resultType.startsWith("Future[Box[")) {
-    """|                    boxedResult.map { result =>
-       |                         (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-       |                    }
-    """.stripMargin
-  } else {
-    """|                    boxedResult match {
-       |                        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
-       |                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
-       |                    }
-    """.stripMargin
-  }
+  val outboundName = s"OutBound${methodName.capitalize}"
+  val inboundName = s"InBound${methodName.capitalize}"
 
   override def toString =
     s"""
@@ -193,8 +118,8 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
-       |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
-       |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
+       |    outboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).request),
+       |    inboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).response),
        |    exampleOutboundMessage = (
        |      $outBoundExample
        |    ),
@@ -203,8 +128,8 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    ),
        |    adapterImplementation = Some(AdapterImplementation("- Core", 1))
        |  )
-       |  // url example: $urlDemo
        |  override def $signature = saveConnectorMetric {
+       |    import com.openbankproject.commons.dto.{${outboundName} => OutBound, ${inboundName} => InBound}
        |    /**
        |      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
        |      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -213,12 +138,10 @@ case class GetGenerator(methodName: String, tp: Type) {
        |      */
        |    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
        |    CacheKeyFromArguments.buildCacheKey {
-       |      Caching.${cachMethodName}(Some(cacheKey.toString()))(banksTTL second){
-       |        val url = getUrl("$methodName" $pathVariables)
-       |        sendGetRequest[$jsonType](url, callContext)
-       |          .map { boxedResult =>
-       |             $lastMapStatement
-       |          }
+       |      Caching.${cachMethodName}(Some(cacheKey.toString()))(${cacheTimeout} second){
+       |        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get ${params})
+       |        logger.debug(s"Kafka getKycDocuments Req is: $$req")
+       |        processRequest[InBound](req) map (convertToTuple(callContext))
        |      }
        |    }
        |  }("$methodName")
@@ -264,14 +187,17 @@ case class PostGenerator(methodName: String, tp: Type) {
     """.stripMargin
   }
 
+  val outboundName = s"OutBound${methodName.capitalize}"
+  val inboundName = s"InBound${methodName.capitalize}"
+
   override def toString =
     s"""
        |messageDocs += MessageDoc(
        |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
-       |    outboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).request),
-       |    inboundTopic = Some(Topics.createTopicByClassName(OutBound${methodName.capitalize}.getClass.getSimpleName).response),
+       |    outboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).request),
+       |    inboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).response),
        |    exampleOutboundMessage = (
        |      $outBoundExample
        |    ),
@@ -294,3 +220,5 @@ case class PostGenerator(methodName: String, tp: Type) {
        |  }
     """.stripMargin
 }
+
+
