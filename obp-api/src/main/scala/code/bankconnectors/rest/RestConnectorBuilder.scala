@@ -18,7 +18,7 @@ object RestConnectorBuilder extends App {
   //  val value  = this.getBanksFuture(None)
   //  val value2  = this.getBankFuture(BankId("hello-bank-id"), None)
   //  Thread.sleep(10000)
-  val genMethodNames = List(
+  val genMethodNames1 = List(
     //    "getAdapterInfo",
     "getAdapterInfoFuture",
     //    "getUser", // have problem, return type not common
@@ -54,7 +54,19 @@ object RestConnectorBuilder extends App {
     //    "createChallenge",//not support
     //    "createCounterparty" // not support
   )
-
+  //For vSept2018
+  val genMethodNames = List(
+    "createOrUpdateKycCheck",
+    "createOrUpdateKycDocument",
+    "createOrUpdateKycMedia",
+    "createOrUpdateKycStatus",
+    "getKycCheckChecks",
+    "getKycDocuments",
+    "getKycMedias",
+    "getKycStatuses",
+    "createBankAccount",
+  )
+  
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
   private val clazz: ru.ClassSymbol = ru.typeOf[Connector].typeSymbol.asClass
   private val classMirror: ru.ClassMirror = mirror.reflectClass(clazz)
