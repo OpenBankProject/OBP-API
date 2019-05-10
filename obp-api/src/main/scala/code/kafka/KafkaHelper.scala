@@ -6,6 +6,7 @@ import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
+import net.liftweb
 import net.liftweb.common._
 import net.liftweb.json.{JValue, MappingException}
 
@@ -81,16 +82,21 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     */
   def processRequest[T: Manifest](request: TopicTrait): Future[Box[T]] = {
     import scala.concurrent.ExecutionContext.Implicits.global
+    import liftweb.json.compactRender
     implicit val formats = CustomJsonFormats.formats
     val tp = manifest[T].runtimeClass
 
     (actor ? request)
       .mapTo[JValue]
-      .map(_.extract[T])
-      .map(Full(_))
+      .map { jvalue =>
+        try {
+          Full(jvalue.extract[T])
+        } catch {
+          case e: Exception => Failure(s"${ConnectorEmptyResponse} extract response payload to type ${tp} fail. the payload content: ${compactRender(jvalue)}", Full(e), Empty)
+        }
+      }
       .recover {
-        case e: ParseException => Failure(s"${ConnectorEmptyResponse} parse response payload to JValue fail", Full(e), Empty) //adapter return wrong json string
-        case e: MappingException => Failure(s"${ConnectorEmptyResponse} extract response payload to type ${tp} fail.", Full(e), Empty) // adapter return string parse to Jvalue but cant extract
+        case e: ParseException => Failure(s"${ConnectorEmptyResponse} parse response payload to JValue fail. ${e.getMessage}", Box !! (e.getCause) or Full(e), Empty)
         case e: AskTimeoutException => Failure(s"${KafkaUnknownError} Timeout error, because no response return from kafka server.", Full(e), Empty)
         case e @ (_:AuthenticationException| _:AuthorizationException|
                   _:IllegalStateException| _:InterruptException|
