@@ -257,7 +257,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
 
   messageDocs += MessageDoc(
-    process = s"obp.${OutboundGetAdapterInfo.toString().capitalize}".replaceAll("Outbound",""),
+    process = s"obp.getAdapterInfo",
     messageFormat = messageFormat,
     description = "Gets information about the active general (non bank specific) Adapter that is responding to messages sent by OBP.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAdapterInfo.getClass.getSimpleName).request),
@@ -400,7 +400,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
 
   messageDocs += MessageDoc(
-    process = s"obp.${OutboundGetBanks.toString().capitalize}".replaceAll("Outbound",""),
+    process = s"obp.getBanks",
     messageFormat = messageFormat,
     description = "Gets the banks list on this OBP installation.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetBanks.getClass.getSimpleName).request),
@@ -2946,8 +2946,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     process = "obp.createBankAccount",
     messageFormat = messageFormat,
     description = "Create Bank Account",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundCreateTransaction.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundCreateBankAccount(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3015,7 +3015,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             value="string")),
           accountHolder="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Account", 1))
+    adapterImplementation = Some(AdapterImplementation("- Accounts", 1))
   )
   override def createBankAccount(
                          bankId: BankId,
@@ -3073,8 +3073,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     process = "obp.createCustomer",
     messageFormat = messageFormat,
     description = "Create Customer",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).request),
     exampleOutboundMessage = (
       OutBoundCreateCustomer(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3158,7 +3158,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           branchId="string",
           nameSuffix="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("- Customer", 1))
   )
 
   override def createCustomer(
@@ -3232,8 +3232,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     process = "obp.createMeeting",
     messageFormat = messageFormat,
     description = "Create Meeting",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateMeeting.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateMeeting.getClass.getSimpleName).request),
     exampleOutboundMessage = (
       OutBoundCreateMeeting(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3323,8 +3323,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     process = "obp.createOrUpdateKycCheck",
     messageFormat = messageFormat,
     description = "Create Or Update Kyc Check",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycCheck.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycCheck.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundCreateOrUpdateKycCheck(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3384,15 +3384,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           satisfied=true,
           comments="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.createOrUpdateKycDocument",
     messageFormat = messageFormat,
-    description = "Create Or Update Kyc Document",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Create Or Update KYC Document",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycDocument.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycDocument.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundCreateOrUpdateKycDocument(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3450,15 +3450,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           issuePlace="string",
           expiryDate=new Date()))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.createOrUpdateKycMedia",
     messageFormat = messageFormat,
-    description = "Create Or Update Kyc Media",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Create Or Update KYC Media",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycMedia.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycMedia.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundCreateOrUpdateKycMedia(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3516,15 +3516,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           relatesToKycDocumentId="string",
           relatesToKycCheckId="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.createOrUpdateKycStatus",
     messageFormat = messageFormat,
-    description = "Create Or Update Kyc Status",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Create Or Update KYC Status",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycStatus.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycStatus.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundCreateOrUpdateKycStatus(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3574,15 +3574,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           ok=true,
           date=new Date()))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.getKycDocuments",
     messageFormat = messageFormat,
-    description = "Get Kyc Documents",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Get KYC Documents",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycDocuments.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycDocuments.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundGetKycDocuments(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3632,15 +3632,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           issuePlace="string",
           expiryDate=new Date())))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.getKycMedias",
     messageFormat = messageFormat,
-    description = "Get Kyc Medias",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Get KYC Medias",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycMedias.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycMedias.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundGetKycMedias(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3690,15 +3690,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           relatesToKycDocumentId="string",
           relatesToKycCheckId="string")))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.getKycStatuses",
     messageFormat = messageFormat,
-    description = "Get Kyc Statuses",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Get KYC Statuses",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycStatuses.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycStatuses.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundGetKycStatuses(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3744,15 +3744,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           ok=true,
           date=new Date())))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.getKycChecks",
     messageFormat = messageFormat,
-    description = "Get Kyc Checks",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Get KYC Checks",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycChecks.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetKycChecks.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundGetKycChecks(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
@@ -3803,15 +3803,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           satisfied=true,
           comments="string")))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Kyc", 1))
+    adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
   messageDocs += MessageDoc(
     process = "obp.createMessage",
     messageFormat = messageFormat,
     description = "Create Message",
-    outboundTopic = None,
-    inboundTopic = None,
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateMessage.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateMessage.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutBoundCreateMessage(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
         sessionId=Option("string"),
