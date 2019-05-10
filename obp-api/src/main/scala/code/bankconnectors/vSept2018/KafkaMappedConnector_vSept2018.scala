@@ -62,7 +62,9 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with MdcLoggable {
-  
+  //this one import is for implicit convert, don't delete
+  import com.openbankproject.commons.model.{CustomerFaceImage, CreditLimit, CreditRating, AmountOfMoney}
+
   implicit override val nameOfConnector = KafkaMappedConnector_vSept2018.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
@@ -3070,165 +3072,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("createBankAccount")
 
   messageDocs += MessageDoc(
-    process = "obp.createCustomer",
-    messageFormat = messageFormat,
-    description = "Create Customer",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).request),
-    exampleOutboundMessage = (
-      OutBoundCreateCustomer(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
-        sessionId=Option("string"),
-        consumerId=Option("string"),
-        generalContext=Option(List( BasicGeneralContext(key="string",
-          value="string"))),
-        outboundAdapterAuthInfo=Option( OutboundAdapterAuthInfo(userId=Option("string"),
-          username=Option("string"),
-          linkedCustomers=Option(List( BasicLinkedCustomer(customerId="string",
-            customerNumber="string",
-            legalName="string"))),
-          userAuthContext=Option(List( BasicUserAuthContext(key="string",
-            value="string"))),
-          authViews=Option(List( AuthView(view= ViewBasic(id="string",
-            name="string",
-            description="string"),
-            account= AccountBasic(id="string",
-              accountRoutings=List( AccountRouting(scheme="string",
-                address="string")),
-              customerOwners=List( InternalBasicCustomer(bankId="string",
-                customerId="string",
-                customerNumber="string",
-                legalName="string",
-                dateOfBirth=new Date())),
-              userOwners=List( InternalBasicUser(userId="string",
-                emailAddress="string",
-                name="string"))))))))),
-        bankId= BankId(value="string"),
-        legalName="string",
-        mobileNumber="string",
-        email="string",
-        faceImage= CustomerFaceImage(date=new Date(),
-          url="string"),
-        dateOfBirth=new Date(),
-        relationshipStatus="string",
-        dependents=123,
-        dobOfDependents=List(new Date()),
-        highestEducationAttained="string",
-        employmentStatus="string",
-        kycStatus=true,
-        lastOkDate=new Date(),
-        creditRating=Option( CreditRating(rating="string",
-          source="string")),
-        creditLimit=Option( AmountOfMoney(currency="string",
-          amount="string")),
-        title="string",
-        branchId="string",
-        nameSuffix="string")
-      ),
-    exampleInboundMessage = (
-      InBoundCreateCustomer(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
-        sessionId=Option("string"),
-        generalContext=Option(List( BasicGeneralContext(key="string",
-          value="string")))),
-        status= Status(errorCode="string",
-          backendMessages=List( InboundStatusMessage(source="string",
-            status="string",
-            errorCode="string",
-            text="string"))),
-        data= CustomerCommons(customerId="string",
-          bankId="string",
-          number="string",
-          legalName="string",
-          mobileNumber="string",
-          email="string",
-          faceImage= CustomerFaceImage(date=new Date(),
-            url="string"),
-          dateOfBirth=new Date(),
-          relationshipStatus="string",
-          dependents=123,
-          dobOfDependents=List(new Date()),
-          highestEducationAttained="string",
-          employmentStatus="string",
-          creditRating= CreditRating(rating="string",
-            source="string"),
-          creditLimit= CreditLimit(currency="string",
-            amount="string"),
-          kycStatus=true,
-          lastOkDate=new Date(),
-          title="string",
-          branchId="string",
-          nameSuffix="string"))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Customer", 1))
-  )
-
-  override def createCustomer(
-                               bankId: BankId,
-                               legalName: String,
-                               mobileNumber: String,
-                               email: String,
-                               faceImage: CustomerFaceImageTrait,
-                               dateOfBirth: Date,
-                               relationshipStatus: String,
-                               dependents: Int,
-                               dobOfDependents: List[Date],
-                               highestEducationAttained: String,
-                               employmentStatus: String,
-                               kycStatus: Boolean,
-                               lastOkDate: Date,
-                               creditRating: Option[CreditRatingTrait],
-                               creditLimit: Option[AmountOfMoneyTrait],
-                               title: String,
-                               branchId: String,
-                               nameSuffix: String,
-                               callContext: Option[CallContext]
-                             ) =  saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second){
-        val req = OutBoundCreateCustomer(
-          callContext.map(_.toOutboundAdapterCallContext).get,
-          bankId: BankId,
-          legalName: String,
-          mobileNumber: String,
-          email: String,
-          faceImage = CustomerFaceImage(faceImage.date, faceImage.url),
-          dateOfBirth: Date,
-          relationshipStatus: String,
-          dependents: Int,
-          dobOfDependents: List[Date],
-          highestEducationAttained: String,
-          employmentStatus: String,
-          kycStatus: Boolean,
-          lastOkDate: Date,
-          creditRating =creditRating.map(creditRating => CreditRating(creditRating.rating, creditRating.source)),
-          creditLimit = creditLimit.map(amountOfMoney => AmountOfMoney(amountOfMoney.currency, amountOfMoney.amount)),
-          title: String,
-          branchId: String,
-          nameSuffix: String)
-
-        val future = processRequest[InBoundCreateCustomer](req)
-        logger.debug(s"Kafka createCustomer Res says: is: $future")
-
-        future map {
-          case Full(inbound) if (inbound.status.hasNoError) =>
-            Full(inbound.data)
-          case Full(inbound) if (inbound.status.hasError) =>
-            Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
-          case failureOrEmpty => failureOrEmpty
-        } map {it =>
-          (it.asInstanceOf[Box[Customer]], callContext)
-        }
-      }
-    }
-  }("createCustomer")
-
-  messageDocs += MessageDoc(
     process = "obp.createMeeting",
     messageFormat = messageFormat,
     description = "Create Meeting",
@@ -3870,9 +3713,13 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   )
 
 
+
+
 //---------------- dynamic start -------------------please don't modify this line
 
 //---------------- dynamic end ---------------------please don't modify this line
+    
+    
 
 
   //-----helper methods

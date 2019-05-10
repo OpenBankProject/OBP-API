@@ -56,6 +56,8 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
+  //this one import is for implicit convert, don't delete
+  import com.openbankproject.commons.model.{CustomerFaceImage, CreditLimit, CreditRating, AmountOfMoney}
 
   implicit override val nameOfConnector = RestConnector_vMar2019.toString
 

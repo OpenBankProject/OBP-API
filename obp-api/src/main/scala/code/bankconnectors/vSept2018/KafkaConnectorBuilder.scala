@@ -22,6 +22,7 @@ object KafkaConnectorBuilder extends App {
     "getKycDocuments",
     "getKycMedias",
     "getKycStatuses",
+    "createCustomer"
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -35,11 +36,7 @@ object KafkaConnectorBuilder extends App {
     })
     .map(it => {
       val (methodName, typeSignature) = (it.name.toString, it.typeSignature)
-      methodName match {
-        case name if(name.matches("(get|check).*")) => GetGenerator(methodName, typeSignature)
-        case name if(name.matches("(create|make).*")) => PostGenerator(methodName, typeSignature)
-        case _ => throw new NotImplementedError(s" not support method name: $methodName")
-      }
+      GetGenerator(methodName, typeSignature)
 
     })
 
@@ -98,13 +95,13 @@ case class GetGenerator(methodName: String, tp: Type) {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType)
+    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType)
+    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
@@ -121,10 +118,10 @@ case class GetGenerator(methodName: String, tp: Type) {
        |    outboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).request),
        |    inboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).response),
        |    exampleOutboundMessage = (
-       |      $outBoundExample
+       |    $outBoundExample
        |    ),
        |    exampleInboundMessage = (
-       |      $inBoundExample
+       |    $inBoundExample
        |    ),
        |    adapterImplementation = Some(AdapterImplementation("- Core", 1))
        |  )
@@ -163,12 +160,12 @@ case class PostGenerator(methodName: String, tp: Type) {
   private[this] val outBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType)
+    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType)
+    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\w)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
@@ -199,10 +196,10 @@ case class PostGenerator(methodName: String, tp: Type) {
        |    outboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).request),
        |    inboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).response),
        |    exampleOutboundMessage = (
-       |      $outBoundExample
+       |    $outBoundExample
        |    ),
        |    exampleInboundMessage = (
-       |      $inBoundExample
+       |    $inBoundExample
        |    ),
        |    adapterImplementation = Some(AdapterImplementation("- Core", 1))
        |  )
