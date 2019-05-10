@@ -1451,11 +1451,11 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                       lastOkDate: Date,
                       creditRating: Option[CreditRatingTrait],
                       creditLimit: Option[AmountOfMoneyTrait],
-                      callContext: Option[CallContext] = None,
                       title: String,
                       branchId: String,
-                      nameSuffix: String
-                    ): Future[Box[Customer]] = Future{Failure(setUnimplementedError)}
+                      nameSuffix: String,
+                      callContext: Option[CallContext],
+                    ): OBPReturnType[Box[Customer]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(setUnimplementedError)}
 

@@ -65,9 +65,9 @@ object RestConnectorBuilder extends App {
 //    "getKycMedias",
 //    "getKycStatuses",
 //    "createBankAccount",
-//    "createCustomer",
+    "createCustomer",
 //    "createMeeting",
-    "createMessage"
+//    "createMessage"
   )
   
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)

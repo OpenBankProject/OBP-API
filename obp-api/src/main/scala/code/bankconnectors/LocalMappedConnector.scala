@@ -1842,11 +1842,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                lastOkDate: Date,
                                creditRating: Option[CreditRatingTrait],
                                creditLimit: Option[AmountOfMoneyTrait],
-                               callContext: Option[CallContext] = None,
                                title: String,
                                branchId: String,
-                               nameSuffix: String): Future[Box[Customer]] = Future{
-    Customer.customerProvider.vend.addCustomer(
+                               nameSuffix: String,
+                               callContext: Option[CallContext]
+                             ) = Future{
+    (Customer.customerProvider.vend.addCustomer(
       bankId,
       Random.nextInt(Integer.MAX_VALUE).toString,
       legalName,
@@ -1866,7 +1867,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       title,
       branchId,
       nameSuffix
-    )
+    ),callContext)
   }
   
   def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Box[(List[Customer], Option[CallContext])] = {

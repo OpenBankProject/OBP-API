@@ -47,7 +47,7 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.dto._
-import com.openbankproject.commons.model.{CounterpartyTrait, _}
+import com.openbankproject.commons.model.{AmountOfMoneyTrait, CounterpartyTrait, CreditRatingTrait, _}
 import com.sksamuel.avro4s.SchemaFor
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb
@@ -2942,7 +2942,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     res
   }
 
-  //TODO, Only MessageDocs for now, need to implement the methods later 
   messageDocs += MessageDoc(
     process = "obp.createBankAccount",
     messageFormat = messageFormat,
@@ -3054,34 +3053,17 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           accountRoutingAddress: String)
         logger.debug(s"Kafka createBankAccount Req is: $req")
 
-        val future = for {
-          res <- processToFuture[OutBoundCreateBankAccount](req) map {
-            f =>
-              try {
-                f.extract[InBoundCreateBankAccount]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InBoundCreateBankAccount]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutBoundCreateBankAccount class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(error)
-                  throw new MappingException(error, e)
-              }
-          } map {
-            d => (d.data, d.status)
-          }
-        } yield {
-          res
-        }
+        val future = processRequest[InBoundCreateBankAccount](req)
+        logger.debug(s"Kafka createBankAccount Res says: is: $future")
 
-        logger.debug(s"Kafka createBankAccount Res says:  is: $future")
         future map {
-          case (data, status) if (status.errorCode=="") =>
-            Full(data, callContext)
-          case (_, status) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
+          case Full(inbound) if (inbound.status.hasNoError) =>
+            Full(inbound.data)
+          case Full(inbound) if (inbound.status.hasError) =>
+            Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+          case failureOrEmpty => failureOrEmpty
+        } map {it =>
+          (it.asInstanceOf[Box[BankAccount]], callContext)
         }
       }
     }
@@ -3137,7 +3119,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         creditRating=Option( CreditRating(rating="string",
           source="string")),
         creditLimit=Option( AmountOfMoney(currency="string",
-          amount="string")))
+          amount="string")),
+        title="string",
+        branchId="string",
+        nameSuffix="string")
       ),
     exampleInboundMessage = (
       InBoundCreateCustomer(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
@@ -3173,8 +3158,75 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           branchId="string",
           nameSuffix="string"))
       ),
-    adapterImplementation = Some(AdapterImplementation("- Customer", 1))
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
+
+  override def createCustomer(
+                               bankId: BankId,
+                               legalName: String,
+                               mobileNumber: String,
+                               email: String,
+                               faceImage: CustomerFaceImageTrait,
+                               dateOfBirth: Date,
+                               relationshipStatus: String,
+                               dependents: Int,
+                               dobOfDependents: List[Date],
+                               highestEducationAttained: String,
+                               employmentStatus: String,
+                               kycStatus: Boolean,
+                               lastOkDate: Date,
+                               creditRating: Option[CreditRatingTrait],
+                               creditLimit: Option[AmountOfMoneyTrait],
+                               title: String,
+                               branchId: String,
+                               nameSuffix: String,
+                               callContext: Option[CallContext]
+                             ) =  saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second){
+        val req = OutBoundCreateCustomer(
+          callContext.map(_.toOutboundAdapterCallContext).get,
+          bankId: BankId,
+          legalName: String,
+          mobileNumber: String,
+          email: String,
+          faceImage = CustomerFaceImage(faceImage.date, faceImage.url),
+          dateOfBirth: Date,
+          relationshipStatus: String,
+          dependents: Int,
+          dobOfDependents: List[Date],
+          highestEducationAttained: String,
+          employmentStatus: String,
+          kycStatus: Boolean,
+          lastOkDate: Date,
+          creditRating =creditRating.map(creditRating => CreditRating(creditRating.rating, creditRating.source)),
+          creditLimit = creditLimit.map(amountOfMoney => AmountOfMoney(amountOfMoney.currency, amountOfMoney.amount)),
+          title: String,
+          branchId: String,
+          nameSuffix: String)
+
+        val future = processRequest[InBoundCreateCustomer](req)
+        logger.debug(s"Kafka createCustomer Res says: is: $future")
+
+        future map {
+          case Full(inbound) if (inbound.status.hasNoError) =>
+            Full(inbound.data)
+          case Full(inbound) if (inbound.status.hasError) =>
+            Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+          case failureOrEmpty => failureOrEmpty
+        } map {it =>
+          (it.asInstanceOf[Box[Customer]], callContext)
+        }
+      }
+    }
+  }("createCustomer")
 
   messageDocs += MessageDoc(
     process = "obp.createMeeting",

@@ -1233,8 +1233,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerJsonV310]
             }
-  
-            customer <- Connector.connector.vend.createCustomer(
+            (customer, callContext) <- NewStyle.function.createCustomer(
               bankId,
               postedData.legal_name,
               postedData.mobile_phone_number,
@@ -1250,13 +1249,11 @@ trait APIMethods310 {
               postedData.last_ok_date,
               Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
               Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
-              callContext,
               postedData.title,
               postedData.branchId,
-              postedData.nameSuffix
-            ) map {
-              unboxFullOrFail(_, callContext, CreateCustomerError)
-            }
+              postedData.nameSuffix,
+              callContext,
+            ) 
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
           }

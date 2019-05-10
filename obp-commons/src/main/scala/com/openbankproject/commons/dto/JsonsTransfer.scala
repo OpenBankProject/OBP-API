@@ -230,21 +230,24 @@ case class InBoundCreateTransactionRequestv300  (inboundAdapterCallContext: Inbo
 
 
 case class OutBoundCreateCustomer  (outboundAdapterCallContext: OutboundAdapterCallContext,
-                                         bankId: BankId,
-                                         legalName: String,
-                                         mobileNumber: String,
-                                         email: String,
-                                         faceImage: CustomerFaceImage,
-                                         dateOfBirth: Date,
-                                         relationshipStatus: String,
-                                         dependents: Int,
-                                         dobOfDependents: List[Date],
-                                         highestEducationAttained: String,
-                                         employmentStatus: String,
-                                         kycStatus: Boolean,
-                                         lastOkDate: Date,
-                                         creditRating: Option[CreditRating],
-                                         creditLimit: Option[AmountOfMoney]) extends TopicTrait
+                                    bankId: BankId,
+                                    legalName: String,
+                                    mobileNumber: String,
+                                    email: String,
+                                    faceImage: CustomerFaceImage,
+                                    dateOfBirth: Date,
+                                    relationshipStatus: String,
+                                    dependents: Int,
+                                    dobOfDependents: List[Date],
+                                    highestEducationAttained: String,
+                                    employmentStatus: String,
+                                    kycStatus: Boolean,
+                                    lastOkDate: Date,
+                                    creditRating: Option[CreditRating],
+                                    creditLimit: Option[AmountOfMoney],
+                                    title: String,
+                                    branchId: String,
+                                    nameSuffix: String) extends TopicTrait
 case class InBoundCreateCustomer  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons)
 
 

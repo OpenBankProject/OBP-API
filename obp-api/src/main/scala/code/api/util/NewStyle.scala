@@ -1124,6 +1124,52 @@ object NewStyle {
         i => (unboxFullOrFail(i, callContext, s"$UserCustomerLinksNotFoundForUser Current customerId ($customerId)", 400), callContext)
       }
     }
+
+    def createCustomer(
+                        bankId: BankId,
+                        legalName: String,
+                        mobileNumber: String,
+                        email: String,
+                        faceImage:
+                        CustomerFaceImageTrait,
+                        dateOfBirth: Date,
+                        relationshipStatus: String,
+                        dependents: Int,
+                        dobOfDependents: List[Date],
+                        highestEducationAttained: String,
+                        employmentStatus: String,
+                        kycStatus: Boolean,
+                        lastOkDate: Date,
+                        creditRating: Option[CreditRatingTrait],
+                        creditLimit: Option[AmountOfMoneyTrait],
+                        title: String,
+                        branchId: String,
+                        nameSuffix: String,
+                        callContext: Option[CallContext]): OBPReturnType[Customer] = 
+      Connector.connector.vend.createCustomer(
+        bankId: BankId,
+        legalName: String,
+        mobileNumber: String,
+        email: String,
+        faceImage:
+          CustomerFaceImageTrait,
+        dateOfBirth: Date,
+        relationshipStatus: String,
+        dependents: Int,
+        dobOfDependents: List[Date],
+        highestEducationAttained: String,
+        employmentStatus: String,
+        kycStatus: Boolean,
+        lastOkDate: Date,
+        creditRating: Option[CreditRatingTrait],
+        creditLimit: Option[AmountOfMoneyTrait],
+        title: String,
+        branchId: String,
+        nameSuffix: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
+      }
     
   }
 
