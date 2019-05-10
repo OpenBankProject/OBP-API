@@ -8,7 +8,6 @@ import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common._
 import net.liftweb.json.{JValue, MappingException}
 
-import scala.reflect.runtime.{universe => ru}
 import scala.concurrent.Future
 import net.liftweb.json.JsonParser.ParseException
 import org.apache.kafka.common.KafkaException
@@ -89,8 +88,8 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
       .map(_.extract[T])
       .map(Full(_))
       .recover {
-        case e: ParseException => Failure("xxx  parse response payload to JValue fail", Full(e), Empty)
-        case e: MappingException => Failure(s"xxx extract response payload to type ${tp} fail.", Full(e), Empty)
+        case e: ParseException => Failure("xxx  parse response payload to JValue fail", Full(e), Empty) //adapter return wrong json string TODO add message of content
+        case e: MappingException => Failure(s"xxx extract response payload to type ${tp} fail.", Full(e), Empty) // adapter return string parse to jvalue but cant extract, TODO add message of content
         case e: AskTimeoutException => Failure("xxx timeout but no response return from kafka server.", Full(e), Empty)
         case e @ (_:AuthenticationException| _:AuthorizationException|
                   _:IllegalStateException| _:InterruptException|
