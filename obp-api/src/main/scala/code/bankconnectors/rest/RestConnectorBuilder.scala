@@ -56,17 +56,17 @@ object RestConnectorBuilder extends App {
   )
   //For vSept2018
   val genMethodNames = List(
-    "createOrUpdateKycCheck",
-    "createOrUpdateKycDocument",
-    "createOrUpdateKycMedia",
-    "createOrUpdateKycStatus",
-    "getKycCheckChecks",
-    "getKycDocuments",
-    "getKycMedias",
-    "getKycStatuses",
-    "createBankAccount",
-    "createCustomer",
-    "createMeeting",
+//    "createOrUpdateKycCheck",
+//    "createOrUpdateKycDocument",
+//    "createOrUpdateKycMedia",
+//    "createOrUpdateKycStatus",
+//    "getKycChecks",
+//    "getKycDocuments",
+//    "getKycMedias",
+//    "getKycStatuses",
+//    "createBankAccount",
+//    "createCustomer",
+//    "createMeeting",
   )
   
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
