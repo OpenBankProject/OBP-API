@@ -746,7 +746,7 @@ trait APIMethods220 {
             _ <- booleanToBox(isValidCurrencyISOCode(jsonBody.balance.currency), InvalidISOCurrencyCode)
             currency <- tryo (jsonBody.balance.currency) ?~!ErrorMessages.InvalidAccountBalanceCurrency
             _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty, AccountIdAlreadyExists)
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(
+            bankAccount <- Connector.connector.vend.createBankAccountLegacy(
               bankId,
               accountId,
               accountType,

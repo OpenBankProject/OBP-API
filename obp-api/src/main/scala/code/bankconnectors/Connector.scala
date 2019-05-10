@@ -1092,7 +1092,24 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   ): Box[(Bank, BankAccount)] = Failure(setUnimplementedError)
 
   //generates an unused account number and then creates the sandbox account using that number
-  def createSandboxBankAccount(
+  //TODO, this is new style method, it return future, but do not use it yet. only for messageDoc now. 
+  def createBankAccount(
+                         bankId: BankId,
+                         accountId: AccountId,
+                         accountType: String,
+                         accountLabel: String,
+                         currency: String,
+                         initialBalance: BigDecimal,
+                         accountHolderName: String,
+                         branchId: String,
+                         accountRoutingScheme: String,
+                         accountRoutingAddress: String,
+                         callContext: Option[CallContext]
+                       ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  //generates an unused account number and then creates the sandbox account using that number
+  @deprecated("This return Box, not a future, try to use @createBankAccount instead. ","10-05-2019")
+  def createBankAccountLegacy(
     bankId: BankId,
     accountId: AccountId,
     accountType: String,

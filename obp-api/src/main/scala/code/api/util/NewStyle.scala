@@ -813,7 +813,7 @@ object NewStyle {
       accountRoutingAddress: String, 
       callContext: Option[CallContext]
     ): OBPReturnType[BankAccount] = Future {
-      Connector.connector.vend.createSandboxBankAccount(
+      Connector.connector.vend.createBankAccountLegacy(
         bankId: BankId,
         accountId: AccountId,
         accountType: String,
