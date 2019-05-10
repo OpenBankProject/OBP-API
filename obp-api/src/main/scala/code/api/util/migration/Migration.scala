@@ -1,5 +1,7 @@
 package code.api.util.migration
 
+import java.sql.ResultSet
+
 import code.api.util.APIUtil
 import code.api.util.APIUtil.getPropsAsBoolValue
 import code.consumer.Consumers
@@ -7,6 +9,10 @@ import code.customer.Customer
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.mapper.{BaseMetaMapper, SuperConnection}
+import net.liftweb.mapper.Schemifier.getDefaultSchemaName
+
+import scala.collection.mutable.HashMap
 
 object Migration extends MdcLoggable {
   
@@ -74,6 +80,30 @@ object Migration extends MdcLoggable {
       Consumers.consumers.vend.populateMissingUUIDs()
     }
     
+  }
+  
+  object DbFunction {
+    private def using[RetType <: Any, VarType <: ResultSet](f: => VarType)(f2: VarType => RetType): RetType = {
+      val theVar = f
+      try {
+        f2(theVar)
+      } finally {
+        theVar.close()
+      }
+    }
+    def tableExists (table: BaseMetaMapper, connection: SuperConnection, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
+      val md = connection.getMetaData
+      using(md.getTables(null, getDefaultSchemaName(connection), null, null)){ rs =>
+        def hasTable(rs: ResultSet): Boolean =
+          if (!rs.next) false
+          else rs.getString(3) match {
+            case s if s.toLowerCase == table._dbTableNameLC.toLowerCase => actualTableNames(table._dbTableNameLC) = s; true
+            case _ => hasTable(rs)
+          }
+
+        hasTable(rs)
+      }
+    }
   }
   
 }
