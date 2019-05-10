@@ -1234,7 +1234,7 @@ trait APIMethods310 {
               json.extract[PostCustomerJsonV310]
             }
   
-            customer <- Connector.connector.vend.createCustomerFuture(
+            customer <- Connector.connector.vend.createCustomer(
               bankId,
               postedData.legal_name,
               postedData.mobile_phone_number,

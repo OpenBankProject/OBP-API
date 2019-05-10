@@ -229,7 +229,7 @@ case class OutBoundCreateTransactionRequestv300  (outboundAdapterCallContext: Ou
 case class InBoundCreateTransactionRequestv300  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest)
 
 
-case class OutBoundCreateCustomerFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,
+case class OutBoundCreateCustomer  (outboundAdapterCallContext: OutboundAdapterCallContext,
                                          bankId: BankId,
                                          legalName: String,
                                          mobileNumber: String,
@@ -245,7 +245,7 @@ case class OutBoundCreateCustomerFuture  (outboundAdapterCallContext: OutboundAd
                                          lastOkDate: Date,
                                          creditRating: Option[CreditRating],
                                          creditLimit: Option[AmountOfMoney]) extends TopicTrait
-case class InBoundCreateCustomerFuture  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons)
+case class InBoundCreateCustomer  (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons)
 
 
 case class OutBoundGetCustomersByUserIdFuture  (outboundAdapterCallContext: OutboundAdapterCallContext,

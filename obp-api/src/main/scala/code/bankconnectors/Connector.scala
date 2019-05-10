@@ -120,7 +120,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
   val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
   val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
-  val createCustomerFutureTTL = getSecondsCache("createCustomerFuture")
+  val createCustomerTTL = getSecondsCache("createCustomer")
   val branchesTTL = getSecondsCache("getBranches") 
   val branchTTL = getSecondsCache("getBranch")
   val atmsTTL = getSecondsCache("getAtms")
@@ -1434,7 +1434,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     customerNumber : String
   ) : Future[Box[Boolean]] = Future{Failure(setUnimplementedError)}
   
-  def createCustomerFuture(
+  def createCustomer(
                       bankId: BankId,
                       legalName: String,
                       mobileNumber: String,

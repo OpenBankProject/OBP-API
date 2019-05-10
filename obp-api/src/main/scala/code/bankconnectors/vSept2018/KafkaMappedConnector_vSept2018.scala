@@ -3480,7 +3480,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   )
 
   messageDocs += MessageDoc(
-    process = "obp.createCustomerFuture",
+    process = "obp.createCustomer",
     messageFormat = messageFormat,
     description = "Create Customer Future",
     outboundTopic = None,

@@ -1801,7 +1801,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ) = Future{tryo {Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)} }
   
   
-  override def createCustomerFuture(
+  override def createCustomer(
                                bankId: BankId,
                                legalName: String,
                                mobileNumber: String,
