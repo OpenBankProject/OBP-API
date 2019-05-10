@@ -2942,6 +2942,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     res
   }
 
+  //TODO, Only MessageDocs for now, need to implement the methods later 
   messageDocs += MessageDoc(
     process = "obp.createOrUpdateKycCheck",
     messageFormat = messageFormat,
@@ -3010,9 +3011,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
-  // url example: /createOrUpdateKycCheck
-  override def createOrUpdateKycCheck(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String, callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = ???
-
   messageDocs += MessageDoc(
     process = "obp.createOrUpdateKycDocument",
     messageFormat = messageFormat,
@@ -3078,16 +3076,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       ),
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
-
-  // url example: /createOrUpdateKycDocument
-  override def createOrUpdateKycDocument(bankId: String, customerId: String, id: String, customerNumber: String,
-                                         `type`: String
-                                         , number: String
-                                         , issueDate: Date
-                                         , issuePlace: String
-                                         , expiryDate: Date
-                                         , callContext: Option[CallContext]
-                                        ): OBPReturnType[Box[KycDocument]] = ???
 
   messageDocs += MessageDoc(
     process = "obp.createOrUpdateKycMedia",
@@ -3155,16 +3143,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
-  // url example: /createOrUpdateKycMedia
-  override def createOrUpdateKycMedia(bankId: String, customerId: String, id: String, customerNumber: String,
-                                      `type`: String
-                                      , url: String
-                                      , date: Date
-                                      , relatesToKycDocumentId: String
-                                      , relatesToKycCheckId: String
-                                      , callContext: Option[CallContext]
-                                     ): OBPReturnType[Box[KycMedia]] = ???
-
   messageDocs += MessageDoc(
     process = "obp.createOrUpdateKycStatus",
     messageFormat = messageFormat,
@@ -3222,9 +3200,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       ),
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
-
-  // url example: /createOrUpdateKycStatus
-  override def createOrUpdateKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = ???
 
   messageDocs += MessageDoc(
     process = "obp.KycCheckCommons",
@@ -3285,9 +3260,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
-  // url example: /getKycChecks/customerId/{customerId}
-  override def getKycChecks(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycCheck]]] = ???
-
   messageDocs += MessageDoc(
     process = "obp.KycDocumentCommons",
     messageFormat = messageFormat,
@@ -3345,52 +3317,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       ),
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
-
-  override def getKycDocuments(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycDocument]]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second){
-        val req = OutBoundGetKycDocuments(callContext.map(_.toOutboundAdapterCallContext).get, customerId)
-        logger.debug(s"Kafka getKycDocuments Req is: $req")
-
-        val future = for {
-          res <- processToFuture[OutBoundGetKycDocuments](req) map {
-            f =>
-              try {
-                f.extract[InBoundGetKycDocuments]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InBoundGetKycDocuments]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutBoundGetKycDocuments class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(error)
-                  throw new MappingException(error, e)
-              }
-          } map {
-            d => (d.data, d.status)
-          }
-        } yield {
-          res
-        }
-
-        logger.debug(s"Kafka getKycDocuments Res says:  is: $future")
-        future map {
-          case (data, status) if (status.errorCode=="") =>
-            Full(data, callContext)
-          case (_, status) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-      }
-    }
-  }("getKycDocuments")
 
   messageDocs += MessageDoc(
     process = "obp.KycMediaCommons",
@@ -3450,9 +3376,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
-  // url example: /getKycMedias/customerId/{customerId}
-  override def getKycMedias(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycMedia]]] = ???
-
   messageDocs += MessageDoc(
     process = "obp.KycStatusCommons",
     messageFormat = messageFormat,
@@ -3507,10 +3430,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- KYC", 1))
   )
 
-  // url example: /getKycStatuses/customerId/{customerId}
-  override def getKycStatuses(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycStatus]]] = ???
-
-
   messageDocs += MessageDoc(
     process = "obp.createBankAccount",
     messageFormat = messageFormat,
@@ -3560,18 +3479,6 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
   
-  override def createSandboxBankAccount(
-                                bankId: BankId,
-                                accountId: AccountId,
-                                accountType: String,
-                                accountLabel: String,
-                                currency: String,
-                                initialBalance: BigDecimal,
-                                accountHolderName: String,
-                                branchId: String,
-                                accountRoutingScheme: String,
-                                accountRoutingAddress: String
-                              ): Box[BankAccount] = ??? 
 }
 
 
