@@ -178,7 +178,7 @@ case class GetGenerator(methodName: String, tp: Type) {
   override def toString =
     s"""
        |messageDocs += MessageDoc(
-       |    process = "obp.get.$returnEntityType",
+       |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
        |    outboundTopic = None,
@@ -255,7 +255,7 @@ case class PostGenerator(methodName: String, tp: Type) {
   override def toString =
     s"""
        |messageDocs += MessageDoc(
-       |    process = "obp.post.$entityName",
+       |    process = "obp.$methodName",
        |    messageFormat = messageFormat,
        |    description = "$description",
        |    outboundTopic = None,
