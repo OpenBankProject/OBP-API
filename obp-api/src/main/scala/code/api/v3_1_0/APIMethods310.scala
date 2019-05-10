@@ -2402,7 +2402,7 @@ trait APIMethods310 {
               case "ACCEPTED" =>
                 for{
                   accountId <- Future{AccountId(UUID.randomUUID().toString)}
-                  (_, callContext) <- NewStyle.function.createSandboxBankAccount(
+                  (_, callContext) <- NewStyle.function.createBankAccount(
                                                                                  bankId, 
                                                                                  accountId, 
                                                                                  accountApplication.productCode.value,

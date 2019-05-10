@@ -3018,6 +3018,74 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       ),
     adapterImplementation = Some(AdapterImplementation("- Account", 1))
   )
+  override def createBankAccount(
+                         bankId: BankId,
+                         accountId: AccountId,
+                         accountType: String,
+                         accountLabel: String,
+                         currency: String,
+                         initialBalance: BigDecimal,
+                         accountHolderName: String,
+                         branchId: String,
+                         accountRoutingScheme: String,
+                         accountRoutingAddress: String,
+                         callContext: Option[CallContext]
+                       ): OBPReturnType[Box[BankAccount]] =  saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(atmsTTL second){
+        val req = OutBoundCreateBankAccount(
+          callContext.map(_.toOutboundAdapterCallContext).get,
+          bankId: BankId,
+          accountId: AccountId,
+          accountType: String,
+          accountLabel: String,
+          currency: String,
+          initialBalance: BigDecimal,
+          accountHolderName: String,
+          branchId: String,
+          accountRoutingScheme: String,
+          accountRoutingAddress: String)
+        logger.debug(s"Kafka createBankAccount Req is: $req")
+
+        val future = for {
+          res <- processToFuture[OutBoundCreateBankAccount](req) map {
+            f =>
+              try {
+                f.extract[InBoundCreateBankAccount]
+              } catch {
+                case e: Exception =>
+                  val received = liftweb.json.compactRender(f)
+                  val expected = SchemaFor[InBoundCreateBankAccount]().toString(false)
+                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutBoundCreateBankAccount class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  sendOutboundAdapterError(error)
+                  throw new MappingException(error, e)
+              }
+          } map {
+            d => (d.data, d.status)
+          }
+        } yield {
+          res
+        }
+
+        logger.debug(s"Kafka createBankAccount Res says:  is: $future")
+        future map {
+          case (data, status) if (status.errorCode=="") =>
+            Full(data, callContext)
+          case (_, status) if (status.errorCode!="") =>
+            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
+          case _ =>
+            Failure(ErrorMessages.UnknownError)
+        }
+      }
+    }
+  }("createBankAccount")
 
   messageDocs += MessageDoc(
     process = "obp.createCustomer",
