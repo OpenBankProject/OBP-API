@@ -3,6 +3,7 @@ package code.kafka
 import akka.pattern.{AskTimeoutException, ask}
 import code.actorsystem.{ObpActorInit, ObpLookupSystem}
 import code.api.util.CustomJsonFormats
+import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common._
@@ -88,14 +89,14 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
       .map(_.extract[T])
       .map(Full(_))
       .recover {
-        case e: ParseException => Failure("xxx  parse response payload to JValue fail", Full(e), Empty) //adapter return wrong json string TODO add message of content
-        case e: MappingException => Failure(s"xxx extract response payload to type ${tp} fail.", Full(e), Empty) // adapter return string parse to jvalue but cant extract, TODO add message of content
-        case e: AskTimeoutException => Failure("xxx timeout but no response return from kafka server.", Full(e), Empty)
+        case e: ParseException => Failure(s"${ConnectorEmptyResponse} parse response payload to JValue fail", Full(e), Empty) //adapter return wrong json string
+        case e: MappingException => Failure(s"${ConnectorEmptyResponse} extract response payload to type ${tp} fail.", Full(e), Empty) // adapter return string parse to Jvalue but cant extract
+        case e: AskTimeoutException => Failure(s"${KafkaUnknownError} Timeout error, because no response return from kafka server.", Full(e), Empty)
         case e @ (_:AuthenticationException| _:AuthorizationException|
                   _:IllegalStateException| _:InterruptException|
                   _:SerializationException| _:TimeoutException|
                   _:KafkaException| _:ApiException)
-          => Failure("xxx send message to kafka server fail", Full(e), Empty)
+          => Failure(s"${KafkaUnknownError} OBP-API send message to kafka server failed", Full(e), Empty)
       }
   }
 
