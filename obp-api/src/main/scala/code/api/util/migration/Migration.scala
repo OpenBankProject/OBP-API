@@ -4,6 +4,7 @@ import java.sql.ResultSet
 
 import code.api.util.APIUtil
 import code.api.util.APIUtil.getPropsAsBoolValue
+import code.api.util.APIUtil.getPropsValue
 import code.consumer.Consumers
 import code.customer.Customer
 import code.migration.MigrationScriptLogProvider
@@ -12,20 +13,24 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.mapper.{BaseMetaMapper, SuperConnection}
 import net.liftweb.mapper.Schemifier.getDefaultSchemaName
 
+import scala.collection.immutable
 import scala.collection.mutable.HashMap
 
 object Migration extends MdcLoggable {
   
   private val execute = getPropsAsBoolValue("migration_scripts.execute", false)
+  private val scriptsToExecute: immutable.Seq[String] = getPropsValue("list_of_migration_scripts_to_execute").toList.map(_.split(",")).flatten
 
   private def executeScript(blockOfCode: => Boolean): Boolean = {
     if(execute) blockOfCode else execute
   }
   
   private def runOnce(name: String)(blockOfCode: => Boolean): Boolean = {
-    MigrationScriptLogProvider.migrationScriptLogProvider.vend.isExecuted(name) match {
-      case false => blockOfCode
-      case true => true
+    val toExecute = scriptsToExecute.contains(name)
+    val isExecuted = MigrationScriptLogProvider.migrationScriptLogProvider.vend.isExecuted(name)
+    (toExecute, isExecuted) match {
+      case (true, false) => blockOfCode
+      case _ => true
     }
   }
   
@@ -46,7 +51,7 @@ object Migration extends MdcLoggable {
     }
     
     private def dummyScript(): Boolean = {
-      val name = "Dummy test script"
+      val name = nameOf(dummyScript)
       runOnce(name) {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit

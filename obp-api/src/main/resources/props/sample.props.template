@@ -532,11 +532,12 @@ featured_apis=elasticSearchWarehouseV300
 # redis_port=6379
 # -----------------------------------------------------
 
-# -- Migration Scripts --------------------------
+# -- Migration Scripts ----------------------------
 # Define execution of migration scripts
 # In case isn't defined default value is "false"
 # migration_scripts.execute=false
-# -----------------------------------------------
+# list_of_migration_scripts_to_execute=dummyScript
+# -------------------------------------------------
 
 # -- Mapper rules -------------------------------
 # Define mapper rules
