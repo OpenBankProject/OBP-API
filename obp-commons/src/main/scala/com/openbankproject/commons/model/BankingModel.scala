@@ -274,6 +274,7 @@ case class AmountOfMoney (
   val currency: String,
   val amount: String
 ) extends AmountOfMoneyTrait
+object AmountOfMoney extends Converter[AmountOfMoneyTrait, AmountOfMoney]
 
 case class Iban(
   val iban: String

@@ -263,4 +263,7 @@ object ReflectUtils {
 
   def toSiblingsBox[T, D <% T: TypeTag] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
 
+  def toSiblingOption[T, D <% T: TypeTag] = (option: Option[T]) => option.map(toOther[D](_))
+
+  def toSiblingsOption[T, D <% T: TypeTag] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
 }

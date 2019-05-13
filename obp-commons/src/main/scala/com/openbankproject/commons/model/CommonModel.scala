@@ -54,6 +54,10 @@ abstract class Converter[T, D <% T: TypeTag]{
   implicit val toCommonsBox = ReflectUtils.toSiblingBox[T, D]
 
   implicit val toCommonsBoxList = ReflectUtils.toSiblingsBox[T, D]
+
+  implicit val toCommonsOption = ReflectUtils.toSiblingOption[T, D]
+
+  implicit val toCommonsOptionList = ReflectUtils.toSiblingsOption[T, D]
 }
 
 case class ProductAttributeCommons(
