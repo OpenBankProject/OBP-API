@@ -3590,8 +3590,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
 
 
+
+
+
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Mon May 13 22:02:04 CST 2019
+// ---------- create on Mon May 13 22:38:20 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.createBankAccount",
@@ -3666,7 +3669,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       value="string")),
       accountHolder="string"))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("Account", 1))
   )
   override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutingScheme: String, accountRoutingAddress: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
     import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}
@@ -3766,7 +3769,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       branchId="string",
       nameSuffix="string"))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("Customer", 1))
   )
   override def createCustomer(bankId: BankId, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImageTrait, dateOfBirth: Date, relationshipStatus: String, dependents: Int, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: Option[CreditRatingTrait], creditLimit: Option[AmountOfMoneyTrait], title: String, branchId: String, nameSuffix: String, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
     import com.openbankproject.commons.dto.{OutBoundCreateCustomer => OutBound, InBoundCreateCustomer => InBound}
@@ -3842,7 +3845,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       satisfied=true,
       comments="string"))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def createOrUpdateKycCheck(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String, callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = {
     import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycCheck => OutBound, InBoundCreateOrUpdateKycCheck => InBound}
@@ -3916,7 +3919,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       issuePlace="string",
       expiryDate=new Date()))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def createOrUpdateKycDocument(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycDocument]] = {
     import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycDocument => OutBound, InBoundCreateOrUpdateKycDocument => InBound}
@@ -3990,7 +3993,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       relatesToKycDocumentId="string",
       relatesToKycCheckId="string"))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def createOrUpdateKycMedia(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String, callContext: Option[CallContext]): OBPReturnType[Box[KycMedia]] = {
     import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycMedia => OutBound, InBoundCreateOrUpdateKycMedia => InBound}
@@ -4056,7 +4059,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       ok=true,
       date=new Date()))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def createOrUpdateKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = {
     import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycStatus => OutBound, InBoundCreateOrUpdateKycStatus => InBound}
@@ -4123,7 +4126,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       satisfied=true,
       comments="string")))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def getKycChecks(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[List[KycCheck]]] = saveConnectorMetric {
     /**
@@ -4201,7 +4204,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       issuePlace="string",
       expiryDate=new Date())))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def getKycDocuments(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[List[KycDocument]]] = saveConnectorMetric {
     /**
@@ -4279,7 +4282,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       relatesToKycDocumentId="string",
       relatesToKycCheckId="string")))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def getKycMedias(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[List[KycMedia]]] = saveConnectorMetric {
     /**
@@ -4353,7 +4356,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       ok=true,
       date=new Date())))
     ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+    adapterImplementation = Some(AdapterImplementation("KYC", 1))
   )
   override def getKycStatuses(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[List[KycStatus]]] = saveConnectorMetric {
     /**
@@ -4377,6 +4380,9 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
+    
+    
     
     
     

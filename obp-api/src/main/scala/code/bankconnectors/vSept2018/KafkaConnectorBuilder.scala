@@ -4,7 +4,8 @@ import java.io.File
 import java.util.Date
 import java.util.regex.Matcher
 
-import code.api.util.{CallContext, OBPQueryParam}
+import code.api.util.ApiTag.ResourceDocTag
+import code.api.util.{ApiTag, CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
 import com.openbankproject.commons.util.ReflectUtils
 import org.apache.commons.io.FileUtils
@@ -113,6 +114,19 @@ class CommonGenerator(val methodName: String, tp: Type) {
   val outboundName = s"OutBound${methodName.capitalize}"
   val inboundName = s"InBound${methodName.capitalize}"
 
+  val tagValues = ReflectUtils.getType(ApiTag).decls
+    .filter(it => it.isMethod && it.asMethod.returnType <:< typeOf[ResourceDocTag])
+    .map(_.asMethod)
+    .filter(method => method.paramLists.isEmpty)
+    .map(method => ReflectUtils.invokeMethod(ApiTag, method))
+    .map(_.asInstanceOf[ResourceDocTag])
+    .map(_.tag)
+    .map(it => (it.replaceAll("""\W""", "").toLowerCase, it))
+    .toMap
+
+  val tag = tagValues.filter(it => methodName.toLowerCase().contains(it._1)).map(_._2).toList.sortBy(_.size).lastOption.getOrElse("- Core")
+
+
   protected[this] def methodBody: String =
     s"""{
       |    import com.openbankproject.commons.dto.{${outboundName} => OutBound, ${inboundName} => InBound}
@@ -137,7 +151,7 @@ class CommonGenerator(val methodName: String, tp: Type) {
        |    exampleInboundMessage = (
        |    $inBoundExample
        |    ),
-       |    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+       |    adapterImplementation = Some(AdapterImplementation("${tag}", 1))
        |  )
        |  override def $signature = ${methodBody}
     """.stripMargin

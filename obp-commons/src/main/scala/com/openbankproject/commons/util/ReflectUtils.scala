@@ -107,6 +107,11 @@ object ReflectUtils {
     objMirror.reflectMethod(methodSymbol.get).apply(args: _*)
   }
 
+  def invokeMethod(obj: Any, method: ru.MethodSymbol, args: Any*): Any = {
+    val objMirror = mirror.reflect(obj)
+    objMirror.reflectMethod(method).apply(args: _*)
+  }
+
   def invokeConstructor(tp: ru.Type)(fn: (Seq[ru.Type]) => Seq[Any]): Any = {
     val classMirror = mirror.reflectClass(tp.typeSymbol.asClass)
     val constructor = tp.decl(ru.termNames.CONSTRUCTOR).asMethod
