@@ -1980,7 +1980,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     outboundAvroSchema = None,
     inboundAvroSchema = None,
-    adapterImplementation = Some(AdapterImplementation("Accounts", 0))
+    adapterImplementation = Some(AdapterImplementation("Customer", 0))
   )
 
   override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = saveConnectorMetric{
