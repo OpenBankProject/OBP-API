@@ -115,7 +115,11 @@ object RestConnectorBuilder extends App {
 }
 
 case class GetGenerator(methodName: String, tp: Type) {
-  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ").replaceFirst("""\btype\b""", "`type`")
+  private[this] def paramAnResult = tp.toString
+    .replaceAll("(\\w+\\.)+", "")
+    .replaceFirst("\\)", "): ")
+    .replaceFirst("""\btype\b""", "`type`")
+    .replaceFirst("""callContext:\s*Option\[CallContext\]""", "@CacheKeyOmit callContext: Option[CallContext]")
 
   private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString)
 
@@ -130,13 +134,13 @@ case class GetGenerator(methodName: String, tp: Type) {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\w)", "      $1")
+    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\w)", "      $1")
+    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
@@ -226,7 +230,10 @@ case class GetGenerator(methodName: String, tp: Type) {
 }
 
 case class PostGenerator(methodName: String, tp: Type) {
-  private[this] def paramAnResult = tp.toString.replaceAll("(\\w+\\.)+", "").replaceFirst("\\)", "): ").replaceFirst("""\btype\b""", "`type`")
+  private[this] def paramAnResult = tp.toString
+    .replaceAll("(\\w+\\.)+", "")
+    .replaceFirst("\\)", "): ")
+    .replaceFirst("""\btype\b""", "`type`")
 
   private[this] val params = tp.paramLists(0).filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]]).map(_.name.toString).mkString(", ", ", ", "").replaceFirst("""\btype\b""", "`type`")
   private[this] val description = methodName.replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
@@ -240,12 +247,12 @@ case class PostGenerator(methodName: String, tp: Type) {
   private[this] val outBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\w)", "      $1")
+    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\w)", "      $1")
+    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
