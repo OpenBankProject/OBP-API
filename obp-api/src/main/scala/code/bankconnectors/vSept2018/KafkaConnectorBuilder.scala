@@ -22,10 +22,10 @@ object KafkaConnectorBuilder extends App {
     "getKycDocuments",
     "getKycMedias",
     "getKycStatuses",
-    "createOrUpdateKycChecks",
-    "createOrUpdateKycDocuments",
-    "createOrUpdateKycMedias",
-    "createOrUpdateKycStatuses",
+    "createOrUpdateKycCheck",
+    "createOrUpdateKycDocument",
+    "createOrUpdateKycMedia",
+    "createOrUpdateKycStatus",
     "createCustomer",
     "createBankAccount",
   )
@@ -45,6 +45,11 @@ object KafkaConnectorBuilder extends App {
       case other => new CommonGenerator(other._1, other._2)
     }
 
+  if(genMethodNames.size > nameSignature.size) {
+    val foundMehotdNames = nameSignature.map(_.methodName).toList
+    val notFoundMethodNames = genMethodNames.filterNot(foundMehotdNames.contains(_))
+    throw new IllegalArgumentException(s"some method not found, please check typo: ${notFoundMethodNames.mkString(", ")}")
+  }
 
   //  private val types: Iterable[ru.Type] = symbols.map(_.typeSignature)
   //  println(symbols)
@@ -73,7 +78,7 @@ object KafkaConnectorBuilder extends App {
   println(ReflectUtils.createDocExample(tp))
 }
 
-class CommonGenerator(methodName: String, tp: Type) {
+class CommonGenerator(val methodName: String, tp: Type) {
   protected[this] def paramAnResult = tp.toString
     .replaceAll("(\\w+\\.)+", "")
     .replaceFirst("\\)", "): ")
@@ -81,7 +86,9 @@ class CommonGenerator(methodName: String, tp: Type) {
 
   private[this] val params = tp.paramLists(0)
     .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
-    .map(_.name.toString) match {
+    .map(_.name.toString)
+    .map(it => if(it =="type") "`type`" else it)
+    match {
     case Nil => ""
     case list:List[String] => list.mkString(", ", ", ", "")
   }
@@ -111,7 +118,7 @@ class CommonGenerator(methodName: String, tp: Type) {
       |    import com.openbankproject.commons.dto.{${outboundName} => OutBound, ${inboundName} => InBound}
       |
       |    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get ${params})
-      |    logger.debug(s"Kafka getKycDocuments Req is: $$req")
+      |    logger.debug(s"Kafka ${methodName} Req is: $$req")
       |    processRequest[InBound](req) map (convertToTuple(callContext))
       |  }
     """.stripMargin
@@ -136,7 +143,7 @@ class CommonGenerator(methodName: String, tp: Type) {
     """.stripMargin
 }
 
-case class GetGenerator(methodName: String, tp: Type) extends CommonGenerator(methodName, tp) {
+case class GetGenerator(override val methodName: String, tp: Type) extends CommonGenerator(methodName, tp) {
   private[this] val resultType = tp.resultType.toString.replaceAll("(\\w+\\.)+", "")
 
   private[this] val isReturnBox = resultType.startsWith("Box[")

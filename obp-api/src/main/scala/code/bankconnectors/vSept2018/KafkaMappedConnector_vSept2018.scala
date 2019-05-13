@@ -3586,8 +3586,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   )
 
 
+
+
+
+
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Mon May 13 20:46:22 CST 2019
+// ---------- create on Mon May 13 22:02:04 CST 2019
 
   messageDocs += MessageDoc(
     process = "obp.createBankAccount",
@@ -3668,7 +3672,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutingScheme, accountRoutingAddress)
-    logger.debug(s"Kafka getKycDocuments Req is: $req")
+    logger.debug(s"Kafka createBankAccount Req is: $req")
     processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
@@ -3768,7 +3772,297 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     import com.openbankproject.commons.dto.{OutBoundCreateCustomer => OutBound, InBoundCreateCustomer => InBound}
 
     val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix)
-    logger.debug(s"Kafka getKycDocuments Req is: $req")
+    logger.debug(s"Kafka createCustomer Req is: $req")
+    processRequest[InBound](req) map (convertToTuple(callContext))
+  }
+    
+    
+  messageDocs += MessageDoc(
+    process = "obp.createOrUpdateKycCheck",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Check",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycCheck.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycCheck.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+     OutBoundCreateOrUpdateKycCheck(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      consumerId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string"))),
+      outboundAdapterAuthInfo=Option( OutboundAdapterAuthInfo(userId=Option("string"),
+      username=Option("string"),
+      linkedCustomers=Option(List( BasicLinkedCustomer(customerId="string",
+      customerNumber="string",
+      legalName="string"))),
+      userAuthContext=Option(List( BasicUserAuthContext(key="string",
+      value="string"))),
+      authViews=Option(List( AuthView(view= ViewBasic(id="string",
+      name="string",
+      description="string"),
+      account= AccountBasic(id="string",
+      accountRoutings=List( AccountRouting(scheme="string",
+      address="string")),
+      customerOwners=List( InternalBasicCustomer(bankId="string",
+      customerId="string",
+      customerNumber="string",
+      legalName="string",
+      dateOfBirth=new Date())),
+      userOwners=List( InternalBasicUser(userId="string",
+      emailAddress="string",
+      name="string"))))))))),
+      bankId="string",
+      customerId="string",
+      id="string",
+      customerNumber="string",
+      date=new Date(),
+      how="string",
+      staffUserId="string",
+      mStaffName="string",
+      mSatisfied=true,
+      comments="string")
+    ),
+    exampleInboundMessage = (
+     InBoundCreateOrUpdateKycCheck(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string")))),
+      status= Status(errorCode="string",
+      backendMessages=List( InboundStatusMessage(source="string",
+      status="string",
+      errorCode="string",
+      text="string"))),
+      data= KycCheckCommons(bankId="string",
+      customerId="string",
+      idKycCheck="string",
+      customerNumber="string",
+      date=new Date(),
+      how="string",
+      staffUserId="string",
+      staffName="string",
+      satisfied=true,
+      comments="string"))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+  override def createOrUpdateKycCheck(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String, callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = {
+    import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycCheck => OutBound, InBoundCreateOrUpdateKycCheck => InBound}
+
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments)
+    logger.debug(s"Kafka createOrUpdateKycCheck Req is: $req")
+    processRequest[InBound](req) map (convertToTuple(callContext))
+  }
+    
+    
+  messageDocs += MessageDoc(
+    process = "obp.createOrUpdateKycDocument",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Document",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycDocument.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycDocument.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+     OutBoundCreateOrUpdateKycDocument(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      consumerId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string"))),
+      outboundAdapterAuthInfo=Option( OutboundAdapterAuthInfo(userId=Option("string"),
+      username=Option("string"),
+      linkedCustomers=Option(List( BasicLinkedCustomer(customerId="string",
+      customerNumber="string",
+      legalName="string"))),
+      userAuthContext=Option(List( BasicUserAuthContext(key="string",
+      value="string"))),
+      authViews=Option(List( AuthView(view= ViewBasic(id="string",
+      name="string",
+      description="string"),
+      account= AccountBasic(id="string",
+      accountRoutings=List( AccountRouting(scheme="string",
+      address="string")),
+      customerOwners=List( InternalBasicCustomer(bankId="string",
+      customerId="string",
+      customerNumber="string",
+      legalName="string",
+      dateOfBirth=new Date())),
+      userOwners=List( InternalBasicUser(userId="string",
+      emailAddress="string",
+      name="string"))))))))),
+      bankId="string",
+      customerId="string",
+      id="string",
+      customerNumber="string",
+      `type`="string",
+      number="string",
+      issueDate=new Date(),
+      issuePlace="string",
+      expiryDate=new Date())
+    ),
+    exampleInboundMessage = (
+     InBoundCreateOrUpdateKycDocument(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string")))),
+      status= Status(errorCode="string",
+      backendMessages=List( InboundStatusMessage(source="string",
+      status="string",
+      errorCode="string",
+      text="string"))),
+      data= KycDocumentCommons(bankId="string",
+      customerId="string",
+      idKycDocument="string",
+      customerNumber="string",
+      `type`="string",
+      number="string",
+      issueDate=new Date(),
+      issuePlace="string",
+      expiryDate=new Date()))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+  override def createOrUpdateKycDocument(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycDocument]] = {
+    import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycDocument => OutBound, InBoundCreateOrUpdateKycDocument => InBound}
+
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, id, customerNumber, `type`, number, issueDate, issuePlace, expiryDate)
+    logger.debug(s"Kafka createOrUpdateKycDocument Req is: $req")
+    processRequest[InBound](req) map (convertToTuple(callContext))
+  }
+    
+    
+  messageDocs += MessageDoc(
+    process = "obp.createOrUpdateKycMedia",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Media",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycMedia.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycMedia.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+     OutBoundCreateOrUpdateKycMedia(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      consumerId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string"))),
+      outboundAdapterAuthInfo=Option( OutboundAdapterAuthInfo(userId=Option("string"),
+      username=Option("string"),
+      linkedCustomers=Option(List( BasicLinkedCustomer(customerId="string",
+      customerNumber="string",
+      legalName="string"))),
+      userAuthContext=Option(List( BasicUserAuthContext(key="string",
+      value="string"))),
+      authViews=Option(List( AuthView(view= ViewBasic(id="string",
+      name="string",
+      description="string"),
+      account= AccountBasic(id="string",
+      accountRoutings=List( AccountRouting(scheme="string",
+      address="string")),
+      customerOwners=List( InternalBasicCustomer(bankId="string",
+      customerId="string",
+      customerNumber="string",
+      legalName="string",
+      dateOfBirth=new Date())),
+      userOwners=List( InternalBasicUser(userId="string",
+      emailAddress="string",
+      name="string"))))))))),
+      bankId="string",
+      customerId="string",
+      id="string",
+      customerNumber="string",
+      `type`="string",
+      url="string",
+      date=new Date(),
+      relatesToKycDocumentId="string",
+      relatesToKycCheckId="string")
+    ),
+    exampleInboundMessage = (
+     InBoundCreateOrUpdateKycMedia(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string")))),
+      status= Status(errorCode="string",
+      backendMessages=List( InboundStatusMessage(source="string",
+      status="string",
+      errorCode="string",
+      text="string"))),
+      data= KycMediaCommons(bankId="string",
+      customerId="string",
+      idKycMedia="string",
+      customerNumber="string",
+      `type`="string",
+      url="string",
+      date=new Date(),
+      relatesToKycDocumentId="string",
+      relatesToKycCheckId="string"))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+  override def createOrUpdateKycMedia(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String, callContext: Option[CallContext]): OBPReturnType[Box[KycMedia]] = {
+    import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycMedia => OutBound, InBoundCreateOrUpdateKycMedia => InBound}
+
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, id, customerNumber, `type`, url, date, relatesToKycDocumentId, relatesToKycCheckId)
+    logger.debug(s"Kafka createOrUpdateKycMedia Req is: $req")
+    processRequest[InBound](req) map (convertToTuple(callContext))
+  }
+    
+    
+  messageDocs += MessageDoc(
+    process = "obp.createOrUpdateKycStatus",
+    messageFormat = messageFormat,
+    description = "Create Or Update Kyc Status",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycStatus.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateOrUpdateKycStatus.getClass.getSimpleName).response),
+    exampleOutboundMessage = (
+     OutBoundCreateOrUpdateKycStatus(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      consumerId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string"))),
+      outboundAdapterAuthInfo=Option( OutboundAdapterAuthInfo(userId=Option("string"),
+      username=Option("string"),
+      linkedCustomers=Option(List( BasicLinkedCustomer(customerId="string",
+      customerNumber="string",
+      legalName="string"))),
+      userAuthContext=Option(List( BasicUserAuthContext(key="string",
+      value="string"))),
+      authViews=Option(List( AuthView(view= ViewBasic(id="string",
+      name="string",
+      description="string"),
+      account= AccountBasic(id="string",
+      accountRoutings=List( AccountRouting(scheme="string",
+      address="string")),
+      customerOwners=List( InternalBasicCustomer(bankId="string",
+      customerId="string",
+      customerNumber="string",
+      legalName="string",
+      dateOfBirth=new Date())),
+      userOwners=List( InternalBasicUser(userId="string",
+      emailAddress="string",
+      name="string"))))))))),
+      bankId="string",
+      customerId="string",
+      customerNumber="string",
+      ok=true,
+      date=new Date())
+    ),
+    exampleInboundMessage = (
+     InBoundCreateOrUpdateKycStatus(inboundAdapterCallContext= InboundAdapterCallContext(correlationId="string",
+      sessionId=Option("string"),
+      generalContext=Option(List( BasicGeneralContext(key="string",
+      value="string")))),
+      status= Status(errorCode="string",
+      backendMessages=List( InboundStatusMessage(source="string",
+      status="string",
+      errorCode="string",
+      text="string"))),
+      data= KycStatusCommons(bankId="string",
+      customerId="string",
+      customerNumber="string",
+      ok=true,
+      date=new Date()))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+  override def createOrUpdateKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = {
+    import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycStatus => OutBound, InBoundCreateOrUpdateKycStatus => InBound}
+
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , bankId, customerId, customerNumber, ok, date)
+    logger.debug(s"Kafka createOrUpdateKycStatus Req is: $req")
     processRequest[InBound](req) map (convertToTuple(callContext))
   }
     
@@ -3844,7 +4138,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         import com.openbankproject.commons.dto.{OutBoundGetKycChecks => OutBound, InBoundGetKycChecks => InBound}
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
-        logger.debug(s"Kafka getKycDocuments Req is: $req")
+        logger.debug(s"Kafka getKycChecks Req is: $req")
         processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
@@ -4000,7 +4294,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         import com.openbankproject.commons.dto.{OutBoundGetKycMedias => OutBound, InBoundGetKycMedias => InBound}
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
-        logger.debug(s"Kafka getKycDocuments Req is: $req")
+        logger.debug(s"Kafka getKycMedias Req is: $req")
         processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
@@ -4074,7 +4368,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         import com.openbankproject.commons.dto.{OutBoundGetKycStatuses => OutBound, InBoundGetKycStatuses => InBound}
 
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).get , customerId)
-        logger.debug(s"Kafka getKycDocuments Req is: $req")
+        logger.debug(s"Kafka getKycStatuses Req is: $req")
         processRequest[InBound](req) map (convertToTuple(callContext))
       }
         
@@ -4083,6 +4377,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
+    
+    
+    
     
     
     
