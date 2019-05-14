@@ -92,8 +92,8 @@ class NorthSideConsumer[K, V](brokers: String, topic: String, group: String, key
   val allTopicsApiListening: List[String] = allTopicsOverAdapter :+ apiLoopbackTopic
   consumer.subscribe(allTopicsApiListening)
 
-  var completed = false
-  var started = false
+  @volatile var completed = false
+  @volatile var started = false
 
   def complete(): Unit = {
     completed = true

@@ -191,7 +191,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   val viewBasicExample = ViewBasic("owner","Owner", "This is the owner view")
 
   val internalBasicCustomerExample = InternalBasicCustomer(
-    bankId = bankIdExample.value,
+    bankId = ExampleValue.bankIdExample.value,
     customerId = customerIdExample.value,
     customerNumber = customerNumberExample.value,
     legalName = legalNameExample.value,

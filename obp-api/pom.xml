@@ -341,6 +341,14 @@
       <artifactId>geocalc</artifactId>
       <version>0.5.7</version>
     </dependency>
+    <!-- embeded kafka for unit test start -->
+    <dependency>
+      <groupId>net.manub</groupId>
+      <artifactId>scalatest-embedded-kafka_2.12</artifactId>
+      <version>1.1.1</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- embeded kafka for unit test end -->
   </dependencies>
 
   <build>
