@@ -607,8 +607,8 @@ trait APIMethods300 {
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
-            (transactionsCore, callContext) <- Future { bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)} map {
-              unboxFullOrFail(_, callContext, UnknownError)
+            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(user, view, params, callContext) map {
+              i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
           } yield {
             (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
