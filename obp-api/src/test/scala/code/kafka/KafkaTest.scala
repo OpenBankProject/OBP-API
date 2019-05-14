@@ -6,7 +6,7 @@ import code.api.util.{APIUtil, CallContext, ExampleValue}
 import code.bankconnectors.vMar2017.InboundBank
 import code.bankconnectors.vSept2018._
 import code.setup.KafkaSetup
-import com.openbankproject.commons.dto.{InBoundGetKycChecks, InBoundGetKycStatuses}
+import com.openbankproject.commons.dto.{InBoundGetKycChecks, InBoundGetKycMedias, InBoundGetKycStatuses}
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
@@ -74,13 +74,25 @@ class KafkaTest extends KafkaSetup {
     }
 
     scenario("test `getKycChecks` method") {
-      When("send a OutboundGetKycStatuses api message")
+      When("send a OutboundGetKycChecks api message")
       val inBound = KafkaMappedConnector_vSept2018.messageDocs.filter(_.process =="obp.getKycChecks").map(_.exampleInboundMessage).head.asInstanceOf[InBoundGetKycChecks]
 
       dispathResponse(inBound)
 
       val future = KafkaMappedConnector_vSept2018.getKycChecks(inBound.data.head.customerId, Some(CallContext()))
       val result: (Box[List[KycCheck]], Option[CallContext]) =  Await.result(future, waitTime)
+      val expectResult = Full(inBound.data)
+      result._1.toString should be (expectResult.toString)
+    }
+
+    scenario("test `getKycMedias` method") {
+      When("send a OutboundetKycMedias api message")
+      val inBound = KafkaMappedConnector_vSept2018.messageDocs.filter(_.process =="obp.getKycMedias").map(_.exampleInboundMessage).head.asInstanceOf[InBoundGetKycMedias]
+
+      dispathResponse(inBound)
+
+      val future = KafkaMappedConnector_vSept2018.getKycMedias(inBound.data.head.customerId, Some(CallContext()))
+      val result: (Box[List[KycMedia]], Option[CallContext]) =  Await.result(future, waitTime)
       val expectResult = Full(inBound.data)
       result._1.toString should be (expectResult.toString)
     }
