@@ -69,6 +69,8 @@ class KafkaTest extends KafkaSetup {
       val result: (Box[List[KycStatus]], Option[CallContext]) =  Await.result(future, waitTime)
       val expectResult = Full(singleInboundBank)
       result._1 should be equals(expectResult)
+      result._1 should be equals(123)
+      result._1.toString should be (expectResult.toString)
     }
   }
 }
