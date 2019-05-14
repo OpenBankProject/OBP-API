@@ -33,20 +33,20 @@ class KafkaTest extends KafkaSetup {
       val connectorVersion= result._1.map(_.connectorVersion)
       connectorVersion should be (Full(expectedConnectorVersion))
     }
-//    scenario("Send and retrieve message directly to and from kafka") {
-//      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
-//      val inBound = InboundGetBanks(InboundAuthInfo("", ""), Status("", List(emptyStatusMessage)), List(InboundBank("1", "2", "3", "4")))
-//      When("send a OutboundGetBanks message")
-//
-//      dispathResponse(inBound)
-//      val req = OutboundGetBanks(AuthInfo())
-//
-//      val future = processToFuture[OutboundGetBanks](req)
-//      val result:json.JValue =  Await.result(future, waitTime)
-//
-//      val banks = result.extract[InboundGetBanks]
-//      banks should be equals (inBound)
-//    }
+    
+    scenario("Send and retrieve message directly to and from kafka") {
+      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
+      val inBound = InboundGetBanks(InboundAuthInfo("", ""), Status("", List(emptyStatusMessage)), List(InboundBank("1", "2", "3", "4")))
+      When("send a OutboundGetBanks message")
+
+      dispathResponse(inBound)
+      val req = OutboundGetBanks(AuthInfo())
+
+      val future = processRequest[InboundGetBanks](req)
+      val result: Box[InboundGetBanks] = Await.result(future, waitTime)
+
+      result should be (Full(inBound))
+    }
 //
 //    /**
 //      * override val bankId: String,

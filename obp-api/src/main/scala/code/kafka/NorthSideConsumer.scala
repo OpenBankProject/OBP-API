@@ -13,7 +13,7 @@ object NorthSideConsumer {
 
   private[this] val outboundNamePattern= Pattern.compile("""com\.openbankproject\.commons\..*(OutBound.+)""")
 
-  val listOfTopics : List[String] = (Set(
+  val listOfTopics : List[String] = Set(
     "OutboundGetAdapterInfo",
     "OutboundGetBanks",
     "OutboundGetBank",
@@ -44,8 +44,9 @@ object NorthSideConsumer {
     "OutboundGetCreditCardOrderStatus",
     "OutboundGetBankAccountsHeld",
     "ObpApiLoopback" //This topic is tricky now, it is just used in api side: api produce and consumer it. Not used over adapter. Only for test api <--> kafka.
-  ) ++ ClassScanUtils.findTypes(classInfo => outboundNamePattern.matcher(classInfo.name).matches())
-    .map(outboundNamePattern.matcher(_).replaceFirst("$1"))).toList
+  ).toList
+//    ++ ClassScanUtils.findTypes(classInfo => outboundNamePattern.matcher(classInfo.name).matches())
+//    .map(outboundNamePattern.matcher(_).replaceFirst("$1"))).toList
 
   def consumerProperties(brokers: String, group: String, keyDeserealizer: String, valueDeserealizer: String): Map[String, String] = {
     if (APIUtil.getPropsValue("kafka.use.ssl").getOrElse("false") == "true") {
