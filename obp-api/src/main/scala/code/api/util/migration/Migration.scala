@@ -86,8 +86,14 @@ object Migration extends MdcLoggable {
     }
     
   }
-  
+
+  /**
+    * In this object we put functions dedcated to common database tasks.
+    */
   object DbFunction {
+    /**
+      * This function is copied from the module net.liftweb.mapper.Schemifier
+      */
     private def using[RetType <: Any, VarType <: ResultSet](f: => VarType)(f2: VarType => RetType): RetType = {
       val theVar = f
       try {
@@ -96,6 +102,11 @@ object Migration extends MdcLoggable {
         theVar.close()
       }
     }
+    /**
+      * This function is copied from the module "net.liftweb.mapper.Schemifier".
+      * The purpose is to provide answer does a table exist at a database instance.
+      * For instance migration scripts needs to differentiate update of an instance from build a new one from scratch.
+      */
     def tableExists (table: BaseMetaMapper, connection: SuperConnection, actualTableNames: HashMap[String, String] = new HashMap[String, String]()): Boolean = {
       val md = connection.getMetaData
       using(md.getTables(null, getDefaultSchemaName(connection), null, null)){ rs =>

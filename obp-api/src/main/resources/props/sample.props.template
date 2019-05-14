@@ -533,9 +533,11 @@ featured_apis=elasticSearchWarehouseV300
 # -----------------------------------------------------
 
 # -- Migration Scripts ----------------------------
-# Define execution of migration scripts
+# Enable/Disable execution of migration scripts.
 # In case isn't defined default value is "false"
 # migration_scripts.execute=false
+# Define list of migration scripts to execute.
+# List is not ordered.
 # list_of_migration_scripts_to_execute=dummyScript
 # -------------------------------------------------
 
