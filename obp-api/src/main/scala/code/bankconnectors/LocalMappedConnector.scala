@@ -430,9 +430,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     getBankAccount(bankId: BankId, accountId: AccountId, callContext)
   }  
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = 
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = 
     Future {
-      getBankAccount(bankId: BankId, accountId: AccountId, callContext)
+      (getBankAccount(bankId: BankId, accountId: AccountId, callContext).map(_._1), callContext)
     }
   
   override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {

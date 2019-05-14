@@ -309,7 +309,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[AccountHeld]]]= Future {(Failure(setUnimplementedError), callContext)}
 
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
-  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Future[Box[(BankAccount, Option[CallContext])]] = Future {Failure(setUnimplementedError)}
+  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError), callContext)}
 
   /**
     * This method is just return an empty account to AccountType.

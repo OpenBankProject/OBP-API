@@ -611,7 +611,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /checkBankAccountExistsFuture/bankId/{bankId}/accountId/{accountId}
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = saveConnectorMetric {
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

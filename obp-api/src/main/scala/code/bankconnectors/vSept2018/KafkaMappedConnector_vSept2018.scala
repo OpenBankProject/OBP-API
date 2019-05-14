@@ -1026,10 +1026,36 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     }
   }("getBankAccount")
 
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) =
-    Future {
-      checkBankAccountExists(bankId, accountId, callContext)
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+  /**
+    * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+    * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+    * The real value will be assigned by Macro during compile time at this line of a code:
+    * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+    */
+  var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+  CacheKeyFromArguments.buildCacheKey {
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
+      val req = OutboundCheckBankAccountExists(
+        authInfo = getAuthInfo(callContext).openOrThrowException(NoCallContext),
+        bankId = bankId.toString,
+        accountId = accountId.value
+        )       
+      
+      logger.debug(s"Kafka checkBankAccountExists says: req is: $req")
+        
+      processRequest[InboundCheckBankAccountExists](req) map { inbound =>
+      val boxedResult = inbound match {
+        case Full(inboundGetTransactions) if (inboundGetTransactions.status.hasNoError) =>
+          Full((new BankAccountSept2018(inboundGetTransactions.data.head)))
+        case Full(inbound) if (inbound.status.hasError) =>
+          Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+        case failureOrEmpty: Failure => failureOrEmpty
+      }
+         
+      (boxedResult, callContext)
     }
+  }}}
   
   messageDocs += MessageDoc(
     process = "obp.getCoreBankAccounts",
@@ -1271,6 +1297,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getTransactions")
   
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) = saveConnectorMetric{
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(transactionsTTL second) {
+      
     val limit = queryParams.collect { case OBPLimit(value) => value}.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString}.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString}.headOption.getOrElse(APIUtil.DefaultToDate.toString)
@@ -1283,58 +1318,23 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       fromDate = fromDate,
       toDate = toDate
     )
-    
-    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCoreCached to cache data.
-    //Note: getTransactionsCoreCached and getTransactionsCached have the same parameters,but the different method name.
-    def getTransactionsCoreCached(req:OutboundGetTransactions): Box[(List[TransactionCore], Option[CallContext])] = {
-      /**
-        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-        * The real value will be assigned by Macro during compile time at this line of a code:
-        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-        */
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(transactionsTTL second) {
-          logger.debug(s"Kafka getTransactions says: req is: $req")
-          val box = for {
-            kafkaMessage <- processToBox[OutboundGetTransactions](req)
-            received = liftweb.json.compactRender(kafkaMessage)
-            expected = SchemaFor[InboundGetTransactions]().toString(false)
-            inboundGetTransactions <- tryo {
-              kafkaMessage.extract[InboundGetTransactions]
-            } ?~! s"$InvalidConnectorResponseForGetTransactions $ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransactions class with the Message Doc : You received this ($received). We expected this ($expected)"
-            (internalTransactions, status) <- Full(inboundGetTransactions.data, inboundGetTransactions.status)
-          } yield {
-            (internalTransactions, status)
-          }
-          logger.debug(s"Kafka getTransactions says: res is: $box")
+    logger.debug(s"Kafka getTransactions says: req is: $req")
 
-          box match {
-            case Full((data, status)) if (status.errorCode != "") =>
-              Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages)
-            case Full((data, status)) if (!data.forall(x => x.accountId == accountId.value && x.bankId == bankId.value)) =>
-              Failure(InvalidConnectorResponseForGetTransactions)
-            case Full((data, status)) if (status.errorCode == "") =>
-              for{
-                (thisBankAccount, callContext) <- checkBankAccountExists(BankId(data.head.bankId), AccountId(data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
-                transaction <- createInMemoryTransactionsCore(thisBankAccount, data)
-              } yield {
-                (transaction, callContext)
-              }
-            case Empty =>
-              Failure(ErrorMessages.ConnectorEmptyResponse)
-            case Failure(msg, e, c) =>
-              Failure(msg, e, c)
-            case _ =>
-              Failure(ErrorMessages.UnknownError)
+    processRequest[InboundGetTransactions](req) map { inbound =>
+      val boxedResult: Box[List[TransactionCore]] = inbound match {
+        case Full(inboundGetTransactions) if (inboundGetTransactions.status.hasNoError) =>
+          for{
+            (thisBankAccount, callContext) <- checkBankAccountExists(BankId(inboundGetTransactions.data.head.bankId), AccountId(inboundGetTransactions.data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
+            transaction <- createInMemoryTransactionsCore(thisBankAccount, inboundGetTransactions.data)
+          } yield {
+            (transaction)
           }
-        }
+        case Full(inbound) if (inbound.status.hasError) =>
+          Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+        case failureOrEmpty: Failure => failureOrEmpty
       }
-    }
-    Future{getTransactionsCoreCached(req)}
-    
-  }("getTransactions")
+      (boxedResult, callContext)
+    }}}}("getTransactions")
   
   messageDocs += MessageDoc(
     process = "obp.getTransaction",

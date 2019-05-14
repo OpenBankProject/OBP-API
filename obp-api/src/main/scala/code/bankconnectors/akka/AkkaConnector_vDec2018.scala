@@ -156,10 +156,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
-  override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccount, Option[CallContext])]] = {
+  override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) = {
     val req = OutBoundCheckBankAccountExistsFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
     val response: Future[InBoundCheckBankAccountExistsFuture] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExistsFuture]
-    response.map(a =>(Full(a.data, callContext)))
+    response.map(a =>(Full(a.data), callContext))
     
   }
 

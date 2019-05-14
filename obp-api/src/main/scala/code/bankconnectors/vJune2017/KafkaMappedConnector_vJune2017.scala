@@ -653,7 +653,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
   override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) =
     Future {
-      checkBankAccountExists(bankId, accountId, callContext)
+      (checkBankAccountExists(bankId, accountId, callContext).map(_._1), callContext)
     }
   
   messageDocs += MessageDoc(
