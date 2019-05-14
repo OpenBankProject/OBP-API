@@ -47,28 +47,28 @@ class KafkaTest extends KafkaSetup {
 
       result should be (Full(inBound))
     }
-//
-//    /**
-//      * override val bankId: String,
-//      * override val customerId: String,
-//      * override val customerNumber : String,
-//      * override val ok : Boolean,
-//      * override val date : Date
-//      */
-//    scenario("Send and retrieve api message") {
-//      When("send a OutboundGetKycStatuses api message")
-//      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
-//      val kycStatusCommons = KycStatusCommons(bankId = "hello_bank_id", customerId = "hello_customer_id", customerNumber = "hello_customer_number", ok = true, date = new Date())
-//      val singleInboundBank = List(kycStatusCommons)
-//      val inboundAdapterCallContext = InboundAdapterCallContext(correlationId="some_correlationId")
-//      val inBound = InBoundGetKycStatuses(inboundAdapterCallContext, Status("", List(emptyStatusMessage)), singleInboundBank)
-//
-//      dispathResponse(inBound)
-//
-//      val future = KafkaMappedConnector_vSept2018.getKycStatuses(kycStatusCommons.customerId, Some(CallContext()))
-//      val result: (Box[List[KycStatus]], Option[CallContext]) =  Await.result(future, waitTime)
-//      val expectResult = Full(singleInboundBank)
-//      result._1 should be equals(expectResult)
-//    }
+
+    /**
+      * override val bankId: String,
+      * override val customerId: String,
+      * override val customerNumber : String,
+      * override val ok : Boolean,
+      * override val date : Date
+      */
+    scenario("test `getKycStatuses` method") {
+      When("send a OutboundGetKycStatuses api message")
+      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
+      val kycStatusCommons = KycStatusCommons(bankId = "hello_bank_id", customerId = "hello_customer_id", customerNumber = "hello_customer_number", ok = true, date = new Date())
+      val singleInboundBank = List(kycStatusCommons)
+      val inboundAdapterCallContext = InboundAdapterCallContext(correlationId="some_correlationId")
+      val inBound = InBoundGetKycStatuses(inboundAdapterCallContext, Status("", List(emptyStatusMessage)), singleInboundBank)
+
+      dispathResponse(inBound)
+
+      val future = KafkaMappedConnector_vSept2018.getKycStatuses(kycStatusCommons.customerId, Some(CallContext()))
+      val result: (Box[List[KycStatus]], Option[CallContext]) =  Await.result(future, waitTime)
+      val expectResult = Full(singleInboundBank)
+      result._1 should be equals(expectResult)
+    }
   }
 }

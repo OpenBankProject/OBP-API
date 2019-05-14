@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
-  with BeforeAndAfterEach with GivenWhenThen
+  with GivenWhenThen with BeforeAndAfterAll
   with Matchers with MdcLoggable {
 
 
@@ -30,8 +30,8 @@ trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
     .toMap
   lazy val requestTopics = requestMapResponseTopics.keySet
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
+  override def beforeAll(): Unit = {
+    super.beforeAll()
 
     EmbeddedKafka.start()
 
@@ -43,8 +43,8 @@ trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
     }
   }
 
-  override def afterEach(): Unit = {
-    super.afterEach()
+  override def afterAll(): Unit = {
+    super.afterAll()
     OBPKafkaConsumer.primaryConsumer.complete()
     EmbeddedKafka.stop()
   }
