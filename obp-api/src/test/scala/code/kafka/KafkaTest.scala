@@ -2,8 +2,8 @@ package code.kafka
 
 import java.util.Date
 
-import code.api.util.{CallContext, ExampleValue}
-import code.bankconnectors.vMar2017.{InboundBank}
+import code.api.util.{APIUtil, CallContext, ExampleValue}
+import code.bankconnectors.vMar2017.InboundBank
 import code.bankconnectors.vSept2018._
 import code.setup.KafkaSetup
 import com.openbankproject.commons.dto.InBoundGetKycStatuses
@@ -20,42 +20,55 @@ class KafkaTest extends KafkaSetup {
 
 
   feature("Send and retrieve message") {
-    scenario("Send and retrieve message directly to and from kafka") {
-      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
-      val inBound = InboundGetBanks(InboundAuthInfo("", ""), Status("", List(emptyStatusMessage)), List(InboundBank("1", "2", "3", "4")))
-      When("send a OutboundGetBanks message")
+    scenario("1st test `getObpApiLoopback` method, there no need Adapter message for this method!") {
+      //This method is only used for `kafka` connector, should first set `connector=kafka_vSept2018` in test.default.props. 
+      val expectedConnectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed not set")
+      expectedConnectorVersion contains ("kafka") should be (true)
 
-      dispathResponse(inBound)
-      val req = OutboundGetBanks(AuthInfo())
+      When("We call this method, and get the response. ")
+      val future = KafkaMappedConnector_vSept2018.getObpApiLoopback(Some(CallContext()))
+      val result: (Box[ObpApiLoopback], Option[CallContext]) =  Await.result(future, waitTime)
 
-      val future = processToFuture[OutboundGetBanks](req)
-      val result:json.JValue =  Await.result(future, waitTime)
-
-      val banks = result.extract[InboundGetBanks]
-      banks should be equals (inBound)
+      Then("If it return value successfully, that mean api <--> kafka is working well. We only need check one filed of response.")
+      val connectorVersion= result._1.map(_.connectorVersion)
+      connectorVersion should be (Full(expectedConnectorVersion))
     }
-
-    /**
-      * override val bankId: String,
-      * override val customerId: String,
-      * override val customerNumber : String,
-      * override val ok : Boolean,
-      * override val date : Date
-      */
-    scenario("Send and retrieve api message") {
-      When("send a OutboundGetKycStatuses api message")
-      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
-      val kycStatusCommons = KycStatusCommons(bankId = "hello_bank_id", customerId = "hello_customer_id", customerNumber = "hello_customer_number", ok = true, date = new Date())
-      val singleInboundBank = List(kycStatusCommons)
-      val inboundAdapterCallContext = InboundAdapterCallContext(correlationId="some_correlationId")
-      val inBound = InBoundGetKycStatuses(inboundAdapterCallContext, Status("", List(emptyStatusMessage)), singleInboundBank)
-
-      dispathResponse(inBound)
-
-      val future = KafkaMappedConnector_vSept2018.getKycStatuses(kycStatusCommons.customerId, Some(CallContext()))
-      val result: (Box[List[KycStatus]], Option[CallContext]) =  Await.result(future, waitTime)
-      val expectResult = Full(singleInboundBank)
-      result._1 should be equals(expectResult)
-    }
+//    scenario("Send and retrieve message directly to and from kafka") {
+//      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
+//      val inBound = InboundGetBanks(InboundAuthInfo("", ""), Status("", List(emptyStatusMessage)), List(InboundBank("1", "2", "3", "4")))
+//      When("send a OutboundGetBanks message")
+//
+//      dispathResponse(inBound)
+//      val req = OutboundGetBanks(AuthInfo())
+//
+//      val future = processToFuture[OutboundGetBanks](req)
+//      val result:json.JValue =  Await.result(future, waitTime)
+//
+//      val banks = result.extract[InboundGetBanks]
+//      banks should be equals (inBound)
+//    }
+//
+//    /**
+//      * override val bankId: String,
+//      * override val customerId: String,
+//      * override val customerNumber : String,
+//      * override val ok : Boolean,
+//      * override val date : Date
+//      */
+//    scenario("Send and retrieve api message") {
+//      When("send a OutboundGetKycStatuses api message")
+//      val emptyStatusMessage = InboundStatusMessage("", "", "", "")
+//      val kycStatusCommons = KycStatusCommons(bankId = "hello_bank_id", customerId = "hello_customer_id", customerNumber = "hello_customer_number", ok = true, date = new Date())
+//      val singleInboundBank = List(kycStatusCommons)
+//      val inboundAdapterCallContext = InboundAdapterCallContext(correlationId="some_correlationId")
+//      val inBound = InBoundGetKycStatuses(inboundAdapterCallContext, Status("", List(emptyStatusMessage)), singleInboundBank)
+//
+//      dispathResponse(inBound)
+//
+//      val future = KafkaMappedConnector_vSept2018.getKycStatuses(kycStatusCommons.customerId, Some(CallContext()))
+//      val result: (Box[List[KycStatus]], Option[CallContext]) =  Await.result(future, waitTime)
+//      val expectResult = Full(singleInboundBank)
+//      result._1 should be equals(expectResult)
+//    }
   }
 }

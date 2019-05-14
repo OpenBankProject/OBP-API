@@ -35,8 +35,6 @@ trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
 
     EmbeddedKafka.start()
 
-    createCustomTopic("Request", Map.empty, 10, 1)
-    createCustomTopic("Response", Map.empty, 10, 1)
     if(!OBPKafkaConsumer.primaryConsumer.started){
       val actorSystem = ObpActorSystem.startLocalActorSystem
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
