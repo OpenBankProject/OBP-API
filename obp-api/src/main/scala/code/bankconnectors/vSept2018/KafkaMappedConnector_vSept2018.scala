@@ -481,45 +481,23 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       */
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second){
         val req = OutboundGetBanks(AuthInfo())
-        logger.debug(s"Kafka getBanksFuture Req is: $req")
 
-        val future = for {
-          res <- processToFuture[OutboundGetBanks](req) map {
-            f =>
-              try {
-                f.extract[InboundGetBanks]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetBanks]().toString(false)
-                  val err = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetBanks class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
-              }
-          } map {
-            (x => (x.data, x.status))
+        logger.debug(s"Kafka getBanksFuture says: req is: $req")
+
+        processRequest[InboundGetBanks](req) map { inbound =>
+          val boxedResult = inbound match {
+            case Full(inboundGetTransactions) if (inboundGetTransactions.status.hasNoError) =>
+              Full((inboundGetTransactions.data.map((new Bank2(_)))))
+            case Full(inbound) if (inbound.status.hasError) =>
+              Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+            case failureOrEmpty: Failure => failureOrEmpty
           }
-        } yield {
-          Full(res)
-        }
 
-        val res = future map {
-          case Full((banks, status)) if (status.errorCode=="") =>
-            val banksResponse =  banks map (new Bank2(_))
-            logger.debug(s"Kafka getBanksFuture Res says:  is: $banksResponse")
-            Full((banksResponse, callContext))
-          case Full((banks, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
+          (boxedResult, callContext)
         }
-        logger.debug(s"Kafka getBanksFuture says res is $res")
-        res
-      }
-    }
-  }("getBanks")
+      }}}("getBanks")
 
   messageDocs += MessageDoc(
     process = "obp.getBank",
