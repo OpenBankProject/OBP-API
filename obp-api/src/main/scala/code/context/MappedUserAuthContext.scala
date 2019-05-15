@@ -10,8 +10,8 @@ class MappedUserAuthContext extends UserAuthContext with LongKeyedMapper[MappedU
 
   object mUserAuthContextId extends MappedUUID(this)
   object mUserId extends UUIDString(this)
-  object mKey extends MappedString(this, 50)
-  object mValue extends MappedString(this, 50)
+  object mKey extends MappedString(this, 255)
+  object mValue extends MappedString(this, 255)
 
   override def userId = mUserId.get   
   override def key = mKey.get  
