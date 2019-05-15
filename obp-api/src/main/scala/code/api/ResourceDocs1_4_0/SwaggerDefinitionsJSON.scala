@@ -2459,10 +2459,16 @@ object SwaggerDefinitionsJSON {
     warehouse = List(warehouseJSON)
   )
   
+  val scopesJSON = ScopesJSON(
+    require_scopes_for_all_roles = true, 
+    require_scopes_for_listed_roles = List(CanCreateUserAuthContextUpdate.toString())
+  )
+  
   val configurationJSON = ConfigurationJSON(
     akka = akkaJSON,
     elastic_search = elasticSearchJSON,
-    cache = List(cachedFunctionJSON)
+    cache = List(cachedFunctionJSON),
+    scopesJSON
   )
   
   val connectorMetricJson = ConnectorMetricJson(

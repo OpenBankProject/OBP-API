@@ -171,7 +171,7 @@ case class AccountWebhookPutJson(account_webhook_id: String,
 
 case class AccountWebhooksJson(web_hooks: List[AccountWebhookJson])
 
-case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON])
+case class ConfigurationJsonV310(default_bank_id: String, akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON], scopes: ScopesJSON)
 
 
 case class PostCustomerJsonV310(
@@ -576,7 +576,13 @@ object JSONFactory310{
   def getConfigInfoJSON(): ConfigurationJsonV310 = {
     val configurationJson: ConfigurationJSON = JSONFactory220.getConfigInfoJSON()
     val defaultBankId= APIUtil.defaultBankId
-    ConfigurationJsonV310(defaultBankId,configurationJson.akka,configurationJson.elastic_search, configurationJson.cache)
+    ConfigurationJsonV310(
+      defaultBankId,
+      configurationJson.akka,
+      configurationJson.elastic_search, 
+      configurationJson.cache,
+      configurationJson.scopes
+    )
   }
 
   def createCustomerJson(cInfo : Customer) : CustomerJsonV310 = {
