@@ -1,7 +1,7 @@
 package code.api.util
 
 import code.api.util.APIUtil.{getOAuth2ServerUrl, getObpApiRoot, getServerUrl}
-import code.api.util.ExampleValue._
+import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
 
 import scala.collection.mutable.ArrayBuffer
 
