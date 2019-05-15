@@ -5,13 +5,14 @@ import code.api.util.CustomJsonFormats
 import code.kafka._
 import code.util.Helper.MdcLoggable
 import net.liftweb.json
-import net.liftweb.json.{DefaultFormats, Extraction}
+import net.liftweb.json.Extraction
 import net.manub.embeddedkafka.{EmbeddedKafka, EmbeddedKafkaConfig}
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 import org.scalatest.{FeatureSpec, _}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.{Duration, _}
 
 trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
   with GivenWhenThen with BeforeAndAfterAll
@@ -56,7 +57,10 @@ trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
     * @tparam T Outbound type
     */
   def dispathResponse(inBound: AnyRef): Unit = {
-    val inBoundStr = json.compactRender(Extraction.decompose(inBound))
+    val inBoundStr = inBound match {
+      case str: String => str
+      case _ =>json.compactRender(Extraction.decompose(inBound))
+    }
     Future{
       val requestKeyValue = consumeNumberKeyedMessagesFromTopics(requestTopics, 1, true)
       val (requestTopic, keyValueList) = requestKeyValue.find(_._2.nonEmpty).get
@@ -66,4 +70,7 @@ trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
     }
   }
 
+    implicit class FutureExtract[T](future: Future[T]) {
+      def getContent: T = Await.result(future, 10 seconds)
+    }
 }

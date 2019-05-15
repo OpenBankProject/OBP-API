@@ -9,14 +9,10 @@ import code.setup.KafkaSetup
 import com.openbankproject.commons.dto.{InBoundGetKycChecks, InBoundGetKycMedias, InBoundGetKycStatuses}
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json
 
 import scala.collection.immutable.List
-import scala.concurrent.Await
-import scala.concurrent.duration.{Duration, _}
 
 class KafkaTest extends KafkaSetup {
-  val waitTime: Duration = (10 second)
 
 
   feature("Send and retrieve message") {
@@ -27,7 +23,7 @@ class KafkaTest extends KafkaSetup {
 
       When("We call this method, and get the response. ")
       val future = KafkaMappedConnector_vSept2018.getObpApiLoopback(Some(CallContext()))
-      val result: (Box[ObpApiLoopback], Option[CallContext]) =  Await.result(future, waitTime)
+      val result: (Box[ObpApiLoopback], Option[CallContext]) =  future.getContent
 
       Then("If it return value successfully, that mean api <--> kafka is working well. We only need check one filed of response.")
       val connectorVersion= result._1.map(_.connectorVersion)
@@ -43,18 +39,11 @@ class KafkaTest extends KafkaSetup {
       val req = OutboundGetBanks(AuthInfo())
 
       val future = processRequest[InboundGetBanks](req)
-      val result: Box[InboundGetBanks] = Await.result(future, waitTime)
+      val result: Box[InboundGetBanks] = future.getContent
 
       result should be (Full(inBound))
     }
 
-    /**
-      * override val bankId: String,
-      * override val customerId: String,
-      * override val customerNumber : String,
-      * override val ok : Boolean,
-      * override val date : Date
-      */
     scenario("test `getKycStatuses` method") {
       When("send a OutboundGetKycStatuses api message")
       val emptyStatusMessage = InboundStatusMessage("", "", "", "")
@@ -64,9 +53,9 @@ class KafkaTest extends KafkaSetup {
       val inBound = InBoundGetKycStatuses(inboundAdapterCallContext, Status("", List(emptyStatusMessage)), singleInboundBank)
 
       dispathResponse(inBound)
-
       val future = KafkaMappedConnector_vSept2018.getKycStatuses(kycStatusCommons.customerId, Some(CallContext()))
-      val result: (Box[List[KycStatus]], Option[CallContext]) =  Await.result(future, waitTime)
+
+      val result: (Box[List[KycStatus]], Option[CallContext]) =  future.getContent
       val expectResult = Full(singleInboundBank)
       result._1 should be equals(expectResult)
       result._1 should be equals(123)
@@ -80,7 +69,7 @@ class KafkaTest extends KafkaSetup {
       dispathResponse(inBound)
 
       val future = KafkaMappedConnector_vSept2018.getKycChecks(inBound.data.head.customerId, Some(CallContext()))
-      val result: (Box[List[KycCheck]], Option[CallContext]) =  Await.result(future, waitTime)
+      val result: (Box[List[KycCheck]], Option[CallContext]) =  future.getContent
       val expectResult = Full(inBound.data)
       result._1.toString should be (expectResult.toString)
     }
@@ -90,9 +79,9 @@ class KafkaTest extends KafkaSetup {
       val inBound = KafkaMappedConnector_vSept2018.messageDocs.filter(_.process =="obp.getKycMedias").map(_.exampleInboundMessage).head.asInstanceOf[InBoundGetKycMedias]
 
       dispathResponse(inBound)
-
       val future = KafkaMappedConnector_vSept2018.getKycMedias(inBound.data.head.customerId, Some(CallContext()))
-      val result: (Box[List[KycMedia]], Option[CallContext]) =  Await.result(future, waitTime)
+
+      val result: (Box[List[KycMedia]], Option[CallContext]) =  future.getContent
       val expectResult = Full(inBound.data)
       result._1.toString should be (expectResult.toString)
     }

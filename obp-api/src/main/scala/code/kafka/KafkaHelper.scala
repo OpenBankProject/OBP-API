@@ -97,7 +97,7 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
       }
       .recover {
         case e: ParseException => Failure(s"${ConnectorEmptyResponse} parse response payload to JValue fail. ${e.getMessage}", Box !! (e.getCause) or Full(e), Empty)
-        case e: AskTimeoutException => Failure(s"${KafkaUnknownError} Timeout error, because no response return from kafka server.", Full(e), Empty)
+        case e: AskTimeoutException => Failure(s"${KafkaUnknownError} Timeout error, because no response return from kafka server ", Full(e), Empty)
         case e @ (_:AuthenticationException| _:AuthorizationException|
                   _:IllegalStateException| _:InterruptException|
                   _:SerializationException| _:TimeoutException|
