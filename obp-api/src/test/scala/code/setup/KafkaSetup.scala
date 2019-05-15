@@ -25,11 +25,11 @@ trait KafkaSetup extends FeatureSpec with EmbeddedKafka with KafkaHelper
   implicit val stringSerializer = new StringSerializer
   implicit val stringDeserializer = new StringDeserializer
 
-  lazy val requestMapResponseTopics:Map[String, String] =  NorthSideConsumer.listOfTopics
+  val requestMapResponseTopics:Map[String, String] =  NorthSideConsumer.listOfTopics
     .map(Topics.createTopicByClassName)
     .map(pair => (pair.request, pair.response))
     .toMap
-  lazy val requestTopics = requestMapResponseTopics.keySet
+  val requestTopics = requestMapResponseTopics.keySet
 
   override def beforeAll(): Unit = {
     super.beforeAll()
