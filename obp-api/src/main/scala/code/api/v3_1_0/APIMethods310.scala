@@ -1078,7 +1078,7 @@ trait APIMethods310 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            (ai,cc) <- NewStyle.function.getAdapterInfo(callContext)
+            (ai,_) <- NewStyle.function.getAdapterInfo(callContext)
           } yield {
             (createAdapterInfoJson(ai), HttpCode.`200`(callContext))
           }

@@ -139,7 +139,6 @@ class CustomerAddressTest extends V310ServerSetup {
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "address").POST <@(user1)
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
       Then("We should get a 400")
-      org.scalameta.logger.elem(response310)
       response310.code should equal(400)
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
