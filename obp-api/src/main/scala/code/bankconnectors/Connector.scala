@@ -84,6 +84,7 @@ object Connector extends SimpleInjector {
       case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case "rest_vMar2019" => RestConnector_vMar2019
+      case "star" => StarConnector
       case _ => throw new RuntimeException(s"Do not Support this connector version: $connectorVersion")
     }
   }
@@ -120,7 +121,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
   val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
   val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
-  val createCustomerFutureTTL = getSecondsCache("createCustomerFuture")
+  val createCustomerTTL = getSecondsCache("createCustomer")
   val branchesTTL = getSecondsCache("getBranches") 
   val branchTTL = getSecondsCache("getBranch")
   val atmsTTL = getSecondsCache("getAtms")
@@ -128,6 +129,28 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
   val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   
+  /**
+    * convert original return type future to OBPReturnType
+    *
+    * @param future original return type
+    * @tparam T future success value type
+    * @return OBPReturnType type future
+    */
+  implicit def futureReturnTypeToOBPReturnType[T](future: Future[Box[(T, Option[CallContext])]]): OBPReturnType[Box[T]] = future map {
+    boxedTuple => (boxedTuple.map(_._1), boxedTuple.map(_._2).getOrElse(None))
+  }
+
+  /**
+    * convert OBPReturnType return type to original future type
+    *
+    * @param future OBPReturnType return type
+    * @tparam T future success value type
+    * @return original future type
+    */
+  implicit def OBPReturnTypeToFutureReturnType[T](value: OBPReturnType[Box[T]]): Future[Box[(T, Option[CallContext])]] = value.map {
+    tuple => tuple._1.map((_, tuple._2))
+  }
+
   /**
     * This method will return the method name of the current calling method.
     * The scala compiler will tweak the method name, so we need clean the `getMethodName` return value. 
@@ -289,7 +312,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[AccountHeld]]]= Future {(Failure(setUnimplementedError), callContext)}
 
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
-  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Future[Box[(BankAccount, Option[CallContext])]] = Future {Failure(setUnimplementedError)}
+  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError), callContext)}
 
   /**
     * This method is just return an empty account to AccountType.
@@ -353,7 +376,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     val result: Box[(List[Transaction], Option[CallContext])] = getTransactions(bankId, accountID, callContext, queryParams: _*)
     Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
   }
-  def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])]= Failure(setUnimplementedError)
+  def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(setUnimplementedError)
   def getTransactionFuture(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
@@ -1072,7 +1095,24 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   ): Box[(Bank, BankAccount)] = Failure(setUnimplementedError)
 
   //generates an unused account number and then creates the sandbox account using that number
-  def createSandboxBankAccount(
+  //TODO, this is new style method, it return future, but do not use it yet. only for messageDoc now.
+  def createBankAccount(
+                         bankId: BankId,
+                         accountId: AccountId,
+                         accountType: String,
+                         accountLabel: String,
+                         currency: String,
+                         initialBalance: BigDecimal,
+                         accountHolderName: String,
+                         branchId: String,
+                         accountRoutingScheme: String,
+                         accountRoutingAddress: String,
+                         callContext: Option[CallContext]
+                       ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  //generates an unused account number and then creates the sandbox account using that number
+  @deprecated("This return Box, not a future, try to use @createBankAccount instead. ","10-05-2019")
+  def createBankAccountLegacy(
     bankId: BankId,
     accountId: AccountId,
     accountType: String,
@@ -1397,7 +1437,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     customerNumber : String
   ) : Future[Box[Boolean]] = Future{Failure(setUnimplementedError)}
   
-  def createCustomerFuture(
+  def createCustomer(
                       bankId: BankId,
                       legalName: String,
                       mobileNumber: String,
@@ -1414,11 +1454,11 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                       lastOkDate: Date,
                       creditRating: Option[CreditRatingTrait],
                       creditLimit: Option[AmountOfMoneyTrait],
-                      callContext: Option[CallContext] = None,
                       title: String,
                       branchId: String,
-                      nameSuffix: String
-                    ): Future[Box[Customer]] = Future{Failure(setUnimplementedError)}
+                      nameSuffix: String,
+                      callContext: Option[CallContext],
+                    ): OBPReturnType[Box[Customer]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(setUnimplementedError)}
 
