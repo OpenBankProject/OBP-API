@@ -57,6 +57,8 @@ import scala.math.BigInt
 import scala.util.Random
 import scala.concurrent.duration._
 
+import code.bankconnectors.StarConnector
+
 /*
 So we can switch between different sources of resources e.g.
 - Mapper ORM for connecting to RDBMS (via JDBC) https://www.assembla.com/wiki/show/liftweb/Mapper
@@ -84,6 +86,7 @@ object Connector extends SimpleInjector {
       case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case "rest_vMar2019" => RestConnector_vMar2019
+      case "star" => StarConnector
       case _ => throw new RuntimeException(s"Do not Support this connector version: $connectorVersion")
     }
   }
