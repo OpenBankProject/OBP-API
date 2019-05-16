@@ -56,6 +56,7 @@ trait APIMetrics {
                  implementedByPartialFunction: String,
                  implementedInVersion: String,
                  verb: String,
+                 httpCode: Option[Int],
                  correlationId: String): Unit
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
@@ -80,7 +81,7 @@ trait APIMetrics {
 }
 
 class RemotedataMetricsCaseClasses {
-  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String)
+  case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String)
 //  case class getAllGroupedByUrl()
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
@@ -106,6 +107,7 @@ trait APIMetric {
   def getImplementedByPartialFunction() : String
   def getImplementedInVersion() : String
   def getVerb() : String
+  def getHttpCode() : Int
   def getCorrelationId(): String
 
 }
