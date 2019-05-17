@@ -1,23 +1,21 @@
 package code.views
 
 import code.api.util.ErrorMessages.ViewIdNotSupported
-import code.model._
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 import net.liftweb.common.Failure
-import net.liftweb.mapper.By
 
 class MappedViewsTest extends ServerSetup with DefaultUsers{
   
   override def beforeAll() = {
     super.beforeAll()
-    ViewImpl.bulkDelete_!!()
+    ViewDefinition.bulkDelete_!!()
   }
   
   override def afterEach() = {
     super.afterEach()
-    ViewImpl.bulkDelete_!!()
+    ViewDefinition.bulkDelete_!!()
   }
   
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))

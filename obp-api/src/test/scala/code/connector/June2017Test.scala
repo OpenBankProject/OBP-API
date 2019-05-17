@@ -2,7 +2,6 @@ package code.connector
 
 import code.accountholders.MapperAccountHolders
 import code.bankconnectors.Connector
-import code.model.dataAccess.ViewImpl
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.system.ViewDefinition
 
@@ -19,7 +18,7 @@ class June2017Test extends ServerSetup with DefaultUsers {
   override def afterEach() = {
     super.afterEach()
     Connector.connector.default.set(Connector.buildOne)
-    ViewImpl.bulkDelete_!!()
+    ViewDefinition.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
   }
   
