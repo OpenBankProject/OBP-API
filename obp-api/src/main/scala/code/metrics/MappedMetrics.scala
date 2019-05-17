@@ -25,8 +25,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   val cachedTopApis = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopApis", "7").toInt
   val cachedTopConsumers = APIUtil.getPropsValue(s"MappedMetrics.cache.ttl.seconds.getTopConsumers", "7").toInt
 
-  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,correlationId: String): Unit = {
-    MappedMetric.create
+  override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
+    val metric = MappedMetric.create
       .userId(userId)
       .url(url)
       .date(date)
@@ -39,7 +39,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .implementedInVersion(implementedInVersion)
       .verb(verb)
       .correlationId(correlationId)
-      .save
+      
+    httpCode match {
+      case Some(code) => metric.httpCode(code)
+      case None =>
+    }
+    metric.save
   }
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
@@ -522,6 +527,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   object implementedInVersion  extends MappedString(this, 16)
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
+  object httpCode extends MappedInt(this)
   object correlationId extends MappedUUID(this)
 
 
@@ -536,6 +542,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
   override def getImplementedInVersion(): String = implementedInVersion.get
   override def getVerb(): String = verb.get
+  override def getHttpCode(): Int = httpCode.get
   override def getCorrelationId(): String = correlationId.get
 }
 
