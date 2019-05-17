@@ -2459,10 +2459,16 @@ object SwaggerDefinitionsJSON {
     warehouse = List(warehouseJSON)
   )
   
+  val scopesJSON = ScopesJSON(
+    require_scopes_for_all_roles = true, 
+    require_scopes_for_listed_roles = List(CanCreateUserAuthContextUpdate.toString())
+  )
+  
   val configurationJSON = ConfigurationJSON(
     akka = akkaJSON,
     elastic_search = elasticSearchJSON,
-    cache = List(cachedFunctionJSON)
+    cache = List(cachedFunctionJSON),
+    scopesJSON
   )
   
   val connectorMetricJson = ConnectorMetricJson(
@@ -3207,7 +3213,9 @@ object SwaggerDefinitionsJSON {
   
   val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
   
-  val oAuth2ServerJwksUrisJson = OAuth2ServerJwksUrisJson(List(OAuth2ServerJWKURIJson("https://www.googleapis.com/oauth2/v3/certs")))
+  val oAuth2ServerJWKURIJson = OAuth2ServerJWKURIJson("https://www.googleapis.com/oauth2/v3/certs")
+  
+  val oAuth2ServerJwksUrisJson = OAuth2ServerJwksUrisJson(List(oAuth2ServerJWKURIJson))
   
   //The common error or success format.
   //Just some helper format to use in Json 

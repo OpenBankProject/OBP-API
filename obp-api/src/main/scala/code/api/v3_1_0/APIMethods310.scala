@@ -3169,7 +3169,7 @@ trait APIMethods310 {
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
-            messageDocsSwagger = AkkaConnector_vDec2018.messageDocs.map(toResourceDoc).toList
+            messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
             json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(messageDocsSwagger, ApiVersion.v3_1_0)}
             //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
@@ -3234,13 +3234,13 @@ trait APIMethods310 {
       apiTagConsent :: apiTagNewStyle :: Nil)
 
     lazy val createConsent : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "my" :: "consents"  :: sca_method :: Nil JsonPost json -> _  => {
+      case "banks" :: BankId(bankId) :: "my" :: "consents"  :: scaMethod :: Nil JsonPost json -> _  => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
-              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == sca_method)
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3254,8 +3254,9 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            sca_method match {
+            scaMethod match {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
+                org.scalameta.logger.elem(scaMethod)
                 val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
                 Mailer.sendMail(
                   From("challenge@tesobe.com"),
@@ -3419,10 +3420,14 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createUserAuthContextUpdate),
       "POST",
-      "/users/current/auth-context-updates",
+      "/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD",
       "Create User Auth Context Update",
       s"""Create User Auth Context Update.
          |${authenticationRequiredMessage(true)}
+         |
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+         |
          |""",
       postUserAuthContextJson,
       userAuthContextUpdateJson,
@@ -3436,18 +3441,37 @@ trait APIMethods310 {
       List(apiTagUser, apiTagNewStyle))
 
     lazy val createUserAuthContextUpdate : OBPEndpoint = {
-      case "users" :: "current" ::"auth-context-updates" :: Nil JsonPost  json -> _ => {
+      case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates" :: scaMethod :: Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate) {
+              checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
+            }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
             (_, callContext) <- NewStyle.function.findByUserId(user.userId, callContext)
-            (userAuthContextUdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(user.userId, postedData.key, postedData.value, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.value, bankId, callContext)
+            (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(user.userId, postedData.key, postedData.value, callContext)
           } yield {
-            (JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUdate), HttpCode.`201`(callContext))
+            scaMethod match {
+              case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
+                val params = PlainMailBodyType(userAuthContextUpdate.challenge) :: List(To(customer.email))
+                Mailer.sendMail(
+                  From("challenge@tesobe.com"),
+                  Subject("Challenge request"),
+                  params :_*
+                )
+              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+              case _ => // Not handled
+            }
+            (JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`201`(callContext))
           }
       }
     }

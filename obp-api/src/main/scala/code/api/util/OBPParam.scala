@@ -44,6 +44,11 @@ case class OBPConnectorName(value: String) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam
 
 object OBPQueryParam {
+  val LIMIT = "limit"
+  val OFFSET = "offset"
+  val FROM_DATE = "fromDate"
+  val TO_DATE = "toDate"
+
   def getLimit(queryParams: OBPQueryParam*) : Int = {
      queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
   }

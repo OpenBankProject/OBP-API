@@ -25,6 +25,7 @@ case class OutboundGetAccounts(authInfo: AuthInfo, customers:InternalBasicCustom
 case class OutboundGetAccountbyAccountID(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
 case class OutboundCheckBankAccountExists(authInfo: AuthInfo, bankId: String, accountId: String)extends TopicTrait
 case class OutboundGetCoreBankAccounts(authInfo: AuthInfo, bankIdAccountIds: List[BankIdAccountId])extends TopicTrait
+case class OutboundGetBankAccountsHeld(authInfo: AuthInfo, bankIdAccountIds: List[BankIdAccountId])extends TopicTrait
 case class OutboundGetTransactions(authInfo: AuthInfo,bankId: String, accountId: String, limit: Int, fromDate: String, toDate: String) extends TopicTrait
 case class OutboundGetTransaction(authInfo: AuthInfo, bankId: String, accountId: String, transactionId: String) extends TopicTrait
 case class OutboundGetBranches(authInfo: AuthInfo,bankId: String) extends TopicTrait
@@ -130,6 +131,7 @@ case class InboundGetBanks(inboundAuthInfo: InboundAuthInfo, status: Status,data
 case class InboundGetBank(inboundAuthInfo: InboundAuthInfo, status: Status, data: InboundBank)
 case class InboundGetAccounts(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InboundAccountSept2018])
 case class InboundGetAccountbyAccountID(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InboundAccountSept2018])
+case class InboundGetBankAccountsHeld(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[AccountHeld])
 case class InboundCheckBankAccountExists(inboundAuthInfo: InboundAuthInfo, status: Status, data: Option[InboundAccountSept2018])
 case class InboundGetCoreBankAccounts(inboundAuthInfo: InboundAuthInfo, data: List[InternalInboundCoreAccount])
 case class InboundGetTransactions(inboundAuthInfo: InboundAuthInfo, status: Status, data: List[InternalTransaction_vSept2018])

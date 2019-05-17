@@ -27,11 +27,13 @@ package code.api.v3_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanGetUserAuthContext
-import code.api.util.ApiVersion
+import code.api.util.ApiRole.{CanCreateCustomer, CanGetUserAuthContext}
+import code.api.util.{ApiRole, ApiVersion, StrongCustomerAuthentication}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.consumer.Consumers
 import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
+import code.scope.Scope
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Full
 import net.liftweb.json.Serialization.write
@@ -53,23 +55,45 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge))
 
   val postUserAuthContextJson = SwaggerDefinitionsJSON.postUserAuthContextJson
-  val postUserAuthContextJson1 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key = "PHONE_NUMBER")
-  val postUserAuthContextJson2 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key="TOKEN")
+  val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
 
   feature("Create User Auth Context Update Request v3.1.0") {
     scenario("We will call the Create endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
-      When("We try to create the UserAuthContext v3.1.0")
-      val requestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates").POST <@(user1)
-      val responseUserAuthContextUpdate310 = makePostRequest(requestUserAuthContextUpdate310, write(postUserAuthContextJson))
+      When("We try to create the User Auth Context Update v3.1.0")
+      val bankId = randomBankId
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response310 = makePostRequest(request310, write(postCustomerJson))
+      Then("We should get a 201")
+      response310.code should equal(201)
+      val infoPost = response310.body.extract[CustomerJsonV310]
+      
+      val scaMethod = StrongCustomerAuthentication.SMS.toString
+      val requestUserAuthContextUpdate310 = (v3_1_0_Request / "banks" / bankId / "users" / "current" / "auth-context-updates" / scaMethod).POST <@(user1)
+      val responseUserAuthContextUpdate310 = makePostRequest(requestUserAuthContextUpdate310, write(postUserAuthContextJson.copy(value = infoPost.customer_number)))
       Then("We should get a 201")
       responseUserAuthContextUpdate310.code should equal(201)
       responseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson]
     }
     scenario("We will call the Answer endpoint with user credentials and wrong challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
-      When("We try to answer the UserAuthContext v3.1.0")
+      When("We try to answer the User Auth Context Update v3.1.0")
+      val bankId = randomBankId
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response310 = makePostRequest(request310, write(postCustomerJson))
+      Then("We should get a 201")
+      response310.code should equal(201)
+      val infoPost = response310.body.extract[CustomerJsonV310]
       
-      val createRequestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates").POST <@(user1)
-      val createResponseUserAuthContextUpdate310 = makePostRequest(createRequestUserAuthContextUpdate310, write(postUserAuthContextJson))
+      val scaMethod = StrongCustomerAuthentication.SMS.toString
+      val createRequestUserAuthContextUpdate310 = (v3_1_0_Request / "banks" / bankId / "users" / "current" / "auth-context-updates" / scaMethod).POST <@(user1)
+      val createResponseUserAuthContextUpdate310 = makePostRequest(createRequestUserAuthContextUpdate310, write(postUserAuthContextJson.copy(value = infoPost.customer_number)))
       Then("We should get a 201")
       createResponseUserAuthContextUpdate310.code should equal(201)
       val authContextUpdateId = createResponseUserAuthContextUpdate310.body.extract[UserAuthContextUpdateJson].user_auth_context_update_id
@@ -83,9 +107,22 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
       status should equal(UserAuthContextUpdateStatus.REJECTED.toString)
     }
     scenario("We will call the Answer endpoint with user credentials and right challenge answer", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
-      When("We try to answer the UserAuthContext v3.1.0")
+      When("We try to answer the User Auth Context Update v3.1.0")
+      val bankId = randomBankId
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      Scope.scope.vend.addScope(bankId, consumerId, ApiRole.canCreateUserAuthContextUpdate.toString())
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response310 = makePostRequest(request310, write(postCustomerJson))
+      Then("We should get a 201")
+      response310.code should equal(201)
+      val infoPost = response310.body.extract[CustomerJsonV310]
 
-      val createRequestUserAuthContextUpdate310 = (v3_1_0_Request / "users" / "current" / "auth-context-updates").POST <@(user1)
+      val postUserAuthContextJson1 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(value = infoPost.customer_number)
+      
+      val scaMethod = StrongCustomerAuthentication.SMS.toString
+      val createRequestUserAuthContextUpdate310 = (v3_1_0_Request / "banks" / bankId / "users" / "current" / "auth-context-updates" / scaMethod).POST <@(user1)
       val createResponseUserAuthContextUpdate310 = makePostRequest(createRequestUserAuthContextUpdate310, write(postUserAuthContextJson1))
       Then("We should get a 201")
       createResponseUserAuthContextUpdate310.code should equal(201)

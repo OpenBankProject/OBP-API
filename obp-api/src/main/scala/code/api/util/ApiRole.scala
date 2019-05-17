@@ -239,6 +239,9 @@ object ApiRole {
   case class CanDeleteUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteUserAuthContext = CanDeleteUserAuthContext()
   
+  case class CanCreateUserAuthContextUpdate(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateUserAuthContextUpdate = CanCreateUserAuthContextUpdate()
+  
   case class CanGetTaxResidence(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTaxResidence = CanGetTaxResidence()
 
@@ -371,6 +374,7 @@ object ApiRole {
       canUpdateSystemView ::
       canGetSystemView ::
       canDeleteSystemView ::
+      canCreateUserAuthContextUpdate ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

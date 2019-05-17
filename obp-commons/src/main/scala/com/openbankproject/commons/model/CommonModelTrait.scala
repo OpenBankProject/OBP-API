@@ -323,6 +323,51 @@ trait Product {
   def meta : Meta
 }
 
+trait KycCheck {
+  def bankId: String
+  def customerId: String
+  def idKycCheck : String
+  def customerNumber : String
+  def date : Date
+  def how : String
+  def staffUserId : String
+  def staffName : String
+  def satisfied: Boolean
+  def comments : String
+}
+
+
+trait KycDocument {
+  def bankId: String
+  def customerId: String
+  def idKycDocument : String
+  def customerNumber : String
+  def `type` : String
+  def number : String
+  def issueDate : Date
+  def issuePlace : String
+  def expiryDate : Date
+}
+
+trait KycMedia {
+  def bankId: String
+  def customerId: String
+  def idKycMedia : String
+  def customerNumber : String
+  def `type` : String
+  def url : String
+  def date : Date
+  def relatesToKycDocumentId : String
+  def relatesToKycCheckId : String
+}
+
+trait KycStatus {
+  def bankId: String
+  def customerId: String
+  def customerNumber : String
+  def ok : Boolean
+  def date : Date
+}
 //---------------------------------------- trait dependents of case class
 
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
