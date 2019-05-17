@@ -1,17 +1,18 @@
 package code.api.util.migration
 
-import java.sql.ResultSet
+import java.sql.{ResultSet, SQLException}
+import java.text.SimpleDateFormat
+import java.util.Date
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.getPropsAsBoolValue
-import code.api.util.APIUtil.getPropsValue
+import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.consumer.Consumers
 import code.customer.Customer
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.mapper.{BaseMetaMapper, SuperConnection}
 import net.liftweb.mapper.Schemifier.getDefaultSchemaName
+import net.liftweb.mapper.{BaseMetaMapper, DB, SuperConnection}
 
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
@@ -118,6 +119,30 @@ object Migration extends MdcLoggable {
           }
 
         hasTable(rs)
+      }
+    }
+
+    /**
+      * This function makes a copy on an table
+      * @param table The table we want to back up
+      * @return true in case of success or false otherwise
+      */
+    def makeBackUpOfTable(table: BaseMetaMapper): Boolean ={
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
+        conn =>
+          try {
+            val tableName = table.dbTableName
+            val sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS")
+            val resultDate = new Date(System.currentTimeMillis())
+            DB.prepareStatement(s"CREATE TABLE ${tableName}_backup_${sdf.format(resultDate)} AS (SELECT * FROM $tableName); ", conn){
+              stmt => stmt.executeQuery()
+            }
+            true
+          } catch {
+            case e: SQLException => 
+              logger.error(e)
+              false
+          }
       }
     }
   }

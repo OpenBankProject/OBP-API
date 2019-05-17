@@ -14,7 +14,9 @@ object TableAccountAccess {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         val views = ViewImpl.findAll()
-    
+
+        // Make back up
+        DbFunction.makeBackUpOfTable(AccountAccess)
         // Delete all rows at the table
         AccountAccess.bulkDelete_!!()
     

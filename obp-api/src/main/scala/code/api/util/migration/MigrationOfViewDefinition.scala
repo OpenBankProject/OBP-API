@@ -15,6 +15,8 @@ object TableViewDefinition {
         val commitId: String = APIUtil.gitCommit
         val views = ViewImpl.findAll()
 
+        // Make back up
+        DbFunction.makeBackUpOfTable(ViewDefinition)
         // Delete all rows at the table
         ViewDefinition.bulkDelete_!!()
 
