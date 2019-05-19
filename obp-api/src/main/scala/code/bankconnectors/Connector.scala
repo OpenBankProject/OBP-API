@@ -26,6 +26,7 @@ import code.model.toUserExtended
 import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.fx.fx.TTL
+import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
 import code.model.toUserExtended
@@ -170,17 +171,18 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[Box[ObpApiLoopback]] = 
   {
     for{
-      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed not set")}
-      startTime <- Future{Helpers.now}
-      req <- Future{ObpApiLoopback(connectorVersion, gitCommit, "")}
+      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")}
+      startTime = Helpers.now
+      req = ObpApiLoopback(connectorVersion, gitCommit, "")
       obpApiLoopback <- connectorVersion.contains("kafka") match {
         case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
         case true =>  
           for{
-            res <- KafkaMappedConnector_vSept2018.processToFuture[ObpApiLoopback](req)
-            endTime <- Future{Helpers.now}
-            durationTime <- Future{endTime.getTime - startTime.getTime}
-            obpApiLoopback<- Future{res.extract[ObpApiLoopback]}
+            obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
+              (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
+            }
+            endTime = Helpers.now
+            durationTime = endTime.getTime - startTime.getTime
           } yield {
             obpApiLoopback.copy(durationTime = durationTime.toString)
           }

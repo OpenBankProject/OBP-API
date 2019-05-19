@@ -329,7 +329,7 @@ object ErrorMessages {
   val KafkaInterruptedException = "OBP-50006: Kafka interrupted exception."
   val KafkaExecutionException = "OBP-50007: Kafka execution exception."
   val KafkaStreamTimeoutException = "OBP-50008: Akka Kafka stream timeout exception."
-  val KafkaUnknownError = "OBP-50009: Kafka unknown error."
+  val KafkaUnknownError = "OBP-50009: Kafka Unknown Error."
   val ScalaEmptyBoxToLiftweb = "OBP-50010: Scala return Empty box to Liftweb."
   val NoCallContext = "OBP-50012: Can not get the CallContext object here."
   val UnspecifiedCbsError = "OBP-50013: The Core Banking System returned an unspecified error or response."
