@@ -369,47 +369,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
   override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val req = OutboundGetBanks(AuthInfo())
-        logger.debug(s"Kafka getBanks Req is: $req")
-
-        val box: Box[(List[InboundBank], Status)] = for {
-         _ <- Full(logger.debug("Enter GetBanks BOX1: prekafka") )
-          kafkaMessage <- processToBox[OutboundGetBanks](req)
-         _ <- Full(logger.debug(s"Enter GetBanks BOX2: postkafka: $kafkaMessage") )
-         inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-         _ <- Full(logger.debug(s"Enter GetBanks BOX3 : $inboundGetBanks") )
-         (inboundBanks, status) <- Full(inboundGetBanks.data, inboundGetBanks.status)
-         _ <- Full(logger.debug(s"Enter GetBanks BOX4: $inboundBanks") )
-        } yield {
-          (inboundBanks, status)
-        }
-
-        logger.debug(s"Kafka getBanks Res says:  is: $box")
-        val res = box match {
-          case Full((banks, status)) if (status.errorCode=="") =>
-            Full((banks map (new Bank2(_)),callContext))
-          case Full((banks, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.InvalidConnectorResponse)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-        logger.debug(s"Kafka getBanks says res is $res")
-        res
-      }
-    }
+    Await.result(getBanksFuture(callContext: Option[CallContext]), TIMEOUT)
   }("getBanks")
 
   override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {

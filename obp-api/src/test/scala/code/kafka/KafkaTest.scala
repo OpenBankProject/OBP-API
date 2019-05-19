@@ -110,5 +110,26 @@ class KafkaTest extends KafkaSetup {
 
       box.map(_.displayName) should be (Full(inBound.data.displayName))
     }
+
+    scenario(s"test getBanksFuture method") {
+      val inBound = KafkaMappedConnector_vSept2018.messageDocs.filter(_.process.toString.contains("getBanks")).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetBanks]
+
+      dispathResponse(inBound)
+      val future = KafkaMappedConnector_vSept2018.getBanksFuture(None)
+
+      val result =  future.getContent
+      result.map(_._1.head.bankId).toString should be (Full(inBound.data.head.bankId).toString)
+
+    }
+
+    scenario(s"test getBanks method") {
+      val inBound = KafkaMappedConnector_vSept2018.messageDocs.filter(_.process.toString.contains("getBanks")).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetBanks]
+
+      dispathResponse(inBound)
+      val box = KafkaMappedConnector_vSept2018.getBanks(None)
+
+      box.map(_._1.head.bankId).toString should be (Full(inBound.data.head.bankId).toString)
+    }
+    
   }
 }
