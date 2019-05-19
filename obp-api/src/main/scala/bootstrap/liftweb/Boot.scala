@@ -214,7 +214,7 @@ class Boot extends MdcLoggable {
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-    if(connector != "mongodb")
+    if(connector != "mongodb" || connector == "star")
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)
@@ -236,7 +236,7 @@ class Boot extends MdcLoggable {
 
     val actorSystem = ObpActorSystem.startLocalActorSystem()
     connector match {
-      case "akka_vDec2018" => 
+      case ("akka_vDec2018"| "star") =>
         // Start Actor system of Akka connector
         ObpActorSystem.startNorthSideAkkaConnectorActorSystem()
       case _ => // Do nothing
@@ -328,7 +328,7 @@ class Boot extends MdcLoggable {
 
     WebhookHelperActors.startLocalWebhookHelperWorkers(actorSystem)
 
-    if (connector.startsWith("kafka")) {
+    if (connector.startsWith("kafka") || connector == "star") {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
       KafkaHelperActors.startLocalKafkaHelperWorkers(actorSystem)
       // Start North Side Consumer if it's not already started

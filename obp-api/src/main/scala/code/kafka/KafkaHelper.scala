@@ -92,12 +92,12 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
         try {
           Full(jvalue.extract[T])
         } catch {
-          case e: Exception => Failure(s"${ConnectorEmptyResponse} extract response payload to type ${tp} fail. the payload content: ${compactRender(jvalue)}", Full(e), Empty)
+          case e: Exception => Failure(s"${InvalidConnectorResponse} extract response payload to type ${tp} fail. the payload content: ${compactRender(jvalue)}", Full(e), Empty)
         }
       }
       .recover {
-        case e: ParseException => Failure(s"${ConnectorEmptyResponse} parse response payload to JValue fail. ${e.getMessage}", Box !! (e.getCause) or Full(e), Empty)
-        case e: AskTimeoutException => Failure(s"${KafkaUnknownError} Timeout error, because no response return from kafka server ", Full(e), Empty)
+        case e: ParseException => Failure(s"${InvalidConnectorResponse} parse response payload to JValue fail. ${e.getMessage}", Box !! (e.getCause) or Full(e), Empty)
+        case e: AskTimeoutException => Failure(s"${KafkaUnknownError} Timeout error, because no response return from kafka server.", Full(e), Empty)
         case e @ (_:AuthenticationException| _:AuthorizationException|
                   _:IllegalStateException| _:InterruptException|
                   _:SerializationException| _:TimeoutException|

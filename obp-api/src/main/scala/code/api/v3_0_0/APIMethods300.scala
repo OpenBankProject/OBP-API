@@ -607,8 +607,8 @@ trait APIMethods300 {
             params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
-            (transactionsCore, callContext) <- Future { bankAccount.getModeratedTransactionsCore(user, view, callContext, params: _*)} map {
-              unboxFullOrFail(_, callContext, UnknownError)
+            (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(user, view, params, callContext) map {
+              i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
           } yield {
             (createCoreTransactionsJSON(transactionsCore), HttpCode.`200`(callContext))
@@ -923,9 +923,9 @@ trait APIMethods300 {
 
 
     resourceDocs += ResourceDoc(
-      getAdapter,
+      getAdapterInfoForBank,
       implementedInApiVersion,
-      nameOf(getAdapter),
+      nameOf(getAdapterInfoForBank),
       "GET",
       "/banks/BANK_ID/adapter",
       "Get Adapter Info for a bank",
@@ -941,7 +941,7 @@ trait APIMethods300 {
       List(apiTagApi, apiTagNewStyle))
 
 
-    lazy val getAdapter: OBPEndpoint = {
+    lazy val getAdapterInfoForBank: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
           cc =>
             for {
@@ -1657,7 +1657,7 @@ trait APIMethods300 {
         UserNotLoggedIn,
         BankAccountNotFound,
         ViewNotFound,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, PSD2, OBWG),
@@ -1695,7 +1695,7 @@ trait APIMethods300 {
         UserNotLoggedIn,
         BankAccountNotFound,
         ViewNotFound,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
@@ -1801,7 +1801,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1842,7 +1842,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1883,7 +1883,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1920,7 +1920,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1962,7 +1962,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),

@@ -900,7 +900,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def sign(method: String, url: String, user_params: Map[String, String], consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]): IMap[String, String] = {
       val oauth_params = IMap(
         "oauth_consumer_key" -> consumer.key,
-        SignatureMethodName -> "HMAC-SHA1",
+        SignatureMethodName -> "HMAC-SHA256",
         TimestampName -> (System.currentTimeMillis / 1000).toString,
         NonceName -> System.nanoTime.toString,
         VersionName -> "1.0"
@@ -909,7 +909,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         callback.map { CallbackName -> _ }
 
       val signatureBase = Arithmetics.concatItemsForSignature(method.toUpperCase, url, user_params.toList, Nil, oauth_params.toList)
-      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha1Algorithm)
+      val computedSignature = Arithmetics.sign(signatureBase, consumer.secret, (token map { _.secret } getOrElse ""), Arithmetics.HmacSha256Algorithm)
       logger.debug("signatureBase: " + signatureBase)
       logger.debug("computedSignature: " + computedSignature)
       oauth_params + (SignatureName -> computedSignature)
@@ -1294,7 +1294,7 @@ Returns a string showed to the developer
     }
   }
   def checkScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
-    REQUIRE_SCOPES match {
+    requireScopes(role) match {
       case false => true // if the props require_scopes == false, we do not need to check the Scope stuff..
       case true => !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
     }
@@ -1320,13 +1320,20 @@ Returns a string showed to the developer
     reason: Option[String] = None, //for Later
     errorMessage: String,
   )
-  
-  val REQUIRE_SCOPES: Boolean = getPropsAsBoolValue("require_scopes", false)
+
+  def requireScopes(role: ApiRole) = {
+      ApiProperty.requireScopesForAllRoles match {
+      case false =>
+        getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).flatten.exists(_ == role.toString())
+      case true => 
+        true
+    }
+  }
   
   def hasEntitlementAndScope(bankId: String, userId: String, consumerId: String, role: ApiRole): Box[EntitlementAndScopeStatus]= {
     for{
       hasEntitlement <- tryo{ !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty} ?~! s"$UnknownError"
-      hasScope <- REQUIRE_SCOPES match {
+      hasScope <- requireScopes(role) match {
         case false => Full(true) // if the props require_scopes == false, we need not check the Scope stuff..
         case true => tryo{ !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty} ?~! s"$UnknownError "
       }
@@ -1918,7 +1925,7 @@ Returns a string showed to the developer
   }
   
   def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext])(implicit m: Manifest[T]): T = {
-    unboxFullOrFail(box, cc, ConnectorEmptyResponse, 400)
+    unboxFullOrFail(box, cc, InvalidConnectorResponse, 400)
   }
 
   def unboxFuture[T](box: Box[Future[T]]): Future[Box[T]] = box match {

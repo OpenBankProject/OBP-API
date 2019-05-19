@@ -26,6 +26,7 @@ import code.model.toUserExtended
 import code.customeraddress.CustomerAddress
 import code.fx.FXRate
 import code.fx.fx.TTL
+import code.kafka.KafkaHelper
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.ResourceUser
 import code.model.toUserExtended
@@ -84,6 +85,7 @@ object Connector extends SimpleInjector {
       case "kafka_vJune2017" => KafkaMappedConnector_vJune2017
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case "rest_vMar2019" => RestConnector_vMar2019
+      case "star" => StarConnector
       case _ => throw new RuntimeException(s"Do not Support this connector version: $connectorVersion")
     }
   }
@@ -127,7 +129,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   val atmTTL = getSecondsCache("getAtm")
   val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
   val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
-
+  
   /**
     * convert original return type future to OBPReturnType
     *
@@ -162,22 +164,25 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
 
     NotImplemented + currentMethodName + s" Please check `Get Message Docs`endpoint and implement the process `obp.$currentMethodName` in Adapter side."
   }
-
+    
+  
+  
   //This method is used for testing API<-->Kafka connection. not need sent it to Adapter.
   def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[Box[ObpApiLoopback]] = 
   {
     for{
-      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed not set")}
-      startTime <- Future{Helpers.now}
-      req <- Future{ObpApiLoopback(connectorVersion, gitCommit, "")}
+      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")}
+      startTime = Helpers.now
+      req = ObpApiLoopback(connectorVersion, gitCommit, "")
       obpApiLoopback <- connectorVersion.contains("kafka") match {
         case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
         case true =>  
           for{
-            res <- KafkaMappedConnector_vSept2018.processToFuture[ObpApiLoopback](req)
-            endTime <- Future{Helpers.now}
-            durationTime <- Future{endTime.getTime - startTime.getTime}
-            obpApiLoopback<- Future{res.extract[ObpApiLoopback]}
+            obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
+              (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
+            }
+            endTime = Helpers.now
+            durationTime = endTime.getTime - startTime.getTime
           } yield {
             obpApiLoopback.copy(durationTime = durationTime.toString)
           }
@@ -187,7 +192,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     }
   }
   
-  def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future{Failure(setUnimplementedError)}
+  def getAdapterInfo(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future{Failure(setUnimplementedError)}
 
   // Gets current challenge level for transaction request
   // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
@@ -309,7 +314,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[AccountHeld]]]= Future {(Failure(setUnimplementedError), callContext)}
 
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
-  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Future[Box[(BankAccount, Option[CallContext])]] = Future {Failure(setUnimplementedError)}
+  def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError), callContext)}
 
   /**
     * This method is just return an empty account to AccountType.
@@ -373,7 +378,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     val result: Box[(List[Transaction], Option[CallContext])] = getTransactions(bankId, accountID, callContext, queryParams: _*)
     Future(result.map(_._1), result.map(_._2).getOrElse(callContext))
   }
-  def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])]= Failure(setUnimplementedError)
+  def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): Box[(Transaction, Option[CallContext])] = Failure(setUnimplementedError)
   def getTransactionFuture(bankId: BankId, accountID : AccountId, transactionId : TransactionId, callContext: Option[CallContext] = None): OBPReturnType[Box[Transaction]] = {
@@ -1092,7 +1097,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   ): Box[(Bank, BankAccount)] = Failure(setUnimplementedError)
 
   //generates an unused account number and then creates the sandbox account using that number
-  //TODO, this is new style method, it return future, but do not use it yet. only for messageDoc now. 
+  //TODO, this is new style method, it return future, but do not use it yet. only for messageDoc now.
   def createBankAccount(
                          bankId: BankId,
                          accountId: AccountId,
@@ -1106,7 +1111,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                          accountRoutingAddress: String,
                          callContext: Option[CallContext]
                        ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
-  
+
   //generates an unused account number and then creates the sandbox account using that number
   @deprecated("This return Box, not a future, try to use @createBankAccount instead. ","10-05-2019")
   def createBankAccountLegacy(
@@ -1723,6 +1728,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                     fromDepartment : String,
                     fromPerson : String,
                     callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{(Failure(setUnimplementedError), callContext)}
-  
-  
+
+
 }

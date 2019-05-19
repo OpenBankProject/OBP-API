@@ -3222,7 +3222,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -3296,7 +3296,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -3440,6 +3440,13 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(user), callContext) <- authorizedAccess(cc)
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate) {
+              checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
+            }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
@@ -3480,7 +3487,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
