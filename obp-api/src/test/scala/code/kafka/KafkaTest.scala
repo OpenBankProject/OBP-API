@@ -18,8 +18,14 @@ class KafkaTest extends KafkaSetup {
   feature("Send and retrieve message") {
     scenario("1st test `getObpApiLoopback` method, there no need Adapter message for this method!") {
       //This method is only used for `kafka` connector, should first set `connector=kafka_vSept2018` in test.default.props. 
-      val expectedConnectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed not set")
-      expectedConnectorVersion contains ("kafka") should be (true)
+      //and also need to set up `api_instance_id` and `remotedata.timeout` field for it.
+      val PropsConnectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
+      val propsApiInstanceId = APIUtil.getPropsValue("api_instance_id").openOrThrowException("connector props filed `api_instance_id` not set")
+      val propsRemotedataTimeout = APIUtil.getPropsValue("remotedata.timeout").openOrThrowException("connector props filed `remotedata.timeout` not set")
+      
+      PropsConnectorVersion contains ("kafka") should be (true)
+      propsApiInstanceId should be ("1")
+      propsRemotedataTimeout should be ("10")
 
       When("We call this method, and get the response. ")
       val future = KafkaMappedConnector_vSept2018.getObpApiLoopback(Some(CallContext()))
@@ -27,7 +33,7 @@ class KafkaTest extends KafkaSetup {
 
       Then("If it return value successfully, that mean api <--> kafka is working well. We only need check one filed of response.")
       val connectorVersion= result._1.map(_.connectorVersion)
-      connectorVersion should be (Full(expectedConnectorVersion))
+      connectorVersion should be (Full(PropsConnectorVersion))
     }
     
     scenario("Send and retrieve message directly to and from kafka") {
