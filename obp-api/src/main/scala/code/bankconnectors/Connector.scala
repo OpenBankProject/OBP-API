@@ -165,33 +165,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     NotImplemented + currentMethodName + s" Please check `Get Message Docs`endpoint and implement the process `obp.$currentMethodName` in Adapter side."
   }
     
-  
-  
-  //This method is used for testing API<-->Kafka connection. not need sent it to Adapter.
-  def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[Box[ObpApiLoopback]] = 
-  {
-    for{
-      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")}
-      startTime = Helpers.now
-      req = ObpApiLoopback(connectorVersion, gitCommit, "")
-      obpApiLoopback <- connectorVersion.contains("kafka") match {
-        case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
-        case true =>  
-          for{
-            obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
-              (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
-            }
-            endTime = Helpers.now
-            durationTime = endTime.getTime - startTime.getTime
-          } yield {
-            obpApiLoopback.copy(durationTime = durationTime.toString)
-          }
-      }
-    } yield {
-      (Full(obpApiLoopback), callContext)
-    }
-  }
-  
   def getAdapterInfo(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future{Failure(setUnimplementedError)}
 
   // Gets current challenge level for transaction request

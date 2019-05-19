@@ -682,13 +682,6 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
     
-    def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[ObpApiLoopback] = {
-      Connector.connector.vend.getObpApiLoopback(callContext) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
-      }
-    }
-    
-    
     def createOrUpdateProductAttribute(
       bankId: BankId,
       productCode: ProductCode,

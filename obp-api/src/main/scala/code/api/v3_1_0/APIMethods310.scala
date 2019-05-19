@@ -24,6 +24,7 @@ import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
 import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
+import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
@@ -34,7 +35,7 @@ import code.util.Helper
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreditLimit, _}
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, parse}
@@ -1932,9 +1933,16 @@ trait APIMethods310 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            (obpApiLoopback, callContext) <- NewStyle.function.getObpApiLoopback(callContext)
+            connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
+            startTime = Helpers.now
+            req = ObpApiLoopback(connectorVersion, gitCommit, "")
+            obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
+              (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
+            }
+            endTime = Helpers.now
+            durationTime = endTime.getTime - startTime.getTime
           } yield {
-            (createObpApiLoopbackJson(obpApiLoopback), HttpCode.`200`(callContext))
+            (createObpApiLoopbackJson(obpApiLoopback.copy(durationTime = durationTime.toString)), HttpCode.`200`(callContext))
           }
       }
     }
