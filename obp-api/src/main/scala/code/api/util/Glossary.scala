@@ -173,7 +173,7 @@ object Glossary {
 |
 |* ${messageDocLinkAkka("obp.getAdapterInfo")}
 |
-|Now you should be able to use the [Adapter Info](/index#OBPv3_0_0-getAdapter) endpoint
+|Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapterInfo) endpoint
 |
 |* ${messageDocLinkAkka("obp.getBanks")}
 |
@@ -270,7 +270,7 @@ object Glossary {
  |
  |* ${messageDocLink("obp.get.AdapterInfo")}
  |
- |Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapter) endpoint
+ |Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapterInfo) endpoint
  |
  |* ${messageDocLink("obp.get.Banks")}
  |

@@ -284,41 +284,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   
-  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
     val req = OutboundGetAdapterInfo(DateWithSecondsExampleString)
-
-    logger.debug(s"Kafka getAdapterInfoFuture Req says:  is: $req")
-
-    val future = for {
-      res <- processToFuture[OutboundGetAdapterInfo](req) map {
-        f =>
-          try {
-            f.extract[InboundAdapterInfo]
-          } catch {
-            case e: Exception =>
-              val received = liftweb.json.compactRender(f)
-              val expected = SchemaFor[InboundAdapterInfo]().toString(false)
-              val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundAdapterInfo class with the Message Doc : You received this ($received). We expected this ($expected)"
-              sendOutboundAdapterError(err)
-              throw new MappingException(err, e)
-          }
-      } map {
-        x => x.data
-      }
-    } yield {
-      Full(res)
+    processRequest[InboundAdapterInfo](req) map { inbound =>
+      inbound.map(_.data).map(inboundAdapterInfoInternal =>(inboundAdapterInfoInternal, callContext))
     }
-
-    val res = future map {
-      case Full(list) if (list.errorCode=="") =>
-        Full(list, callContext)
-      case Full(list) if (list.errorCode!="") =>
-        Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
-    }
-    logger.debug(s"Kafka getAdapterInfoFuture says res is $res")
-    res
   }
 
   messageDocs += MessageDoc(

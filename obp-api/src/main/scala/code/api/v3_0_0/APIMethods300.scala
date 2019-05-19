@@ -923,9 +923,9 @@ trait APIMethods300 {
 
 
     resourceDocs += ResourceDoc(
-      getAdapter,
+      getAdapterInfoForBank,
       implementedInApiVersion,
-      nameOf(getAdapter),
+      nameOf(getAdapterInfoForBank),
       "GET",
       "/banks/BANK_ID/adapter",
       "Get Adapter Info for a bank",
@@ -941,7 +941,7 @@ trait APIMethods300 {
       List(apiTagApi, apiTagNewStyle))
 
 
-    lazy val getAdapter: OBPEndpoint = {
+    lazy val getAdapterInfoForBank: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
           cc =>
             for {

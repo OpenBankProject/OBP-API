@@ -96,7 +96,7 @@ object NewStyle {
     (nameOf(Implementations3_0_0.getBanks), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getAdapter), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getAdapterInfoForBank), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getOtherAccountByIdForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getOtherAccountsForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
@@ -424,7 +424,7 @@ object NewStyle {
     }
 
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
-        Connector.connector.vend.getAdapterInfoFuture(callContext) map {
+        Connector.connector.vend.getAdapterInfo(callContext) map {
           connectorEmptyResponse(_, callContext)
         }
     }

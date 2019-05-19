@@ -25,9 +25,9 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
   def successInBoundStatus: Status = Status("", Nil)
 
   private def waitingForRequest: Receive = {
-    case OutBoundGetAdapterInfoFuture(cc) =>
+    case OutBoundGetAdapterInfo(cc) =>
       val result = 
-        InBoundGetAdapterInfoFuture(
+        InBoundGetAdapterInfo(
           InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),
           successInBoundStatus,
           inboundAdapterInfoInternal

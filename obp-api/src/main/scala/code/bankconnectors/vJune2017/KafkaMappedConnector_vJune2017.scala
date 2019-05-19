@@ -129,13 +129,13 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     outboundAvroSchema = Some(parse(SchemaFor[OutboundGetAdapterInfo]().toString(true))),
     inboundAvroSchema = Some(parse(SchemaFor[InboundAdapterInfoInternal]().toString(true)))
   )
-  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
     val req = OutboundGetAdapterInfo(
       AuthInfo(sessionId = callContext.get.correlationId),
       DateWithSecondsExampleString
     )
 
-    logger.debug(s"Kafka getAdapterInfoFuture Req says:  is: $req")
+    logger.debug(s"Kafka getAdapterInfo Req says:  is: $req")
 
     val future = for {
       res <- processToFuture[OutboundGetAdapterInfo](req) map {
@@ -165,7 +165,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case _ =>
         Failure(ErrorMessages.UnknownError)
     }
-    logger.debug(s"Kafka getAdapterInfoFuture says res is $res")
+    logger.debug(s"Kafka getAdapterInfo says res is $res")
     res
   }
   

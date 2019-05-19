@@ -166,7 +166,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetAdapterInfoFuture(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+      OutBoundGetAdapterInfo(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         consumerId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
@@ -194,7 +194,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                 name = "string"))))))))))
       ),
     exampleInboundMessage = (
-      InBoundGetAdapterInfoFuture(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+      InBoundGetAdapterInfo(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
@@ -212,8 +212,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getAdapterInfoFuture
-  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
+  // url example: /getAdapterInfo
+  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -223,8 +223,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAdapterInfoFuture")
-        sendGetRequest[InBoundGetAdapterInfoFuture](url, callContext)
+        val url = getUrl("getAdapterInfo")
+        sendGetRequest[InBoundGetAdapterInfo](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
@@ -233,7 +233,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getAdapterInfoFuture")
+  }("getAdapterInfo")
 
   messageDocs += MessageDoc(
     process = "obp.get.Bank",

@@ -80,7 +80,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
   //
-  override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(
+  override def getAdapterInfo(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(
     Full(InboundAdapterInfoInternal(
       errorCode = "",
       backendMessages = Nil,

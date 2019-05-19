@@ -17,7 +17,7 @@ object RestConnectorBuilder extends App {
 
   val genMethodNames1 = List(
     //    "getAdapterInfo",
-    "getAdapterInfoFuture",
+    "getAdapterInfo",
     //    "getUser", // have problem, return type not common
     //    "getBanks",
     "getBanksFuture",

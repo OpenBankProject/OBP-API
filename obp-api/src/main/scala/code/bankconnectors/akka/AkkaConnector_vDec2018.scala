@@ -31,25 +31,25 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
     description = "Gets information about the active general (non bank specific) Adapter that is responding to messages sent by OBP.",
-    outboundTopic = Some(OutBoundGetAdapterInfoFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetAdapterInfoFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetAdapterInfo.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetAdapterInfo.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetAdapterInfoFuture(
+      OutBoundGetAdapterInfo(
         outboundAdapterCallContext
     )),
     exampleInboundMessage = (
-      InBoundGetAdapterInfoFuture(
+      InBoundGetAdapterInfo(
         inboundAdapterCallContext,
         inboundStatus,
         inboundAdapterInfoInternal)
     ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetAdapterInfoFuture]().toString(true))),
-    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetAdapterInfoFuture]().toString(true))),
+    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetAdapterInfo]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetAdapterInfo]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
-    val req = OutBoundGetAdapterInfoFuture(callContext.map(_.toOutboundAdapterCallContext).get)
-    val response = (southSideActor ? req).mapTo[InBoundGetAdapterInfoFuture]
+  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+    val req = OutBoundGetAdapterInfo(callContext.map(_.toOutboundAdapterCallContext).get)
+    val response = (southSideActor ? req).mapTo[InBoundGetAdapterInfo]
     response.map(r => Full(r.data, callContext))
   }
 
