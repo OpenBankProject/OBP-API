@@ -11,9 +11,9 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
+import scala.collection.mutable.ArrayBuffer
 
 class KafkaTest extends KafkaSetup {
-
 
   feature("Send and retrieve message") {
     scenario("1st test `getObpApiLoopback` method, there no need Adapter message for this method!") {
@@ -63,8 +63,6 @@ class KafkaTest extends KafkaSetup {
 
       val result: (Box[List[KycStatus]], Option[CallContext]) =  future.getContent
       val expectResult = Full(singleInboundBank)
-      result._1 should be equals(expectResult)
-      result._1 should be equals(123)
       result._1.toString should be (expectResult.toString)
     }
 
@@ -90,6 +88,27 @@ class KafkaTest extends KafkaSetup {
       val result: (Box[List[KycMedia]], Option[CallContext]) =  future.getContent
       val expectResult = Full(inBound.data)
       result._1.toString should be (expectResult.toString)
+    }
+
+    scenario(s"test getAdapterInfo method") {
+      When("send a getAdapterInfo api message")
+      val inBound = KafkaMappedConnector_vSept2018.messageDocs.filter(_.process.toString.contains("getAdapterInfo")).map(_.exampleInboundMessage).head.asInstanceOf[InboundAdapterInfo]
+
+      dispathResponse(inBound)
+      val future = KafkaMappedConnector_vSept2018.getAdapterInfo(None)
+
+      val result: Box[(InboundAdapterInfoInternal, Option[CallContext])] =  future.getContent
+      result.map(_._1) should be (Full(inBound.data))
+    }
+
+    scenario(s"test getUser method") {
+      When("send a getUser api message")
+      val inBound = KafkaMappedConnector_vSept2018.messageDocs.filter(_.process.toString.contains("getUser")).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetUserByUsernamePassword]
+
+      dispathResponse(inBound)
+      val box = KafkaMappedConnector_vSept2018.getUser("username","password")
+
+      box.map(_.displayName) should be (Full(inBound.data.displayName))
     }
   }
 }

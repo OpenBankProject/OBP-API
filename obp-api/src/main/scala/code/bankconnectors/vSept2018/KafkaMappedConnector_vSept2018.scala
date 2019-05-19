@@ -229,7 +229,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     authViewsExample
   )
   val inboundStatusMessagesExample = List(InboundStatusMessage("ESB", "Success", "0", "OK"))
-  val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: Something went wrong."
+  val errorCodeExample = ""//This should be Empty String, mean no error in Adapter side. 
   val statusExample = Status(errorCodeExample, inboundStatusMessagesExample)
   val inboundAuthInfoExample = InboundAuthInfo(cbsToken=cbsTokenExample.value, sessionId = sessionIdExample.value)
 
@@ -294,7 +294,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   messageDocs += MessageDoc(
     process = "obp.getUser",
     messageFormat = messageFormat,
-    description = "Gets the User as identified by the the credentials (username and password) supplied.",
+    description = "Gets the User as identifiedgetAdapterInfo by the the credentials (username and password) supplied.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetUserByUsernamePassword.getClass.getSimpleName).request),
     inboundTopic = Some(Topics.createTopicByClassName(OutboundGetUserByUsernamePassword.getClass.getSimpleName).response),
     exampleOutboundMessage = (
@@ -333,7 +333,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         val req = OutboundGetUserByUsernamePassword(AuthInfo("", username, ""), password = password)
         val InboundFuture = processRequest[InboundGetUserByUsernamePassword](req) map { inbound =>
-          inbound.map(_.data).map(_ =>(InboundUser(username, password, username)))
+          inbound.map(_.data).map(inboundValidatedUser =>(InboundUser(inboundValidatedUser.email, password, inboundValidatedUser.displayName)))
         }
         Await.result(InboundFuture, TIMEOUT)
       }
