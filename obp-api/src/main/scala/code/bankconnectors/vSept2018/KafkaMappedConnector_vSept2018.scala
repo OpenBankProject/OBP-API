@@ -57,7 +57,7 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -330,42 +330,12 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(userTTL second) {
-        //Note: Here we omit the userId and cbsToken here, we do not use it in Adapter sie.
+
         val req = OutboundGetUserByUsernamePassword(AuthInfo("", username, ""), password = password)
-
-        logger.debug(s"Kafka getUser Req says:  is: $req")
-
-        val box = for {
-          kafkaMessage <- processToBox[OutboundGetUserByUsernamePassword](req)
-          received = liftweb.json.compactRender(kafkaMessage)
-          expected = SchemaFor[InboundGetUserByUsernamePassword]().toString(false)
-          inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! {
-            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetUserByUsernamePassword class with the Message Doc : You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(error)
-            error
-          }
-          inboundValidatedUser <- Full(inboundGetUserByUsernamePassword.data)
-        } yield{
-          inboundValidatedUser
+        val InboundFuture = processRequest[InboundGetUserByUsernamePassword](req) map { inbound =>
+          inbound.map(_.data).map(_ =>(InboundUser(username, password, username)))
         }
-
-        logger.debug(s"Kafka getUser Res says:  is: $box")
-
-        val res = box match {
-          case Full(list) if (list.errorCode=="" && username == list.displayName) =>
-            Full(new InboundUser(username, password, username))
-          case Full(list) if (list.errorCode!="") =>
-            Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.InvalidConnectorResponse)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-
-        res
-
+        Await.result(InboundFuture, TIMEOUT)
       }
     }
   }("getUser")
