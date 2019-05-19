@@ -335,6 +335,7 @@ object ErrorMessages {
   val UnspecifiedCbsError = "OBP-50013: The Core Banking System returned an unspecified error or response."
   val RefreshUserError = "OBP-50014: Can not refresh User."
   val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
+  val KafkaServerUnavailable = "OBP-50016: The kafka server is unavailable."
 
 
   // Connector Data Exceptions (OBP-502XX)
