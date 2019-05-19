@@ -1657,7 +1657,7 @@ trait APIMethods300 {
         UserNotLoggedIn,
         BankAccountNotFound,
         ViewNotFound,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, PSD2, OBWG),
@@ -1695,7 +1695,7 @@ trait APIMethods300 {
         UserNotLoggedIn,
         BankAccountNotFound,
         ViewNotFound,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError),
       Catalogs(notCore, PSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
@@ -1801,7 +1801,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1842,7 +1842,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1883,7 +1883,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1920,7 +1920,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -1962,7 +1962,7 @@ trait APIMethods300 {
       List(
         UserNotLoggedIn,
         UserNotSuperAdmin,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),

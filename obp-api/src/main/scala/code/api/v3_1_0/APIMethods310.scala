@@ -3222,7 +3222,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -3296,7 +3296,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -3487,7 +3487,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),

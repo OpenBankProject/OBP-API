@@ -2414,7 +2414,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {InvalidJsonFormat}
-            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc)) ?~ { s"$ConnectorEmptyResponse There is no transaction with id: $transactionId" }
+            metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u), Some(cc)) ?~ { s"$InvalidConnectorResponse There is no transaction with id: $transactionId" }
             addCommentFunc <- Box(metadata.addComment) ?~ { s"$NoViewPermission can_add_comment. Current ViewId($viewId)" }
             postedComment <- addCommentFunc(u.userPrimaryKey, viewId, commentJson.value, now)
           } yield {

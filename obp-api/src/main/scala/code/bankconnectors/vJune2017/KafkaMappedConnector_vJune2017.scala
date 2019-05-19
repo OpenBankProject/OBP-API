@@ -228,7 +228,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((authInfo, banks, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -345,7 +345,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((_, _, status)) if (status.errorCode != "") =>
             Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             logger.error(msg, e)
             logger.error(msg)
@@ -464,7 +464,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((data, status, callerContext)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -519,7 +519,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case (data, status, callContext) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case (List(), status, callContext) =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
@@ -572,7 +572,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -641,7 +641,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((data,status,_)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -712,7 +712,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((f,_)) if (f.head.errorCode!="") =>
             Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -767,7 +767,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case (list,_) if (list.head.errorCode!="") =>
             Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
           case (List(),_) =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
@@ -872,7 +872,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               }
               Full((res, bankAccountAndcallContext1.map(_._2).openOrThrowException(attemptedToOpenAnEmptyBox)))
             case Empty =>
-              Failure(ErrorMessages.ConnectorEmptyResponse)
+              Failure(ErrorMessages.InvalidConnectorResponse)
             case Failure(msg, e, c) =>
               Failure(msg, e, c)
             case _ =>
@@ -948,7 +948,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
               }
               Full(res, bankAccountAndCallContext.map(_._2).openOrThrowException(s"$attemptedToOpenAnEmptyBox. getTransactionsCoreCached.bankAccountAndCallContext.map(_._2)."))
             case Empty =>
-              Failure(ErrorMessages.ConnectorEmptyResponse)
+              Failure(ErrorMessages.InvalidConnectorResponse)
             case Failure(msg, e, c) =>
               Failure(msg, e, c)
             case _ =>
@@ -1038,7 +1038,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((data,status,callContext)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1227,7 +1227,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       case Full((authInfo, data, status)) if (status.errorCode!="") =>
         Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
       case Empty =>
-        Failure(ErrorMessages.ConnectorEmptyResponse)
+        Failure(ErrorMessages.InvalidConnectorResponse)
       case Failure(msg, e, c) =>
         Failure(msg, e, c)
       case _ =>
@@ -1340,7 +1340,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             val transactionRequests = for{
               adapterTransactionRequests <- Full(data)
               //TODO, this will cause performance issue, we need limit the number of transaction requests.
-              obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$ConnectorEmptyResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
+              obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$InvalidConnectorResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
             } yield {
               adapterTransactionRequests ::: obpTransactionRequests
             }
@@ -1348,7 +1348,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((data, status, _)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1434,7 +1434,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case Full((authInfo, data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1619,7 +1619,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           case (_, status, _) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:" + status.backendMessages)
           case (List(),status, _) =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }

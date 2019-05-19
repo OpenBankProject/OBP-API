@@ -338,7 +338,7 @@ object ErrorMessages {
 
 
   // Connector Data Exceptions (OBP-502XX)
-  val ConnectorEmptyResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
+  val InvalidConnectorResponse = "OBP-50200: Connector cannot return the data we requested." // was OBP-30200
   val InvalidConnectorResponseForGetBankAccounts = "OBP-50201: Connector did not return the set of accounts we requested."  // was OBP-30201
   val InvalidConnectorResponseForGetBankAccount = "OBP-50202: Connector did not return the account we requested."  // was OBP-30202
   val InvalidConnectorResponseForGetTransaction = "OBP-50203: Connector did not return the transaction we requested."  // was OBP-30203

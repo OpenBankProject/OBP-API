@@ -298,7 +298,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case e: Exception =>
               val received = liftweb.json.compactRender(f)
               val expected = SchemaFor[InboundAdapterInfo]().toString(false)
-              val err = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundAdapterInfo class with the Message Doc : You received this ($received). We expected this ($expected)"
+              val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundAdapterInfo class with the Message Doc : You received this ($received). We expected this ($expected)"
               sendOutboundAdapterError(err)
               throw new MappingException(err, e)
           }
@@ -370,7 +370,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetUserByUsernamePassword]().toString(false)
           inboundGetUserByUsernamePassword <- tryo{kafkaMessage.extract[InboundGetUserByUsernamePassword]} ?~! {
-            val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetUserByUsernamePassword class with the Message Doc : You received this ($received). We expected this ($expected)"
+            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetUserByUsernamePassword class with the Message Doc : You received this ($received). We expected this ($expected)"
             sendOutboundAdapterError(error)
             error
           }
@@ -387,7 +387,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full(list) if (list.errorCode!="") =>
             Failure("INTERNAL-"+ list.errorCode+". + CoreBank-Status:"+ list.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -460,7 +460,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((banks, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -549,7 +549,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           inboundGetBank <- tryo {
             kafkaMessage.extract[InboundGetBank]
           } ?~! {
-            val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetBank class with the Message Doc : You received this ($received). We expected this ($expected)"
+            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBank class with the Message Doc : You received this ($received). We expected this ($expected)"
             sendOutboundAdapterError(error)
             error
           }
@@ -567,7 +567,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((_, status)) if (status.errorCode != "") =>
             Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             logger.error(msg, e)
             logger.error(msg)
@@ -602,7 +602,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetBank]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetBank class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBank class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -670,7 +670,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetAccounts]().toString(false)
           inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! {
-            val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
+            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
             sendOutboundAdapterError(error)
             error
           }
@@ -686,7 +686,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -727,7 +727,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetAccounts]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -745,7 +745,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case (data, status) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case (List(), status) =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
@@ -791,7 +791,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetAccountbyAccountID]().toString(false)
           inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! {
-            val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccountbyAccountID class with the Message Doc : You received this ($received). We expected this ($expected)"
+            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccountbyAccountID class with the Message Doc : You received this ($received). We expected this ($expected)"
             sendOutboundAdapterError(error)
             error
           }
@@ -807,7 +807,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -844,7 +844,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetAccountbyAccountID]().toString(false)
-                  val err = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccountbyAccountID class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccountbyAccountID class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(err)
                   throw new MappingException(err, e)
               }
@@ -918,7 +918,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetBankAccountsHeld]().toString(false)
-                  val err = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetBankAccountsHeld class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBankAccountsHeld class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(err)
                   throw new MappingException(err, e)
               }
@@ -994,7 +994,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((data,status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1083,7 +1083,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCoreBankAccounts]().toString(false)
           inboundGetCoreBankAccounts <- tryo{kafkaMessage.extract[InboundGetCoreBankAccounts]} ?~! {
-            val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCoreBankAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
+            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetCoreBankAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
             sendOutboundAdapterError(error)
             error
           }
@@ -1099,7 +1099,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full(f) if (f.head.errorCode!="") =>
             Failure("INTERNAL-"+ f.head.errorCode+". + CoreBank-Status:"+ f.head.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1135,7 +1135,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetCoreBankAccounts]().toString(false)
-                  val err = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCoreBankAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetCoreBankAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(err)
                   throw new MappingException(err, e)
               }
@@ -1153,7 +1153,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case list if (list.head.errorCode!="") =>
             Failure("INTERNAL-"+ list.head.errorCode+". + CoreBank-Status:"+ list.head.backendMessages)
           case List() =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case _ =>
             Failure(ErrorMessages.UnknownError)
         }
@@ -1237,7 +1237,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             expected = SchemaFor[InboundGetTransactions]().toString(false)
             inboundGetTransactions <- tryo {
               kafkaMessage.extract[InboundGetTransactions]
-            } ?~! s"$InvalidConnectorResponseForGetTransactions $ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransactions class with the Message Doc : You received this ($received). We expected this ($expected)"
+            } ?~! s"$InvalidConnectorResponseForGetTransactions $InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransactions class with the Message Doc : You received this ($received). We expected this ($expected)"
             (internalTransactions, status) <- Full(inboundGetTransactions.data, inboundGetTransactions.status)
           } yield {
             (internalTransactions, status)
@@ -1261,7 +1261,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
               }
               Full((res, bankAccountAndCallContext.map(_._2).openOrThrowException(attemptedToOpenAnEmptyBox)))
             case Empty =>
-              Failure(ErrorMessages.ConnectorEmptyResponse)
+              Failure(ErrorMessages.InvalidConnectorResponse)
             case Failure(msg, e, c) =>
               Failure(msg, e, c)
             case _ =>
@@ -1351,7 +1351,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetTransaction]().toString(false)
           inboundGetTransaction <- tryo{kafkaMessage.extract[InboundGetTransaction]} ?~! {
-            val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransaction class with the Message Doc : You received this ($received). We expected this ($expected)"
+            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransaction class with the Message Doc : You received this ($received). We expected this ($expected)"
             sendOutboundAdapterError(error)
             error
           }
@@ -1377,7 +1377,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((data,status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1440,7 +1440,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
            case e: Exception =>
              val received = liftweb.json.compactRender(f)
              val expected = SchemaFor[InboundCreateChallengeSept2018]().toString(false)
-             val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundCreateChallengeSept2018 class with the Message Doc : You received this ($received). We expected this ($expected)"
+             val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundCreateChallengeSept2018 class with the Message Doc : You received this ($received). We expected this ($expected)"
              sendOutboundAdapterError(error)
              throw new MappingException(error, e)
          }
@@ -1574,7 +1574,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       case Full((data, status)) if (status.errorCode!="") =>
         Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
       case Empty =>
-        Failure(ErrorMessages.ConnectorEmptyResponse)
+        Failure(ErrorMessages.InvalidConnectorResponse)
       case Failure(msg, e, c) =>
         Failure(msg, e, c)
       case _ =>
@@ -1672,7 +1672,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetTransactionRequests210]().toString(false)
-          inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransactionRequests210 class with the Message Doc : You received this ($received). We expected this ($expected)"
+          inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransactionRequests210 class with the Message Doc : You received this ($received). We expected this ($expected)"
           (internalGetTransactionRequests, status) <- Full(inboundGetTransactionRequests210.data, inboundGetTransactionRequests210.status)
         } yield{
           (internalGetTransactionRequests, status)
@@ -1685,7 +1685,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             val transactionRequest = for{
               adapterTransactionRequests <- Full(data)
               //TODO, this will cause performance issue, we need limit the number of transaction requests.
-              obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$ConnectorEmptyResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
+              obpTransactionRequests <- LocalMappedConnector.getTransactionRequestsImpl210(fromAccount) ?~! s"$InvalidConnectorResponse, error on LocalMappedConnector.getTransactionRequestsImpl210"
             } yield {
               adapterTransactionRequests ::: obpTransactionRequests
             }
@@ -1693,7 +1693,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1771,7 +1771,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCounterparties]().toString(false)
           inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! {
-            val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCounterparties class with the Message Doc : You received this ($received). We expected this ($expected)"
+            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetCounterparties class with the Message Doc : You received this ($received). We expected this ($expected)"
             sendOutboundAdapterError(error)
             error
           }
@@ -1787,7 +1787,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           case Full((data, status)) if (status.errorCode!="") =>
             Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
-            Failure(ErrorMessages.ConnectorEmptyResponse)
+            Failure(ErrorMessages.InvalidConnectorResponse)
           case Failure(msg, e, c) =>
             Failure(msg, e, c)
           case _ =>
@@ -1842,7 +1842,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                case e: Exception =>
                  val received = liftweb.json.compactRender(f)
                  val expected = SchemaFor[InboundGetCounterparty]().toString(false)
-                 val err = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCounterparty class with the Message Doc : You received this ($received). We expected this ($expected)"
+                 val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetCounterparty class with the Message Doc : You received this ($received). We expected this ($expected)"
                  sendOutboundAdapterError(err)
                  throw new MappingException(err, e)
              }
@@ -1906,7 +1906,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
            case e: Exception =>
              val received = liftweb.json.compactRender(f)
              val expected = SchemaFor[InboundGetCounterparty]().toString(false)
-             val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCounterparty class with the Message Doc : You received this ($received). We expected this ($expected)"
+             val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetCounterparty class with the Message Doc : You received this ($received). We expected this ($expected)"
              sendOutboundAdapterError(error)
              throw new MappingException(error, e)
          }
@@ -2052,7 +2052,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetChecksOrderStatus]().toString(false)
-                  val error = s"correlationId(${req.authInfo.correlationId}): $ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCheckbookOrderStatus class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"correlationId(${req.authInfo.correlationId}): $InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetCheckbookOrderStatus class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -2148,7 +2148,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundCardDetails]().toString(false)
-                  val error = s"correlationId(${req.authInfo.correlationId}): $ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetCreditCardOrderStatus class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"correlationId(${req.authInfo.correlationId}): $InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetCreditCardOrderStatus class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -2400,7 +2400,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetBranches]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetBranches class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBranches class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -2503,7 +2503,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetBranch]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetBranch class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBranch class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -2610,7 +2610,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetAtms]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetAtms class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAtms class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -2715,7 +2715,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetAtm]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetAtm class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAtm class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -2793,7 +2793,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                 case e: Exception =>
                   val received = liftweb.json.compactRender(f)
                   val expected = SchemaFor[InboundGetChallengeThreshold]().toString(false)
-                  val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundGetChallengeThreshold class with the Message Doc : You received this ($received). We expected this ($expected)"
+                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetChallengeThreshold class with the Message Doc : You received this ($received). We expected this ($expected)"
                   sendOutboundAdapterError(error)
                   throw new MappingException(error, e)
               }
@@ -2899,7 +2899,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             case e: Exception =>
               val received = liftweb.json.compactRender(f)
               val expected = SchemaFor[InboundCreateTransactionId]().toString(false)
-              val error = s"$ConnectorEmptyResponse Please check your to.obp.api.1.caseclass.$OutboundCreateTransaction class with the Message Doc : You received this ($received). We expected this ($expected)"
+              val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundCreateTransaction class with the Message Doc : You received this ($received). We expected this ($expected)"
               sendOutboundAdapterError(error)
               throw new MappingException(error, e)
           }

@@ -853,33 +853,33 @@ object NewStyle {
                                      productCodes: List[String], 
                                      callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
       Connector.connector.vend.getOrCreateProductCollection(collectionCode, productCodes, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getProductCollection(collectionCode: String, 
                              callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
       Connector.connector.vend.getProductCollection(collectionCode, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getOrCreateProductCollectionItems(collectionCode: String,
                                           memberProductCodes: List[String],
                                           callContext: Option[CallContext]): OBPReturnType[List[ProductCollectionItem]] = {
       Connector.connector.vend.getOrCreateProductCollectionItem(collectionCode, memberProductCodes, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getProductCollectionItems(collectionCode: String,
                                           callContext: Option[CallContext]): OBPReturnType[List[ProductCollectionItem]] = {
       Connector.connector.vend.getProductCollectionItem(collectionCode, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getProductCollectionItemsTree(collectionCode: String, 
                                       bankId: String,
                                       callContext: Option[CallContext]): OBPReturnType[List[(ProductCollectionItem, Product, List[ProductAttribute])]] = {
       Connector.connector.vend.getProductCollectionItemsTree(collectionCode, bankId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
       
@@ -939,7 +939,7 @@ object NewStyle {
         invitees: List[Invitee],
         callContext: Option[CallContext]
     ) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not createMeeting in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not createMeeting in the backend. ", 400), i._2)
       }
     }
     
@@ -953,7 +953,7 @@ object NewStyle {
         user: User,
         callContext: Option[CallContext]
       ) map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not getMeetings in the backend. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not getMeetings in the backend. ", 400), i._2)
         }
       }
     
@@ -976,14 +976,14 @@ object NewStyle {
     def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[CoreAccount]] = 
       {
         Connector.connector.vend.getCoreBankAccountsFuture(bankIdAccountIds, callContext) map {
-          i => (unboxFullOrFail(i, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getCoreBankAccountsFuture(bankIdAccountIds, callContext))} in the backend. ", 400))
+          i => (unboxFullOrFail(i, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getCoreBankAccountsFuture(bankIdAccountIds, callContext))} in the backend. ", 400))
         }
       }
 
     def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] =
     {
       Connector.connector.vend.getBankAccountsHeldFuture(bankIdAccountIds, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
       }
     }
 
@@ -1000,7 +1000,7 @@ object NewStyle {
                                 callContext: Option[CallContext]): OBPReturnType[KycCheck] = {
       Connector.connector.vend.createOrUpdateKycCheck(bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments, callContext)
        .map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycCheck in the backend. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycCheck in the backend. ", 400), i._2)
        }
     }
 
@@ -1026,7 +1026,7 @@ object NewStyle {
           expiryDate,
           callContext)
         .map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycDocument in the backend. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycDocument in the backend. ", 400), i._2)
         }
     }
 
@@ -1052,7 +1052,7 @@ object NewStyle {
         relatesToKycCheckId,
         callContext
       ).map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycMedia in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycMedia in the backend. ", 400), i._2)
       }
     }
 
@@ -1070,7 +1070,7 @@ object NewStyle {
         date,
         callContext
       ).map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycStatus in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycStatus in the backend. ", 400), i._2)
       }
     }
 
@@ -1078,7 +1078,7 @@ object NewStyle {
                               callContext: Option[CallContext]
                              ): OBPReturnType[List[KycCheck]] = {
       Connector.connector.vend.getKycChecks(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
 
@@ -1086,7 +1086,7 @@ object NewStyle {
                                  callContext: Option[CallContext]
                                 ): OBPReturnType[List[KycDocument]] = {
       Connector.connector.vend.getKycDocuments(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
 
@@ -1094,7 +1094,7 @@ object NewStyle {
                               callContext: Option[CallContext]
                              ): OBPReturnType[List[KycMedia]] = {
       Connector.connector.vend.getKycMedias(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
 
@@ -1102,7 +1102,7 @@ object NewStyle {
                                 callContext: Option[CallContext]
                                ): OBPReturnType[List[KycStatus]] = {
       Connector.connector.vend.getKycStatuses(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
 
@@ -1120,7 +1120,7 @@ object NewStyle {
         fromDepartment : String,
         fromPerson : String,
         callContext: Option[CallContext]) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Can not create message in the backend.", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Can not create message in the backend.", 400), i._2)
       }
     }
 

@@ -371,7 +371,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(APIUtil.hasAccess(view, user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext) map {
-          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+          x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
         }
       } yield {
         view.moderateTransaction(transaction) match {
@@ -401,7 +401,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(APIUtil.hasAccess(view, user)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactionsFuture(bankId, accountId, callContext, queryParams: _*) map {
-          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+          x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
         }
       } yield {
         view.moderateTransactionsWithSameAccount(transactions) match {
