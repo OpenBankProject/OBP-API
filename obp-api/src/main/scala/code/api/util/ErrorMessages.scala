@@ -370,6 +370,7 @@ object ErrorMessages {
   val GetTransactionRequestsException = "OBP-60010: Get Transaction Requests Exception. "
   val CreateMeetingException = "OBP-60011: Create Meeting Exception. "
   val CreateMeetingInviteeException = "OBP-60012: Create Meeting Invitee Exception. "
+  val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
 
 
   ///////////

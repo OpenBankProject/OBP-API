@@ -113,20 +113,20 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
         case e: AskTimeoutException => {
           checkKafkaServer
             .map { _ => {
-                val errorMsg = s"${KafkaUnknownError} Timeout error, because no response return from kafka server."
+                val errorMsg = s"${AdapterUnknownError} Timeout error, because Adapter do not return proper message to Kafka. ${e.getMessage}"
                 sendOutboundAdapterError(errorMsg, request)
                 Failure(errorMsg, Full(e), Empty)
               }
             }
             .recover{
-              case _ => Failure(s"${KafkaServerUnavailable} Timeout error, because no response return from kafka server.", Full(e), Empty)
+              case e: Throwable => Failure(s"${KafkaServerUnavailable} Timeout error, because kafka do not return message to OBP-API. ${e.getMessage}", Full(e), Empty)
             }
         }
         case e @ (_:AuthenticationException| _:AuthorizationException|
                   _:IllegalStateException| _:InterruptException|
                   _:SerializationException| _:TimeoutException|
                   _:KafkaException| _:ApiException)
-          => Future(Failure(s"${KafkaUnknownError} OBP-API send message to kafka server failed", Full(e), Empty))
+          => Future(Failure(s"${KafkaUnknownError} OBP-API send message to kafka server failed. ${e.getMessage}", Full(e), Empty))
       }
   }
 
