@@ -175,7 +175,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       Connector.connector.vend.getBank(bankId, None).map(_._1).isDefined should equal(true)
 
       When("We try to create an account at that bank")
-      Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName,
+      Connector.connector.vend.createBankAccountLegacy(bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName,
                                                         "","", "")//added field in V220
 
       Then("An account with the proper parameters should be created")

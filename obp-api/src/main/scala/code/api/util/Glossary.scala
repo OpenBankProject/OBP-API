@@ -1,7 +1,7 @@
 package code.api.util
 
 import code.api.util.APIUtil.{getOAuth2ServerUrl, getObpApiRoot, getServerUrl}
-import code.api.util.ExampleValue._
+import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -171,30 +171,30 @@ object Glossary {
 |
 |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank
 |
-|* ${messageDocLinkAkka("obp.get.AdapterInfo")}
+|* ${messageDocLinkAkka("obp.getAdapterInfo")}
 |
-|Now you should be able to use the [Adapter Info](/index#OBPv3_0_0-getAdapter) endpoint
+|Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapterInfo) endpoint
 |
-|* ${messageDocLinkAkka("obp.get.Banks")}
+|* ${messageDocLinkAkka("obp.getBanks")}
 |
 |Now you should be able to use the [Get Banks](/index#OBPv3_0_0-getBanks) endpoint
 |
-|* ${messageDocLinkAkka("obp.get.Bank")}
+|* ${messageDocLinkAkka("obp.getBank")}
 |
 |Now you should be able to use the [Get Bank](/index#OBPv3_0_0-bankById) endpoint
 |
 |
 |2) Get Customers by USER_ID
 |
-|* ${messageDocLinkAkka("obp.get.CustomersByUserId")}
+|* ${messageDocLinkAkka("obp.getCustomersByUserId")}
 |
 |Now you should be able to use the [Get Customers](/index#OBPv3_0_0-get.CustomersByUserId) endpoint.
 |
 |
 |3) Get Accounts
 |
-|* ${messageDocLinkAkka("obp.check.BankAccountExists")}
-|* ${messageDocLinkAkka("obp.get.coreBankAccounts")}
+|* ${messageDocLinkAkka("obp.checkBankAccountExists")}
+|* ${messageDocLinkAkka("obp.getCoreBankAccounts")}
 |
 | The above messages should enable at least the following endpoints:
 |
@@ -204,7 +204,7 @@ object Glossary {
 |
 |4) Get Account
 |
-|* ${messageDocLinkAkka("obp.get.Account")}
+|* ${messageDocLinkAkka("obp.getAccount")}
 |
 | The above message should enable at least the following endpoints:
 |
@@ -213,12 +213,12 @@ object Glossary {
 |
 |5) Get Transactions
 |
-|* ${messageDocLinkAkka("obp.get.Transactions")}
-|* ${messageDocLinkAkka("obp.get.Transaction")}
+|* ${messageDocLinkAkka("obp.getTransactions")}
+|* ${messageDocLinkAkka("obp.getTransaction")}
 |
 |6) Manage Counterparties
 |
-|* ${messageDocLinkAkka("obp.get.counterparties")}
+|* ${messageDocLinkAkka("obp.getCounterparties")}
 |
 |7) Get Transaction Request Types
 |
@@ -270,7 +270,7 @@ object Glossary {
  |
  |* ${messageDocLink("obp.get.AdapterInfo")}
  |
- |Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapter) endpoint
+ |Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapterInfo) endpoint
  |
  |* ${messageDocLink("obp.get.Banks")}
  |

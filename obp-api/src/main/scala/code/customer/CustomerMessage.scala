@@ -2,7 +2,7 @@ package code.customer
 
 import java.util.Date
 
-import com.openbankproject.commons.model.{BankId, User}
+import com.openbankproject.commons.model.{BankId, CustomerMessage, User}
 import net.liftweb.util.SimpleInjector
 
 
@@ -19,15 +19,8 @@ trait CustomerMessageProvider {
   //TODO: pagination? is this sorted by date?
   def getMessages(user : User, bankId : BankId) : List[CustomerMessage]
 
-  def addMessage(user : User, bankId : BankId, message : String, fromDepartment : String, fromPerson : String) : Boolean
+  def addMessage(user : User, bankId : BankId, message : String, fromDepartment : String, fromPerson : String) : CustomerMessage
 
 }
 
-trait CustomerMessage {
-  //TODO: message language?
-  def messageId : String
-  def date : Date
-  def message : String
-  def fromDepartment : String
-  def fromPerson : String
-}
+

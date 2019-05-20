@@ -80,7 +80,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
   //
-  override def getAdapterInfoFuture(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(
+  override def getAdapterInfo(callContext: Option[CallContext]) : Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(
     Full(InboundAdapterInfoInternal(
       errorCode = "",
       backendMessages = Nil,
@@ -315,7 +315,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams).map(transactions => (transactions, callContext))
   }
   
-  override def getTransactionsCore(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) =
+  override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) =
     {
 
       // TODO Refactor this. No need for database lookups etc.
@@ -357,7 +357,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
     }
 
-    getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams).map(transactions =>(transactions,callContext))
+    Future{
+      (getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams), callContext)
+    }
   }
 
   /**
@@ -428,9 +430,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     getBankAccount(bankId: BankId, accountId: AccountId, callContext)
   }  
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = 
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = 
     Future {
-      getBankAccount(bankId: BankId, accountId: AccountId, callContext)
+      (getBankAccount(bankId: BankId, accountId: AccountId, callContext).map(_._1), callContext)
     }
   
   override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {
@@ -905,6 +907,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted)
 }
 
+  override def createBankAccount(
+                         bankId: BankId,
+                         accountId: AccountId,
+                         accountType: String,
+                         accountLabel: String,
+                         currency: String,
+                         initialBalance: BigDecimal,
+                         accountHolderName: String,
+                         branchId: String,
+                         accountRoutingScheme: String,
+                         accountRoutingAddress: String,
+                         callContext: Option[CallContext]
+                       ): OBPReturnType[Box[BankAccount]] = Future{
+    (Connector.connector.vend.createBankAccountLegacy(bankId: BankId,
+      accountId: AccountId,
+      accountType: String,
+      accountLabel: String,
+      currency: String,
+      initialBalance: BigDecimal,
+      accountHolderName: String,
+      branchId: String,
+      accountRoutingScheme: String,
+      accountRoutingAddress: String), callContext)
+  }
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(
     bankId: BankId,
@@ -1801,7 +1827,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ) = Future{tryo {Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)} }
   
   
-  override def createCustomerFuture(
+  override def createCustomer(
                                bankId: BankId,
                                legalName: String,
                                mobileNumber: String,
@@ -1818,11 +1844,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                lastOkDate: Date,
                                creditRating: Option[CreditRatingTrait],
                                creditLimit: Option[AmountOfMoneyTrait],
-                               callContext: Option[CallContext] = None,
                                title: String,
                                branchId: String,
-                               nameSuffix: String): Future[Box[Customer]] = Future{
-    Customer.customerProvider.vend.addCustomer(
+                               nameSuffix: String,
+                               callContext: Option[CallContext]
+                             ) = Future{
+    (Customer.customerProvider.vend.addCustomer(
       bankId,
       Random.nextInt(Integer.MAX_VALUE).toString,
       legalName,
@@ -1842,7 +1869,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       title,
       branchId,
       nameSuffix
-    )
+    ),callContext)
   }
   
   def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Box[(List[Customer], Option[CallContext])] = {
@@ -2276,6 +2303,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                      callContext: Option[CallContext]
                     ): OBPReturnType[Box[List[KycStatus]]] = Future {
     val boxedData = Box !!  KycStatuses.kycStatusProvider.vend.getKycStatuses(customerId)
+    (boxedData, callContext)
+  }
+
+  override def createMessage(user: User,
+                             bankId: BankId,
+                             message: String,
+                             fromDepartment: String,
+                             fromPerson: String,
+                             callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{
+    val boxedData = Box !! CustomerMessages.customerMessageProvider.vend.addMessage(user, bankId, message, fromDepartment, fromPerson)
     (boxedData, callContext)
   }
 

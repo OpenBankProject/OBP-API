@@ -54,6 +54,10 @@ abstract class Converter[T, D <% T: TypeTag]{
   implicit val toCommonsBox = ReflectUtils.toSiblingBox[T, D]
 
   implicit val toCommonsBoxList = ReflectUtils.toSiblingsBox[T, D]
+
+  implicit val toCommonsOption = ReflectUtils.toSiblingOption[T, D]
+
+  implicit val toCommonsOptionList = ReflectUtils.toSiblingsOption[T, D]
 }
 
 case class ProductAttributeCommons(
@@ -392,6 +396,17 @@ case class KycStatusCommons (
 ) extends KycStatus
 
 object KycStatusCommons extends Converter[KycStatus, KycStatusCommons]
+
+case class CustomerMessageCommons(
+  override val messageId: String,
+  override val date: Date,
+  override val message: String,
+  override val fromDepartment: String,
+  override val fromPerson: String
+) extends CustomerMessage
+object CustomerMessageCommons extends Converter[CustomerMessage, CustomerMessageCommons]
+
+
 
 //----------------obp-api moved to here case classes
 

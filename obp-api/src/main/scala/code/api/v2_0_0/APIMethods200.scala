@@ -15,6 +15,7 @@ import code.api.v1_2_1.{JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
+import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
 import code.customer.Customer
 import code.entitlement.Entitlement
@@ -61,10 +62,6 @@ trait APIMethods200 {
   // shows a small representation of View
   private def publicBankAccountBasicListToJson(bankAccounts: List[BankAccount], publicViews : List[View]): JValue = {
     Extraction.decompose(publicBasicBankAccountList(bankAccounts, publicViews))
-  }
-  
-  private def privateBankAccountBasicListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccessAtOneBank : List[View]): JValue = {
-    Extraction.decompose(privateBasicBankAccountList(bankAccounts, privateViewsUserCanAccessAtOneBank))
   }
   
   // Shows accounts without view
@@ -272,18 +269,16 @@ trait APIMethods200 {
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
     )
   
-    //TODO, double check with `lazy val privateAccountsAtOneBank`, they are the same accounts, only different json body.
     lazy val getPrivateAccountsAtOneBank : OBPEndpoint = {
-      //get accounts for a single bank (private + public)
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet req => {
         cc =>
           for{
             (Full(u), callContext) <- authorizedAccess(cc)
-            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+            (coreAccounts, callContext) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)
           } yield {
-            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
-            val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
-            (privateBankAccountBasicListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank), HttpCode.`200`(callContext))
+            (createBasicAccountsJson(coreAccounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1140,7 +1135,7 @@ trait APIMethods200 {
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(
+            bankAccount <- Connector.connector.vend.createBankAccountLegacy(
               bankId, accountId, accountType, 
               accountLabel, currency, initialBalanceAsNumber, 
               postedOrLoggedInUser.name,

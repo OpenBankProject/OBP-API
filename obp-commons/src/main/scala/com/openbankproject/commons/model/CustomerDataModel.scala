@@ -71,5 +71,10 @@ trait CreditRatingTrait {
 }
 
 case class CustomerFaceImage(date : Date, url : String) extends CustomerFaceImageTrait
+object CustomerFaceImage extends Converter[CustomerFaceImageTrait, CustomerFaceImage]
+
 case class CreditRating(rating: String, source: String) extends CreditRatingTrait
+object CreditRating extends Converter[CreditRatingTrait, CreditRating]
+
 case class CreditLimit(currency: String, amount: String) extends AmountOfMoneyTrait
+object CreditLimit extends Converter[AmountOfMoneyTrait, CreditLimit]

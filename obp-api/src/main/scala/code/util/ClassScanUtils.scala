@@ -2,6 +2,7 @@ package code.util
 
 import java.io.File
 
+import com.openbankproject.commons.model.Bank
 import org.apache.commons.lang3.StringUtils
 import org.clapper.classutil.{ClassFinder, ClassInfo}
 
@@ -13,7 +14,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 object ClassScanUtils {
 
-  lazy val finder = ClassFinder(List(getClassPath(this.getClass)))
+  lazy val finder = ClassFinder(getClassPath(this.getClass, classOf[Bank], classOf[String]))
 
   /**
     * get companion object or singleton object by class name
@@ -37,16 +38,26 @@ object ClassScanUtils {
   }
 
   /**
-    * get given class exists jar File
-    * @param clazz to find this class file path
+    * find all fit classes, do filter with predict function
+    * @param predict check whether include this type in the result
+    * @return all fit type names
+    */
+  def findTypes(predict: ClassInfo => Boolean): List[String] = finder.getClasses()
+    .filter(predict)
+    .map(_.name.replaceFirst("\\$$", "")) //some case class name ends with $, it added by scalac, should remove from class name
+    .toList
+
+  /**
+    * get given class exists jar Files
+    * @param classes to find class paths contains these class files
     * @return this class exists jar File
     */
-  private[this] def getClassPath(clazz: Class[_]) = {
-    val classFile = "/" + clazz.getName.replace('.', '/') + ".class"
-    val uri = clazz.getResource(classFile).toURI.toString
-    val path = uri.replaceFirst("^(jar:|file:)?(.*)\\!?\\Q" + classFile + "\\E$", "$2")
-    new File(path)
-  }
+  private[this] def getClassPath(classes: Class[_]*): Seq[File] =  classes.map { clazz =>
+      val classFile = "/" + clazz.getName.replace('.', '/') + ".class"
+      val uri = clazz.getResource(classFile).toURI.toString
+      val path = uri.replaceFirst("^(jar:|file:){0,2}(.*?)\\!?\\Q" + classFile + "\\E$", "$2")
+      new File(path)
+    }
 
   /**
     * get all subtype of net.liftweb.mapper.LongKeyedMapper, so we can register scanned db models dynamic

@@ -30,6 +30,7 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
+import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.inboundStatus
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
@@ -37,7 +38,7 @@ import code.api.util.ExampleValue._
 import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
-import code.kafka.KafkaHelper
+import code.kafka.{KafkaHelper, Topics}
 import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
@@ -55,6 +56,8 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
+  //this one import is for implicit convert, don't delete
+  import com.openbankproject.commons.model.{CustomerFaceImage, CreditLimit, CreditRating, AmountOfMoney}
 
   implicit override val nameOfConnector = RestConnector_vMar2019.toString
 
@@ -163,7 +166,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetAdapterInfoFuture(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+      OutBoundGetAdapterInfo(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         consumerId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
@@ -191,10 +194,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                 name = "string"))))))))))
       ),
     exampleInboundMessage = (
-      InBoundGetAdapterInfoFuture(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+      InBoundGetAdapterInfo(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = InboundAdapterInfoInternal(errorCode = "string",
           backendMessages = List(InboundStatusMessage(source = "string",
             status = "string",
@@ -208,8 +212,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  // url example: /getAdapterInfoFuture
-  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
+  // url example: /getAdapterInfo
+  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -219,8 +223,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAdapterInfoFuture")
-        sendGetRequest[InBoundGetAdapterInfoFuture](url, callContext)
+        val url = getUrl("getAdapterInfo")
+        sendGetRequest[InBoundGetAdapterInfo](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
@@ -229,7 +233,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           }
       }
     }
-  }("getAdapterInfoFuture")
+  }("getAdapterInfo")
 
   messageDocs += MessageDoc(
     process = "obp.get.Bank",
@@ -271,6 +275,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = BankCommons(bankId = BankId(value = "string"),
           shortName = "string",
           fullName = "string",
@@ -346,6 +351,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(BankCommons(bankId = BankId(value = "string"),
           shortName = "string",
           fullName = "string",
@@ -422,6 +428,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(InboundAccountCommons(bankId = "string",
           branchId = "string",
           accountId = "string",
@@ -505,6 +512,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(CoreAccount(id = "string",
           label = "string",
           bankId = "string",
@@ -579,6 +587,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = BankAccountCommons(accountId = AccountId(value = "string"),
           accountType = "string",
           balance = BigDecimal("123.321"),
@@ -602,7 +611,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /checkBankAccountExistsFuture/bankId/{bankId}/accountId/{accountId}
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Future[Box[(BankAccount, Option[CallContext])]] = saveConnectorMetric {
+  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -643,6 +652,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(TransactionCore(id = TransactionId(value = "string"),
           thisAccount = BankAccountCommons(accountId = AccountId(value = "string"),
             accountType = "string",
@@ -685,7 +695,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getTransactionsCore/bankId/{bankId}/accountID/{accountID}/queryParams/{queryParams}
-  override def getTransactionsCore(bankId: BankId, accountID: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): Box[(List[TransactionCore], Option[CallContext])] = saveConnectorMetric {
+  override def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -747,6 +757,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
+        inboundStatus,
         data = List(CustomerCommons(customerId = "string",
           bankId = "string",
           number = "string",
