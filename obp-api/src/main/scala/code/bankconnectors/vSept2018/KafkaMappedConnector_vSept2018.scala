@@ -535,47 +535,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountTTL second){
-        val box = for {
-          authInfo <- getAuthInfo(callContext)
-          req = OutboundGetAccountbyAccountID(authInfo, bankId.toString, accountId.value)
-          _ <- Full(logger.debug(s"Kafka getBankAccount says: req is: $req"))
-          kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
-          received = liftweb.json.compactRender(kafkaMessage)
-          expected = SchemaFor[InboundGetAccountbyAccountID]().toString(false)
-          inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! {
-            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccountbyAccountID class with the Message Doc : You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(error)
-            error
-          }
-          (inboundAccountSept2018, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
-        } yield{
-          (inboundAccountSept2018, status)
-        }
-
-        logger.debug(s"Kafka getBankAccount says res is $box")
-        box match {
-          case Full((Some(data), status)) if (status.errorCode=="") =>
-            Full(new BankAccountSept2018(data), callContext)
-          case Full((data, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-      }
-    }
+      Await.result(getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
   override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
@@ -595,33 +555,18 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           accountId.value
         )
         logger.debug(s"Kafka getBankAccountFuture says: req is: $req")
+        
+        processRequest[InboundGetAccountbyAccountID](req) map { inbound =>
+          val boxedResult = inbound match {
+            case Full(inboundData) if (inboundData.status.hasNoError) =>
+              Full(new BankAccountSept2018(inboundData.data.get))
+            case Full(inbound) if (inbound.status.hasError) =>
+              Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+            case failureOrEmpty: Failure => failureOrEmpty
+          }
+          (boxedResult, callContext)
+        }
 
-        val future = for {
-          res <- processToFuture[OutboundGetAccountbyAccountID](req) map {
-            f =>
-              try {
-                f.extract[InboundGetAccountbyAccountID]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetAccountbyAccountID]().toString(false)
-                  val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccountbyAccountID class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
-              }
-          } map { x => (x.inboundAuthInfo, x.status, x.data) }
-        } yield {
-          res
-        }
-        val res = future map {
-          case (authInfo,x, Some(data)) if (x.errorCode=="")  =>
-            (Full(new BankAccountSept2018(data)), callContext)
-          case (authInfo, x,_) if (x.errorCode!="") =>
-            (Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages), callContext)
-          case _ =>
-            (Failure(ErrorMessages.UnknownError), callContext)
-        }
-        res
       }
     }
   }("getBankAccount")
@@ -670,32 +615,16 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         )
         logger.debug(s"Kafka getBankAccountsHeldFuture says: req is: $req")
 
-        val future = for {
-          res <- processToFuture[OutboundGetBankAccountsHeld](req) map {
-            f =>
-              try {
-                f.extract[InboundGetBankAccountsHeld]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetBankAccountsHeld]().toString(false)
-                  val err = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBankAccountsHeld class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(err)
-                  throw new MappingException(err, e)
-              }
-          } map { x => (x.inboundAuthInfo, x.status, x.data) }
-        } yield {
-          res
+        processRequest[InboundGetBankAccountsHeld](req) map { inbound =>
+          val boxedResult = inbound match {
+            case Full(inboundData) if (inboundData.status.hasNoError) =>
+              Full(inboundData.data)
+            case Full(inbound) if (inbound.status.hasError) =>
+              Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+            case failureOrEmpty: Failure => failureOrEmpty
+          }
+          (boxedResult, callContext)
         }
-        val res = future map {
-          case (authInfo,x, data) if (x.errorCode=="")  =>
-            (Full(data), callContext)
-          case (authInfo, x,_) if (x.errorCode!="") =>
-            (Failure("INTERNAL-"+ x.errorCode+". + CoreBank-Status:"+ x.backendMessages), callContext)
-          case _ =>
-            (Failure(ErrorMessages.UnknownError), callContext)
-        }
-        res
       }
     }
   }
