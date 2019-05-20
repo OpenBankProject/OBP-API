@@ -388,8 +388,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
         processRequest[InboundGetBanks](req) map { inbound =>
           val boxedResult = inbound match {
-            case Full(inboundGetTransactions) if (inboundGetTransactions.status.hasNoError) =>
-              Full((inboundGetTransactions.data.map((new Bank2(_)))))
+            case Full(inboundData) if (inboundData.status.hasNoError) =>
+              Full((inboundData.data.map((new Bank2(_)))))
             case Full(inbound) if (inbound.status.hasError) =>
               Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
             case failureOrEmpty: Failure => failureOrEmpty
@@ -427,6 +427,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
   override def getBank(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
+    Await.result(getBankFuture(bankId: BankId, callContext: Option[CallContext]), TIMEOUT)
+  }("getBank")
+
+  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -442,89 +446,16 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         )
         logger.debug(s"Kafka getBank Req says:  is: $req")
 
-        val box: Box[(InboundBank, Status)] = for {
-          kafkaMessage <- processToBox[OutboundGetBank](req)
-          received = liftweb.json.compactRender(kafkaMessage)
-          expected = SchemaFor[InboundGetBank]().toString(false)
-          inboundGetBank <- tryo {
-            kafkaMessage.extract[InboundGetBank]
-          } ?~! {
-            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBank class with the Message Doc : You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(error)
-            error
+        processRequest[InboundGetBank](req) map { inbound =>
+          val boxedResult = inbound match {
+            case Full(inboundData) if (inboundData.status.hasNoError) =>
+              Full(new Bank2(inboundData.data))
+            case Full(inbound) if (inbound.status.hasError) =>
+              Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+            case failureOrEmpty: Failure => failureOrEmpty
           }
-          (inboundBank, status) <- Full(inboundGetBank.data, inboundGetBank.status)
-        } yield {
-          (inboundBank, status)
+          (boxedResult, callContext)
         }
-
-
-        logger.debug(s"Kafka getBank Res says:  is: $box")
-
-        box match {
-          case Full((bank, status)) if (status.errorCode == "") =>
-            Full((new Bank2(bank), callContext))
-          case Full((_, status)) if (status.errorCode != "") =>
-            Failure("INTERNAL-" + status.errorCode + ". + CoreBank-Status:" + status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.InvalidConnectorResponse)
-          case Failure(msg, e, c) =>
-            logger.error(msg, e)
-            logger.error(msg)
-            Failure(msg, e, c)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-
-      }
-    }
-  }("getBank")
-
-  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
-     /**
-        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-        * The real value will be assigned by Macro during compile time at this line of a code:
-        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-        */
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val req = OutboundGetBank(authInfo = AuthInfo(), bankId.toString)
-        logger.debug(s"Kafka getBankFuture Req is: $req")
-
-        val future = for {
-          res <- processToFuture[OutboundGetBank](req) map {
-            f =>
-              try {
-                f.extract[InboundGetBank]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetBank]().toString(false)
-                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetBank class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(error)
-                  throw new MappingException(error, e)
-              }
-          } map {
-            (x => (x.data, x.status))
-          }
-        } yield {
-          Full(res)
-        }
-
-        val res = future map {
-          case Full((bank, status)) if (status.errorCode=="") =>
-            val bankResponse =  (new Bank2(bank))
-            logger.debug(s"Kafka getBankFuture Res says:  is: $bankResponse")
-            Full((bankResponse, callContext))
-          case Full((bank, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-        logger.debug(s"Kafka getBankFuture says res is $res")
-        res
       }
     }
   }("getBank")
@@ -549,51 +480,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
   override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = saveConnectorMetric{
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
-        //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
-        val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-        val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
-        val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
-      
-        val box = for {
-          authInfo <- getAuthInfoFirstCbsCall(username, callContext)
-          req = OutboundGetAccounts(authInfo, internalCustomers)
-          kafkaMessage <- processToBox[OutboundGetAccounts](req)
-          received = liftweb.json.compactRender(kafkaMessage)
-          expected = SchemaFor[InboundGetAccounts]().toString(false)
-          inboundGetAccounts <- tryo{kafkaMessage.extract[InboundGetAccounts]} ?~! {
-            val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
-            sendOutboundAdapterError(error)
-            error
-          }
-          (inboundAccountSept2018, status) <- Full(inboundGetAccounts.data, inboundGetAccounts.status)
-        } yield{
-          (inboundAccountSept2018, status)
-        }
-        logger.debug(s"Kafka getBankAccounts says res is $box")
-
-        box match {
-          case Full((data, status)) if (status.errorCode=="") =>
-            Full(data, callContext)
-          case Full((data, status)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case Empty =>
-            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
-          case Failure(msg, e, c) =>
-            Failure(msg, e, c)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
-        }
-      }
-    }
+    Await.result(getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]), TIMEOUT)
   }("getBankAccounts")
 
   override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountSept2018], Option[CallContext])]] = saveConnectorMetric{
@@ -606,48 +493,22 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
-        //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
-        val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-        val customerList :List[Customer]= Customer.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
-        val internalCustomers = JsonFactory_vSept2018.createCustomersJson(customerList)
 
-        //TODO we maybe have an issue here, we set the `cbsToken = Empty`, this method will get the cbkToken back. 
         val req = OutboundGetAccounts(
           getAuthInfoFirstCbsCall(username, callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
-          internalCustomers
+          InternalBasicCustomers(Nil)
         )
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")
 
-        val future = for {
-          res <- processToFuture[OutboundGetAccounts](req) map {
-            f =>
-              try {
-                f.extract[InboundGetAccounts]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetAccounts]().toString(false)
-                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetAccounts class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(error)
-                  throw new MappingException(error, e)
-              }
-          } map {
-            (x => (x.data, x.status))
+        processRequest[InboundGetAccounts](req) map { inbound =>
+          val boxedResult = inbound match {
+            case Full(inboundData) if (inboundData.status.hasNoError) =>
+              Full(inboundData.data)
+            case Full(inbound) if (inbound.status.hasError) =>
+              Failure("INTERNAL-"+ inbound.status.errorCode+". + CoreBank-Status:" + inbound.status.backendMessages)
+            case failureOrEmpty: Failure => failureOrEmpty
           }
-        } yield {
-          res
-        }
-        logger.debug(s"Kafka getBankAccounts says res is $future")
-
-        future map {
-          case (data, status) if (status.errorCode=="") =>
-            Full(data,callContext)
-          case (data, status) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-          case (List(), status) =>
-            Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
-          case _ =>
-            Failure(ErrorMessages.UnknownError)
+          (boxedResult, callContext)
         }
       }
     }
