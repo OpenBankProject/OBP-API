@@ -1,12 +1,22 @@
 package code.kafka
 
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 import code.actorsystem.{ObpActorInit, ObpLookupSystem}
+import code.api.util.APIUtil.{gitCommit, unboxFullOrFail}
+import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.Box
-import net.liftweb.json.JValue
+import com.openbankproject.commons.model.{ObpApiLoopback, TopicTrait}
+import net.liftweb
+import net.liftweb.common._
+import net.liftweb.json
+import net.liftweb.json.{Extraction, JValue, MappingException}
 
 import scala.concurrent.Future
+import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.util.Helpers
+import org.apache.kafka.common.KafkaException
+import org.apache.kafka.common.errors._
 
 object KafkaHelper extends KafkaHelper
 
@@ -66,7 +76,86 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
   def processToFuture[T](request: T): Future[JValue] = {
     (actor ? request).mapTo[JValue]
   }
-  
+  /**
+    * This function is used for send request to kafka, and get the result extract to Box result.
+    * It processes Kafka's Outbound message to JValue wrapped into Box.
+    * @param request The request we send to Kafka
+    * @tparam T the type of the Inbound message
+    * @return Kafka's Inbound message into Future
+    */
+  def processRequest[T: Manifest](request: TopicTrait): Future[Box[T]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import liftweb.json.compactRender
+    implicit val formats = CustomJsonFormats.formats
+    val tp = manifest[T].runtimeClass
+
+    (actor ? request)
+      .mapTo[JValue]
+      .map {jvalue =>
+        try {
+          Full(jvalue.extract[T])
+        } catch {
+          case e: Exception => {
+            val errorMsg = s"${InvalidConnectorResponse} extract response payload to type ${tp} fail. the payload content: ${compactRender(jvalue)}"
+            sendOutboundAdapterError(errorMsg, request)
+
+            Failure(errorMsg, Full(e), Empty)
+          }
+        }
+      }
+      .recoverWith {
+        case e: ParseException => {
+          val errorMsg = s"${InvalidConnectorResponse} parse response payload to JValue fail. ${e.getMessage}"
+          sendOutboundAdapterError(errorMsg, request)
+
+          Future(Failure(errorMsg, Box !! (e.getCause) or Full(e), Empty))
+        }
+        case e: AskTimeoutException => {
+          checkKafkaServer
+            .map { _ => {
+                val errorMsg = s"${AdapterUnknownError} Timeout error, because Adapter do not return proper message to Kafka. ${e.getMessage}"
+                sendOutboundAdapterError(errorMsg, request)
+                Failure(errorMsg, Full(e), Empty)
+              }
+            }
+            .recover{
+              case e: Throwable => Failure(s"${KafkaServerUnavailable} Timeout error, because kafka do not return message to OBP-API. ${e.getMessage}", Full(e), Empty)
+            }
+        }
+        case e @ (_:AuthenticationException| _:AuthorizationException|
+                  _:IllegalStateException| _:InterruptException|
+                  _:SerializationException| _:TimeoutException|
+                  _:KafkaException| _:ApiException)
+          => Future(Failure(s"${KafkaUnknownError} OBP-API send message to kafka server failed. ${e.getMessage}", Full(e), Empty))
+      }
+  }
+
   def sendOutboundAdapterError(error: String): Unit = actor ! OutboundAdapterError(error)
 
+  def sendOutboundAdapterError(error: String, request: TopicTrait): Unit = {
+    implicit val formats = CustomJsonFormats.formats
+    val requestJson =json.compactRender(Extraction.decompose(request))
+    s"""$error
+       |The request is: ${requestJson}
+     """.stripMargin
+  }
+
+  /**
+    * check Kafka server, where send and request success
+    * @return ObpApiLoopback with duration
+    */
+  def checkKafkaServer: Future[ObpApiLoopback] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    implicit val formats = CustomJsonFormats.formats
+    for{
+      connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")}
+      startTime = Helpers.now
+      req = ObpApiLoopback(connectorVersion, gitCommit, "")
+      obpApiLoopbackRespons <- (actor ? req)
+        .map(_.asInstanceOf[JValue].extract[ObpApiLoopback])
+        .map(_.copy(durationTime = (Helpers.now.getTime - startTime.getTime).toString))
+    } yield {
+      obpApiLoopbackRespons
+    }
+  }
 }

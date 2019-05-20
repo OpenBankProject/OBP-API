@@ -31,24 +31,25 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.AdapterInfo",
     messageFormat = messageFormat,
     description = "Gets information about the active general (non bank specific) Adapter that is responding to messages sent by OBP.",
-    outboundTopic = Some(OutBoundGetAdapterInfoFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetAdapterInfoFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetAdapterInfo.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetAdapterInfo.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetAdapterInfoFuture(
+      OutBoundGetAdapterInfo(
         outboundAdapterCallContext
     )),
     exampleInboundMessage = (
-      InBoundGetAdapterInfoFuture(
+      InBoundGetAdapterInfo(
         inboundAdapterCallContext,
+        inboundStatus,
         inboundAdapterInfoInternal)
     ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetAdapterInfoFuture]().toString(true))),
-    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetAdapterInfoFuture]().toString(true))),
+    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetAdapterInfo]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetAdapterInfo]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  override def getAdapterInfoFuture(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
-    val req = OutBoundGetAdapterInfoFuture(callContext.map(_.toOutboundAdapterCallContext).get)
-    val response = (southSideActor ? req).mapTo[InBoundGetAdapterInfoFuture]
+  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
+    val req = OutBoundGetAdapterInfo(callContext.map(_.toOutboundAdapterCallContext).get)
+    val response = (southSideActor ? req).mapTo[InBoundGetAdapterInfo]
     response.map(r => Full(r.data, callContext))
   }
 
@@ -64,6 +65,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBanksFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(bankCommons)
         )
     ),
@@ -92,6 +94,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBankFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         bankCommons
       )
     ),
@@ -119,6 +122,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBankAccountsForUserFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(inboundAccountCommons)
       )
     ),
@@ -146,15 +150,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundCheckBankAccountExistsFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         bankAccountCommons
       )
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
-  override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None): Future[Box[(BankAccount, Option[CallContext])]] = {
+  override def checkBankAccountExistsFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) = {
     val req = OutBoundCheckBankAccountExistsFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
     val response: Future[InBoundCheckBankAccountExistsFuture] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExistsFuture]
-    response.map(a =>(Full(a.data, callContext)))
+    response.map(a =>(Full(a.data), callContext))
     
   }
 
@@ -174,6 +179,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetBankAccountFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         bankAccountCommons
       )
     ),
@@ -200,6 +206,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetCoreBankAccountsFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(
           CoreAccount(
             accountIdExample.value, 
@@ -236,6 +243,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetCustomersByUserIdFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         customerCommons:: Nil,
       )
     ),
@@ -267,6 +275,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetTransactionsFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         List(transactionCommons)
       )
     ),
@@ -299,6 +308,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
       InBoundGetTransactionFuture(
         inboundAdapterCallContext,
+        inboundStatus,
         transactionCommons
       )
     ),

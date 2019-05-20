@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.model.dataAccess.ResourceUser
 import code.util.{MappedUUID, UUIDString}
-import com.openbankproject.commons.model.{BankId, User}
+import com.openbankproject.commons.model.{BankId, CustomerMessage, User}
 import net.liftweb.mapper._
 
 object MappedCustomerMessageProvider extends CustomerMessageProvider {
@@ -17,13 +17,13 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
   }
 
 
-  override def addMessage(user: User, bankId: BankId, message: String, fromDepartment: String, fromPerson: String): Boolean = {
+  override def addMessage(user: User, bankId: BankId, message: String, fromDepartment: String, fromPerson: String) = {
     MappedCustomerMessage.create
       .mFromDepartment(fromDepartment)
       .mFromPerson(fromPerson)
       .mMessage(message)
       .user(user.userPrimaryKey.value)
-      .bank(bankId.value).save()
+      .bank(bankId.value).saveMe()
   }
 }
 

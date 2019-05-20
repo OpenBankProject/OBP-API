@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.model
 
 import code.accountholders.AccountHolders
-import code.api.util.APIUtil.unboxFullOrFail
+import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.Connector
@@ -370,7 +370,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(APIUtil.hasAccess(view, user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransactionFuture(bankId, accountId, transactionId, callContext) map {
-          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+          x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
         }
       } yield {
         view.moderateTransaction(transaction) match {
@@ -400,7 +400,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(APIUtil.hasAccess(view, user)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactionsFuture(bankId, accountId, callContext, queryParams: _*) map {
-          x => (unboxFullOrFail(x._1, callContext, ConnectorEmptyResponse, 400), x._2)
+          x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
         }
       } yield {
         view.moderateTransactionsWithSameAccount(transactions) match {
@@ -413,14 +413,14 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactionsCore(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[(List[ModeratedTransactionCore], Option[CallContext])] = {
+  final def getModeratedTransactionsCore(user : Box[User], view : View, queryParams: List[OBPQueryParam], callContext: Option[CallContext] ): OBPReturnType[Box[List[ModeratedTransactionCore]]] = {
     if(APIUtil.hasAccess(view, user)) {
       for {
-        (transactions, callContext) <- Connector.connector.vend.getTransactionsCore(bankId, accountId, callContext, queryParams: _*) ?~! InvalidConnectorResponseForGetTransactions
-        moderated <- view.moderateTransactionsWithSameAccountCore(transactions) ?~! UnknownError
+        (transactions, callContext) <- NewStyle.function.getTransactionsCore(bankId, accountId, queryParams, callContext)
+        moderated <- Future {view.moderateTransactionsWithSameAccountCore(transactions)} 
       } yield (moderated, callContext)
     }
-    else viewNotAllowed(view)
+    else Future{(viewNotAllowed(view), callContext)}
   }
 
   final def moderatedBankAccount(view: View, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccount] = {

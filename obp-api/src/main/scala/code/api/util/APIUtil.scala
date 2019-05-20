@@ -1936,7 +1936,7 @@ Returns a string showed to the developer
   }
   
   def connectorEmptyResponse[T](box: Box[T], cc: Option[CallContext])(implicit m: Manifest[T]): T = {
-    unboxFullOrFail(box, cc, ConnectorEmptyResponse, 400)
+    unboxFullOrFail(box, cc, InvalidConnectorResponse, 400)
   }
 
   def unboxFuture[T](box: Box[Future[T]]): Future[Box[T]] = box match {

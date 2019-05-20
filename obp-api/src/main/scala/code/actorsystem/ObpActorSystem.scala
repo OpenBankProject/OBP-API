@@ -13,7 +13,9 @@ object ObpActorSystem extends MdcLoggable {
   var obpActorSystem: ActorSystem = _
   var northSideAkkaConnectorActorSystem: ActorSystem = _
 
-  def startLocalActorSystem(): ActorSystem = {
+  def startLocalActorSystem() = localActorSystem
+
+  lazy val localActorSystem: ActorSystem = {
     logger.info("Starting local actor system")
     val localConf = ObpActorConfig.localConf
     logger.info(localConf)

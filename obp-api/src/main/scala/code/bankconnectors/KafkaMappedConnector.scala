@@ -328,7 +328,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       // Check does the response data match the requested data
       case Some(x) if transactionId.value != x.transactionId => Failure(ErrorMessages.InvalidConnectorResponseForGetTransaction, Empty, Empty)
       case Some(x) if transactionId.value == x.transactionId => createNewTransaction(x).map(transaction => (transaction, callContext))
-      case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+      case _ => Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
     }
 
   }

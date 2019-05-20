@@ -5,7 +5,6 @@ import java.util.Date
 import code.api.util.ErrorMessages._
 import code.crm.CrmEvent._
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
-import code.customer.CustomerMessage
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{MappedUUID, UUIDString}

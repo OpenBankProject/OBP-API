@@ -25,6 +25,7 @@ import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
 import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
+import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
@@ -36,7 +37,7 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreditLimit, _}
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, parse}
@@ -1235,8 +1236,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerJsonV310]
             }
-  
-            customer <- Connector.connector.vend.createCustomerFuture(
+            (customer, callContext) <- NewStyle.function.createCustomer(
               bankId,
               postedData.legal_name,
               postedData.mobile_phone_number,
@@ -1252,13 +1252,11 @@ trait APIMethods310 {
               postedData.last_ok_date,
               Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
               Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
-              callContext,
               postedData.title,
               postedData.branchId,
-              postedData.nameSuffix
-            ) map {
-              unboxFullOrFail(_, callContext, CreateCustomerError)
-            }
+              postedData.nameSuffix,
+              callContext,
+            ) 
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
           }
@@ -1937,9 +1935,16 @@ trait APIMethods310 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            (obpApiLoopback, callContext) <- NewStyle.function.getObpApiLoopback(callContext)
+            connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
+            startTime = Helpers.now
+            req = ObpApiLoopback(connectorVersion, gitCommit, "")
+            obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
+              (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
+            }
+            endTime = Helpers.now
+            durationTime = endTime.getTime - startTime.getTime
           } yield {
-            (createObpApiLoopbackJson(obpApiLoopback), HttpCode.`200`(callContext))
+            (createObpApiLoopbackJson(obpApiLoopback.copy(durationTime = durationTime.toString)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2404,7 +2409,7 @@ trait APIMethods310 {
               case "ACCEPTED" =>
                 for{
                   accountId <- Future{AccountId(UUID.randomUUID().toString)}
-                  (_, callContext) <- NewStyle.function.createSandboxBankAccount(
+                  (_, callContext) <- NewStyle.function.createBankAccount(
                                                                                  bankId, 
                                                                                  accountId, 
                                                                                  accountApplication.productCode.value,
@@ -3227,7 +3232,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -3301,7 +3306,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),
@@ -3492,7 +3497,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         InvalidJsonFormat,
-        ConnectorEmptyResponse,
+        InvalidConnectorResponse,
         UnknownError
       ),
       Catalogs(Core, notPSD2, OBWG),

@@ -83,6 +83,14 @@ case class InboundStatusMessage(
   text: String
 )
 
+case class Status(
+                   errorCode: String,
+                   backendMessages: List[InboundStatusMessage]
+                 ) {
+  def hasError = this.errorCode != null && errorCode.trim != ""
+  def hasNoError = !hasError
+}
+
 case class InboundAdapterInfoInternal(
   errorCode: String,
   backendMessages: List[InboundStatusMessage],
@@ -367,6 +375,15 @@ trait KycStatus {
   def customerNumber : String
   def ok : Boolean
   def date : Date
+}
+
+trait CustomerMessage {
+  //TODO: message language?
+  def messageId : String
+  def date : Date
+  def message : String
+  def fromDepartment : String
+  def fromPerson : String
 }
 //---------------------------------------- trait dependents of case class
 

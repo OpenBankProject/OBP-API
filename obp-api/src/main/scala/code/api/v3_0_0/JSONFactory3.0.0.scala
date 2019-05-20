@@ -738,7 +738,7 @@ object JSONFactory300{
       coreAccount.accountType,
       coreAccount.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address)),
       views = Views.views.vend
-        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id)))
+        .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id))).filter(_.isPrivate)
         .map(mappedView => 
           ViewBasic(
             mappedView.viewId.value,

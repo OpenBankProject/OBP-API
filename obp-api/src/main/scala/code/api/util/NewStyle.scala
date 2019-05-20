@@ -15,7 +15,6 @@ import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
 import code.context.UserAuthContextUpdate
-import code.customeraddress.CustomerAddress
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -23,12 +22,13 @@ import code.metadata.counterparties.Counterparties
 import code.model._
 import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
+import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
@@ -39,17 +39,27 @@ import scala.concurrent.Future
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
+    (nameOf(Implementations1_4_0.addCustomerMessage), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations2_0_0.getAllEntitlements), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.publicAccountsAtOneBank), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.privateAccountsAtOneBank), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.corePrivateAccountsAtOneBank), ApiVersion.v2_0_0.toString),
-    (nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getKycDocuments), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getKycMedia), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getKycStatuses), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getKycChecks), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.getSocialMediaHandles), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.addKycDocument), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.addKycMedia), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.addKycStatus), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.addKycCheck), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartyById), ApiVersion.v2_2_0.toString),
+    (nameOf(Implementations2_2_0.createAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
@@ -86,7 +96,7 @@ object NewStyle {
     (nameOf(Implementations3_0_0.getBanks), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getAdapter), ApiVersion.v3_0_0.toString),
+    (nameOf(Implementations3_0_0.getAdapterInfoForBank), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getOtherAccountByIdForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_0_0.getOtherAccountsForBankAccount), ApiVersion.v3_0_0.toString),
     (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
@@ -247,8 +257,8 @@ object NewStyle {
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
-      Connector.connector.vend.checkBankAccountExistsFuture(bankId, accountId, callContext) } map {
-        unboxFullOrFail(_, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId")
+      Connector.connector.vend.checkBankAccountExistsFuture(bankId, accountId, callContext) } map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId"), i._2)
       }
 
     def moderatedBankAccount(account: BankAccount, view: View, user: Box[User], callContext: Option[CallContext]) = Future {
@@ -268,6 +278,11 @@ object NewStyle {
                                   callContext: Option[CallContext]): Future[ModeratedOtherBankAccount] = 
       Future(account.moderatedOtherBankAccount(counterpartyId, view, user, callContext)) map { connectorEmptyResponse(_, callContext) }
 
+    def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[TransactionCore]] =
+      Connector.connector.vend.getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetTransactions", 400 ), i._2)
+      }
+    
     def view(viewId : ViewId, bankAccountId: BankIdAccountId, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.viewFuture(viewId, bankAccountId) map {
         unboxFullOrFail(_, callContext, s"$ViewNotFound. Current ViewId is $viewId")
@@ -415,7 +430,7 @@ object NewStyle {
     }
 
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
-        Connector.connector.vend.getAdapterInfoFuture(callContext) map {
+        Connector.connector.vend.getAdapterInfo(callContext) map {
           connectorEmptyResponse(_, callContext)
         }
     }
@@ -673,13 +688,6 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForMakePayment ",400), i._2)
       }
     
-    def getObpApiLoopback(callContext: Option[CallContext]): OBPReturnType[ObpApiLoopback] = {
-      Connector.connector.vend.getObpApiLoopback(callContext) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
-      }
-    }
-    
-    
     def createOrUpdateProductAttribute(
       bankId: BankId,
       productCode: ProductCode,
@@ -798,7 +806,7 @@ object NewStyle {
       (userList, callContext)
     }
 
-    def createSandboxBankAccount(
+    def createBankAccount(
       bankId: BankId,
       accountId: AccountId,
       accountType: String,
@@ -810,8 +818,8 @@ object NewStyle {
       accountRoutingScheme: String,
       accountRoutingAddress: String, 
       callContext: Option[CallContext]
-    ): OBPReturnType[BankAccount] = Future {
-      Connector.connector.vend.createSandboxBankAccount(
+    ): OBPReturnType[BankAccount] = 
+      Connector.connector.vend.createBankAccount(
         bankId: BankId,
         accountId: AccountId,
         accountType: String,
@@ -821,9 +829,10 @@ object NewStyle {
         accountHolderName: String,
         branchId: String,
         accountRoutingScheme: String,
-        accountRoutingAddress: String
-      )} map {
-        i => (unboxFullOrFail(i, callContext, UnknownError, 400), callContext)
+        accountRoutingAddress: String,
+        callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
       }
 
     def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
@@ -843,33 +852,33 @@ object NewStyle {
                                      productCodes: List[String], 
                                      callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
       Connector.connector.vend.getOrCreateProductCollection(collectionCode, productCodes, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getProductCollection(collectionCode: String, 
                              callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
       Connector.connector.vend.getProductCollection(collectionCode, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getOrCreateProductCollectionItems(collectionCode: String,
                                           memberProductCodes: List[String],
                                           callContext: Option[CallContext]): OBPReturnType[List[ProductCollectionItem]] = {
       Connector.connector.vend.getOrCreateProductCollectionItem(collectionCode, memberProductCodes, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getProductCollectionItems(collectionCode: String,
                                           callContext: Option[CallContext]): OBPReturnType[List[ProductCollectionItem]] = {
       Connector.connector.vend.getProductCollectionItem(collectionCode, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
     def getProductCollectionItemsTree(collectionCode: String, 
                                       bankId: String,
                                       callContext: Option[CallContext]): OBPReturnType[List[(ProductCollectionItem, Product, List[ProductAttribute])]] = {
       Connector.connector.vend.getProductCollectionItemsTree(collectionCode, bankId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current collection code($collectionCode)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
       
@@ -929,7 +938,7 @@ object NewStyle {
         invitees: List[Invitee],
         callContext: Option[CallContext]
     ) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not createMeeting in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not createMeeting in the backend. ", 400), i._2)
       }
     }
     
@@ -943,7 +952,7 @@ object NewStyle {
         user: User,
         callContext: Option[CallContext]
       ) map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not getMeetings in the backend. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not getMeetings in the backend. ", 400), i._2)
         }
       }
     
@@ -966,14 +975,14 @@ object NewStyle {
     def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[CoreAccount]] = 
       {
         Connector.connector.vend.getCoreBankAccountsFuture(bankIdAccountIds, callContext) map {
-          i => (unboxFullOrFail(i, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getCoreBankAccountsFuture(bankIdAccountIds, callContext))} in the backend. ", 400))
+          i => (unboxFullOrFail(i, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getCoreBankAccountsFuture(bankIdAccountIds, callContext))} in the backend. ", 400))
         }
       }
 
     def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] =
     {
       Connector.connector.vend.getBankAccountsHeldFuture(bankIdAccountIds, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
       }
     }
 
@@ -990,7 +999,7 @@ object NewStyle {
                                 callContext: Option[CallContext]): OBPReturnType[KycCheck] = {
       Connector.connector.vend.createOrUpdateKycCheck(bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments, callContext)
        .map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycCheck in the backend. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycCheck in the backend. ", 400), i._2)
        }
     }
 
@@ -1016,7 +1025,7 @@ object NewStyle {
           expiryDate,
           callContext)
         .map {
-          i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycDocument in the backend. ", 400), i._2)
+          i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycDocument in the backend. ", 400), i._2)
         }
     }
 
@@ -1042,7 +1051,7 @@ object NewStyle {
         relatesToKycCheckId,
         callContext
       ).map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycMedia in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycMedia in the backend. ", 400), i._2)
       }
     }
 
@@ -1060,7 +1069,7 @@ object NewStyle {
         date,
         callContext
       ).map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse Can not create or update KycStatus in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycStatus in the backend. ", 400), i._2)
       }
     }
 
@@ -1068,7 +1077,7 @@ object NewStyle {
                               callContext: Option[CallContext]
                              ): OBPReturnType[List[KycCheck]] = {
       Connector.connector.vend.getKycChecks(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
 
@@ -1076,7 +1085,7 @@ object NewStyle {
                                  callContext: Option[CallContext]
                                 ): OBPReturnType[List[KycDocument]] = {
       Connector.connector.vend.getKycDocuments(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
 
@@ -1084,7 +1093,7 @@ object NewStyle {
                               callContext: Option[CallContext]
                              ): OBPReturnType[List[KycMedia]] = {
       Connector.connector.vend.getKycMedias(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
 
@@ -1092,9 +1101,80 @@ object NewStyle {
                                 callContext: Option[CallContext]
                                ): OBPReturnType[List[KycStatus]] = {
       Connector.connector.vend.getKycStatuses(customerId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$ConnectorEmptyResponse  Current customerId ($customerId)", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current customerId ($customerId)", 400), i._2)
       }
     }
+
+
+    def createMessage(user : User,
+                      bankId : BankId,
+                      message : String,
+                      fromDepartment : String,
+                      fromPerson : String,
+                      callContext: Option[CallContext]) : OBPReturnType[CustomerMessage] = {
+      Connector.connector.vend.createMessage(
+        user : User,
+        bankId : BankId,
+        message : String,
+        fromDepartment : String,
+        fromPerson : String,
+        callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Can not create message in the backend.", 400), i._2)
+      }
+    }
+
+    def getUserCustomerLinkByCustomerId(customerId: String, callContext: Option[CallContext]) : OBPReturnType[UserCustomerLink] = {
+      Future {UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customerId)}   map {
+        i => (unboxFullOrFail(i, callContext, s"$UserCustomerLinksNotFoundForUser Current customerId ($customerId)", 400), callContext)
+      }
+    }
+
+    def createCustomer(
+                        bankId: BankId,
+                        legalName: String,
+                        mobileNumber: String,
+                        email: String,
+                        faceImage:
+                        CustomerFaceImageTrait,
+                        dateOfBirth: Date,
+                        relationshipStatus: String,
+                        dependents: Int,
+                        dobOfDependents: List[Date],
+                        highestEducationAttained: String,
+                        employmentStatus: String,
+                        kycStatus: Boolean,
+                        lastOkDate: Date,
+                        creditRating: Option[CreditRatingTrait],
+                        creditLimit: Option[AmountOfMoneyTrait],
+                        title: String,
+                        branchId: String,
+                        nameSuffix: String,
+                        callContext: Option[CallContext]): OBPReturnType[Customer] = 
+      Connector.connector.vend.createCustomer(
+        bankId: BankId,
+        legalName: String,
+        mobileNumber: String,
+        email: String,
+        faceImage:
+          CustomerFaceImageTrait,
+        dateOfBirth: Date,
+        relationshipStatus: String,
+        dependents: Int,
+        dobOfDependents: List[Date],
+        highestEducationAttained: String,
+        employmentStatus: String,
+        kycStatus: Boolean,
+        lastOkDate: Date,
+        creditRating: Option[CreditRatingTrait],
+        creditLimit: Option[AmountOfMoneyTrait],
+        title: String,
+        branchId: String,
+        nameSuffix: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
+      }
+    
   }
 
 }

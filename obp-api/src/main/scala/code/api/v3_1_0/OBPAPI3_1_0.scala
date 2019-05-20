@@ -236,7 +236,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_0_0.getUser ::
                           Implementations3_0_0.getUserByUserId ::
                           Implementations3_0_0.getUserByUsername ::
-                          Implementations3_0_0.getAdapter ::
+                          Implementations3_0_0.getAdapterInfoForBank ::
                           Implementations3_0_0.createBranch ::
                           Implementations3_0_0.getBranches ::
                           Implementations3_0_0.getBranch ::
