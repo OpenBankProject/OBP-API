@@ -90,15 +90,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                          cbs_token = Some(""),
                          cbs_id = "",
                          session_id = Some(""))))
-      isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
-      correlationId <- Full(cc.correlationId)
-      sessionId <- Full(cc.sessionId.getOrElse(""))
+      isFirst = gatewayLoginRequestPayLoad.is_first
+      correlationId = cc.correlationId
+      sessionId = cc.sessionId.getOrElse("")
       //Here, need separate the GatewayLogin and other Types, because of for Gatewaylogin, there is no user here. Others, need sign up user in OBP side. 
       basicUserAuthContexts <- cc.gatewayLoginRequestPayload match {
         case None => 
           for{
-            user <- Users.users.vend.getUserByUserName(username)
-            userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+            user <- Users.users.vend.getUserByUserName(username) ?~! "getAuthInfoFirstCbsCall: can not get user object here."
+            userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)?~! "getAuthInfoFirstCbsCall: can not get userAuthContexts object here."
             basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
           } yield
             basicUserAuthContexts
@@ -110,10 +110,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
     for{
-      cc <- tryo {callContext.get} ?~! NoCallContext
-      user <- cc.user
-      username <- tryo(user.name)
-      currentResourceUserId <- Some(user.userId)
+      cc <- tryo {callContext.get} ?~! s"$NoCallContext. inside the getAuthInfo method "
+      user <- cc.user ?~! "getAuthInfo: User is not in side CallContext!"
+      username =user.name
+      currentResourceUserId = user.userId
       gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload orElse (
         Some(PayloadOfJwtJSON(login_user_name = "",
                          is_first = false,
@@ -124,19 +124,19 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                          cbs_id = "",
                          session_id = Some(""))))
       cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
-      isFirst <- tryo(gatewayLoginPayLoad.is_first)
-      correlationId <- tryo(cc.correlationId)
-      sessionId <- tryo(cc.sessionId.getOrElse(""))
-      permission <- Views.views.vend.getPermissionForUser(user)
-      views <- tryo(permission.views)
-      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      isFirst <- tryo(gatewayLoginPayLoad.is_first) ?~! "getAuthInfo:is_first can not be got from gatewayLoginPayLoad!"
+      correlationId <- tryo(cc.correlationId) ?~! "getAuthInfo: User id can not be got from callContext!"
+      sessionId <- tryo(cc.sessionId.getOrElse(""))?~! "getAuthInfo: session id can not be got from callContext!"
+      permission <- Views.views.vend.getPermissionForUser(user)?~! "getAuthInfo: No permission for this user"
+      views <- tryo(permission.views)?~! "getAuthInfo: No views for this user"
+      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))?~! "getAuthInfo: No linked customers for this user"
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
-      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) ?~! "getAuthInfo: No userAuthContexts for this user"
       basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
-      authViews<- Full(
+      authViews<- tryo(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
-          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {s"getAuthInfo: $BankAccountNotFound"}
           internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
           internalUsers = JsonFactory_vSept2018.createUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
@@ -147,7 +147,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             internalUsers.users)
         }yield 
           AuthView(viewBasic, accountBasic)
-      )
+      )?~! "getAuthInfo: No authViews for this user"
     } yield{
       AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, sessionId, likedCustomersBasic, basicUserAuthContexts, authViews)
     }
