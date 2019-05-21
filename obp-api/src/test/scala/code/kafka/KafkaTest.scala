@@ -54,7 +54,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         propsRemotedataTimeout should be ("10")
   
         When("We call this method, and get the response. ")
-        val future = KafkaHelper.checkKafkaServer
+        val future = KafkaHelper.echoKafkaServer
         val result =  future.getContent
   
         Then("If it return value successfully, that mean api <--> kafka is working well. We only need check one filed of response.")
