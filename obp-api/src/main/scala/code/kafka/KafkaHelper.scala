@@ -115,7 +115,7 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
           Future(Failure(errorMsg, Box !! (e.getCause) or Full(e), Empty))
         }
         case e: AskTimeoutException => {
-          checkKafkaServer
+          echoKafkaServer
             .map { _ => {
                 val errorMsg = s"${AdapterUnknownError} Timeout error, because Adapter do not return proper message to Kafka. ${e.getMessage}"
                 sendOutboundAdapterError(errorMsg, request)
@@ -148,7 +148,7 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     * check Kafka server, where send and request success
     * @return ObpApiLoopback with duration
     */
-  def checkKafkaServer: Future[ObpApiLoopback] = {
+  def echoKafkaServer: Future[ObpApiLoopback] = {
     import scala.concurrent.ExecutionContext.Implicits.global
     implicit val formats = CustomJsonFormats.formats
     for{
