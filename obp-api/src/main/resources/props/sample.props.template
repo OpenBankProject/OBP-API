@@ -6,7 +6,7 @@
 
 ### Base configuration
 
-## Which data connector to use
+## Which data connector to use, if config star as connector, should make sure other connector config appropriate and works
 connector=mapped
 #connector=mongodb
 #connector=kafka
@@ -14,6 +14,7 @@ connector=mapped
 #connector=akka_vDec2018
 #connector=rest_vMar2019
 #connector=obpjvm
+#connector=star
 #connector=...
 
 ## whether export LocalMappedConnector methods as endpoints, it is just for develop, default is false
