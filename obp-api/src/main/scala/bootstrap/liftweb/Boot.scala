@@ -216,7 +216,7 @@ class Boot extends MdcLoggable {
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-    if(connector != "mongodb" || connector == "star")
+    if(connector != "mongodb")
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)

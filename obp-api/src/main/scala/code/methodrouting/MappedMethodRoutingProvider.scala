@@ -11,7 +11,7 @@ import scala.collection.immutable
 object MappedMethodRoutingProvider extends MethodRoutingProvider {
 
   override def getByMethodName(methodName: String): immutable.Seq[MethodRoutingT] = MappedMethodRouting.findAll {
-    By(MappedMethodRouting.mMethodRoutingId, methodName)
+    By(MappedMethodRouting.mMethodName, methodName)
   }
 
   private[this] def getByMethodRoutingId(methodRoutingId: String): Box[MappedMethodRouting] = MappedMethodRouting.find(By(MappedMethodRouting.mMethodRoutingId, methodRoutingId))
