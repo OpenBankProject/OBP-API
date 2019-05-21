@@ -1936,7 +1936,9 @@ trait APIMethods310 {
             connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
             obpApiLoopback <- connectorVersion.contains("kafka") match {
               case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
-              case true => KafkaHelper.echoKafkaServer
+              case true => KafkaHelper.echoKafkaServer.recover {
+                case e: Throwable => throw new IllegalStateException(s"${KafkaServerUnavailable} Timeout error, because kafka do not return message to OBP-API. ${e.getMessage}")
+              }
             }
           } yield {
             (createObpApiLoopbackJson(obpApiLoopback), HttpCode.`200`(callContext))
