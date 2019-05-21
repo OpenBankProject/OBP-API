@@ -3,7 +3,7 @@ package code.transaction
 
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, ApiTrigger}
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.bankconnectors.LocalMappedConnector.getBankAccountCommon
 import code.model._
 import code.util._
@@ -218,7 +218,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
         } yield transaction
       case _ =>
         for {
-          acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
+          acc <- LocalMappedConnector.getBankAccount(theBankId, theAccountId)
           transaction <- toTransaction(acc)
         } yield transaction
     }
