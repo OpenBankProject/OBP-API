@@ -2419,37 +2419,16 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       toCounterpartyBankRoutingScheme = "OBP"
     )
     
-    // Since result is single account, we need only first list entry
-    val future = for {
-      res <- processToFuture[OutboundCreateTransaction](req) map {
-        f =>
-          try {
-            f.extract[InboundCreateTransactionId]
-          } catch {
-            case e: Exception =>
-              val received = liftweb.json.compactRender(f)
-              val expected = SchemaFor[InboundCreateTransactionId]().toString(false)
-              val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundCreateTransaction class with the Message Doc : You received this ($received). We expected this ($expected)"
-              sendOutboundAdapterError(error)
-              throw new MappingException(error, e)
-          }
-      } map {
-        (x => (x.inboundAuthInfo, x.status,  x.data))
+    processRequest[InboundCreateTransactionId](req) map { inbound =>
+      val boxedResult = inbound match {
+        case Full(inboundData) if (inboundData.status.hasNoError) =>
+          Full(TransactionId(inboundData.data.id))
+        case Full(inboundData) if (inboundData.status.hasError) =>
+          Failure("INTERNAL-"+ inboundData.status.errorCode+". + CoreBank-Status:" + inboundData.status.backendMessages)
+        case failureOrEmpty: Failure => failureOrEmpty
       }
-    } yield {
-      Full(res)
+      (boxedResult, callContext)
     }
-    
-    val res = future map {
-      case Full((authInfo, status,  data )) if (status.errorCode=="") =>
-        (Full(TransactionId(data.id)), callContext)
-      case Full((authInfo, status,  data )) if (status.errorCode!="") =>
-        (Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages), callContext)
-      case _ =>
-        (Failure(ErrorMessages.UnknownError), callContext)
-    }
-    
-    res
   }
 
   messageDocs += MessageDoc(

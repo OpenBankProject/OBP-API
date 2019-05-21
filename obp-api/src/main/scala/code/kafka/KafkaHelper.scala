@@ -10,6 +10,7 @@ import com.openbankproject.commons.model.{ObpApiLoopback, TopicTrait}
 import net.liftweb
 import net.liftweb.common._
 import net.liftweb.json
+import net.liftweb.json.JsonAST.JNull
 import net.liftweb.json.{Extraction, JValue, MappingException}
 
 import scala.concurrent.Future
@@ -93,10 +94,13 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
       .mapTo[JValue]
       .map {jvalue =>
         try {
-          Full(jvalue.extract[T])
+          if (jvalue == JNull)
+            throw new Exception("Adapter can not return `null` value to OBP-API!")
+          else 
+            Full(jvalue.extract[T])
         } catch {
           case e: Exception => {
-            val errorMsg = s"${InvalidConnectorResponse} extract response payload to type ${tp} fail. the payload content: ${compactRender(jvalue)}"
+            val errorMsg = s"${InvalidConnectorResponse} extract response payload to type ${tp} fail. the payload content: ${compactRender(jvalue)}. $e"
             sendOutboundAdapterError(errorMsg, request)
 
             Failure(errorMsg, Full(e), Empty)
