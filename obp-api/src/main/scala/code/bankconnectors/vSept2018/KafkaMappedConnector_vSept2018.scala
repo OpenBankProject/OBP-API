@@ -2333,34 +2333,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val req = OutboundGetChallengeThreshold(authInfo, bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
         logger.debug(s"Kafka getChallengeThresholdFuture Req is: $req")
 
-        val future = for {
-          res <- processToFuture[OutboundGetChallengeThreshold](req) map {
-            f =>
-              try {
-                f.extract[InboundGetChallengeThreshold]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetChallengeThreshold]().toString(false)
-                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetChallengeThreshold class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(error)
-                  throw new MappingException(error, e)
-              }
-          } map {
-            d => (d.data, d.status)
+        processRequest[InboundGetChallengeThreshold](req) map { inbound =>
+          val boxedResult = inbound match {
+            case Full(inboundData) if (inboundData.status.hasNoError) =>
+              Full(inboundData.data)
+            case Full(inboundData) if (inboundData.status.hasError) =>
+              Failure("INTERNAL-"+ inboundData.status.errorCode+". + CoreBank-Status:" + inboundData.status.backendMessages)
+            case failureOrEmpty: Failure => failureOrEmpty
           }
-        } yield {
-          res
-        }
-
-        logger.debug(s"Kafka getAtmFuture Res says:  is: $future")
-        future map {
-          case (amountOfMoney, status) if (status.errorCode=="") =>
-            (Full(amountOfMoney), callContext)
-          case (_, status) if (status.errorCode!="") =>
-            (Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages), callContext)
-          case _ =>
-            (Failure(ErrorMessages.UnknownError), callContext)
+          (boxedResult, callContext)
         }
       }
     }
