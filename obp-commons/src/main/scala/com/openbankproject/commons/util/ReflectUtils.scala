@@ -96,10 +96,7 @@ object ReflectUtils {
 
   def invokeMethod(obj: Any, methodName: String, args: Any*): Any = {
     val objMirror = mirror.reflect(obj)
-    val methodSymbol: Option[ru.MethodSymbol] = findMethod(obj, methodName) { nameToType => {
-        args.size == args.size && nameToType.values.zip(args).forall(it => isTypeOf(it._1, it._2))
-      }
-    }
+    val methodSymbol: Option[ru.MethodSymbol] = findMethodByArgs(obj, methodName, args:_*)
 
     if (methodSymbol.isEmpty) {
       throw new IllegalArgumentException(s"not found method $methodName match the parameters: $args")
@@ -141,21 +138,51 @@ object ReflectUtils {
   }
 
   def findMethod(tp: ru.Type, methodName: String)(predicate: Map[String, ru.Type] => Boolean): Option[MethodSymbol] = {
-    tp.members.filter(it => it.isMethod && it.name.toString == methodName)
-        .map(_.asMethod)
-        .find(it => {
-          val paramNameToType = it.paramLists.headOption.getOrElse(Nil).map(i => (i.name.toString, i.info)).toMap
-          predicate(paramNameToType)
-        })
+    tp.member(TermName(methodName)).alternatives match {
+      case Nil => None
+      case method::Nil => Some(method).filter(_.isMethod).map(_.asMethod)
+      case list => list.filter(_.isMethod).map(_.asMethod).find { method =>
+        val paramNameToType = method.paramLists.headOption.getOrElse(Nil).map(i => (i.name.toString, i.info)).toMap
+        predicate(paramNameToType)
+      }
+    }
   }
 
   def findMethod(obj: Any, methodName: String)(predicate: Map[String, ru.Type] => Boolean): Option[MethodSymbol] = findMethod(getType(obj), methodName)(predicate)
 
+  def findMethodByArgs(tp: ru.Type, methodName: String, args: Any*): Option[ru.MethodSymbol] = findMethod(tp, methodName) { nameToType =>
+      args.size == args.size && nameToType.values.zip(args).forall(it => isTypeOf(it._1, it._2))
+  }
+
+  def findMethodByArgs(obj: Any,  methodName: String, args: Any*): Option[ru.MethodSymbol] = findMethodByArgs(getType(obj), methodName, args:_*)
+
+
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
 
-  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).asMethod
+  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
+
+  /**
+    * extract object field values, like unapply method
+    * case class Foo(name: String, age:Int)
+    * val value = Foo("myName", 12)
+    * extract the construct args: name, age
+    * Seq("myName", 12)
+    * @param obj to do extract args object
+    * @return arg values
+    */
+  def getConstructorArgs(obj: Any): Map[String, Any] = {
+    if(obj == null) {
+      Map.empty
+    } else {
+      getPrimaryConstructor(obj)
+        .paramLists.headOption.getOrElse(Nil)
+        .map(_.name.toString)
+        .map(valueName=> (valueName, invokeMethod(obj, valueName)))
+        .toMap
+    }
+  }
 
   /**
     * convert a object to it's sibling, please have a loot the example:

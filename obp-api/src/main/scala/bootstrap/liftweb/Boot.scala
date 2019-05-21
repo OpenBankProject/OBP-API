@@ -68,6 +68,7 @@ import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
+import code.methodrouting.MappedMethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.migration.MappedMigrationScriptLog
 import code.model._
@@ -100,6 +101,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
+
 
 
 /**
@@ -619,5 +621,6 @@ object ToSchemify {
     MappedProductAttribute,
     MappedConsent,
     MappedMigrationScriptLog,
+    MappedMethodRouting,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

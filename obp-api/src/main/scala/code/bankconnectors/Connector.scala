@@ -102,33 +102,33 @@ object Connector extends SimpleInjector {
 
 trait Connector extends MdcLoggable with CustomJsonFormats{
 
-  val emptyObjectJson: JValue = decompose(Nil)
-  
+  protected val emptyObjectJson: JValue = decompose(Nil)
+
   val messageDocs = ArrayBuffer[MessageDoc]()
-  implicit val nameOfConnector = Connector.getClass.getSimpleName
+  protected implicit val nameOfConnector = Connector.getClass.getSimpleName
   
   //Move all the cache ttl to Connector, all the sub-connectors share the same cache.
-  val bankTTL = getSecondsCache("getBanks")
-  val banksTTL = getSecondsCache("getBanks")
-  val userTTL = getSecondsCache("getUser")
-  val accountTTL = getSecondsCache("getAccount")
-  val accountsTTL = getSecondsCache("getAccounts")
-  val transactionTTL = getSecondsCache("getTransaction")
-  val transactionsTTL = getSecondsCache("getTransactions")
-  val transactionRequests210TTL = getSecondsCache("getTransactionRequests210")
-  val counterpartiesTTL = getSecondsCache("getCounterparties")
-  val counterpartyByCounterpartyIdTTL = getSecondsCache("getCounterpartyByCounterpartyId")
-  val counterpartyTrait = getSecondsCache("getCounterpartyTrait")
-  val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
-  val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
-  val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
-  val createCustomerTTL = getSecondsCache("createCustomer")
-  val branchesTTL = getSecondsCache("getBranches") 
-  val branchTTL = getSecondsCache("getBranch")
-  val atmsTTL = getSecondsCache("getAtms")
-  val atmTTL = getSecondsCache("getAtm")
-  val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
-  val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
+  protected val bankTTL = getSecondsCache("getBanks")
+  protected val banksTTL = getSecondsCache("getBanks")
+  protected val userTTL = getSecondsCache("getUser")
+  protected val accountTTL = getSecondsCache("getAccount")
+  protected val accountsTTL = getSecondsCache("getAccounts")
+  protected val transactionTTL = getSecondsCache("getTransaction")
+  protected val transactionsTTL = getSecondsCache("getTransactions")
+  protected val transactionRequests210TTL = getSecondsCache("getTransactionRequests210")
+  protected val counterpartiesTTL = getSecondsCache("getCounterparties")
+  protected val counterpartyByCounterpartyIdTTL = getSecondsCache("getCounterpartyByCounterpartyId")
+  protected val counterpartyTrait = getSecondsCache("getCounterpartyTrait")
+  protected val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
+  protected val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
+  protected val memoryTransactionTTL = getSecondsCache("createMemoryTransaction")
+  protected val createCustomerTTL = getSecondsCache("createCustomer")
+  protected val branchesTTL = getSecondsCache("getBranches")
+  protected val branchTTL = getSecondsCache("getBranch")
+  protected val atmsTTL = getSecondsCache("getAtms")
+  protected val atmTTL = getSecondsCache("getAtm")
+  protected val statusOfCheckbookOrders = getSecondsCache("getStatusOfCheckbookOrdersFuture")
+  protected val statusOfCreditcardOrders = getSecondsCache("getStatusOfCreditCardOrderFuture")
   
   /**
     * convert original return type future to OBPReturnType
@@ -137,7 +137,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @tparam T future success value type
     * @return OBPReturnType type future
     */
-  implicit def futureReturnTypeToOBPReturnType[T](future: Future[Box[(T, Option[CallContext])]]): OBPReturnType[Box[T]] = future map {
+  protected implicit def futureReturnTypeToOBPReturnType[T](future: Future[Box[(T, Option[CallContext])]]): OBPReturnType[Box[T]] = future map {
     boxedTuple => (boxedTuple.map(_._1), boxedTuple.map(_._2).getOrElse(None))
   }
 
@@ -148,7 +148,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @tparam T future success value type
     * @return original future type
     */
-  implicit def OBPReturnTypeToFutureReturnType[T](value: OBPReturnType[Box[T]]): Future[Box[(T, Option[CallContext])]] = value.map {
+  protected implicit def OBPReturnTypeToFutureReturnType[T](value: OBPReturnType[Box[T]]): Future[Box[(T, Option[CallContext])]] = value.map {
     tuple => tuple._1.map((_, tuple._2))
   }
 
