@@ -939,8 +939,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     process = "obp.createChallenge",
     messageFormat = messageFormat,
     description = "Create a Security Challenge that may be used to complete a Transaction Request.",
-    outboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).response),
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateChallengeSept2018.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundCreateChallengeSept2018.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutboundCreateChallengeSept2018(
         authInfoExample,
