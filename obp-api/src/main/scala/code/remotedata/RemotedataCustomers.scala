@@ -100,6 +100,11 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                                             )).mapTo[Box[Customer]]
   )
 
+  def updateCustomerScaData(customerId: String,
+                            mobileNumber: Option[String],
+                            email: Option[String]): Future[Box[Customer]] = 
+    (actor ? cc.updateCustomerScaData(customerId, mobileNumber, email)).mapTo[Box[Customer]]
+
   def bulkDeleteCustomers(): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteCustomers()).mapTo[Boolean]
   )

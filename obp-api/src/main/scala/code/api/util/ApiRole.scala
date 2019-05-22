@@ -53,6 +53,9 @@ object ApiRole {
   case class CanCreateCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomer = CanCreateCustomer()
 
+  case class CanUpdateCustomerScaData(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerScaData = CanUpdateCustomerScaData()
+
   case class CanCreateCustomerAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateCustomerAtAnyBank = CanCreateCustomerAtAnyBank()
 
@@ -375,6 +378,7 @@ object ApiRole {
       canGetSystemView ::
       canDeleteSystemView ::
       canCreateUserAuthContextUpdate ::
+      canUpdateCustomerScaData ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

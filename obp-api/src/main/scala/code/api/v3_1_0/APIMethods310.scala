@@ -3747,6 +3747,55 @@ trait APIMethods310 {
     }
 
 
+
+    resourceDocs += ResourceDoc(
+      updateCustomerScaData,
+      implementedInApiVersion,
+      nameOf(updateCustomerScaData),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID",
+      "Update the email and mobile number of an Customer",
+      s"""Update an email and mobile number of the Customer specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      putCustomerScaDataJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    lazy val updateCustomerScaData : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId ::  Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerScaData, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutCustomerScaDataJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutCustomerScaDataJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerScaData(
+              customerId,
+              putData.mobileNumber,
+              putData.email,
+              callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
   }
 }
 

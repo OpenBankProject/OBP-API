@@ -167,7 +167,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerScaData), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -1173,6 +1174,18 @@ object NewStyle {
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
+      }
+
+    def updateCustomerScaData(customerId: String,
+                              mobileNumber: Option[String],
+                              email: Option[String],
+                              callContext: Option[CallContext]): OBPReturnType[Customer] =
+      Connector.connector.vend.updateCustomerScaData(
+        customerId,
+        mobileNumber,
+        email,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
     
   }
