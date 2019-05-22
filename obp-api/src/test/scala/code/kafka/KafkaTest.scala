@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
+import code.api.v2_1_0.TransactionRequestBodyCommonJSON
 import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundBank
 import code.bankconnectors.vSept2018._
@@ -288,6 +289,89 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         result._1.map(_.currency).toString should be (Full(inBound.data.currency).toString)
 
       }
-    
+
+    if (PropsConnectorVersion =="mapped") {
+      ignore("ignore test makePaymentv210, if it is mapped connector", kafkaTest) {}
+    } else
+      scenario(s"test makePaymentv210 method",kafkaTest) {
+        val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundCreateTransactionId]).map(_.exampleInboundMessage).head.asInstanceOf[InboundCreateTransactionId]
+        dispathResponse(inBound)
+        
+        val fromAccount = BankAccountSept2018(KafkaMappedConnector_vSept2018.inboundAccountSept2018Example)
+        val toAccount = BankAccountSept2018(KafkaMappedConnector_vSept2018.inboundAccountSept2018Example)
+        val transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("",""),"")
+        val future = Connector.connector.vend.makePaymentv210(
+          fromAccount,
+          toAccount,
+          transactionRequestCommonBody,
+          10,
+          "",
+          TransactionRequestType("SANDBOX_TAN"),
+          "", 
+          callContext)
+
+        val result = future.getContent
+
+        result._1.map(_.value).toString should be (Full(inBound.data.id).toString)
+
+      }
+
+    if (PropsConnectorVersion =="mapped") {
+      ignore("ignore test createChallenge, if it is mapped connector", kafkaTest) {}
+    } else
+      scenario(s"test createChallenge method",kafkaTest) {
+        val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundCreateChallengeSept2018]).map(_.exampleInboundMessage).head.asInstanceOf[InboundCreateChallengeSept2018]
+        dispathResponse(inBound)
+
+        val account = BankAccountSept2018(KafkaMappedConnector_vSept2018.inboundAccountSept2018Example)
+        val transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("",""),"")
+        val future = Connector.connector.vend.createChallenge(
+          account.bankId,
+          account.accountId,
+          "",
+          TransactionRequestType("SANDBOX_TAN"),
+          "",
+          callContext)
+
+        val result = future.getContent
+
+        result._1.toString should be (Full(inBound.data.answer).toString)
+
+      }
+
+    if (PropsConnectorVersion =="mapped") {
+      ignore("ignore test createCounterparty, if it is mapped connector", kafkaTest) {}
+    } else
+      scenario(s"test createCounterparty method",kafkaTest) {
+        val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundCreateCounterparty]).map(_.exampleInboundMessage).head.asInstanceOf[InboundCreateCounterparty]
+        val outBound = Connector.connector.vend.messageDocs.filter(_.exampleOutboundMessage.isInstanceOf[OutboundCreateCounterparty]).map(_.exampleOutboundMessage).head.asInstanceOf[OutboundCreateCounterparty]
+        dispathResponse(inBound)
+
+        val account = BankAccountSept2018(KafkaMappedConnector_vSept2018.inboundAccountSept2018Example)
+        val transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("",""),"")
+        val box = Connector.connector.vend.createCounterparty(
+          outBound.counterparty.name,
+          outBound.counterparty.description,                       
+          outBound.counterparty.createdByUserId,                    
+          outBound.counterparty.thisBankId,                
+          outBound.counterparty.thisAccountId,             
+          outBound.counterparty.thisViewId,                
+          outBound.counterparty.otherAccountRoutingScheme, 
+          outBound.counterparty.otherAccountRoutingAddress,
+          outBound.counterparty.otherAccountSecondaryRoutingScheme,
+          outBound.counterparty.otherAccountSecondaryRoutingAddress,
+          outBound.counterparty.otherBankRoutingScheme,    
+          outBound.counterparty.otherBankRoutingAddress,   
+          outBound.counterparty.otherBranchRoutingScheme,  
+          outBound.counterparty.otherBranchRoutingAddress,  
+          outBound.counterparty.isBeneficiary,  
+          outBound.counterparty.bespoke,  
+          callContext)
+
+
+        box.map(_._1.counterpartyId) should be (Full(inBound.data.get.counterpartyId))
+        box.map(_._1.createdByUserId) should be (Full(inBound.data.get.createdByUserId))
+
+      }
   }
 }

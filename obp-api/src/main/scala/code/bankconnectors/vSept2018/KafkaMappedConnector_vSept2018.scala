@@ -335,7 +335,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val InboundFuture = processRequest[InboundGetUserByUsernamePassword](req) map { inbound =>
           inbound.map(_.data).map(inboundValidatedUser =>(InboundUser(inboundValidatedUser.email, password, inboundValidatedUser.displayName)))
         }
-        Await.result(InboundFuture, TIMEOUT)
+        getValueFromFuture(InboundFuture)
       }
     }
   }("getUser")
@@ -369,7 +369,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
   override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
-    Await.result(getBanksFuture(callContext: Option[CallContext]), TIMEOUT)
+    getValueFromFuture(getBanksFuture(callContext: Option[CallContext]))
   }("getBanks")
 
   override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
@@ -427,7 +427,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
   override def getBank(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
-    Await.result(getBankFuture(bankId: BankId, callContext: Option[CallContext]), TIMEOUT)
+    getValueFromFuture(getBankFuture(bankId: BankId, callContext: Option[CallContext]))
   }("getBank")
 
   override def getBankFuture(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
@@ -480,7 +480,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
   override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = saveConnectorMetric{
-    Await.result(getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]), TIMEOUT)
+    getValueFromFuture(getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]))
   }("getBankAccounts")
 
   override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountSept2018], Option[CallContext])]] = saveConnectorMetric{
@@ -535,7 +535,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
   override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
-      Await.result(getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+      getValueFromFuture(getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
   override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
@@ -651,7 +651,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext])= saveConnectorMetric {
-    Await.result(checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]),TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+    getValueFromFuture(checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
   override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
@@ -713,7 +713,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
   override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
-    Await.result(getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]), TIMEOUT)
+    getValueFromFuture(getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]))
   }("getBankAccounts")
 
   override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
@@ -838,7 +838,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         }
       }
     }
-    Await.result(getTransactionsCached(req), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+    getValueFromFuture(getTransactionsCached(req))._1.map(bankAccount =>(bankAccount, callContext))
   }("getTransactions")
   
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) = saveConnectorMetric{
@@ -1086,9 +1086,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     bespoke: List[CounterpartyBespoke], 
     callContext: Option[CallContext] = None) = {
   
-    val box = for {
-      authInfo <- getAuthInfo(callContext)
-        req  = OutboundCreateCounterparty(
+     val  authInfo = getAuthInfo(callContext).openOrThrowException(s"$NoCallContext for createCounterparty method")
+     val  req  = OutboundCreateCounterparty(
         authInfo = authInfo,
         counterparty = OutboundCounterparty(
         name: String,
@@ -1108,28 +1107,19 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         isBeneficiary:Boolean,
         bespoke: List[CounterpartyBespoke])
       )
-      _<- Full(logger.debug(s"Kafka createCounterparty Req says: is: $req"))
-      kafkaMessage <- processToBox[OutboundCreateCounterparty](req)
-      inboundCreateCounterparty <- tryo{kafkaMessage.extract[InboundCreateCounterparty]} ?~! s"$InboundCreateCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-      (internalCounterparty, status) <- Full(inboundCreateCounterparty.data, inboundCreateCounterparty.status)
-    } yield{
-      (internalCounterparty, status)
+
+    val counterpartyFuture = processRequest[InboundCreateCounterparty](req) map { inbound =>
+      val boxedResult = inbound match {
+        case Full(inboundDate) if (inboundDate.status.hasNoError) =>
+          Full(inboundDate.data.get)
+        case Full(inboundDate) if (inboundDate.status.hasError) =>
+          Failure("INTERNAL-" + inboundDate.status.errorCode + ". + CoreBank-Status:" + inboundDate.status.backendMessages)
+        case failureOrEmpty: Failure => failureOrEmpty
+      }
+      (boxedResult)
     }
-    logger.debug(s"Kafka createCounterparty Res says: is: $box")
-    
-    val res = box match {
-      case Full((Some(data), status)) if (status.errorCode=="")  =>
-        Full((data, callContext))
-      case Full((data, status)) if (status.errorCode!="") =>
-        Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-      case Empty =>
-        Failure(ErrorMessages.InvalidConnectorResponse)
-      case Failure(msg, e, c) =>
-        Failure(msg, e, c)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
-    }
-    res
+      getValueFromFuture(counterpartyFuture).map(counterparty => (counterparty, callContext))
+      
   }
   
   messageDocs += MessageDoc(
