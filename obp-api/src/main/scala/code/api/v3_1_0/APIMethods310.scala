@@ -3124,7 +3124,7 @@ trait APIMethods310 {
 
     
     resourceDocs += ResourceDoc(
-      getOAuth2ServerJWKsURIs,
+      getServerJWK,
       implementedInApiVersion,
       "getServerJWK",
       "GET",
