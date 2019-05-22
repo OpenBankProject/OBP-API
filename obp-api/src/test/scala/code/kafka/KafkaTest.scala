@@ -79,22 +79,22 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 
     }
 
-    if (PropsConnectorVersion =="mapped") {
-      ignore("ignore test processRequest, if it is mapped connector", kafkaTest) {}
-    } else
-      scenario("Send and retrieve message directly to and from kafka", kafkaTest) {
-        val emptyStatusMessage = InboundStatusMessage("", "", "", "")
-        val inBound = InboundGetBanks(InboundAuthInfo("", ""), Status("", List(emptyStatusMessage)), List(InboundBank("1", "2", "3", "4")))
-        When("send a OutboundGetBanks message")
-
-        dispathResponse(inBound)
-        val req = OutboundGetBanks(AuthInfo())
-
-        val future = processRequest[InboundGetBanks](req)
-        val result: Box[InboundGetBanks] = future.getContent
-
-        result should be (Full(inBound))
-    }
+//    if (PropsConnectorVersion =="mapped") {
+//      ignore("ignore test processRequest, if it is mapped connector", kafkaTest) {}
+//    } else
+//      scenario("Send and retrieve message directly to and from kafka", kafkaTest) {
+//        val emptyStatusMessage = InboundStatusMessage("", "", "", "")
+//        val inBound = InboundGetBanks(InboundAuthInfo("", ""), Status("", List(emptyStatusMessage)), List(InboundBank("1", "2", "3", "4")))
+//        When("send a OutboundGetBanks message")
+//
+//        dispathResponse(inBound)
+//        val req = OutboundGetBanks(AuthInfo())
+//
+//        val future = processRequest[InboundGetBanks](req)
+//        val result: Box[InboundGetBanks] = future.getContent
+//
+//        result should be (Full(inBound))
+//    }
 
     if (PropsConnectorVersion =="mapped") {
       ignore("ignore test getKycStatuses, if it is mapped connector", kafkaTest) {}
@@ -274,5 +274,20 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         
       }
 
+    if (PropsConnectorVersion =="mapped") {
+      ignore("ignore test getChallengeThreshold, if it is mapped connector", kafkaTest) {}
+    } else
+      scenario(s"test getChallengeThreshold method",kafkaTest) {
+        val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetChallengeThreshold]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetChallengeThreshold]
+        dispathResponse(inBound)
+        val future = Connector.connector.vend.getChallengeThreshold("","","","","","","", callContext)
+
+        val result = future.getContent
+
+        result._1.map(_.amount).toString should be (Full(inBound.data.amount).toString)
+        result._1.map(_.currency).toString should be (Full(inBound.data.currency).toString)
+
+      }
+    
   }
 }
