@@ -180,7 +180,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         val inBound = Connector.connector.vend.messageDocs.filter(_.process.toString.contains("getBanks")).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetBanks]
 
         dispathResponse(inBound)
-        val future = Connector.connector.vend.getBanksFuture(None)
+        val future = Connector.connector.vend.getBanks(None)
 
         val result =  future.getContent
         result.map(_._1.head.bankId).toString should be (Full(inBound.data.head.bankId).toString)
@@ -194,7 +194,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         val inBound = Connector.connector.vend.messageDocs.filter(_.process.toString.contains("getBanks")).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetBanks]
 
         dispathResponse(inBound)
-        val box = Connector.connector.vend.getBanks(None)
+        val box = Connector.connector.vend.getBanksLegacy(None)
 
         box.map(_._1.head.bankId).toString should be (Full(inBound.data.head.bankId).toString)
       }

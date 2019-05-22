@@ -31,7 +31,7 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     getHostedBank(bankId).map(bank =>(bank, callContext))
 
   //gets banks handled by this connector
-  override def getBanks(callContext: Option[CallContext]) =
+  override def getBanksLegacy(callContext: Option[CallContext]) =
     Full(HostedBank.findAll, callContext)
 
   override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])] = {

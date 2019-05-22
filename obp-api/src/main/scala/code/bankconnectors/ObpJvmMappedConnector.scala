@@ -124,7 +124,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
 
-    val accounts = getBanks(None).map(_._1).openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).flatMap { bank => {
+    val accounts = getBanksLegacy(None).map(_._1).openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       val parameters = new JHashMap
@@ -179,7 +179,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
 
   //gets banks handled by this connector
-  override def getBanks(callContext: Option[CallContext])= memoizeSync(getBanksTTL millisecond) {
+  override def getBanksLegacy(callContext: Option[CallContext])= memoizeSync(getBanksTTL millisecond) {
     val response = jvmNorth.get("getBanks", Transport.Target.banks, null)
 
     // todo response.error().isPresent

@@ -108,7 +108,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
-    val accounts: List[KafkaInboundAccount] = getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
+    val accounts: List[KafkaInboundAccount] = getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       for {
@@ -154,7 +154,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
 
   //gets banks handled by this connector
-  override def getBanks(callContext: Option[CallContext]) = {
+  override def getBanksLegacy(callContext: Option[CallContext]) = {
     val req = Map(
       "north" -> "getBanks",
       "version" -> formatVersion,

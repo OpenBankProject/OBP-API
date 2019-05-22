@@ -368,11 +368,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBanks]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
-  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
-    getValueFromFuture(getBanksFuture(callContext: Option[CallContext]))
+  override def getBanksLegacy(callContext: Option[CallContext]) = saveConnectorMetric {
+    getValueFromFuture(getBanks(callContext: Option[CallContext]))
   }("getBanks")
 
-  override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

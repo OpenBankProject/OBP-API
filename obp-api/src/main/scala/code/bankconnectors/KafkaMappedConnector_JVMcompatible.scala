@@ -162,7 +162,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   // TODO Create and use a case class for each Map so we can document each structure.
 
   //gets banks handled by this connector
-  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBanksLegacy(callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -308,7 +308,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString()))(updateUserAccountViewsTTL millisecond){
         //1 getAccounts from Kafka
-        val accounts: List[KafkaInboundAccount] = getBanks(None).map(_._1).getOrElse(List.empty).flatMap { bank => {
+        val accounts: List[KafkaInboundAccount] = getBanksLegacy(None).map(_._1).getOrElse(List.empty).flatMap { bank => {
           val bankId = bank.bankId.value
           val username = user.name
           logger.debug(s"JVMCompatible updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")

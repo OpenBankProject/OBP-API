@@ -244,7 +244,7 @@ object NewStyle {
       }
     }
     def getBanks(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
-      Connector.connector.vend.getBanksFuture(callContext: Option[CallContext]) map {
+      Connector.connector.vend.getBanks(callContext: Option[CallContext]) map {
         connectorEmptyResponse(_, callContext)
       }
     }
