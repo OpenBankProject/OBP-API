@@ -1938,8 +1938,18 @@ trait APIMethods310 {
             connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
             startTime = Helpers.now
             req = ObpApiLoopback(connectorVersion, gitCommit, "")
-            obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
-              (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
+            obpApiLoopback <- connectorVersion.contains("kafka") match {
+              case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
+              case true =>
+                for{
+                  obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
+                    (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
+                  }
+                  endTime = Helpers.now
+                  durationTime = endTime.getTime - startTime.getTime
+                } yield {
+                  obpApiLoopback.copy(durationTime = durationTime.toString)
+                }
             }
             endTime = Helpers.now
             durationTime = endTime.getTime - startTime.getTime
