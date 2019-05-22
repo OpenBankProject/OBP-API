@@ -14,7 +14,7 @@ import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
-import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PutCustomerScaDataJsonV310, _}
+import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -2027,7 +2027,8 @@ object SwaggerDefinitionsJSON {
   )
 
   val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = "123")
-  val putCustomerScaDataJsonV310 = PutCustomerScaDataJsonV310(Some("+381631954907"), Some("marko@tesobe.com"))
+  val putUpdateCustomerEmailJsonV310 = PutUpdateCustomerEmailJsonV310("marko@tesobe.com")
+  val putUpdateCustomerMobileNumberJsonV310 = PutUpdateCustomerMobileNumberJsonV310("+381631954907")
 
   val taxResidenceV310 = TaxResidenceV310(domain = "Enter some domain", tax_number = "Enter some number", tax_residence_id = "902ba3bb-dedd-45e7-9319-2fd3f2cd98a1")
   val postTaxResidenceJsonV310 = PostTaxResidenceJsonV310(domain = "Enter some domain", tax_number = "Enter some number")

@@ -348,7 +348,8 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.updateSystemView ::
                           Implementations3_1_0.getOAuth2ServerJWKsURIs ::
                           Implementations3_1_0.getMessageDocsSwagger ::
-                          Implementations3_1_0.updateCustomerScaData ::
+                          Implementations3_1_0.updateCustomerEmail ::
+                          Implementations3_1_0.updateCustomerMobileNumber ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

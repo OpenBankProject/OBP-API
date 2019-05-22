@@ -193,7 +193,8 @@ case class PostCustomerJsonV310(
   branchId: String,
   nameSuffix: String
 )
-case class PutCustomerScaDataJsonV310(mobileNumber: Option[String], email: Option[String])
+case class PutUpdateCustomerEmailJsonV310(email: String)
+case class PutUpdateCustomerMobileNumberJsonV310(mobile_number: String)
 
 case class CustomerJsonV310(
   bank_id: String,
