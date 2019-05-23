@@ -1438,10 +1438,10 @@ trait APIMethods310 {
       "/users/USER_ID/auth-context",
       "Get User Auth Contexts",
       s"""Get User Auth Contexts for a User.
-         |
+        |
         |
         |${authenticationRequiredMessage(true)}
-         |
+        |
         |""",
       emptyObjectJson,
       userAuthContextsJson,
@@ -1452,7 +1452,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(canGetUserAuthContext :: Nil)
+    )
 
     lazy val getUserAuthContexts : OBPEndpoint = {
       case "users" :: userId :: "auth-context" ::  Nil  JsonGet _ => {
