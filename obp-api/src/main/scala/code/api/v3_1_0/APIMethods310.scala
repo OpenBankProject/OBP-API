@@ -3444,7 +3444,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(canCreateUserAuthContextUpdate :: Nil)
+    )
 
     lazy val createUserAuthContextUpdate : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates" :: scaMethod :: Nil JsonPost  json -> _ => {
@@ -3761,7 +3763,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerScaData :: Nil)
+    )
 
     lazy val updateCustomerEmail : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "email" ::  Nil JsonPut json -> _ => {
@@ -3809,7 +3813,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagNewStyle))
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerScaData :: Nil)
+    )
 
     lazy val updateCustomerMobileNumber : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "mobile-number" :: Nil JsonPut json -> _ => {
