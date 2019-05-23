@@ -43,7 +43,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       sender ! InBoundGetBankFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.bank(_)).openOrThrowException(attemptedToOpenAnEmptyBox) )
       
     case OutBoundCheckBankAccountExistsFuture(cc, bankId, accountId) =>
-      val result: Box[BankAccount] = checkBankAccountExists(bankId, accountId, None).map(r => r._1)
+      val result: Box[BankAccount] = checkBankAccountExistsLegacy(bankId, accountId, None).map(r => r._1)
       sender ! InBoundCheckBankAccountExistsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       
     case OutBoundGetBankAccountFuture(cc, bankId, accountId) =>
@@ -52,21 +52,21 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       sender ! InBoundGetBankAccountFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       
     case OutBoundGetCoreBankAccountsFuture(cc, bankIdAccountIds) =>
-      val result: Box[List[CoreAccount]] = getCoreBankAccounts(bankIdAccountIds, None).map(r => r._1)
+      val result: Box[List[CoreAccount]] = getCoreBankAccountsLegacy(bankIdAccountIds, None).map(r => r._1)
       sender ! InBoundGetCoreBankAccountsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(l => l.map(Transformer.coreAccount(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
       
     case OutBoundGetCustomersByUserIdFuture(cc, userId) =>
-      val result: Box[List[Customer]] = getCustomersByUserId(userId, None).map(r => r._1)
+      val result: Box[List[Customer]] = getCustomersByUserIdLegacy(userId, None).map(r => r._1)
       sender ! InBoundGetCustomersByUserIdFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(l => l.map(Transformer.toInternalCustomer(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
 
     case OutBoundGetTransactionsFuture(cc, bankId, accountId, limit, fromDate, toDate) =>
       val from = APIUtil.DateWithMsFormat.parse(fromDate)
       val to = APIUtil.DateWithMsFormat.parse(toDate)
-      val result = getTransactions(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
+      val result = getTransactionsLegacy(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
       sender ! InBoundGetTransactionsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
 
     case OutBoundGetTransactionFuture(cc, bankId, accountId, transactionId) =>
-      val result = getTransaction(bankId, accountId, transactionId,  None).map(r => r._1)
+      val result = getTransactionLegacy(bankId, accountId, transactionId,  None).map(r => r._1)
       sender ! InBoundGetTransactionFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.toInternalTransaction(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
 
     case message => 

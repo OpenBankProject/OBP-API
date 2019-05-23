@@ -365,7 +365,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("updateUserAccountViews")
 
   // Gets transaction identified by bankid, accountid and transactionId
-  override def getTransaction(
+  override def getTransactionLegacy(
                                bankId: BankId,
                                accountId: AccountId,
                                transactionId: TransactionId,
@@ -438,7 +438,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     completedDate: String = "ascending"
   )
   
-  override def getTransactions(
+  override def getTransactionsLegacy(
                                 bankId: BankId,
                                 accountId: AccountId,
                                 callContext: Option[CallContext],
@@ -1180,8 +1180,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.createOrUpdateAtm(atm)
   }
 
-  override def getAtm(bankId: BankId, atmId: AtmId): Box[MappedAtm] = {
-    LocalMappedConnector.getAtm(bankId, atmId)
+  override def getAtmLegacy(bankId: BankId, atmId: AtmId): Box[MappedAtm] = {
+    LocalMappedConnector.getAtmLegacy(bankId, atmId)
   }
   
 

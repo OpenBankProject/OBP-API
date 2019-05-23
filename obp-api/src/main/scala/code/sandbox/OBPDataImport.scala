@@ -429,7 +429,7 @@ trait OBPDataImport extends MdcLoggable {
     val duplicateIdentifiers = identifiers diff identifiers.distinct
 
     val existing = data.transactions.filter(t => {
-      Connector.connector.vend.getTransaction(BankId(t.this_account.bank), AccountId(t.this_account.id), TransactionId(t.id)).isDefined
+      Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank), AccountId(t.this_account.id), TransactionId(t.id)).isDefined
     })
 
     if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
@@ -557,7 +557,7 @@ trait OBPDataImport extends MdcLoggable {
       transactions.foreach { t =>
         t.save()
         //load it to force creation of metadata (If we are using Mapped connector, MappedCounterpartyMetadata.create will be called)
-        val lt = Connector.connector.vend.getTransaction(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
+        val lt = Connector.connector.vend.getTransactionLegacy(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
       }
     }
   }

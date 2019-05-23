@@ -248,7 +248,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
+  override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -288,7 +288,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     getTransactionInner(bankId, accountId, transactionId, primaryUserIdentifier).map(transaction =>(transaction, callContext))
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
