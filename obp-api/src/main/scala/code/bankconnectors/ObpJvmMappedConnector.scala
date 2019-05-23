@@ -124,7 +124,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
   override def updateUserAccountViewsOld( user: ResourceUser ) = {
 
-    val accounts = getBanks(None).map(_._1).openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).flatMap { bank => {
+    val accounts = getBanksLegacy(None).map(_._1).openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).flatMap { bank => {
       val bankId = bank.bankId.value
       logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
       val parameters = new JHashMap
@@ -179,7 +179,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
 
 
   //gets banks handled by this connector
-  override def getBanks(callContext: Option[CallContext])= memoizeSync(getBanksTTL millisecond) {
+  override def getBanksLegacy(callContext: Option[CallContext])= memoizeSync(getBanksTTL millisecond) {
     val response = jvmNorth.get("getBanks", Transport.Target.banks, null)
 
     // todo response.error().isPresent
@@ -227,7 +227,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets bank identified by bankId
-  override def getBank(bankId: BankId, callContext: Option[CallContext]) = memoizeSync(getBankTTL millisecond) {
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) = memoizeSync(getBankTTL millisecond) {
     val parameters = new JHashMap
 
     parameters.put(com.tesobe.obp.transport.nov2016.Bank.bankId, bankId.value)
@@ -248,7 +248,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
+  override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -288,7 +288,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     getTransactionInner(bankId, accountId, transactionId, primaryUserIdentifier).map(transaction =>(transaction, callContext))
   }
 
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
@@ -360,7 +360,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = memoizeSync(getAccountTTL millisecond) {
+  override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = memoizeSync(getAccountTTL millisecond) {
     val parameters = new JHashMap
 
     //val primaryUserIdentifier = AuthUser.getCurrentUserUsername
@@ -814,7 +814,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
   ): Box[BankAccount] = {
   
     for {
-      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBankLegacy(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
@@ -878,7 +878,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      (bank, _)<- getBank(bankId, None)
+      (bank, _)<- getBankLegacy(bankId, None)
     } yield {
       //acc.balance = newBalance
       setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -987,7 +987,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      (bank, _)<- getBank(bankId, None)
+      (bank, _)<- getBankLegacy(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)

@@ -136,7 +136,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       authViews<- tryo(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
-          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {s"getAuthInfo: $BankAccountNotFound"}
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccountLegacy(view.bankId, view.accountId, Some(cc)) ?~! {s"getAuthInfo: $BankAccountNotFound"}
           internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
           internalUsers = JsonFactory_vSept2018.createUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
@@ -368,11 +368,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBanks]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
-  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
-    getValueFromFuture(getBanksFuture(callContext: Option[CallContext]))
+  override def getBanksLegacy(callContext: Option[CallContext]) = saveConnectorMetric {
+    getValueFromFuture(getBanks(callContext: Option[CallContext]))
   }("getBanks")
 
-  override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -426,11 +426,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
-  override def getBank(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
-    getValueFromFuture(getBankFuture(bankId: BankId, callContext: Option[CallContext]))
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
+    getValueFromFuture(getBank(bankId: BankId, callContext: Option[CallContext]))
   }("getBank")
 
-  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -534,11 +534,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         Some(inboundAccountSept2018Example))),
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
-      getValueFromFuture(getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
+  override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
+      getValueFromFuture(getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
-  override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -598,7 +598,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         )))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
-  override def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])  = {
+  override def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])  = {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -650,11 +650,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
   adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext])= saveConnectorMetric {
-    getValueFromFuture(checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
+  override def checkBankAccountExistsLegacy(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext])= saveConnectorMetric {
+    getValueFromFuture(checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
   /**
     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
     * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -712,11 +712,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           )))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
-  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
-    getValueFromFuture(getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]))
+  override def getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
+    getValueFromFuture(getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]))
   }("getBankAccounts")
 
-  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
+  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -788,7 +788,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
   )
   // TODO Get rid on these param lookups and document.
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
@@ -819,7 +819,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           processRequest[InboundGetTransactions](req) map { inbound =>
             val boxedResult = inbound match {
               case Full(inboundData) if (inboundData.status.hasNoError) =>
-                val bankAccountAndCallContext = checkBankAccountExists(BankId(inboundData.data.head.bankId), AccountId(inboundData.data.head.accountId), callContext)
+                val bankAccountAndCallContext = checkBankAccountExistsLegacy(BankId(inboundData.data.head.bankId), AccountId(inboundData.data.head.accountId), callContext)
 
                 val res = for {
                   internalTransaction <- inboundData.data
@@ -869,7 +869,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       val boxedResult: Box[List[TransactionCore]] = inbound match {
         case Full(inboundGetTransactions) if (inboundGetTransactions.status.hasNoError) =>
           for{
-            (thisBankAccount, callContext) <- checkBankAccountExists(BankId(inboundGetTransactions.data.head.bankId), AccountId(inboundGetTransactions.data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
+            (thisBankAccount, callContext) <- checkBankAccountExistsLegacy(BankId(inboundGetTransactions.data.head.bankId), AccountId(inboundGetTransactions.data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
             transaction <- createInMemoryTransactionsCore(thisBankAccount, inboundGetTransactions.data)
           } yield {
             (transaction)
@@ -900,11 +900,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
-    Await.result(getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+  override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
+    Await.result(getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
   }("getTransaction")
 
-  override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -921,7 +921,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           val boxedResult = inbound match {
             case Full(inboundData) if (inboundData.status.hasNoError) =>
               for {
-                (bankAccount, callContext) <- checkBankAccountExists(BankId(inboundData.data.get.bankId), AccountId(inboundData.data.get.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
+                (bankAccount, callContext) <- checkBankAccountExistsLegacy(BankId(inboundData.data.get.bankId), AccountId(inboundData.data.get.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
                 transaction: Transaction <- createInMemoryTransaction(bankAccount, inboundData.data.get)
               } yield {
                 (transaction, callContext)
@@ -1286,7 +1286,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Payments", 0))
   )
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None) = saveConnectorMetric{
+  override def getCounterpartiesLegacy(thisBankId: BankId, thisAccountId: AccountId, viewId :ViewId, callContext: Option[CallContext] = None) = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1336,8 +1336,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getCounterparties")
-  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
-    (getCounterparties(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
+    (getCounterpartiesLegacy(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
   }
   
   messageDocs += MessageDoc(
@@ -1500,7 +1500,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Customer", 0))
   )
 
-  override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = saveConnectorMetric{
+  override def getCustomersByUserId(userId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1557,7 +1557,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Misc", 1))
   )
 
-  override def getCheckbookOrdersFuture(
+  override def getCheckbookOrders(
     bankId: String, 
     accountId: String, 
     @CacheKeyOmit callContext: Option[CallContext]
@@ -1653,7 +1653,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Misc", 1))
   )
 
-  override def getStatusOfCreditCardOrderFuture(
+  override def getStatusOfCreditCardOrder(
     bankId: String, 
     accountId: String, 
     @CacheKeyOmit callContext: Option[CallContext]
@@ -1917,7 +1917,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getBranchesFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2018,7 +2018,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getBranchFuture(bankId : BankId, branchId: BranchId, callContext: Option[CallContext])  = saveConnectorMetric {
+  override def getBranch(bankId : BankId, branchId: BranchId, callContext: Option[CallContext])  = saveConnectorMetric {
 
     logger.debug("Enter getBranch for: " + branchId)
     /**
@@ -2127,7 +2127,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getAtmsFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2232,7 +2232,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getAtmFuture(bankId : BankId, atmId: AtmId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getAtm(bankId : BankId, atmId: AtmId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

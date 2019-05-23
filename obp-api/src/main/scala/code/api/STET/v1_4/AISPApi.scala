@@ -212,7 +212,7 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
     
               availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
               
-              Full(accounts) <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts,callContext)}
+              Full(accounts) <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts,callContext)}
               
             } yield {
               (createTransactionListJSON(accounts), callContext)
