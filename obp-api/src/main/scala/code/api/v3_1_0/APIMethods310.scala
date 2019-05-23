@@ -1936,25 +1936,14 @@ trait APIMethods310 {
           for {
             (_, callContext) <- anonymousAccess(cc)
             connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
-            startTime = Helpers.now
-            req = ObpApiLoopback(connectorVersion, gitCommit, "")
             obpApiLoopback <- connectorVersion.contains("kafka") match {
               case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
-              case true =>
-                for{
-                  obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
-                    (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
-                  }
-                  endTime = Helpers.now
-                  durationTime = endTime.getTime - startTime.getTime
-                } yield {
-                  obpApiLoopback.copy(durationTime = durationTime.toString)
-                }
+              case true => KafkaHelper.echoKafkaServer.recover {
+                case e: Throwable => throw new IllegalStateException(s"${KafkaServerUnavailable} Timeout error, because kafka do not return message to OBP-API. ${e.getMessage}")
+              }
             }
-            endTime = Helpers.now
-            durationTime = endTime.getTime - startTime.getTime
           } yield {
-            (createObpApiLoopbackJson(obpApiLoopback.copy(durationTime = durationTime.toString)), HttpCode.`200`(callContext))
+            (createObpApiLoopbackJson(obpApiLoopback), HttpCode.`200`(callContext))
           }
       }
     }
