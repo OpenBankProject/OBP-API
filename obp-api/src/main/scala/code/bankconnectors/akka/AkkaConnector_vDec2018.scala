@@ -102,7 +102,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundAvroSchema = Some(parse(SchemaFor[InBoundGetBankFuture]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
-  override def getBankFuture(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
+  override def getBank(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
     val req = OutBoundGetBankFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId)
     val response: Future[InBoundGetBankFuture] = (southSideActor ? req).mapTo[InBoundGetBankFuture]
     response.map(r => Full(r.data, callContext))
@@ -185,7 +185,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
-  override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
     val req = OutBoundGetBankAccountFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
     val response = (southSideActor ? req).mapTo[InBoundGetBankAccountFuture]
     response.map(a =>(Full(a.data), callContext))

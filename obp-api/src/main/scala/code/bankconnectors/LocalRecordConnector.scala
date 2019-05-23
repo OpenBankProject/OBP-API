@@ -27,14 +27,14 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
 
   implicit override val nameOfConnector = LocalRecordConnector.getClass.getSimpleName
 
-  override def getBank(bankId : BankId, callContext: Option[CallContext]) =
+  override def getBankLegacy(bankId : BankId, callContext: Option[CallContext]) =
     getHostedBank(bankId).map(bank =>(bank, callContext))
 
   //gets banks handled by this connector
   override def getBanksLegacy(callContext: Option[CallContext]) =
     Full(HostedBank.findAll, callContext)
 
-  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)

@@ -239,7 +239,7 @@ object NewStyle {
     }
 
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
-      Connector.connector.vend.getBankFuture(bankId, callContext) map {
+      Connector.connector.vend.getBank(bankId, callContext) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId")
       }
     }
@@ -250,7 +250,7 @@ object NewStyle {
     }
 
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
-      Connector.connector.vend.getBankAccountFuture(bankId, accountId, callContext) map { i =>
+      Connector.connector.vend.getBankAccount(bankId, accountId, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400 ), i._2)
       }
     }

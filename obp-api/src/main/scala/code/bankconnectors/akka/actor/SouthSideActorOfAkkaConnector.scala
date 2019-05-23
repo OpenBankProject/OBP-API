@@ -39,7 +39,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       sender ! InBoundGetBanksFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext),successInBoundStatus, result.map(l => l.map(Transformer.bank(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
     
     case OutBoundGetBankFuture(cc, bankId) =>
-      val result: Box[MappedBank] = getBank(bankId, None).map(r => r._1)
+      val result: Box[MappedBank] = getBankLegacy(bankId, None).map(r => r._1)
       sender ! InBoundGetBankFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.bank(_)).openOrThrowException(attemptedToOpenAnEmptyBox) )
       
     case OutBoundCheckBankAccountExistsFuture(cc, bankId, accountId) =>
@@ -47,7 +47,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       sender ! InBoundCheckBankAccountExistsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       
     case OutBoundGetBankAccountFuture(cc, bankId, accountId) =>
-      val result: Box[BankAccount] = getBankAccount(bankId, accountId, None).map(r => r._1)
+      val result: Box[BankAccount] = getBankAccountLegacy(bankId, accountId, None).map(r => r._1)
       org.scalameta.logger.elem(result)
       sender ! InBoundGetBankAccountFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.bankAccount(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
       

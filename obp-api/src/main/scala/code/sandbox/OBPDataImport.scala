@@ -191,7 +191,7 @@ trait OBPDataImport extends MdcLoggable {
 
 
   final protected def createBanks(data : SandboxDataImport) = {
-    val existing = data.banks.flatMap(b => Connector.connector.vend.getBank(BankId(b.id), None).map(_._1))
+    val existing = data.banks.flatMap(b => Connector.connector.vend.getBankLegacy(BankId(b.id), None).map(_._1))
 
     val allIds = data.banks.map(_.id)
     val emptyIds = allIds.filter(_.isEmpty)

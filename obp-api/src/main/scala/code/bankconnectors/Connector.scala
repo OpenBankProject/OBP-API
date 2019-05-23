@@ -110,7 +110,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   implicit val nameOfConnector = Connector.getClass.getSimpleName
   
   //Move all the cache ttl to Connector, all the sub-connectors share the same cache.
-  val bankTTL = getSecondsCache("getBanks")
+  val bankTTL = getSecondsCache("getBank")
   val banksTTL = getSecondsCache("getBanks")
   val userTTL = getSecondsCache("getUser")
   val accountTTL = getSecondsCache("getAccount")
@@ -221,9 +221,9 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
 
   //gets a particular bank handled by this connector
-  def getBank(bankId : BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = Failure(setUnimplementedError)
+  def getBankLegacy(bankId : BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = Failure(setUnimplementedError)
   
-  def getBankFuture(bankId : BankId, callContext: Option[CallContext]) : Future[Box[(Bank, Option[CallContext])]] = Future(Failure(setUnimplementedError))
+  def getBank(bankId : BankId, callContext: Option[CallContext]) : Future[Box[(Bank, Option[CallContext])]] = Future(Failure(setUnimplementedError))
 
   //gets banks handled by this connector
   def getBanksLegacy(callContext: Option[CallContext]): Box[(List[Bank], Option[CallContext])] = Failure(setUnimplementedError)
@@ -269,14 +269,14 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
 
   //This is old one, no callContext there. only for old style endpoints.
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount]= {
-    getBankAccount(bankId, accountId, None).map(_._1)
+    getBankAccountLegacy(bankId, accountId, None).map(_._1)
   }
 
   //This one just added the callContext in parameters.
-  def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
+  def getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
 
   //This one return the Future.
-  def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
+  def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
 
   def getBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(setUnimplementedError)}
 

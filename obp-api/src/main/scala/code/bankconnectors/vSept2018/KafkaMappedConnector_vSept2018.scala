@@ -136,7 +136,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       authViews<- tryo(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
-          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {s"getAuthInfo: $BankAccountNotFound"}
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccountLegacy(view.bankId, view.accountId, Some(cc)) ?~! {s"getAuthInfo: $BankAccountNotFound"}
           internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
           internalUsers = JsonFactory_vSept2018.createUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
@@ -426,11 +426,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
-  override def getBank(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
-    getValueFromFuture(getBankFuture(bankId: BankId, callContext: Option[CallContext]))
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
+    getValueFromFuture(getBank(bankId: BankId, callContext: Option[CallContext]))
   }("getBank")
 
-  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -534,11 +534,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         Some(inboundAccountSept2018Example))),
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
-      getValueFromFuture(getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
+  override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
+      getValueFromFuture(getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
-  override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

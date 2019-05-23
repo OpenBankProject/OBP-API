@@ -291,7 +291,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Gets bank identified by bankId
-  override def getBank(bankId: BankId, callContext: Option[CallContext]) = {
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) = {
     // Create argument list
     val req = Map(
       "north" -> "getBank",
@@ -369,7 +369,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+  override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
       "north" -> "getBankAccount",
@@ -793,7 +793,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   ): Box[BankAccount] = {
 
     for {
-      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBankLegacy(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
@@ -856,7 +856,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      (bank, _)<- getBank(bankId, None)
+      (bank, _)<- getBankLegacy(bankId, None)
     } yield {
       //acc.balance = newBalance
       setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -965,7 +965,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      (bank, _)<- getBank(bankId, None)
+      (bank, _)<- getBankLegacy(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)

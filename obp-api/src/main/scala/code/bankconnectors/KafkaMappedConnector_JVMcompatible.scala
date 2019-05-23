@@ -210,7 +210,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   }("getBanks")
 
   // Gets bank identified by bankId
-  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -526,7 +526,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
       }
     }("getTransactions")
 
-  override def getBankAccount(
+  override def getBankAccountLegacy(
                                bankId: BankId,
                                accountId: AccountId,
                                callContext: Option[CallContext]
@@ -964,7 +964,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   ): Box[BankAccount] = {
 
     for {
-      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBankLegacy(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
@@ -1027,7 +1027,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      (bank, _)<- getBank(bankId, None)
+      (bank, _)<- getBankLegacy(bankId, None)
     } yield {
       //acc.balance = newBalance
       setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -1139,7 +1139,7 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccount(bankId, accountId)
-      (bank, _)<- getBank(bankId, None)
+      (bank, _)<- getBankLegacy(bankId, None)
       d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)

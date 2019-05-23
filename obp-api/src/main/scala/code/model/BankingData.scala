@@ -86,7 +86,7 @@ case class BankExtended(bank: Bank) {
 object Bank {
 
   def apply(bankId: BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = {
-    Connector.connector.vend.getBank(bankId, callContext)
+    Connector.connector.vend.getBankLegacy(bankId, callContext)
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -123,16 +123,16 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
 
   //TODO: remove?
   final def bankName : String =
-    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.fullName).getOrElse("")
+    Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).map(_.fullName).getOrElse("")
   //TODO: remove?
   final def nationalIdentifier : String =
-    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.nationalIdentifier).getOrElse("")
+    Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).map(_.nationalIdentifier).getOrElse("")
 
   //From V300, used scheme, address
   final def bankRoutingScheme : String =
-    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.bankRoutingScheme).getOrElse("")
+    Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).map(_.bankRoutingScheme).getOrElse("")
   final def bankRoutingAddress : String =
-    Connector.connector.vend.getBank(bankId, None).map(_._1).map(_.bankRoutingAddress).getOrElse("")
+    Connector.connector.vend.getBankLegacy(bankId, None).map(_._1).map(_.bankRoutingAddress).getOrElse("")
 
   /*
     * Delete this account (if connector allows it, e.g. local mirror of account data)
@@ -479,7 +479,7 @@ object BankAccount {
   }
 
   def apply(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : Box[(BankAccount,Option[CallContext])] = {
-    Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
+    Connector.connector.vend.getBankAccountLegacy(bankId, accountId, callContext)
   }
   /**
     * Mapping a CounterpartyTrait to OBP BankAccount.

@@ -185,7 +185,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //gets a particular bank handled by this connector
-  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
     getMappedBank(bankId).map(bank =>(bank, callContext))
   }("getBank")
 
@@ -199,8 +199,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress,bank.bankId.value))
       )
 
-  override def getBankFuture(bankId : BankId, callContext: Option[CallContext]) = Future {
-    getBank(bankId, callContext)
+  override def getBank(bankId : BankId, callContext: Option[CallContext]) = Future {
+    getBankLegacy(bankId, callContext)
   }
   
 
@@ -392,13 +392,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     getBankAccountCommon(bankId, accountId, callContext)
   }
 
-  override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future
+  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future
   {
-    val accountAndCallcontext = getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])
+    val accountAndCallcontext = getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])
     (accountAndCallcontext.map(_._1), accountAndCallcontext.map(_._2).getOrElse(callContext))
   }
   
@@ -428,11 +428,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
-    getBankAccount(bankId: BankId, accountId: AccountId, callContext)
+    getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext)
   }  
   override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = 
     Future {
-      (getBankAccount(bankId: BankId, accountId: AccountId, callContext).map(_._1), callContext)
+      (getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext).map(_._1), callContext)
     }
   
   override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]= {
@@ -947,7 +947,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ): Box[BankAccount] = {
 
     for {
-      (bank, _)<- getBank(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+      (bank, _)<- getBankLegacy(bankId, None) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)

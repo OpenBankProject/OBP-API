@@ -206,7 +206,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetBank]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetBank]
 
         dispathResponse(inBound)
-        val box = Connector.connector.vend.getBank(BankId(""), None)
+        val box = Connector.connector.vend.getBankLegacy(BankId(""), None)
 
         box.map(_._1.bankId).toString should be (Full(inBound.data.bankId).toString)
       }
@@ -218,7 +218,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetBank]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetBank]
 
         dispathResponse(inBound)
-        val future = Connector.connector.vend.getBankFuture(BankId(""), None)
+        val future = Connector.connector.vend.getBank(BankId(""), None)
         val result = future.getContent
 
         result.map(_._1.bankId).toString should be (Full(inBound.data.bankId).toString)
@@ -254,7 +254,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
       scenario(s"test getBankAccount method",kafkaTest) {
         val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetAccountbyAccountID]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetAccountbyAccountID]
         dispathResponse(inBound)
-        val box = Connector.connector.vend.getBankAccount(BankId(""), AccountId(""), callContext)
+        val box = Connector.connector.vend.getBankAccountLegacy(BankId(""), AccountId(""), callContext)
 
         box.map(_._1.bankId).toString should be (Full(inBound.data.head.bankId).toString)
         box.map(_._1.accountId).toString should be (Full(inBound.data.head.accountId).toString)
@@ -266,7 +266,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
       scenario(s"test getBankAccountFuture method",kafkaTest) {
         val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetAccountbyAccountID]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetAccountbyAccountID]
         dispathResponse(inBound)
-        val future = Connector.connector.vend.getBankAccountFuture(BankId(""), AccountId(""), callContext)
+        val future = Connector.connector.vend.getBankAccount(BankId(""), AccountId(""), callContext)
 
         val result = future.getContent
 
