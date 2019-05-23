@@ -3380,7 +3380,7 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
       s"""
-         |$generalObpConsentText
+        |$generalObpConsentText
         |
         |
         |Revoke Consent for current user specified by CONSENT_ID
@@ -3390,7 +3390,7 @@ trait APIMethods310 {
         |
       """.stripMargin,
       emptyObjectJson,
-      consentJsonV310,
+      revokedConsentJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
