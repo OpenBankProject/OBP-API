@@ -36,7 +36,6 @@ import code.customer.Customer
 import code.entitlement.Entitlement
 import code.usercustomerlinks.UserCustomerLink
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.Customer
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -60,12 +59,16 @@ class CustomerTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.getCustomerByCustomerId))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getCustomerByCustomerId))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCustomerByCustomerNumber))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.createCustomer))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.updateCustomerEmail))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations3_1_0.updateCustomerMobileNumber))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
+  val putCustomerUpdateMobileJson = SwaggerDefinitionsJSON.putUpdateCustomerMobileNumberJsonV310
+  val putCustomerUpdateEmailJson = SwaggerDefinitionsJSON.putUpdateCustomerEmailJsonV310
   lazy val bankId = randomBankId
 
   feature("Create Customer v3.1.0 - Unauthorized access") {
@@ -115,7 +118,7 @@ class CustomerTest extends V310ServerSetup {
 
   feature("Get Customer by CUSTOMER_ID v3.1.0 - Authorized access")
   {
-    scenario("We will call the endpoint without the proper Role " + canGetCustomer, ApiEndpoint, VersionOfApi) {
+    scenario("We will call the endpoint without the proper Role " + canGetCustomer, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetCustomer)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -124,7 +127,7 @@ class CustomerTest extends V310ServerSetup {
       And("error should be " + UserHasMissingRoles + CanGetCustomer)
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomer)
     }
-    scenario("We will call the endpoint with the proper Role " + canGetCustomer, ApiEndpoint, VersionOfApi) {
+    scenario("We will call the endpoint with the proper Role " + canGetCustomer, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
       When("We make a request v3.1.0 with the Role " + canGetCustomer + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET <@(user1)
@@ -167,6 +170,92 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(400)
       And("error should be " + CustomerNotFound)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFound)
+    }
+  }
+
+  feature("Update the email of an Customer v3.1.0 - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "email" ).PUT
+      val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+  feature("Update the email of an Customer v3.1.0 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "email" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
+      Then("We should get a 403")
+      response310.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canUpdateCustomerScaData
+      And("error should be " + errorMsg)
+      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+    }
+    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
+      Then("We should get a 201")
+      postResponse310.code should equal(201)
+      val infoPost = postResponse310.body.extract[CustomerJsonV310]
+
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerScaData.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "email" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
+      Then("We should get a 200")
+      response310.code should equal(200)
+
+      val infoGet = response310.body.extract[CustomerJsonV310]
+      infoGet.email should equal(putCustomerUpdateEmailJson.email)
+    }
+  }
+
+  feature("Update the mobile phone number of an Customer v3.1.0 - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint5, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "mobile-number" ).PUT
+      val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+  feature("Update the mobile phone number of an Customer v3.1.0 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint3, ApiEndpoint5, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "mobile-number" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
+      Then("We should get a 403")
+      response310.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canUpdateCustomerScaData
+      And("error should be " + errorMsg)
+      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+    }
+    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint5, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
+      Then("We should get a 201")
+      postResponse310.code should equal(201)
+      val infoPost = postResponse310.body.extract[CustomerJsonV310]
+
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerScaData.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "mobile-number" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
+      Then("We should get a 200")
+      response310.code should equal(200)
+
+      val infoGet = response310.body.extract[CustomerJsonV310]
+      infoGet.mobile_phone_number should equal(putCustomerUpdateMobileJson.mobile_number)
     }
   }
 
