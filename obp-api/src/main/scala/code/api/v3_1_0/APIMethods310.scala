@@ -3764,7 +3764,7 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(canUpdateCustomerScaData :: Nil)
+      Some(canUpdateCustomerEmail :: Nil)
     )
 
     lazy val updateCustomerEmail : OBPEndpoint = {
@@ -3773,7 +3773,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerScaData, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerEmail, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerEmailJsonV310 "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutUpdateCustomerEmailJsonV310]
@@ -3814,7 +3814,7 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(canUpdateCustomerScaData :: Nil)
+      Some(canUpdateCustomerMobilePhoneNumber :: Nil)
     )
 
     lazy val updateCustomerMobileNumber : OBPEndpoint = {
@@ -3823,15 +3823,15 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerScaData, callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerMobileNumberJsonV310 "
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerMobilePhoneNumber, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerMobilePhoneNumberJsonV310 "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[PutUpdateCustomerMobileNumberJsonV310]
+              json.extract[PutUpdateCustomerMobilePhoneNumberJsonV310]
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (customer, callContext) <- NewStyle.function.updateCustomerScaData(
               customerId,
-              Some(putData.mobile_number),
+              Some(putData.mobile_phone_number),
               None,
               callContext)
           } yield {

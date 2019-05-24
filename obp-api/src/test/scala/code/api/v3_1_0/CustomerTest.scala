@@ -191,7 +191,7 @@ class CustomerTest extends V310ServerSetup {
       val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
       Then("We should get a 403")
       response310.code should equal(403)
-      val errorMsg = UserHasMissingRoles + canUpdateCustomerScaData
+      val errorMsg = UserHasMissingRoles + canUpdateCustomerEmail
       And("error should be " + errorMsg)
       response310.body.extract[ErrorMessage].message should equal (errorMsg)
     }
@@ -204,7 +204,7 @@ class CustomerTest extends V310ServerSetup {
       postResponse310.code should equal(201)
       val infoPost = postResponse310.body.extract[CustomerJsonV310]
 
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerScaData.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerEmail.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "email" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
@@ -234,7 +234,7 @@ class CustomerTest extends V310ServerSetup {
       val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
       Then("We should get a 403")
       response310.code should equal(403)
-      val errorMsg = UserHasMissingRoles + canUpdateCustomerScaData
+      val errorMsg = UserHasMissingRoles + canUpdateCustomerMobilePhoneNumber
       And("error should be " + errorMsg)
       response310.body.extract[ErrorMessage].message should equal (errorMsg)
     }
@@ -247,7 +247,7 @@ class CustomerTest extends V310ServerSetup {
       postResponse310.code should equal(201)
       val infoPost = postResponse310.body.extract[CustomerJsonV310]
 
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerScaData.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerMobilePhoneNumber.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "mobile-number" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
@@ -255,7 +255,7 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(200)
 
       val infoGet = response310.body.extract[CustomerJsonV310]
-      infoGet.mobile_phone_number should equal(putCustomerUpdateMobileJson.mobile_number)
+      infoGet.mobile_phone_number should equal(putCustomerUpdateMobileJson.mobile_phone_number)
     }
   }
 
