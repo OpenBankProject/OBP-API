@@ -1898,6 +1898,10 @@ object SwaggerDefinitionsJSON {
     "SHARED",
     Some("20881230")
   )
+  val transactionRequestBodyFreeFormJSON = TransactionRequestBodyFreeFormJSON(
+    amountOfMoneyJsonV121,
+    "This is a FREE_FORM Transaction Request",
+  )
 
   val customerCreditRatingJSON = CustomerCreditRatingJSON(
     rating = "OBP",

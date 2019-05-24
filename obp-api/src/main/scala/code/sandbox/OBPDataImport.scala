@@ -191,7 +191,7 @@ trait OBPDataImport extends MdcLoggable {
 
 
   final protected def createBanks(data : SandboxDataImport) = {
-    val existing = data.banks.flatMap(b => Connector.connector.vend.getBank(BankId(b.id), None).map(_._1))
+    val existing = data.banks.flatMap(b => Connector.connector.vend.getBankLegacy(BankId(b.id), None).map(_._1))
 
     val allIds = data.banks.map(_.id)
     val emptyIds = allIds.filter(_.isEmpty)
@@ -428,7 +428,7 @@ trait OBPDataImport extends MdcLoggable {
     val duplicateIdentifiers = identifiers diff identifiers.distinct
 
     val existing = data.transactions.filter(t => {
-      Connector.connector.vend.getTransaction(BankId(t.this_account.bank), AccountId(t.this_account.id), TransactionId(t.id)).isDefined
+      Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank), AccountId(t.this_account.id), TransactionId(t.id)).isDefined
     })
 
     if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
@@ -556,7 +556,7 @@ trait OBPDataImport extends MdcLoggable {
       transactions.foreach { t =>
         t.save()
         //load it to force creation of metadata (If we are using Mapped connector, MappedCounterpartyMetadata.create will be called)
-        val lt = Connector.connector.vend.getTransaction(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
+        val lt = Connector.connector.vend.getTransactionLegacy(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
       }
     }
   }

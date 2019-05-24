@@ -62,7 +62,7 @@ case class CallContext(
       authViews<- tryo(
         for{
           view <- views   
-          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(this)) ?~! {BankAccountNotFound}
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccountLegacy(view.bankId, view.accountId, Some(this)) ?~! {BankAccountNotFound}
           internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
           internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)

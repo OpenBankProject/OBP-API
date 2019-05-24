@@ -1286,7 +1286,7 @@ trait APIMethods300 {
               }
             }
             (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
-            (branches, callContext) <- Connector.connector.vend.getBranchesFuture(bankId, callContext) map {
+            (branches, callContext) <- Connector.connector.vend.getBranches(bankId, callContext) map {
               case Full((List(), _)) | Empty =>
                 fullBoxOrException(Empty ?~! BranchesNotFound)
               case Full((list, callContext)) =>
@@ -1414,7 +1414,7 @@ trait APIMethods300 {
               }
             }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (atms, callContext) <- Connector.connector.vend.getAtmsFuture(bankId, callContext) map {
+            (atms, callContext) <- Connector.connector.vend.getAtms(bankId, callContext) map {
               case Full((List(),_)) | Empty =>
                 fullBoxOrException(Empty ?~! atmsNotFound)
               case Full((list, _)) =>
@@ -1522,7 +1522,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             // Now here is the business logic.
             // Get The customers related to a user. Process the resonse which might be an Exception
-            (customers,callContext) <- Connector.connector.vend.getCustomersByUserIdFuture(u.userId, callContext) map {
+            (customers,callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {
@@ -1593,7 +1593,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            ((accounts, callContext)) <- Connector.connector.vend.getCoreBankAccountsFuture(availablePrivateAccounts, callContext) map {
+            ((accounts, callContext)) <- Connector.connector.vend.getCoreBankAccounts(availablePrivateAccounts, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {

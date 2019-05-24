@@ -135,7 +135,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
   def verifyBankCreated(bank : SandboxBankImport) = {
     val bankId = BankId(bank.id)
-    val foundBankBox = Connector.connector.vend.getBank(bankId, None).map(_._1)
+    val foundBankBox = Connector.connector.vend.getBankLegacy(bankId, None).map(_._1)
 
     foundBankBox.isDefined should equal(true)
 
@@ -302,7 +302,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val bankId = BankId(transaction.this_account.bank)
     val accountId = AccountId(transaction.this_account.id)
     val transactionId = TransactionId(transaction.id)
-    val foundTransactionBox = Connector.connector.vend.getTransaction(bankId, accountId, transactionId)
+    val foundTransactionBox = Connector.connector.vend.getTransactionLegacy(bankId, accountId, transactionId)
 
     foundTransactionBox.isDefined should equal(true)
 
@@ -596,7 +596,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response.code should equal(403)
 
     //nothing should be created
-    Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
+    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
   }
 
   it should "not allow data to be imported with an invalid secret token" in {
@@ -608,13 +608,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response.code should equal(403)
 
     //nothing should be created
-    Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
+    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
   }
 
   it should "require banks to have non-empty ids" in {
 
     //no banks should exist initially
-    Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
+    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     val bank1Json = Extraction.decompose(bank1)
 
@@ -628,13 +628,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(bankWithoutId).code should equal(FAILED)
 
     //no banks should have been created
-    Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
+    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     val bankWithEmptyId = addIdField(bankWithoutId, "")
     getResponse(bankWithEmptyId).code should equal(FAILED)
 
     //no banks should have been created
-    Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
+    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     //Check that the same json becomes valid when a non-empty id is added
     val validId = "foo"
@@ -643,7 +643,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response.code should equal(SUCCESS)
 
     //Check the bank was created
-    val banks = Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val banks = Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
     banks.size should equal(1)
     val createdBank  = banks(0)
 
@@ -656,7 +656,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
   it should "not allow multiple banks with the same id" in {
     //no banks should exist initially
-    Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
+    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size should equal(0)
 
     val bank1AsJValue = Extraction.decompose(bank1)
 
@@ -682,7 +682,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(bank1AsJValue, validOtherBank)).code should equal(SUCCESS)
 
     //check that two banks were created
-    val banks = Connector.connector.vend.getBanks(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val banks = Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
     banks.size should equal(2)
   }
 
@@ -703,7 +703,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(bank1Json, Extraction.decompose(bank2))).code should equal(FAILED)
 
     //and the other bank should not have been created
-    Connector.connector.vend.getBank(BankId(otherBank.id), None).map(_._1).isDefined should equal(false)
+    Connector.connector.vend.getBankLegacy(BankId(otherBank.id), None).map(_._1).isDefined should equal(false)
   }
 
   it should "require users to have valid emails" in {
@@ -1066,7 +1066,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     }
 
     def transactionExists() : Boolean = {
-      Connector.connector.vend.getTransaction(BankId(transactionWithoutCounterparty.this_account.bank),
+      Connector.connector.vend.getTransactionLegacy(BankId(transactionWithoutCounterparty.this_account.bank),
         AccountId(transactionWithoutCounterparty.this_account.id),
         TransactionId(transactionWithoutCounterparty.id)).isDefined
     }
@@ -1113,7 +1113,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(transactionJson, sameIdAsOtherTransaction)).code should equal(FAILED)
 
     //Neither should exist
-    Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
+    Connector.connector.vend.getTransactionLegacy(BankId(t1.this_account.bank),
       AccountId(t1.this_account.id),
       TransactionId(t1.id)).isDefined should equal(false)
 
@@ -1121,11 +1121,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(transactionJson, transaction2Json)).code should equal(SUCCESS)
 
     //both should exist now
-    Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
+    Connector.connector.vend.getTransactionLegacy(BankId(t1.this_account.bank),
       AccountId(t1.this_account.id),
       TransactionId(t1.id)).isDefined should equal(true)
 
-    Connector.connector.vend.getTransaction(BankId(t2.this_account.bank),
+    Connector.connector.vend.getTransactionLegacy(BankId(t2.this_account.bank),
       AccountId(t2.this_account.id),
       TransactionId(t2.id)).isDefined should equal(true)
   }
@@ -1148,7 +1148,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(t1Json, Extraction.decompose(otherTransaction))).code should equal(FAILED)
 
     //and no new transaction should exist
-    Connector.connector.vend.getTransaction(BankId(otherTransaction.this_account.bank),
+    Connector.connector.vend.getTransactionLegacy(BankId(otherTransaction.this_account.bank),
       AccountId(otherTransaction.this_account.id),
       TransactionId(otherTransaction.id)).isDefined should equal(false)
   }
@@ -1181,7 +1181,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(invalidAccTransaction)).code should equal(FAILED)
 
     //transaction should not exist
-    Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+    Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
       AccountId(invalidAccountId),
       TransactionId(t.id)).isDefined should equal(false)
 
@@ -1196,7 +1196,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(invalidBankTransaction)).code should equal(FAILED)
 
     //transaction should not exist
-    Connector.connector.vend.getTransaction(BankId(invalidBankId),
+    Connector.connector.vend.getTransactionLegacy(BankId(invalidBankId),
       AccountId(t.this_account.id),
       TransactionId(t.id)).isDefined should equal(false)
 
@@ -1204,7 +1204,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(validTransaction)).code should equal(SUCCESS)
 
     //transaction should exist
-    Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+    Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id)).isDefined should equal(true)
 
@@ -1226,7 +1226,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(emptyCounterpartyNameTransaction)).code should equal(SUCCESS)
 
     //check it was created, name is generated, and account number matches
-    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+    val createdTransaction = Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
@@ -1254,7 +1254,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(missingCounterpartNameTransaction)).code should equal(SUCCESS)
 
     //check it was created, name is generated, and account number matches
-    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+    val createdTransaction = Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
@@ -1282,7 +1282,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(emptyCounterpartyAccountNumberTransaction)).code should equal(SUCCESS)
 
     //check it was created, name matches, and account number is empty
-    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+    val createdTransaction = Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
@@ -1309,7 +1309,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(missingCounterpartyAccountNumberTransaction)).code should equal(SUCCESS)
 
     //check it was created, name matches, and account number is empty
-    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+    val createdTransaction = Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
       AccountId(t.this_account.id),
       TransactionId(t.id))
 
@@ -1344,8 +1344,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
 
     def checkTransactionsCreated(created : Boolean) = {
-      val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id))
-      val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id))
+      val foundTransaction1Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(t1Id))
+      val foundTransaction2Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(t2Id))
 
       foundTransaction1Box.isDefined should equal(created)
       foundTransaction2Box.isDefined should equal(created)
@@ -1374,8 +1374,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     getResponse(t1 :: t2 :: Nil).code should equal(SUCCESS)
 
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id)).map(_._1)
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id)).map(_._1)
+    val foundTransaction1Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(t1Id)).map(_._1)
+    val foundTransaction2Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(t2Id)).map(_._1)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
@@ -1442,8 +1442,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     val bankId = BankId(transactionWithCounterparty.this_account.bank)
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1)).map(_._1)
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2)).map(_._1)
+    val foundTransaction1Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(id1)).map(_._1)
+    val foundTransaction2Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(id2)).map(_._1)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
@@ -1481,8 +1481,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     val bankId = BankId(baseT.this_account.bank)
     val accountId = AccountId(baseT.this_account.id)
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1)).map(_._1)
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2)).map(_._1)
+    val foundTransaction1Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(id1)).map(_._1)
+    val foundTransaction2Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, TransactionId(id2)).map(_._1)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
@@ -1525,9 +1525,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     val tId2 = TransactionId(id2)
     val tId3 = TransactionId(id3)
 
-    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, tId1)
-    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, tId2)
-    val foundTransaction3Box = Connector.connector.vend.getTransaction(bankId, accountId, tId3)
+    val foundTransaction1Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, tId1)
+    val foundTransaction2Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, tId2)
+    val foundTransaction3Box = Connector.connector.vend.getTransactionLegacy(bankId, accountId, tId3)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
@@ -1572,11 +1572,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     def checkTransactionsExist() = checkTransactions(true)
 
     def checkTransactions(exist: Boolean) = {
-      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
         TransactionId(t.id)).isDefined should equal(exist)
 
-      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
         TransactionId(newTransId)).isDefined should equal(exist)
     }
@@ -1618,11 +1618,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     def checkTransactionsExist() = checkTransactions(true)
 
     def checkTransactions(exist: Boolean) = {
-      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
         TransactionId(t.id)).isDefined should equal(exist)
 
-      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
         TransactionId(newTransId)).isDefined should equal(exist)
     }
@@ -1671,7 +1671,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(validTransaction, transactionWithSameCounterparty)).code should equal(SUCCESS)
 
     def getCreatedTransaction(id : String) =
-      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      Connector.connector.vend.getTransactionLegacy(BankId(t.this_account.bank),
         AccountId(t.this_account.id),
         TransactionId(id)).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
 

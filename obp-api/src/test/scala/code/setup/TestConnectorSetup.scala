@@ -109,7 +109,7 @@ trait TestConnectorSetup {
       }
 
       //load all transactions for the account to generate the counterparty metadata
-      LocalMappedConnector.getTransactions(account.bankId, account.accountId, None, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
+      LocalMappedConnector.getTransactionsLegacy(account.bankId, account.accountId, None, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
     })
   }
   

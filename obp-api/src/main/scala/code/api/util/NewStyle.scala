@@ -195,7 +195,7 @@ object NewStyle {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[BranchT] = {
-      Connector.connector.vend.getBranchFuture(bankId, branchId, callContext) map {
+      Connector.connector.vend.getBranch(bankId, branchId, callContext) map {
         val msg: String = s"${BranchNotFoundByBranchId}, or License may not be set. meta.license.id and meta.license.name can not be empty"
         x => fullBoxOrException(x ~> APIFailureNewStyle(msg, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
@@ -236,30 +236,30 @@ object NewStyle {
     }
 
     def getAtm(bankId : BankId, atmId : AtmId, callContext: Option[CallContext]): OBPReturnType[AtmT] = {
-      Connector.connector.vend.getAtmFuture(bankId, atmId, callContext) map {
+      Connector.connector.vend.getAtm(bankId, atmId, callContext) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
-      Connector.connector.vend.getBankFuture(bankId, callContext) map {
+      Connector.connector.vend.getBank(bankId, callContext) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId")
       }
     }
     def getBanks(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
-      Connector.connector.vend.getBanksFuture(callContext: Option[CallContext]) map {
+      Connector.connector.vend.getBanks(callContext: Option[CallContext]) map {
         connectorEmptyResponse(_, callContext)
       }
     }
 
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
-      Connector.connector.vend.getBankAccountFuture(bankId, accountId, callContext) map { i =>
+      Connector.connector.vend.getBankAccount(bankId, accountId, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 400 ), i._2)
       }
     }
 
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
-      Connector.connector.vend.checkBankAccountExistsFuture(bankId, accountId, callContext) } map { i =>
+      Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map { i =>
         (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId"), i._2)
       }
 
@@ -332,17 +332,17 @@ object NewStyle {
       }
     }
     def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
-      Connector.connector.vend.getCustomersFuture(bankId, callContext, queryParams) map {
+      Connector.connector.vend.getCustomers(bankId, callContext, queryParams) map {
         connectorEmptyResponse(_, callContext)
       }
     }
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
-      Connector.connector.vend.getCustomerByCustomerIdFuture(customerId, callContext) map {
+      Connector.connector.vend.getCustomerByCustomerId(customerId, callContext) map {
         unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId)
       }
     }
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): OBPReturnType[Customer] = {
-      Connector.connector.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId, callContext) map {
+      Connector.connector.vend.getCustomerByCustomerNumber(customerNumber, bankId, callContext) map {
         unboxFullOrFail(_, callContext, CustomerNotFound)
       }
     }
@@ -454,7 +454,7 @@ object NewStyle {
     }
 
     def getCounterparties(bankId : BankId, accountId : AccountId, viewId : ViewId, callContext: Option[CallContext]): OBPReturnType[List[CounterpartyTrait]] = {
-      Connector.connector.vend.getCounterpartiesFuture(bankId,accountId,viewId, callContext) map { i=>
+      Connector.connector.vend.getCounterparties(bankId,accountId,viewId, callContext) map { i=>
         (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
@@ -976,14 +976,14 @@ object NewStyle {
 
     def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[CoreAccount]] = 
       {
-        Connector.connector.vend.getCoreBankAccountsFuture(bankIdAccountIds, callContext) map {
+        Connector.connector.vend.getCoreBankAccounts(bankIdAccountIds, callContext) map {
           i => (unboxFullOrFail(i, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getCoreBankAccountsFuture(bankIdAccountIds, callContext))} in the backend. ", 400))
         }
       }
 
     def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] =
     {
-      Connector.connector.vend.getBankAccountsHeldFuture(bankIdAccountIds, callContext) map {
+      Connector.connector.vend.getBankAccountsHeld(bankIdAccountIds, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
       }
     }

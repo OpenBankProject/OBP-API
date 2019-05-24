@@ -1028,7 +1028,7 @@ object APIMethods_TransactionsApi extends RestHelper {
   
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
   
-             Full(accounts) <- Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)
+             Full(accounts) <- Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)
   
              transactionAndTransactionRequestTuple = for{
                bankAccount <- accounts
