@@ -136,20 +136,23 @@ class KafkaMappedConnector_vMay2019Test extends KafkaSetup with ServerSetupWithT
         result should be(expectedValue)
       }
 
-    scenario(s"test getBanksFuture -- status.hasNoError", kafkaTest) {
-      val inbound = Connector.connector.vend.messageDocs
-        .filter(_.exampleInboundMessage.isInstanceOf[InBoundGetBanks])
-        .map(_.exampleInboundMessage).head.asInstanceOf[InBoundGetBanks]
-        .copy(status = Status("", Nil)) // This will set errorCode to "", no it works
-      //This inBound.status.errorCode != "", so it will throw the error back.
-      val expectedValue = Full(inbound.data.head.bankId).toString
-      dispathResponse(inbound)
-      val future = Connector.connector.vend.getBanks(callContext)
-
-      dispathResponse(inbound)
-      val result = future.getContent
-      result.map(_._1.head.bankId).toString should be(expectedValue)
-    }
+    if (PropsConnectorVersion == "mapped") {
+      ignore("ignore test getBanksFuture -- status.hasNoError,  if it is mapped connector", kafkaTest) {}
+    } else 
+      scenario(s"test getBanksFuture -- status.hasNoError", kafkaTest) {
+        val inbound = Connector.connector.vend.messageDocs
+          .filter(_.exampleInboundMessage.isInstanceOf[InBoundGetBanks])
+          .map(_.exampleInboundMessage).head.asInstanceOf[InBoundGetBanks]
+          .copy(status = Status("", Nil)) // This will set errorCode to "", no it works
+        //This inBound.status.errorCode != "", so it will throw the error back.
+        val expectedValue = Full(inbound.data.head.bankId).toString
+        dispathResponse(inbound)
+        val future = Connector.connector.vend.getBanks(callContext)
+  
+        dispathResponse(inbound)
+        val result = future.getContent
+        result.map(_._1.head.bankId).toString should be(expectedValue)
+      }
 
   }
 }
