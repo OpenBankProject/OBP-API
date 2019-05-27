@@ -233,39 +233,14 @@ case class OutBoundCreateCustomer(outboundAdapterCallContext: OutboundAdapterCal
                                    nameSuffix: String) extends TopicTrait
 case class InBoundCreateCustomer(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
 
-case class OutBoundCreateCustomerFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                        bankId: BankId,
-                                        legalName: String,
-                                        mobileNumber: String,
-                                        email: String,
-                                        faceImage: CustomerFaceImage,
-                                        dateOfBirth: Date,
-                                        relationshipStatus: String,
-                                        dependents: Int,
-                                        dobOfDependents: List[Date],
-                                        highestEducationAttained: String,
-                                        employmentStatus: String,
-                                        kycStatus: Boolean,
-                                        lastOkDate: Date,
-                                        creditRating: Option[CreditRating],
-                                        creditLimit: Option[AmountOfMoney]) extends TopicTrait
-case class InBoundCreateCustomerFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
+case class OutBoundGetCustomersByUserId(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                        userId: String) extends TopicTrait
+case class InBoundGetCustomersByUserId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerCommons]) extends InBoundTrait[List[CustomerCommons]]
 
-
-case class OutBoundGetCustomersByUserIdFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                              userId: String) extends TopicTrait
-case class InBoundGetCustomersByUserIdFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerCommons]) extends InBoundTrait[List[CustomerCommons]]
-
-
-case class OutBoundGetCustomerByCustomerIdFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                 customerId: String) extends TopicTrait
-case class InBoundGetCustomerByCustomerIdFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
-
-
-case class OutBoundGetCustomerByCustomerNumberFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                     customerNumber: String,
-                                                     bankId: BankId) extends TopicTrait
-case class InBoundGetCustomerByCustomerNumberFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
+case class OutBoundGetCustomerByCustomerNumber(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                               customerNumber: String,
+                                               bankId: BankId) extends TopicTrait
+case class InBoundGetCustomerByCustomerNumber(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CustomerCommons) extends InBoundTrait[CustomerCommons]
 
 
 case class OutBoundGetCustomerAddress(outboundAdapterCallContext: OutboundAdapterCallContext,

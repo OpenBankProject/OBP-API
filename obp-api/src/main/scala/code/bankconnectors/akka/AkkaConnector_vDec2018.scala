@@ -232,16 +232,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.CustomersByUserId",
     messageFormat = messageFormat,
     description = "Get Customers represented by the User.",
-    outboundTopic = Some(OutBoundGetCustomersByUserIdFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetCustomersByUserIdFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetCustomersByUserIdFuture(
+      OutBoundGetCustomersByUserId(
         outboundAdapterCallContext,
         userIdExample.value
       )
     ),
     exampleInboundMessage = (
-      InBoundGetCustomersByUserIdFuture(
+      InBoundGetCustomersByUserId(
         inboundAdapterCallContext,
         inboundStatus,
         customerCommons:: Nil,
@@ -252,8 +252,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Accounts", 0))
   )
   override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = {
-    val req = OutBoundGetCustomersByUserIdFuture(callContext.map(_.toOutboundAdapterCallContext).get, userId)
-    val response= (southSideActor ? req).mapTo[InBoundGetCustomersByUserIdFuture]
+    val req = OutBoundGetCustomersByUserId(callContext.map(_.toOutboundAdapterCallContext).get, userId)
+    val response= (southSideActor ? req).mapTo[InBoundGetCustomersByUserId]
     response.map(a =>(Full(a.data, callContext)))
   }
 
