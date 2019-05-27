@@ -69,10 +69,6 @@ case class OutBoundGetBank(outboundAdapterCallContext: OutboundAdapterCallContex
                            bankId: BankId) extends TopicTrait
 case class InBoundGetBank(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankCommons) extends InBoundTrait[BankCommons]
 
-
-case class OutBoundGetBanksFuture(outboundAdapterCallContext: OutboundAdapterCallContext) extends TopicTrait
-case class InBoundGetBanksFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankCommons]) extends InBoundTrait[List[BankCommons]]
-
 case class OutBoundGetBankAccountsForUserFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
                                                 username: String) extends TopicTrait
 case class InBoundGetBankAccountsForUserFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[InboundAccountCommons]) extends InBoundTrait[List[InboundAccountCommons]]
