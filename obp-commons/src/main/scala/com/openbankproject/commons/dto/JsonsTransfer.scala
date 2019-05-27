@@ -170,15 +170,15 @@ case class InBoundGetBranches(inboundAdapterCallContext: InboundAdapterCallConte
 
 
 
-case class OutBoundGetAtmFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                bankId: BankId,
-                                atmId: AtmId) extends TopicTrait
-case class InBoundGetAtmFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AtmTCommons) extends InBoundTrait[AtmTCommons]
+case class OutBoundGetAtm(outboundAdapterCallContext: OutboundAdapterCallContext,
+                          bankId: BankId,
+                          atmId: AtmId) extends TopicTrait
+case class InBoundGetAtm(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AtmTCommons) extends InBoundTrait[AtmTCommons]
 
 
-case class OutBoundGetAtmsFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                 bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
-case class InBoundGetAtmsFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AtmTCommons]) extends InBoundTrait[List[AtmTCommons]]
+case class OutBoundGetAtms(outboundAdapterCallContext: OutboundAdapterCallContext,
+                           bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
+case class InBoundGetAtms(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AtmTCommons]) extends InBoundTrait[List[AtmTCommons]]
 
 
 case class OutBoundCreateTransactionAfterChallengev300(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -735,13 +735,6 @@ case class OutBoundCreateOrUpdateProduct(outboundAdapterCallContext: OutboundAda
                                          metaLicenceId: String,
                                          metaLicenceName: String) extends TopicTrait
 case class InBoundCreateOrUpdateProduct(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductCommons) extends InBoundTrait[ProductCommons]
-
-
-
-case class OutBoundGetAtm(outboundAdapterCallContext: OutboundAdapterCallContext,
-                          bankId: BankId,
-                          atmId: AtmId) extends TopicTrait
-case class InBoundGetAtm(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AtmTCommons) extends InBoundTrait[AtmTCommons]
 
 
 case class OutBoundGetTransactionRequestTypeCharge(outboundAdapterCallContext: OutboundAdapterCallContext,
