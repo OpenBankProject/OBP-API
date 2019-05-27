@@ -85,9 +85,9 @@ case class OutBoundGetCoreBankAccounts(outboundAdapterCallContext: OutboundAdapt
 case class InBoundGetCoreBankAccounts(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CoreAccount]) extends InBoundTrait[List[CoreAccount]]
 
 
-case class OutBoundGetCoreBankAccountsHeldFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                 bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
-case class InBoundGetCoreBankAccountsHeldFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountHeld]) extends InBoundTrait[List[AccountHeld]]
+case class OutBoundGetCoreBankAccountsHeld(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                           bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
+case class InBoundGetCoreBankAccountsHeld(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountHeld]) extends InBoundTrait[List[AccountHeld]]
 
 
 case class OutBoundCheckBankAccountExistsFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
