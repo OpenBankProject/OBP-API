@@ -109,18 +109,18 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
    messageDocs += MessageDoc(
-    process = "obp.get.BankAccountsForUser",
+    process = "obp.getBankAccountsForUser",
     messageFormat = messageFormat,
     description = "Gets the list of accounts available to the User. This call sends authInfo including username.",
-    outboundTopic = Some(OutBoundGetBankAccountsForUserFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBankAccountsForUserFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetBankAccountsForUser.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBankAccountsForUser.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBankAccountsForUserFuture(
+      OutBoundGetBankAccountsForUser(
         outboundAdapterCallContext,
         usernameExample.value)
     ),
     exampleInboundMessage = (
-      InBoundGetBankAccountsForUserFuture(
+      InBoundGetBankAccountsForUser(
         inboundAdapterCallContext,
         inboundStatus,
         List(inboundAccountCommons)
@@ -128,9 +128,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
-  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
-    val req = OutBoundGetBankAccountsForUserFuture(callContext.map(_.toOutboundAdapterCallContext).get, username)
-    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUserFuture]
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
+    val req = OutBoundGetBankAccountsForUser(callContext.map(_.toOutboundAdapterCallContext).get, username)
+    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUser]
     response.map(a =>(Full(a.data, callContext)))
   }
   

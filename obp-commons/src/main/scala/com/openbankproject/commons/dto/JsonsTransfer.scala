@@ -69,9 +69,9 @@ case class OutBoundGetBank(outboundAdapterCallContext: OutboundAdapterCallContex
                            bankId: BankId) extends TopicTrait
 case class InBoundGetBank(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankCommons) extends InBoundTrait[BankCommons]
 
-case class OutBoundGetBankAccountsForUserFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                username: String) extends TopicTrait
-case class InBoundGetBankAccountsForUserFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[InboundAccountCommons]) extends InBoundTrait[List[InboundAccountCommons]]
+case class OutBoundGetBankAccountsForUser(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                          username: String) extends TopicTrait
+case class InBoundGetBankAccountsForUser(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[InboundAccountCommons]) extends InBoundTrait[List[InboundAccountCommons]]
 
 
 case class OutBoundGetBankAccountFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -502,12 +502,6 @@ case class InBoundGetBanks(inboundAdapterCallContext: InboundAdapterCallContext,
 case class OutBoundGetBankAccounts(outboundAdapterCallContext: OutboundAdapterCallContext,
                                    accounts: List[(BankId, AccountId) ]) extends TopicTrait
 case class InBoundGetBankAccounts(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankAccountCommons]) extends InBoundTrait[List[BankAccountCommons]]
-
-
-case class OutBoundGetBankAccountsForUser(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                          username: String) extends TopicTrait
-case class InBoundGetBankAccountsForUser(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[InboundAccountCommons]) extends InBoundTrait[List[InboundAccountCommons]]
-
 
 case class OutBoundGetCoreBankAccounts(outboundAdapterCallContext: OutboundAdapterCallContext,
                                        bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
