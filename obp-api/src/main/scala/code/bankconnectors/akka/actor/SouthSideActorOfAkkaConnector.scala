@@ -59,15 +59,15 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       val result: Box[List[Customer]] = getCustomersByUserIdLegacy(userId, None).map(r => r._1)
       sender ! InBoundGetCustomersByUserIdFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(l => l.map(Transformer.toInternalCustomer(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
 
-    case OutBoundGetTransactionsFuture(cc, bankId, accountId, limit, fromDate, toDate) =>
+    case OutBoundGetTransactions(cc, bankId, accountId, limit, fromDate, toDate) =>
       val from = APIUtil.DateWithMsFormat.parse(fromDate)
       val to = APIUtil.DateWithMsFormat.parse(toDate)
       val result = getTransactionsLegacy(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
-      sender ! InBoundGetTransactionsFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
+      sender ! InBoundGetTransactions(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
 
-    case OutBoundGetTransactionFuture(cc, bankId, accountId, transactionId) =>
+    case OutBoundGetTransaction(cc, bankId, accountId, transactionId) =>
       val result = getTransactionLegacy(bankId, accountId, transactionId,  None).map(r => r._1)
-      sender ! InBoundGetTransactionFuture(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.toInternalTransaction(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
+      sender ! InBoundGetTransaction(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(Transformer.toInternalTransaction(_)).openOrThrowException(attemptedToOpenAnEmptyBox))
 
     case message => 
       logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)

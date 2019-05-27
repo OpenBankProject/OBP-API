@@ -261,10 +261,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
     description = "Get Transactions for an Account specified by bankId and accountId. Pagination is achieved with limit, fromDate and toDate.",
-    outboundTopic = Some(OutBoundGetTransactionsFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetTransactionsFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetTransactions.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetTransactions.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetTransactionsFuture(
+      OutBoundGetTransactions(
         outboundAdapterCallContext,
         bankId = BankId(bankIdExample.value),
         accountId = AccountId(accountIdExample.value),
@@ -273,7 +273,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         toDate = APIUtil.DateWithDayExampleString) 
     ),
     exampleInboundMessage = (
-      InBoundGetTransactionsFuture(
+      InBoundGetTransactions(
         inboundAdapterCallContext,
         inboundStatus,
         List(transactionCommons)
@@ -286,8 +286,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val fromDate = queryParams.collect { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
-    val req = OutBoundGetTransactionsFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, limit, fromDate, toDate)
-    val response: Future[InBoundGetTransactionsFuture] = (southSideActor ? req).mapTo[InBoundGetTransactionsFuture]
+    val req = OutBoundGetTransactions(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, limit, fromDate, toDate)
+    val response: Future[InBoundGetTransactions] = (southSideActor ? req).mapTo[InBoundGetTransactions]
     response.map(a =>(Full(a.data), callContext))
   }
 
@@ -295,10 +295,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
     description = "Get a single Transaction specified by bankId, accountId and transactionId",
-    outboundTopic = Some(OutBoundGetTransactionFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetTransactionFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetTransaction.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetTransaction.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetTransactionFuture(
+      OutBoundGetTransaction(
         outboundAdapterCallContext,
         bankId = BankId(bankIdExample.value),
         accountId = AccountId(accountIdExample.value),
@@ -306,7 +306,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       )
     ),
     exampleInboundMessage = (
-      InBoundGetTransactionFuture(
+      InBoundGetTransaction(
         inboundAdapterCallContext,
         inboundStatus,
         transactionCommons
@@ -315,8 +315,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
-    val req = OutBoundGetTransactionFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, transactionId)
-    val response= (southSideActor ? req).mapTo[InBoundGetTransactionFuture]
+    val req = OutBoundGetTransaction(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, transactionId)
+    val response= (southSideActor ? req).mapTo[InBoundGetTransaction]
     response.map(a =>(Full(a.data), callContext))
   }
  
