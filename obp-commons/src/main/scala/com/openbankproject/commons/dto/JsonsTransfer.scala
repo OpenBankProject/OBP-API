@@ -74,10 +74,10 @@ case class OutBoundGetBankAccountsForUser(outboundAdapterCallContext: OutboundAd
 case class InBoundGetBankAccountsForUser(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[InboundAccountCommons]) extends InBoundTrait[List[InboundAccountCommons]]
 
 
-case class OutBoundGetBankAccountFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                        bankId: BankId,
-                                        accountId: AccountId) extends TopicTrait
-case class InBoundGetBankAccountFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons) extends InBoundTrait[BankAccountCommons]
+case class OutBoundGetBankAccount(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                  bankId: BankId,
+                                  accountId: AccountId) extends TopicTrait
+case class InBoundGetBankAccount(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BankAccountCommons) extends InBoundTrait[BankAccountCommons]
 
 
 case class OutBoundGetBankAccountsFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -498,10 +498,6 @@ case class InBoundGetAdapterInfo(inboundAdapterCallContext: InboundAdapterCallCo
 case class OutBoundGetBanks(outboundAdapterCallContext: OutboundAdapterCallContext) extends TopicTrait
 case class InBoundGetBanks(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankCommons]) extends InBoundTrait[List[BankCommons]]
 
-
-case class OutBoundGetBankAccounts(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                   accounts: List[(BankId, AccountId) ]) extends TopicTrait
-case class InBoundGetBankAccounts(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BankAccountCommons]) extends InBoundTrait[List[BankAccountCommons]]
 
 case class OutBoundGetCoreBankAccounts(outboundAdapterCallContext: OutboundAdapterCallContext,
                                        bankIdAccountIds: List[BankIdAccountId]) extends TopicTrait
