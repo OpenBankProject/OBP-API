@@ -138,17 +138,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
     description = "Check a bank Account exists - as specified by bankId and accountId.",
-    outboundTopic = Some(OutBoundCheckBankAccountExistsFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundCheckBankAccountExistsFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundCheckBankAccountExistsFuture(
+      OutBoundCheckBankAccountExists(
         outboundAdapterCallContext,
         BankId(bankIdExample.value),
         AccountId(accountIdExample.value)
       )
     ),
     exampleInboundMessage = (
-      InBoundCheckBankAccountExistsFuture(
+      InBoundCheckBankAccountExists(
         inboundAdapterCallContext,
         inboundStatus,
         bankAccountCommons
@@ -157,8 +157,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
   override def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) = {
-    val req = OutBoundCheckBankAccountExistsFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
-    val response: Future[InBoundCheckBankAccountExistsFuture] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExistsFuture]
+    val req = OutBoundCheckBankAccountExists(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
+    val response: Future[InBoundCheckBankAccountExists] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExists]
     response.map(a =>(Full(a.data), callContext))
     
   }
