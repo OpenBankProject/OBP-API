@@ -103,21 +103,14 @@ case class OutBoundGetCounterpartyTrait(outboundAdapterCallContext: OutboundAdap
 case class InBoundGetCounterpartyTrait(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
 
 
-case class OutBoundGetCounterpartyByCounterpartyIdFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                         counterpartyId: CounterpartyId) extends TopicTrait
-case class InBoundGetCounterpartyByCounterpartyIdFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
+case class OutBoundGetCounterpartyByCounterpartyId(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                                   counterpartyId: CounterpartyId) extends TopicTrait
+case class InBoundGetCounterpartyByCounterpartyId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
 
 
 case class OutBoundGetCounterpartyByIban(outboundAdapterCallContext: OutboundAdapterCallContext,
                                          iban: String) extends TopicTrait
 case class InBoundGetCounterpartyByIban(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
-
-
-case class OutBoundGetCounterpartiesFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                           thisBankId: BankId,
-                                           thisAccountId: AccountId,
-                                           viewId: ViewId) extends TopicTrait
-case class InBoundGetCounterpartiesFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CounterpartyTraitCommons]) extends InBoundTrait[List[CounterpartyTraitCommons]]
 
 
 case class OutBoundGetTransactionsFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -521,11 +514,6 @@ case class OutBoundGetCounterparty(outboundAdapterCallContext: OutboundAdapterCa
                                    thisAccountId: AccountId,
                                    couterpartyId: String) extends TopicTrait
 case class InBoundGetCounterparty(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: Counterparty) extends InBoundTrait[Counterparty]
-
-
-case class OutBoundGetCounterpartyByCounterpartyId(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                   counterpartyId: CounterpartyId) extends TopicTrait
-case class InBoundGetCounterpartyByCounterpartyId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
 
 
 case class OutBoundGetCounterparties(outboundAdapterCallContext: OutboundAdapterCallContext,
