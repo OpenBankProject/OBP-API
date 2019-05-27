@@ -290,21 +290,21 @@ case class OutBoundGetTaxResidence(outboundAdapterCallContext: OutboundAdapterCa
 case class InBoundGetTaxResidence(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TaxResidenceCommons]) extends InBoundTrait[List[TaxResidenceCommons]]
 
 
-case class OutBoundGetCustomersFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                      bankId: BankId) extends TopicTrait
-case class InBoundGetCustomersFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerCommons]) extends InBoundTrait[List[CustomerCommons]]
+case class OutBoundGetCustomers(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                bankId: BankId) extends TopicTrait
+case class InBoundGetCustomers(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CustomerCommons]) extends InBoundTrait[List[CustomerCommons]]
 
 
-case class OutBoundGetCheckbookOrdersFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                            bankId: String,
-                                            accountId: String) extends TopicTrait
-case class InBoundGetCheckbookOrdersFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CheckbookOrdersJson) extends InBoundTrait[CheckbookOrdersJson]
+case class OutBoundGetCheckbookOrders(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                      bankId: String,
+                                      accountId: String) extends TopicTrait
+case class InBoundGetCheckbookOrders(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CheckbookOrdersJson) extends InBoundTrait[CheckbookOrdersJson]
 
 
-case class OutBoundGetStatusOfCreditCardOrderFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                                    bankId: String,
-                                                    accountId: String) extends TopicTrait
-case class InBoundGetStatusOfCreditCardOrderFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CardObjectJson]) extends InBoundTrait[List[CardObjectJson]]
+case class OutBoundGetStatusOfCreditCardOrder(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                              bankId: String,
+                                              accountId: String) extends TopicTrait
+case class InBoundGetStatusOfCreditCardOrder(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[CardObjectJson]) extends InBoundTrait[List[CardObjectJson]]
 
 
 case class OutBoundCreateUserAuthContext(outboundAdapterCallContext: OutboundAdapterCallContext,
