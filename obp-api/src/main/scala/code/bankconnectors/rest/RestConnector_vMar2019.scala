@@ -478,7 +478,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-      OutBoundGetCoreBankAccountsFuture(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
+      OutBoundGetCoreBankAccounts(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         consumerId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
@@ -508,7 +508,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           accountId = AccountId(value = "string"))))
       ),
     exampleInboundMessage = (
-      InBoundGetCoreBankAccountsFuture(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
+      InBoundGetCoreBankAccounts(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
         sessionId = Option("string"),
         generalContext = Option(List(BasicGeneralContext(key = "string",
           value = "string")))),
@@ -535,7 +535,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
         val url = getUrl("getCoreBankAccountsFuture", ("bankIdAccountIds", bankIdAccountIds))
-        sendGetRequest[InBoundGetCoreBankAccountsFuture](url, callContext)
+        sendGetRequest[InBoundGetCoreBankAccounts](url, callContext)
           .map { boxedResult =>
             boxedResult.map { result =>
               (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
