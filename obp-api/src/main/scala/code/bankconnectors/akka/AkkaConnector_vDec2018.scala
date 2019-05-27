@@ -57,26 +57,26 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Banks",
     messageFormat = messageFormat,
     description = "Gets the banks list on this OBP installation.",
-    outboundTopic = Some(OutBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBanksFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetBanks.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBanks.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBanksFuture(outboundAdapterCallContext)
+      OutBoundGetBanks(outboundAdapterCallContext)
     ),
     exampleInboundMessage = (
-      InBoundGetBanksFuture(
+      InBoundGetBanks(
         inboundAdapterCallContext,
         inboundStatus,
         List(bankCommons)
         )
     ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBanksFuture]().toString(true))),
-    inboundAvroSchema =  Some(parse(SchemaFor[InBoundGetBanksFuture]().toString(true))),
+    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBanks]().toString(true))),
+    inboundAvroSchema =  Some(parse(SchemaFor[InBoundGetBanks]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
   
   override def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = {
-    val req = OutBoundGetBanksFuture(callContext.map(_.toOutboundAdapterCallContext).get)
-    val response: Future[InBoundGetBanksFuture] = (southSideActor ? req).mapTo[InBoundGetBanksFuture]
+    val req = OutBoundGetBanks(callContext.map(_.toOutboundAdapterCallContext).get)
+    val response: Future[InBoundGetBanks] = (southSideActor ? req).mapTo[InBoundGetBanks]
     response.map(r => Full(r.data, callContext))
   }
 
@@ -84,43 +84,43 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Bank",
     messageFormat = messageFormat,
     description = "Get a specific Bank as specified by bankId",
-    outboundTopic = Some(OutBoundGetBankFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBankFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetBank.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBank.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBankFuture(
+      OutBoundGetBank(
         outboundAdapterCallContext,
         BankId(bankIdExample.value))
     ),
     exampleInboundMessage = (
-      InBoundGetBankFuture(
+      InBoundGetBank(
         inboundAdapterCallContext,
         inboundStatus,
         bankCommons
       )
     ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBankFuture]().toString(true))),
-    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetBankFuture]().toString(true))),
+    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBank]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetBank]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
   override def getBank(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
-    val req = OutBoundGetBankFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId)
-    val response: Future[InBoundGetBankFuture] = (southSideActor ? req).mapTo[InBoundGetBankFuture]
+    val req = OutBoundGetBank(callContext.map(_.toOutboundAdapterCallContext).get, bankId)
+    val response: Future[InBoundGetBank] = (southSideActor ? req).mapTo[InBoundGetBank]
     response.map(r => Full(r.data, callContext))
   }
 
    messageDocs += MessageDoc(
-    process = "obp.get.BankAccountsForUser",
+    process = "obp.getBankAccountsForUser",
     messageFormat = messageFormat,
     description = "Gets the list of accounts available to the User. This call sends authInfo including username.",
-    outboundTopic = Some(OutBoundGetBankAccountsForUserFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBankAccountsForUserFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetBankAccountsForUser.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBankAccountsForUser.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBankAccountsForUserFuture(
+      OutBoundGetBankAccountsForUser(
         outboundAdapterCallContext,
         usernameExample.value)
     ),
     exampleInboundMessage = (
-      InBoundGetBankAccountsForUserFuture(
+      InBoundGetBankAccountsForUser(
         inboundAdapterCallContext,
         inboundStatus,
         List(inboundAccountCommons)
@@ -128,9 +128,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
-  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
-    val req = OutBoundGetBankAccountsForUserFuture(callContext.map(_.toOutboundAdapterCallContext).get, username)
-    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUserFuture]
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
+    val req = OutBoundGetBankAccountsForUser(callContext.map(_.toOutboundAdapterCallContext).get, username)
+    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUser]
     response.map(a =>(Full(a.data, callContext)))
   }
   
@@ -138,17 +138,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.check.BankAccountExists",
     messageFormat = messageFormat,
     description = "Check a bank Account exists - as specified by bankId and accountId.",
-    outboundTopic = Some(OutBoundCheckBankAccountExistsFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundCheckBankAccountExistsFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundCheckBankAccountExistsFuture(
+      OutBoundCheckBankAccountExists(
         outboundAdapterCallContext,
         BankId(bankIdExample.value),
         AccountId(accountIdExample.value)
       )
     ),
     exampleInboundMessage = (
-      InBoundCheckBankAccountExistsFuture(
+      InBoundCheckBankAccountExists(
         inboundAdapterCallContext,
         inboundStatus,
         bankAccountCommons
@@ -157,8 +157,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
   override def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) = {
-    val req = OutBoundCheckBankAccountExistsFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
-    val response: Future[InBoundCheckBankAccountExistsFuture] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExistsFuture]
+    val req = OutBoundCheckBankAccountExists(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
+    val response: Future[InBoundCheckBankAccountExists] = (southSideActor ? req).mapTo[InBoundCheckBankAccountExists]
     response.map(a =>(Full(a.data), callContext))
     
   }
@@ -167,17 +167,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Account",
     messageFormat = messageFormat,
     description = "Get a single Account as specified by the bankId and accountId.",
-    outboundTopic = Some(OutBoundGetBankAccountFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBankAccountFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetBankAccount.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBankAccount.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBankAccountFuture(
+      OutBoundGetBankAccount(
         outboundAdapterCallContext,
         BankId(bankIdExample.value),
         AccountId(accountIdExample.value),
       )
     ),
     exampleInboundMessage = (
-      InBoundGetBankAccountFuture(
+      InBoundGetBankAccount(
         inboundAdapterCallContext,
         inboundStatus,
         bankAccountCommons
@@ -186,8 +186,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
   override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-    val req = OutBoundGetBankAccountFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
-    val response = (southSideActor ? req).mapTo[InBoundGetBankAccountFuture]
+    val req = OutBoundGetBankAccount(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId)
+    val response = (southSideActor ? req).mapTo[InBoundGetBankAccount]
     response.map(a =>(Full(a.data), callContext))
   }
 
@@ -195,16 +195,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.coreBankAccounts",
     messageFormat = messageFormat,
     description = "Get bank Accounts available to the User (without Metadata)",
-    outboundTopic = Some(OutBoundGetCoreBankAccountsFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetCoreBankAccountsFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetCoreBankAccounts.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetCoreBankAccounts.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetCoreBankAccountsFuture(
+      OutBoundGetCoreBankAccounts(
         outboundAdapterCallContext,
         List(BankIdAccountId(BankId(bankIdExample.value), AccountId(accountIdExample.value)))
       )
     ),
     exampleInboundMessage = (
-      InBoundGetCoreBankAccountsFuture(
+      InBoundGetCoreBankAccounts(
         inboundAdapterCallContext,
         inboundStatus,
         List(
@@ -221,8 +221,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
   override def getCoreBankAccounts(BankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = {
-    val req = OutBoundGetCoreBankAccountsFuture(callContext.map(_.toOutboundAdapterCallContext).get, BankIdAccountIds) 
-    val response = (southSideActor ? req).mapTo[InBoundGetCoreBankAccountsFuture]
+    val req = OutBoundGetCoreBankAccounts(callContext.map(_.toOutboundAdapterCallContext).get, BankIdAccountIds) 
+    val response = (southSideActor ? req).mapTo[InBoundGetCoreBankAccounts]
     response.map(a =>(Full(a.data, callContext)))
   }
 
@@ -232,16 +232,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.CustomersByUserId",
     messageFormat = messageFormat,
     description = "Get Customers represented by the User.",
-    outboundTopic = Some(OutBoundGetCustomersByUserIdFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetCustomersByUserIdFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetCustomersByUserIdFuture(
+      OutBoundGetCustomersByUserId(
         outboundAdapterCallContext,
         userIdExample.value
       )
     ),
     exampleInboundMessage = (
-      InBoundGetCustomersByUserIdFuture(
+      InBoundGetCustomersByUserId(
         inboundAdapterCallContext,
         inboundStatus,
         customerCommons:: Nil,
@@ -252,8 +252,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Accounts", 0))
   )
   override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = {
-    val req = OutBoundGetCustomersByUserIdFuture(callContext.map(_.toOutboundAdapterCallContext).get, userId)
-    val response= (southSideActor ? req).mapTo[InBoundGetCustomersByUserIdFuture]
+    val req = OutBoundGetCustomersByUserId(callContext.map(_.toOutboundAdapterCallContext).get, userId)
+    val response= (southSideActor ? req).mapTo[InBoundGetCustomersByUserId]
     response.map(a =>(Full(a.data, callContext)))
   }
 
@@ -261,10 +261,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Transactions",
     messageFormat = messageFormat,
     description = "Get Transactions for an Account specified by bankId and accountId. Pagination is achieved with limit, fromDate and toDate.",
-    outboundTopic = Some(OutBoundGetTransactionsFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetTransactionsFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetTransactions.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetTransactions.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetTransactionsFuture(
+      OutBoundGetTransactions(
         outboundAdapterCallContext,
         bankId = BankId(bankIdExample.value),
         accountId = AccountId(accountIdExample.value),
@@ -273,7 +273,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         toDate = APIUtil.DateWithDayExampleString) 
     ),
     exampleInboundMessage = (
-      InBoundGetTransactionsFuture(
+      InBoundGetTransactions(
         inboundAdapterCallContext,
         inboundStatus,
         List(transactionCommons)
@@ -286,8 +286,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     val fromDate = queryParams.collect { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
-    val req = OutBoundGetTransactionsFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, limit, fromDate, toDate)
-    val response: Future[InBoundGetTransactionsFuture] = (southSideActor ? req).mapTo[InBoundGetTransactionsFuture]
+    val req = OutBoundGetTransactions(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, limit, fromDate, toDate)
+    val response: Future[InBoundGetTransactions] = (southSideActor ? req).mapTo[InBoundGetTransactions]
     response.map(a =>(Full(a.data), callContext))
   }
 
@@ -295,10 +295,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Transaction",
     messageFormat = messageFormat,
     description = "Get a single Transaction specified by bankId, accountId and transactionId",
-    outboundTopic = Some(OutBoundGetTransactionFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetTransactionFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetTransaction.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetTransaction.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetTransactionFuture(
+      OutBoundGetTransaction(
         outboundAdapterCallContext,
         bankId = BankId(bankIdExample.value),
         accountId = AccountId(accountIdExample.value),
@@ -306,7 +306,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       )
     ),
     exampleInboundMessage = (
-      InBoundGetTransactionFuture(
+      InBoundGetTransaction(
         inboundAdapterCallContext,
         inboundStatus,
         transactionCommons
@@ -315,8 +315,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
   override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[Transaction]] = {
-    val req = OutBoundGetTransactionFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, transactionId)
-    val response= (southSideActor ? req).mapTo[InBoundGetTransactionFuture]
+    val req = OutBoundGetTransaction(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, transactionId)
+    val response= (southSideActor ? req).mapTo[InBoundGetTransaction]
     response.map(a =>(Full(a.data), callContext))
   }
  

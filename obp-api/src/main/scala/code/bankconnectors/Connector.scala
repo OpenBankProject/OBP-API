@@ -236,7 +236,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @param forceFresh call the MainFrame call, or only get the cache data.
     * @return all the accounts, get from Main Frame.
     */
-  def getBankAccountsForUser(username: String, callContext: Option[CallContext]) : Box[(List[InboundAccount], Option[CallContext])] = Failure(setUnimplementedError)
+  def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]) : Box[(List[InboundAccount], Option[CallContext])] = Failure(setUnimplementedError)
 
   /**
     *
@@ -244,7 +244,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     * @param forceFresh call the MainFrame call, or only get the cache data.
     * @return all the accounts, get from Main Frame.
     */
-  def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
+  def getBankAccountsForUser(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
     Failure(setUnimplementedError)
   }
 
