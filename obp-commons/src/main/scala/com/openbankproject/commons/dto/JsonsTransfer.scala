@@ -158,15 +158,15 @@ case class OutBoundCreateTransactionAfterChallengeV210(outboundAdapterCallContex
 case class InBoundCreateTransactionAfterChallengeV210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequest) extends InBoundTrait[TransactionRequest]
 
 
-case class OutBoundGetBranchFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                   bankId: BankId,
-                                   branchId: BranchId) extends TopicTrait
-case class InBoundGetBranchFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BranchTCommons) extends InBoundTrait[BranchTCommons]
+case class OutBoundGetBranch(outboundAdapterCallContext: OutboundAdapterCallContext,
+                             bankId: BankId,
+                             branchId: BranchId) extends TopicTrait
+case class InBoundGetBranch(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BranchTCommons) extends InBoundTrait[BranchTCommons]
 
 
-case class OutBoundGetBranchesFuture(outboundAdapterCallContext: OutboundAdapterCallContext,
-                                     bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
-case class InBoundGetBranchesFuture(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BranchTCommons]) extends InBoundTrait[List[BranchTCommons]]
+case class OutBoundGetBranches(outboundAdapterCallContext: OutboundAdapterCallContext,
+                               bankId: BankId, limit: Int, offset: Int, fromDate: String, toDate: String) extends TopicTrait
+case class InBoundGetBranches(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[BranchTCommons]) extends InBoundTrait[List[BranchTCommons]]
 
 
 
@@ -736,11 +736,6 @@ case class OutBoundCreateOrUpdateProduct(outboundAdapterCallContext: OutboundAda
                                          metaLicenceName: String) extends TopicTrait
 case class InBoundCreateOrUpdateProduct(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductCommons) extends InBoundTrait[ProductCommons]
 
-
-case class OutBoundGetBranch(outboundAdapterCallContext: OutboundAdapterCallContext,
-                             bankId: BankId,
-                             branchId: BranchId) extends TopicTrait
-case class InBoundGetBranch(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: BranchTCommons) extends InBoundTrait[BranchTCommons]
 
 
 case class OutBoundGetAtm(outboundAdapterCallContext: OutboundAdapterCallContext,
