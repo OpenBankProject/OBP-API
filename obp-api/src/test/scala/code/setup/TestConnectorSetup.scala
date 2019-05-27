@@ -3,7 +3,7 @@ package code.setup
 import java.util.{Calendar, Date}
 
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.model._
 import com.openbankproject.commons.model._
 
@@ -107,7 +107,7 @@ trait TestConnectorSetup {
       }
 
       //load all transactions for the account to generate the counterparty metadata
-      Connector.connector.vend.getTransactions(account.bankId, account.accountId, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
+      LocalMappedConnector.getTransactionsLegacy(account.bankId, account.accountId, None, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
     })
   }
   

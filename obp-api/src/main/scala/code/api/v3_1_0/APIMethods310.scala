@@ -95,7 +95,7 @@ trait APIMethods310 {
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
             _ <- NewStyle.function.hasViewAccess(view, u)
             
-            (checkbookOrders, callContext)<- Connector.connector.vend.getCheckbookOrdersFuture(bankId.value,accountId.value, callContext) map {
+            (checkbookOrders, callContext)<- Connector.connector.vend.getCheckbookOrders(bankId.value,accountId.value, callContext) map {
               unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetCheckbookOrdersFuture)
             }
           } yield
@@ -139,7 +139,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasViewAccess(view, u)
             
             //TODO need error handling here
-            (checkbookOrders,callContext) <- Connector.connector.vend.getStatusOfCreditCardOrderFuture(bankId.value,accountId.value, callContext) map {
+            (checkbookOrders,callContext) <- Connector.connector.vend.getStatusOfCreditCardOrder(bankId.value,accountId.value, callContext) map {
               unboxFullOrFail(_, callContext, InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture)
             }
             
@@ -1934,25 +1934,14 @@ trait APIMethods310 {
           for {
             (_, callContext) <- anonymousAccess(cc)
             connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
-            startTime = Helpers.now
-            req = ObpApiLoopback(connectorVersion, gitCommit, "")
             obpApiLoopback <- connectorVersion.contains("kafka") match {
               case false => Future{ObpApiLoopback("mapped",gitCommit,"0")}
-              case true =>
-                for{
-                  obpApiLoopback <- KafkaHelper.processRequest[ObpApiLoopback](req) map { i =>
-                    (unboxFullOrFail(i, callContext, s"$KafkaUnknownError Kafka server is down. Please check the kafka server!"))
-                  }
-                  endTime = Helpers.now
-                  durationTime = endTime.getTime - startTime.getTime
-                } yield {
-                  obpApiLoopback.copy(durationTime = durationTime.toString)
-                }
+              case true => KafkaHelper.echoKafkaServer.recover {
+                case e: Throwable => throw new IllegalStateException(s"${KafkaServerUnavailable} Timeout error, because kafka do not return message to OBP-API. ${e.getMessage}")
+              }
             }
-            endTime = Helpers.now
-            durationTime = endTime.getTime - startTime.getTime
           } yield {
-            (createObpApiLoopbackJson(obpApiLoopback.copy(durationTime = durationTime.toString)), HttpCode.`200`(callContext))
+            (createObpApiLoopbackJson(obpApiLoopback), HttpCode.`200`(callContext))
           }
       }
     }

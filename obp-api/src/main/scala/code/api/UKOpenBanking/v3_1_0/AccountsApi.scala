@@ -110,7 +110,7 @@ object APIMethods_AccountsApi extends RestHelper {
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
           } yield {
             (JSONFactory_UKOpenBanking_310.createAccountsListJSON(accounts.getOrElse(Nil)), callContext)
           }
@@ -202,7 +202,7 @@ object APIMethods_AccountsApi extends RestHelper {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
               _.filter(_.accountId.value == accountId.value)
             }
-            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
           } yield {
             (JSONFactory_UKOpenBanking_310.createAccountJSON(accounts.getOrElse(Nil)), callContext)
           }

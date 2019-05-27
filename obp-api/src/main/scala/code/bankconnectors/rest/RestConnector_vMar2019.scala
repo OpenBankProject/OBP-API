@@ -290,7 +290,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getBankFuture/bankId/{bankId}
-  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -366,7 +366,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getBanksFuture
-  override def getBanksFuture(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -524,7 +524,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getCoreBankAccountsFuture/bankIdAccountIds/{bankIdAccountIds}
-  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric {
+  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -611,7 +611,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /checkBankAccountExistsFuture/bankId/{bankId}/accountId/{accountId}
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -786,7 +786,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   )
 
   // url example: /getCustomersByUserIdFuture/userId/{userId}
-  override def getCustomersByUserIdFuture(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
+  override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

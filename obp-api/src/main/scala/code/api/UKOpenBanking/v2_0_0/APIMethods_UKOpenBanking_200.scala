@@ -57,7 +57,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
           } yield {
             (JSONFactory_UKOpenBanking_200.createAccountsListJSON(accounts.getOrElse(Nil)), callContext)
           }
@@ -144,7 +144,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
               _.filter(_.accountId.value == accountId.value)
             }
-            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
           } yield {
             (JSONFactory_UKOpenBanking_200.createAccountJSON(accounts.getOrElse(Nil)), callContext)
           }
@@ -229,7 +229,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
 
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           
-            accounts <- {Connector.connector.vend.getBankAccountsFuture(availablePrivateAccounts, callContext)}
+            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
           
           } yield {
             (JSONFactory_UKOpenBanking_200.createBalancesJSON(accounts.getOrElse(Nil)), callContext)

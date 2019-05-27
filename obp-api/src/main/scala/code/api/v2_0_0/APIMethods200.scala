@@ -1914,7 +1914,7 @@ trait APIMethods200 {
             _ <- booleanToBox(postedData.user_id.nonEmpty) ?~! "Field user_id is not defined in the posted json!"
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             _ <- booleanToBox(postedData.customer_id.nonEmpty) ?~! "Field customer_id is not defined in the posted json!"
-            (customer, callContext) <- Connector.connector.vend.getCustomerByCustomerId(postedData.customer_id, callContext) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            (customer, callContext) <- Connector.connector.vend.getCustomerByCustomerIdLegacy(postedData.customer_id, callContext) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             _ <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank) ||
                                             hasAllEntitlements("", u.userId, createUserCustomerLinksEntitlementsRequiredForAnyBank),
                                             s"$createUserCustomerLinksrequiredEntitlementsText")

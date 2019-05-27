@@ -90,15 +90,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                          cbs_token = Some(""),
                          cbs_id = "",
                          session_id = Some(""))))
-      isFirst <- Full(gatewayLoginRequestPayLoad.is_first)
-      correlationId <- Full(cc.correlationId)
-      sessionId <- Full(cc.sessionId.getOrElse(""))
+      isFirst = gatewayLoginRequestPayLoad.is_first
+      correlationId = cc.correlationId
+      sessionId = cc.sessionId.getOrElse("")
       //Here, need separate the GatewayLogin and other Types, because of for Gatewaylogin, there is no user here. Others, need sign up user in OBP side. 
       basicUserAuthContexts <- cc.gatewayLoginRequestPayload match {
         case None => 
           for{
-            user <- Users.users.vend.getUserByUserName(username)
-            userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+            user <- Users.users.vend.getUserByUserName(username) ?~! "getAuthInfoFirstCbsCall: can not get user object here."
+            userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)?~! "getAuthInfoFirstCbsCall: can not get userAuthContexts object here."
             basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
           } yield
             basicUserAuthContexts
@@ -110,10 +110,10 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   
   def getAuthInfo (callContext: Option[CallContext]): Box[AuthInfo]=
     for{
-      cc <- tryo {callContext.get} ?~! NoCallContext
-      user <- cc.user
-      username <- tryo(user.name)
-      currentResourceUserId <- Some(user.userId)
+      cc <- tryo {callContext.get} ?~! s"$NoCallContext. inside the getAuthInfo method "
+      user <- cc.user ?~! "getAuthInfo: User is not in side CallContext!"
+      username =user.name
+      currentResourceUserId = user.userId
       gatewayLoginPayLoad <- cc.gatewayLoginRequestPayload orElse (
         Some(PayloadOfJwtJSON(login_user_name = "",
                          is_first = false,
@@ -124,19 +124,19 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
                          cbs_id = "",
                          session_id = Some(""))))
       cbs_token <- gatewayLoginPayLoad.cbs_token.orElse(Full(""))
-      isFirst <- tryo(gatewayLoginPayLoad.is_first)
-      correlationId <- tryo(cc.correlationId)
-      sessionId <- tryo(cc.sessionId.getOrElse(""))
-      permission <- Views.views.vend.getPermissionForUser(user)
-      views <- tryo(permission.views)
-      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      isFirst <- tryo(gatewayLoginPayLoad.is_first) ?~! "getAuthInfo:is_first can not be got from gatewayLoginPayLoad!"
+      correlationId <- tryo(cc.correlationId) ?~! "getAuthInfo: User id can not be got from callContext!"
+      sessionId <- tryo(cc.sessionId.getOrElse(""))?~! "getAuthInfo: session id can not be got from callContext!"
+      permission <- Views.views.vend.getPermissionForUser(user)?~! "getAuthInfo: No permission for this user"
+      views <- tryo(permission.views)?~! "getAuthInfo: No views for this user"
+      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))?~! "getAuthInfo: No linked customers for this user"
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
-      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) ?~! "getAuthInfo: No userAuthContexts for this user"
       basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
-      authViews<- Full(
+      authViews<- tryo(
         for{
           view <- views              //TODO, need double check whether these data come from OBP side or Adapter.
-          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccount(view.bankId, view.accountId, Some(cc)) ?~! {BankAccountNotFound}
+          (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccountLegacy(view.bankId, view.accountId, Some(cc)) ?~! {s"getAuthInfo: $BankAccountNotFound"}
           internalCustomers = JsonFactory_vSept2018.createCustomersJson(account.customerOwners.toList)
           internalUsers = JsonFactory_vSept2018.createUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
@@ -147,7 +147,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             internalUsers.users)
         }yield 
           AuthView(viewBasic, accountBasic)
-      )
+      )?~! "getAuthInfo: No authViews for this user"
     } yield{
       AuthInfo(currentResourceUserId, username, cbs_token, isFirst, correlationId, sessionId, likedCustomersBasic, basicUserAuthContexts, authViews)
     }
@@ -335,7 +335,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val InboundFuture = processRequest[InboundGetUserByUsernamePassword](req) map { inbound =>
           inbound.map(_.data).map(inboundValidatedUser =>(InboundUser(inboundValidatedUser.email, password, inboundValidatedUser.displayName)))
         }
-        Await.result(InboundFuture, TIMEOUT)
+        getValueFromFuture(InboundFuture)
       }
     }
   }("getUser")
@@ -368,11 +368,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBanks]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
-  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
-    Await.result(getBanksFuture(callContext: Option[CallContext]), TIMEOUT)
+  override def getBanksLegacy(callContext: Option[CallContext]) = saveConnectorMetric {
+    getValueFromFuture(getBanks(callContext: Option[CallContext]))
   }("getBanks")
 
-  override def getBanksFuture(callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBanks(callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -426,11 +426,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     inboundAvroSchema = Some(parse(SchemaFor[InboundGetBank]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
-  override def getBank(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
-    Await.result(getBankFuture(bankId: BankId, callContext: Option[CallContext]), TIMEOUT)
+  override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) =  saveConnectorMetric {
+    getValueFromFuture(getBank(bankId: BankId, callContext: Option[CallContext]))
   }("getBank")
 
-  override def getBankFuture(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -480,7 +480,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
   override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = saveConnectorMetric{
-    Await.result(getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]), TIMEOUT)
+    getValueFromFuture(getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]))
   }("getBankAccounts")
 
   override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountSept2018], Option[CallContext])]] = saveConnectorMetric{
@@ -534,11 +534,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         Some(inboundAccountSept2018Example))),
       adapterImplementation = Some(AdapterImplementation("Accounts", 7))
   )
-  override def getBankAccount(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
-      Await.result(getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+  override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext]) = saveConnectorMetric {
+      getValueFromFuture(getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
-  override def getBankAccountFuture(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
+  override def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])  = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -598,7 +598,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         )))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
-  override def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])  = {
+  override def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])  = {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -650,11 +650,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
   adapterImplementation = Some(AdapterImplementation("Accounts", 4))
   )
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext])= saveConnectorMetric {
-    Await.result(checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]),TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+  override def checkBankAccountExistsLegacy(bankId: BankId, accountId: AccountId, @CacheKeyOmit callContext: Option[CallContext])= saveConnectorMetric {
+    getValueFromFuture(checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]))._1.map(bankAccount =>(bankAccount, callContext))
   }("getBankAccount")
 
-  override def checkBankAccountExistsFuture(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
   /**
     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
     * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -712,11 +712,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           )))),
     adapterImplementation = Some(AdapterImplementation("Accounts", 1))
   )
-  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
-    Await.result(getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]), TIMEOUT)
+  override def getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Box[(List[CoreAccount], Option[CallContext])]  = saveConnectorMetric{
+    getValueFromFuture(getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]))
   }("getBankAccounts")
 
-  override def getCoreBankAccountsFuture(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
+  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]) : Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -788,7 +788,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
   )
   // TODO Get rid on these param lookups and document.
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
@@ -819,7 +819,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           processRequest[InboundGetTransactions](req) map { inbound =>
             val boxedResult = inbound match {
               case Full(inboundData) if (inboundData.status.hasNoError) =>
-                val bankAccountAndCallContext = checkBankAccountExists(BankId(inboundData.data.head.bankId), AccountId(inboundData.data.head.accountId), callContext)
+                val bankAccountAndCallContext = checkBankAccountExistsLegacy(BankId(inboundData.data.head.bankId), AccountId(inboundData.data.head.accountId), callContext)
 
                 val res = for {
                   internalTransaction <- inboundData.data
@@ -838,7 +838,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         }
       }
     }
-    Await.result(getTransactionsCached(req), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+    getValueFromFuture(getTransactionsCached(req))._1.map(bankAccount =>(bankAccount, callContext))
   }("getTransactions")
   
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) = saveConnectorMetric{
@@ -869,7 +869,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       val boxedResult: Box[List[TransactionCore]] = inbound match {
         case Full(inboundGetTransactions) if (inboundGetTransactions.status.hasNoError) =>
           for{
-            (thisBankAccount, callContext) <- checkBankAccountExists(BankId(inboundGetTransactions.data.head.bankId), AccountId(inboundGetTransactions.data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
+            (thisBankAccount, callContext) <- checkBankAccountExistsLegacy(BankId(inboundGetTransactions.data.head.bankId), AccountId(inboundGetTransactions.data.head.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
             transaction <- createInMemoryTransactionsCore(thisBankAccount, inboundGetTransactions.data)
           } yield {
             (transaction)
@@ -900,11 +900,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 11))
   )
-  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
-    Await.result(getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
+  override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
+    Await.result(getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]), TIMEOUT)._1.map(bankAccount =>(bankAccount, callContext))
   }("getTransaction")
 
-  override def getTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
+  override def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -921,7 +921,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
           val boxedResult = inbound match {
             case Full(inboundData) if (inboundData.status.hasNoError) =>
               for {
-                (bankAccount, callContext) <- checkBankAccountExists(BankId(inboundData.data.get.bankId), AccountId(inboundData.data.get.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
+                (bankAccount, callContext) <- checkBankAccountExistsLegacy(BankId(inboundData.data.get.bankId), AccountId(inboundData.data.get.accountId), callContext) ?~! ErrorMessages.BankAccountNotFound
                 transaction: Transaction <- createInMemoryTransaction(bankAccount, inboundData.data.get)
               } yield {
                 (transaction, callContext)
@@ -939,8 +939,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     process = "obp.createChallenge",
     messageFormat = messageFormat,
     description = "Create a Security Challenge that may be used to complete a Transaction Request.",
-    outboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutboundChallengeBase.getClass.getSimpleName).response),
+    outboundTopic = Some(Topics.createTopicByClassName(OutboundCreateChallengeSept2018.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutboundCreateChallengeSept2018.getClass.getSimpleName).response),
     exampleOutboundMessage = (
       OutboundCreateChallengeSept2018(
         authInfoExample,
@@ -1086,9 +1086,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     bespoke: List[CounterpartyBespoke], 
     callContext: Option[CallContext] = None) = {
   
-    val box = for {
-      authInfo <- getAuthInfo(callContext)
-        req  = OutboundCreateCounterparty(
+     val  authInfo = getAuthInfo(callContext).openOrThrowException(s"$NoCallContext for createCounterparty method")
+     val  req  = OutboundCreateCounterparty(
         authInfo = authInfo,
         counterparty = OutboundCounterparty(
         name: String,
@@ -1108,28 +1107,19 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         isBeneficiary:Boolean,
         bespoke: List[CounterpartyBespoke])
       )
-      _<- Full(logger.debug(s"Kafka createCounterparty Req says: is: $req"))
-      kafkaMessage <- processToBox[OutboundCreateCounterparty](req)
-      inboundCreateCounterparty <- tryo{kafkaMessage.extract[InboundCreateCounterparty]} ?~! s"$InboundCreateCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
-      (internalCounterparty, status) <- Full(inboundCreateCounterparty.data, inboundCreateCounterparty.status)
-    } yield{
-      (internalCounterparty, status)
+
+    val counterpartyFuture = processRequest[InboundCreateCounterparty](req) map { inbound =>
+      val boxedResult = inbound match {
+        case Full(inboundDate) if (inboundDate.status.hasNoError) =>
+          Full(inboundDate.data.get)
+        case Full(inboundDate) if (inboundDate.status.hasError) =>
+          Failure("INTERNAL-" + inboundDate.status.errorCode + ". + CoreBank-Status:" + inboundDate.status.backendMessages)
+        case failureOrEmpty: Failure => failureOrEmpty
+      }
+      (boxedResult)
     }
-    logger.debug(s"Kafka createCounterparty Res says: is: $box")
-    
-    val res = box match {
-      case Full((Some(data), status)) if (status.errorCode=="")  =>
-        Full((data, callContext))
-      case Full((data, status)) if (status.errorCode!="") =>
-        Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
-      case Empty =>
-        Failure(ErrorMessages.InvalidConnectorResponse)
-      case Failure(msg, e, c) =>
-        Failure(msg, e, c)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
-    }
-    res
+      getValueFromFuture(counterpartyFuture).map(counterparty => (counterparty, callContext))
+      
   }
   
   messageDocs += MessageDoc(
@@ -1296,7 +1286,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Payments", 0))
   )
 
-  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId, callContext: Option[CallContext] = None) = saveConnectorMetric{
+  override def getCounterpartiesLegacy(thisBankId: BankId, thisAccountId: AccountId, viewId :ViewId, callContext: Option[CallContext] = None) = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1346,8 +1336,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       }
     }
   }("getCounterparties")
-  override def getCounterpartiesFuture(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
-    (getCounterparties(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext] = None): OBPReturnType[Box[List[CounterpartyTrait]]] = Future {
+    (getCounterpartiesLegacy(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
   }
   
   messageDocs += MessageDoc(
@@ -1510,7 +1500,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Customer", 0))
   )
 
-  override def getCustomersByUserIdFuture(userId: String , @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = saveConnectorMetric{
+  override def getCustomersByUserId(userId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1567,7 +1557,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Misc", 1))
   )
 
-  override def getCheckbookOrdersFuture(
+  override def getCheckbookOrders(
     bankId: String, 
     accountId: String, 
     @CacheKeyOmit callContext: Option[CallContext]
@@ -1663,7 +1653,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Misc", 1))
   )
 
-  override def getStatusOfCreditCardOrderFuture(
+  override def getStatusOfCreditCardOrder(
     bankId: String, 
     accountId: String, 
     @CacheKeyOmit callContext: Option[CallContext]
@@ -1927,7 +1917,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getBranchesFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2028,7 +2018,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getBranchFuture(bankId : BankId, branchId: BranchId, callContext: Option[CallContext])  = saveConnectorMetric {
+  override def getBranch(bankId : BankId, branchId: BranchId, callContext: Option[CallContext])  = saveConnectorMetric {
 
     logger.debug("Enter getBranch for: " + branchId)
     /**
@@ -2137,7 +2127,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getAtmsFuture(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2242,7 +2232,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     adapterImplementation = Some(AdapterImplementation("Open Data", 1))
   )
 
-  override def getAtmFuture(bankId : BankId, atmId: AtmId, callContext: Option[CallContext]) = saveConnectorMetric {
+  override def getAtm(bankId : BankId, atmId: AtmId, callContext: Option[CallContext]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2333,34 +2323,15 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
         val req = OutboundGetChallengeThreshold(authInfo, bankId, accountId, viewId, transactionRequestType, currency, userId, userName)
         logger.debug(s"Kafka getChallengeThresholdFuture Req is: $req")
 
-        val future = for {
-          res <- processToFuture[OutboundGetChallengeThreshold](req) map {
-            f =>
-              try {
-                f.extract[InboundGetChallengeThreshold]
-              } catch {
-                case e: Exception =>
-                  val received = liftweb.json.compactRender(f)
-                  val expected = SchemaFor[InboundGetChallengeThreshold]().toString(false)
-                  val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetChallengeThreshold class with the Message Doc : You received this ($received). We expected this ($expected)"
-                  sendOutboundAdapterError(error)
-                  throw new MappingException(error, e)
-              }
-          } map {
-            d => (d.data, d.status)
+        processRequest[InboundGetChallengeThreshold](req) map { inbound =>
+          val boxedResult = inbound match {
+            case Full(inboundData) if (inboundData.status.hasNoError) =>
+              Full(inboundData.data)
+            case Full(inboundData) if (inboundData.status.hasError) =>
+              Failure("INTERNAL-"+ inboundData.status.errorCode+". + CoreBank-Status:" + inboundData.status.backendMessages)
+            case failureOrEmpty: Failure => failureOrEmpty
           }
-        } yield {
-          res
-        }
-
-        logger.debug(s"Kafka getAtmFuture Res says:  is: $future")
-        future map {
-          case (amountOfMoney, status) if (status.errorCode=="") =>
-            (Full(amountOfMoney), callContext)
-          case (_, status) if (status.errorCode!="") =>
-            (Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages), callContext)
-          case _ =>
-            (Failure(ErrorMessages.UnknownError), callContext)
+          (boxedResult, callContext)
         }
       }
     }
@@ -2438,37 +2409,16 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       toCounterpartyBankRoutingScheme = "OBP"
     )
     
-    // Since result is single account, we need only first list entry
-    val future = for {
-      res <- processToFuture[OutboundCreateTransaction](req) map {
-        f =>
-          try {
-            f.extract[InboundCreateTransactionId]
-          } catch {
-            case e: Exception =>
-              val received = liftweb.json.compactRender(f)
-              val expected = SchemaFor[InboundCreateTransactionId]().toString(false)
-              val error = s"$InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundCreateTransaction class with the Message Doc : You received this ($received). We expected this ($expected)"
-              sendOutboundAdapterError(error)
-              throw new MappingException(error, e)
-          }
-      } map {
-        (x => (x.inboundAuthInfo, x.status,  x.data))
+    processRequest[InboundCreateTransactionId](req) map { inbound =>
+      val boxedResult = inbound match {
+        case Full(inboundData) if (inboundData.status.hasNoError) =>
+          Full(TransactionId(inboundData.data.id))
+        case Full(inboundData) if (inboundData.status.hasError) =>
+          Failure("INTERNAL-"+ inboundData.status.errorCode+". + CoreBank-Status:" + inboundData.status.backendMessages)
+        case failureOrEmpty: Failure => failureOrEmpty
       }
-    } yield {
-      Full(res)
+      (boxedResult, callContext)
     }
-    
-    val res = future map {
-      case Full((authInfo, status,  data )) if (status.errorCode=="") =>
-        (Full(TransactionId(data.id)), callContext)
-      case Full((authInfo, status,  data )) if (status.errorCode!="") =>
-        (Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Error:"+ status.backendMessages), callContext)
-      case _ =>
-        (Failure(ErrorMessages.UnknownError), callContext)
-    }
-    
-    res
   }
 
   messageDocs += MessageDoc(

@@ -166,7 +166,7 @@ trait APIMethods121 {
             val banks = new BanksJSON(banksJSON)
             Extraction.decompose(banks)
           }
-          for((banks, callContext)<- Connector.connector.vend.getBanks(Some(cc)))
+          for((banks, callContext)<- Connector.connector.vend.getBanksLegacy(Some(cc)))
             yield(successJsonResponse(banksToJson(banks)))
       }
     }

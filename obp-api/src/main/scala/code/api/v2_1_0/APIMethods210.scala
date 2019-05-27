@@ -359,7 +359,7 @@ trait APIMethods210 {
       s"""$transactionRequestGeneralText
          |
        """.stripMargin,
-      transactionRequestBodyJsonV200,
+      transactionRequestBodyFreeFormJSON,
       transactionRequestWithChargeJSON210,
       List(
         UserNotLoggedIn,
