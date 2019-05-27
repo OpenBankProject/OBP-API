@@ -84,27 +84,27 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     process = "obp.get.Bank",
     messageFormat = messageFormat,
     description = "Get a specific Bank as specified by bankId",
-    outboundTopic = Some(OutBoundGetBankFuture.getClass.getSimpleName.replace("$", "")),
-    inboundTopic = Some(InBoundGetBankFuture.getClass.getSimpleName.replace("$", "")),
+    outboundTopic = Some(OutBoundGetBank.getClass.getSimpleName.replace("$", "")),
+    inboundTopic = Some(InBoundGetBank.getClass.getSimpleName.replace("$", "")),
     exampleOutboundMessage = (
-      OutBoundGetBankFuture(
+      OutBoundGetBank(
         outboundAdapterCallContext,
         BankId(bankIdExample.value))
     ),
     exampleInboundMessage = (
-      InBoundGetBankFuture(
+      InBoundGetBank(
         inboundAdapterCallContext,
         inboundStatus,
         bankCommons
       )
     ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBankFuture]().toString(true))),
-    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetBankFuture]().toString(true))),
+    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBank]().toString(true))),
+    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetBank]().toString(true))),
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
   override def getBank(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
-    val req = OutBoundGetBankFuture(callContext.map(_.toOutboundAdapterCallContext).get, bankId)
-    val response: Future[InBoundGetBankFuture] = (southSideActor ? req).mapTo[InBoundGetBankFuture]
+    val req = OutBoundGetBank(callContext.map(_.toOutboundAdapterCallContext).get, bankId)
+    val response: Future[InBoundGetBank] = (southSideActor ? req).mapTo[InBoundGetBank]
     response.map(r => Full(r.data, callContext))
   }
 
