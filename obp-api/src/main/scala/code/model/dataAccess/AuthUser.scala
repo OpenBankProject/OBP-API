@@ -834,7 +834,7 @@ def restoreSomeSessions(): Unit = {
     */
   def updateUserAccountViews(user: User, callContext: Option[CallContext]): Unit = {
     //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccountsForUser(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
+    val accounts = Connector.connector.vend.getBankAccountsForUserLegacy(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
     debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
     updateUserAccountViews(user, accounts._1)
@@ -842,7 +842,7 @@ def restoreSomeSessions(): Unit = {
   
   def updateUserAccountViewsFuture(user: User, callContext: Option[CallContext]) = {
     for{
-      (accounts, _) <- Connector.connector.vend.getBankAccountsForUserFuture(user.name,callContext) map {
+      (accounts, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
     }yield 
