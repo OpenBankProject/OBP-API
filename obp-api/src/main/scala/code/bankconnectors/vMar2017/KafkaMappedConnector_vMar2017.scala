@@ -841,7 +841,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
 
-  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       (Counterparties.counterparties.vend.getCounterparty(counterpartyId.value), callContext)
     } else {
