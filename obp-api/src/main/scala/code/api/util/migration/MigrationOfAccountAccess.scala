@@ -3,7 +3,7 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
-import code.views.system.AccountAccess
+import code.views.system.{AccountAccess, ViewDefinition}
 import net.liftweb.mapper.{By, ByList, DB}
 import net.liftweb.util.DefaultConnectionIdentifier
 
@@ -27,13 +27,14 @@ object TableAccountAccess {
             permission <- ViewPrivileges.findAll(By(ViewPrivileges.view, view.id))
           } yield {
             val viewId = ViewImpl.find(By(ViewImpl.id_, permission.view.get)).map(_.permalink_.get).getOrElse("")
+            val viewFk: Long = ViewDefinition.findByUniqueKey(view.bankId.value, view.accountId.value, view.viewId.value).map(_.id_.get).getOrElse(0)
             AccountAccess
               .create
               .bank_id(view.bankPermalink.get)
               .account_id(view.accountPermalink.get)
               .user_fk(permission.user.get)
               .view_id(viewId)
-              .view_fk(view.id)
+              .view_fk(viewFk)
               .save()
           }
         val isSuccessful = insertedRows.forall(_ == true)
