@@ -175,6 +175,23 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         } 
 
   }
+  
+  override def updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String]): Future[Box[Customer]] = Future {
+    MappedCustomer.find(
+      By(MappedCustomer.mCustomerId, customerId)
+    ) map {
+      c =>
+        mobileNumber match {
+          case Some(number) => c.mMobileNumber(number)
+          case _            => // There is no update
+        }
+        email match {
+          case Some(mail) => c.mEmail(mail)
+          case _          => // There is no update
+        }
+        c.saveMe()
+    }
+  }
 
   override def bulkDeleteCustomers(): Boolean = {
     MappedCustomer.bulkDelete_!!()

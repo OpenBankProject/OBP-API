@@ -305,7 +305,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
       for{
-        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
+        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
         isRevoked <- Views.views.vend.revokeAllPermissions(bankId, accountId, otherUser)
       } yield isRevoked
     else
@@ -333,7 +333,6 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.updateView(BankIdAccountId(bankId,accountId), viewId, v)
-
       //if(view.isDefined) {
       //  logger.debug("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
       //      " for account " + accountId + "at bank " + bankId)

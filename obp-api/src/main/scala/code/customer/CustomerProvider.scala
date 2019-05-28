@@ -70,6 +70,9 @@ trait CustomerProvider {
                   nameSuffix: String   
                  ): Box[Customer]
 
+  def updateCustomerScaData(customerId: String, 
+                            mobileNumber: Option[String], 
+                            email: Option[String]): Future[Box[Customer]]
   def bulkDeleteCustomers(): Boolean
   def populateMissingUUIDs(): Boolean
 }
@@ -106,6 +109,9 @@ class RemotedataCustomerProviderCaseClasses {
                          branchId: String,  
                          nameSuffix: String
                         )
+  case class updateCustomerScaData(customerId: String,
+                                   mobileNumber: Option[String],
+                                   email: Option[String])
   case class bulkDeleteCustomers()
   case class populateMissingUUIDs()
 

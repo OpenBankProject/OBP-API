@@ -33,7 +33,7 @@ import code.api.util.OBPQueryParam
 import net.liftweb.common.Box
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
-import net.liftweb.record.field.{LongField, StringField}
+import net.liftweb.record.field.{IntField, LongField, StringField}
 
 import scala.concurrent.Future
 
@@ -54,6 +54,7 @@ import scala.concurrent.Future
    object implementedInVersion  extends StringField(this,255)
    //(GET, POST etc.) --S.request.get.requestType
    object verb extends StringField(this,255)
+   object httpCode extends IntField(this)
    object correlationId extends StringField(this,255)
 
 
@@ -68,12 +69,13 @@ import scala.concurrent.Future
    override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
    override def getImplementedInVersion(): String = implementedInVersion.get
    override def getVerb(): String = verb.get
+   override def getHttpCode(): Int = httpCode.get
    override def getCorrelationId(): String = correlationId.get
 }
 
 private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
-  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, correlationId: String): Unit = {
+  def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String): Unit = {
     MongoAPIMetric.createRecord.
       userId(userId).
       url(url).

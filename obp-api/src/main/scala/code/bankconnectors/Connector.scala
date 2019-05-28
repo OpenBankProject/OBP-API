@@ -1432,6 +1432,12 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                       nameSuffix: String,
                       callContext: Option[CallContext],
                     ): OBPReturnType[Box[Customer]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def updateCustomerScaData(customerId: String, 
+                            mobileNumber: Option[String], 
+                            email: Option[String],
+                            callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(setUnimplementedError)}
 

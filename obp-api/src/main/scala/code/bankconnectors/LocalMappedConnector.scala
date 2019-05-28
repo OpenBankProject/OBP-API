@@ -1871,6 +1871,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       nameSuffix
     ),callContext)
   }
+
+  override def updateCustomerScaData(customerId: String,
+                                     mobileNumber: Option[String],
+                                     email: Option[String],
+                                     callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
+      Customer.customerProvider.vend.updateCustomerScaData(
+        customerId,
+        mobileNumber,
+        email,
+      ) map {
+        (_, callContext)
+      }
   
   def getCustomersByUserIdLegacy(userId: String, callContext: Option[CallContext]): Box[(List[Customer], Option[CallContext])] = {
     Full((Customer.customerProvider.vend.getCustomersByUserId(userId), callContext))
