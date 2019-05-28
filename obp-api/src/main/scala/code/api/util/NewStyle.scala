@@ -1,8 +1,10 @@
 package code.api.util
 
 import java.util.Date
+import java.util.UUID.randomUUID
 
 import code.api.APIFailureNewStyle
+import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
@@ -19,6 +21,7 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -35,6 +38,8 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import com.tesobe.CacheKeyFromArguments
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -1168,7 +1173,58 @@ object NewStyle {
       ) map {
         i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
       }
-    
+
+    def getMethodRoutingsByMethdName(methodName: String): Future[Seq[MethodRoutingT]] = Future {
+      MethodRoutingProvider.connectorMethodProvider.vend.getByMethodName(methodName)
+    }
+
+    def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
+      MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(methodRouting)
+     }
+
+    def deleteMethodRouting(methodRoutingId: String) = Future {
+      MethodRoutingProvider.connectorMethodProvider.vend.delete(methodRoutingId)
+    }
+
+    def getMethodRoutingById(methodRoutingId : String, callContext: Option[CallContext]): OBPReturnType[MethodRoutingT] = {
+      val methodRoutingBox: Box[MethodRoutingT] = MethodRoutingProvider.connectorMethodProvider.vend.getById(methodRoutingId)
+      val methodRouting = unboxFullOrFail(methodRoutingBox, callContext, MethodRoutingNotFoundByMethodRoutingId)
+      Future{
+        (methodRouting, callContext)
+      }
+    }
+    private val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "30").toInt // default 30 seconds
+
+    def getMethodRoutingByMethodNameAndBankId(methodName: String, bankId: String): Box[MethodRoutingT] =  {
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
+          MethodRoutingProvider.connectorMethodProvider.vend.getByMethodNameAndBankId(methodName, bankId)
+        }
+      }
+    }
+
+
+    def getMethodRoutingByMethodNameAndFuzzyMatchBankId(methodName: String): Seq[MethodRoutingT] =
+    {
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
+          MethodRoutingProvider.connectorMethodProvider.vend.getByMethodNameAndFuzzyMatchBankId(methodName)
+        }
+      }
+    }
+
+    def getMethodRoutingByMethodName(methodName: String): Seq[MethodRoutingT] =
+    {
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
+          MethodRoutingProvider.connectorMethodProvider.vend.getByMethodName(methodName)
+        }
+      }
+    }
+
   }
 
 }

@@ -287,6 +287,19 @@ object ApiRole {
   case class CanDeleteSystemView(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteSystemView = CanDeleteSystemView()
 
+
+  case class CanGetMethodRoutings(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetMethodRoutings = CanGetMethodRoutings()
+
+  case class CanCreateMethodRouting(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateMethodRouting = CanCreateMethodRouting()
+
+  case class CanUpdateMethodRouting(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateMethodRouting = CanUpdateMethodRouting()
+
+  case class CanDeleteMethodRouting(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteMethodRouting = CanDeleteMethodRouting()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -375,6 +388,10 @@ object ApiRole {
       canGetSystemView ::
       canDeleteSystemView ::
       canCreateUserAuthContextUpdate ::
+        canGetMethodRoutings ::
+        canCreateMethodRouting ::
+        canUpdateMethodRouting ::
+        canDeleteMethodRouting ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

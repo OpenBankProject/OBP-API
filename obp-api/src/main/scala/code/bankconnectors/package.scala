@@ -2,10 +2,11 @@ package code
 
 import java.lang.reflect.Method
 
+import code.api.util.NewStyle
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.methodrouting.MethodRouting
+import code.methodrouting.{MethodRouting, MethodRoutingProvider}
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.ReflectUtils.{findMethodByArgs, getConstructorArgs}
 import net.liftweb.common.{Box, EmptyBox}
@@ -69,22 +70,29 @@ package object bankconnectors {
       case None => args.toStream.map(getNestBankId(_)).find(_.isDefined).flatten.map(_.toString)
     }
 
-    val vend = MethodRouting.connectorMethodProvider.vend
     val connectorName: Box[String] = bankId match {
-      case None => vend.getByMethodName(methodName).headOption.map(_.connectorName)
+      case None => NewStyle.function.getMethodRoutingByMethodNameAndFuzzyMatchBankId(methodName)
+        .find {routing =>
+          val bankIdPattern = routing.bankIdPattern
+          bankIdPattern.isEmpty || bankIdPattern.get == MethodRouting.bankIdPatternMatchAny
+        }.map(_.connectorName)
       // found bankId in method args, so query connectorName with bankId
       case Some(bankId) => {
-        //if methodName and bankId do precise match query no result, do query with methodName, and use bankId do match with bankIdPattern
-        vend.getByMethodNameAndBankId(methodName, bankId)
-          .or {
-            vend.getByMethodName(methodName)
-              .find(routing => bankId.matches(routing.bankIdPattern))
+        //if methodName and bankId do exact match query no result, do query with methodName, and use bankId do match with bankIdPattern
+        NewStyle.function.getMethodRoutingByMethodNameAndBankId(methodName, bankId)
+          .orElse {
+            NewStyle.function.getMethodRoutingByMethodNameAndFuzzyMatchBankId(methodName)
+              .filter {methodRouting=>
+                methodRouting.bankIdPattern.isEmpty || bankId.matches(methodRouting.bankIdPattern.get)
+              }
+              .sortBy(_.bankIdPattern) // if there are both matched bankIdPattern and null bankIdPattern, the have value bankIdPattern success
+              .lastOption
           }.map(_.connectorName)
       }
     }
 
     connectorName.getOrElse("mapped") match {
-      case  "mapped" => LocalMappedConnector
+      case "mapped" => LocalMappedConnector
       case "rest_vMar2019" => RestConnector_vMar2019
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case "akka_vDec2018" => AkkaConnector_vDec2018

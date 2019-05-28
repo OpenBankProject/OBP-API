@@ -1,63 +1,89 @@
 package code.methodrouting
 
 import code.util.MappedUUID
-import com.openbankproject.commons.model.BankId
-import net.liftweb.common.{Box, EmptyBox, Full}
+import net.liftweb.common.{Box, Empty, EmptyBox, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
-
-import scala.collection.immutable
+import org.apache.commons.lang3.StringUtils
 
 object MappedMethodRoutingProvider extends MethodRoutingProvider {
 
-  override def getByMethodName(methodName: String): immutable.Seq[MethodRoutingT] = MappedMethodRouting.findAll {
-    By(MappedMethodRouting.mMethodName, methodName)
-  }
+  def getById(methodRoutingId: String): Box[MethodRoutingT] =  MethodRouting.find(
+    By(MethodRouting.MethodRoutingId, methodRoutingId)
+  )
 
-  private[this] def getByMethodRoutingId(methodRoutingId: String): Box[MappedMethodRouting] = MappedMethodRouting.find(By(MappedMethodRouting.mMethodRoutingId, methodRoutingId))
 
-  override def createOrUpdate(methodName: String, bankIdPattern: String, connectorName: String, methodRoutingId: Option[String]): Box[MethodRoutingT] = {
+  override def getByMethodNameAndBankId(methodName: String, bankId: String) : Box[MethodRoutingT] = MethodRouting.find(
+    By(MethodRouting.MethodName, methodName),
+    By(MethodRouting.BankIdPattern, bankId)
+  )
+
+  override def getByMethodNameAndFuzzyMatchBankId(methodName: String): Seq[MethodRoutingT] = MethodRouting.findAll(
+    By(MethodRouting.MethodName, methodName),
+    By(MethodRouting.IsBankIdExactMatch, false)
+  )
+
+  override def getByMethodName(methodName: String): Seq[MethodRoutingT] = MethodRouting.findAll(By(MethodRouting.MethodName, methodName))
+
+  override def createOrUpdate(methodRouting: MethodRoutingT): Box[MethodRoutingT] = {
+
+    val bankIdPattern = methodRouting.bankIdPattern
+                          .filter(StringUtils.isNotBlank) // treat blank string as not supplied
+
     //to find exists methodRouting, if methodRoutingId supplied, query by methodRoutingId, or use methodName and methodRoutingId to do query
-    val existsMethodRouting: Box[MappedMethodRouting] = methodRoutingId match {
-      case Some(id) => getByMethodRoutingId(id)
-      case None => MappedMethodRouting.find(
-        By(MappedMethodRouting.mMethodName, methodName),
-        By(MappedMethodRouting.mBankIdPattern, bankIdPattern)
-      )
+    val existsMethodRouting: Box[MethodRouting] = methodRouting.methodRoutingId match {
+      case Some(id) if (StringUtils.isNotBlank(id)) => getByMethodRoutingId(id)
+      case _ => Empty
     }
-    existsMethodRouting match {
-      case _: EmptyBox => tryo {
-        MappedMethodRouting.mMethodName(methodName).mBankIdPattern(bankIdPattern).mConnectorName(connectorName).saveMe()
-      }
-      case Full(methodRouting) => tryo{methodRouting.saveMe()}
+    val entityToPersist = existsMethodRouting match {
+      case _: EmptyBox => MethodRouting.create
+      case Full(methodRouting) => methodRouting
+    }
+    // if not supply bankIdPattern, isExactMatch must be false
+    val isExactMatch = if(bankIdPattern.isDefined) methodRouting.isBankIdExactMatch else false
+
+    tryo{
+      entityToPersist
+        .MethodName(methodRouting.methodName)
+        .BankIdPattern(bankIdPattern.orNull)
+        .IsBankIdExactMatch(isExactMatch)
+        .ConnectorName(methodRouting.connectorName)
+        .saveMe()
     }
   }
 
 
   override def delete(methodRoutingId: String): Box[Boolean] = getByMethodRoutingId(methodRoutingId).map(_.delete_!)
 
-  override def getByMethodNameAndBankId(methodName: String, bankId: String): Box[MethodRoutingT] = MappedMethodRouting.find(
-      By(MappedMethodRouting.mMethodName, methodName),
-      By(MappedMethodRouting.mBankIdPattern, bankId)
-    )
-  }
+  private[this] def getByMethodRoutingId(methodRoutingId: String): Box[MethodRouting] = MethodRouting.find(By(MethodRouting.MethodRoutingId, methodRoutingId))
 
-class MappedMethodRouting extends MethodRoutingT with LongKeyedMapper[MappedMethodRouting] with IdPK {
-
-  override def getSingleton = MappedMethodRouting
-  object mMethodRoutingId extends MappedUUID(this)
-  object mMethodName extends MappedString(this, 255)
-  object mBankIdPattern extends MappedString(this, 255)
-  object mConnectorName extends MappedString(this, 255)
-
-  override def methodRoutingId = mMethodRoutingId.get
-  override def methodName: String = mMethodName.get
-  override def bankIdPattern: String = mBankIdPattern.get
-
-  override def connectorName: String = mConnectorName.get
 }
 
-object MappedMethodRouting extends MappedMethodRouting with LongKeyedMetaMapper[MappedMethodRouting] {
-  override def dbIndexes = UniqueIndex(mMethodRoutingId) :: super.dbIndexes
+class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] with IdPK {
+
+  override def getSingleton = MethodRouting
+
+  object MethodRoutingId extends MappedUUID(this)
+  object MethodName extends MappedString(this, 255)
+  object BankIdPattern extends MappedString(this, 255){
+    override def defaultValue: String = MethodRouting.bankIdPatternMatchAny
+  }
+  object IsBankIdExactMatch extends MappedBoolean(this)
+  object ConnectorName extends MappedString(this, 255)
+
+  override def methodRoutingId: Option[String] = Option(MethodRoutingId.get)
+  override def methodName: String = MethodName.get
+  override def bankIdPattern: Option[String] = Option(BankIdPattern.get)
+  override def isBankIdExactMatch: Boolean = IsBankIdExactMatch.get
+  override def connectorName: String = ConnectorName.get
+}
+
+object MethodRouting extends MethodRouting with LongKeyedMetaMapper[MethodRouting] {
+  override def dbIndexes = UniqueIndex(MethodRoutingId) :: super.dbIndexes
+
+  /**
+    * default bankIdPattern is match any
+    */
+  val bankIdPatternMatchAny: String = ".*"
 }
 

@@ -372,6 +372,9 @@ object ErrorMessages {
   val CreateMeetingInviteeException = "OBP-60012: Create Meeting Invitee Exception. "
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
 
+  // MethodRouting Exceptions (OBP-7XXXX)
+  val InvalidRegex = "OBP-70001: Incorrect regex for bankIdPattern."
+  val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
 
   ///////////
 
