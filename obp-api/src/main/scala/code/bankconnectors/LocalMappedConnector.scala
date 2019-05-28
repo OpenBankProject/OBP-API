@@ -222,7 +222,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   //This method is only for testing now. Normall this method 
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])]= {
+  override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])]= {
     val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] =for{
       //1 get all the accounts for one user
       user <- Users.users.vend.getUserByUserName(username)
@@ -255,8 +255,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     inboundAccountCommonsBox.map( inboundAccountCommons => (inboundAccountCommons.toList, callContext))
   }
 
-  override def getBankAccountsForUserFuture(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
-    getBankAccountsForUser(username,callContext)
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
+    getBankAccountsForUserLegacy(username,callContext)
   }
 
   override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
