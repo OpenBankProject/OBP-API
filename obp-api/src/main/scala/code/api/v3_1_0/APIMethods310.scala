@@ -3838,6 +3838,64 @@ trait APIMethods310 {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
           }
       }
+    }  
+    
+    resourceDocs += ResourceDoc(
+      updateCustomerGeneralData,
+      implementedInApiVersion,
+      nameOf(updateCustomerGeneralData),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/general-data",
+      "Update the general data of an Customer",
+      s"""Update the general data of the Customer specified by CUSTOMER_ID.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
+      putUpdateCustomerGeneralDataJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerMobilePhoneNumber :: Nil)
+    )
+    lazy val updateCustomerGeneralData : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "general-data" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerGeneralData, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerGeneralDataJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerGeneralDataJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerGeneralData(
+              customerId,
+              Some(putData.legal_name),
+              None,
+              Some(putData.date_of_birth),
+              None,
+              None,
+              None,
+              None,
+              Some(putData.title),
+              None,
+              Some(putData.name_suffix),
+              None,
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
     }
 
 

@@ -111,6 +111,32 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
     case cc.updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String]) =>
       logger.debug("updateCustomerScaData(" + customerId + ", " + mobileNumber + ", " + email + ")")
       (mapper.updateCustomerScaData(customerId, mobileNumber, email)) pipeTo sender
+
+    case cc.updateCustomerGeneralData(customerId: String,
+                                      legalName: Option[String],
+                                      faceImage: Option[CustomerFaceImageTrait],
+                                      dateOfBirth: Option[Date],
+                                      relationshipStatus: Option[String],
+                                      dependents: Option[Int],
+                                      highestEducationAttained: Option[String],
+                                      employmentStatus: Option[String],
+                                      title: Option[String],
+                                      branchId: Option[String],
+                                      nameSuffix: Option[String],
+                                      lastOkDate: Option[Date]) =>
+      (mapper.updateCustomerGeneralData(
+        customerId,
+        legalName,
+        faceImage,
+        dateOfBirth,
+        relationshipStatus,
+        dependents,
+        highestEducationAttained,
+        employmentStatus,
+        title,
+        branchId,
+        nameSuffix,
+        lastOkDate)) pipeTo sender
       
     case cc.bulkDeleteCustomers() =>
       logger.debug("bulkDeleteCustomers()")

@@ -195,6 +195,10 @@ case class PostCustomerJsonV310(
 )
 case class PutUpdateCustomerEmailJsonV310(email: String)
 case class PutUpdateCustomerMobilePhoneNumberJsonV310(mobile_phone_number: String)
+case class PutUpdateCustomerGeneralDataJsonV310(legal_name: String,
+                                                date_of_birth: Date,
+                                                title: String,
+                                                name_suffix: String)
 
 case class CustomerJsonV310(
   bank_id: String,

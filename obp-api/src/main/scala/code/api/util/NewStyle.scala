@@ -169,7 +169,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerGeneralData), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -1185,6 +1186,36 @@ object NewStyle {
         customerId,
         mobileNumber,
         email,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
+      }
+
+    def updateCustomerGeneralData(customerId: String,
+                                  legalName: Option[String] = None,
+                                  faceImage: Option[CustomerFaceImageTrait] = None,
+                                  dateOfBirth: Option[Date] = None,
+                                  relationshipStatus: Option[String] = None,
+                                  dependents: Option[Int] = None,
+                                  highestEducationAttained: Option[String] = None,
+                                  employmentStatus: Option[String] = None,
+                                  title: Option[String] = None,
+                                  branchId: Option[String] = None,
+                                  nameSuffix: Option[String] = None,
+                                  lastOkDate: Option[Date] = None,
+                                  callContext: Option[CallContext]): OBPReturnType[Customer] =
+      Connector.connector.vend.updateCustomerGeneralData(
+        customerId,
+        legalName,
+        faceImage,
+        dateOfBirth,
+        relationshipStatus,
+        dependents,
+        highestEducationAttained,
+        employmentStatus,
+        title,
+        branchId,
+        nameSuffix,
+        lastOkDate,
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
