@@ -524,6 +524,15 @@ trait APIMethods300 {
          |To find ACCOUNT_IDs, use the getFirehoseAccountsAtOneBank call.
          |
          |For VIEW_ID try 'owner'
+         |Possible custom headers for pagination:
+         |
+         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
+         |* limit=NUMBER ==> default value: 50
+         |* offset=NUMBER ==> default value: 0
+         |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+         |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
+         |
+         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.        
          |
          |${authenticationRequiredMessage(true)}
          |
