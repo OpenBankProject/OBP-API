@@ -83,8 +83,7 @@ trait CustomerProvider {
                                 employmentStatus: Option[String],
                                 title: Option[String],
                                 branchId: Option[String],
-                                nameSuffix: Option[String],
-                                lastOkDate: Option[Date],
+                                nameSuffix: Option[String]
                                ): Future[Box[Customer]]
   
   def bulkDeleteCustomers(): Boolean
@@ -138,7 +137,6 @@ class RemotedataCustomerProviderCaseClasses {
                                        title: Option[String],
                                        branchId: Option[String],
                                        nameSuffix: Option[String],
-                                       lastOkDate: Option[Date],
                                       )
   case class bulkDeleteCustomers()
   case class populateMissingUUIDs()

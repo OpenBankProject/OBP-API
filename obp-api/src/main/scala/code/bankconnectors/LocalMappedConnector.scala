@@ -1894,7 +1894,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                           title: Option[String],
                                           branchId: Option[String],
                                           nameSuffix: Option[String],
-                                          lastOkDate: Option[Date],
                                           callContext: Option[CallContext]
                                          ): OBPReturnType[Box[Customer]] =
       Customer.customerProvider.vend.updateCustomerGeneralData(
@@ -1908,8 +1907,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         employmentStatus,
         title,
         branchId,
-        nameSuffix,
-        lastOkDate
+        nameSuffix
       ) map {
         (_, callContext)
       }

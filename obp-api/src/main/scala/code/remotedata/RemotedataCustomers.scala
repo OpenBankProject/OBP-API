@@ -114,8 +114,7 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
                                 employmentStatus: Option[String],
                                 title: Option[String],
                                 branchId: Option[String],
-                                nameSuffix: Option[String],
-                                lastOkDate: Option[Date]): Future[Box[Customer]] = 
+                                nameSuffix: Option[String]): Future[Box[Customer]] = 
     (actor ? cc.updateCustomerGeneralData(
       customerId, 
       legalName, 
@@ -127,8 +126,7 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
       employmentStatus,
       title,
       branchId,
-      nameSuffix,
-      lastOkDate
+      nameSuffix
     )).mapTo[Box[Customer]]
 
   def bulkDeleteCustomers(): Boolean = getValueFromFuture(

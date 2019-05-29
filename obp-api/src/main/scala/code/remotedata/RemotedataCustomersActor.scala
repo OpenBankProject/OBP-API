@@ -122,8 +122,7 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
                                       employmentStatus: Option[String],
                                       title: Option[String],
                                       branchId: Option[String],
-                                      nameSuffix: Option[String],
-                                      lastOkDate: Option[Date]) =>
+                                      nameSuffix: Option[String]) =>
       (mapper.updateCustomerGeneralData(
         customerId,
         legalName,
@@ -135,8 +134,7 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
         employmentStatus,
         title,
         branchId,
-        nameSuffix,
-        lastOkDate)) pipeTo sender
+        nameSuffix)) pipeTo sender
       
     case cc.bulkDeleteCustomers() =>
       logger.debug("bulkDeleteCustomers()")

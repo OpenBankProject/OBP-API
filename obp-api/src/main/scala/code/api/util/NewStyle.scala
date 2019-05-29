@@ -1201,7 +1201,6 @@ object NewStyle {
                                   title: Option[String] = None,
                                   branchId: Option[String] = None,
                                   nameSuffix: Option[String] = None,
-                                  lastOkDate: Option[Date] = None,
                                   callContext: Option[CallContext]): OBPReturnType[Customer] =
       Connector.connector.vend.updateCustomerGeneralData(
         customerId,
@@ -1215,7 +1214,6 @@ object NewStyle {
         title,
         branchId,
         nameSuffix,
-        lastOkDate,
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }

@@ -1454,7 +1454,6 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                 title: Option[String],
                                 branchId: Option[String],
                                 nameSuffix: Option[String],
-                                lastOkDate: Option[Date],
                                 callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
     Future {
       (Failure(setUnimplementedError), callContext)

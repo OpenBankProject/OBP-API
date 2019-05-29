@@ -204,7 +204,6 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
                                          title: Option[String],
                                          branchId: Option[String],
                                          nameSuffix: Option[String],
-                                         lastOkDate: Option[Date],
                                         ): Future[Box[Customer]] = Future {
     MappedCustomer.find(
       By(MappedCustomer.mCustomerId, customerId)
@@ -250,10 +249,6 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         }
         nameSuffix match {
           case Some(nameSuffix) => c.mNameSuffix(nameSuffix)
-          case _ => // There is no update
-        }
-        lastOkDate match {
-          case Some(lastOkDate) => c.mLastOkDate(lastOkDate)
           case _ => // There is no update
         }
         c.saveMe()
