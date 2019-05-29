@@ -96,7 +96,7 @@ package object bankconnectors {
       case "rest_vMar2019" => RestConnector_vMar2019
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018
       case "akka_vDec2018" => AkkaConnector_vDec2018
-      case _ => throw new IllegalStateException(s"config of connector.start.methodName.${methodName} have wrong value, not exists connector of name ${connectorName}")
+      case _ => throw new IllegalStateException(s"config of connector.start.methodName.${methodName} have wrong value, not exists connector of name ${connectorName.get}")
     }
   }
 

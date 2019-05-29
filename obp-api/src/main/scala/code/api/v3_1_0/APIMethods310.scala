@@ -3744,6 +3744,8 @@ trait APIMethods310 {
         |* is_bank_id_exact_match is optional boolean value, if bank_id_pattern is null or regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
         |
+        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
+        |bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*")),
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("this-method-routing-Id")),
@@ -3802,9 +3804,12 @@ trait APIMethods310 {
         |* is_bank_id_exact_match is optional boolean value, if bank_id_pattern is null or regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
         |
+        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
+        |bank_id_pattern = "some\\-id_pattern_\\d+"
+        |
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("this-method-routing-Id")),
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,

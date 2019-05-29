@@ -26,7 +26,6 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import code.api.ErrorMessage
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ApiVersion
