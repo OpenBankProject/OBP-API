@@ -1173,7 +1173,7 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
       }
 
-    def getMethodRoutingsByMethdName(methodName: String): Future[Seq[MethodRoutingT]] = Future {
+    def getMethodRoutingsByMethdName(methodName: String): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName)
     }
 

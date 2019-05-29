@@ -3816,7 +3816,7 @@ trait APIMethods310 {
       Some(List(canUpdateMethodRouting)))
 
     lazy val updateMethodRouting : OBPEndpoint = {
-      case "management" :: "method-routing" :: methodRoutingId ::Nil JsonPut  json -> _ => {
+      case "management" :: "method-routing" :: methodRoutingId :: Nil JsonPut  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)

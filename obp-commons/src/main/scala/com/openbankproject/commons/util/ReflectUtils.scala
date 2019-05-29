@@ -282,20 +282,20 @@ object ReflectUtils {
     * @tparam T expected type
     * @return expected values
     */
-  def toOthers[T: TypeTag](items: Seq[_]): Seq[T] = items.map(toOther[T](_))
+  def toOthers[T: TypeTag](items: List[_]): List[T] = items.map(toOther[T](_))
 
   // the follow four currying function is for implicit usage, to convert trait type to commons case class
   def toSibling[T, D <% T: TypeTag] = (t: T) => toOther[D](t)
 
 
-  def toSiblings[T, D <% T: TypeTag] = (items: Seq[T]) => toOthers[D](items)
+  def toSiblings[T, D <% T: TypeTag] = (items: List[T]) => toOthers[D](items)
 
 
   def toSiblingBox[T, D <% T: TypeTag] = (box: Box[T]) => box.map(toOther[D](_))
 
-  def toSiblingsBox[T, D <% T: TypeTag] = (boxItems: Box[Seq[T]]) => boxItems.map(toOthers[D](_))
+  def toSiblingsBox[T, D <% T: TypeTag] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
 
   def toSiblingOption[T, D <% T: TypeTag] = (option: Option[T]) => option.map(toOther[D](_))
 
-  def toSiblingsOption[T, D <% T: TypeTag] = (optionItems: Option[Seq[T]]) => optionItems.map(toOthers[D](_))
+  def toSiblingsOption[T, D <% T: TypeTag] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
 }

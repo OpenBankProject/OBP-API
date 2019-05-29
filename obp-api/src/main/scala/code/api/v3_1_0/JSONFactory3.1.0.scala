@@ -48,6 +48,7 @@ import code.model.{Consumer, User}
 import com.openbankproject.commons.model.Product
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
+
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -450,7 +451,7 @@ case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: Str
 case class OAuth2ServerJWKURIJson(jwks_uri: String)
 case class OAuth2ServerJwksUrisJson(jwks_uris: List[OAuth2ServerJWKURIJson])
 
-case class ListResult[T](results: Seq[T])
+case class ListResult[T](results: List[T])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
