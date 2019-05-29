@@ -62,7 +62,7 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
     case OutBoundGetTransactions(cc, bankId, accountId, limit, fromDate, toDate) =>
       val from = APIUtil.DateWithMsFormat.parse(fromDate)
       val to = APIUtil.DateWithMsFormat.parse(toDate)
-      val result = getTransactionsLegacy(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
+      val result = getTransactionsLegacy(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to))).map(r => r._1)
       sender ! InBoundGetTransactions(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
 
     case OutBoundGetTransaction(cc, bankId, accountId, transactionId) =>

@@ -2143,7 +2143,7 @@ trait APIMethods121 {
             params <- paramsBox
             bankAccount <- BankAccount(bankId, accountId)
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
-            (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, None, params: _* )
+            (transactions, callContext) <- bankAccount.getModeratedTransactions(user, view, None, params )
           } yield {
             val json = JSONFactory.createTransactionsJSON(transactions)
             successJsonResponse(Extraction.decompose(json))

@@ -810,14 +810,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           userId = "String")::Nil))
   )
   // TODO Get rid on these param lookups and document.
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = saveConnectorMetric {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
     
 
-    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
+    //Note: because there is `queryParams: List[OBPQueryParam]` in getTransactions, so create the getTransactionsCached to cache data.
     def getTransactionsCached(bankId: BankId, accountId: AccountId, limit: Int, fromDate: String, toDate: String, callContext: Option[CallContext]): Box[(List[Transaction], Option[CallContext])] = {
       
       val req = OutboundGetTransactions(
@@ -892,7 +892,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
     
     
-    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCoreCached to cache data.
+    //Note: because there is `queryParams: List[OBPQueryParam]` in getTransactions, so create the getTransactionsCoreCached to cache data.
     //Note: getTransactionsCoreCached and getTransactionsCached have the same parameters,but the different method name.
     //TODO, here the cache need to be fixed, no sense use callContext as the cache key here.
     def getTransactionsCoreCached(bankId: BankId, accountId: AccountId, limit: Int,fromDate :String, toDate: String,  callContext: Option[CallContext]): Box[(List[TransactionCore], Option[CallContext])] = {
@@ -1986,7 +1986,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2180,7 +2180,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.

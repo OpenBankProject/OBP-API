@@ -333,7 +333,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
     val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get

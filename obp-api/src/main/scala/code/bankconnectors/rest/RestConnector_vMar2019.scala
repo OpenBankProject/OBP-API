@@ -851,15 +851,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
       URLEncoder.encode(value, "UTF-8")
     }
-    //build queryParams: OBPQueryParam* as query parameters
+    //build queryParams: List[OBPQueryParam] as query parameters
     val queryParams: Option[String] = variables.lastOption
       .filter(it => it._1 == "queryParams" && it._2.isInstanceOf[Seq[_]])
-      .map(_._2.asInstanceOf[Seq[OBPQueryParam]])
+      .map(_._2.asInstanceOf[List[OBPQueryParam]])
       .map { queryParams =>
-        val limit = OBPQueryParam.getLimit(queryParams: _*)
-        val offset = OBPQueryParam.getOffset(queryParams: _*)
-        val fromDate = OBPQueryParam.getFromDate(queryParams: _*)
-        val toDate = OBPQueryParam.getToDate(queryParams: _*)
+        val limit = OBPQueryParam.getLimit(queryParams)
+        val offset = OBPQueryParam.getOffset(queryParams)
+        val fromDate = OBPQueryParam.getFromDate(queryParams)
+        val toDate = OBPQueryParam.getToDate(queryParams)
         s"?${OBPQueryParam.LIMIT}=${limit}&${OBPQueryParam.OFFSET}=${offset}&${OBPQueryParam.FROM_DATE}=${fromDate}&${OBPQueryParam.TO_DATE}=${toDate}"
       }
     variables.dropRight(queryParams.size)

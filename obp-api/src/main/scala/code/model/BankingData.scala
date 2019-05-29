@@ -387,19 +387,19 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   */
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
-  final def getModeratedTransactions(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Box[(List[ModeratedTransaction],Option[CallContext])] = {
+  final def getModeratedTransactions(user : Box[User], view : View, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Box[(List[ModeratedTransaction],Option[CallContext])] = {
     if(APIUtil.hasAccess(view, user)) {
       for {
-        (transactions, callContext)  <- Connector.connector.vend.getTransactionsLegacy(bankId, accountId, callContext, queryParams: _*)
+        (transactions, callContext)  <- Connector.connector.vend.getTransactionsLegacy(bankId, accountId, callContext, queryParams)
         moderated <- view.moderateTransactionsWithSameAccount(transactions) ?~! "Server error"
       } yield (moderated, callContext)
     }
     else viewNotAllowed(view)
   }
-  final def getModeratedTransactionsFuture(user : Box[User], view : View, callContext: Option[CallContext], queryParams: OBPQueryParam* ): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
+  final def getModeratedTransactionsFuture(user : Box[User], view : View, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
     if(APIUtil.hasAccess(view, user)) {
       for {
-        (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams: _*) map {
+        (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams) map {
           x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
         }
       } yield {

@@ -214,7 +214,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             // Get branches from the active provider
             httpParams <- createHttpParamsByUrl(cc.url)
             obpQueryParams <- createQueriesByHttpParams(httpParams)
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId, obpQueryParams: _*)) ~> APIFailure("No branches available. License may not be set.", 204)
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId, obpQueryParams)) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
@@ -273,7 +273,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             
             httpParams <- createHttpParamsByUrl(cc.url)
             obpQueryParams <- createQueriesByHttpParams(httpParams)
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, obpQueryParams:_*)) ~> APIFailure("No ATMs available. License may not be set.", 204)
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId, obpQueryParams)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createAtmsJson(atms)

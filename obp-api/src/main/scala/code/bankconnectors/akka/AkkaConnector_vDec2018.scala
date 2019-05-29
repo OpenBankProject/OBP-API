@@ -281,7 +281,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     ),
     adapterImplementation = Some(AdapterImplementation("Transactions", 10))
   )
-  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*): OBPReturnType[Box[List[Transaction]]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Transaction]]] = {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultToDate.toString)

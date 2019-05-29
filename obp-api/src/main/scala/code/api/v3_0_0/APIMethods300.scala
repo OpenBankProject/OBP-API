@@ -551,7 +551,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -666,7 +666,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
-            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params: _*) map {
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {

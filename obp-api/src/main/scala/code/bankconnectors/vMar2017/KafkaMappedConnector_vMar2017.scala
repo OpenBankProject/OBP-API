@@ -608,7 +608,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
   )
   //TODO, this action is different from method name
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*)= {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam])= {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
     val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get

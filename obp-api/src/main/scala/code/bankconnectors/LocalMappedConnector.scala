@@ -270,7 +270,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .map(transaction => (transaction, callContext))
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
 
     // TODO Refactor this. No need for database lookups etc.
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
@@ -1611,7 +1611,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
     Future {
       Full(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)), callContext)
     }
@@ -1634,7 +1634,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getAtmLegacy(bankId, atmId).map(atm =>(atm, callContext))
     }
 
-  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*)= {
+  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam])= {
     Future {
       Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)),callContext)
     }

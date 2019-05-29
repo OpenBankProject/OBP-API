@@ -16,7 +16,7 @@ object MappedBranchesProvider extends BranchesProvider {
       By(MappedBranch.mBranchId, branchId.value)
     )
 
-  override protected def getBranchesFromProvider(bankId: BankId, queryParams: OBPQueryParam*): Option[List[BranchT]] = {
+  override protected def getBranchesFromProvider(bankId: BankId, queryParams: List[OBPQueryParam]): Option[List[BranchT]] = {
     logger.debug(s"getBranchesFromProvider says bankId is $bankId")
   
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedBranch](value) }.headOption
