@@ -8,22 +8,25 @@ import org.apache.commons.lang3.StringUtils
 
 object MappedMethodRoutingProvider extends MethodRoutingProvider {
 
-  def getById(methodRoutingId: String): Box[MethodRoutingT] =  MethodRouting.find(
+  override def getById(methodRoutingId: String): Box[MethodRoutingT] =  MethodRouting.find(
     By(MethodRouting.MethodRoutingId, methodRoutingId)
   )
 
+  override def getMethodRoutings(methodName: String, isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRouting] = {
 
-  override def getByMethodNameAndBankId(methodName: String, bankId: String) : Box[MethodRoutingT] = MethodRouting.find(
-    By(MethodRouting.MethodName, methodName),
-    By(MethodRouting.BankIdPattern, bankId)
-  )
+    var queryParam: Seq[QueryParam[MethodRouting]] = isBankIdExactMatch match {
+      case None => List(By(MethodRouting.MethodName, methodName))
+      case Some(exactmatch) =>  List(
+          By(MethodRouting.MethodName, methodName) ,
+          By(MethodRouting.IsBankIdExactMatch, exactmatch)
+        )
+    }
+    if(bankIdPattern.isDefined) {
+      queryParam :+= By(MethodRouting.BankIdPattern, bankIdPattern.get)
+    }
 
-  override def getByMethodNameAndFuzzyMatchBankId(methodName: String): Seq[MethodRoutingT] = MethodRouting.findAll(
-    By(MethodRouting.MethodName, methodName),
-    By(MethodRouting.IsBankIdExactMatch, false)
-  )
-
-  override def getByMethodName(methodName: String): Seq[MethodRoutingT] = MethodRouting.findAll(By(MethodRouting.MethodName, methodName))
+    MethodRouting.findAll(queryParam :_*)
+  }
 
   override def createOrUpdate(methodRouting: MethodRoutingT): Box[MethodRoutingT] = {
 

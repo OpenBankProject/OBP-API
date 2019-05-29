@@ -36,11 +36,9 @@ case class MethodRoutingCommons(methodName: String,
 object MethodRoutingCommons extends Converter[MethodRoutingT, MethodRoutingCommons]
 
 trait MethodRoutingProvider {
-  def getByMethodNameAndBankId(methodName: String, bankId: String) : Box[MethodRoutingT]
+  def getById(methodRoutingId: String): Box[MethodRoutingT]
 
-  def getByMethodNameAndFuzzyMatchBankId(methodName: String) : Seq[MethodRoutingT]
-
-  def getByMethodName(methodName: String) : Seq[MethodRoutingT]
+  def getMethodRoutings(methodName: String, isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT]
 
   def createOrUpdate(methodRouting: MethodRoutingT): Box[MethodRoutingT]
 

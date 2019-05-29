@@ -71,7 +71,7 @@ package object bankconnectors {
     }
 
     val connectorName: Box[String] = bankId match {
-      case None => NewStyle.function.getMethodRoutingByMethodNameAndFuzzyMatchBankId(methodName)
+      case None => NewStyle.function.getMethodRoutings(methodName, Some(false))
         .find {routing =>
           val bankIdPattern = routing.bankIdPattern
           bankIdPattern.isEmpty || bankIdPattern.get == MethodRouting.bankIdPatternMatchAny
@@ -79,9 +79,9 @@ package object bankconnectors {
       // found bankId in method args, so query connectorName with bankId
       case Some(bankId) => {
         //if methodName and bankId do exact match query no result, do query with methodName, and use bankId do match with bankIdPattern
-        NewStyle.function.getMethodRoutingByMethodNameAndBankId(methodName, bankId)
+        NewStyle.function.getMethodRoutings(methodName, Some(true), Some(bankId)).headOption
           .orElse {
-            NewStyle.function.getMethodRoutingByMethodNameAndFuzzyMatchBankId(methodName)
+            NewStyle.function.getMethodRoutings(methodName, Some(false))
               .filter {methodRouting=>
                 methodRouting.bankIdPattern.isEmpty || bankId.matches(methodRouting.bankIdPattern.get)
               }

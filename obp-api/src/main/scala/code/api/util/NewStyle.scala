@@ -21,17 +21,17 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
-import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
+import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
-import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
+import com.tesobe.CacheKeyFromArguments
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
@@ -39,7 +39,6 @@ import org.apache.commons.lang3.StringUtils
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import com.tesobe.CacheKeyFromArguments
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -1175,7 +1174,7 @@ object NewStyle {
       }
 
     def getMethodRoutingsByMethdName(methodName: String): Future[Seq[MethodRoutingT]] = Future {
-      MethodRoutingProvider.connectorMethodProvider.vend.getByMethodName(methodName)
+      this.getMethodRoutings(methodName)
     }
 
     def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
@@ -1193,34 +1192,14 @@ object NewStyle {
         (methodRouting, callContext)
       }
     }
-    private val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "30").toInt // default 30 seconds
 
-    def getMethodRoutingByMethodNameAndBankId(methodName: String, bankId: String): Box[MethodRoutingT] =  {
+    private[this] val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "30").toInt // default 30 seconds
+
+    def getMethodRoutings(methodName: String, isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
-          MethodRoutingProvider.connectorMethodProvider.vend.getByMethodNameAndBankId(methodName, bankId)
-        }
-      }
-    }
-
-
-    def getMethodRoutingByMethodNameAndFuzzyMatchBankId(methodName: String): Seq[MethodRoutingT] =
-    {
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
-          MethodRoutingProvider.connectorMethodProvider.vend.getByMethodNameAndFuzzyMatchBankId(methodName)
-        }
-      }
-    }
-
-    def getMethodRoutingByMethodName(methodName: String): Seq[MethodRoutingT] =
-    {
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
-          MethodRoutingProvider.connectorMethodProvider.vend.getByMethodName(methodName)
+          MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern)
         }
       }
     }

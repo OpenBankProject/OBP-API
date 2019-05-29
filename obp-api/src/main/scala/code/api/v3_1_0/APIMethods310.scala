@@ -3781,7 +3781,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(updateMethodRouting),
       "PUT",
-      "/management/method-routing",
+      "/management/method-routing/METHOD_ROUTING_ID",
       "Update MethodRouting",
       s"""Update a MethodRouting.
          |
@@ -3802,16 +3802,19 @@ trait APIMethods310 {
       Some(List(canUpdateMethodRouting)))
 
     lazy val updateMethodRouting : OBPEndpoint = {
-      case "management" :: "method-routing" ::  Nil JsonPut  json -> _ => {
+      case "management" :: "method-routing" :: methodRoutingId ::Nil JsonPut  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateMethodRouting, callContext)
+
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[MethodRoutingCommons]
+              json.extract[MethodRoutingCommons].copy(methodRoutingId = Some(methodRoutingId))
             }
-            (_, _) <- NewStyle.function.getMethodRoutingById(postedData.methodRoutingId.orNull, callContext)
+
+            (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
+
             invalidRegexMsg = s"$InvalidRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
               // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
@@ -3819,6 +3822,7 @@ trait APIMethods310 {
                 Pattern.compile(postedData.bankIdPattern.get)
               }
             }
+
             Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
           } yield {
             val commonsData: MethodRoutingCommons = methodRouting
