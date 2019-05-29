@@ -137,6 +137,9 @@ object ApiRole {
   case class CanCreateBranch(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateBranch = CanCreateBranch()
 
+  case class CanUpdateBranch(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBranch = CanUpdateBranch()
+  
   case class CanCreateBranchAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateBranchAtAnyBank = CanCreateBranchAtAnyBank()
 
@@ -328,7 +331,8 @@ object ApiRole {
       canCreateTransactionType::
       canCreateCardsForBank ::
       canCreateBranch ::
-      canCreateBranchAtAnyBank ::
+      canCreateBranchAtAnyBank :: 
+      canUpdateBranch ::
       canCreateAtm ::
       canCreateAtmAtAnyBank ::
       canCreateProduct ::

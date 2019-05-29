@@ -1033,7 +1033,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch),
-      Some(List(canCreateBranch, canCreateBranchAtAnyBank))
+      Some(List(canUpdateBranch))
     )
 
     lazy val updateBranch: OBPEndpoint = {
@@ -1042,12 +1042,7 @@ trait APIMethods300 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(
-              hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
-              ||
-              hasEntitlement("", u.userId, canCreateBranchAtAnyBank) == true
-              , createBranchEntitlementsRequiredText
-            )
+            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canUpdateBranch) == true, s"$UserHasMissingRoles $canUpdateBranch")
             postBranchJsonV300 <- tryo {json.extract[PostBranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + PostBranchJsonV300.toString()}
             branchJsonV300 = BranchJsonV300(
               id = branchId.value, 
