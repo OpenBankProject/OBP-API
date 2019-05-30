@@ -3898,6 +3898,57 @@ trait APIMethods310 {
     }
 
 
+    resourceDocs += ResourceDoc(
+      updateCustomerCreditLimit,
+      implementedInApiVersion,
+      nameOf(updateCustomerCreditLimit),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/credit-limit",
+      "Update the credit limit of an Customer",
+      s"""Update the credit limit of the Customer specified by CUSTOMER_ID.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
+      putUpdateCustomerCreditLimitJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerMobilePhoneNumber :: Nil)
+    )
+
+    lazy val updateCustomerCreditLimit : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "credit-limit" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerCreditLimit, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerCreditLimitJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerCreditLimitJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerCreditData(
+              customerId,
+              None,
+              None,
+              Some(putData.credit_limit),
+              callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
   }
 }
 

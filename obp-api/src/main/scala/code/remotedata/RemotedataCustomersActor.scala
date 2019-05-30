@@ -11,7 +11,7 @@ import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
 import akka.pattern.pipe
-import com.openbankproject.commons.model.{AmountOfMoneyTrait, BankId, CreditRatingTrait, CustomerFaceImageTrait}
+import com.openbankproject.commons.model.{AmountOfMoney, AmountOfMoneyTrait, BankId, CreditRatingTrait, CustomerFaceImageTrait}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -111,6 +111,13 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
     case cc.updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String]) =>
       logger.debug("updateCustomerScaData(" + customerId + ", " + mobileNumber + ", " + email + ")")
       (mapper.updateCustomerScaData(customerId, mobileNumber, email)) pipeTo sender
+      
+    case cc.updateCustomerCreditData(customerId: String,
+                                    creditRating: Option[String],
+                                    creditSource: Option[String],
+                                    creditLimit: Option[AmountOfMoney]) =>
+      logger.debug("updateCustomerCreditData(" + customerId + ", " + creditRating + ", "  + creditSource + ", " + creditLimit + ")")
+      (mapper.updateCustomerCreditData(customerId, creditRating, creditSource, creditLimit)) pipeTo sender
 
     case cc.updateCustomerGeneralData(customerId: String,
                                       legalName: Option[String],

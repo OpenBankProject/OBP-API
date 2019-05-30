@@ -191,6 +191,29 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         }
         c.saveMe()
     }
+  }  
+  override def updateCustomerCreditData(customerId: String,
+                                        creditRating: Option[String],
+                                        creditSource: Option[String],
+                                        creditLimit: Option[AmountOfMoney]): Future[Box[Customer]] = Future {
+    MappedCustomer.find(
+      By(MappedCustomer.mCustomerId, customerId)
+    ) map {
+      c =>
+        creditRating match {
+          case Some(rating) => c.mCreditRating(rating)
+          case _            => // There is no update
+        }
+        creditSource match {
+          case Some(source) => c.mCreditSource(source)
+          case _          => // There is no update
+        }
+        creditLimit match {
+          case Some(limit) => c.mCreditLimitAmount(limit.amount).mCreditLimitCurrency(limit.currency)
+          case _          => // There is no update
+        }
+        c.saveMe()
+    }
   }
   
   override def updateCustomerGeneralData(customerId: String,

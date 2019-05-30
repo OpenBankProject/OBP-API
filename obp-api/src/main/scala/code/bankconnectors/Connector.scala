@@ -1443,6 +1443,13 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                             callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = 
     Future{(Failure(setUnimplementedError), callContext)}
 
+  def updateCustomerCreditData(customerId: String,
+                               creditRating: Option[String],
+                               creditSource: Option[String],
+                               creditLimit: Option[AmountOfMoney],
+                               callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
+
   def updateCustomerGeneralData(customerId: String,
                                 legalName: Option[String],
                                 faceImage: Option[CustomerFaceImageTrait],

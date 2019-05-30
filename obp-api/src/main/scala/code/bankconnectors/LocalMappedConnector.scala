@@ -1883,6 +1883,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       ) map {
         (_, callContext)
       }
+  override def updateCustomerCreditData(customerId: String,
+                                        creditRating: Option[String],
+                                        creditSource: Option[String],
+                                        creditLimit: Option[AmountOfMoney],
+                                        callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
+      Customer.customerProvider.vend.updateCustomerCreditData(
+        customerId,
+        creditRating,
+        creditSource,
+        creditLimit
+      ) map {
+        (_, callContext)
+      }
   override def updateCustomerGeneralData(customerId: String,
                                           legalName: Option[String],
                                           faceImage: Option[CustomerFaceImageTrait],
