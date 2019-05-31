@@ -219,6 +219,22 @@ case class CustomerJsonV310(
   nameSuffix: String
 )
 
+case class UpdateAccountRequestJsonV310(
+  label: String,
+  `type`: String,
+  branch_id: String,
+  account_routing: AccountRoutingJsonV121
+)
+
+case class UpdateAccountResponseJsonV310(
+  bank_id: String,
+  account_id: String,
+  label: String,
+  `type`: String,
+  branch_id: String,
+  account_routing: AccountRoutingJsonV121
+)
+
 case class PostCustomerResponseJsonV310(messages: List[String])
 
 case class PostCustomerNumberJsonV310(customer_number: String)
@@ -612,6 +628,21 @@ object JSONFactory310{
       nameSuffix = cInfo.nameSuffix
     )
   }
+
+  def createUpdateResponseAccountJson(bankAccount : BankAccount) : UpdateAccountResponseJsonV310 = {
+    UpdateAccountResponseJsonV310(
+      bank_id = bankAccount.bankId.value,
+      account_id = bankAccount.accountId.value,
+      label = bankAccount.label,
+      `type` = bankAccount.accountType,
+      branch_id = bankAccount.branchId,
+      account_routing= AccountRoutingJsonV121(
+        bankAccount.accountRoutingScheme,
+        bankAccount.accountRoutingAddress
+      )
+    )
+  }
+  
   
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJson = {
     UserAuthContextJson(

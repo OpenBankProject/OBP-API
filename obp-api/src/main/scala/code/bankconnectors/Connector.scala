@@ -1053,6 +1053,18 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */
 
+  def updateBankAccount(
+                         bankId: BankId,
+                         accountId: AccountId,
+                         accountType: String,
+                         accountLabel: String,
+                         branchId: String,
+                         accountRoutingScheme: String,
+                         accountRoutingAddress: String,
+                         callContext: Option[CallContext]
+                       ): OBPReturnType[Box[BankAccount]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   def createBankAndAccount(
     bankName: String,
@@ -1183,6 +1195,8 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Box[Boolean] = Failure(setUnimplementedError)
 
   def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Box[Boolean] = Failure(setUnimplementedError)
+  
+  def updateAccount(bankId: BankId, accountId: AccountId, label: String): Box[Boolean] = Failure(setUnimplementedError)
 
   def getProducts(bankId : BankId) : Box[List[Product]] = Failure(setUnimplementedError)
 

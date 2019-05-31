@@ -71,6 +71,9 @@ object ApiRole {
   case class CanCreateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccount = CanCreateAccount()
 
+  case class CanUpdateAccount(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateAccount = CanUpdateAccount()
+  
   case class CanGetAnyUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAnyUser = CanGetAnyUser()
 
@@ -312,6 +315,7 @@ object ApiRole {
       canGetCustomerAddress ::
       canDeleteCustomerAddress ::
       canCreateAccount ::
+      canUpdateAccount ::
       canGetAnyUser ::
       canCreateAnyTransactionRequest ::
       canAddSocialMediaHandle ::

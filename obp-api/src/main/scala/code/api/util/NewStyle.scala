@@ -169,7 +169,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -837,6 +838,29 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
       }
 
+    def updateBankAccount(
+                           bankId: BankId,
+                           accountId: AccountId,
+                           accountType: String,
+                           accountLabel: String,
+                           branchId: String,
+                           accountRoutingScheme: String,
+                           accountRoutingAddress: String,
+                           callContext: Option[CallContext]
+                         ): OBPReturnType[BankAccount] =
+      Connector.connector.vend.updateBankAccount(
+        bankId: BankId,
+        accountId: AccountId,
+        accountType: String,
+        accountLabel: String,
+        branchId: String,
+        accountRoutingScheme: String,
+        accountRoutingAddress: String,
+        callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+      }
+    
     def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
       val customerList = customerIds.filterNot(StringUtils.isBlank).distinct
         .map(Consumers.consumers.vend.getConsumerByConsumerIdFuture)

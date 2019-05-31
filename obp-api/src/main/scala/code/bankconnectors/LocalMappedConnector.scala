@@ -856,6 +856,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full((bank, account))
   }
 
+  override def updateBankAccount(
+     bankId: BankId,
+     accountId: AccountId,
+     accountType: String,
+     accountLabel: String,
+     branchId: String,
+     accountRoutingScheme: String,
+     accountRoutingAddress: String,
+     callContext: Option[CallContext]
+   ): OBPReturnType[Box[BankAccount]] = Future {
+    (for {
+      (account, callContext) <- LocalMappedConnector.getBankAccountCommon(bankId, accountId, callContext)
+      } yield {
+        account
+          .kind(accountType)
+          .accountLabel(accountLabel)
+          .mBranchId(branchId)
+          .mAccountRoutingScheme(accountRoutingScheme)
+          .mAccountRoutingAddress(accountRoutingAddress)
+          .saveMe
+      },callContext)
+  }
+  
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   override def accountExists(bankId: BankId, accountNumber: String) = {
     Full(MappedBankAccount.count(
