@@ -121,7 +121,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   val counterpartiesTTL = getSecondsCache("getCounterparties")
   val counterpartyByCounterpartyIdTTL = getSecondsCache("getCounterpartyByCounterpartyId")
   val counterpartyTrait = getSecondsCache("getCounterpartyTrait")
-  val customersByUserIdBoxTTL = getSecondsCache("getCustomersByUserIdBox")
+  val customersByUserIdTTL = getSecondsCache("getCustomersByUserId")
   val memoryCounterpartyTTL = getSecondsCache("createMemoryCounterparty")
   val memoryTransactionTTL = getSecondsCache("createMemoryTransaction") 
   val createCustomerTTL = getSecondsCache("createCustomer")

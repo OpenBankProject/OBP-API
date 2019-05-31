@@ -1609,7 +1609,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
 
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(customersByUserIdBoxTTL second) {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(customersByUserIdTTL second) {
 
         val future: Future[(List[InternalCustomer], Status, Option[CallContext])] = callAdapter(callContext)
 
