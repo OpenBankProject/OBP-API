@@ -2035,6 +2035,7 @@ object SwaggerDefinitionsJSON {
   val putUpdateCustomerEmailJsonV310 = PutUpdateCustomerEmailJsonV310("marko@tesobe.com")
   val putUpdateCustomerMobileNumberJsonV310 = PutUpdateCustomerMobilePhoneNumberJsonV310("+381631954907")
   val putUpdateCustomerCreditLimitJsonV310 = PutUpdateCustomerCreditLimitJsonV310(AmountOfMoney("EUR", "1000"))
+  val putUpdateCustomerCreditRatingAndSourceJsonV310 = PutUpdateCustomerCreditRatingAndSourceJsonV310("Good", "Bank")
   val putUpdateCustomerGeneralDataJsonV310 = PutUpdateCustomerGeneralDataJsonV310(
     legal_name = "legal_name",
     date_of_birth = DateWithDayExampleObject,
