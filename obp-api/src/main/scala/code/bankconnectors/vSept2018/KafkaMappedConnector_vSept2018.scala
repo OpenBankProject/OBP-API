@@ -515,7 +515,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
   }("getBankAccountsFuture")
   
   messageDocs += MessageDoc(
-    process = "obp.getAccount",
+    process = "obp.getBankAccount",
     messageFormat = messageFormat,
     description = "Get a single Account as specified by the bankId and accountId.",
     outboundTopic = Some(Topics.createTopicByClassName(OutboundGetAccountbyAccountID.getClass.getSimpleName).request),

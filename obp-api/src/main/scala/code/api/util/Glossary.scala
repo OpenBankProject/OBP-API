@@ -204,7 +204,7 @@ object Glossary {
 |
 |4) Get Account
 |
-|* ${messageDocLinkAkka("obp.getAccount")}
+|* ${messageDocLinkAkka("obp.getBankAccount")}
 |
 | The above message should enable at least the following endpoints:
 |
@@ -311,7 +311,7 @@ object Glossary {
  |5) Get Account
  |
  					|* ${messageDocLink("obp.checkBankAccountExists")}
- 					|* ${messageDocLink("obp.getAccount")}
+ 					|* ${messageDocLink("obp.getBankAccount")}
  |
  | The above message should enable at least the following endpoints:
  |

@@ -19,7 +19,16 @@ import scala.reflect.runtime.{universe => ru}
 object KafkaConnectorBuilder extends App {
 
   val genMethodNames = List(
-    "getBanks"
+    "getAdapterInfo",
+    "getBanks",
+    "getBank",
+    "getBankAccountsForUser",
+    "getCustomersByUserId",
+    "getCoreBankAccounts",
+    "checkBankAccountExists",
+    "getBankAccount",
+    "getTransactions",
+    "getTransaction",
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)

@@ -164,7 +164,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.getAccount",
+    process = "obp.getBankAccount",
     messageFormat = messageFormat,
     description = "Get a single Account as specified by the bankId and accountId.",
     outboundTopic = Some(OutBoundGetBankAccount.getClass.getSimpleName.replace("$", "")),
