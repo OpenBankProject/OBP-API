@@ -126,6 +126,7 @@ object ErrorMessages {
   val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
   val ElasticSearchEmptyQueryBody = "OBP-20053: The Elasticsearch query body cannot be empty"
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
+  val UserNotFoundByUserId = "OBP-20057: User not found by userId."
 
   // OAuth 2
   val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
