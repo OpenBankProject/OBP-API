@@ -2,6 +2,7 @@ package code.methodrouting
 
 /* For Connector method routing, star connector use this provider to find proxy connector name */
 
+import code.api.util.JsonFieldReName
 import com.openbankproject.commons.model.{Converter, ProductCollection, ProductCollectionCommons}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
@@ -31,7 +32,7 @@ case class MethodRoutingCommons(methodName: String,
                                 isBankIdExactMatch: Boolean,
                                 bankIdPattern: Option[String],
                                 methodRoutingId: Option[String] = None
-                               ) extends MethodRoutingT
+                               ) extends MethodRoutingT with JsonFieldReName
 
 object MethodRoutingCommons extends Converter[MethodRoutingT, MethodRoutingCommons]
 

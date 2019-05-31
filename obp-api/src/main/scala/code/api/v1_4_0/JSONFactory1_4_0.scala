@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
-import code.api.util.{ApiRole, PegdownOptions}
+import code.api.util.{ApiRole, JsonFieldReName, PegdownOptions}
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.Product
 import code.transactionrequests.TransactionRequestTypeCharge
@@ -12,6 +12,7 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.StringHelpers
 
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
@@ -399,9 +400,16 @@ object JSONFactory1_4_0 {
       .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
       .map(r => r.symbol.name.toString.trim -> r.get)
       .toMap
-  
+
+    val convertParamName = (name: String) =>  entity match {
+      case _ : JsonFieldReName => StringHelpers.snakify(name)
+      case _ => name
+    }
+
     val properties = for {
-      (key, value) <- mapOfFields
+      (name, value) <- mapOfFields
+      key = convertParamName(name)
+      if(value != None)
     } yield {
       value match {
         //Date -- should be the first

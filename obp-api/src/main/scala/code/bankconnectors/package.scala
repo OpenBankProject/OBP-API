@@ -6,7 +6,7 @@ import code.api.util.NewStyle
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.methodrouting.{MethodRouting, MethodRoutingProvider}
+import code.methodrouting.{MethodRouting}
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.ReflectUtils.{findMethodByArgs, getConstructorArgs}
 import net.liftweb.common.{Box, EmptyBox}

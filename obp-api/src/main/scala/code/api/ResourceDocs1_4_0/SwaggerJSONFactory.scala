@@ -15,6 +15,8 @@ import scala.reflect.runtime.universe._
 import java.lang.{Boolean => JBoolean, Double => JDouble, Float => JFloat, Integer => JInt, Long => JLong}
 import java.math.{BigDecimal => JBigDecimal}
 
+import net.liftweb.util.StringHelpers
+
 import scala.collection.mutable.ListBuffer
 
 object SwaggerJSONFactory {
@@ -391,20 +393,26 @@ object SwaggerJSONFactory {
     val entityType = ReflectUtils.getType(entity)
     val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
 
+    val convertParamName = (name: String) =>  entity match {
+      case _ : JsonFieldReName => StringHelpers.snakify(name)
+      case _ => name
+    }
+
     //Collect all mandatory fields and make an appropriate string
     // eg return :  "required": ["id","name","bank","banks"],
     val required = constructorParamList
       .filterNot(_.info <:< typeOf[Option[_]])
       .map(_.name.toString)
+      .map(convertParamName)
       .map(it => s""" "$it" """)
 
     //Make part of mandatory fields
     val requiredFieldsPart = if (required.isEmpty) "" else  required.mkString(""" "required": [""", ",", """], """)
 
     val paramNameToType: List[String] = constructorParamList.map(it => {
-      val paramName = it.name.toString
+      val paramName = convertParamName(it.name.toString)
       val paramType = it.info
-      val paramValue = ReflectUtils.invokeMethod(entity, paramName)
+      val paramValue = ReflectUtils.invokeMethod(entity, it.name.toString)
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 

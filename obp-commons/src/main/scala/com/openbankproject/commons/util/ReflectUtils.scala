@@ -109,6 +109,54 @@ object ReflectUtils {
     objMirror.reflectMethod(method).apply(args: _*)
   }
 
+  /**
+    * invoke given object "call by name" methods or val values, to get methodName to value
+    * @param obj to get values object
+    * @param methodNames call by name method names or val names
+    * @return name to values get from obj
+    */
+  def getCallByNameValues(obj: Any, methodNames: String*): Map[String, Any] = {
+    val objMirror = mirror.reflect(obj)
+    val tp = objMirror.symbol.toType
+    methodNames
+      .map(methodName => tp.member(ru.TermName(methodName)))
+      .map { methodSymbol=>
+          assume(methodSymbol.isMethod, s"${methodSymbol.name} is not method in Object ${obj}")
+          val method = methodSymbol.asMethod
+          val callByNameMethod = method.alternatives.find(it => it.asMethod.paramLists == Nil).map(_.asMethod)
+          assume(callByNameMethod.isDefined, s"there is no call by name method or val of name ${methodSymbol.name} in Object ${obj}")
+
+          callByNameMethod.get
+        }
+      .map {method =>
+        val paramName = method.name.toString
+        val paramValue =objMirror.reflectMethod(method).apply()
+        (paramName, paramValue)
+      } .toMap
+  }
+
+  /**
+    * get given object val value or "call by name" method value
+    * @param obj to do extract value object
+    * @param methodName "call by name" method name or val name
+    * @return value of given object through call "call by name" method or val
+    */
+  def getCallByNameValue(obj: Any, methodName: String): Any = getCallByNameValues(obj, methodName).headOption.get._2
+
+  /**
+    * extract object field values, like unapply method
+    * for example:
+    * val obj: Any = Foo(name = "ken", age = 12, email = "abc@tesobe.com")
+    * getConstructValues(obj) == Map(("name", "ken"), ("age", 12), ("email", "abc@tesobe.com"))
+    *
+    * @param obj
+    * @return
+    */
+  def getConstructorArgs(obj: Any): Map[String, Any] = {
+    val constructorParamNames = getPrimaryConstructor(obj).paramLists.headOption.getOrElse(Nil).map(_.name.toString)
+    getCallByNameValues(obj, constructorParamNames :_*)
+  }
+
   def invokeConstructor(tp: ru.Type)(fn: (Seq[ru.Type]) => Seq[Any]): Any = {
     val classMirror = mirror.reflectClass(tp.typeSymbol.asClass)
     val constructor = tp.decl(ru.termNames.CONSTRUCTOR).asMethod
@@ -162,27 +210,6 @@ object ReflectUtils {
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
-
-  /**
-    * extract object field values, like unapply method
-    * case class Foo(name: String, age:Int)
-    * val value = Foo("myName", 12)
-    * extract the construct args: name, age
-    * Seq("myName", 12)
-    * @param obj to do extract args object
-    * @return arg values
-    */
-  def getConstructorArgs(obj: Any): Map[String, Any] = {
-    if(obj == null) {
-      Map.empty
-    } else {
-      getPrimaryConstructor(obj)
-        .paramLists.headOption.getOrElse(Nil)
-        .map(_.name.toString)
-        .map(valueName=> (valueName, invokeMethod(obj, valueName)))
-        .toMap
-    }
-  }
 
   /**
     * convert a object to it's sibling, please have a loot the example:
