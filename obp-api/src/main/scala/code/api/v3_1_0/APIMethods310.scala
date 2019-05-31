@@ -26,7 +26,7 @@ import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
-import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider}
+import code.methodrouting.{MethodRoutingCommons}
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -38,7 +38,7 @@ import com.openbankproject.commons.model.{CreditLimit, Product, _}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.{Extraction, Formats, parse}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.Validate
@@ -51,7 +51,9 @@ import scala.concurrent.Future
 trait APIMethods310 {
   self: RestHelper =>
 
-  val Implementations3_1_0 = new Implementations310() 
+  val Implementations3_1_0 = new Implementations310()
+  // note, because RestHelper have a impicit Formats, it is not correct for OBP, so here override it
+  protected implicit override abstract def formats: Formats = CustomJsonFormats.formats
   
   class Implementations310 {
 
@@ -3707,7 +3709,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagNewStyle),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canGetMethodRoutings))
     )
 
@@ -3756,7 +3758,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagNewStyle),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canCreateMethodRouting)))
 
     lazy val createMethodRouting : OBPEndpoint = {
@@ -3817,7 +3819,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagNewStyle),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateMethodRouting)))
 
     lazy val updateMethodRouting : OBPEndpoint = {
@@ -3871,7 +3873,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi, apiTagNewStyle),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteMethodRouting)))
 
     lazy val deleteMethodRouting : OBPEndpoint = {
