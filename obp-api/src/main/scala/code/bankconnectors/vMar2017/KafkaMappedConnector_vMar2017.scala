@@ -93,13 +93,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   // Each Message Doc has a process, description, example outbound and inbound messages.
 
   messageDocs += MessageDoc(
-    process = "obp.get.User",
+    process = "obp.getUser",
     messageFormat = messageFormat,
     description = "getUser from kafka ",
     exampleOutboundMessage = (
       OutboundUserByUsernamePasswordBase(
         messageFormat = messageFormat,
-        action = "obp.get.User",
+        action = "obp.getUser",
         username = "susan.uk.29@example.com",
         password = "2b78e8"
       )
@@ -120,7 +120,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   ): Box[InboundUser] = {
     for {
       req <- Full(OutboundUserByUsernamePasswordBase(
-        action = "obp.get.User",
+        action = "obp.getUser",
         messageFormat = messageFormat,
         username = username,
         password = password))
@@ -132,14 +132,14 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     }
   }
 
-  // TODO this is confused ? method name is updateUserAccountViews, but action is 'obp.get.Accounts'
+  // TODO this is confused ? method name is updateUserAccountViews, but action is 'obp.getAccounts'
   messageDocs += MessageDoc(
-    process = "obp.get.Accounts",
+    process = "obp.getAccounts",
     messageFormat = messageFormat,
     description = "updateUserAccountViews from kafka ",
     exampleOutboundMessage = (
       OutboundUserAccountViewsBase(
-        action = "obp.get.Accounts",
+        action = "obp.getAccounts",
         messageFormat = messageFormat,
         username = "susan.uk.29@example.com",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -189,7 +189,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         username <- tryo {user.name}
         req <- Full(OutboundUserAccountViewsBase(
           messageFormat = messageFormat,
-          action = "obp.get.Accounts",
+          action = "obp.getAccounts",
           username = user.name,
           userId = user.name,
           bankId = bankId))
@@ -226,12 +226,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.Banks",
+    process = "obp.getBanks",
     messageFormat = messageFormat,
     description = "getBanks",
     exampleOutboundMessage = (
       OutboundBanksBase(
-        action = "obp.get.Banks",
+        action = "obp.getBanks",
         messageFormat = messageFormat,
         username = "susan.uk.29@example.com",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a"
@@ -251,7 +251,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   override def getBanksLegacy(callContext: Option[CallContext]) = {
     val req = OutboundBanksBase(
       messageFormat = messageFormat,
-      action = "obp.get.Banks",
+      action = "obp.getBanks",
       username = currentResourceUserId,
       userId = AuthUser.getCurrentUserUsername
     )
@@ -276,13 +276,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.ChallengeThreshold",
+    process = "obp.getChallengeThreshold",
     messageFormat = messageFormat,
     description = "getChallengeThreshold from kafka ",
     exampleOutboundMessage = (
       OutboundChallengeThresholdBase(
         messageFormat = messageFormat,
-        action = "obp.get.ChallengeThreshold",
+        action = "obp.getChallengeThreshold",
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
         viewId = "owner",
@@ -305,7 +305,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]) = Future{
     // Create argument list
     val req = OutboundChallengeThresholdBase(
-      action = "obp.get.ChallengeThreshold",
+      action = "obp.getChallengeThreshold",
       messageFormat = messageFormat,
       bankId = bankId,
       accountId = accountId,
@@ -330,11 +330,11 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.ChargeLevel",
+    process = "obp.getChargeLevel",
     messageFormat = messageFormat,
     description = "ChargeLevel from kafka ",
     exampleOutboundMessage = (OutboundChargeLevelBase(
-      action = "obp.get.ChargeLevel",
+      action = "obp.getChargeLevel",
       messageFormat = messageFormat,
       bankId = "gh.29.uk",
       accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -365,7 +365,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     callContext:Option[CallContext]) = Future {
     // Create argument list
     val req = OutboundChargeLevelBase(
-      action = "obp.get.ChargeLevel",
+      action = "obp.getChargeLevel",
       messageFormat = messageFormat,
       bankId = bankId.value,
       accountId = accountId.value,
@@ -389,12 +389,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.create.Challenge",
+    process = "obp.createChallenge",
     messageFormat = messageFormat,
     description = "CreateChallenge from kafka ",
     exampleOutboundMessage = (
       OutboundChallengeBase(
-        action = "obp.create.Challenge",
+        action = "obp.createChallenge",
         messageFormat = messageFormat,
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -416,7 +416,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Create argument list
     val req = OutboundChallengeBase(
       messageFormat = messageFormat,
-      action = "obp.create.Challenge",
+      action = "obp.createChallenge",
       bankId = bankId.value,
       accountId = accountId.value,
       userId = userId,
@@ -476,12 +476,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.Bank",
+    process = "obp.getBank",
     messageFormat = messageFormat,
     description = "getBank from kafka ",
     exampleOutboundMessage = (
       OUTTBank(
-        action = "obp.get.Bank",
+        action = "obp.getBank",
         messageFormat = messageFormat,
         bankId = "gh.29.uk",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
@@ -501,7 +501,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Create argument list
     val req = OUTTBank(
       messageFormat = messageFormat,
-      action = "obp.get.Bank",
+      action = "obp.getBank",
       bankId = bankId.toString,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername)
@@ -514,12 +514,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.Transaction",
+    process = "obp.getTransaction",
     messageFormat = messageFormat,
     description = "getTransaction from kafka ",
     exampleOutboundMessage = (
       OutboundTransactionQueryBase(
-        action = "obp.get.Transaction",
+        action = "obp.getTransaction",
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
@@ -553,7 +553,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext])= {
     val req = OutboundTransactionQueryBase(
       messageFormat = messageFormat,
-      action = "obp.get.Transaction",
+      action = "obp.getTransaction",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
@@ -572,13 +572,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.Transactions",
+    process = "obp.getTransactions",
     messageFormat = messageFormat,
     description = "getTransactions from kafka",
     exampleOutboundMessage = (
       OutboundTransactionsQueryWithParamsBase(
         messageFormat = messageFormat,
-        action = "obp.get.Transactions",
+        action = "obp.getTransactions",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -620,7 +620,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
     val req = OutboundTransactionsQueryWithParamsBase(
       messageFormat = messageFormat,
-      action = "obp.get.Transactions",
+      action = "obp.getTransactions",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
@@ -644,12 +644,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.Account",
+    process = "obp.getAccount",
     messageFormat = messageFormat,
     description = "getBankAccount from kafka",
     exampleOutboundMessage = (
       OutboundBankAccountBase(
-        action = "obp.get.Account",
+        action = "obp.getAccount",
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
@@ -678,7 +678,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   override def getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     // Generate random uuid to be used as request-response match id
     val req = OutboundBankAccountBase(
-      action = "obp.get.Account",
+      action = "obp.getAccount",
       messageFormat = messageFormat,
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
@@ -702,13 +702,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.Accounts",
+    process = "obp.getAccounts",
     messageFormat = messageFormat,
     description = "getBankAccounts from kafka",
     exampleOutboundMessage = (
       OutboundBankAccountsBase(
         messageFormat = messageFormat,
-        action = "obp.get.Accounts",
+        action = "obp.getAccounts",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         bankId = "gh.29.uk",
@@ -750,12 +750,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   //TODO the method name is different from action
   messageDocs += MessageDoc(
-    process = "obp.get.Account",
+    process = "obp.getAccount",
     messageFormat = messageFormat,
     description = "getAccountByNumber from kafka",
     exampleOutboundMessage = (
       OutboundAccountByNumberBase(
-        action = "obp.get.Account",
+        action = "obp.getAccount",
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
@@ -786,7 +786,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Generate random uuid to be used as request-respose match id
     val req = OutboundAccountByNumberBase(
       messageFormat = messageFormat,
-      action = "obp.get.Account",
+      action = "obp.getAccount",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.toString,
@@ -809,13 +809,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.CounterpartyByCounterpartyId",
+    process = "obp.getCounterpartyByCounterpartyId",
     messageFormat = messageFormat,
     description = "getCounterpartyByCounterpartyId from kafka ",
     exampleOutboundMessage = (
       OutboundCounterpartyByCounterpartyIdBase(
         messageFormat = messageFormat,
-        action = "obp.get.CounterpartyByCounterpartyId",
+        action = "obp.getCounterpartyByCounterpartyId",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         counterpartyId = "12344"
@@ -847,7 +847,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     } else {
       val req = OutboundCounterpartyByCounterpartyIdBase(
         messageFormat = messageFormat,
-        action = "obp.get.CounterpartyByCounterpartyId",
+        action = "obp.getCounterpartyByCounterpartyId",
         userId = currentResourceUserId,
         username = AuthUser.getCurrentUserUsername,
         counterpartyId = counterpartyId.toString
@@ -862,13 +862,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.CounterpartyByIban",
+    process = "obp.getCounterpartyByIban",
     messageFormat = messageFormat,
     description = "getCounterpartyByIban from kafka ",
     exampleOutboundMessage = (
       OutboundCounterpartyByIbanBase(
         messageFormat = messageFormat,
-        action = "obp.get.CounterpartyByIban",
+        action = "obp.getCounterpartyByIban",
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
         otherAccountRoutingAddress = "1234",
@@ -903,7 +903,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     } else {
       val req = OutboundCounterpartyByIbanBase(
         messageFormat = messageFormat,
-        action = "obp.get.CounterpartyByIban",
+        action = "obp.getCounterpartyByIban",
         userId = currentResourceUserId,
         username = AuthUser.getCurrentUserUsername,
         otherAccountRoutingAddress = iban,
@@ -1018,13 +1018,13 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
 
   }
   messageDocs += MessageDoc(
-    process = "obp.get.TransactionRequestStatusesImpl",
+    process = "obp.getTransactionRequestStatusesImpl",
     messageFormat = messageFormat,
     description = "getTransactionRequestStatusesImpl from kafka",
     exampleOutboundMessage = (
       OutboundTransactionRequestStatusesBase(
         messageFormat = messageFormat,
-        action = "obp.get.TransactionRequestStatusesImpl"
+        action = "obp.getTransactionRequestStatusesImpl"
       )
     ),
     exampleInboundMessage = (
@@ -1046,7 +1046,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     logger.info(s"tKafka getTransactionRequestStatusesImpl sart: ")
     val req = OutboundTransactionRequestStatusesBase(
       messageFormat = messageFormat,
-      action = "obp.get.TransactionRequestStatusesImpl"
+      action = "obp.getTransactionRequestStatusesImpl"
     )
     //TODO need more clear error handling to user, if it is Empty or Error now,all response Empty.
     val r = try{
@@ -1061,12 +1061,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.CurrentFxRate",
+    process = "obp.getCurrentFxRate",
     messageFormat = messageFormat,
     description = "getCurrentFxRate from kafka",
     exampleOutboundMessage = (
       OutboundCurrentFxRateBase(
-        action = "obp.get.CurrentFxRate",
+        action = "obp.getCurrentFxRate",
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
@@ -1092,7 +1092,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Create request argument list
     val req = OutboundCurrentFxRateBase(
       messageFormat = messageFormat,
-      action = "obp.get.CurrentFxRate",
+      action = "obp.getCurrentFxRate",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.value,
@@ -1107,12 +1107,12 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.TransactionRequestTypeCharge",
+    process = "obp.getTransactionRequestTypeCharge",
     messageFormat = messageFormat,
     description = "getTransactionRequestTypeCharge from kafka",
     exampleOutboundMessage = (
       OutboundTransactionRequestTypeChargeBase(
-        action = "obp.get.TransactionRequestTypeCharge",
+        action = "obp.getTransactionRequestTypeCharge",
         messageFormat = messageFormat,
         userId = "c7b6cb47-cb96-4441-8801-35b57456753a",
         username = "susan.uk.29@example.com",
@@ -1144,7 +1144,7 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     // Create request argument list
     val req = OutboundTransactionRequestTypeChargeBase(
       messageFormat = messageFormat,
-      action = "obp.get.TransactionRequestTypeCharge",
+      action = "obp.getTransactionRequestTypeCharge",
       userId = currentResourceUserId,
       username = AuthUser.getCurrentUserUsername,
       bankId = bankId.value,

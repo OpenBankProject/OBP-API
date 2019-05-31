@@ -28,7 +28,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   lazy val southSideActor = ObpLookupSystem.getAkkaConnectorActor(AkkaConnectorHelperActor.actorName)
 
   messageDocs += MessageDoc(
-    process = "obp.get.AdapterInfo",
+    process = "obp.getAdapterInfo",
     messageFormat = messageFormat,
     description = "Gets information about the active general (non bank specific) Adapter that is responding to messages sent by OBP.",
     outboundTopic = Some(OutBoundGetAdapterInfo.getClass.getSimpleName.replace("$", "")),
@@ -54,7 +54,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.Banks",
+    process = "obp.getBanks",
     messageFormat = messageFormat,
     description = "Gets the banks list on this OBP installation.",
     outboundTopic = Some(OutBoundGetBanks.getClass.getSimpleName.replace("$", "")),
@@ -81,7 +81,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.Bank",
+    process = "obp.getBank",
     messageFormat = messageFormat,
     description = "Get a specific Bank as specified by bankId",
     outboundTopic = Some(OutBoundGetBank.getClass.getSimpleName.replace("$", "")),
@@ -135,7 +135,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
   
   messageDocs += MessageDoc(
-    process = "obp.check.BankAccountExists",
+    process = "obp.checkBankAccountExists",
     messageFormat = messageFormat,
     description = "Check a bank Account exists - as specified by bankId and accountId.",
     outboundTopic = Some(OutBoundCheckBankAccountExists.getClass.getSimpleName.replace("$", "")),
@@ -164,7 +164,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.Account",
+    process = "obp.getAccount",
     messageFormat = messageFormat,
     description = "Get a single Account as specified by the bankId and accountId.",
     outboundTopic = Some(OutBoundGetBankAccount.getClass.getSimpleName.replace("$", "")),
@@ -192,7 +192,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.coreBankAccounts",
+    process = "obp.getCoreBankAccounts",
     messageFormat = messageFormat,
     description = "Get bank Accounts available to the User (without Metadata)",
     outboundTopic = Some(OutBoundGetCoreBankAccounts.getClass.getSimpleName.replace("$", "")),
@@ -229,7 +229,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 
   messageDocs += MessageDoc(
-    process = "obp.get.CustomersByUserId",
+    process = "obp.getCustomersByUserId",
     messageFormat = messageFormat,
     description = "Get Customers represented by the User.",
     outboundTopic = Some(OutBoundGetCustomersByUserId.getClass.getSimpleName.replace("$", "")),
@@ -258,7 +258,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.Transactions",
+    process = "obp.getTransactions",
     messageFormat = messageFormat,
     description = "Get Transactions for an Account specified by bankId and accountId. Pagination is achieved with limit, fromDate and toDate.",
     outboundTopic = Some(OutBoundGetTransactions.getClass.getSimpleName.replace("$", "")),
@@ -292,7 +292,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.Transaction",
+    process = "obp.getTransaction",
     messageFormat = messageFormat,
     description = "Get a single Transaction specified by bankId, accountId and transactionId",
     outboundTopic = Some(OutBoundGetTransaction.getClass.getSimpleName.replace("$", "")),

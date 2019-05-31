@@ -268,31 +268,31 @@ object Glossary {
 |
  |1) Core (Prerequisites) - Get Adapter, Get Banks, Get Bank
  |
- |* ${messageDocLink("obp.get.AdapterInfo")}
+ |* ${messageDocLink("obp.getAdapterInfo")}
  |
  |Now you should be able to use the [Adapter Info](/index#OBPv3_1_0-getAdapterInfo) endpoint
  |
- |* ${messageDocLink("obp.get.Banks")}
+ |* ${messageDocLink("obp.getBanks")}
  |
-|Now you should be able to use the [Get Banks](/index#OBPv3_0_0-getBanks) endpoint
-|
- |* ${messageDocLink("obp.get.Bank")}
+ |Now you should be able to use the [Get Banks](/index#OBPv3_0_0-getBanks) endpoint
+ |
+ |* ${messageDocLink("obp.getBank")}
  |
  |Now you should be able to use the [Get Bank](/index#OBPv3_0_0-bankById) endpoint
  |
  |
- |2) Core (Authentications) -The step1 Apis are all anonymous access. If you want to propagate some data over the OBP authentication server. 
+ |2) Core (Authentications) -The step1 Apis are all anonymous access. If you need to link bank customer data to the obp user,
  | Then you need link OBP user with Bank user/customer using the [Create User Auth Context]((/index#OBPv3_1_0-createUserAuthContext)). Also 
- | check the description for this endpoint. Once you create the user-auth-context for one user, then these user-auth-context can be propagated
- | over connector message. Than the Adapter can use it to map OBP user and Bank user/customer. 
+ | check the description for this endpoint. Once you create the user-auth-context for one user, then these user-auth-context key value pair
+ | can be propagated over connector message. Than the Adapter can use it to map OBP user and Bank user/customer. 
  | 
- |* ${messageDocLink("obp.get.BankAccountsForUser")}
+ |* ${messageDocLink("obp.getBankAccountsForUser")}
  |
  |Now you should be able to use the [Refresh User](/index#OBPv3_1_0-refreshUser) endpoint 
  |
  |3) Customers for logged in User
  |
- |* ${messageDocLink("obp.get.CustomersByUserIdBox")}
+ |* ${messageDocLink("obp.getCustomersByUserIdBox")}
  |
  |Now you should be able to use the [Get Customers](/index#OBPv3_0_0-getCustomersForUser) endpoint.
  |
@@ -301,7 +301,7 @@ object Glossary {
  |
  |Now you should already be able to use the [Get Accounts at Bank (IDs only).](/index#OBPv3_0_0-getPrivateAccountIdsbyBankId) endpoint.
  |
- |* ${messageDocLink("obp.get.coreBankAccounts")}
+ |* ${messageDocLink("obp.getCoreBankAccounts")}
  |
  | The above messages should enable at least the following endpoints:
  |
@@ -310,24 +310,24 @@ object Glossary {
  |
  |5) Get Account
  |
- |* ${messageDocLink("obp.check.BankAccountExists")}
- |* ${messageDocLink("obp.get.Account")}
+ 					|* ${messageDocLink("obp.checkBankAccountExists")}
+ 					|* ${messageDocLink("obp.getAccount")}
  |
-| The above message should enable at least the following endpoints:
-|
+ | The above message should enable at least the following endpoints:
+ |
  |* [Get Account by Id - Core](/index#OBPv3_0_0-getCoreAccountById)
  |* [Get Account by Id - Full](/index#OBPv3_0_0-getPrivateAccountById)
  |
  |6) Get Transactions
  |
-					 |* ${messageDocLink("obp.get.Transactions")}
-					 |* ${messageDocLink("obp.get.Transaction")}
+					 |* ${messageDocLink("obp.getTransactions")}
+					 |* ${messageDocLink("obp.getTransaction")}
 					 |
  |7) Manage Counterparties
  |
-					 |* ${messageDocLink("obp.get.counterparties")}
-					 |* ${messageDocLink("obp.get.CounterpartyByCounterpartyId")}
-					 |* ${messageDocLink("obp.create.Counterparty")}
+					 |* ${messageDocLink("obp.getCounterparties")}
+					 |* ${messageDocLink("obp.getCounterpartyByCounterpartyId")}
+					 |* ${messageDocLink("obp.createCounterparty")}
 					 |
  |8) Get Transaction Request Types
  |
@@ -335,20 +335,20 @@ object Glossary {
 					 |
  |9) Get Challenge Threshold (CBS)
  |
-					 |* ${messageDocLink("obp.get.getChallengeThreshold")}
+					 |* ${messageDocLink("obp.getChallengeThreshold")}
 					 |
  |10)  Make Payment (used by Create Transaction Request)
  |
-					 |* ${messageDocLink("obp.get.makePaymentv210")}
+					 |* ${messageDocLink("obp.makePaymentv210")}
  						|* This also requires 8,9,10 for high value payments.
 					 |
  |11) Get Transaction Requests.
  |
-					 |* ${messageDocLink("obp.get.transactionRequests210")}
+					 |* ${messageDocLink("obp.getTransactionRequests210")}
 					 |
  |12) Generate Security Challenges (CBS)
  |
-					 |* ${messageDocLink("obp.create.Challenge")}
+					 |* ${messageDocLink("obp.createChallenge")}
 					 |
  |13) Answer Security Challenges (Validate)
  |
