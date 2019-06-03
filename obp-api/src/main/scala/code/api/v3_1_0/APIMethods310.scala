@@ -3126,7 +3126,7 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
+      Catalogs(Core, PSD2, notOBWG),
       List(apiTagApi))
 
     lazy val getServerJWK: OBPEndpoint = {
@@ -3232,7 +3232,7 @@ trait APIMethods310 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagConsent :: apiTagNewStyle :: Nil)
 
     lazy val createConsent : OBPEndpoint = {
@@ -3306,7 +3306,7 @@ trait APIMethods310 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagConsent :: apiTagNewStyle :: Nil)
 
     lazy val answerConsentChallenge : OBPEndpoint = {
@@ -3352,7 +3352,7 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
+      Catalogs(Core, PSD2, notOBWG),
       List(apiTagConsent, apiTagNewStyle))
 
     lazy val getConsents: OBPEndpoint = {
@@ -3392,7 +3392,7 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
+      Catalogs(Core, PSD2, notOBWG),
       List(apiTagConsent, apiTagNewStyle))
 
     lazy val revokeConsent: OBPEndpoint = {

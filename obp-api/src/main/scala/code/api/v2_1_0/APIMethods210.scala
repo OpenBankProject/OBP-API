@@ -380,7 +380,7 @@ trait APIMethods210 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagTransactionRequest),
       Some(List(canCreateAnyTransactionRequest)))
 
