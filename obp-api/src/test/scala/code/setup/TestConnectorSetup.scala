@@ -5,6 +5,7 @@ import java.util.{Calendar, Date}
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.model._
+import code.views.Views
 import com.openbankproject.commons.model._
 
 trait TestConnectorSetup {
@@ -35,7 +36,8 @@ trait TestConnectorSetup {
   final protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     val account = createAccount(bankId, accountId, currency) //In the test, account has no relevant with owner.Just need bankId, accountId and currency. 
     val ownerView = createOwnerView(bankId, accountId)//You can create the `owner-view` for the created account.
-    accountOwner.foreach(grantAccessToView(_, ownerView)) //grant access to one user. (Here, this user is not owner for the account, just grant `owner-view` to the user)
+    accountOwner.foreach(Views.views.vend.addPermission(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _)
+    ) //grant access to one user. (Here, this user is not owner for the account, just grant `owner-view` to the user)
     account
   }
 
@@ -130,7 +132,6 @@ trait TestConnectorSetup {
 
   protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId)
   protected def grantAccessToAllExistingViews(user : User)
-  protected def grantAccessToView(user : User, view : View)
 
   protected def wipeTestData()
 }

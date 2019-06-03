@@ -993,7 +993,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
@@ -1041,7 +1041,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
@@ -1112,7 +1112,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
