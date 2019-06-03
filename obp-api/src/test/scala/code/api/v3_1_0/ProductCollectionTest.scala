@@ -94,7 +94,6 @@ class ProductCollectionTest extends V310ServerSetup {
       Then("We should get a 201")
       response310.code should equal(201)
       response310.body.extract[ProductCollectionsJsonV310]
-      org.scalameta.logger.elem(prettyRender(response310.body))
     }
   }
 

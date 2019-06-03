@@ -37,6 +37,7 @@ import code.entitlement.Entitlement
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.users.Users
 import code.util.Helper.MdcLoggable
+import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{BankIdAccountId, User, UserPrimaryKey, View, ViewId}
 import net.liftweb.mapper.By
 
@@ -73,8 +74,8 @@ case class UserExtended(val user: User) extends MdcLoggable {
     * @return if has the input view access, return true, otherwise false.
     */
   final def hasViewAccess(view: View): Boolean ={
-    val viewImpl = view.asInstanceOf[ViewImpl]
-    !(ViewPrivileges.count(By(ViewPrivileges.user, this.userPrimaryKey.value), By(ViewPrivileges.view, viewImpl.id)) == 0)
+    val viewDefinition = view.asInstanceOf[ViewDefinition]
+    !(AccountAccess.count(By(AccountAccess.user_fk, this.userPrimaryKey.value), By(AccountAccess.view_fk, viewDefinition.id)) == 0)
   }
 
   def assignedEntitlements : List[Entitlement] = {

@@ -3,6 +3,7 @@ package code.accountHolder
 import code.accountholders.AccountHolders
 import code.model._
 import code.setup.{DefaultUsers, ServerSetup}
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 
 class AccountHoldersTest extends ServerSetup with DefaultUsers{
@@ -10,6 +11,7 @@ class AccountHoldersTest extends ServerSetup with DefaultUsers{
   override def beforeAll() = {
     super.beforeAll()
     AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
+    ViewDefinition.bulkDelete_!!()
   }
   
   override def afterEach() = {

@@ -2,6 +2,7 @@ package code.api.v3_1_0
 
 import java.util.UUID
 
+import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
@@ -32,6 +33,7 @@ import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
+import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreditLimit, _}
@@ -1079,7 +1081,7 @@ trait APIMethods310 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            (ai,cc) <- NewStyle.function.getAdapterInfo(callContext)
+            (ai,_) <- NewStyle.function.getAdapterInfo(callContext)
           } yield {
             (createAdapterInfoJson(ai), HttpCode.`200`(callContext))
           }
@@ -1436,10 +1438,10 @@ trait APIMethods310 {
       "/users/USER_ID/auth-context",
       "Get User Auth Contexts",
       s"""Get User Auth Contexts for a User.
-         |
+        |
         |
         |${authenticationRequiredMessage(true)}
-         |
+        |
         |""",
       emptyObjectJson,
       userAuthContextsJson,
@@ -1450,7 +1452,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(canGetUserAuthContext :: Nil)
+    )
 
     lazy val getUserAuthContexts : OBPEndpoint = {
       case "users" :: userId :: "auth-context" ::  Nil  JsonGet _ => {
@@ -1772,7 +1776,7 @@ trait APIMethods310 {
       nameOf(updateCustomerAddress),
       "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/address/CUSTOMER_ADDRESS_ID",
-      "Update the Address of an Customer",
+      "Update the Address of a Customer",
       s"""Update an Address of the Customer specified by CUSTOMER_ADDRESS_ID.
          |
         |
@@ -3111,7 +3115,7 @@ trait APIMethods310 {
 
     
     resourceDocs += ResourceDoc(
-      getOAuth2ServerJWKsURIs,
+      getServerJWK,
       implementedInApiVersion,
       "getServerJWK",
       "GET",
@@ -3376,7 +3380,7 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
       s"""
-         |$generalObpConsentText
+        |$generalObpConsentText
         |
         |
         |Revoke Consent for current user specified by CONSENT_ID
@@ -3386,7 +3390,7 @@ trait APIMethods310 {
         |
       """.stripMargin,
       emptyObjectJson,
-      consentJsonV310,
+      revokedConsentJsonV310,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -3440,7 +3444,9 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser, apiTagNewStyle),
+      Some(canCreateUserAuthContextUpdate :: Nil)
+    )
 
     lazy val createUserAuthContextUpdate : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates" :: scaMethod :: Nil JsonPost  json -> _ => {
@@ -3658,6 +3664,52 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
+      updateSystemView,
+      implementedInApiVersion,
+      nameOf(updateSystemView),
+      "PUT",
+      "/system-views/VIEW_ID",
+      "Update System View.",
+      s"""Update an existing view on a bank account
+         |
+        |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         |
+        |The json sent is the same as during view creation (above), with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateViewJSON,
+      viewJsonV300,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canUpdateSystemView))
+    )
+
+    lazy val updateSystemView : OBPEndpoint = {
+      //updates a view on a bank account
+      case "system-views" :: viewId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <-  authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateSystemView, callContext)
+            updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
+              val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
+            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson, callContext)
+          } yield {
+            (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
       getOAuth2ServerJWKsURIs,
       implementedInApiVersion,
       "getOAuth2ServerJWKsURIs",
@@ -3683,6 +3735,265 @@ trait APIMethods310 {
             (_, callContext) <- anonymousAccess(cc)
           } yield {
             (getOAuth2ServerJwksUrisJson(), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
+    resourceDocs += ResourceDoc(
+      updateCustomerEmail,
+      implementedInApiVersion,
+      nameOf(updateCustomerEmail),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/email",
+      "Update the email of a Customer",
+      s"""Update an email of the Customer specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      putUpdateCustomerEmailJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerEmail :: Nil)
+    )
+
+    lazy val updateCustomerEmail : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "email" ::  Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerEmail, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerEmailJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerEmailJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerScaData(
+              customerId,
+              None,
+              Some(putData.email),
+              callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    resourceDocs += ResourceDoc(
+      updateCustomerMobileNumber,
+      implementedInApiVersion,
+      nameOf(updateCustomerMobileNumber),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/mobile-number",
+      "Update the mobile number of a Customer",
+      s"""Update the mobile number of the Customer specified by CUSTOMER_ID.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
+      putUpdateCustomerMobileNumberJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerMobilePhoneNumber :: Nil)
+    )
+
+    lazy val updateCustomerMobileNumber : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "mobile-number" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerMobilePhoneNumber, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerMobilePhoneNumberJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerMobilePhoneNumberJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerScaData(
+              customerId,
+              Some(putData.mobile_phone_number),
+              None,
+              callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }  
+    
+    resourceDocs += ResourceDoc(
+      updateCustomerIdentity,
+      implementedInApiVersion,
+      nameOf(updateCustomerIdentity),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/general-data",
+      "Update the general data of a Customer",
+      s"""Update the general data of the Customer specified by CUSTOMER_ID.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
+      putUpdateCustomerGeneralDataJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerIdentity :: Nil)
+    )
+    lazy val updateCustomerIdentity : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "general-data" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerIdentity, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerGeneralDataJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerGeneralDataJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerGeneralData(
+              customerId,
+              Some(putData.legal_name),
+              None,
+              Some(putData.date_of_birth),
+              None,
+              None,
+              None,
+              None,
+              Some(putData.title),
+              None,
+              Some(putData.name_suffix),
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      updateCustomerCreditLimit,
+      implementedInApiVersion,
+      nameOf(updateCustomerCreditLimit),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/credit-limit",
+      "Update the credit limit of a Customer",
+      s"""Update the credit limit of the Customer specified by CUSTOMER_ID.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
+      putUpdateCustomerCreditLimitJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerCreditLimit :: Nil)
+    )
+
+    lazy val updateCustomerCreditLimit : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "credit-limit" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerCreditLimit, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerCreditLimitJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerCreditLimitJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerCreditData(
+              customerId,
+              None,
+              None,
+              Some(putData.credit_limit),
+              callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      updateCustomerCreditRatingAndSource,
+      implementedInApiVersion,
+      nameOf(updateCustomerCreditRatingAndSource),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/credit-rating-and-source",
+      "Update the credit rating and source of a Customer",
+      s"""Update the credit rating and source of the Customer specified by CUSTOMER_ID.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |""",
+      putUpdateCustomerCreditRatingAndSourceJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerCreditRatingAndSource :: Nil)
+    )
+
+    lazy val updateCustomerCreditRatingAndSource : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "credit-rating-and-source" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerCreditRatingAndSource, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerCreditRatingAndSourceJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerCreditRatingAndSourceJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerCreditData(
+              customerId,
+              Some(putData.credit_rating),
+              Some(putData.credit_source),
+              None,
+              callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
           }
       }
     }

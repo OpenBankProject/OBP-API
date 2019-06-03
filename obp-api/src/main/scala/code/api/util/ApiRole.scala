@@ -53,6 +53,21 @@ object ApiRole {
   case class CanCreateCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomer = CanCreateCustomer()
 
+  case class CanUpdateCustomerEmail(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerEmail = CanUpdateCustomerEmail()
+  
+  case class CanUpdateCustomerMobilePhoneNumber(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerMobilePhoneNumber = CanUpdateCustomerMobilePhoneNumber()  
+  
+  case class CanUpdateCustomerIdentity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerIdentity = CanUpdateCustomerIdentity()
+
+  case class CanUpdateCustomerCreditLimit(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerCreditLimit = CanUpdateCustomerCreditLimit()
+
+  case class CanUpdateCustomerCreditRatingAndSource(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerCreditRatingAndSource = CanUpdateCustomerCreditRatingAndSource()
+
   case class CanCreateCustomerAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateCustomerAtAnyBank = CanCreateCustomerAtAnyBank()
 
@@ -76,13 +91,13 @@ object ApiRole {
 
   case class CanGetSocialMediaHandles(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetSocialMediaHandles = CanGetSocialMediaHandles()
-  
+
   case class CanCreateCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomerAddress = CanCreateCustomerAddress()
-  
+
   case class CanDeleteCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteCustomerAddress = CanDeleteCustomerAddress()
-  
+
   case class CanGetCustomerAddress(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomerAddress = CanGetCustomerAddress()
 
@@ -193,16 +208,16 @@ object ApiRole {
 
   case class CanCreateScopeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateScopeAtOneBank = CanCreateScopeAtOneBank()
-  
+
   case class CanCreateScopeAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateScopeAtAnyBank = CanCreateScopeAtAnyBank()
-  
+
   case class CanDeleteScopeAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteScopeAtAnyBank = CanDeleteScopeAtAnyBank()
-  
+
   case class CanDeleteScopeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteScopeAtOneBank = CanDeleteScopeAtOneBank()
-  
+
   case class CanUnlockUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canUnlockUser = CanUnlockUser()
 
@@ -238,10 +253,10 @@ object ApiRole {
 
   case class CanDeleteUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteUserAuthContext = CanDeleteUserAuthContext()
-  
+
   case class CanCreateUserAuthContextUpdate(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateUserAuthContextUpdate = CanCreateUserAuthContextUpdate()
-  
+
   case class CanGetTaxResidence(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTaxResidence = CanGetTaxResidence()
 
@@ -259,22 +274,22 @@ object ApiRole {
 
   case class CanUpdateAccountApplications(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateAccountApplications = CanUpdateAccountApplications()
-  
+
   case class CanReadFx(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canReadFx = CanReadFx() 
-  
+  lazy val canReadFx = CanReadFx()
+
   case class CanUpdateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateProductAttribute = CanUpdateProductAttribute()
-  
+
   case class CanGetProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetProductAttribute = CanGetProductAttribute()
-  
+
   case class CanDeleteProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteProductAttribute = CanDeleteProductAttribute()
-  
+
   case class CanCreateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateProductAttribute = CanCreateProductAttribute()
-  
+
   case class CanMaintainProductCollection(requiresBankId: Boolean = true) extends ApiRole
   lazy val canMaintainProductCollection = CanMaintainProductCollection()
 
@@ -375,6 +390,11 @@ object ApiRole {
       canGetSystemView ::
       canDeleteSystemView ::
       canCreateUserAuthContextUpdate ::
+      canUpdateCustomerEmail ::
+      canUpdateCustomerMobilePhoneNumber ::
+      canUpdateCustomerIdentity ::
+      canUpdateCustomerCreditLimit ::
+      canUpdateCustomerCreditRatingAndSource ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

@@ -42,11 +42,12 @@ import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.model._
 import code.model.dataAccess._
 import code.products.Products
-import code.products.Products.{countOfProducts}
+import code.products.Products.countOfProducts
 import com.openbankproject.commons.model.Product
 import code.setup.{APIResponse, SendServerRequests}
 import code.users.Users
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
 import dispatch._
 import net.liftweb.common.{Empty, ParamFailure}
@@ -121,6 +122,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   }
 
   def postImportJson(json : String, secretToken : Option[String]) : APIResponse = {
+    ViewDefinition.bulkDelete_!!()
     val base = sandboxApiPrefix / "v1.0" / "data-import"
 
     // If we have a secretToken add that to the base request

@@ -60,6 +60,8 @@ object RemotedataViews extends ObpActorInit with Views {
   def updateView(bankAccountId : BankIdAccountId, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = getValueFromFuture(
     (actor ? cc.updateView(bankAccountId, viewId, viewUpdateJson)).mapTo[Box[View]]
   )
+  def updateSystemView(viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Future[Box[View]] =
+    (actor ? cc.updateSystemView(viewId, viewUpdateJson)).mapTo[Box[View]]
 
   def removeView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Unit] = getValueFromFuture(
     (actor ? cc.removeView(viewId, bankAccountId)).mapTo[Box[Unit]]
@@ -91,10 +93,6 @@ object RemotedataViews extends ObpActorInit with Views {
   
   def firehoseViewsForBank(bankId: BankId, user : User): List[View] = getValueFromFuture(
     (actor ? cc.firehoseViewsForBank(bankId: BankId, user : User)).mapTo[List[View]]
-  )
-
-  def grantAccessToView(user : User, view : View): Boolean = getValueFromFuture(
-    (actor ? cc.grantAccessToView(user, view)).mapTo[Boolean]
   )
 
   def getOwners(view: View) : Set[User] = getValueFromFuture(

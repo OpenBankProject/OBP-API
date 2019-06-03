@@ -67,6 +67,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.updateView(bankAccountId : BankIdAccountId, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
       logger.debug("updateView(" + bankAccountId +","+ viewId +","+ viewUpdateJson +")")
       sender ! (mapper.updateView(bankAccountId, viewId, viewUpdateJson))
+      
+    case cc.updateSystemView(viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
+      logger.debug("updateSystemView(" + viewId +","+ viewUpdateJson +")")
+      (mapper.updateSystemView(viewId, viewUpdateJson)) pipeTo sender
 
     case cc.removeView(viewId : ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("removeView(" + viewId +","+ bankAccountId +")")
@@ -132,10 +136,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.getOwners(view) =>
       logger.debug("getOwners(" + view +")")
       sender ! (mapper.getOwners(view))
-
-    case cc.grantAccessToView(user, view) =>
-      logger.debug("grantAccessToView(" + user +", "+ view +")")
-      sender ! (mapper.grantAccessToView(user, view))
 
     case cc.grantAccessToAllExistingViews(user) =>
       logger.debug("grantAccessToAllExistingViews(" + user +")")

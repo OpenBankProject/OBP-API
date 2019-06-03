@@ -156,7 +156,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createConsent), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
@@ -166,7 +166,13 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateSystemView), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -295,6 +301,11 @@ object NewStyle {
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.createSystemView(view) map {
         unboxFullOrFail(_, callContext, s"$CreateSystemViewError")
+      }
+    }
+    def updateSystemView(viewId: ViewId, view: UpdateViewJSON, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.updateSystemView(viewId, view) map {
+        unboxFullOrFail(_, callContext, s"$UpdateSystemViewError")
       }
     }
     def deleteSystemView(viewId : ViewId, callContext: Option[CallContext]) : Future[Boolean] = {
@@ -1167,6 +1178,59 @@ object NewStyle {
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
+      }
+
+    def updateCustomerScaData(customerId: String,
+                              mobileNumber: Option[String],
+                              email: Option[String],
+                              callContext: Option[CallContext]): OBPReturnType[Customer] =
+      Connector.connector.vend.updateCustomerScaData(
+        customerId,
+        mobileNumber,
+        email,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
+      }
+    def updateCustomerCreditData(customerId: String,
+                                 creditRating: Option[String],
+                                 creditSource: Option[String],
+                                 creditLimit: Option[AmountOfMoney],
+                                 callContext: Option[CallContext]): OBPReturnType[Customer] =
+      Connector.connector.vend.updateCustomerCreditData(
+        customerId,
+        creditRating,
+        creditSource,
+        creditLimit,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
+      }
+
+    def updateCustomerGeneralData(customerId: String,
+                                  legalName: Option[String] = None,
+                                  faceImage: Option[CustomerFaceImageTrait] = None,
+                                  dateOfBirth: Option[Date] = None,
+                                  relationshipStatus: Option[String] = None,
+                                  dependents: Option[Int] = None,
+                                  highestEducationAttained: Option[String] = None,
+                                  employmentStatus: Option[String] = None,
+                                  title: Option[String] = None,
+                                  branchId: Option[String] = None,
+                                  nameSuffix: Option[String] = None,
+                                  callContext: Option[CallContext]): OBPReturnType[Customer] =
+      Connector.connector.vend.updateCustomerGeneralData(
+        customerId,
+        legalName,
+        faceImage,
+        dateOfBirth,
+        relationshipStatus,
+        dependents,
+        highestEducationAttained,
+        employmentStatus,
+        title,
+        branchId,
+        nameSuffix,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
     
   }

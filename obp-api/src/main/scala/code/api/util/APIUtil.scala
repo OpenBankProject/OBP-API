@@ -213,7 +213,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               implementedByPartialFunction,
               cc.implementedInVersion,
               cc.verb,
-              cc.correlationId
+              cc.httpCode,
+              cc.correlationId,
             )
           }
         }
@@ -288,7 +289,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           developerEmail,
           consumerId,
           implementedByPartialFunction,
-          implementedInVersion, verb,
+          implementedInVersion, 
+          verb, 
+          None,
           correlationId
         )
       }
@@ -1742,12 +1745,15 @@ Returns a string showed to the developer
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
-              logEndpointTiming(af.ccl)(reply.apply(errorJsonResponse(af.failMsg, af.failCode)(getHeadersNewStyle(af.ccl))))
+              val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
+              logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode)(getHeadersNewStyle(af.ccl))))
             case _ =>
-              reply.apply(errorJsonResponse(msg))
+              val errorResponse: JsonResponse = errorJsonResponse(msg)
+              reply.apply(errorResponse)
           }
         case _                  =>
-          reply.apply(errorJsonResponse("Error"))
+          val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
+          reply.apply(errorResponse)
       }
     })
   }
@@ -1777,16 +1783,21 @@ Returns a string showed to the developer
         t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
       )
       in.onFail {
-        case Failure(null, _, _) => Full(reply.apply(errorJsonResponse(UnknownError)))
+        case Failure(null, _, _) =>
+          val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
+          Full(reply.apply(errorResponse))
         case Failure(msg, _, _) =>
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
-              Full(logEndpointTiming(af.ccl)(reply.apply(errorJsonResponse(af.failMsg, af.failCode)(getHeadersNewStyle(af.ccl)))))
+              val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
+              Full(logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode)(getHeadersNewStyle(af.ccl)))))
             case _ =>
-              Full((reply.apply(errorJsonResponse(msg))))
+              val errorResponse: JsonResponse = errorJsonResponse(msg)
+              Full((reply.apply(errorResponse)))
           }
         case _ =>
-          Full(reply.apply(errorJsonResponse(UnknownError)))
+          val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
+          Full(reply.apply(errorResponse))
       }
     })
   }
