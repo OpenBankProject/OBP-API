@@ -108,6 +108,9 @@ object ExampleValue {
   val limitExample = ConnectorField("100", s"The query number of transactions")
   glossaryItems += makeGlossaryItem("Adapter.limit", limitExample)
 
+  val offsetExample = ConnectorField("100", s"The query offset number of transactions")
+  glossaryItems += makeGlossaryItem("Adapter.offset", offsetExample)
+
 
   val ibanExample = ConnectorField("DE91 1000 0000 0123 4567 89", s"MUST uniquely identify the bank account globally.")
   glossaryItems += makeGlossaryItem("Adapter.iban", ibanExample)

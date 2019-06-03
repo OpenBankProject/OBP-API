@@ -117,6 +117,7 @@ case class OutBoundGetTransactions(outboundAdapterCallContext: OutboundAdapterCa
                                    bankId: BankId,
                                    accountId: AccountId,
                                    limit: Int,
+                                   offset: Int,
                                    fromDate: String,
                                    toDate: String) extends TopicTrait
 case class InBoundGetTransactions(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCommons]) extends InBoundTrait[List[TransactionCommons]]
