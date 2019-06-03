@@ -7,6 +7,7 @@ import net.liftweb.common.Box
 
 import scala.collection.immutable.List
 import scala.language.postfixOps
+import scala.reflect.api.{TypeCreator, Universe}
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 
@@ -210,6 +211,19 @@ object ReflectUtils {
   def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
+
+  def classToTypeTag[A](clazz: Class[A]): TypeTag[A] = {
+    import scala.reflect.api
+    val mirror: ru.Mirror = runtimeMirror(clazz.getClassLoader)
+    val sym: ru.ClassSymbol = mirror.classSymbol(clazz)
+    val tpe: ru.Type = sym.selfType
+    // create a type tag which contains above type object
+    TypeTag(mirror, new api.TypeCreator {
+      def apply[U <: api.Universe with Singleton](m: api.Mirror[U]) =
+        if (m eq mirror) tpe.asInstanceOf[U # Type]
+        else throw new IllegalArgumentException(s"Type tag defined in $mirror cannot be migrated to other mirrors.")
+    })
+  }
 
   /**
     * convert a object to it's sibling, please have a loot the example:
