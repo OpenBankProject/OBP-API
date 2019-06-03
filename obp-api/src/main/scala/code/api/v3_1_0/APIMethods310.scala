@@ -3841,9 +3841,9 @@ trait APIMethods310 {
     }  
     
     resourceDocs += ResourceDoc(
-      updateCustomerGeneralData,
+      updateCustomerIdentity,
       implementedInApiVersion,
-      nameOf(updateCustomerGeneralData),
+      nameOf(updateCustomerIdentity),
       "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/general-data",
       "Update the general data of a Customer",
@@ -3863,15 +3863,15 @@ trait APIMethods310 {
       ),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(canUpdateCustomerGeneralData :: Nil)
+      Some(canUpdateCustomerIdentity :: Nil)
     )
-    lazy val updateCustomerGeneralData : OBPEndpoint = {
+    lazy val updateCustomerIdentity : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "general-data" :: Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerGeneralData, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerIdentity, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerGeneralDataJsonV310 "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutUpdateCustomerGeneralDataJsonV310]

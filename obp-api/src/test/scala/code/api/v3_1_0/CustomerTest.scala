@@ -64,7 +64,7 @@ class CustomerTest extends V310ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.createCustomer))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.updateCustomerEmail))
   object ApiEndpoint5 extends Tag(nameOf(Implementations3_1_0.updateCustomerMobileNumber))
-  object ApiEndpoint6 extends Tag(nameOf(Implementations3_1_0.updateCustomerGeneralData))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations3_1_0.updateCustomerIdentity))
   object ApiEndpoint7 extends Tag(nameOf(Implementations3_1_0.updateCustomerCreditLimit))
   object ApiEndpoint8 extends Tag(nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource))
 
@@ -284,7 +284,7 @@ class CustomerTest extends V310ServerSetup {
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))
       Then("We should get a 403")
       response310.code should equal(403)
-      val errorMsg = UserHasMissingRoles + canUpdateCustomerGeneralData
+      val errorMsg = UserHasMissingRoles + canUpdateCustomerIdentity
       And("error should be " + errorMsg)
       response310.body.extract[ErrorMessage].message should equal (errorMsg)
     }
@@ -297,7 +297,7 @@ class CustomerTest extends V310ServerSetup {
       postResponse310.code should equal(201)
       val infoPost = postResponse310.body.extract[CustomerJsonV310]
 
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerGeneralData.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerIdentity.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "general-data" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))

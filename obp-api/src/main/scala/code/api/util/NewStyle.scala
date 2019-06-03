@@ -170,7 +170,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerGeneralData), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
   )
