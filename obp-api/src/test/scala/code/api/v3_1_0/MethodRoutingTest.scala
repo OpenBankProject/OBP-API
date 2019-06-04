@@ -81,8 +81,8 @@ class MethodRoutingTest extends V310ServerSetup {
   feature("Get MethodRoutings v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "method-routing" / "method-name" / "getBank").GET
-      val response310 = makeGetRequest(request310)
+      val request310 = (v3_1_0_Request / "management" / "method-routing").GET
+      val response310 = makeGetRequest(request310, List(("method-name", "getBank")))
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
@@ -155,8 +155,8 @@ class MethodRoutingTest extends V310ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetMethodRoutings.toString)
       When("We make a request v3.1.0 with the Role " + canGetMethodRoutings)
-      val requestGet310 = (v3_1_0_Request / "management" / "method-routing" / "method-name" / "getBank").GET <@(user1)
-      val responseGet310 = makeGetRequest(requestGet310)
+      val requestGet310 = (v3_1_0_Request / "management" / "method-routing").GET <@(user1)
+      val responseGet310 = makeGetRequest(requestGet310, List(("method-name", "getBank")))
       Then("We should get a 200")
       responseGet310.code should equal(200)
       val json = responseGet310.body \ "results"

@@ -3749,8 +3749,11 @@ trait APIMethods310 {
       "/management/method-routing",
       "Get MethodRoutings",
       s"""Get the all MethodRoutings.
+      |
       |request parameters:
-      |* method-name  filter with method-name, /management/method-routing?method-name=getBank
+      |
+      |* method-name:  filter with method-name, url example: /management/method-routing?method-name=getBank
+      |
       |""",
       emptyObjectJson,
       ListResult(
@@ -3774,7 +3777,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
-            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("methodName"))
+            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method-name"))
           } yield {
             (ListResult[MethodRoutingCommons](methodRoutings), HttpCode.`200`(callContext))
           }
