@@ -152,7 +152,7 @@ trait APIMethods121 {
       emptyObjectJson,
       banksJSON,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagBank :: Nil)
 
     lazy val getBanks : OBPEndpoint = {
@@ -188,7 +188,7 @@ trait APIMethods121 {
       emptyObjectJson,
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagBank :: Nil)
 
 

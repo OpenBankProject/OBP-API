@@ -170,7 +170,11 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -1209,6 +1213,47 @@ object NewStyle {
         customerId,
         mobileNumber,
         email,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
+      }
+    def updateCustomerCreditData(customerId: String,
+                                 creditRating: Option[String],
+                                 creditSource: Option[String],
+                                 creditLimit: Option[AmountOfMoney],
+                                 callContext: Option[CallContext]): OBPReturnType[Customer] =
+      Connector.connector.vend.updateCustomerCreditData(
+        customerId,
+        creditRating,
+        creditSource,
+        creditLimit,
+        callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
+      }
+
+    def updateCustomerGeneralData(customerId: String,
+                                  legalName: Option[String] = None,
+                                  faceImage: Option[CustomerFaceImageTrait] = None,
+                                  dateOfBirth: Option[Date] = None,
+                                  relationshipStatus: Option[String] = None,
+                                  dependents: Option[Int] = None,
+                                  highestEducationAttained: Option[String] = None,
+                                  employmentStatus: Option[String] = None,
+                                  title: Option[String] = None,
+                                  branchId: Option[String] = None,
+                                  nameSuffix: Option[String] = None,
+                                  callContext: Option[CallContext]): OBPReturnType[Customer] =
+      Connector.connector.vend.updateCustomerGeneralData(
+        customerId,
+        legalName,
+        faceImage,
+        dateOfBirth,
+        relationshipStatus,
+        dependents,
+        highestEducationAttained,
+        employmentStatus,
+        title,
+        branchId,
+        nameSuffix,
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }

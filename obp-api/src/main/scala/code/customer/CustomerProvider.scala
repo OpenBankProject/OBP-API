@@ -73,6 +73,25 @@ trait CustomerProvider {
   def updateCustomerScaData(customerId: String, 
                             mobileNumber: Option[String], 
                             email: Option[String]): Future[Box[Customer]]
+  
+  def updateCustomerCreditData(customerId: String,
+                               creditRating: Option[String],
+                               creditSource: Option[String],
+                               creditLimit: Option[AmountOfMoney]): Future[Box[Customer]]
+  
+  def updateCustomerGeneralData(customerId: String,
+                                legalName: Option[String],
+                                faceImage: Option[CustomerFaceImageTrait],
+                                dateOfBirth: Option[Date],
+                                relationshipStatus: Option[String],
+                                dependents: Option[Int],
+                                highestEducationAttained: Option[String],
+                                employmentStatus: Option[String],
+                                title: Option[String],
+                                branchId: Option[String],
+                                nameSuffix: Option[String]
+                               ): Future[Box[Customer]]
+  
   def bulkDeleteCustomers(): Boolean
   def populateMissingUUIDs(): Boolean
 }
@@ -112,6 +131,24 @@ class RemotedataCustomerProviderCaseClasses {
   case class updateCustomerScaData(customerId: String,
                                    mobileNumber: Option[String],
                                    email: Option[String])
+  
+  case class updateCustomerCreditData(customerId: String,
+                                      creditRating: Option[String],
+                                      creditSource: Option[String],
+                                      creditLimit: Option[AmountOfMoney])
+
+  case class updateCustomerGeneralData(customerId: String,
+                                       legalName: Option[String],
+                                       faceImage: Option[CustomerFaceImageTrait],
+                                       dateOfBirth: Option[Date],
+                                       relationshipStatus: Option[String],
+                                       dependents: Option[Int],
+                                       highestEducationAttained: Option[String],
+                                       employmentStatus: Option[String],
+                                       title: Option[String],
+                                       branchId: Option[String],
+                                       nameSuffix: Option[String],
+                                      )
   case class bulkDeleteCustomers()
   case class populateMissingUUIDs()
 

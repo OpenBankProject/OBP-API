@@ -191,6 +191,91 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         }
         c.saveMe()
     }
+  }  
+  override def updateCustomerCreditData(customerId: String,
+                                        creditRating: Option[String],
+                                        creditSource: Option[String],
+                                        creditLimit: Option[AmountOfMoney]): Future[Box[Customer]] = Future {
+    MappedCustomer.find(
+      By(MappedCustomer.mCustomerId, customerId)
+    ) map {
+      c =>
+        creditRating match {
+          case Some(rating) => c.mCreditRating(rating)
+          case _            => // There is no update
+        }
+        creditSource match {
+          case Some(source) => c.mCreditSource(source)
+          case _          => // There is no update
+        }
+        creditLimit match {
+          case Some(limit) => c.mCreditLimitAmount(limit.amount).mCreditLimitCurrency(limit.currency)
+          case _          => // There is no update
+        }
+        c.saveMe()
+    }
+  }
+  
+  override def updateCustomerGeneralData(customerId: String,
+                                         legalName: Option[String],
+                                         faceImage: Option[CustomerFaceImageTrait],
+                                         dateOfBirth: Option[Date],
+                                         relationshipStatus: Option[String],
+                                         dependents: Option[Int],
+                                         highestEducationAttained: Option[String],
+                                         employmentStatus: Option[String],
+                                         title: Option[String],
+                                         branchId: Option[String],
+                                         nameSuffix: Option[String],
+                                        ): Future[Box[Customer]] = Future {
+    MappedCustomer.find(
+      By(MappedCustomer.mCustomerId, customerId)
+    ) map {
+      c =>
+        legalName match {
+          case Some(legalName) => c.mLegalName(legalName)
+          case _            => // There is no update
+        }
+        faceImage match {
+          case Some(faceImage) => 
+            c.mFaceImageUrl(faceImage.url)
+            c.mFaceImageTime(faceImage.date)
+          case _ => // There is no update
+        }
+        dateOfBirth match {
+          case Some(dateOfBirth) => c.mDateOfBirth(dateOfBirth)
+          case _ => // There is no update
+        }
+        relationshipStatus match {
+          case Some(relationshipStatus) => c.mRelationshipStatus(relationshipStatus)
+          case _ => // There is no update
+        }
+        dependents match {
+          case Some(dependents) => c.mDependents(dependents)
+          case _ => // There is no update
+        }
+        highestEducationAttained match {
+          case Some(highestEducationAttained) => c.mHighestEducationAttained(highestEducationAttained)
+          case _ => // There is no update
+        }
+        employmentStatus match {
+          case Some(employmentStatus) => c.mEmploymentStatus(employmentStatus)
+          case _ => // There is no update
+        }
+        title match {
+          case Some(title) => c.mTitle(title)
+          case _ => // There is no update
+        }
+        branchId match {
+          case Some(branchId) => c.mBranchId(branchId)
+          case _ => // There is no update
+        }
+        nameSuffix match {
+          case Some(nameSuffix) => c.mNameSuffix(nameSuffix)
+          case _ => // There is no update
+        }
+        c.saveMe()
+    }
   }
 
   override def bulkDeleteCustomers(): Boolean = {
