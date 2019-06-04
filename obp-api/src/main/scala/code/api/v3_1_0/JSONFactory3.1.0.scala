@@ -475,7 +475,16 @@ case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: Str
 case class OAuth2ServerJWKURIJson(jwks_uri: String)
 case class OAuth2ServerJwksUrisJson(jwks_uris: List[OAuth2ServerJWKURIJson])
 
-case class ListResult[T](results: List[T])
+/**
+  * this case class is a generic list items container for serialized to json string
+  * it will serialize to key value way as follow:
+  * ListResult("someName", List("value"))
+  * --> {"somename", ["value"]}
+  * @param name convert to json single field name
+  * @param results convert json single field value
+  * @tparam T results items type
+  */
+case class ListResult[T](name: String, results: List[T])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =

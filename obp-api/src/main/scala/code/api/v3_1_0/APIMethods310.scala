@@ -3746,17 +3746,18 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getMethodRoutings),
       "GET",
-      "/management/method-routing",
+      "/management/method_routings",
       "Get MethodRoutings",
       s"""Get the all MethodRoutings.
       |
-      |request parameters:
+      |optional request parameters:
       |
-      |* method-name:  filter with method-name, url example: /management/method-routing?method-name=getBank
+      |* method_name: filter with method_name, url example: /management/method_routings?method_name=getBank
       |
       |""",
       emptyObjectJson,
       ListResult(
+        "method_routings",
         (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some("method-routing-id"))))
       )
     ,
@@ -3772,14 +3773,15 @@ trait APIMethods310 {
 
 
     lazy val getMethodRoutings: OBPEndpoint = {
-      case "management" :: "method-routing":: Nil JsonGet req => {
+      case "management" :: "method_routings":: Nil JsonGet req => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
-            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method-name"))
+            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
           } yield {
-            (ListResult[MethodRoutingCommons](methodRoutings), HttpCode.`200`(callContext))
+            val listCommons: List[MethodRoutingCommons] = methodRoutings
+            (ListResult("method_routings", listCommons), HttpCode.`200`(callContext))
           }
       }
     }
@@ -3789,7 +3791,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createMethodRouting),
       "POST",
-      "/management/method-routing",
+      "/management/method_routings",
       "Add MethodRouting",
       s"""Add a MethodRouting.
         |
@@ -3819,7 +3821,7 @@ trait APIMethods310 {
       Some(List(canCreateMethodRouting)))
 
     lazy val createMethodRouting : OBPEndpoint = {
-      case "management" :: "method-routing" ::  Nil JsonPost  json -> _ => {
+      case "management" :: "method_routings" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
@@ -3849,7 +3851,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(updateMethodRouting),
       "PUT",
-      "/management/method-routing/METHOD_ROUTING_ID",
+      "/management/method_routings/METHOD_ROUTING_ID",
       "Update MethodRouting",
       s"""Update a MethodRouting.
         |
@@ -3880,7 +3882,7 @@ trait APIMethods310 {
       Some(List(canUpdateMethodRouting)))
 
     lazy val updateMethodRouting : OBPEndpoint = {
-      case "management" :: "method-routing" :: methodRoutingId :: Nil JsonPut  json -> _ => {
+      case "management" :: "method_routings" :: methodRoutingId :: Nil JsonPut  json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
@@ -3914,7 +3916,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(deleteMethodRouting),
       "DELETE",
-      "/management/method-routing/METHOD_ROUTING_ID",
+      "/management/method_routings/METHOD_ROUTING_ID",
       "Delete MethodRouting",
       s"""Delete a MethodRouting specified by METHOD_ROUTING_ID.
          |
@@ -3934,7 +3936,7 @@ trait APIMethods310 {
       Some(List(canDeleteMethodRouting)))
 
     lazy val deleteMethodRouting : OBPEndpoint = {
-      case "management" :: "method-routing" :: methodRoutingId ::  Nil JsonDelete _ => {
+      case "management" :: "method_routings" :: methodRoutingId ::  Nil JsonDelete _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)

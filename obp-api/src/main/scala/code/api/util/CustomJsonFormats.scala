@@ -3,6 +3,7 @@ package code.api.util
 import java.util.regex.Pattern
 
 import code.api.util.ApiRole.rolesMappedToClasses
+import code.api.v3_1_0.ListResult
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -14,17 +15,17 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer
+  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + BigDecimalSerializer + FiledRenameSerializer
+  } + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {
@@ -83,7 +84,44 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
   }
 }
 
+object ListResultSerializer extends Serializer[ListResult[_]] {
+  private val clazz = classOf[ListResult[_]]
+
+  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ListResult[_]] = {
+    case (typeInfo @ TypeInfo(entityType, _), json) if(clazz.isAssignableFrom(entityType))=> json match {
+      case JObject(singleField::Nil) => {
+        val jObject = JObject(JField("name", JString(singleField.name)), JField("results", singleField.value))
+        Extraction.extract(jObject,typeInfo).asInstanceOf[ListResult[_]]
+      }
+      case x => throw new MappingException("Can't convert " + x + " to JsonFieldReName")
+    }
+  }
+
+  def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case x: ListResult[_] => {
+      val singleField = JField(x.name, Extraction.decompose(x.results))
+      JObject(singleField)
+    }
+  }
+
+  private val camelRegex = Pattern.compile("""[a-z0-9][A-Z]|[A-Z]{2,}[a-z]""")
+
+  private[this] def isNeedRenameFieldNames(entityType: Class[_], jvalue: JValue): Boolean = {
+    // the reason of the if else clause:
+    // when entity type is not JsonFieldReName, not need check the field list, will have better performance
+    if(clazz.isAssignableFrom(entityType)) {
+      jvalue match {
+        case JObject(fieldList) => fieldList.forall(jfield => !camelRegex.matcher(jfield.name).find())
+        case _ => false
+      }
+    } else  {
+      false
+    }
+  }
+}
+
 /**
   * a mark trait, any type that extends this trait will rename field from Camel-Case to snakify naming
   */
 trait JsonFieldReName
+
