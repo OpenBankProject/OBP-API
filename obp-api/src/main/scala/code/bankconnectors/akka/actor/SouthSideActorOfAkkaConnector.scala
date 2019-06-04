@@ -59,10 +59,10 @@ class SouthSideActorOfAkkaConnector extends Actor with ActorLogging with MdcLogg
       val result: Box[List[Customer]] = getCustomersByUserIdLegacy(userId, None).map(r => r._1)
       sender ! InBoundGetCustomersByUserId(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.map(l => l.map(Transformer.toInternalCustomer(_))).openOrThrowException(attemptedToOpenAnEmptyBox))
 
-    case OutBoundGetTransactions(cc, bankId, accountId, limit, fromDate, toDate) =>
+    case OutBoundGetTransactions(cc, bankId, accountId, limit, offset, fromDate, toDate) =>
       val from = APIUtil.DateWithMsFormat.parse(fromDate)
       val to = APIUtil.DateWithMsFormat.parse(toDate)
-      val result = getTransactionsLegacy(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to)): _*).map(r => r._1)
+      val result = getTransactionsLegacy(bankId, accountId, None, List(OBPLimit(limit), OBPFromDate(from), OBPToDate(to))).map(r => r._1)
       sender ! InBoundGetTransactions(InboundAdapterCallContext(cc.correlationId,cc.sessionId,cc.generalContext), successInBoundStatus, result.getOrElse(Nil).map(Transformer.toInternalTransaction(_)))
 
     case OutBoundGetTransaction(cc, bankId, accountId, transactionId) =>

@@ -19,7 +19,16 @@ import scala.reflect.runtime.{universe => ru}
 object KafkaConnectorBuilder extends App {
 
   val genMethodNames = List(
-    "getBanks"
+    "getAdapterInfo",
+    "getBanks",
+    "getBank",
+    "getBankAccountsForUser",
+    "getCustomersByUserId",
+    "getCoreBankAccounts",
+    "checkBankAccountExists",
+    "getBankAccount",
+    "getTransactions",
+    "getTransaction",
   )
 
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
@@ -76,13 +85,25 @@ class CommonGenerator(val methodName: String, tp: Type) {
     .replaceFirst("\\)", "): ")
     .replaceFirst("""\btype\b""", "`type`")
 
+  val queryParamsListName = tp.paramLists(0).find(symbol => symbol.info <:< typeOf[List[OBPQueryParam]]).map(_.name.toString)
+
   private[this] val params = tp.paramLists(0)
     .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
     .map(_.name.toString)
     .map(it => if(it =="type") "`type`" else it)
     match {
     case Nil => ""
-    case list:List[String] => list.mkString(", ", ", ", "")
+    case list:List[String] => {
+      val paramNames = list.mkString(", ", ", ", "")
+      queryParamsListName match {
+        // deal with queryParams: List[OBPQueryParam], convert to four parameters
+        case Some(queryParams) => paramNames.replaceFirst(
+          s"""\\b(${queryParams})\\b""",
+          "OBPQueryParam.getLimit($1), OBPQueryParam.getOffset($1), OBPQueryParam.getFromDate($1), OBPQueryParam.getToDate($1)"
+        )
+        case scala.None => paramNames
+      }
+    }
   }
 
   private[this] val description = methodName.replace("Future", "").replaceAll("([a-z])([A-Z])", "$1 $2").capitalize
@@ -117,6 +138,7 @@ class CommonGenerator(val methodName: String, tp: Type) {
 
   val tag = tagValues.filter(it => methodName.toLowerCase().contains(it._1)).map(_._2).toList.sortBy(_.size).lastOption.getOrElse("- Core")
 
+  val queryParamList = params.replaceFirst("""\b(.+?):\s*List[OBPQueryParam]""", "OBPQueryParam.getLimit($1), OBPQueryParam.getOffset($1), OBPQueryParam.getFromDate($1), OBPQueryParam.getToDate(queryParams)")
 
   protected[this] def methodBody: String =
     s"""{
@@ -131,7 +153,7 @@ class CommonGenerator(val methodName: String, tp: Type) {
   override def toString =
     s"""
        |  messageDocs += MessageDoc(
-       |    process = "obp.$methodName",
+       |    process = s"obp.$${nameOf($methodName _)}",
        |    messageFormat = messageFormat,
        |    description = "$description",
        |    outboundTopic = Some(Topics.createTopicByClassName(${outboundName}.getClass.getSimpleName).request),

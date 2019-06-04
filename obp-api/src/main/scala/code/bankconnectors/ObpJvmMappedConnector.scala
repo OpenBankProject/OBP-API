@@ -288,11 +288,11 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
     getTransactionInner(bankId, accountId, transactionId, primaryUserIdentifier).map(transaction =>(transaction, callContext))
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
 
     val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
-    def getTransactionsInner(bankId: BankId, accountId: AccountId, userName: String, queryParams: OBPQueryParam*) : Box[List[Transaction]] = memoizeSync(getTransactionsTTL millisecond) {
+    def getTransactionsInner(bankId: BankId, accountId: AccountId, userName: String, queryParams: List[OBPQueryParam]) : Box[List[Transaction]] = memoizeSync(getTransactionsTTL millisecond) {
       val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
       val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
       val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
@@ -356,7 +356,7 @@ object ObpJvmMappedConnector extends Connector with MdcLoggable {
       Full(res)
     }
 
-    getTransactionsInner(bankId, accountId, primaryUserIdentifier, queryParams: _*).map(transactions =>(transactions, callContext))
+    getTransactionsInner(bankId, accountId, primaryUserIdentifier, queryParams).map(transactions =>(transactions, callContext))
     //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 

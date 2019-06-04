@@ -107,7 +107,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   val statusExample = Status(errorCodeExample, inboundStatusMessagesExample)
   
   messageDocs += MessageDoc(
-    process = "obp.get.AdapterInfo",
+    process = "obp.getAdapterInfo",
     messageFormat = messageFormat,
     description = "getAdapterInfo from Adapter, just for testing kafka and Adapter setting.  ",
     exampleOutboundMessage = (
@@ -172,7 +172,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.Banks",
+    process = "obp.getBanks",
     messageFormat = messageFormat,
     description = "getBanks",
     exampleOutboundMessage = (
@@ -286,7 +286,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getBanks")
   
   messageDocs += MessageDoc(
-    process = "obp.get.Bank",
+    process = "obp.getBank",
     messageFormat = messageFormat,
     description = "getBank from kafka ",
     exampleOutboundMessage = (
@@ -404,7 +404,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getBank")
   
   messageDocs += MessageDoc(
-    process = "obp.get.Accounts",
+    process = "obp.getAccounts",
     messageFormat = messageFormat,
     description = "getBankAccounts from kafka",
     exampleOutboundMessage = (
@@ -528,7 +528,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getBankAccountsFuture")
   
   messageDocs += MessageDoc(
-    process = "obp.get.Account",
+    process = "obp.getAccount",
     messageFormat = messageFormat,
     description = "getBankAccount from kafka",
     exampleOutboundMessage = (
@@ -583,7 +583,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getBankAccount")
   
   messageDocs += MessageDoc(
-    process = "obp.check.BankAccountExists",
+    process = "obp.checkBankAccountExists",
     messageFormat = messageFormat,
     description = "checkBankAccountExists from kafka",
     exampleOutboundMessage = (
@@ -657,7 +657,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
   
   messageDocs += MessageDoc(
-    process = "obp.get.coreBankAccounts",
+    process = "obp.getCoreBankAccounts",
     messageFormat = messageFormat,
     description = "getCoreBankAccounts from kafka",
     exampleOutboundMessage = (
@@ -776,7 +776,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getCoreBankAccountsFuture")
   
   messageDocs += MessageDoc(
-    process = "obp.get.Transactions",
+    process = "obp.getTransactions",
     messageFormat = messageFormat,
     description = "getTransactions from kafka",
     exampleOutboundMessage = (
@@ -810,14 +810,14 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           userId = "String")::Nil))
   )
   // TODO Get rid on these param lookups and document.
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = saveConnectorMetric {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val fromDate = queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
     
 
-    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCached to cache data.
+    //Note: because there is `queryParams: List[OBPQueryParam]` in getTransactions, so create the getTransactionsCached to cache data.
     def getTransactionsCached(bankId: BankId, accountId: AccountId, limit: Int, fromDate: String, toDate: String, callContext: Option[CallContext]): Box[(List[Transaction], Option[CallContext])] = {
       
       val req = OutboundGetTransactions(
@@ -892,7 +892,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
     
     
-    //Note: because there is `queryParams: OBPQueryParam*` in getTransactions, so create the getTransactionsCoreCached to cache data.
+    //Note: because there is `queryParams: List[OBPQueryParam]` in getTransactions, so create the getTransactionsCoreCached to cache data.
     //Note: getTransactionsCoreCached and getTransactionsCached have the same parameters,but the different method name.
     //TODO, here the cache need to be fixed, no sense use callContext as the cache key here.
     def getTransactionsCoreCached(bankId: BankId, accountId: AccountId, limit: Int,fromDate :String, toDate: String,  callContext: Option[CallContext]): Box[(List[TransactionCore], Option[CallContext])] = {
@@ -962,7 +962,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getTransactions")
   
   messageDocs += MessageDoc(
-    process = "obp.get.Transaction",
+    process = "obp.getTransaction",
     messageFormat = messageFormat,
     description = "getTransaction from kafka ",
     exampleOutboundMessage = (
@@ -1048,12 +1048,12 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }}("getTransaction")
   
   messageDocs += MessageDoc(
-    process = "obp.create.Challenge",
+    process = "obp.createChallenge",
     messageFormat = messageFormat,
     description = "CreateChallenge from kafka ",
     exampleOutboundMessage = (
       OutboundChallengeBase(
-        action = "obp.create.Challenge",
+        action = "obp.createChallenge",
         messageFormat = messageFormat,
         bankId = "gh.29.uk",
         accountId = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
@@ -1117,7 +1117,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }
   
   messageDocs += MessageDoc(
-    process = "obp.create.Counterparty",
+    process = "obp.createCounterparty",
     messageFormat = messageFormat,
     description = "createCounterparty from kafka ",
     exampleOutboundMessage = (
@@ -1237,7 +1237,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.transactionRequests210",
+    process = "obp.getTransactionRequests210",
     messageFormat = messageFormat,
     description = "getTransactionRequests210 from kafka ",
     exampleOutboundMessage = (
@@ -1360,7 +1360,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getTransactionRequests210")
   
   messageDocs += MessageDoc(
-    process = "obp.get.counterparties",
+    process = "obp.getCounterparties",
     messageFormat = messageFormat,
     description = "getCounterparties from kafka ",
     exampleOutboundMessage = (
@@ -1449,7 +1449,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }
   
   messageDocs += MessageDoc(
-    process = "obp.get.CounterpartyByCounterpartyId",
+    process = "obp.getCounterpartyByCounterpartyId",
     messageFormat = messageFormat,
     description = "getCounterpartyByCounterpartyId from kafka ",
     exampleOutboundMessage = (
@@ -1464,7 +1464,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       InboundGetCounterparty(authInfoExample, statusExample, Some(InternalCounterparty(createdByUserId = "String", name = "String", thisBankId = "String", thisAccountId = "String", thisViewId = "String", counterpartyId = "String", otherAccountRoutingScheme = "String", otherAccountRoutingAddress = "String", otherBankRoutingScheme = "String", otherBankRoutingAddress = "String", otherBranchRoutingScheme = "String", otherBranchRoutingAddress = "String", isBeneficiary = true, description = "String", otherAccountSecondaryRoutingScheme = "String", otherAccountSecondaryRoutingAddress = "String", bespoke = Nil)))
     )
   )
-  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = saveConnectorMetric{
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = saveConnectorMetric{
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -1550,7 +1550,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.CustomersByUserIdBox",
+    process = "obp.getCustomersByUserIdBox",
     messageFormat = messageFormat,
     description = "getCustomersByUserIdBox from kafka ",
     exampleOutboundMessage = (
@@ -1609,7 +1609,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     }
 
     CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(customersByUserIdBoxTTL second) {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(customersByUserIdTTL second) {
 
         val future: Future[(List[InternalCustomer], Status, Option[CallContext])] = callAdapter(callContext)
 
@@ -1630,7 +1630,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.getStatusOfCheckbookOrdersFuture",
+    process = "obp.getStatusOfCheckbookOrdersFuture",
     messageFormat = messageFormat,
     description = "getStatusOfCheckbookOrdersFuture from kafka ",
     exampleOutboundMessage = (
@@ -1710,7 +1710,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   
   
   messageDocs += MessageDoc(
-    process = "obp.get.getStatusOfCreditCardOrderFuture",
+    process = "obp.getStatusOfCreditCardOrderFuture",
     messageFormat = messageFormat,
     description = "getStatusOfCreditCardOrderFuture from kafka ",
     exampleOutboundMessage = (
@@ -1935,7 +1935,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }
 
   messageDocs += MessageDoc(
-    process = "obp.get.Branches",
+    process = "obp.getBranches",
     messageFormat = messageFormat,
     description = "getBranches",
     exampleOutboundMessage = (
@@ -1986,7 +1986,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2028,7 +2028,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getBranchesFuture")
 
   messageDocs += MessageDoc(
-    process = "obp.get.Branch",
+    process = "obp.getBranch",
     messageFormat = messageFormat,
     description = "getBranch",
     exampleOutboundMessage = (
@@ -2124,7 +2124,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
 
   messageDocs += MessageDoc(
-    process = "obp.get.Atms",
+    process = "obp.getAtms",
     messageFormat = messageFormat,
     description = "getAtms",
     exampleOutboundMessage = (
@@ -2180,7 +2180,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
     )
   )
 
-  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = saveConnectorMetric {
+  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -2222,7 +2222,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
   }("getAtmsFuture")
 
   messageDocs += MessageDoc(
-    process = "obp.get.Atm",
+    process = "obp.getAtm",
     messageFormat = messageFormat,
     description = "getAtm",
     exampleOutboundMessage = (

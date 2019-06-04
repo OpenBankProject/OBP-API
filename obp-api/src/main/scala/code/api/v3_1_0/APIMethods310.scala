@@ -3998,6 +3998,54 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      updateAccount,
+      implementedInApiVersion,
+      nameOf(updateAccount),
+      "PUT",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Update Account.",
+      s"""Update the account. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+       """.stripMargin,
+      updateAccountRequestJsonV310,
+      updateAccountResponseJsonV310,
+      List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagAccount),
+      Some(List(canUpdateAccount))
+    )
+
+    lazy val updateAccount : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canUpdateAccount, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $UpdateAccountRequestJsonV310 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UpdateAccountRequestJsonV310]
+            }
+            (bankAccount,callContext) <- NewStyle.function.updateBankAccount(
+              bankId,
+              accountId,
+              consentJson.`type`,
+              consentJson.label,
+              consentJson.branch_id,
+              consentJson.account_routing.scheme,
+              consentJson.account_routing.address,
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createUpdateResponseAccountJson(bankAccount), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     resourceDocs += ResourceDoc(
       updateCustomerBranch,

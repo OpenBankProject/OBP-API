@@ -104,14 +104,14 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }))
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
     val transactions = for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
     } yield {
       updateAccountTransactions(bank, account)
-      account.envelopes(queryParams: _*).map(createTransaction(_, account))
+      account.envelopes(queryParams).map(createTransaction(_, account))
     }
     transactions.map( transactions => (transactions, callContext))
   }

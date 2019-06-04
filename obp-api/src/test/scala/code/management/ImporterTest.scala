@@ -151,7 +151,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       val f = defaultFixture()
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsBefore = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsBefore.size should equal(0)
 
       When("We try to import transactions without using a secret key")
@@ -161,7 +161,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       response.code should equal(400)
 
       And("No transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsAfter = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsAfter.size should equal(0)
     }
 
@@ -169,7 +169,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       val f = defaultFixture()
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsBefore = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsBefore.size should equal(0)
 
       When("We try to import transactions with the incorrect secret key")
@@ -179,7 +179,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       response.code should equal(401)
 
       And("No transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsAfter = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsAfter.size should equal(0)
     }
 
@@ -187,7 +187,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       val f = defaultFixture()
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsBefore = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsBefore.size should equal(0)
 
       When("We try to import transactions with the correct secret key")
@@ -197,7 +197,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       response.code should equal(200)
 
       And("Transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsAfter = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsAfter.size should equal(2)
 
       And("The transactions should have the correct parameters")
@@ -223,7 +223,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       def checkTransactionOkay(t : Transaction) = checkOkay(t, f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate, f.dummyLabel)
 
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsBefore = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsBefore.size should equal(0)
 
       When("We try to import two identical transactions with the correct secret key")
@@ -237,7 +237,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       response.code should equal(200)
 
       And("Transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsAfter = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsAfter.size should equal(2)
 
       And("The transactions should have the correct parameters")
@@ -261,7 +261,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
 
       Given("Two 'identical' existing transactions")
       addTransactions(importJson, Some(secretKeyValue))
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsBefore = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsBefore.size should equal(2)
 
       tsBefore.foreach(checkTransactionOkay)
@@ -277,7 +277,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       response.code should equal(200)
 
       And("There should still only be two transactions")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsAfter = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsAfter.size should equal(2)
 
       tsAfter.foreach(checkTransactionOkay)
@@ -298,7 +298,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
 
       Given("Two 'identical' existing transactions")
       addTransactions(initialImportJson, Some(secretKeyValue))
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsBefore = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsBefore.size should equal(2)
 
       checkTransactionOkay(tsBefore(0))
@@ -311,7 +311,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       response.code should equal(200)
 
       And("There should now be 5 transactions")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsAfter = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsAfter.size should equal(5)
 
       tsAfter.foreach(checkTransactionOkay)
@@ -333,7 +333,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       Given("Two 'identical' existing transactions at a different account")
       addTransactions(t1F1ImportJson, Some(secretKeyValue))
 
-      val f1TsBefore = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val f1TsBefore = Connector.connector.vend.getTransactionsLegacy(f1.account.bankId, f1.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       f1TsBefore.size should equal(2)
       f1TsBefore.foreach(checkF1TransactionOkay)
 
@@ -341,11 +341,11 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       addTransactions(t1F2ImportJson, Some(secretKeyValue))
 
       Then("There should be two transactions for each account")
-      val f1TsAfter = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val f1TsAfter = Connector.connector.vend.getTransactionsLegacy(f1.account.bankId, f1.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       f1TsAfter.size should equal(2)
       f1TsAfter.foreach(checkF1TransactionOkay)
 
-      val f2Ts = Connector.connector.vend.getTransactions(f2.account.bankId, f2.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val f2Ts = Connector.connector.vend.getTransactionsLegacy(f2.account.bankId, f2.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       f2Ts.size should equal(2)
       f2Ts.foreach(checkF2TransactionOkay)
 
@@ -354,7 +354,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
     scenario("Attempting to import transactions using an incorrect json format") {
       val f = defaultFixture()
       Given("An account with no transactions")
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsBefore = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsBefore.size should equal(0)
 
       When("We try to import transactions with the correct secret key")
@@ -364,7 +364,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
       response.code should equal(200)
 
       And("No transactions should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val tsAfter = Connector.connector.vend.getTransactionsLegacy(f.account.bankId, f.account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox)
       tsAfter.size should equal(0)
     }
 

@@ -524,6 +524,15 @@ trait APIMethods300 {
          |To find ACCOUNT_IDs, use the getFirehoseAccountsAtOneBank call.
          |
          |For VIEW_ID try 'owner'
+         |Possible custom headers for pagination:
+         |
+         |* sort_direction=ASC/DESC ==> default value: DESC. The sort field is the completed date.
+         |* limit=NUMBER ==> default value: 50
+         |* offset=NUMBER ==> default value: 0
+         |* from_date=DATE => default value: $DateWithMsForFilteringFromDateString
+         |* to_date=DATE => default value: $DateWithMsForFilteringEenDateString
+         |
+         |**Date format parameter**: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.        
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -551,7 +560,7 @@ trait APIMethods300 {
               for {
               //Note: error handling and messages for getTransactionParams are in the sub method
                 params <- createQueriesByHttpParams(callContext.get.requestHeaders)
-                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
+                (transactions, callContext) <- bankAccount.getModeratedTransactions(Full(u), view, callContext, params)
               } yield {
                 (createTransactionsJson(transactions), HttpCode.`200`(callContext))
               }
@@ -666,7 +675,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
-            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params: _*) map {
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(user, view, callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {
@@ -874,7 +883,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
-              x => unboxFullOrFail(x, callContext, UserNotFoundByUsername)
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
           } yield {
@@ -1033,7 +1042,7 @@ trait APIMethods300 {
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch),
-      Some(List(canCreateBranch, canCreateBranchAtAnyBank))
+      Some(List(canUpdateBranch))
     )
 
     lazy val updateBranch: OBPEndpoint = {
@@ -1042,12 +1051,7 @@ trait APIMethods300 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(
-              hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
-              ||
-              hasEntitlement("", u.userId, canCreateBranchAtAnyBank) == true
-              , createBranchEntitlementsRequiredText
-            )
+            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canUpdateBranch) == true, s"$UserHasMissingRoles $canUpdateBranch")
             postBranchJsonV300 <- tryo {json.extract[PostBranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + PostBranchJsonV300.toString()}
             branchJsonV300 = BranchJsonV300(
               id = branchId.value, 

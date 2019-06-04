@@ -95,7 +95,7 @@ class MappedAtmsProviderTest extends ServerSetup {
       MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdX)).isDefined should equal(true)
 
       When("we try to get the atms for that bank")
-      val atmsOpt: Option[List[AtmT]] = MappedAtmsProvider.getAtms(BankId(fixture.bankIdX),OBPLimit(1000)) //OBPLimit(1000) is just a place holder
+      val atmsOpt: Option[List[AtmT]] = MappedAtmsProvider.getAtms(BankId(fixture.bankIdX),List(OBPLimit(1000))) //OBPLimit(1000) is just a place holder
 
       Then("We should get a atms list")
       atmsOpt.isDefined should equal (true)
@@ -117,7 +117,7 @@ class MappedAtmsProviderTest extends ServerSetup {
       MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdY)).isDefined should equal(false)
 
       When("we try to get the atms for that bank")
-      val atmDataOpt = MappedAtmsProvider.getAtms(BankId(fixture.bankIdY), OBPLimit(1000)) //OBPLimit(1000) is just a place holder
+      val atmDataOpt = MappedAtmsProvider.getAtms(BankId(fixture.bankIdY), List(OBPLimit(1000))) //OBPLimit(1000) is just a place holder
 
       Then("we should get back an empty list")
       atmDataOpt.isDefined should equal(true)

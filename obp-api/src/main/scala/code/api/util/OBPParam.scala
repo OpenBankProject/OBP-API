@@ -49,16 +49,16 @@ object OBPQueryParam {
   val FROM_DATE = "fromDate"
   val TO_DATE = "toDate"
 
-  def getLimit(queryParams: OBPQueryParam*) : Int = {
+  def getLimit(queryParams: List[OBPQueryParam]) : Int = {
      queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
   }
-  def getOffset(queryParams: OBPQueryParam*) : Int = {
+  def getOffset(queryParams: List[OBPQueryParam]) : Int = {
     queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
   }
-  def getFromDate(queryParams: OBPQueryParam*) : String = {
+  def getFromDate(queryParams: List[OBPQueryParam]) : String = {
     queryParams.collect { case OBPFromDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultFromDate.toString)
   }
-  def getToDate(queryParams: OBPQueryParam*) : String = {
+  def getToDate(queryParams: List[OBPQueryParam]) : String = {
     queryParams.collect { case OBPToDate(date) => date.toString }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
   }
 
