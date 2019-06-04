@@ -351,6 +351,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.updateCustomerEmail ::
                           Implementations3_1_0.updateCustomerMobileNumber ::
                           Implementations3_1_0.updateCustomerIdentity ::
+                          Implementations3_1_0.updateCustomerBranch ::
                           Implementations3_1_0.updateCustomerCreditLimit ::
                           Implementations3_1_0.updateCustomerCreditRatingAndSource ::
                           Nil
