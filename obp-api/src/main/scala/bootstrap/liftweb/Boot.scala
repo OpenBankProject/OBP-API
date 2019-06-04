@@ -41,6 +41,7 @@ import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
+import code.api.util.migration.Migration
 import code.atms.MappedAtm
 import code.bankconnectors.ConnectorEndpoints
 import code.branches.MappedBranch
@@ -70,7 +71,7 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric}
-import code.migration.MappedMigrationScriptLog
+import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
@@ -90,6 +91,7 @@ import code.transaction_types.MappedTransactionType
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
+import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
@@ -101,7 +103,6 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, Schedule, _}
-
 
 
 /**
@@ -216,7 +217,7 @@ class Boot extends MdcLoggable {
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-    if(connector != "mongodb")
+    if(connector != "mongodb" || connector == "star")
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)
@@ -553,8 +554,8 @@ class Boot extends MdcLoggable {
 object ToSchemify {
   // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
   val modelsRemotedata = List(
-    ViewImpl,
-    ViewPrivileges,
+    AccountAccess,
+    ViewDefinition,
     ResourceUser,
     MappedComment,
     MappedTag,
@@ -620,7 +621,7 @@ object ToSchemify {
     MappedCustomerIDMapping,
     MappedProductAttribute,
     MappedConsent,
-    MappedMigrationScriptLog,
+    MigrationScriptLog,
     MethodRouting,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

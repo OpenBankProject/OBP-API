@@ -221,6 +221,7 @@ object ErrorMessages {
   val UpdateUserAuthContextNotFound = "OBP-30055: UserAuthContext not found. Please specify a valid value for USER_ID."
   val DeleteUserAuthContextNotFound = "OBP-30056: UserAuthContext not found by USER_AUTH_CONTEXT_ID."
   val UserAuthContextUpdateNotFound = "OBP-30057: User Auth Context Update not found by AUTH_CONTEXT_UPDATE_ID."
+  val UpdateCustomerError = "OBP-30058: Cannot update the Customer"
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -264,6 +265,7 @@ object ErrorMessages {
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
   val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"
+  val UpdateSystemViewError = "OBP-30253: Could not update the system view"
 
   val TaxResidenceNotFound = "OBP-30300: Tax Residence not found by TAX_RESIDENCE_ID. "
   val CustomerAddressNotFound = "OBP-30310: Customer's Address not found by CUSTOMER_ADDRESS_ID. "

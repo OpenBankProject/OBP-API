@@ -28,19 +28,15 @@ package code.api.v1_2_1
 
 import _root_.net.liftweb.json.Serialization.write
 import code.api.util.APIUtil
-import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.OAuth._
 import code.bankconnectors.Connector
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
+import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
 import code.views.Views
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonDSL._
+import com.openbankproject.commons.model._
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import _root_.net.liftweb.util.{Props, _}
-import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, User1AllPrivileges}
-import com.openbankproject.commons.model._
 import org.scalatest.Tag
+import code.api.util.ErrorMessages._
 
 import scala.util.Random._
 
@@ -1571,8 +1567,9 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       When("we try to update that view")
       val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
-      Then("We should get a 404")
-      reply.code should equal(404)
+      Then("We should get a 400")
+      reply.code should equal(400)
+      reply.body.extract[ErrorMessage].message should equal (ViewNotFound)
     }
 
     scenario("We will not update a view on a bank account due to missing token", API1_2_1, PutView){
@@ -2008,28 +2005,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       viewsAfter should equal(viewsBefore -1)
     }
 
-    scenario("we cannot revoke the access of a user to owner view on an bank account if there is only one user", API1_2_1, DeletePermission){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewId = ViewId("owner")
-      val view = Views.views.vend.view(viewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
-      if(Views.views.vend.getOwners(view).toList.length == 0){
-        val userId = resourceUser2.idGivenByProvider
-        grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
-      }
-      while(Views.views.vend.getOwners(view).toList.length > 1){
-        revokeUserAccessToView(bankId, bankAccount.id, Views.views.vend.getOwners(view).toList(0).idGivenByProvider, viewId.value, user1)
-      }
-      val viewUsersBefore = Views.views.vend.getOwners(view).toList
-      When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId.value, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      val viewUsersAfter = Views.views.vend.getOwners(view).toList
-      viewUsersAfter.length should equal(viewUsersBefore.length)
-    }
-
     scenario("we cannot revoke the access to a user that does not exist", API1_2_1, DeletePermission){
       Given("We will use an access token with a random user Id")
       val bankId = randomBank
@@ -2069,8 +2044,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -2224,8 +2199,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = getTheCounterparties(bankId, bankAccount.id, randomString(5), user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -2282,8 +2257,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val otherBankAccount = randomCounterparty(bankId, bankAccount.id, randomViewPermalink(bankId, bankAccount))
       When("the request is sent")
       val reply = getTheCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -2353,8 +2328,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getMetadataOfOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -2423,8 +2398,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePublicAliasForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -2510,8 +2485,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomAlias = randomString(5)
       When("the request is sent")
       val postReply = postAPublicAliasForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomAlias, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
@@ -2718,8 +2693,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePrivateAliasForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -2805,8 +2780,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomAlias = randomString(5)
       When("the request is sent")
       val postReply = postAPrivateAliasForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomAlias, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the alias should not be changed")
@@ -3026,8 +3001,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomInfo = randomString(20)
       When("the request is sent")
       val postReply = postMoreInfoForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomInfo, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the information should not be changed")
@@ -3244,8 +3219,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomURL = randomString(20)
       When("the request is sent")
       val postReply = postUrlForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomURL, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the url should not be changed")
@@ -3462,8 +3437,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomImageURL = randomString(20)
       When("the request is sent")
       val postReply = postImageUrlForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomImageURL, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image url should not be changed")
@@ -3680,8 +3655,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomURL = randomString(20)
       When("the request is sent")
       val postReply = postOpenCorporatesUrlForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomURL, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the open corporates url should not be changed")
@@ -3908,8 +3883,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postCorporateLocationForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomLoc, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -4146,8 +4121,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postPhysicalLocationForOneCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomLoc, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -4339,13 +4314,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val reply = getTransactions(bankId,bankAccount.id,randomString(5), user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
     }
   }
 
   feature("transactions with params"){
-    import java.text.SimpleDateFormat
     import java.util.{Calendar, Date}
 
     val defaultFormat = APIUtil.DateWithMsFormat
@@ -4722,8 +4696,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
     }
 
     scenario("we will not get transaction data because the transaction does not exist", API1_2_1, GetTransaction){
@@ -4789,8 +4763,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getNarrativeForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -4875,8 +4849,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomNarrative = randomString(20)
       When("the request is sent")
       val postReply = postNarrativeForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomNarrative, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the narrative should not be added")
@@ -5091,8 +5065,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getCommentsForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -5189,8 +5163,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomComment = PostTransactionCommentJSON(randomString(20))
       When("the request is sent")
       val postReply = postCommentForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomComment, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the comment should not be added")
@@ -5317,8 +5291,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val postedComment = postedReply.body.extract[TransactionCommentJSON]
       When("the delete request is sent")
       val deleteReply = deleteCommentForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, postedComment.id, user1)
-      Then("we should get a 404 code")
-      deleteReply.code should equal (404)
+      Then("we should get a 400 code")
+      deleteReply.code should equal (400)
     }
   }
   
@@ -5434,8 +5408,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTagsForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -5530,8 +5504,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomTag = PostTransactionTagJSON(randomString(5))
       When("the request is sent")
       val postReply = postTagForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomTag, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the tag should not be added")
@@ -5658,8 +5632,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val postedTag = postedReply.body.extract[TransactionTagJSON]
       When("the delete request is sent")
       val deleteReply = deleteTagForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id,  postedTag.id, user1)
-      Then("we should get a 404 code")
-      deleteReply.code should equal (404)
+      Then("we should get a 400 code")
+      deleteReply.code should equal (400)
     }
   }
 
@@ -5774,8 +5748,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getImagesForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -5870,8 +5844,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       When("the request is sent")
       val postReply = postImageForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomImage, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
       And("the image should not be added")
@@ -5998,8 +5972,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val postedImage = postedReply.body.extract[TransactionImageJSON]
       When("the delete request is sent")
       val deleteReply = deleteImageForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, postedImage.id, user1)
-      Then("we should get a 404 code")
-      deleteReply.code should equal (404)
+      Then("we should get a 400 code")
+      deleteReply.code should equal (400)
     }
   }
   
@@ -6121,8 +6095,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)
       When("the request is sent")
       val reply = getWhereForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -6215,8 +6189,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply =  postWhereForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomLoc, user1)
-      Then("we should get a 404 code")
-      postReply.code should equal (404)
+      Then("we should get a 400 code")
+      postReply.code should equal (400)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -6502,10 +6476,10 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheCounterpartyOfOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 404 code")
-      reply.code should equal (404)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+      reply.body.extract[ErrorMessage].message should equal (ViewNotFound)
     }
 
     scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){

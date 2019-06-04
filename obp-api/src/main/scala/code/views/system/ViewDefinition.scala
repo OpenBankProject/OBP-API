@@ -1,187 +1,43 @@
-/**
-Open Bank Project - API
-Copyright (C) 2011-2018, TESOBE Ltd.
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Email: contact@tesobe.com
-TESOBE Ltd.
-Osloer Strasse 16/17
-Berlin 13359, Germany
-
-This product includes software developed at
-TESOBE (http://www.tesobe.com/)
-
-  */
-
-package code.model.dataAccess
+package code.views.system
 
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
+import net.liftweb.common.Box
+import net.liftweb.common.Box.tryo
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 
-/*
-This stores the link between A User and a View
-A User can't use a View unless it is listed here.
- */
-class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
-  def getSingleton = ViewPrivileges
-  object user extends MappedLongForeignKey(this, ResourceUser)
-  object view extends MappedLongForeignKey(this, ViewImpl)
-}
-object ViewPrivileges extends ViewPrivileges with LongKeyedMetaMapper[ViewPrivileges]
 
-class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with CreatedUpdated{
-  def getSingleton = ViewImpl
+class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with ManyToMany with CreatedUpdated{
+  def getSingleton = ViewDefinition
 
   def primaryKeyField = id_
-  
-  //This field used ManyToMany  
-  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
-
-  object bankPermalink extends UUIDString(this) {
-    override def defaultValue: Null = null
-  }
-  object accountPermalink extends AccountIdString(this) {
-    override def defaultValue: Null = null
-  }
 
   object id_ extends MappedLongIndex(this)
   object name_ extends MappedString(this, 125)
   object description_ extends MappedString(this, 255)
-  //view.permalink (UUID) is view.name without spaces.  (view.name = my life) <---> (view-permalink = mylife)
-  //we only constraint it when we create it : code.views.MapperViews.createView 
-  object permalink_ extends UUIDString(this)
-  object metadataView_ extends UUIDString(this)
-
-  //if metadataView_ = null or empty, we need use the current view's viewId.
-  def metadataView = if (metadataView_.get ==null || metadataView_.get == "") permalink_.get else metadataView_.get 
-  def users : List[User] =  users_.toList
-
-  //Important! If you add a field, be sure to handle it here in this function
-  def setFromViewData(viewData : ViewSpecification) = {
-
-    if(viewData.which_alias_to_use == "public"){
-      usePublicAliasIfOneExists_(true)
-      usePrivateAliasIfOneExists_(false)
-    } else if(viewData.which_alias_to_use == "private"){
-      usePublicAliasIfOneExists_(false)
-      usePrivateAliasIfOneExists_(true)
-    } else {
-      usePublicAliasIfOneExists_(false)
-      usePrivateAliasIfOneExists_(false)
-    }
-
-    hideOtherAccountMetadataIfAlias_(viewData.hide_metadata_if_alias_used)
-    description_(viewData.description)
-    isPublic_(viewData.is_public)
-    metadataView_(viewData.metadata_view)
-
-    val actions = viewData.allowed_actions
-
-    canSeeTransactionThisBankAccount_(actions.exists(_ =="can_see_transaction_this_bank_account"))
-    canSeeTransactionOtherBankAccount_(actions.exists(_ =="can_see_transaction_other_bank_account"))
-    canSeeTransactionMetadata_(actions.exists(_ == "can_see_transaction_metadata"))
-    canSeeTransactionDescription_(actions.exists(a => a == "can_see_transaction_label" || a == "can_see_transaction_description"))
-    canSeeTransactionAmount_(actions.exists(_ == "can_see_transaction_amount"))
-    canSeeTransactionType_(actions.exists(_ == "can_see_transaction_type"))
-    canSeeTransactionCurrency_(actions.exists(_ == "can_see_transaction_currency"))
-    canSeeTransactionStartDate_(actions.exists(_ == "can_see_transaction_start_date"))
-    canSeeTransactionFinishDate_(actions.exists(_ == "can_see_transaction_finish_date"))
-    canSeeTransactionBalance_(actions.exists(_ == "can_see_transaction_balance"))
-    canSeeComments_(actions.exists(_ == "can_see_comments"))
-    canSeeOwnerComment_(actions.exists(_ == "can_see_narrative"))
-    canSeeTags_(actions.exists(_ == "can_see_tags"))
-    canSeeImages_(actions.exists(_ == "can_see_images"))
-    canSeeBankAccountOwners_(actions.exists(_ == "can_see_bank_account_owners"))
-    canSeeBankAccountType_(actions.exists(_ == "can_see_bank_account_type"))
-    canSeeBankAccountBalance_(actions.exists(_ == "can_see_bank_account_balance"))
-    canQueryAvailableFunds_(actions.exists(_ == "can_query_available_funds"))
-    canSeeBankAccountCurrency_(actions.exists(_ == "can_see_bank_account_currency"))
-    canSeeBankAccountLabel_(actions.exists(_ == "can_see_bank_account_label"))
-    canSeeBankAccountNationalIdentifier_(actions.exists(_ == "can_see_bank_account_national_identifier"))
-    canSeeBankAccountSwift_bic_(actions.exists(_ == "can_see_bank_account_swift_bic"))
-    canSeeBankAccountIban_(actions.exists(_ == "can_see_bank_account_iban"))
-    canSeeBankAccountNumber_(actions.exists(_ == "can_see_bank_account_number"))
-    canSeeBankAccountBankName_(actions.exists(_ == "can_see_bank_account_bank_name"))
-    canSeeBankAccountBankPermalink_(actions.exists(_ == "can_see_bank_account_bank_permalink"))
-    canSeeBankRoutingScheme_(actions.exists(_ == "can_see_bank_routing_scheme"))
-    canSeeBankRoutingAddress_(actions.exists(_ == "can_see_bank_routing_address"))
-    canSeeBankAccountRoutingScheme_(actions.exists(_ == "can_see_bank_account_routing_scheme"))
-    canSeeBankAccountRoutingAddress_(actions.exists(_ == "can_see_bank_account_routing_address"))
-    canSeeOtherAccountNationalIdentifier_(actions.exists(_ == "can_see_other_account_national_identifier"))
-    canSeeOtherAccountSWIFT_BIC_(actions.exists(_ == "can_see_other_account_swift_bic"))
-    canSeeOtherAccountIBAN_(actions.exists(_ == "can_see_other_account_iban"))
-    canSeeOtherAccountBankName_(actions.exists(_ == "can_see_other_account_bank_name"))
-    canSeeOtherAccountNumber_(actions.exists(_ == "can_see_other_account_number"))
-    canSeeOtherAccountMetadata_(actions.exists(_ == "can_see_other_account_metadata"))
-    canSeeOtherAccountKind_(actions.exists(_ == "can_see_other_account_kind"))
-    canSeeOtherBankRoutingScheme_(actions.exists(_ == "can_see_other_bank_routing_scheme"))
-    canSeeOtherBankRoutingAddress_(actions.exists(_ == "can_see_other_bank_routing_address"))
-    canSeeOtherAccountRoutingScheme_(actions.exists(_ == "can_see_other_account_routing_scheme"))
-    canSeeOtherAccountRoutingAddress_(actions.exists(_ == "can_see_other_account_routing_address"))
-    canSeeMoreInfo_(actions.exists(_ == "can_see_more_info"))
-    canSeeUrl_(actions.exists(_ == "can_see_url"))
-    canSeeImageUrl_(actions.exists(_ == "can_see_image_url"))
-    canSeeOpenCorporatesUrl_(actions.exists(_ == "can_see_open_corporates_url"))
-    canSeeCorporateLocation_(actions.exists(_ == "can_see_corporate_location"))
-    canSeePhysicalLocation_(actions.exists(_ == "can_see_physical_location"))
-    canSeePublicAlias_(actions.exists(_ == "can_see_public_alias"))
-    canSeePrivateAlias_(actions.exists(_ == "can_see_private_alias"))
-    canAddMoreInfo_(actions.exists(_ == "can_add_more_info"))
-    canAddURL_(actions.exists(_ == "can_add_url"))
-    canAddImageURL_(actions.exists(_ == "can_add_image_url"))
-    canAddOpenCorporatesUrl_(actions.exists(_ == "can_add_open_corporates_url"))
-    canAddCorporateLocation_(actions.exists(_ == "can_add_corporate_location"))
-    canAddPhysicalLocation_(actions.exists(_ == "can_add_physical_location"))
-    canAddPublicAlias_(actions.exists(_ == "can_add_public_alias"))
-    canAddPrivateAlias_(actions.exists(_ == "can_add_private_alias"))
-    canAddCounterparty_(actions.exists(_ == "can_add_counterparty"))
-    canDeleteCorporateLocation_(actions.exists(_ == "can_delete_corporate_location"))
-    canDeletePhysicalLocation_(actions.exists(_ == "can_delete_physical_location"))
-    canEditOwnerComment_(actions.exists(_ == "can_edit_narrative"))
-    canAddComment_(actions.exists(_ == "can_add_comment"))
-    canDeleteComment_(actions.exists(_ == "can_delete_comment"))
-    canAddTag_(actions.exists(_ == "can_add_tag"))
-    canDeleteTag_(actions.exists(_ == "can_delete_tag"))
-    canAddImage_(actions.exists(_ == "can_add_image"))
-    canDeleteImage_(actions.exists(_ == "can_delete_image"))
-    canAddWhereTag_(actions.exists(_ == "can_add_where_tag"))
-    canSeeWhereTag_(actions.exists(_ == "can_see_where_tag"))
-    canDeleteWhereTag_(actions.exists(_ == "can_delete_where_tag"))
-    canAddTransactionRequestToOwnAccount_(actions.exists(_ == "can_add_transaction_request_to_own_account")) //added following two for payments
-    canAddTransactionRequestToAnyAccount_(actions.exists(_ == "can_add_transaction_request_to_any_account"))
-    canSeeBankAccountCreditLimit_(actions.exists(_ == "can_see_bank_account_credit_limit"))
+  object bank_id extends UUIDString(this) {
+    override def defaultValue: Null = null
   }
-
+  object account_id extends AccountIdString(this) {
+    override def defaultValue: Null = null
+  }
+  object view_id extends UUIDString(this)
+  object composite_unique_key extends MappedString(this, 512)
+  object metadataView_ extends UUIDString(this)
   object isSystem_ extends MappedBoolean(this){
     override def defaultValue = false
     override def dbIndexed_? = true
   }
-
   object isPublic_ extends MappedBoolean(this){
     override def defaultValue = false
     override def dbIndexed_? = true
   }
-
   object isFirehose_ extends MappedBoolean(this){
     override def defaultValue = true
     override def dbIndexed_? = true
   }
-
   object usePrivateAliasIfOneExists_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -191,7 +47,6 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object hideOtherAccountMetadataIfAlias_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-
   object canSeeTransactionThisBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -402,7 +257,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canDeleteWhereTag_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canAddTransactionRequestToOwnAccount_ extends MappedBoolean(this){ 
+  object canAddTransactionRequestToOwnAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canAddTransactionRequestToAnyAccount_ extends MappedBoolean(this){
@@ -412,19 +267,117 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
 
+  //Important! If you add a field, be sure to handle it here in this function
+  def setFromViewData(viewData : ViewSpecification) = {
+    if(viewData.which_alias_to_use == "public"){
+      usePublicAliasIfOneExists_(true)
+      usePrivateAliasIfOneExists_(false)
+    } else if(viewData.which_alias_to_use == "private"){
+      usePublicAliasIfOneExists_(false)
+      usePrivateAliasIfOneExists_(true)
+    } else {
+      usePublicAliasIfOneExists_(false)
+      usePrivateAliasIfOneExists_(false)
+    }
+
+    hideOtherAccountMetadataIfAlias_(viewData.hide_metadata_if_alias_used)
+    description_(viewData.description)
+    isPublic_(viewData.is_public)
+    metadataView_(viewData.metadata_view)
+
+    val actions = viewData.allowed_actions
+
+    canSeeTransactionThisBankAccount_(actions.exists(_ =="can_see_transaction_this_bank_account"))
+    canSeeTransactionOtherBankAccount_(actions.exists(_ =="can_see_transaction_other_bank_account"))
+    canSeeTransactionMetadata_(actions.exists(_ == "can_see_transaction_metadata"))
+    canSeeTransactionDescription_(actions.exists(a => a == "can_see_transaction_label" || a == "can_see_transaction_description"))
+    canSeeTransactionAmount_(actions.exists(_ == "can_see_transaction_amount"))
+    canSeeTransactionType_(actions.exists(_ == "can_see_transaction_type"))
+    canSeeTransactionCurrency_(actions.exists(_ == "can_see_transaction_currency"))
+    canSeeTransactionStartDate_(actions.exists(_ == "can_see_transaction_start_date"))
+    canSeeTransactionFinishDate_(actions.exists(_ == "can_see_transaction_finish_date"))
+    canSeeTransactionBalance_(actions.exists(_ == "can_see_transaction_balance"))
+    canSeeComments_(actions.exists(_ == "can_see_comments"))
+    canSeeOwnerComment_(actions.exists(_ == "can_see_narrative"))
+    canSeeTags_(actions.exists(_ == "can_see_tags"))
+    canSeeImages_(actions.exists(_ == "can_see_images"))
+    canSeeBankAccountOwners_(actions.exists(_ == "can_see_bank_account_owners"))
+    canSeeBankAccountType_(actions.exists(_ == "can_see_bank_account_type"))
+    canSeeBankAccountBalance_(actions.exists(_ == "can_see_bank_account_balance"))
+    canQueryAvailableFunds_(actions.exists(_ == "can_query_available_funds"))
+    canSeeBankAccountCurrency_(actions.exists(_ == "can_see_bank_account_currency"))
+    canSeeBankAccountLabel_(actions.exists(_ == "can_see_bank_account_label"))
+    canSeeBankAccountNationalIdentifier_(actions.exists(_ == "can_see_bank_account_national_identifier"))
+    canSeeBankAccountSwift_bic_(actions.exists(_ == "can_see_bank_account_swift_bic"))
+    canSeeBankAccountIban_(actions.exists(_ == "can_see_bank_account_iban"))
+    canSeeBankAccountNumber_(actions.exists(_ == "can_see_bank_account_number"))
+    canSeeBankAccountBankName_(actions.exists(_ == "can_see_bank_account_bank_name"))
+    canSeeBankAccountBankPermalink_(actions.exists(_ == "can_see_bank_account_bank_permalink"))
+    canSeeBankRoutingScheme_(actions.exists(_ == "can_see_bank_routing_scheme"))
+    canSeeBankRoutingAddress_(actions.exists(_ == "can_see_bank_routing_address"))
+    canSeeBankAccountRoutingScheme_(actions.exists(_ == "can_see_bank_account_routing_scheme"))
+    canSeeBankAccountRoutingAddress_(actions.exists(_ == "can_see_bank_account_routing_address"))
+    canSeeOtherAccountNationalIdentifier_(actions.exists(_ == "can_see_other_account_national_identifier"))
+    canSeeOtherAccountSWIFT_BIC_(actions.exists(_ == "can_see_other_account_swift_bic"))
+    canSeeOtherAccountIBAN_(actions.exists(_ == "can_see_other_account_iban"))
+    canSeeOtherAccountBankName_(actions.exists(_ == "can_see_other_account_bank_name"))
+    canSeeOtherAccountNumber_(actions.exists(_ == "can_see_other_account_number"))
+    canSeeOtherAccountMetadata_(actions.exists(_ == "can_see_other_account_metadata"))
+    canSeeOtherAccountKind_(actions.exists(_ == "can_see_other_account_kind"))
+    canSeeOtherBankRoutingScheme_(actions.exists(_ == "can_see_other_bank_routing_scheme"))
+    canSeeOtherBankRoutingAddress_(actions.exists(_ == "can_see_other_bank_routing_address"))
+    canSeeOtherAccountRoutingScheme_(actions.exists(_ == "can_see_other_account_routing_scheme"))
+    canSeeOtherAccountRoutingAddress_(actions.exists(_ == "can_see_other_account_routing_address"))
+    canSeeMoreInfo_(actions.exists(_ == "can_see_more_info"))
+    canSeeUrl_(actions.exists(_ == "can_see_url"))
+    canSeeImageUrl_(actions.exists(_ == "can_see_image_url"))
+    canSeeOpenCorporatesUrl_(actions.exists(_ == "can_see_open_corporates_url"))
+    canSeeCorporateLocation_(actions.exists(_ == "can_see_corporate_location"))
+    canSeePhysicalLocation_(actions.exists(_ == "can_see_physical_location"))
+    canSeePublicAlias_(actions.exists(_ == "can_see_public_alias"))
+    canSeePrivateAlias_(actions.exists(_ == "can_see_private_alias"))
+    canAddMoreInfo_(actions.exists(_ == "can_add_more_info"))
+    canAddURL_(actions.exists(_ == "can_add_url"))
+    canAddImageURL_(actions.exists(_ == "can_add_image_url"))
+    canAddOpenCorporatesUrl_(actions.exists(_ == "can_add_open_corporates_url"))
+    canAddCorporateLocation_(actions.exists(_ == "can_add_corporate_location"))
+    canAddPhysicalLocation_(actions.exists(_ == "can_add_physical_location"))
+    canAddPublicAlias_(actions.exists(_ == "can_add_public_alias"))
+    canAddPrivateAlias_(actions.exists(_ == "can_add_private_alias"))
+    canAddCounterparty_(actions.exists(_ == "can_add_counterparty"))
+    canDeleteCorporateLocation_(actions.exists(_ == "can_delete_corporate_location"))
+    canDeletePhysicalLocation_(actions.exists(_ == "can_delete_physical_location"))
+    canEditOwnerComment_(actions.exists(_ == "can_edit_narrative"))
+    canAddComment_(actions.exists(_ == "can_add_comment"))
+    canDeleteComment_(actions.exists(_ == "can_delete_comment"))
+    canAddTag_(actions.exists(_ == "can_add_tag"))
+    canDeleteTag_(actions.exists(_ == "can_delete_tag"))
+    canAddImage_(actions.exists(_ == "can_add_image"))
+    canDeleteImage_(actions.exists(_ == "can_delete_image"))
+    canAddWhereTag_(actions.exists(_ == "can_add_where_tag"))
+    canSeeWhereTag_(actions.exists(_ == "can_see_where_tag"))
+    canDeleteWhereTag_(actions.exists(_ == "can_delete_where_tag"))
+    canAddTransactionRequestToOwnAccount_(actions.exists(_ == "can_add_transaction_request_to_own_account")) //added following two for payments
+    canAddTransactionRequestToAnyAccount_(actions.exists(_ == "can_add_transaction_request_to_any_account"))
+    canSeeBankAccountCreditLimit_(actions.exists(_ == "can_see_bank_account_credit_limit"))
+  }
+
+  
+
   def id: Long = id_.get
-  def isSystem: Boolean = isSystem_.get
-
-  def viewId : ViewId = ViewId(permalink_.get)
-  def accountId : AccountId = AccountId(accountPermalink.get)
-  def bankId : BankId = BankId(bankPermalink.get)
-
+  def viewId : ViewId = ViewId(view_id.get)
+  def viewIdInternal: String = composite_unique_key.get
+  //if metadataView_ = null or empty, we need use the current view's viewId.
+  def metadataView = if (metadataView_.get ==null || metadataView_.get == "") view_id.get else metadataView_.get
+  def users : List[User] = Nil
+  def bankId = BankId(bank_id.get)
+  def accountId = AccountId(account_id.get)
   def name: String = name_.get
   def description : String = description_.get
   def isPublic : Boolean = isPublic_.get
   def isPrivate : Boolean = !isPublic_.get
   def isFirehose : Boolean = isFirehose_.get
-
+  def isSystem: Boolean = isSystem_.get
   //the view settings
   def usePrivateAliasIfOneExists: Boolean = usePrivateAliasIfOneExists_.get
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
@@ -521,6 +474,33 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   // (e.g. BankAccountCreationDispatcher)
 }
 
-object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
-  override def dbIndexes = UniqueIndex(bankPermalink, accountPermalink, permalink_) :: super.dbIndexes
+object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {
+  override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(composite_unique_key) :: super.dbIndexes
+  override def beforeSave = List(
+    t =>
+      tryo {
+        val viewId = getUniqueKey(t.bank_id.get, t.account_id.get, t.view_id.get)
+        t.composite_unique_key(viewId)
+      }
+  )
+
+  def findSystemView(viewId: String): Box[ViewDefinition] = {
+    ViewDefinition.find(
+      NullRef(ViewDefinition.bank_id),
+      NullRef(ViewDefinition.account_id),
+      By(ViewDefinition.view_id, viewId)
+    )
+  }
+
+  def findByUniqueKey(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
+    val uniqueKey = getUniqueKey(bankId, accountId, viewId)
+    ViewDefinition.find(
+      By(ViewDefinition.composite_unique_key, uniqueKey)
+    )
+  }
+
+  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewDefinition]] = {
+    By(bank_id, bankId.value) :: By(account_id, accountId.value) :: Nil
+  }
+  def getUniqueKey(bankId: String, accountId: String, viewId: String) = List(bankId, accountId, viewId).mkString("|","|--|","|")
 }

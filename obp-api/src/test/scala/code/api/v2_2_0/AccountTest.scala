@@ -42,9 +42,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val accountPutJSON = createAccountJSONV220
       val requestPut = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
-org.scalameta.logger.elem(responsePut)
       And("We should get a 200")
-      org.scalameta.logger.elem(responsePut)
       responsePut.code should equal(200)
 
       When("We make the authenticated access request")

@@ -53,6 +53,21 @@ object ApiRole {
   case class CanCreateCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomer = CanCreateCustomer()
 
+  case class CanUpdateCustomerEmail(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerEmail = CanUpdateCustomerEmail()
+
+  case class CanUpdateCustomerMobilePhoneNumber(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerMobilePhoneNumber = CanUpdateCustomerMobilePhoneNumber()
+
+  case class CanUpdateCustomerIdentity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerIdentity = CanUpdateCustomerIdentity()
+
+  case class CanUpdateCustomerCreditLimit(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerCreditLimit = CanUpdateCustomerCreditLimit()
+
+  case class CanUpdateCustomerCreditRatingAndSource(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerCreditRatingAndSource = CanUpdateCustomerCreditRatingAndSource()
+
   case class CanCreateCustomerAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateCustomerAtAnyBank = CanCreateCustomerAtAnyBank()
 
@@ -388,10 +403,15 @@ object ApiRole {
       canGetSystemView ::
       canDeleteSystemView ::
       canCreateUserAuthContextUpdate ::
-        canGetMethodRoutings ::
-        canCreateMethodRouting ::
-        canUpdateMethodRouting ::
-        canDeleteMethodRouting ::
+        canUpdateCustomerEmail ::
+        canUpdateCustomerMobilePhoneNumber ::
+        canUpdateCustomerIdentity ::
+        canUpdateCustomerCreditLimit ::
+        canUpdateCustomerCreditRatingAndSource ::
+      canGetMethodRoutings ::
+      canCreateMethodRouting ::
+      canUpdateMethodRouting ::
+      canDeleteMethodRouting ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

@@ -5,20 +5,20 @@ import net.liftweb.mapper.By
 
 object MappedMigrationScriptLogProvider extends MigrationScriptLogProvider with MdcLoggable {
   override def saveLog(name: String, commitId: String, isSuccessful: Boolean, startDate: Long, endDate: Long, comment: String): Boolean = {
-    MappedMigrationScriptLog
+    MigrationScriptLog
       .create
-      .mName(name)
-      .mCommitId(commitId)
-      .mIsSuccessful(isSuccessful)
-      .mStartDate(startDate)
-      .mEndDate(endDate)
-      .mComment(comment)
+      .Name(name)
+      .CommitId(commitId)
+      .IsSuccessful(isSuccessful)
+      .StartDate(startDate)
+      .EndDate(endDate)
+      .Remark(comment)
       .save()
   }
   override def isExecuted(name: String): Boolean = {
-    MappedMigrationScriptLog.find(
-      By(MappedMigrationScriptLog.mName, name),
-      By(MappedMigrationScriptLog.mIsSuccessful, true)
+    MigrationScriptLog.find(
+      By(MigrationScriptLog.Name, name),
+      By(MigrationScriptLog.IsSuccessful, true)
     ).isDefined
   }
 }

@@ -1427,6 +1427,35 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                       nameSuffix: String,
                       callContext: Option[CallContext],
                     ): OBPReturnType[Box[Customer]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def updateCustomerScaData(customerId: String, 
+                            mobileNumber: Option[String], 
+                            email: Option[String],
+                            callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def updateCustomerCreditData(customerId: String,
+                               creditRating: Option[String],
+                               creditSource: Option[String],
+                               creditLimit: Option[AmountOfMoney],
+                               callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def updateCustomerGeneralData(customerId: String,
+                                legalName: Option[String],
+                                faceImage: Option[CustomerFaceImageTrait],
+                                dateOfBirth: Option[Date],
+                                relationshipStatus: Option[String],
+                                dependents: Option[Int],
+                                highestEducationAttained: Option[String],
+                                employmentStatus: Option[String],
+                                title: Option[String],
+                                branchId: Option[String],
+                                nameSuffix: Option[String],
+                                callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
+    Future {
+      (Failure(setUnimplementedError), callContext)
+    }
 
   def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]] = Future{Failure(setUnimplementedError)}
 

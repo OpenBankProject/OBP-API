@@ -993,7 +993,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
@@ -1041,7 +1041,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
@@ -1112,7 +1112,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
@@ -2297,7 +2297,7 @@ trait APIMethods300 {
       emptyObjectJson,
       banksJSON,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagBank :: apiTagNewStyle :: Nil)
 
     //The Json Body is totally the same as V121, just use new style endpoint.
@@ -2328,7 +2328,7 @@ trait APIMethods300 {
       emptyObjectJson,
       bankJSON,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagBank :: apiTagNewStyle :: Nil)
 
     //The Json Body is totally the same as V121, just use new style endpoint.

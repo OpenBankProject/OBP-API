@@ -178,6 +178,7 @@ case class UpdateViewJSON(
 
   */
 trait View {
+  def id: Long
 
   // metedataView is tricky, it used for all the transaction meta in different views share the same metadataView.
   // we create, get, update transaction.meta call the deufault metadataView. Not the currentView.
