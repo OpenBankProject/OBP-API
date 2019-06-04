@@ -27,7 +27,7 @@ import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
-import code.methodrouting.{MethodRoutingCommons}
+import code.methodrouting.MethodRoutingCommons
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -41,6 +41,7 @@ import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, Formats, parse}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.Validate
@@ -3823,7 +3824,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[MethodRoutingCommons]
             }
-            invalidRegexMsg = s"$InvalidRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
+            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
               // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
               if(!postedData.isBankIdExactMatch && postedData.bankIdPattern.isDefined) {
@@ -3888,7 +3889,7 @@ trait APIMethods310 {
 
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 
-            invalidRegexMsg = s"$InvalidRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
+            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
               // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
               if(!postedData.isBankIdExactMatch && postedData.bankIdPattern.isDefined) {

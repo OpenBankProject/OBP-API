@@ -23,6 +23,7 @@ import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
+import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
@@ -31,14 +32,13 @@ import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -160,7 +160,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createConsent), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
@@ -170,7 +170,17 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateSystemView), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getMethodRoutings), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -299,6 +309,11 @@ object NewStyle {
     def createSystemView(view: CreateViewJson, callContext: Option[CallContext]) : Future[View] = {
       Views.views.vend.createSystemView(view) map {
         unboxFullOrFail(_, callContext, s"$CreateSystemViewError")
+      }
+    }
+    def updateSystemView(viewId: ViewId, view: UpdateViewJSON, callContext: Option[CallContext]) : Future[View] = {
+      Views.views.vend.updateSystemView(viewId, view) map {
+        unboxFullOrFail(_, callContext, s"$UpdateSystemViewError")
       }
     }
     def deleteSystemView(viewId : ViewId, callContext: Option[CallContext]) : Future[Boolean] = {

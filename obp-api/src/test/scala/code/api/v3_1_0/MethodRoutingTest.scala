@@ -150,7 +150,7 @@ class MethodRoutingTest extends V310ServerSetup {
         val response310 = makePutRequest(request310, write(wrongEntity))
         Then("We should get a 400")
         response310.code should equal(400)
-        response310.body.extract[ErrorMessage].message should startWith (InvalidRegex)
+        response310.body.extract[ErrorMessage].message should startWith (InvalidBankIdRegex)
       }
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetMethodRoutings.toString)
