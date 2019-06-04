@@ -463,27 +463,27 @@ object JSONFactory210{
 
   def createTransactionRequestWithChargeJSON(tr : TransactionRequest) : TransactionRequestWithChargeJSON210 = {
     new TransactionRequestWithChargeJSON210(
-      id = tr.id.value,
-      `type` = tr.`type`,
-      from = TransactionRequestAccountJsonV140 (
-        bank_id = tr.from.bank_id,
-        account_id = tr.from.account_id
-      ),
-      details = tr.body,
+      id = stringOrNull(tr.id.value),
+      `type` = stringOrNull(tr.`type`),
+      from = try{TransactionRequestAccountJsonV140 (
+        bank_id = stringOrNull(tr.from.bank_id),
+        account_id = stringOrNull(tr.from.account_id)
+      )} catch {case _ : Throwable => null},
+      details = try{tr.body} catch {case _ : Throwable => null},
       transaction_ids = tr.transaction_ids::Nil,
-      status = tr.status,
+      status = stringOrNull(tr.status),
       start_date = tr.start_date,
       end_date = tr.end_date,
       // Some (mapped) data might not have the challenge. TODO Make this nicer
       challenge = {
-        try {ChallengeJsonV140 (id = tr.challenge.id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = tr.challenge.challenge_type)}
+        try {ChallengeJsonV140 (id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type))}
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}
       },
-      charge = TransactionRequestChargeJsonV200 (summary = tr.charge.summary,
-        value = AmountOfMoneyJsonV121(currency = tr.charge.value.currency,
-          amount = tr.charge.value.amount)
-      )
+      charge = try {TransactionRequestChargeJsonV200 (summary = stringOrNull(tr.charge.summary),
+        value = AmountOfMoneyJsonV121(currency = stringOrNull(tr.charge.value.currency),
+          amount = stringOrNull(tr.charge.value.amount))
+      )} catch {case _ : Throwable => null}
     )
   }
 

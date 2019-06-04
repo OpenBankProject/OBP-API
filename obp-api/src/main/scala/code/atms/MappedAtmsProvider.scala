@@ -10,7 +10,7 @@ object MappedAtmsProvider extends AtmsProvider {
   override protected def getAtmFromProvider(bankId: BankId, atmId: AtmId): Option[AtmT] =
   MappedAtm.find(By(MappedAtm.mAtmId, atmId.value),By(MappedAtm.mBankId, bankId.value))
 
-  override protected def getAtmsFromProvider(bankId: BankId, queryParams: OBPQueryParam*): Option[List[AtmT]] = {
+  override protected def getAtmsFromProvider(bankId: BankId, queryParams: List[OBPQueryParam]): Option[List[AtmT]] = {
   
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedAtm](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedAtm](value) }.headOption

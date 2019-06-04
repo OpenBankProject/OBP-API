@@ -652,7 +652,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       accounts.foldLeft(0)((accumulator, account) => {
         //TODO: might be nice to avoid direct use of the connector, but if we use an api call we need to do
         //it with the correct account owners, and be sure that we don't even run into pagination problems
-        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox).size
+        accumulator + Connector.connector.vend.getTransactionsLegacy(account.bankId, account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size
       })
     }
 

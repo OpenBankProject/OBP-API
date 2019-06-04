@@ -131,7 +131,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new AtmsProvider {
-    override protected def getAtmsFromProvider(bank: BankId, queryParams:OBPQueryParam*): Option[List[AtmT]] = {
+    override protected def getAtmsFromProvider(bank: BankId, queryParams: List[OBPQueryParam]): Option[List[AtmT]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case `bankWithLicense` | `bankWithoutLicense`=> Some(List(fakeAtm1, fakeAtm2, fakeAtm3))

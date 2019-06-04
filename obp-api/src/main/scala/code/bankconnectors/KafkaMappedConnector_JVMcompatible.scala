@@ -442,14 +442,14 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                 bankId: BankId,
                                 accountId: AccountId,
                                 callContext: Option[CallContext],
-                                queryParams: OBPQueryParam*
+                                queryParams: List[OBPQueryParam]
   ) = 
     saveConnectorMetric 
     {
       try {
         val accountHolder = getAccountHolderCached(bankId,accountId)
         
-        //TODO this is a quick solution for cache, because of (queryParams: OBPQueryParam*)
+        //TODO this is a quick solution for cache, because of (queryParams: List[OBPQueryParam])
         def getTransactionsCached(bankId: BankId, accountId: AccountId, userId : String , loginUser: String): Box[List[Transaction]] =  {
           /**
             * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"

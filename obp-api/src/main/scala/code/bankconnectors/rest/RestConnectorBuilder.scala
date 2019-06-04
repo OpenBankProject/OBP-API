@@ -148,7 +148,7 @@ case class GetGenerator(methodName: String, tp: Type) {
   val pathVariables = tp.paramLists(0) //For a method or poly type, a list of its value parameter sections.
     .filterNot(_.info =:= ru.typeOf[Option[CallContext]])
     .map { it =>
-      // make sure if param signature is: queryParams: OBPQueryParam* , the param name must be queryParams
+      // make sure if param signature is: queryParams: List[OBPQueryParam] , the param name must be queryParams
       val paramName = if(it.info <:< typeOf[Seq[OBPQueryParam]]) "queryParams" else it.name.toString
       val paramValue = it.name.toString
       s""", ("$paramName", $paramValue)"""

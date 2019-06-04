@@ -771,7 +771,7 @@ object APIMethods_TransactionsApi extends RestHelper {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)} map {
+            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           
@@ -1037,7 +1037,7 @@ object APIMethods_TransactionsApi extends RestHelper {
                  view <- Views.views.vend.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
                  params <- createQueriesByHttpParams(callContext.get.requestHeaders)
                  (transactionRequests, callContext) <- Connector.connector.vend.getTransactionRequests210(u, bankAccount)
-                 (transactions, callContext) <-  bankAccount.getModeratedTransactions(Full(u), view, callContext, params: _*)
+                 (transactions, callContext) <-  bankAccount.getModeratedTransactions(Full(u), view, callContext, params)
                } yield{
                  (transactionRequests,transactions)
                } 

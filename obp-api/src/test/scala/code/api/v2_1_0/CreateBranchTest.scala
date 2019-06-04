@@ -2,7 +2,7 @@ package code.api.v2_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ApiRole.CanCreateBranch
+import code.api.util.ApiRole.{CanCreateBranch, CanUpdateBranch}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.{AccountId, BranchId, ViewId}
@@ -37,8 +37,8 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val branchId = BranchId("1234")
 
       Then("We add entitlement to user1")
-      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
+      addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")
@@ -62,8 +62,8 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val branchId = BranchId("1234")
 
       Then("We add entitlement to user1")
-      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
+      addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
+      val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
       hasEntitlement should equal(true)
 
       When("We make the request Update Branch for an account")
@@ -138,7 +138,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       val bankAccount = createAccountAndOwnerView(Some(resourceUser1), bankId, accountId, "EUR")
 
 
-      Then("We add entitlement to user1")
+      Then("We add `CanCreateBranch`entitlement to user1")
       addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
       val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
       hasEntitlement should equal(true)
@@ -152,6 +152,12 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
       val customerPostJSON2 = customerPostJSON.copy(name="OBP1")
       Then("We make the request Update Branch again, with the same data")
+      Then("We add `CanCreateBranch`entitlement to user1")
+      
+      addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
+      val hasCanUpdateBranchEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
+      hasCanUpdateBranchEntitlement should equal(true)
+      
       requestPost = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       responsePost = makePutRequest(requestPost, write(customerPostJSON2))
 

@@ -3,7 +3,15 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
-
+03/06/2019    5194b48       The table viewimpl is replaced with a table viewdefinition
+                            The table viewprivileges is replaced with a table accountaccess
+                            Please note that next props must be set up:
+                            migration_scripts.execute=true
+                            list_of_migration_scripts_to_execute=populateTableViewDefinition,populateTableAccountAccess```
+                            In the table migrationscriptlog you can see results of the migration scripts.
+                            Please note that 2 backup tables are created as well, something like these 2 below:
+                            1. accountaccess_backup_2019_05_17_11_16_32_134
+                            2.  viewdefinition_backup_2019_05_17_11_16_31_862
 29/04/2019    a6b58a1       Added Props system_environment_property_name_prefix, default is OBP_. This adds the prefix only for the system environment property name, eg: db.driver --> OBP_db.driver
 07/07/2018    4944572       Added Props api_instance_id, default is 1. This deceides the current api instance number, start from 1.  
 29/06/2018    7422894       Added Props logging.database.queries.enable, default is false. This should enable logging all the database queries in log file.

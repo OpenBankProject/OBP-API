@@ -3236,6 +3236,23 @@ object SwaggerDefinitionsJSON {
   
   val oAuth2ServerJwksUrisJson = OAuth2ServerJwksUrisJson(List(oAuth2ServerJWKURIJson))
   
+  val updateAccountRequestJsonV310 = UpdateAccountRequestJsonV310(
+    label = "Label",
+    `type` = "CURRENT",
+    branch_id = "1234",
+    account_routing = accountRoutingJsonV121
+  )
+
+  val updateAccountResponseJsonV310 = UpdateAccountResponseJsonV310(
+    bank_id = "gh.29.uk",
+    account_id = "456",
+    label = "Label",
+    `type` = "CURRENT",
+    branch_id = "1234",
+    account_routing = accountRoutingJsonV121
+  )
+
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()

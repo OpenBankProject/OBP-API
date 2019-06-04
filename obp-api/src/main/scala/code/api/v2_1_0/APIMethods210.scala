@@ -1490,13 +1490,13 @@ trait APIMethods210 {
       List(
         UserNotLoggedIn, 
         BankNotFound, 
-        InvalidJsonFormat, 
-        InsufficientAuthorisationToCreateBranch, 
+        InvalidJsonFormat,
+        UserHasMissingRoles, 
         UnknownError
       ),
       Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBranch),
-      Some(List(canCreateBranch)))
+      Some(List(canUpdateBranch)))
 
 
     lazy val updateBranch: OBPEndpoint = {
@@ -1506,7 +1506,7 @@ trait APIMethods210 {
             u <- cc.user ?~ UserNotLoggedIn
             (bank, callContext) <- Bank(bankId, Some(cc)) ?~! {BankNotFound}
             branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
+            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canUpdateBranch) == true, s"$UserHasMissingRoles $canUpdateBranch")
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
             // branchPost <- toBranchJsonPost(branchId, branchJsonPutV210)
 

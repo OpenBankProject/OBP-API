@@ -278,7 +278,7 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
-    override protected def getBranchesFromProvider(bank: BankId, queryParams:OBPQueryParam*): Option[List[BranchT]] = {
+    override protected def getBranchesFromProvider(bank: BankId, queryParams: List[OBPQueryParam]): Option[List[BranchT]] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case BankWithLicense | BankWithoutLicense=> Some(List(fakeBranch1, fakeBranch2, fakeBranch3))
