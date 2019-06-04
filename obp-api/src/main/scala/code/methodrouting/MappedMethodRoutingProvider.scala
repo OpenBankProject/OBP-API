@@ -12,17 +12,14 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider {
     By(MethodRouting.MethodRoutingId, methodRoutingId)
   )
 
-  override def getMethodRoutings(methodName: String, isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRouting] = {
+  override def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRouting] = {
 
-    var queryParam: Seq[QueryParam[MethodRouting]] = isBankIdExactMatch match {
-      case None => List(By(MethodRouting.MethodName, methodName))
-      case Some(exactmatch) =>  List(
-          By(MethodRouting.MethodName, methodName) ,
-          By(MethodRouting.IsBankIdExactMatch, exactmatch)
-        )
-    }
-    if(bankIdPattern.isDefined) {
-      queryParam :+= By(MethodRouting.BankIdPattern, bankIdPattern.get)
+    val byMethodName = methodName.map(By(MethodRouting.MethodName, _))
+    val byIsBankIdExactMatch = isBankIdExactMatch.map(By(MethodRouting.IsBankIdExactMatch, _))
+    val byBankIdPattern = bankIdPattern.map(By(MethodRouting.BankIdPattern, _))
+
+    val queryParam: Seq[QueryParam[MethodRouting]] = List(byMethodName, byIsBankIdExactMatch, byBankIdPattern).collect {
+      case Some(by) => by
     }
 
     MethodRouting.findAll(queryParam :_*)

@@ -176,11 +176,11 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
-    (nameOf(Implementations3_1_0.getMethodRoutings), ApiVersion.v3_1_0.toString)
-    (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString)
-    (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString)
-    (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getMethodRoutings), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
   )
 
   object HttpCode {
@@ -1241,8 +1241,8 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
 
-    def getMethodRoutingsByMethdName(methodName: String): Future[List[MethodRoutingT]] = Future {
-      this.getMethodRoutings(methodName)
+    def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
+      this.getMethodRoutings(methodName.toOption)
     }
 
     def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
@@ -1263,7 +1263,9 @@ object NewStyle {
 
     private[this] val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "30").toInt // default 30 seconds
 
-    def getMethodRoutings(methodName: String, isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
+    def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
+      import scala.concurrent.duration._
+
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {

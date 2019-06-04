@@ -39,7 +39,7 @@ object MethodRoutingCommons extends Converter[MethodRoutingT, MethodRoutingCommo
 trait MethodRoutingProvider {
   def getById(methodRoutingId: String): Box[MethodRoutingT]
 
-  def getMethodRoutings(methodName: String, isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT]
+  def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT]
 
   def createOrUpdate(methodRouting: MethodRoutingT): Box[MethodRoutingT]
 

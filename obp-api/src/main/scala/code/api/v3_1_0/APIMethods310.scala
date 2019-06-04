@@ -3746,11 +3746,12 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(getMethodRoutings),
       "GET",
-      "/management/method-routing/method-name/METHOD_NAME",
+      "/management/method-routing",
       "Get MethodRoutings",
-      s"""Get the all MethodRouting for given connector method name.
-         |
-        |""",
+      s"""Get the all MethodRoutings.
+      |request parameters:
+      |* method-name  filter with method-name, /management/method-routing?method-name=getBank
+      |""",
       emptyObjectJson,
       ListResult(
         (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some("method-routing-id"))))
@@ -3768,12 +3769,12 @@ trait APIMethods310 {
 
 
     lazy val getMethodRoutings: OBPEndpoint = {
-      case "management" :: "method-routing":: "method-name" :: methodName :: Nil JsonGet _ => {
+      case "management" :: "method-routing":: Nil JsonGet req => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
-            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(methodName)
+            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("methodName"))
           } yield {
             (ListResult[MethodRoutingCommons](methodRoutings), HttpCode.`200`(callContext))
           }
