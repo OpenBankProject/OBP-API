@@ -26,7 +26,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
   def transactionCount(accounts: BankAccount*): Int = {
     accounts.foldLeft(0)((accumulator, account) => {
-      accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).openOrThrowException(attemptedToOpenAnEmptyBox).size
+      accumulator + Connector.connector.vend.getTransactionsLegacy(account.bankId, account.accountId, None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox).size
     })
   }
 

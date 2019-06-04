@@ -170,6 +170,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
@@ -598,7 +600,7 @@ object NewStyle {
     
     def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
     {
-      Connector.connector.vend.getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
+      Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
           i._2)
       }
@@ -840,6 +842,29 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
       }
 
+    def updateBankAccount(
+                           bankId: BankId,
+                           accountId: AccountId,
+                           accountType: String,
+                           accountLabel: String,
+                           branchId: String,
+                           accountRoutingScheme: String,
+                           accountRoutingAddress: String,
+                           callContext: Option[CallContext]
+                         ): OBPReturnType[BankAccount] =
+      Connector.connector.vend.updateBankAccount(
+        bankId: BankId,
+        accountId: AccountId,
+        accountType: String,
+        accountLabel: String,
+        branchId: String,
+        accountRoutingScheme: String,
+        accountRoutingAddress: String,
+        callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+      }
+    
     def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
       val customerList = customerIds.filterNot(StringUtils.isBlank).distinct
         .map(Consumers.consumers.vend.getConsumerByConsumerIdFuture)

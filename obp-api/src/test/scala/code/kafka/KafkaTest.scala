@@ -373,5 +373,26 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         box.map(_._1.createdByUserId) should be (Full(inBound.data.get.createdByUserId))
 
       }
+
+    if (PropsConnectorVersion =="mapped") {
+      ignore("ignore test getTransactionRequests210, if it is mapped connector", kafkaTest) {}
+    } else
+      scenario(s"test getTransactionRequests210 method",kafkaTest) {
+
+        val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetTransactionRequests210]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetTransactionRequests210]
+        dispathResponse(inBound)
+
+        val account = BankAccountSept2018(KafkaMappedConnector_vSept2018.inboundAccountSept2018Example)
+        val transactionRequestCommonBody = TransactionRequestBodyCommonJSON(AmountOfMoneyJsonV121("",""),"")
+        val box = Connector.connector.vend.getTransactionRequests210(
+          resourceUser1,
+          account,
+          callContext)
+
+       box.map(_._1.head.body) should be (inBound.data.head.body) 
+
+
+      }
+
   }
 }

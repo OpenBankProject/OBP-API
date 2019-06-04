@@ -94,7 +94,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdX)).isDefined should equal(true)
 
       When("we try to get the branches for that bank")
-      val branchesOpt: Option[List[BranchT]] = MappedBranchesProvider.getBranches(BankId(fixture.bankIdX),OBPLimit(1000)) //OBPLimit(1000) is placeholder here.
+      val branchesOpt: Option[List[BranchT]] = MappedBranchesProvider.getBranches(BankId(fixture.bankIdX),List(OBPLimit(1000))) //OBPLimit(1000) is placeholder here.
 
       Then("We should get a branches list")
       branchesOpt.isDefined should equal (true)
@@ -116,7 +116,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdY)).isDefined should equal(false)
 
       When("we try to get the branches for that bank")
-      val branchDataOpt = MappedBranchesProvider.getBranches(BankId(fixture.bankIdY),OBPLimit(1000)) //OBPLimit(1000) is placeholder here.
+      val branchDataOpt = MappedBranchesProvider.getBranches(BankId(fixture.bankIdY),List(OBPLimit(1000))) //OBPLimit(1000) is placeholder here.
 
       Then("we should get back an empty list")
       branchDataOpt.isDefined should equal(true)

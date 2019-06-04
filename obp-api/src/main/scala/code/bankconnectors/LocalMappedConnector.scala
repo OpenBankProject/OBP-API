@@ -270,7 +270,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .map(transaction => (transaction, callContext))
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
 
     // TODO Refactor this. No need for database lookups etc.
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
@@ -524,14 +524,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext])= {
-    getCounterpartyByCounterpartyIdFuture(CounterpartyId(counterpartyId), callContext)
+    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
   }
   
-  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) ={
+  override def getCounterpartyByCounterpartyIdLegacy(counterpartyId: CounterpartyId, callContext: Option[CallContext]) ={
     Counterparties.counterparties.vend.getCounterparty(counterpartyId.value).map(counterparty => (counterparty, callContext))
   }
   
-  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
     (Counterparties.counterparties.vend.getCounterparty(counterpartyId.value),callContext)
   }
 
@@ -856,6 +856,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full((bank, account))
   }
 
+  override def updateBankAccount(
+     bankId: BankId,
+     accountId: AccountId,
+     accountType: String,
+     accountLabel: String,
+     branchId: String,
+     accountRoutingScheme: String,
+     accountRoutingAddress: String,
+     callContext: Option[CallContext]
+   ): OBPReturnType[Box[BankAccount]] = Future {
+    (for {
+      (account, callContext) <- LocalMappedConnector.getBankAccountCommon(bankId, accountId, callContext)
+      } yield {
+        account
+          .kind(accountType)
+          .accountLabel(accountLabel)
+          .mBranchId(branchId)
+          .mAccountRoutingScheme(accountRoutingScheme)
+          .mAccountRoutingAddress(accountRoutingAddress)
+          .saveMe
+      },callContext)
+  }
+  
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   override def accountExists(bankId: BankId, accountNumber: String) = {
     Full(MappedBankAccount.count(
@@ -1611,7 +1634,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
-  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
     Future {
       Full(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)), callContext)
     }
@@ -1634,7 +1657,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getAtmLegacy(bankId, atmId).map(atm =>(atm, callContext))
     }
 
-  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: OBPQueryParam*)= {
+  override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam])= {
     Future {
       Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)),callContext)
     }
