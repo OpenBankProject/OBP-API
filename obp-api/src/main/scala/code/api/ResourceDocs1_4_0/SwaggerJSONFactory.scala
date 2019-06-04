@@ -418,7 +418,7 @@ object SwaggerJSONFactory {
 
       def getRefEntityName(tp: Type, value: Any, typeParamIndexes: Int*): String = {
         val symbol = typeParamIndexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
-        if(symbol.asClass.isAbstract) {
+        if(symbol.isClass && symbol.asClass.isAbstract) {
           val nestValue = value match {
               case Some(head::_) => head
               case Some(v) => v
@@ -427,6 +427,11 @@ object SwaggerJSONFactory {
               case other => other
             }
           ReflectUtils.getType(nestValue).typeSymbol.name.toString
+        } else if(typeParamIndexes.size == 1 && typeParamIndexes.head == 0 && value.isInstanceOf[List[_]] && value.asInstanceOf[List[_]].exists(_ != null)) {
+          val noNullValue = value.asInstanceOf[List[_]].find(_ != null).get
+          ReflectUtils.getType(noNullValue).typeSymbol.name.toString
+        } else if(typeParamIndexes.size == 1 && typeParamIndexes.head == 0 && value.isInstanceOf[Some[_]]) {
+          ReflectUtils.getType(value.asInstanceOf[Some[_]].get).typeSymbol.name.toString
         } else {
           symbol.name.toString
         }
