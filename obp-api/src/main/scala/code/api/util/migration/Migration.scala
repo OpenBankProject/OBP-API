@@ -36,7 +36,15 @@ object Migration extends MdcLoggable {
   }
   
   def saveLog(name: String, commitId: String, isSuccessful: Boolean, startDate: Long, endDate: Long, comment: String) = {
-    MigrationScriptLogProvider.migrationScriptLogProvider.vend.saveLog(name, commitId, isSuccessful, startDate, endDate, comment) match {
+    var remark = comment
+    if(comment.length() > 1024) {
+      val traceUUID = APIUtil.generateUUID()
+      val traceText = " Trace UUID: "  + traceUUID
+      remark = remark.substring(970) + traceText
+      logger.info(traceText)
+      logger.info(comment)
+    }
+    MigrationScriptLogProvider.migrationScriptLogProvider.vend.saveLog(name, commitId, isSuccessful, startDate, endDate, remark) match {
       case true =>
       case false =>
         logger.warn(s"Migration.database.$name is executed at this instance but the corresponding log is not saved!!!!!!")
