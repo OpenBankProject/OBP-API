@@ -417,8 +417,13 @@ object SwaggerJSONFactory {
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 
       def getRefEntityName(tp: Type, value: Any, typeParamIndexes: Int*): String = {
-        val symbol = typeParamIndexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
-        if(symbol.isClass && symbol.asClass.isAbstract) {
+
+        def isTypeParamAbstract: Boolean = {
+          val symbol = typeParamIndexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
+          Some(symbol).filter(it => it.isClass && it.asClass.isAbstract).isDefined
+        }
+        // if tp is wildcard type or extracted type parameter is abstract, analyse with value's nest value
+        if(tp.typeArgs.isEmpty || (typeParamIndexes.size > 0 && isTypeParamAbstract)) {
           val nestValue = value match {
               case Some(head::_) => head
               case Some(v) => v
@@ -433,7 +438,7 @@ object SwaggerJSONFactory {
         } else if(typeParamIndexes.size == 1 && typeParamIndexes.head == 0 && value.isInstanceOf[Some[_]]) {
           ReflectUtils.getType(value.asInstanceOf[Some[_]].get).typeSymbol.name.toString
         } else {
-          symbol.name.toString
+          value.getClass.getName
         }
       }
       paramType match {
