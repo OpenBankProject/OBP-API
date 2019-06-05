@@ -212,11 +212,18 @@ object ReflectUtils {
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
 
-  def classToTypeTag[A](clazz: Class[A]): TypeTag[A] = {
+  def classToTypeTag[A](clazz: Class[A], typeParams: Class[_]*): TypeTag[A] = {
     import scala.reflect.api
     val mirror: ru.Mirror = runtimeMirror(clazz.getClassLoader)
     val sym: ru.ClassSymbol = mirror.classSymbol(clazz)
-    val tpe: ru.Type = sym.selfType
+
+    val tpe = if(typeParams.isEmpty) {
+      sym.selfType
+    } else {
+      val typeParamList = typeParams.map(mirror.classSymbol(_).toType).toList
+      ru.internal.typeRef(NoPrefix, sym, typeParamList)
+    }
+
     // create a type tag which contains above type object
     TypeTag(mirror, new api.TypeCreator {
       def apply[U <: api.Universe with Singleton](m: api.Mirror[U]) =

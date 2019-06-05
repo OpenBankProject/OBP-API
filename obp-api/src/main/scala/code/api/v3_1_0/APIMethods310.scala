@@ -3802,7 +3802,7 @@ trait APIMethods310 {
         |
         |* method_name is required String value
         |* connector_name is required String value
-        |* is_bank_id_exact_match is optional boolean value, if bank_id_pattern is null or regex, this value is false
+        |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
         |
         |note: if bank_id_pattern is regex, special characters need to do escape, for example:
@@ -3862,7 +3862,7 @@ trait APIMethods310 {
         |
         |* method_name is required String value
         |* connector_name is required String value
-        |* is_bank_id_exact_match is optional boolean value, if bank_id_pattern is null or regex, this value is false
+        |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
         |
         |note: if bank_id_pattern is regex, special characters need to do escape, for example:

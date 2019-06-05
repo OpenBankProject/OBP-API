@@ -59,7 +59,7 @@ class MethodRoutingTest extends V310ServerSetup {
   feature("Add a MethodRouting v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "method-routing").POST
+      val request310 = (v3_1_0_Request / "management" / "method_routings").POST
       val response310 = makePostRequest(request310, write(rightEntity))
       Then("We should get a 400")
       response310.code should equal(400)
@@ -70,7 +70,7 @@ class MethodRoutingTest extends V310ServerSetup {
   feature("Update a MethodRouting v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "method-routing"/ "some-method-routing-id").PUT
+      val request310 = (v3_1_0_Request / "management" / "method_routings"/ "some-method-routing-id").PUT
       val response310 = makePutRequest(request310, write(rightEntity))
       Then("We should get a 400")
       response310.code should equal(400)
@@ -81,8 +81,8 @@ class MethodRoutingTest extends V310ServerSetup {
   feature("Get MethodRoutings v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "method-routing").GET
-      val response310 = makeGetRequest(request310, List(("method-name", "getBank")))
+      val request310 = (v3_1_0_Request / "management" / "method_routings").GET
+      val response310 = makeGetRequest(request310, List(("method_name", "getBank")))
       Then("We should get a 400")
       response310.code should equal(400)
       And("error should be " + UserNotLoggedIn)
@@ -92,7 +92,7 @@ class MethodRoutingTest extends V310ServerSetup {
   feature("Delete the MethodRouting specified by METHOD_ROUTING_ID v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "method-routing" / "METHOD_ROUTING_ID").DELETE
+      val request310 = (v3_1_0_Request / "management" / "method_routings" / "METHOD_ROUTING_ID").DELETE
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 400")
       response310.code should equal(400)
@@ -105,7 +105,7 @@ class MethodRoutingTest extends V310ServerSetup {
   feature("Add a MethodRouting v3.1.0 - Unauthorized access - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateMethodRouting, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canCreateTaxResidence)
-      val request310 = (v3_1_0_Request / "management" / "method-routing").POST <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "method_routings").POST <@(user1)
       val response310 = makePostRequest(request310, write(rightEntity))
       Then("We should get a 403")
       response310.code should equal(403)
@@ -116,7 +116,7 @@ class MethodRoutingTest extends V310ServerSetup {
     scenario("We will call the endpoint with the proper Role " + canCreateMethodRouting , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "method-routing").POST <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "method_routings").POST <@(user1)
       val response310 = makePostRequest(request310, write(rightEntity))
       Then("We should get a 201")
       response310.code should equal(201)
@@ -127,17 +127,17 @@ class MethodRoutingTest extends V310ServerSetup {
 
       {
         // update success
-        val request310 = (v3_1_0_Request / "management" / "method-routing" / customerJson.methodRoutingId.get ).PUT <@(user1)
+        val request310 = (v3_1_0_Request / "management" / "method_routings" / customerJson.methodRoutingId.get ).PUT <@(user1)
         val response310 = makePutRequest(request310, write(customerJson.copy(connectorName = "mapped")))
         Then("We should get a 200")
         response310.code should equal(200)
-        val taxResidenceJson = response310.body.extract[MethodRoutingCommons]
-        taxResidenceJson.connectorName should be ("mapped")
+        val methodRoutingsJson = response310.body.extract[MethodRoutingCommons]
+        methodRoutingsJson.connectorName should be ("mapped")
       }
 
       {
         // update a not exists MethodRouting
-        val request310 = (v3_1_0_Request / "management" / "method-routing" / "not-exists-id" ).PUT <@(user1)
+        val request310 = (v3_1_0_Request / "management" / "method_routings" / "not-exists-id" ).PUT <@(user1)
         val response310 = makePutRequest(request310, write(customerJson.copy(connectorName = "mapped")))
         Then("We should get a 400")
         response310.code should equal(400)
@@ -146,7 +146,7 @@ class MethodRoutingTest extends V310ServerSetup {
 
       {
         // update a MethodRouting with wrong regex of bankIdPattern
-        val request310 = (v3_1_0_Request / "management" / "method-routing" / customerJson.methodRoutingId.get ).PUT <@(user1)
+        val request310 = (v3_1_0_Request / "management" / "method_routings" / customerJson.methodRoutingId.get ).PUT <@(user1)
         val response310 = makePutRequest(request310, write(wrongEntity))
         Then("We should get a 400")
         response310.code should equal(400)
@@ -155,18 +155,18 @@ class MethodRoutingTest extends V310ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetMethodRoutings.toString)
       When("We make a request v3.1.0 with the Role " + canGetMethodRoutings)
-      val requestGet310 = (v3_1_0_Request / "management" / "method-routing").GET <@(user1)
-      val responseGet310 = makeGetRequest(requestGet310, List(("method-name", "getBank")))
+      val requestGet310 = (v3_1_0_Request / "management" / "method_routings").GET <@(user1)
+      val responseGet310 = makeGetRequest(requestGet310, List(("method_name", "getBank")))
       Then("We should get a 200")
       responseGet310.code should equal(200)
-      val json = responseGet310.body \ "results"
-      val taxResidenceGetJson = json.extract[List[MethodRoutingCommons]]
+      val json = responseGet310.body \ "method_routings"
+      val methodRoutingsGetJson = json.extract[List[MethodRoutingCommons]]
 
-      taxResidenceGetJson.size should be (1)
+      methodRoutingsGetJson.size should be (1)
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteMethodRouting.toString)
       When("We make a request v3.1.0 with the Role " + canDeleteMethodRouting)
-      val requestDelete310 = (v3_1_0_Request / "management" / "method-routing" / taxResidenceGetJson.head.methodRoutingId.get).DELETE <@(user1)
+      val requestDelete310 = (v3_1_0_Request / "management" / "method_routings" / methodRoutingsGetJson.head.methodRoutingId.get).DELETE <@(user1)
       val responseDelete310 = makeDeleteRequest(requestDelete310)
       Then("We should get a 200")
       responseDelete310.code should equal(200)
