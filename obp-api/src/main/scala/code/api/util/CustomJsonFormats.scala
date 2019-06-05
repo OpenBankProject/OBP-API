@@ -9,6 +9,8 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
+import scala.reflect.ManifestFactory
+
 trait CustomJsonFormats {
   implicit val formats: Formats = CustomJsonFormats.formats
 }
@@ -88,12 +90,17 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
   private val clazz = classOf[ListResult[_]]
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ListResult[_]] = {
-    case (typeInfo @ TypeInfo(entityType, _), json) if(clazz.isAssignableFrom(entityType))=> json match {
+    case (TypeInfo(entityType, Some(parameterizedType)), json) if(clazz.isAssignableFrom(entityType))=> json match {
       case JObject(singleField::Nil) => {
-        val jObject = JObject(JField("name", JString(singleField.name)), JField("results", singleField.value))
-        Extraction.extract(jObject,typeInfo).asInstanceOf[ListResult[_]]
+        val resultsItemType = parameterizedType.getActualTypeArguments.apply(1)
+        assume(resultsItemType != classOf[Object], "when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this: jValue.extract[ListResult[List[_]]]")
+
+        val name = singleField.name
+        val manifest: Manifest[Any] = ManifestFactory.classType(resultsItemType.asInstanceOf[Class[Any]])
+        val results: List[Any] = singleField.value.asInstanceOf[JArray].children.map(_.extract(format, manifest))
+        ListResult(name, results)
       }
-      case x => throw new MappingException("Can't convert " + x + " to JsonFieldReName")
+      case x => throw new MappingException("Can't convert " + x + " to ListResult")
     }
   }
 
