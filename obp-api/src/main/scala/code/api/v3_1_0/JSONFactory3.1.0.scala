@@ -492,7 +492,8 @@ case class CreatePhysicalCardJsonV310(
   replacement: ReplacementJSON,
   pin_reset: List[PinResetJSON],
   collected: Date,
-  posted: Date)
+  posted: Date,
+  customer_id: String)
 
 case class UpdatePhysicalCardJsonV310(
   card_type: String,
@@ -509,7 +510,8 @@ case class UpdatePhysicalCardJsonV310(
   replacement: ReplacementJSON,
   pin_reset: List[PinResetJSON],
   collected: Date,
-  posted: Date)
+  posted: Date,
+  customer_id: String)
 
 case class PhysicalCardJsonV310(
   card_id: String,
@@ -531,7 +533,8 @@ case class PhysicalCardJsonV310(
   replacement: ReplacementJSON,
   pin_reset: List[PinResetJSON],
   collected: Date,
-  posted: Date)
+  posted: Date,
+  customer_id: String)
 
 case class PhysicalCardsJsonV310(
   cards : List[PhysicalCardJsonV310])
@@ -1030,7 +1033,8 @@ object JSONFactory310{
       replacement = card.replacement.map(createReplacementJson).getOrElse(null),
       pin_reset = card.pinResets.map(createPinResetJson),
       collected = card.collected.map(_.date).getOrElse(null),
-      posted = card.posted.map(_.date).getOrElse(null)
+      posted = card.posted.map(_.date).getOrElse(null),
+      customer_id = stringOrNull(card.customerId)
     )
   }
 

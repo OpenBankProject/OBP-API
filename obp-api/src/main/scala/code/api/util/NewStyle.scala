@@ -1278,6 +1278,7 @@ object NewStyle {
       pinResets: List[PinResetInfo],
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
+      customerId: String,
       callContext: Option[CallContext]
     ): OBPReturnType[PhysicalCard] =
       Connector.connector.vend.createOrUpdatePhysicalCard(
@@ -1300,6 +1301,7 @@ object NewStyle {
         pinResets: List[PinResetInfo],
         collected: Option[CardCollectionInfo],
         posted: Option[CardPostedInfo],
+        customerId: String,
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateCardError or $UpdateCardError"), i._2)

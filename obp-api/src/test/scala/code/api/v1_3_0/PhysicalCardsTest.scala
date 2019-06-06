@@ -39,7 +39,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     replacement = None,
     pinResets = Nil,
     collected = None,
-    posted = None
+    posted = None,
+    customerId = ""
   )
 
   val user1CardAtBank1 = createCard("1")

@@ -39,6 +39,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     pinResets: List[PinResetInfo],
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
+    customerId: String,
     callContext: Option[CallContext]
   ): Box[MappedPhysicalCard] = {
 
@@ -92,6 +93,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mCollected(c.date)
             .mPosted(p.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
+            .mCustomerId(customerId)
             .saveMe()
         } ?~! ErrorMessages.UpdateCardError
       case _ =>
@@ -116,6 +118,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mCollected(c.date)
             .mPosted(p.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
+            .mCustomerId(customerId)
             .saveMe()
         } ?~! ErrorMessages.CreateCardError
     }
@@ -207,6 +210,7 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   //Note: This may delicate with mAllows, allows can be Credit, Debit, Cash. But a bit difficult to understand.
   //Maybe this will be first uesd for the initialization. and then we can add more `allows` for this card. 
   object mCardType extends MappedString(this, 255)
+  object mCustomerId extends MappedString(this, 255)
 
   def bankId: String = mBankId.get
   def bankCardNumber: String = mBankCardNumber.get
@@ -247,6 +251,7 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   
   def cardType: String = mCardType.get
   def cardId: String = mCardId.get
+  def customerId: String = mCustomerId.get
 }
 
 object MappedPhysicalCard extends MappedPhysicalCard with LongKeyedMetaMapper[MappedPhysicalCard] {

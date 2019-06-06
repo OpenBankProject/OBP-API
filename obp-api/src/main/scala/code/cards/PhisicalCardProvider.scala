@@ -40,6 +40,7 @@ trait PhysicalCardProvider {
     pinResets: List[PinResetInfo],
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
+    customerId: String,
     callContext: Option[CallContext]
   ): Box[MappedPhysicalCard]
 

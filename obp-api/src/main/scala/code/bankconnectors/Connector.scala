@@ -385,6 +385,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     pinResets: List[PinResetInfo],
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
+    customerId: String,
     callContext: Option[CallContext]
   ): Box[PhysicalCard] = Failure(setUnimplementedError)
 
@@ -408,6 +409,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     pinResets: List[PinResetInfo],
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
+    customerId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[PhysicalCard]] = Future{(Failure{setUnimplementedError}, callContext)}
 

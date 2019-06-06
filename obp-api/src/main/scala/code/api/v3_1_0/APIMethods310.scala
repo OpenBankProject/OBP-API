@@ -4094,6 +4094,8 @@ trait APIMethods310 {
             
             (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
             
+            (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            
             (card, callContext) <- NewStyle.function.createOrUpdatePhysicalCard(
               bankCardNumber=postJson.card_number,
               nameOnCard=postJson.name_on_card,
@@ -4114,6 +4116,7 @@ trait APIMethods310 {
               pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted= Option(CardPostedInfo(postJson.posted)),
+              customerId = postJson.customer_id,
               callContext
             )
           } yield {
@@ -4190,6 +4193,7 @@ trait APIMethods310 {
               pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted = Option(CardPostedInfo(postJson.posted)),
+              customerId = postJson.customer_id,
               callContext = callContext
             )
           } yield {
@@ -4212,7 +4216,7 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard))
     lazy val getCardsForBank : OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {//? account = CountId, customernumber, user xxx...
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)

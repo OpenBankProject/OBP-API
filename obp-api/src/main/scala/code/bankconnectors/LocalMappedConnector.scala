@@ -563,7 +563,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         replacement = l.replacement,
         pinResets = l.pinResets,
         collected = l.collected,
-        posted = l.posted
+        posted = l.posted,
+        customerId = l.customerId
       )
     Full(cardList)
   }
@@ -596,7 +597,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         replacement = l.replacement,
         pinResets = l.pinResets,
         collected = l.collected,
-        posted = l.posted
+        posted = l.posted,
+        customerId = l.customerId
       )
     Full(cardList)
   }
@@ -631,6 +633,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     pinResets: List[PinResetInfo],
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
+    customerId: String,
     callContext: Option[CallContext]) =  Future {
     (createOrUpdatePhysicalCardLegacy(
       bankCardNumber: String,
@@ -652,6 +655,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       pinResets: List[PinResetInfo],
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
+      customerId: String,
       callContext: Option[CallContext]), 
       callContext)
   }
@@ -677,6 +681,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     pinResets: List[PinResetInfo],
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
+    customerId: String,
     callContext: Option[CallContext]) : Box[PhysicalCard] = {
     val physicalCardBox: Box[MappedPhysicalCard] = code.cards.PhysicalCard.physicalCardProvider.vend.createOrUpdatePhysicalCard(
       bankCardNumber: String,
@@ -698,6 +703,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       pinResets: List[PinResetInfo],
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
+      customerId: String,
       callContext: Option[CallContext])
     
     for (l <- physicalCardBox) yield
@@ -721,7 +727,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       replacement = l.replacement,
       pinResets = l.pinResets,
       collected = l.collected,
-      posted = l.posted
+      posted = l.posted,
+      customerId = l.customerId
     )
   }
 

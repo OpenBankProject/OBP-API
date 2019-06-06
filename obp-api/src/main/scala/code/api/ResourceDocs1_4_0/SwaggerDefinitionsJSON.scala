@@ -3267,7 +3267,8 @@ object SwaggerDefinitionsJSON {
     replacement = replacementJSON,
     pin_reset = List(pinResetJSON, pinResetJSON1),
     collected = DateWithDayExampleObject,
-    posted = DateWithDayExampleObject
+    posted = DateWithDayExampleObject,
+    customer_id = "customer_id",
   )
 
   val updatePhysicalCardJsonV310 = UpdatePhysicalCardJsonV310(
@@ -3285,7 +3286,8 @@ object SwaggerDefinitionsJSON {
     replacement = replacementJSON,
     pin_reset = List(pinResetJSON, pinResetJSON1),
     collected = DateWithDayExampleObject,
-    posted = DateWithDayExampleObject
+    posted = DateWithDayExampleObject,
+    customer_id = "customer_id",
   )
   
   val physicalCardJsonV310 = PhysicalCardJsonV310(
@@ -3308,7 +3310,8 @@ object SwaggerDefinitionsJSON {
     replacement = replacementJSON,
     pin_reset = List(pinResetJSON),
     collected = DateWithDayExampleObject,
-    posted = DateWithDayExampleObject
+    posted = DateWithDayExampleObject,
+    customer_id = "consumer_id"
   )
 
   val physicalCardsJsonV310 = PhysicalCardsJsonV310(List(physicalCardJsonV310))

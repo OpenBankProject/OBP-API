@@ -1020,6 +1020,7 @@ trait APIMethods210 {
               pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted= Option(CardPostedInfo(postJson.posted)),
+              customerId = "",// this filed is introduced from V310
               callContext
             )
             
