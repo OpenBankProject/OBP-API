@@ -2031,6 +2031,15 @@ object SwaggerDefinitionsJSON {
     nameSuffix = "Sr"
   )
 
+
+  val putUpdateCustomerDataJsonV310 = PutUpdateCustomerDataJsonV310(
+    face_image = customerFaceImageJson,
+    relationship_status = "123",
+    dependants = 123,
+    highest_education_attained = "123",
+    employment_status = "123"
+  )
+
   val putCustomerBranchJsonV310 = PutUpdateCustomerBranchJsonV310(branch_id = "123")
   val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = "123")
   val putUpdateCustomerEmailJsonV310 = PutUpdateCustomerEmailJsonV310("marko@tesobe.com")

@@ -202,6 +202,11 @@ case class PutUpdateCustomerIdentityJsonV310(legal_name: String,
                                              date_of_birth: Date,
                                              title: String,
                                              name_suffix: String)
+case class PutUpdateCustomerDataJsonV310(face_image: CustomerFaceImageJson,
+                                         relationship_status: String,
+                                         dependants: Int,
+                                         highest_education_attained: String,
+                                         employment_status: String)
 
 case class CustomerJsonV310(
   bank_id: String,

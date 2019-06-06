@@ -64,6 +64,9 @@ object ApiRole {
   
   case class CanUpdateCustomerBranch(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCustomerBranch = CanUpdateCustomerBranch()
+  
+  case class CanUpdateCustomerData(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerData = CanUpdateCustomerData()
 
   case class CanUpdateCustomerCreditLimit(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCustomerCreditLimit = CanUpdateCustomerCreditLimit()
@@ -407,6 +410,7 @@ object ApiRole {
       canUpdateCustomerBranch ::
       canUpdateCustomerCreditLimit ::
       canUpdateCustomerCreditRatingAndSource ::
+      canUpdateCustomerData ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

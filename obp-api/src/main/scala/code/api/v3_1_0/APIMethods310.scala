@@ -30,13 +30,12 @@ import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import com.openbankproject.commons.model.Product
+import com.openbankproject.commons.model.{CreditLimit, CustomerFaceImageTrait, Product, _}
 import code.users.Users
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
@@ -4095,6 +4094,63 @@ trait APIMethods310 {
               None,
               None,
               Some(putData.branch_id),
+              None,
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateCustomerData,
+      implementedInApiVersion,
+      nameOf(updateCustomerData),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/data",
+      "Update the other data of a Customer",
+      s"""Update the other data of the Customer specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      putUpdateCustomerDataJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerIdentity :: Nil)
+    )
+    lazy val updateCustomerData : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "data" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerData, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerDataJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerDataJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerGeneralData(
+              customerId,
+              None,
+              Some(CustomerFaceImage(putData.face_image.date, putData.face_image.url)),
+              None,
+              Some(putData.relationship_status),
+              Some(putData.dependants),
+              Some(putData.highest_education_attained),
+              Some(putData.employment_status),
+              None,
+              None,
               None,
               callContext
             )
