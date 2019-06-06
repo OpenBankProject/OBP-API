@@ -122,8 +122,9 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints from VERSION 1.3.0
-  val endpointsOf1_3_0 = Implementations1_3_0.getCards ::
-                         Implementations1_3_0.getCardsForBank ::
+  val endpointsOf1_3_0 = 
+//                         Implementations1_3_0.getCards ::
+//                         Implementations1_3_0.getCardsForBank ::
                          Nil
 
 
@@ -188,7 +189,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.getConsumer ::
                           Implementations2_1_0.getConsumers ::
                           Implementations2_1_0.enableDisableConsumers ::
-                          Implementations2_1_0.addCardForBank ::
+//                          Implementations2_1_0.addCardForBank ::
                           // Implementations2_1_0.getUsers ::
                           Implementations2_1_0.createTransactionType ::
                           // Implementations2_1_0.getAtm :: //now in V300
@@ -350,7 +351,12 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getMessageDocsSwagger ::
                           Implementations3_1_0.updateCustomerEmail ::
                           Implementations3_1_0.updateCustomerMobileNumber ::
-                          Implementations3_1_0.updateAccount ::
+                          Implementations3_1_0.updateAccount :: 
+                          Implementations3_1_0.addCardForBank :: 
+                          Implementations3_1_0.deleteCardForBank :: 
+                          Implementations3_1_0.getCardForBank :: 
+                          Implementations3_1_0.getCardsForBank :: 
+                          Implementations3_1_0.updatedCardForBank :: 
                           Implementations3_1_0.updateCustomerIdentity ::
                           Implementations3_1_0.updateCustomerCreditLimit ::
                           Implementations3_1_0.updateCustomerCreditRatingAndSource ::

@@ -642,29 +642,6 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) =
     LocalMappedConnector.getCounterpartyByIban(iban: String, callContext)
   
-  override def createOrUpdatePhysicalCard(bankCardNumber: String,
-                      nameOnCard: String,
-                      issueNumber: String,
-                      serialNumber: String,
-                      validFrom: Date,
-                      expires: Date,
-                      enabled: Boolean,
-                      cancelled: Boolean,
-                      onHotList: Boolean,
-                      technology: String,
-                      networks: List[String],
-                      allows: List[String],
-                      accountId: String,
-                      bankId: String,
-                      replacement: Option[CardReplacementInfo],
-                      pinResets: List[PinResetInfo],
-                      collected: Option[CardCollectionInfo],
-                      posted: Option[CardPostedInfo]
-                     ) : Box[PhysicalCard] = {
-    Empty
-  }
-
-
   protected override def makePaymentImpl(fromAccount: BankAccount,
                                          toAccount: BankAccount,
                                          transactionRequestCommonBody: TransactionRequestCommonBodyJSON,

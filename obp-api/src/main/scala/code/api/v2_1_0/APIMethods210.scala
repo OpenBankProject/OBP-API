@@ -35,6 +35,7 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
 // Makes JValue assignment to Nil work
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -978,39 +979,52 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            _ <- booleanToBox(hasEntitlement(bankId.value, u.userId, canCreateCardsForBank), UserHasMissingRoles +CanCreateCardsForBank)
-            postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {InvalidJsonFormat}
-            _ <- postJson.allows match {
-              case List() => booleanToBox(true)
-              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~! {AllowedValuesAre + CardAction.availableValues.mkString(", ")}
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateCardsForBank, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostPhysicalCardJSON "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostPhysicalCardJSON]
             }
-            _ <- tryo {CardReplacementReason.valueOf(postJson.replacement.reason_requested)} ?~! {AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")}
-            _ <- BankAccount(bankId, AccountId(postJson.account_id)) ?~! {AccountNotFound}
-            card <- Connector.connector.vend.createOrUpdatePhysicalCard(
-                                bankCardNumber=postJson.bank_card_number,
-                                nameOnCard=postJson.name_on_card,
-                                issueNumber=postJson.issue_number,
-                                serialNumber=postJson.serial_number,
-                                validFrom=postJson.valid_from_date,
-                                expires=postJson.expires_date,
-                                enabled=postJson.enabled,
-                                cancelled=false,
-                                onHotList=false,
-                                technology=postJson.technology,
-                                networks= postJson.networks,
-                                allows= postJson.allows,
-                                accountId= postJson.account_id,
-                                bankId=bankId.value,
-                                replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
-                                pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
-                                collected= Option(CardCollectionInfo(postJson.collected)),
-                                posted= Option(CardPostedInfo(postJson.posted))
-                              )
+
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+
+            _ <- postJson.allows match {
+              case List() => Future {true}
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+            }
+
+            failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
+            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardReplacementReason.valueOf(postJson.replacement.reason_requested)
+            }
+
+            (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
+
+            (card, callContext) <- NewStyle.function.createOrUpdatePhysicalCard(
+              bankCardNumber=postJson.bank_card_number,
+              nameOnCard=postJson.name_on_card,
+              cardType = "",// this filed is introduced from V310
+              issueNumber=postJson.issue_number,
+              serialNumber=postJson.serial_number,
+              validFrom=postJson.valid_from_date,
+              expires=postJson.expires_date,
+              enabled=postJson.enabled,
+              cancelled=false,
+              onHotList=false,
+              technology=postJson.technology,
+              networks= postJson.networks,
+              allows= postJson.allows,
+              accountId= postJson.account_id,
+              bankId=bankId.value,
+              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
+              pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
+              collected= Option(CardCollectionInfo(postJson.collected)),
+              posted= Option(CardPostedInfo(postJson.posted)),
+              callContext
+            )
+            
           } yield {
-            val cardJson = JSONFactory1_3_0.createPhysicalCardJSON(card, u)
-            successJsonResponse(Extraction.decompose(cardJson), 201)
+            (JSONFactory1_3_0.createPhysicalCardJSON(card, u), HttpCode.`201`(callContext))
           }
       }
     }

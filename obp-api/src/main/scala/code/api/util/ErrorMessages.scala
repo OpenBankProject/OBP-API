@@ -51,7 +51,7 @@ object ErrorMessages {
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
   val TooManyRequests = "OBP-10018: Too Many Requests."
   val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
-  val InvalidUri = "OBP-404: 404 Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
+  val InvalidUri = "OBP-10020: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
 
   // General Sort and Paging
@@ -223,6 +223,8 @@ object ErrorMessages {
   val DeleteUserAuthContextNotFound = "OBP-30056: UserAuthContext not found by USER_AUTH_CONTEXT_ID."
   val UserAuthContextUpdateNotFound = "OBP-30057: User Auth Context Update not found by AUTH_CONTEXT_UPDATE_ID."
   val UpdateCustomerError = "OBP-30058: Cannot update the Customer"
+  
+  val CardNotFound = "OBP-30059: This Card can not be found for the user "
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

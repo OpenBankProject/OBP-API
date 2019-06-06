@@ -1,8 +1,8 @@
 package code.cards
 
-import java.util.Date
+import java.util.{Date, UUID}
 
-import code.api.util.ErrorMessages
+import code.api.util.{APIUtil, CallContext, ErrorMessages}
 import code.model.dataAccess.MappedBankAccount
 import code.model._
 import code.views.Views._
@@ -11,31 +11,36 @@ import net.liftweb.mapper.{By, MappedString, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.util.Helpers.tryo
 
+import scala.collection.immutable.List
+
 
 /**
   * Created by markom on 11/10/16.
   */
 
 object MappedPhysicalCardProvider extends PhysicalCardProvider {
-  override def createOrUpdatePhysicalCard(bankCardNumber: String,
-                      nameOnCard: String,
-                      issueNumber: String,
-                      serialNumber: String,
-                      validFrom: Date,
-                      expires: Date,
-                      enabled: Boolean,
-                      cancelled: Boolean,
-                      onHotList: Boolean,
-                      technology: String,
-                      networks: List[String],
-                      allows: List[String],
-                      accountId: String,
-                      bankId: String,
-                      replacement: Option[CardReplacementInfo],
-                      pinResets: List[PinResetInfo],
-                      collected: Option[CardCollectionInfo],
-                      posted: Option[CardPostedInfo]
-                     ): Box[MappedPhysicalCard] = {
+  override def createOrUpdatePhysicalCard(
+    bankCardNumber: String,
+    nameOnCard: String,
+    cardType: String,
+    issueNumber: String,
+    serialNumber: String,
+    validFrom: Date,
+    expires: Date,
+    enabled: Boolean,
+    cancelled: Boolean,
+    onHotList: Boolean,
+    technology: String,
+    networks: List[String],
+    allows: List[String],
+    accountId: String,
+    bankId: String,
+    replacement: Option[CardReplacementInfo],
+    pinResets: List[PinResetInfo],
+    collected: Option[CardCollectionInfo],
+    posted: Option[CardPostedInfo],
+    callContext: Option[CallContext]
+  ): Box[MappedPhysicalCard] = {
 
     val mappedBankAccountPrimaryKey: Long = MappedBankAccount
       .find(
@@ -70,8 +75,9 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
           mappedPhysicalCard
             .mBankId(bankId)
             .mBankCardNumber(bankCardNumber)
-            .mIssueNumber(nameOnCard)
-            .mNameOnCard(issueNumber)
+            .mCardType(cardType)
+            .mIssueNumber(issueNumber)
+            .mNameOnCard(nameOnCard)
             .mSerialNumber(serialNumber)
             .mValidFrom(validFrom)
             .mExpires(expires)
@@ -84,7 +90,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mReplacementDate(r.requestedDate)
             .mReplacementReason(r.reasonRequested.toString)
             .mCollected(c.date)
-            .mPosted(c.date)
+            .mPosted(p.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
         } ?~! ErrorMessages.UpdateCardError
@@ -93,8 +99,9 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
           MappedPhysicalCard.create
             .mBankId(bankId)
             .mBankCardNumber(bankCardNumber)
-            .mIssueNumber(nameOnCard)
-            .mNameOnCard(issueNumber)
+            .mCardType(cardType)
+            .mIssueNumber(issueNumber)
+            .mNameOnCard(nameOnCard)
             .mSerialNumber(serialNumber)
             .mValidFrom(validFrom)
             .mExpires(expires)
@@ -107,7 +114,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mReplacementDate(r.requestedDate)
             .mReplacementReason(r.reasonRequested.toString)
             .mCollected(c.date)
-            .mPosted(c.date)
+            .mPosted(p.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .saveMe()
         } ?~! ErrorMessages.CreateCardError
@@ -115,13 +122,19 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     result match {
       case Full(v) =>
         for(pinReset <- pinResets) {
-          val pin = PinReset.create
-            .mReplacementReason(pinReset.reasonRequested.toString)
-            .mReplacementDate(pinReset.requestedDate)
-            .card(v)
-            .saveMe()
-          v.mPinResets += pin
-          v.save()
+          PinReset.find(
+            By(PinReset.mReplacementDate, pinReset.requestedDate),
+          ) match {
+            case Full(mappedReset) => mappedReset.mReplacementReason(pinReset.reasonRequested.toString).saveMe()
+            case _ =>  
+              val pin = PinReset.create
+              .mReplacementReason(pinReset.reasonRequested.toString)
+              .mReplacementDate(pinReset.requestedDate)
+              .card(v)
+              .saveMe()
+              v.mPinResets += pin
+              v.save()
+          }
         }
       case _ => // There is no enough information to set foreign key
     }
@@ -150,11 +163,28 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     cards
   }
 
+  override def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) = {
+    MappedPhysicalCard.find(
+      By(MappedPhysicalCard.mBankId, bankId.value),
+      By(MappedPhysicalCard.mCardId, cardId),
+    )
+  }
+
+  override def deletePhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) = {
+    MappedPhysicalCard.find(
+      By(MappedPhysicalCard.mBankId, bankId.value),
+      By(MappedPhysicalCard.mCardId, cardId),
+    ).map(_.delete_!)
+  }
+  
 }
 
 class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPhysicalCard] with IdPK with OneToMany[Long, MappedPhysicalCard] {
   def getSingleton = MappedPhysicalCard
 
+  object mCardId extends MappedString(this, 255) {
+    override def defaultValue = APIUtil.generateUUID()
+  }
   object mBankId extends MappedString(this, 50)
   object mBankCardNumber extends MappedString(this, 50)
   object mNameOnCard extends MappedString(this, 128)
@@ -174,6 +204,9 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   object mPinResets extends MappedOneToMany(PinReset, PinReset.card, OrderBy(PinReset.id, Ascending))
   object mCollected extends MappedDateTime(this)
   object mPosted extends MappedDateTime(this)
+  //Note: This may delicate with mAllows, allows can be Credit, Debit, Cash. But a bit difficult to understand.
+  //Maybe this will be first uesd for the initialization. and then we can add more `allows` for this card. 
+  object mCardType extends MappedString(this, 255)
 
   def bankId: String = mBankId.get
   def bankCardNumber: String = mBankCardNumber.get
@@ -211,7 +244,9 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
     case Some(x) => Some(CardPostedInfo(x))
     case _ => None
   }
-
+  
+  def cardType: String = mCardType.get
+  def cardId: String = mCardId.get
 }
 
 object MappedPhysicalCard extends MappedPhysicalCard with LongKeyedMetaMapper[MappedPhysicalCard] {

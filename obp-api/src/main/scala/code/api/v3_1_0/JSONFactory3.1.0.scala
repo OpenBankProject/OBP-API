@@ -33,6 +33,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.RateLimiting
+import code.api.v1_3_0.JSONFactory1_3_0._
+import code.api.v1_3_0.{PhysicalCardJSON, PinResetJSON, ReplacementJSON}
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
@@ -473,6 +475,66 @@ case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: Str
 
 case class OAuth2ServerJWKURIJson(jwks_uri: String)
 case class OAuth2ServerJwksUrisJson(jwks_uris: List[OAuth2ServerJWKURIJson])
+
+case class CreatePhysicalCardJsonV310(
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account_id: String,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date)
+
+case class UpdatePhysicalCardJsonV310(
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account_id: String,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date)
+
+case class PhysicalCardJsonV310(
+  card_id: String,
+  bank_id: String,
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  cancelled: Boolean,
+  on_hot_list: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account: code.api.v1_2_1.AccountJSON,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date)
+
+case class PhysicalCardsJsonV310(
+  cards : List[PhysicalCardJsonV310])
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
@@ -947,6 +1009,33 @@ object JSONFactory310{
     val url = APIUtil.getPropsValue("oauth2.jwk_set.url", "Not set").split(",").toList.map(OAuth2ServerJWKURIJson)
     OAuth2ServerJwksUrisJson(url)
   }
+  def createPhysicalCardJson(card: PhysicalCardTrait, user : User): PhysicalCardJsonV310 = {
+    PhysicalCardJsonV310(
+      card_id = stringOrNull(card.cardId),
+      bank_id = stringOrNull(card.bankId),
+      card_number = stringOrNull(card.bankCardNumber),
+      card_type = stringOrNull(card.cardType),
+      name_on_card = stringOrNull(card.nameOnCard),
+      issue_number = stringOrNull(card.issueNumber),
+      serial_number = stringOrNull(card.serialNumber),
+      valid_from_date = card.validFrom,
+      expires_date = card.expires,
+      enabled = card.enabled,
+      cancelled = card.cancelled,
+      on_hot_list = card.onHotList,
+      technology = stringOrNull(card.technology),
+      networks = card.networks,
+      allows = card.allows.map(cardActionsToString).toList,
+      account = createAccountJson(card.account, user),
+      replacement = card.replacement.map(createReplacementJson).getOrElse(null),
+      pin_reset = card.pinResets.map(createPinResetJson),
+      collected = card.collected.map(_.date).getOrElse(null),
+      posted = card.posted.map(_.date).getOrElse(null)
+    )
+  }
+
+  def createPhysicalCardsJson(cards : List[PhysicalCard], user : User) : PhysicalCardsJsonV310 = 
+    PhysicalCardsJsonV310(cards.map(card => createPhysicalCardJson(card, user)))
 
 }
 

@@ -949,7 +949,7 @@ object SwaggerDefinitionsJSON {
     reason_requested = FORGOT.toString
   )
   val pinResetJSON1 = PinResetJSON(
-    requested_date = DateWithDayExampleObject,
+    requested_date = new Date(),
     reason_requested = GOOD_SECURITY_PRACTICE.toString
   )
 
@@ -984,17 +984,17 @@ object SwaggerDefinitionsJSON {
   )
 
   val postPhysicalCardJSON = PostPhysicalCardJSON(
-    bank_card_number = "String",
-    name_on_card = "String",
-    issue_number = "String",
-    serial_number = "String",
+    bank_card_number = "bank_card_number",
+    name_on_card = "name_on_card",
+    issue_number = "issue-123",
+    serial_number = "serial_number-123",
     valid_from_date = DateWithDayExampleObject,
     expires_date = DateWithDayExampleObject,
     enabled = true,
-    technology = "String",
+    technology = "technology",
     networks = List("network1", "network2"),
     allows = List("credit", "debit"),
-    account_id = "String",
+    account_id = "account_id",
     replacement = replacementJSON,
     pin_reset = List(pinResetJSON, pinResetJSON1),
     collected = DateWithDayExampleObject,
@@ -3251,7 +3251,67 @@ object SwaggerDefinitionsJSON {
     branch_id = "1234",
     account_routing = accountRoutingJsonV121
   )
+  val createPhysicalCardJsonV310 = CreatePhysicalCardJsonV310(
+    card_number = "card-number-1231234132",
+    card_type = "Credit",
+    name_on_card = "Simon",
+    issue_number = "123",
+    serial_number = "serial-number-2483904023",
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    technology = "technology1",
+    networks = List("network1", "network2"),
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account_id = "acccountId-fc23a7e2-",
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON, pinResetJSON1),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject
+  )
 
+  val updatePhysicalCardJsonV310 = UpdatePhysicalCardJsonV310(
+    card_type = "Credit",
+    name_on_card = "Simon",
+    issue_number = "123",
+    serial_number = "serial-number-2483904023",
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    technology = "technology1",
+    networks = List("network1", "network2"),
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account_id = "acccountId-fc23a7e2-",
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON, pinResetJSON1),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject
+  )
+  
+  val physicalCardJsonV310 = PhysicalCardJsonV310(
+    card_id = "card-id1231234132",
+    bank_id = "bank-id-gh.29.uk",
+    card_number = "card-number-1231234132",
+    card_type = "Credit",
+    name_on_card = "Simon",
+    issue_number = "123",
+    serial_number = "serial-number-2483904023",
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    cancelled = true,
+    on_hot_list = true,
+    technology = "technologyString1",
+    networks = List("networks1"),
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account = accountJSON,
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject
+  )
+
+  val physicalCardsJsonV310 = PhysicalCardsJsonV310(List(physicalCardJsonV310))
   
   //The common error or success format.
   //Just some helper format to use in Json 

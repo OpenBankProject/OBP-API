@@ -359,27 +359,57 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
 
   def getPhysicalCards(user : User) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
   
-  def getPhysicalCardsForBank(bank: Bank, user : User) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
+  def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  def deletePhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getPhysicalCardsForBankLegacy(bank: Bank, user : User) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
+  def getPhysicalCardsForBank(bank: Bank, user : User, callContext:Option[CallContext]) : OBPReturnType[Box[List[PhysicalCard]]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  def createOrUpdatePhysicalCard(bankCardNumber: String,
-                              nameOnCard: String,
-                              issueNumber: String,
-                              serialNumber: String,
-                              validFrom: Date,
-                              expires: Date,
-                              enabled: Boolean,
-                              cancelled: Boolean,
-                              onHotList: Boolean,
-                              technology: String,
-                              networks: List[String],
-                              allows: List[String],
-                              accountId: String,
-                              bankId: String,
-                              replacement: Option[CardReplacementInfo],
-                              pinResets: List[PinResetInfo],
-                              collected: Option[CardCollectionInfo],
-                              posted: Option[CardPostedInfo]
-                             ) : Box[PhysicalCard] = Failure(setUnimplementedError)
+  def createOrUpdatePhysicalCardLegacy(
+    bankCardNumber: String,
+    nameOnCard: String,
+    cardType: String,
+    issueNumber: String,
+    serialNumber: String,
+    validFrom: Date,
+    expires: Date,
+    enabled: Boolean,
+    cancelled: Boolean,
+    onHotList: Boolean,
+    technology: String,
+    networks: List[String],
+    allows: List[String],
+    accountId: String,
+    bankId: String,
+    replacement: Option[CardReplacementInfo],
+    pinResets: List[PinResetInfo],
+    collected: Option[CardCollectionInfo],
+    posted: Option[CardPostedInfo],
+    callContext: Option[CallContext]
+  ): Box[PhysicalCard] = Failure(setUnimplementedError)
+
+  def createOrUpdatePhysicalCard(
+    bankCardNumber: String,
+    nameOnCard: String,
+    cardType: String,
+    issueNumber: String,
+    serialNumber: String,
+    validFrom: Date,
+    expires: Date,
+    enabled: Boolean,
+    cancelled: Boolean,
+    onHotList: Boolean,
+    technology: String,
+    networks: List[String],
+    allows: List[String],
+    accountId: String,
+    bankId: String,
+    replacement: Option[CardReplacementInfo],
+    pinResets: List[PinResetInfo],
+    collected: Option[CardCollectionInfo],
+    posted: Option[CardPostedInfo],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PhysicalCard]] = Future{(Failure{setUnimplementedError}, callContext)}
 
 
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it

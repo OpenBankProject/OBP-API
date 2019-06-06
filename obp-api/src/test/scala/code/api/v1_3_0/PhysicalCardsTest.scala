@@ -20,8 +20,10 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
   lazy val account = createAccount(bank.bankId, AccountId(accId), accountCurrency)
 
   def createCard(number : String) = PhysicalCard(
+    cardId ="",
     bankId= bank.bankId.value,
     bankCardNumber = number,
+    cardType = "",
     nameOnCard = "",
     issueNumber = "",
     serialNumber = "",
@@ -69,7 +71,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       Full(cardList)
     }
   
-    override def getPhysicalCardsForBank(bank : Bank, user : User) = {
+    override def getPhysicalCardsForBankLegacy(bank : Bank, user : User) = {
       val cardList = if(user == resourceUser1) {
         user1CardsForOneBank
       } else if (user == resourceUser2) {
