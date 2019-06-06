@@ -2,8 +2,10 @@ package code.api.v3_1_0
 
 import java.util.Date
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{createPhysicalCardJsonV310, updatePhysicalCardJsonV310}
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole.CanCreateCustomer
 import code.api.util.{ApiRole, ApiVersion}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
@@ -38,7 +40,17 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       val testBank = testBankId1
       val testAccount = testAccountId1
       val dummyCard = createPhysicalCardJsonV310
-      val properCardJson = dummyCard.copy(account_id = testAccount.value, issue_number = "123")
+      
+      And("We need to prepare the Customer Info")
+
+      Then("We prepare the Customer data")
+      val request310 = (v3_1_0_Request / "banks" / testBankId1.value / "customers").POST <@(user1)
+      val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, CanCreateCustomer.toString)
+      val responseCustomer310 = makePostRequest(request310, write(postCustomerJson))
+      val customerId = responseCustomer310.body.extract[CustomerJsonV310].customer_id
+      
+      val properCardJson = dummyCard.copy(account_id = testAccount.value, issue_number = "123", customer_id = customerId)
 
       val requestAnonymous = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards" ).POST 
       val requestWithAuthUser = (v3_1_0_Request / "management" /"banks" / testBank.value / "cards" ).POST <@ (user1)
@@ -92,6 +104,13 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       responseHasRoleWrongAccountId.code should equal(400)
       responseHasRoleWrongAccountId.body.toString contains(s"$BankAccountNotFound")
 
+      Then(s"We grant the user ${ApiRole.canCreateCardsForBank} role, but wrong customerId")
+      val wrongCustomerCardJson = properCardJson.copy(customer_id = "wrongId")
+      val responsewrongCustomerCardJson = makePostRequest(requestWithAuthUser, write(wrongCustomerCardJson))
+      And(s"We should get 400 and get the error message: $CustomerNotFoundByCustomerId.")
+      responsewrongCustomerCardJson.code should equal(400)
+      responsewrongCustomerCardJson.body.toString contains(s"$CustomerNotFoundByCustomerId") should be (true)
+ 
       Then(s"We test the success case, prepare all stuff.")
       val responseProper = makePostRequest(requestWithAuthUser, write(properCardJson))
       And("We should get 400 and get the error message: Not Found the BankAccount.")
@@ -115,6 +134,13 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       cardJsonV31.pin_reset.toString() should be (properCardJson.pin_reset.toString())
       cardJsonV31.collected should be (properCardJson.collected )
       cardJsonV31.posted should be (properCardJson.posted )
+
+      Then(s"We create the card with same bankId, cardNumber and issueNumber")
+      val responseDeplicated = makePostRequest(requestWithAuthUser, write(properCardJson))
+      And("We should get 400 and get the error message: the card already exsiting .")
+      responseDeplicated.code should equal(400)
+      responseDeplicated.body.toString contains(s"$CardAlreadyExists") should be (true)
+      
       
       Then("We test the getCards")
       val requestGet = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ (user1)

@@ -20,7 +20,7 @@ object PhysicalCard extends SimpleInjector {
 
 trait PhysicalCardProvider {
 
-  def createOrUpdatePhysicalCard(
+  def createPhysicalCard(
     bankCardNumber: String,
     nameOnCard: String,
     cardType: String,
@@ -44,6 +44,31 @@ trait PhysicalCardProvider {
     callContext: Option[CallContext]
   ): Box[MappedPhysicalCard]
 
+  def updatePhysicalCard(
+    cardId: String,
+    bankCardNumber: String,
+    nameOnCard: String,
+    cardType: String,
+    issueNumber: String,
+    serialNumber: String,
+    validFrom: Date,
+    expires: Date,
+    enabled: Boolean,
+    cancelled: Boolean,
+    onHotList: Boolean,
+    technology: String,
+    networks: List[String],
+    allows: List[String],
+    accountId: String,
+    bankId: String,
+    replacement: Option[CardReplacementInfo],
+    pinResets: List[PinResetInfo],
+    collected: Option[CardCollectionInfo],
+    posted: Option[CardPostedInfo],
+    customerId: String,
+    callContext: Option[CallContext]
+  ): Box[PhysicalCardTrait]
+  
   def getPhysicalCards(user: User): List[MappedPhysicalCard]
 
   def getPhysicalCardsForBank(bank: Bank, user: User): List[MappedPhysicalCard]

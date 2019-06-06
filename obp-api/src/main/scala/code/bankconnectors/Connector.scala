@@ -365,7 +365,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def getPhysicalCardsForBankLegacy(bank: Bank, user : User) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
   def getPhysicalCardsForBank(bank: Bank, user : User, callContext:Option[CallContext]) : OBPReturnType[Box[List[PhysicalCard]]] = Future{(Failure(setUnimplementedError), callContext)}
 
-  def createOrUpdatePhysicalCardLegacy(
+  def createPhysicalCardLegacy(
     bankCardNumber: String,
     nameOnCard: String,
     cardType: String,
@@ -389,7 +389,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     callContext: Option[CallContext]
   ): Box[PhysicalCard] = Failure(setUnimplementedError)
 
-  def createOrUpdatePhysicalCard(
+  def createPhysicalCard(
     bankCardNumber: String,
     nameOnCard: String,
     cardType: String,
@@ -413,7 +413,31 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
     callContext: Option[CallContext]
   ): OBPReturnType[Box[PhysicalCard]] = Future{(Failure{setUnimplementedError}, callContext)}
 
-
+  def updatePhysicalCard(
+    cardId: String,
+    bankCardNumber: String,
+    nameOnCard: String,
+    cardType: String,
+    issueNumber: String,
+    serialNumber: String,
+    validFrom: Date,
+    expires: Date,
+    enabled: Boolean,
+    cancelled: Boolean,
+    onHotList: Boolean,
+    technology: String,
+    networks: List[String],
+    allows: List[String],
+    accountId: String,
+    bankId: String,
+    replacement: Option[CardReplacementInfo],
+    pinResets: List[PinResetInfo],
+    collected: Option[CardCollectionInfo],
+    posted: Option[CardPostedInfo],
+    customerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure{setUnimplementedError}, callContext)}
+  
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it
   /**
    * \

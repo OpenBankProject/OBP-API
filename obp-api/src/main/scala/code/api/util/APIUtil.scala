@@ -828,6 +828,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val duration =  getHttpRequestUrlParam(httpRequestUrl, "duration")
     val currency =  getHttpRequestUrlParam(httpRequestUrl, "currency")
     val amount =  getHttpRequestUrlParam(httpRequestUrl, "amount")
+    val customerId =  getHttpRequestUrlParam(httpRequestUrl, "customerId")
 
     //The following three are not a string, it should be List of String
     //eg: exclude_app_names=A,B,C --> List(A,B,C)
@@ -849,7 +850,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("amount", amount),
       HTTPParam("bank_id", bankId),
       HTTPParam("account_id", accountId),
-      HTTPParam("connector_name", connectorName)
+      HTTPParam("connector_name", connectorName),
+      HTTPParam("customerId", customerId)
     ).filter(_.values.head != ""))//Here filter the filed when value = "". 
   }
   

@@ -613,7 +613,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       callContext)
   }
   
-  override def createOrUpdatePhysicalCard(
+  override def createPhysicalCard(
     bankCardNumber: String,
     nameOnCard: String,
     cardType: String,
@@ -635,7 +635,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     posted: Option[CardPostedInfo],
     customerId: String,
     callContext: Option[CallContext]) =  Future {
-    (createOrUpdatePhysicalCardLegacy(
+    (createPhysicalCardLegacy(
       bankCardNumber: String,
       nameOnCard: String,
       cardType: String,
@@ -661,7 +661,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
 
-  override def createOrUpdatePhysicalCardLegacy(
+  override def createPhysicalCardLegacy(
     bankCardNumber: String,
     nameOnCard: String,
     cardType: String,
@@ -683,7 +683,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     posted: Option[CardPostedInfo],
     customerId: String,
     callContext: Option[CallContext]) : Box[PhysicalCard] = {
-    val physicalCardBox: Box[MappedPhysicalCard] = code.cards.PhysicalCard.physicalCardProvider.vend.createOrUpdatePhysicalCard(
+    val physicalCardBox: Box[MappedPhysicalCard] = code.cards.PhysicalCard.physicalCardProvider.vend.createPhysicalCard(
       bankCardNumber: String,
       nameOnCard: String,
       cardType: String,
@@ -732,6 +732,55 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
+  override def updatePhysicalCard(
+    cardId: String,
+    bankCardNumber: String,
+    nameOnCard: String,
+    cardType: String,
+    issueNumber: String,
+    serialNumber: String,
+    validFrom: Date,
+    expires: Date,
+    enabled: Boolean,
+    cancelled: Boolean,
+    onHotList: Boolean,
+    technology: String,
+    networks: List[String],
+    allows: List[String],
+    accountId: String,
+    bankId: String,
+    replacement: Option[CardReplacementInfo],
+    pinResets: List[PinResetInfo],
+    collected: Option[CardCollectionInfo],
+    posted: Option[CardPostedInfo],
+    customerId: String,
+    callContext: Option[CallContext]
+  ) = Future {(
+    code.cards.PhysicalCard.physicalCardProvider.vend.updatePhysicalCard(
+      cardId:String,
+      bankCardNumber: String,
+      nameOnCard: String,
+      cardType: String,
+      issueNumber: String,
+      serialNumber: String,
+      validFrom: Date,
+      expires: Date,
+      enabled: Boolean,
+      cancelled: Boolean,
+      onHotList: Boolean,
+      technology: String,
+      networks: List[String],
+      allows: List[String],
+      accountId: String,
+      bankId: String,
+      replacement: Option[CardReplacementInfo],
+      pinResets: List[PinResetInfo],
+      collected: Option[CardCollectionInfo],
+      posted: Option[CardPostedInfo],
+      customerId: String,
+      callContext: Option[CallContext]), 
+      callContext)
+  }
   /**
     * Perform a payment (in the sandbox) Store one or more transactions
    */

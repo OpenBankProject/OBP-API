@@ -1000,7 +1000,7 @@ trait APIMethods210 {
 
             (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
 
-            (card, callContext) <- NewStyle.function.createOrUpdatePhysicalCard(
+            (card, callContext) <- NewStyle.function.createPhysicalCard(
               bankCardNumber=postJson.bank_card_number,
               nameOnCard=postJson.name_on_card,
               cardType = "",// this filed is introduced from V310

@@ -225,7 +225,8 @@ object ErrorMessages {
   val UpdateCustomerError = "OBP-30058: Cannot update the Customer"
   
   val CardNotFound = "OBP-30059: This Card can not be found for the user "
-
+  val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
+  
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

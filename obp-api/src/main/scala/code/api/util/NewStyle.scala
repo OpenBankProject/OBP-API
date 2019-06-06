@@ -343,7 +343,7 @@ object NewStyle {
     }
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerId(customerId, callContext) map {
-        unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId)
+        unboxFullOrFail(_, callContext, s"$CustomerNotFoundByCustomerId. Current CustomerId($customerId)")
       }
     }
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): OBPReturnType[Customer] = {
@@ -1258,7 +1258,7 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
 
-    def createOrUpdatePhysicalCard(
+    def createPhysicalCard(
       bankCardNumber: String,
       nameOnCard: String,
       cardType: String,
@@ -1281,7 +1281,7 @@ object NewStyle {
       customerId: String,
       callContext: Option[CallContext]
     ): OBPReturnType[PhysicalCard] =
-      Connector.connector.vend.createOrUpdatePhysicalCard(
+      Connector.connector.vend.createPhysicalCard(
         bankCardNumber: String,
         nameOnCard: String,
         cardType: String,
@@ -1304,9 +1304,60 @@ object NewStyle {
         customerId: String,
         callContext: Option[CallContext]
       ) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$CreateCardError or $UpdateCardError"), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateCardError"), i._2)
       }
 
+    def updatePhysicalCard(
+      cardId: String,
+      bankCardNumber: String,
+      nameOnCard: String,
+      cardType: String,
+      issueNumber: String,
+      serialNumber: String,
+      validFrom: Date,
+      expires: Date,
+      enabled: Boolean,
+      cancelled: Boolean,
+      onHotList: Boolean,
+      technology: String,
+      networks: List[String],
+      allows: List[String],
+      accountId: String,
+      bankId: String,
+      replacement: Option[CardReplacementInfo],
+      pinResets: List[PinResetInfo],
+      collected: Option[CardCollectionInfo],
+      posted: Option[CardPostedInfo],
+      customerId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[PhysicalCardTrait] =
+      Connector.connector.vend.updatePhysicalCard(
+        cardId: String,
+        bankCardNumber: String,
+        nameOnCard: String,
+        cardType: String,
+        issueNumber: String,
+        serialNumber: String,
+        validFrom: Date,
+        expires: Date,
+        enabled: Boolean,
+        cancelled: Boolean,
+        onHotList: Boolean,
+        technology: String,
+        networks: List[String],
+        allows: List[String],
+        accountId: String,
+        bankId: String,
+        replacement: Option[CardReplacementInfo],
+        pinResets: List[PinResetInfo],
+        collected: Option[CardCollectionInfo],
+        posted: Option[CardPostedInfo],
+        customerId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateCardError"), i._2)
+      }
+    
     def getPhysicalCardsForBank(bank: Bank, user : User, callContext:Option[CallContext]) : OBPReturnType[List[PhysicalCard]] =
       Connector.connector.vend.getPhysicalCardsForBank(bank: Bank, user : User, callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, CardNotFound), i._2)

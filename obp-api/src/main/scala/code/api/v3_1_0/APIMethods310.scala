@@ -4096,7 +4096,7 @@ trait APIMethods310 {
             
             (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
             
-            (card, callContext) <- NewStyle.function.createOrUpdatePhysicalCard(
+            (card, callContext) <- NewStyle.function.createPhysicalCard(
               bankCardNumber=postJson.card_number,
               nameOnCard=postJson.name_on_card,
               cardType = postJson.card_type,
@@ -4173,8 +4173,11 @@ trait APIMethods310 {
 
             (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
             
-            (card, callContext) <- NewStyle.function.createOrUpdatePhysicalCard(
-              bankCardNumber=card.bankCardNumber, //This field can not be updated by developer, we use bankId+bankcardNumber to identify a card for now. 
+            (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            
+            (card, callContext) <- NewStyle.function.updatePhysicalCard(
+              cardId = cardId,
+              bankCardNumber=card.bankCardNumber, 
               cardType = postJson.card_type,
               nameOnCard=postJson.name_on_card,
               issueNumber=postJson.issue_number,
@@ -4216,10 +4219,11 @@ trait APIMethods310 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard))
     lazy val getCardsForBank : OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {//? account = CountId, customernumber, user xxx...
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
         cc => {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
             (bank, callContext)<- NewStyle.function.getBank(bankId, callContext)
             (cards,callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, u, callContext)
