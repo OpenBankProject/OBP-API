@@ -569,13 +569,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Full(cardList)
   }
 
-  override def getPhysicalCardsForBank(bank: Bank, user : User, callContext:Option[CallContext]) = Future{(
-    getPhysicalCardsForBankLegacy(bank: Bank, user: User),
+  override def getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) = Future{(
+    getPhysicalCardsForBankLegacy(bank: Bank, user: User, queryParams),
     callContext
   )}
   
-  override def getPhysicalCardsForBankLegacy(bank: Bank, user: User)= {
-    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
+  override def getPhysicalCardsForBankLegacy(bank: Bank, user: User, queryParams: List[OBPQueryParam])= {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user, queryParams)
     val cardList = for (l <- list) yield
       new PhysicalCard(
         cardId = l.cardId,

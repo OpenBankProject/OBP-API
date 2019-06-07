@@ -4224,9 +4224,12 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             httpParams <- NewStyle.function.createHttpParams(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
+            }
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
-            (bank, callContext)<- NewStyle.function.getBank(bankId, callContext)
-            (cards,callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, u, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (cards,callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, u, obpQueryParams, callContext)
           } yield {
             (createPhysicalCardsJson(cards, u), HttpCode.`200`(callContext))
           }

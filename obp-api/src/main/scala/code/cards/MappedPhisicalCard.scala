@@ -2,7 +2,7 @@ package code.cards
 
 import java.util.{Date, UUID}
 
-import code.api.util.{APIUtil, CallContext, ErrorMessages}
+import code.api.util._
 import code.model.dataAccess.MappedBankAccount
 import code.model._
 import code.views.Views._
@@ -235,7 +235,18 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     cards
   }
 
-  def getPhysicalCardsForBank(bank: Bank, user: User) = {
+  def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam]) = {
+    val customerId= queryParams.collect { case OBPCustomerId(value) => By(MappedPhysicalCard.mCustomerId ,value)}.headOption
+
+    val optionalParams : Seq[QueryParam[MappedPhysicalCard]] = Seq(customerId.toSeq).flatten
+    
+    val mapperParams = Seq(By(MappedPhysicalCard.mBankId, bank.bankId.value)) ++ optionalParams
+    
+    MappedPhysicalCard.findAll(mapperParams: _*)
+    
+  }
+  
+  def getPhysicalCardsForUser(bank: Bank, user: User) = {
     val allCards: List[MappedPhysicalCard] = MappedPhysicalCard.findAll()
     val cards = for {
       account <- views.vend.getPrivateBankAccounts(user, bank.bankId)

@@ -2,7 +2,7 @@ package code.cards
 
 import java.util.Date
 
-import code.api.util.CallContext
+import code.api.util.{CallContext, OBPQueryParam}
 import code.model._
 import com.openbankproject.commons.model._
 import net.liftweb.util.SimpleInjector
@@ -71,7 +71,7 @@ trait PhysicalCardProvider {
   
   def getPhysicalCards(user: User): List[MappedPhysicalCard]
 
-  def getPhysicalCardsForBank(bank: Bank, user: User): List[MappedPhysicalCard]
+  def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam]): List[PhysicalCardTrait]
 
   def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : Box[PhysicalCardTrait]
   

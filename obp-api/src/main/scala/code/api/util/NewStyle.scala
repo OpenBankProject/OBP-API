@@ -1358,8 +1358,8 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$UpdateCardError"), i._2)
       }
     
-    def getPhysicalCardsForBank(bank: Bank, user : User, callContext:Option[CallContext]) : OBPReturnType[List[PhysicalCard]] =
-      Connector.connector.vend.getPhysicalCardsForBank(bank: Bank, user : User, callContext:Option[CallContext]) map {
+    def getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) : OBPReturnType[List[PhysicalCard]] =
+      Connector.connector.vend.getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, CardNotFound), i._2)
       }
 

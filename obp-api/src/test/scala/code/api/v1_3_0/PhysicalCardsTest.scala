@@ -3,7 +3,7 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.CallContext
+import code.api.util.{CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
@@ -72,7 +72,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       Full(cardList)
     }
   
-    override def getPhysicalCardsForBankLegacy(bank : Bank, user : User) = {
+    override def getPhysicalCardsForBankLegacy(bank: Bank, user: User, queryParams: List[OBPQueryParam]) = {
       val cardList = if(user == resourceUser1) {
         user1CardsForOneBank
       } else if (user == resourceUser2) {
