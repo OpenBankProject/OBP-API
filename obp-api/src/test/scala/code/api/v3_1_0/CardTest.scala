@@ -143,13 +143,19 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       
       
       Then("We test the getCards")
-      val requestGet = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ (user1)
+      val requestGetWihtWrongCustomerId = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ user1 <<? (List(("customer_id","12323")))
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canGetCardsForBank.toString)
-      val responseGet = makeGetRequest(requestGet)
+      val responseGetWrongCustomerId = makeGetRequest(requestGetWihtWrongCustomerId)
       And("We should get 200 and updated card data")
-      responseGet.code should equal(200)
-      responseGet.body.extract[PhysicalCardsJsonV310].cards.size should be (1)
-      responseGet.body.extract[PhysicalCardsJsonV310].cards.head should be (cardJsonV31)
+      responseGetWrongCustomerId.code should equal(200)
+      responseGetWrongCustomerId.body.extract[PhysicalCardsJsonV310].cards.size should be (0)
+
+      val requestGetWihtProperCustomterId = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ user1 <<? (List(("customer_id",customerId)))
+      val responseGetWihtProperCustomterId = makeGetRequest(requestGetWihtProperCustomterId)
+      And("We should get 200 and updated card data")
+      responseGetWihtProperCustomterId.code should equal(200)
+      responseGetWihtProperCustomterId.body.extract[PhysicalCardsJsonV310].cards.size should be (1)
+      responseGetWihtProperCustomterId.body.extract[PhysicalCardsJsonV310].cards.head should be (cardJsonV31)
 
       Then("We test the getCard by cardId")
       val cardId = cardJsonV31.card_id
@@ -191,7 +197,7 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       responseGetCardAfterDelete.body.toString contains(s"$CardNotFound")
 
       Then("We test the getCards again to make sure card has been deleted")
-      val responseGetCardsAfterdelete = makeGetRequest(requestGet)
+      val responseGetCardsAfterdelete = makeGetRequest(requestGetWihtProperCustomterId)
       And("We should get 200 and updated card data")
       responseGetCardsAfterdelete.code should equal(200)
       responseGetCardsAfterdelete.body.extract[PhysicalCardsJsonV310].cards.size should be (0)
