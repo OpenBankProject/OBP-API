@@ -123,7 +123,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from VERSION 1.3.0
   val endpointsOf1_3_0 = 
-//                         Implementations1_3_0.getCards ::
+                         Implementations1_3_0.getCards ::
 //                         Implementations1_3_0.getCardsForBank ::
                          Nil
 
