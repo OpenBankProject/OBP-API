@@ -150,7 +150,21 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       responseGetWrongCustomerId.code should equal(200)
       responseGetWrongCustomerId.body.extract[PhysicalCardsJsonV310].cards.size should be (0)
 
-      val requestGetWihtProperCustomterId = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ user1 <<? (List(("customer_id",customerId)))
+      val requestGetWihtWrongAccountId = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ user1 <<? List(("account_id","12323"))
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canGetCardsForBank.toString)
+      val responseGetWihtWrongAccountId = makeGetRequest(requestGetWihtWrongAccountId)
+      And("We should get 200 and updated card data")
+      responseGetWihtWrongAccountId.code should equal(200)
+      responseGetWihtWrongAccountId.body.extract[PhysicalCardsJsonV310].cards.size should be (0)
+
+      val requestGetWihtProperAccountId = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ user1 <<? List(("account_id",testAccountId1.value))
+      val responseGetWihtProperAccountId = makeGetRequest(requestGetWihtProperAccountId)
+      And("We should get 200 and updated card data")
+      responseGetWihtProperAccountId.code should equal(200)
+      responseGetWihtProperAccountId.body.extract[PhysicalCardsJsonV310].cards.size should be (1)
+      responseGetWihtProperAccountId.body.extract[PhysicalCardsJsonV310].cards.head should be (cardJsonV31)
+
+      val requestGetWihtProperCustomterId = (v3_1_0_Request / "management"/"banks" / testBank.value / "cards").GET <@ user1 <<? List(("customer_id",customerId),("account_id",testAccountId1.value))
       val responseGetWihtProperCustomterId = makeGetRequest(requestGetWihtProperCustomterId)
       And("We should get 200 and updated card data")
       responseGetWihtProperCustomterId.code should equal(200)

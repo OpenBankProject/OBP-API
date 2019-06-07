@@ -2,6 +2,7 @@ package code.cards
 
 import java.util.{Date, UUID}
 
+import code.api.util.ErrorMessages.BankAccountNotFound
 import code.api.util._
 import code.model.dataAccess.MappedBankAccount
 import code.model._
@@ -236,9 +237,22 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
   }
 
   def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam]) = {
-    val customerId= queryParams.collect { case OBPCustomerId(value) => By(MappedPhysicalCard.mCustomerId ,value)}.headOption
+    val customerId: Option[Cmp[MappedPhysicalCard, String]] = queryParams.collect { case OBPCustomerId(value) => 
+      By(MappedPhysicalCard.mCustomerId ,value)
+    }.headOption
+    val accountId: Option[Cmp[MappedPhysicalCard, Long]] = queryParams.collect { case OBPAccountId(value) =>
+      val mappedBankAccountPrimaryKey: Long = MappedBankAccount
+        .find(
+          By(MappedBankAccount.bank, bank.bankId.value),
+          By(MappedBankAccount.theAccountId, value))
+        .map(_.id.get).openOr(Long.MaxValue)
+      
+      By(MappedPhysicalCard.mAccount ,mappedBankAccountPrimaryKey)
+    
+    }.headOption
+    
 
-    val optionalParams : Seq[QueryParam[MappedPhysicalCard]] = Seq(customerId.toSeq).flatten
+    val optionalParams : Seq[QueryParam[MappedPhysicalCard]] = Seq(customerId.toSeq, accountId.toSet).flatten
     
     val mapperParams = Seq(By(MappedPhysicalCard.mBankId, bank.bankId.value)) ++ optionalParams
     

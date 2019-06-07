@@ -251,7 +251,7 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-apis",
       "Get Top APIs",
-      s"""Get metrics abou the most popular APIs. e.g.: total count, response time (in ms), etc.
+      s"""Get metrics about the most popular APIs. e.g.: total count, response time (in ms), etc.
         |
         |Should be able to filter on the following fields
         |
@@ -4212,7 +4212,16 @@ trait APIMethods310 {
       "GET",
       "/management/banks/BANK_ID/cards",
       "Get Cards for the specified bank",
-      "",
+      """Should be able to filter on the following fields
+        |
+        |eg:/management/banks/BANK_ID/cards?customer_id=66214b8e-259e-44ad-8868-3eb47be70646$account_id=8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0
+        |
+        |1 customer_id should be valid customer_id, otherwise, it will return an empty card list.  
+        |
+        |2 account_id should be valid account_id , otherwise, it will return an empty card list.  
+        |
+        |
+        |${authenticationRequiredMessage(true)}""".stripMargin,
       emptyObjectJson,
       physicalCardsJsonV310,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
