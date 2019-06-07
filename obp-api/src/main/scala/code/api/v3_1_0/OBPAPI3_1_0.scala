@@ -356,6 +356,10 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.updateCustomerCreditLimit ::
                           Implementations3_1_0.updateCustomerCreditRatingAndSource ::
                           Implementations3_1_0.updateCustomerData ::
+                          Implementations3_1_0.getMethodRoutings ::
+                          Implementations3_1_0.createMethodRouting ::
+                          Implementations3_1_0.updateMethodRouting ::
+                          Implementations3_1_0.deleteMethodRouting ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++
