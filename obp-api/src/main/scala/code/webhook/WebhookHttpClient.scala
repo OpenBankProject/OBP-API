@@ -42,8 +42,6 @@ object WebhookHttpClient extends MdcLoggable {
     *         2. requestActor ! WebhookResponse(res.status.toString(), request)
     */
   def startEvent(request: WebhookRequest): List[Unit] = {
-    
-    logEvent(request)
 
     MappedAccountWebhook.findAll(
       By(MappedAccountWebhook.mIsActive, true), 
@@ -51,7 +49,9 @@ object WebhookHttpClient extends MdcLoggable {
       By(MappedAccountWebhook.mAccountId, request.accountId),
       By(MappedAccountWebhook.mTriggerName, request.trigger.toString())
     ) map {
-      i => makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
+      i =>
+        logEvent(request)
+        makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
     }
   }
 
