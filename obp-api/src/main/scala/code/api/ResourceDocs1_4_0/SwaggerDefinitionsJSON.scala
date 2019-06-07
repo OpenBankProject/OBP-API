@@ -2010,20 +2010,20 @@ object SwaggerDefinitionsJSON {
   
   val customerJsonV310 = CustomerJsonV310(
     bank_id = "bankid1234",
-    customer_id = "123",
-    customer_number = "123",
-    legal_name = "legal_name",
-    mobile_phone_number = "123",
+    customer_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+    customer_number = "0908977830011",
+    legal_name = "Tom Tom",
+    mobile_phone_number = "+44 07972 444 876",
     email = "contact@tesobe.com",
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
-    relationship_status = "123",
-    dependants = 123,
+    relationship_status = "Single",
+    dependants = 3,
     dob_of_dependants = List(DateWithDayExampleObject),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
-    highest_education_attained = "123",
-    employment_status = "123",
+    highest_education_attained = "Bachelor",
+    employment_status = "Self-employed",
     kyc_status = true,
     last_ok_date = DateWithDayExampleObject,
     title  = "Dr.",
@@ -2034,10 +2034,10 @@ object SwaggerDefinitionsJSON {
 
   val putUpdateCustomerDataJsonV310 = PutUpdateCustomerDataJsonV310(
     face_image = customerFaceImageJson,
-    relationship_status = "123",
-    dependants = 123,
-    highest_education_attained = "123",
-    employment_status = "123"
+    relationship_status = "Single",
+    dependants = 2,
+    highest_education_attained = "Bachelor",
+    employment_status = "Self-employed"
   )
 
   val putCustomerBranchJsonV310 = PutUpdateCustomerBranchJsonV310(branch_id = "123")
@@ -2047,7 +2047,7 @@ object SwaggerDefinitionsJSON {
   val putUpdateCustomerCreditLimitJsonV310 = PutUpdateCustomerCreditLimitJsonV310(AmountOfMoney("EUR", "1000"))
   val putUpdateCustomerCreditRatingAndSourceJsonV310 = PutUpdateCustomerCreditRatingAndSourceJsonV310("Good", "Bank")
   val putUpdateCustomerIdentityJsonV310 = PutUpdateCustomerIdentityJsonV310(
-    legal_name = "legal_name",
+    legal_name = "Tom Tom",
     date_of_birth = DateWithDayExampleObject,
     title  = "Dr.",
     name_suffix = "Sr")
