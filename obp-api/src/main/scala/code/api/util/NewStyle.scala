@@ -1,7 +1,6 @@
 package code.api.util
 
 import java.util.Date
-import java.util.UUID.randomUUID
 
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
@@ -30,7 +29,7 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
+import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
@@ -39,6 +38,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
+import java.util.UUID.randomUUID
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -177,8 +177,11 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerBranch), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerData), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getMethodRoutings), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
@@ -1265,7 +1268,7 @@ object NewStyle {
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
-
+    
     def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }

@@ -164,6 +164,18 @@ class MethodRoutingTest extends V310ServerSetup {
 
       methodRoutingsGetJson.size should be (1)
 
+      {
+        // query not exists MethodRoutings
+        val requestGet310 = (v3_1_0_Request / "management" / "method_routings").GET <@(user1) <<? (List(("method_name", "not_exists_method_name")))
+        val responseGet310 = makeGetRequest(requestGet310)
+        Then("We should get a 200")
+        responseGet310.code should equal(200)
+        val json = responseGet310.body \ "method_routings"
+        val methodRoutingsGetJson = json.extract[List[MethodRoutingCommons]]
+
+        methodRoutingsGetJson.size should be (0)
+      }
+
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteMethodRouting.toString)
       When("We make a request v3.1.0 with the Role " + canDeleteMethodRouting)
       val requestDelete310 = (v3_1_0_Request / "management" / "method_routings" / methodRoutingsGetJson.head.methodRoutingId.get).DELETE <@(user1)
