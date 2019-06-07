@@ -50,6 +50,7 @@ import code.model.{Consumer, User}
 import com.openbankproject.commons.model.Product
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
+
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -544,6 +545,25 @@ case class PhysicalCardJsonV310(
 
 case class PhysicalCardsJsonV310(
   cards : List[PhysicalCardJsonV310])
+
+/**
+  * this case class is a generic list items container for serialized to json string
+  * it will serialize to key value way as follow:
+  * ListResult("someName", List("value"))
+  * --> {"somename": ["value"]}
+  *
+  * note: the type can be defined as:
+  * > case class ListResult[T](name: String, results: List[T])
+  * because lift json not support type parameter is another field type parameter when do deserialize
+  *
+  * when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this:
+  * > jValue.extract[ListResult[List[_]]]
+  *
+  * @param name convert to json single field name
+  * @param results convert json single field value
+  * @tparam T List type
+  */
+case class ListResult[+T <: List[_]](name: String, results: T)
 
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =

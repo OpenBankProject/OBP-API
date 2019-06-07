@@ -15,6 +15,8 @@ import scala.reflect.runtime.universe._
 import java.lang.{Boolean => JBoolean, Double => JDouble, Float => JFloat, Integer => JInt, Long => JLong}
 import java.math.{BigDecimal => JBigDecimal}
 
+import net.liftweb.util.StringHelpers
+
 import scala.collection.mutable.ListBuffer
 
 object SwaggerJSONFactory {
@@ -391,26 +393,37 @@ object SwaggerJSONFactory {
     val entityType = ReflectUtils.getType(entity)
     val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
 
+    val convertParamName = (name: String) =>  entity match {
+      case _ : JsonFieldReName => StringHelpers.snakify(name)
+      case _ => name
+    }
+
     //Collect all mandatory fields and make an appropriate string
     // eg return :  "required": ["id","name","bank","banks"],
     val required = constructorParamList
       .filterNot(_.info <:< typeOf[Option[_]])
       .map(_.name.toString)
+      .map(convertParamName)
       .map(it => s""" "$it" """)
 
     //Make part of mandatory fields
     val requiredFieldsPart = if (required.isEmpty) "" else  required.mkString(""" "required": [""", ",", """], """)
 
     val paramNameToType: List[String] = constructorParamList.map(it => {
-      val paramName = it.name.toString
+      val paramName = convertParamName(it.name.toString)
       val paramType = it.info
-      val paramValue = ReflectUtils.invokeMethod(entity, paramName)
+      val paramValue = ReflectUtils.invokeMethod(entity, it.name.toString)
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 
       def getRefEntityName(tp: Type, value: Any, typeParamIndexes: Int*): String = {
-        val symbol = typeParamIndexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
-        if(symbol.asClass.isAbstract) {
+
+        def isTypeParamAbstract: Boolean = {
+          val symbol = typeParamIndexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
+          Some(symbol).filter(it => it.isClass && it.asClass.isAbstract).isDefined
+        }
+        // if tp is wildcard type or extracted type parameter is abstract, analyse with value's nest value
+        if(tp.typeArgs.isEmpty || (typeParamIndexes.size > 0 && isTypeParamAbstract)) {
           val nestValue = value match {
               case Some(head::_) => head
               case Some(v) => v
@@ -419,8 +432,13 @@ object SwaggerJSONFactory {
               case other => other
             }
           ReflectUtils.getType(nestValue).typeSymbol.name.toString
+        } else if(typeParamIndexes.size == 1 && typeParamIndexes.head == 0 && value.isInstanceOf[List[_]] && value.asInstanceOf[List[_]].exists(_ != null)) {
+          val noNullValue = value.asInstanceOf[List[_]].find(_ != null).get
+          ReflectUtils.getType(noNullValue).typeSymbol.name.toString
+        } else if(typeParamIndexes.size == 1 && typeParamIndexes.head == 0 && value.isInstanceOf[Some[_]]) {
+          ReflectUtils.getType(value.asInstanceOf[Some[_]].get).typeSymbol.name.toString
         } else {
-          symbol.name.toString
+          value.getClass.getName
         }
       }
       paramType match {
