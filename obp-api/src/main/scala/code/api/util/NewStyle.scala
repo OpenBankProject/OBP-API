@@ -3,6 +3,7 @@ package code.api.util
 import java.util.Date
 
 import code.api.APIFailureNewStyle
+import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
@@ -19,6 +20,7 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
+import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -28,6 +30,7 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
@@ -35,6 +38,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
+import java.util.UUID.randomUUID
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -176,7 +180,12 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerBranch), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerData), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerData), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getMethodRoutings), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
   )
 
   object HttpCode {
@@ -1260,6 +1269,39 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
     
+    def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
+      this.getMethodRoutings(methodName.toOption)
+    }
+
+    def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
+      MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(methodRouting)
+     }
+
+    def deleteMethodRouting(methodRoutingId: String) = Future {
+      MethodRoutingProvider.connectorMethodProvider.vend.delete(methodRoutingId)
+    }
+
+    def getMethodRoutingById(methodRoutingId : String, callContext: Option[CallContext]): OBPReturnType[MethodRoutingT] = {
+      val methodRoutingBox: Box[MethodRoutingT] = MethodRoutingProvider.connectorMethodProvider.vend.getById(methodRoutingId)
+      val methodRouting = unboxFullOrFail(methodRoutingBox, callContext, MethodRoutingNotFoundByMethodRoutingId)
+      Future{
+        (methodRouting, callContext)
+      }
+    }
+
+    private[this] val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "30").toInt // default 30 seconds
+
+    def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
+          MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern)
+        }
+      }
+    }
+
   }
 
 }

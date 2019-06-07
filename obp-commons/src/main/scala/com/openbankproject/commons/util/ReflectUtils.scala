@@ -7,6 +7,7 @@ import net.liftweb.common.Box
 
 import scala.collection.immutable.List
 import scala.language.postfixOps
+import scala.reflect.api.{TypeCreator, Universe}
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 
@@ -96,10 +97,7 @@ object ReflectUtils {
 
   def invokeMethod(obj: Any, methodName: String, args: Any*): Any = {
     val objMirror = mirror.reflect(obj)
-    val methodSymbol: Option[ru.MethodSymbol] = findMethod(obj, methodName) { nameToType => {
-        args.size == args.size && nameToType.values.zip(args).forall(it => isTypeOf(it._1, it._2))
-      }
-    }
+    val methodSymbol: Option[ru.MethodSymbol] = findMethodByArgs(obj, methodName, args:_*)
 
     if (methodSymbol.isEmpty) {
       throw new IllegalArgumentException(s"not found method $methodName match the parameters: $args")
@@ -110,6 +108,54 @@ object ReflectUtils {
   def invokeMethod(obj: Any, method: ru.MethodSymbol, args: Any*): Any = {
     val objMirror = mirror.reflect(obj)
     objMirror.reflectMethod(method).apply(args: _*)
+  }
+
+  /**
+    * invoke given object "call by name" methods or val values, to get methodName to value
+    * @param obj to get values object
+    * @param methodNames call by name method names or val names
+    * @return name to values get from obj
+    */
+  def getCallByNameValues(obj: Any, methodNames: String*): Map[String, Any] = {
+    val objMirror = mirror.reflect(obj)
+    val tp = objMirror.symbol.toType
+    methodNames
+      .map(methodName => tp.member(ru.TermName(methodName)))
+      .map { methodSymbol=>
+          assume(methodSymbol.isMethod, s"${methodSymbol.name} is not method in Object ${obj}")
+          val method = methodSymbol.asMethod
+          val callByNameMethod = method.alternatives.find(it => it.asMethod.paramLists == Nil).map(_.asMethod)
+          assume(callByNameMethod.isDefined, s"there is no call by name method or val of name ${methodSymbol.name} in Object ${obj}")
+
+          callByNameMethod.get
+        }
+      .map {method =>
+        val paramName = method.name.toString
+        val paramValue =objMirror.reflectMethod(method).apply()
+        (paramName, paramValue)
+      } .toMap
+  }
+
+  /**
+    * get given object val value or "call by name" method value
+    * @param obj to do extract value object
+    * @param methodName "call by name" method name or val name
+    * @return value of given object through call "call by name" method or val
+    */
+  def getCallByNameValue(obj: Any, methodName: String): Any = getCallByNameValues(obj, methodName).headOption.get._2
+
+  /**
+    * extract object field values, like unapply method
+    * for example:
+    * val obj: Any = Foo(name = "ken", age = 12, email = "abc@tesobe.com")
+    * getConstructValues(obj) == Map(("name", "ken"), ("age", 12), ("email", "abc@tesobe.com"))
+    *
+    * @param obj
+    * @return
+    */
+  def getConstructorArgs(obj: Any): Map[String, Any] = {
+    val constructorParamNames = getPrimaryConstructor(obj).paramLists.headOption.getOrElse(Nil).map(_.name.toString)
+    getCallByNameValues(obj, constructorParamNames :_*)
   }
 
   def invokeConstructor(tp: ru.Type)(fn: (Seq[ru.Type]) => Seq[Any]): Any = {
@@ -141,21 +187,50 @@ object ReflectUtils {
   }
 
   def findMethod(tp: ru.Type, methodName: String)(predicate: Map[String, ru.Type] => Boolean): Option[MethodSymbol] = {
-    tp.members.filter(it => it.isMethod && it.name.toString == methodName)
-        .map(_.asMethod)
-        .find(it => {
-          val paramNameToType = it.paramLists.headOption.getOrElse(Nil).map(i => (i.name.toString, i.info)).toMap
-          predicate(paramNameToType)
-        })
+    tp.member(TermName(methodName)).alternatives match {
+      case Nil => None
+      case method::Nil => Some(method).filter(_.isMethod).map(_.asMethod)
+      case list => list.filter(_.isMethod).map(_.asMethod).find { method =>
+        val paramNameToType = method.paramLists.headOption.getOrElse(Nil).map(i => (i.name.toString, i.info)).toMap
+        predicate(paramNameToType)
+      }
+    }
   }
 
   def findMethod(obj: Any, methodName: String)(predicate: Map[String, ru.Type] => Boolean): Option[MethodSymbol] = findMethod(getType(obj), methodName)(predicate)
 
+  def findMethodByArgs(tp: ru.Type, methodName: String, args: Any*): Option[ru.MethodSymbol] = findMethod(tp, methodName) { nameToType =>
+      args.size == args.size && nameToType.values.zip(args).forall(it => isTypeOf(it._1, it._2))
+  }
+
+  def findMethodByArgs(obj: Any,  methodName: String, args: Any*): Option[ru.MethodSymbol] = findMethodByArgs(getType(obj), methodName, args:_*)
+
+
   def getType(obj: Any): ru.Type = mirror.reflect(obj).symbol.toType
 
-  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).asMethod
+  def getPrimaryConstructor(tp: ru.Type): MethodSymbol = tp.decl(ru.termNames.CONSTRUCTOR).alternatives.head.asMethod
 
   def getPrimaryConstructor(obj: Any): MethodSymbol = this.getPrimaryConstructor(this.getType(obj))
+
+  def classToTypeTag[A](clazz: Class[A], typeParams: Class[_]*): TypeTag[A] = {
+    import scala.reflect.api
+    val mirror: ru.Mirror = runtimeMirror(clazz.getClassLoader)
+    val sym: ru.ClassSymbol = mirror.classSymbol(clazz)
+
+    val tpe = if(typeParams.isEmpty) {
+      sym.selfType
+    } else {
+      val typeParamList = typeParams.map(mirror.classSymbol(_).toType).toList
+      ru.internal.typeRef(NoPrefix, sym, typeParamList)
+    }
+
+    // create a type tag which contains above type object
+    TypeTag(mirror, new api.TypeCreator {
+      def apply[U <: api.Universe with Singleton](m: api.Mirror[U]) =
+        if (m eq mirror) tpe.asInstanceOf[U # Type]
+        else throw new IllegalArgumentException(s"Type tag defined in $mirror cannot be migrated to other mirrors.")
+    })
+  }
 
   /**
     * convert a object to it's sibling, please have a loot the example:
@@ -186,7 +261,7 @@ object ReflectUtils {
     if(expectType.typeSymbol.isAbstract) {
       throw new IllegalArgumentException(s"expected type is abstract: $expectType")
     }
-    val constructor: ru.MethodSymbol = expectType.decl(ru.termNames.CONSTRUCTOR).asMethod
+    val constructor: ru.MethodSymbol = expectType.decl(ru.termNames.CONSTRUCTOR).alternatives(0).asMethod
     val mirrorClass: ru.ClassMirror = mirror.reflectClass(expectType.typeSymbol.asClass)
 
     val paramNames = constructor.paramLists(0).map(_.name.toString)

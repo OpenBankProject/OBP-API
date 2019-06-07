@@ -1,6 +1,7 @@
 package code.api.v3_1_0
 
 import java.util.UUID
+import java.util.regex.Pattern
 
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -27,19 +28,21 @@ import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
+import code.methodrouting.MethodRoutingCommons
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import com.openbankproject.commons.model.{CreditLimit, CustomerFaceImageTrait, Product, _}
+import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Empty, Failure, Full}
+import com.openbankproject.commons.model.{CreditLimit, _}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.{Extraction, Formats, parse}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
@@ -54,7 +57,9 @@ trait APIMethods310 {
   self: RestHelper =>
 
   val Implementations3_1_0 = new Implementations310() 
-  
+  // note, because RestHelper have a impicit Formats, it is not correct for OBP, so here override it
+  protected implicit override abstract def formats: Formats = CustomJsonFormats.formats
+
   class Implementations310 {
 
     val implementedInApiVersion = ApiVersion.v3_1_0
@@ -3738,6 +3743,212 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getMethodRoutings,
+      implementedInApiVersion,
+      nameOf(getMethodRoutings),
+      "GET",
+      "/management/method_routings",
+      "Get MethodRoutings",
+      s"""Get the all MethodRoutings.
+      |
+      |optional request parameters:
+      |
+      |* method_name: filter with method_name, url example: /management/method_routings?method_name=getBank
+      |
+      |""",
+      emptyObjectJson,
+      ListResult(
+        "method_routings",
+        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some("method-routing-id"))))
+      )
+    ,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canGetMethodRoutings))
+    )
+
+
+    lazy val getMethodRoutings: OBPEndpoint = {
+      case "management" :: "method_routings":: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
+            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
+          } yield {
+            val listCommons: List[MethodRoutingCommons] = methodRoutings
+            (ListResult("method_routings", listCommons), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createMethodRouting,
+      implementedInApiVersion,
+      nameOf(createMethodRouting),
+      "POST",
+      "/management/method_routings",
+      "Add MethodRouting",
+      s"""Add a MethodRouting.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |Explaination of Fields:
+        |
+        |* method_name is required String value
+        |* connector_name is required String value
+        |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
+        |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+        |
+        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
+        |bank_id_pattern = "some\\-id_pattern_\\d+"
+        |""",
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("this-method-routing-Id")),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateMethodRouting)))
+
+    lazy val createMethodRouting : OBPEndpoint = {
+      case "management" :: "method_routings" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateMethodRouting, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[MethodRoutingCommons]
+            }
+            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
+            _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
+              // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
+              if(!postedData.isBankIdExactMatch && postedData.bankIdPattern.isDefined) {
+                Pattern.compile(postedData.bankIdPattern.get)
+              }
+            }
+            Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
+          } yield {
+            val commonsData: MethodRoutingCommons = methodRouting
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      updateMethodRouting,
+      implementedInApiVersion,
+      nameOf(updateMethodRouting),
+      "PUT",
+      "/management/method_routings/METHOD_ROUTING_ID",
+      "Update MethodRouting",
+      s"""Update a MethodRouting.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |Explaination of Fields:
+        |
+        |* method_name is required String value
+        |* connector_name is required String value
+        |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
+        |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+        |
+        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
+        |bank_id_pattern = "some\\-id_pattern_\\d+"
+        |
+        |""",
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateMethodRouting)))
+
+    lazy val updateMethodRouting : OBPEndpoint = {
+      case "management" :: "method_routings" :: methodRoutingId :: Nil JsonPut  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateMethodRouting, callContext)
+
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[MethodRoutingCommons].copy(methodRoutingId = Some(methodRoutingId))
+            }
+
+            (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
+
+            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
+            _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
+              // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
+              if(!postedData.isBankIdExactMatch && postedData.bankIdPattern.isDefined) {
+                Pattern.compile(postedData.bankIdPattern.get)
+              }
+            }
+
+            Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
+          } yield {
+            val commonsData: MethodRoutingCommons = methodRouting
+            (commonsData, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteMethodRouting,
+      implementedInApiVersion,
+      nameOf(deleteMethodRouting),
+      "DELETE",
+      "/management/method_routings/METHOD_ROUTING_ID",
+      "Delete MethodRouting",
+      s"""Delete a MethodRouting specified by METHOD_ROUTING_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteMethodRouting)))
+
+    lazy val deleteMethodRouting : OBPEndpoint = {
+      case "management" :: "method_routings" :: methodRoutingId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteMethodRouting, callContext)
+            deleted: Box[Boolean] <- NewStyle.function.deleteMethodRouting(methodRoutingId)
+          } yield {
+            (deleted, HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
     resourceDocs += ResourceDoc(
