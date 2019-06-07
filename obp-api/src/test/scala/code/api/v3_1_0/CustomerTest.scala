@@ -67,14 +67,18 @@ class CustomerTest extends V310ServerSetup {
   object ApiEndpoint6 extends Tag(nameOf(Implementations3_1_0.updateCustomerIdentity))
   object ApiEndpoint7 extends Tag(nameOf(Implementations3_1_0.updateCustomerCreditLimit))
   object ApiEndpoint8 extends Tag(nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource))
+  object ApiEndpoint9 extends Tag(nameOf(Implementations3_1_0.updateCustomerBranch))
+  object ApiEndpoint10 extends Tag(nameOf(Implementations3_1_0.updateCustomerData))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
   val putCustomerUpdateMobileJson = SwaggerDefinitionsJSON.putUpdateCustomerMobileNumberJsonV310
   val putCustomerUpdateEmailJson = SwaggerDefinitionsJSON.putUpdateCustomerEmailJsonV310
-  val putCustomerUpdateGeneralDataJson = SwaggerDefinitionsJSON.putUpdateCustomerGeneralDataJsonV310
+  val putCustomerUpdateGeneralDataJson = SwaggerDefinitionsJSON.putUpdateCustomerIdentityJsonV310
   val putUpdateCustomerCreditLimitJsonV310 = SwaggerDefinitionsJSON.putUpdateCustomerCreditLimitJsonV310
   val putUpdateCustomerCreditRatingAndSourceJsonV310 = SwaggerDefinitionsJSON.putUpdateCustomerCreditRatingAndSourceJsonV310
+  val putUpdateCustomerBranch = SwaggerDefinitionsJSON.putCustomerBranchJsonV310
+  val putUpdateCustomerData = SwaggerDefinitionsJSON.putUpdateCustomerDataJsonV310
   lazy val bankId = randomBankId
 
   feature("Create Customer v3.1.0 - Unauthorized access") {
@@ -269,7 +273,7 @@ class CustomerTest extends V310ServerSetup {
   feature("Update the general data of an Customer v3.1.0 - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint6, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "general-data" ).PUT
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "identity" ).PUT
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))
       Then("We should get a 400")
       response310.code should equal(400)
@@ -280,7 +284,7 @@ class CustomerTest extends V310ServerSetup {
   feature("Update the general data of an Customer v3.1.0 - Authorized access") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint3, ApiEndpoint6, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "general-data" ).PUT <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "identity" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))
       Then("We should get a 403")
       response310.code should equal(403)
@@ -299,7 +303,7 @@ class CustomerTest extends V310ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerIdentity.toString)
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "general-data" ).PUT <@(user1)
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "identity" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))
       Then("We should get a 200")
       response310.code should equal(200)
@@ -359,7 +363,7 @@ class CustomerTest extends V310ServerSetup {
 
 
   feature("Update the credit rating and source of an Customer v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint8, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "credit-rating-and-source" ).PUT
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditRatingAndSourceJsonV310))
@@ -399,6 +403,98 @@ class CustomerTest extends V310ServerSetup {
       val infoGet = response310.body.extract[CustomerJsonV310]
       infoGet.credit_rating.map(_.rating).getOrElse("") should equal(putUpdateCustomerCreditRatingAndSourceJsonV310.credit_rating)
       infoGet.credit_rating.map(_.source).getOrElse("") should equal(putUpdateCustomerCreditRatingAndSourceJsonV310.credit_source)
+    }
+  }
+
+
+  feature("Update the Branch and source of an Customer v3.1.0 - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint9, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "branch" ).PUT
+      val response310 = makePutRequest(request310, write(putUpdateCustomerBranch))
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+  feature("Update the Branch and source of an Customer v3.1.0 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint3, ApiEndpoint9, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "branch" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putUpdateCustomerBranch))
+      Then("We should get a 403")
+      response310.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canUpdateCustomerBranch
+      And("error should be " + errorMsg)
+      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+    }
+    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint9, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
+      Then("We should get a 201")
+      postResponse310.code should equal(201)
+      val infoPost = postResponse310.body.extract[CustomerJsonV310]
+
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerBranch.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "branch" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putUpdateCustomerBranch))
+      Then("We should get a 200")
+      response310.code should equal(200)
+
+      val infoGet = response310.body.extract[CustomerJsonV310]
+      infoGet.branchId should equal(putUpdateCustomerBranch.branch_id)
+    }
+  }
+
+
+  feature("Update the other data and source of an Customer v3.1.0 - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "data" ).PUT
+      val response310 = makePutRequest(request310, write(putUpdateCustomerData))
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+  feature("Update the other data and source of an Customer v3.1.0 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "data" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putUpdateCustomerData))
+      Then("We should get a 403")
+      response310.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canUpdateCustomerData
+      And("error should be " + errorMsg)
+      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+    }
+    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint10, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
+      Then("We should get a 201")
+      postResponse310.code should equal(201)
+      val infoPost = postResponse310.body.extract[CustomerJsonV310]
+
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerData.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "data" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putUpdateCustomerData))
+      Then("We should get a 200")
+      response310.code should equal(200)
+
+      val infoGet = response310.body.extract[CustomerJsonV310]
+      infoGet.employment_status should equal(putUpdateCustomerData.employment_status)
+      infoGet.highest_education_attained should equal(putUpdateCustomerData.highest_education_attained)
+      infoGet.dependants should equal(putUpdateCustomerData.dependants)
+      infoGet.relationship_status should equal(putUpdateCustomerData.relationship_status)
+      infoGet.face_image should equal(putUpdateCustomerData.face_image)
     }
   }
 

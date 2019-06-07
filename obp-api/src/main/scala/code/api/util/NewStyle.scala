@@ -173,8 +173,10 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerBranch), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerData), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
