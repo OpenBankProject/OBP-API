@@ -211,7 +211,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.getExplictCounterpartyById ::
                           Implementations2_2_0.getMessageDocs ::
                           Implementations2_2_0.createBank ::
-                          Implementations2_2_0.createAccount ::
+                          // Implementations2_2_0.createAccount ::
                           //Implementations2_2_0.createAtm ::
                           //Implementations2_2_0.createProduct ::
 //                          Implementations2_2_0.config ::
@@ -360,6 +360,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.createMethodRouting ::
                           Implementations3_1_0.updateMethodRouting ::
                           Implementations3_1_0.deleteMethodRouting ::
+                          Implementations3_1_0.createAccount ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

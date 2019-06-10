@@ -15,7 +15,7 @@ import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
-import code.api.v2_2_0.JSONFactory220
+import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
@@ -4370,6 +4370,117 @@ trait APIMethods310 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      createAccount,
+      implementedInApiVersion,
+      "createAccount",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Create Account",
+      """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
+        |
+        |
+        |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
+        |
+        |If USER_ID is not specified the account will be owned by the logged in User.
+        |
+        |The type field should be a product_code from Product.
+        |
+        |Note: The Amount must be zero.""".stripMargin,
+      createAccountJSONV220,
+      createAccountJSONV220,
+      List(
+        InvalidJsonFormat,
+        BankNotFound,
+        UserNotLoggedIn,
+        InvalidUserId,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        UserNotFoundById,
+        UserHasMissingRoles,
+        InvalidAccountBalanceAmount,
+        InvalidAccountInitialBalance,
+        InitialBalanceMustBeZero,
+        InvalidAccountBalanceCurrency,
+        AccountIdAlreadyExists,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount,apiTagOnboarding),
+      Some(List(canCreateAccount))
+    )
+
+
+    lazy val createAccount : OBPEndpoint = {
+      // Create a new account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
+        cc =>{
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateAccountJSONV220]
+            }
+            user_id = if (consentJson.user_id.nonEmpty) consentJson.user_id else u.userId
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+              isValidID(accountId.value)
+            }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat){
+              isValidID(accountId.value)
+            }
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(user_id, callContext)
+            // User can create account for self or an account for another user if they have CanCreateAccount role
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+              isValidID(accountId.value)
+            }
+            _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
+              hasEntitlement("", user_id, canCreateAccount) || user_id ==u.userId
+            }
+            initialBalanceAsString = consentJson.balance.amount
+            accountType = consentJson.`type`
+            accountLabel = consentJson.label
+            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
+              BigDecimal(initialBalanceAsString)
+            }
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(consentJson.balance.currency)}
+            currency = consentJson.balance.currency
+            (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount,callContext) <- NewStyle.function.createBankAccount(
+              bankId,
+              accountId,
+              accountType,
+              accountLabel,
+              currency,
+              initialBalanceAsNumber,
+              postedOrLoggedInUser.name,
+              consentJson.branch_id,
+              consentJson.account_routing.scheme,
+              consentJson.account_routing.address,
+              callContext
+            )
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
+            (accountAttribute, callContext) <- NewStyle.function.createAccountAttributes(
+              bankId,
+              accountId,
+              ProductCode(accountType),
+              productAttributes,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            //1 Create or Update the `Owner` for the new account
+            //2 Add permission to the user
+            //3 Set the user as the account holder
+            BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
+            (JSONFactory220.createAccountJSON(user_id, bankAccount), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+    
+    
 
 
   }

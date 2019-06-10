@@ -5,7 +5,7 @@ import akka.pattern.pipe
 import code.accountattribute.{MappedAccountAttributeProvider, RemotedataAccountAttributeCaseClasses}
 import code.actorsystem.ObpActorHelper
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{AccountAttributeType, AccountId, BankId, ProductCode}
+import com.openbankproject.commons.model.{AccountAttributeType, AccountId, BankId, ProductAttribute, ProductCode}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -38,6 +38,14 @@ class RemotedataAccountAttributeActor extends Actor with ObpActorHelper with Mdc
         name,
         attributeType,
         value) pipeTo sender
+      
+    case cc.createAccountAttributes(bankId: BankId,
+            accountId: AccountId,
+            productCode: ProductCode,
+            accountAttributes: List[ProductAttribute]) =>
+      mapper.createAccountAttributes(bankId, accountId,
+        productCode,
+        accountAttributes) pipeTo sender
 
     case cc.deleteAccountAttribute(accountAttributeId: String) =>
       logger.debug(s"deleteAccountAttribute(${accountAttributeId})")
