@@ -4682,6 +4682,10 @@ trait APIMethods310 {
         cc =>{
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext) 
+            _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
+              account.isEmpty
+            }
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateAccountJSONV220]
@@ -4725,7 +4729,7 @@ trait APIMethods310 {
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
-            (accountAttribute, callContext) <- NewStyle.function.createAccountAttributes(
+            (_, callContext) <- NewStyle.function.createAccountAttributes(
               bankId,
               accountId,
               ProductCode(accountType),
