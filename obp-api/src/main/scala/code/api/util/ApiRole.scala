@@ -55,6 +55,9 @@ object ApiRole {
 
   case class CanUpdateCustomerEmail(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCustomerEmail = CanUpdateCustomerEmail()
+
+  case class CanUpdateCustomerNumber(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerNumber = CanUpdateCustomerNumber()
   
   case class CanUpdateCustomerMobilePhoneNumber(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCustomerMobilePhoneNumber = CanUpdateCustomerMobilePhoneNumber()  
@@ -439,7 +442,8 @@ object ApiRole {
       canGetMethodRoutings ::
       canCreateMethodRouting ::
       canUpdateMethodRouting ::
-      canDeleteMethodRouting ::
+      canDeleteMethodRouting :: 
+      canUpdateCustomerNumber ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

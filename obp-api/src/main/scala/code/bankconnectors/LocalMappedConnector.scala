@@ -1971,10 +1971,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bespoke = bespoke
     ).map(counterparty => (counterparty, callContext))
 
-  override def checkCustomerNumberAvailableFuture(
+  override def checkCustomerNumberAvailable(
     bankId: BankId,
-    customerNumber: String
-  ) = Future{tryo {Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)} }
+    customerNumber: String,
+    callContext: Option[CallContext]
+  ) = Future{(tryo {Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)}, callContext) }
   
   
   override def createCustomer(
@@ -2025,11 +2026,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def updateCustomerScaData(customerId: String,
                                      mobileNumber: Option[String],
                                      email: Option[String],
+                                     customerNumber: Option[String],
                                      callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
       Customer.customerProvider.vend.updateCustomerScaData(
         customerId,
         mobileNumber,
         email,
+        customerNumber
       ) map {
         (_, callContext)
       }

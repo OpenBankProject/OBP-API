@@ -72,7 +72,8 @@ trait CustomerProvider {
 
   def updateCustomerScaData(customerId: String, 
                             mobileNumber: Option[String], 
-                            email: Option[String]): Future[Box[Customer]]
+                            email: Option[String],
+                            customerNumber: Option[String]): Future[Box[Customer]]
   
   def updateCustomerCreditData(customerId: String,
                                creditRating: Option[String],
@@ -130,7 +131,8 @@ class RemotedataCustomerProviderCaseClasses {
                         )
   case class updateCustomerScaData(customerId: String,
                                    mobileNumber: Option[String],
-                                   email: Option[String])
+                                   email: Option[String],
+                                   customerNumber: Option[String])
   
   case class updateCustomerCreditData(customerId: String,
                                       creditRating: Option[String],

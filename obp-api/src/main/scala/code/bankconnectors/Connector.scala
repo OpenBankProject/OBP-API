@@ -1467,10 +1467,11 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                           bespoke: List[CounterpartyBespoke],
                           callContext: Option[CallContext] = None): Box[(CounterpartyTrait, Option[CallContext])] = Failure(setUnimplementedError)
 
-  def checkCustomerNumberAvailableFuture(
-                                          bankId : BankId,
-                                          customerNumber : String
-                                        ) : Future[Box[Boolean]] = Future{Failure(setUnimplementedError)}
+  def checkCustomerNumberAvailable(
+    bankId: BankId,
+    customerNumber: String, 
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def createCustomer(
                       bankId: BankId,
@@ -1498,6 +1499,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
   def updateCustomerScaData(customerId: String, 
                             mobileNumber: Option[String], 
                             email: Option[String],
+                            customerNumber: Option[String],
                             callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = 
     Future{(Failure(setUnimplementedError), callContext)}
 
