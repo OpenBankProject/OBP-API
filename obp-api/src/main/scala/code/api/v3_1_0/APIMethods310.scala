@@ -1,6 +1,7 @@
 package code.api.v3_1_0
 
 import java.util.UUID
+import java.util.regex.Pattern
 
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -12,6 +13,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
+import code.api.v1_3_0.{JSONFactory1_3_0, PostPhysicalCardJSON}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
 import code.api.v2_2_0.JSONFactory220
@@ -27,6 +29,7 @@ import code.context.{UserAuthContextUpdateProvider, UserAuthContextUpdateStatus}
 import code.entitlement.Entitlement
 import code.kafka.KafkaHelper
 import code.loginattempts.LoginAttempt
+import code.methodrouting.MethodRoutingCommons
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -37,10 +40,10 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreditLimit, _}
-import net.liftweb.common.{Empty, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.{Extraction, Formats, parse}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
@@ -55,7 +58,9 @@ trait APIMethods310 {
   self: RestHelper =>
 
   val Implementations3_1_0 = new Implementations310() 
-  
+  // note, because RestHelper have a impicit Formats, it is not correct for OBP, so here override it
+  protected implicit override abstract def formats: Formats = CustomJsonFormats.formats
+
   class Implementations310 {
 
     val implementedInApiVersion = ApiVersion.v3_1_0
@@ -250,7 +255,7 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-apis",
       "Get Top APIs",
-      s"""Get metrics abou the most popular APIs. e.g.: total count, response time (in ms), etc.
+      s"""Get metrics about the most popular APIs. e.g.: total count, response time (in ms), etc.
         |
         |Should be able to filter on the following fields
         |
@@ -3739,6 +3744,212 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getMethodRoutings,
+      implementedInApiVersion,
+      nameOf(getMethodRoutings),
+      "GET",
+      "/management/method_routings",
+      "Get MethodRoutings",
+      s"""Get the all MethodRoutings.
+      |
+      |optional request parameters:
+      |
+      |* method_name: filter with method_name, url example: /management/method_routings?method_name=getBank
+      |
+      |""",
+      emptyObjectJson,
+      ListResult(
+        "method_routings",
+        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some("method-routing-id"))))
+      )
+    ,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canGetMethodRoutings))
+    )
+
+
+    lazy val getMethodRoutings: OBPEndpoint = {
+      case "management" :: "method_routings":: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetMethodRoutings, callContext)
+            methodRoutings <- NewStyle.function.getMethodRoutingsByMethdName(req.param("method_name"))
+          } yield {
+            val listCommons: List[MethodRoutingCommons] = methodRoutings
+            (ListResult("method_routings", listCommons), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createMethodRouting,
+      implementedInApiVersion,
+      nameOf(createMethodRouting),
+      "POST",
+      "/management/method_routings",
+      "Add MethodRouting",
+      s"""Add a MethodRouting.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |Explaination of Fields:
+        |
+        |* method_name is required String value
+        |* connector_name is required String value
+        |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
+        |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+        |
+        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
+        |bank_id_pattern = "some\\-id_pattern_\\d+"
+        |""",
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("this-method-routing-Id")),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateMethodRouting)))
+
+    lazy val createMethodRouting : OBPEndpoint = {
+      case "management" :: "method_routings" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateMethodRouting, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[MethodRoutingCommons]
+            }
+            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
+            _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
+              // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
+              if(!postedData.isBankIdExactMatch && postedData.bankIdPattern.isDefined) {
+                Pattern.compile(postedData.bankIdPattern.get)
+              }
+            }
+            Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
+          } yield {
+            val commonsData: MethodRoutingCommons = methodRouting
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      updateMethodRouting,
+      implementedInApiVersion,
+      nameOf(updateMethodRouting),
+      "PUT",
+      "/management/method_routings/METHOD_ROUTING_ID",
+      "Update MethodRouting",
+      s"""Update a MethodRouting.
+        |
+        |
+        |${authenticationRequiredMessage(true)}
+        |
+        |Explaination of Fields:
+        |
+        |* method_name is required String value
+        |* connector_name is required String value
+        |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
+        |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+        |
+        |note: if bank_id_pattern is regex, special characters need to do escape, for example:
+        |bank_id_pattern = "some\\-id_pattern_\\d+"
+        |
+        |""",
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateMethodRouting)))
+
+    lazy val updateMethodRouting : OBPEndpoint = {
+      case "management" :: "method_routings" :: methodRoutingId :: Nil JsonPut  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canUpdateMethodRouting, callContext)
+
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[MethodRoutingCommons].copy(methodRoutingId = Some(methodRoutingId))
+            }
+
+            (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
+
+            invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
+            _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
+              // if do fuzzy match and bankIdPattern not empty, do check the regex is valid
+              if(!postedData.isBankIdExactMatch && postedData.bankIdPattern.isDefined) {
+                Pattern.compile(postedData.bankIdPattern.get)
+              }
+            }
+
+            Full(methodRouting) <- NewStyle.function.createOrUpdateMethodRouting(postedData)
+          } yield {
+            val commonsData: MethodRoutingCommons = methodRouting
+            (commonsData, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteMethodRouting,
+      implementedInApiVersion,
+      nameOf(deleteMethodRouting),
+      "DELETE",
+      "/management/method_routings/METHOD_ROUTING_ID",
+      "Delete MethodRouting",
+      s"""Delete a MethodRouting specified by METHOD_ROUTING_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteMethodRouting)))
+
+    lazy val deleteMethodRouting : OBPEndpoint = {
+      case "management" :: "method_routings" :: methodRoutingId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteMethodRouting, callContext)
+            deleted: Box[Boolean] <- NewStyle.function.deleteMethodRouting(methodRoutingId)
+          } yield {
+            (deleted, HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
     resourceDocs += ResourceDoc(
@@ -3853,7 +4064,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
         |
         |""",
-      putUpdateCustomerGeneralDataJsonV310,
+      putUpdateCustomerIdentityJsonV310,
       customerJsonV310,
       List(
         UserNotLoggedIn,
@@ -3866,15 +4077,15 @@ trait APIMethods310 {
       Some(canUpdateCustomerIdentity :: Nil)
     )
     lazy val updateCustomerIdentity : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "general-data" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "identity" :: Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerIdentity, callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerGeneralDataJsonV310 "
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerIdentityJsonV310 "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[PutUpdateCustomerGeneralDataJsonV310]
+              json.extract[PutUpdateCustomerIdentityJsonV310]
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
             (customer, callContext) <- NewStyle.function.updateCustomerGeneralData(
@@ -3992,6 +4203,431 @@ trait APIMethods310 {
               Some(putData.credit_source),
               None,
               callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateAccount,
+      implementedInApiVersion,
+      nameOf(updateAccount),
+      "PUT",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Update Account.",
+      s"""Update the account. 
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+       """.stripMargin,
+      updateAccountRequestJsonV310,
+      updateAccountResponseJsonV310,
+      List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
+      Catalogs(Core, notPSD2, notOBWG),
+      List(apiTagAccount),
+      Some(List(canUpdateAccount))
+    )
+
+    lazy val updateAccount : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canUpdateAccount, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $UpdateAccountRequestJsonV310 "
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UpdateAccountRequestJsonV310]
+            }
+            (bankAccount,callContext) <- NewStyle.function.updateBankAccount(
+              bankId,
+              accountId,
+              consentJson.`type`,
+              consentJson.label,
+              consentJson.branch_id,
+              consentJson.account_routing.scheme,
+              consentJson.account_routing.address,
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createUpdateResponseAccountJson(bankAccount), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      addCardForBank,
+      implementedInApiVersion,
+      nameOf(addCardForBank),
+      "POST",
+      "/management/banks/BANK_ID/cards",
+      "Create Card",
+      s"""Create Card at bank specified by BANK_ID .
+         |
+         |${authenticationRequiredMessage(true)}
+         |""",
+      createPhysicalCardJsonV310,
+      physicalCardJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        AllowedValuesAre,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard),
+      Some(List(canCreateCardsForBank)))
+    lazy val addCardForBank: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreatePhysicalCardJsonV310 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {json.extract[CreatePhysicalCardJsonV310]}
+            
+            _ <- postJson.allows match {
+              case List() => Future {true}
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+            }
+
+            failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardReplacementReason.valueOf(postJson.replacement.reason_requested)
+            }
+            
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateCardsForBank, callContext)
+            
+            (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
+            
+            (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            
+            (card, callContext) <- NewStyle.function.createPhysicalCard(
+              bankCardNumber=postJson.card_number,
+              nameOnCard=postJson.name_on_card,
+              cardType = postJson.card_type,
+              issueNumber=postJson.issue_number,
+              serialNumber=postJson.serial_number,
+              validFrom=postJson.valid_from_date,
+              expires=postJson.expires_date,
+              enabled=postJson.enabled,
+              cancelled=false,
+              onHotList=false,
+              technology=postJson.technology,
+              networks= postJson.networks,
+              allows= postJson.allows,
+              accountId= postJson.account_id,
+              bankId=bankId.value,
+              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
+              pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
+              collected= Option(CardCollectionInfo(postJson.collected)),
+              posted= Option(CardPostedInfo(postJson.posted)),
+              customerId = postJson.customer_id,
+              callContext
+            )
+          } yield {
+            (createPhysicalCardJson(card, u), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updatedCardForBank,
+      implementedInApiVersion,
+      nameOf(updatedCardForBank),
+      "PUT",
+      "/management/banks/BANK_ID/cards/CARD_ID",
+      "Update Card",
+      s"""Update Card at bank specified by CARD_ID .
+         |${authenticationRequiredMessage(true)}
+         |""",
+      updatePhysicalCardJsonV310,
+      physicalCardJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        AllowedValuesAre,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard),
+      Some(List(canCreateCardsForBank)))
+    lazy val updatedCardForBank: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canUpdateCardsForBank, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePhysicalCardJsonV310 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UpdatePhysicalCardJsonV310]
+            }
+
+            _ <- postJson.allows match {
+              case List() => Future {1}
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+            }
+
+            failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
+            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardReplacementReason.valueOf(postJson.replacement.reason_requested)
+            }
+            
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+
+            (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
+
+            (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
+            
+            (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            
+            (card, callContext) <- NewStyle.function.updatePhysicalCard(
+              cardId = cardId,
+              bankCardNumber=card.bankCardNumber, 
+              cardType = postJson.card_type,
+              nameOnCard=postJson.name_on_card,
+              issueNumber=postJson.issue_number,
+              serialNumber=postJson.serial_number,
+              validFrom=postJson.valid_from_date,
+              expires=postJson.expires_date,
+              enabled=postJson.enabled,
+              cancelled=false,
+              onHotList=false,
+              technology=postJson.technology,
+              networks= postJson.networks,
+              allows= postJson.allows,
+              accountId= postJson.account_id,
+              bankId=bankId.value,
+              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
+              pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
+              collected= Option(CardCollectionInfo(postJson.collected)),
+              posted = Option(CardPostedInfo(postJson.posted)),
+              customerId = postJson.customer_id,
+              callContext = callContext
+            )
+          } yield {
+            (createPhysicalCardJson(card, u), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getCardsForBank,
+      implementedInApiVersion,
+      nameOf(getCardsForBank),
+      "GET",
+      "/management/banks/BANK_ID/cards",
+      "Get Cards for the specified bank",
+      """Should be able to filter on the following fields
+        |
+        |eg:/management/banks/BANK_ID/cards?customer_id=66214b8e-259e-44ad-8868-3eb47be70646$account_id=8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0
+        |
+        |1 customer_id should be valid customer_id, otherwise, it will return an empty card list.  
+        |
+        |2 account_id should be valid account_id , otherwise, it will return an empty card list.  
+        |
+        |
+        |${authenticationRequiredMessage(true)}""".stripMargin,
+      emptyObjectJson,
+      physicalCardsJsonV310,
+      List(UserNotLoggedIn,BankNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard))
+    lazy val getCardsForBank : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
+            }
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (cards,callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, u, obpQueryParams, callContext)
+          } yield {
+            (createPhysicalCardsJson(cards, u), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCardForBank,
+      implementedInApiVersion,
+      nameOf(getCardForBank),
+      "GET",
+      "/management/banks/BANK_ID/cards/CARD_ID",
+      "Get Card By Id",
+      "",
+      emptyObjectJson,
+      physicalCardJsonV310,
+      List(UserNotLoggedIn,BankNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard))
+    lazy val getCardForBank : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId ::  Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
+            (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
+            (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
+          } yield {
+            (createPhysicalCardJson(card, u), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteCardForBank,
+      implementedInApiVersion,
+      nameOf(deleteCardForBank),
+      "DELETE",
+      "/management/banks/BANK_ID/cards/CARD_ID",
+      "Delete Card",
+      s"""Delete a Card at bank specified by CARD_ID .
+         |
+          |${authenticationRequiredMessage(true)}
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        AllowedValuesAre,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard),
+      Some(List(canCreateCardsForBank)))
+    lazy val deleteCardForBank: OBPEndpoint = {
+      case "management"::"banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canDeleteCardsForBank, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, Some(cc)) 
+            (result, callContext) <- NewStyle.function.deletePhysicalCardForBank(bankId, cardId, callContext)
+          } yield {
+            (Full(result), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateCustomerBranch,
+      implementedInApiVersion,
+      nameOf(updateCustomerBranch),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/branch",
+      "Update the Branch of a Customer",
+      s"""Update the Branch of the Customer specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      putCustomerBranchJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerIdentity :: Nil)
+    )
+    lazy val updateCustomerBranch : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "branch" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerBranch, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerBranchJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerBranchJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerGeneralData(
+              customerId,
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              Some(putData.branch_id),
+              None,
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateCustomerData,
+      implementedInApiVersion,
+      nameOf(updateCustomerData),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/data",
+      "Update the other data of a Customer",
+      s"""Update the other data of the Customer specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      putUpdateCustomerDataJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerIdentity :: Nil)
+    )
+    lazy val updateCustomerData : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "data" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerData, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerDataJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerDataJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (customer, callContext) <- NewStyle.function.updateCustomerGeneralData(
+              customerId,
+              None,
+              Some(CustomerFaceImage(putData.face_image.date, putData.face_image.url)),
+              None,
+              Some(putData.relationship_status),
+              Some(putData.dependants),
+              Some(putData.highest_education_attained),
+              Some(putData.employment_status),
+              None,
+              None,
+              None,
+              callContext
+            )
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
           }

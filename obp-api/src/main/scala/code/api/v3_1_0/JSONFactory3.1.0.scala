@@ -33,6 +33,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
 import code.api.v1_2_1.RateLimiting
+import code.api.v1_3_0.JSONFactory1_3_0._
+import code.api.v1_3_0.{PhysicalCardJSON, PinResetJSON, ReplacementJSON}
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
@@ -48,6 +50,7 @@ import code.model.{Consumer, User}
 import com.openbankproject.commons.model.Product
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
+
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -193,14 +196,20 @@ case class PostCustomerJsonV310(
   branchId: String,
   nameSuffix: String
 )
+case class PutUpdateCustomerBranchJsonV310(branch_id: String)
 case class PutUpdateCustomerEmailJsonV310(email: String)
 case class PutUpdateCustomerMobilePhoneNumberJsonV310(mobile_phone_number: String)
 case class PutUpdateCustomerCreditLimitJsonV310(credit_limit: AmountOfMoney)
 case class PutUpdateCustomerCreditRatingAndSourceJsonV310(credit_rating: String, credit_source: String)
-case class PutUpdateCustomerGeneralDataJsonV310(legal_name: String,
-                                                date_of_birth: Date,
-                                                title: String,
-                                                name_suffix: String)
+case class PutUpdateCustomerIdentityJsonV310(legal_name: String,
+                                             date_of_birth: Date,
+                                             title: String,
+                                             name_suffix: String)
+case class PutUpdateCustomerDataJsonV310(face_image: CustomerFaceImageJson,
+                                         relationship_status: String,
+                                         dependants: Int,
+                                         highest_education_attained: String,
+                                         employment_status: String)
 
 case class CustomerJsonV310(
   bank_id: String,
@@ -223,6 +232,22 @@ case class CustomerJsonV310(
   title: String,
   branchId: String,
   nameSuffix: String
+)
+
+case class UpdateAccountRequestJsonV310(
+  label: String,
+  `type`: String,
+  branch_id: String,
+  account_routing: AccountRoutingJsonV121
+)
+
+case class UpdateAccountResponseJsonV310(
+  bank_id: String,
+  account_id: String,
+  label: String,
+  `type`: String,
+  branch_id: String,
+  account_routing: AccountRoutingJsonV121
 )
 
 case class PostCustomerResponseJsonV310(messages: List[String])
@@ -458,6 +483,88 @@ case class ConsentChallengeJsonV310(consent_id: String, jwt: String, status: Str
 case class OAuth2ServerJWKURIJson(jwks_uri: String)
 case class OAuth2ServerJwksUrisJson(jwks_uris: List[OAuth2ServerJWKURIJson])
 
+case class CreatePhysicalCardJsonV310(
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account_id: String,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String)
+
+case class UpdatePhysicalCardJsonV310(
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account_id: String,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String)
+
+case class PhysicalCardJsonV310(
+  card_id: String,
+  bank_id: String,
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  cancelled: Boolean,
+  on_hot_list: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account: code.api.v1_2_1.AccountJSON,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String)
+
+case class PhysicalCardsJsonV310(
+  cards : List[PhysicalCardJsonV310])
+
+/**
+  * this case class is a generic list items container for serialized to json string
+  * it will serialize to key value way as follow:
+  * ListResult("someName", List("value"))
+  * --> {"somename": ["value"]}
+  *
+  * note: the type can be defined as:
+  * > case class ListResult[T](name: String, results: List[T])
+  * because lift json not support type parameter is another field type parameter when do deserialize
+  *
+  * when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this:
+  * > jValue.extract[ListResult[List[_]]]
+  *
+  * @param name convert to json single field name
+  * @param results convert json single field value
+  * @tparam T List type
+  */
+case class ListResult[+T <: List[_]](name: String, results: T)
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -618,6 +725,21 @@ object JSONFactory310{
       nameSuffix = cInfo.nameSuffix
     )
   }
+
+  def createUpdateResponseAccountJson(bankAccount : BankAccount) : UpdateAccountResponseJsonV310 = {
+    UpdateAccountResponseJsonV310(
+      bank_id = bankAccount.bankId.value,
+      account_id = bankAccount.accountId.value,
+      label = bankAccount.label,
+      `type` = bankAccount.accountType,
+      branch_id = bankAccount.branchId,
+      account_routing= AccountRoutingJsonV121(
+        bankAccount.accountRoutingScheme,
+        bankAccount.accountRoutingAddress
+      )
+    )
+  }
+  
   
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJson = {
     UserAuthContextJson(
@@ -916,6 +1038,34 @@ object JSONFactory310{
     val url = APIUtil.getPropsValue("oauth2.jwk_set.url", "Not set").split(",").toList.map(OAuth2ServerJWKURIJson)
     OAuth2ServerJwksUrisJson(url)
   }
+  def createPhysicalCardJson(card: PhysicalCardTrait, user : User): PhysicalCardJsonV310 = {
+    PhysicalCardJsonV310(
+      card_id = stringOrNull(card.cardId),
+      bank_id = stringOrNull(card.bankId),
+      card_number = stringOrNull(card.bankCardNumber),
+      card_type = stringOrNull(card.cardType),
+      name_on_card = stringOrNull(card.nameOnCard),
+      issue_number = stringOrNull(card.issueNumber),
+      serial_number = stringOrNull(card.serialNumber),
+      valid_from_date = card.validFrom,
+      expires_date = card.expires,
+      enabled = card.enabled,
+      cancelled = card.cancelled,
+      on_hot_list = card.onHotList,
+      technology = stringOrNull(card.technology),
+      networks = card.networks,
+      allows = card.allows.map(cardActionsToString).toList,
+      account = createAccountJson(card.account, user),
+      replacement = card.replacement.map(createReplacementJson).getOrElse(null),
+      pin_reset = card.pinResets.map(createPinResetJson),
+      collected = card.collected.map(_.date).getOrElse(null),
+      posted = card.posted.map(_.date).getOrElse(null),
+      customer_id = stringOrNull(card.customerId)
+    )
+  }
+
+  def createPhysicalCardsJson(cards : List[PhysicalCard], user : User) : PhysicalCardsJsonV310 = 
+    PhysicalCardsJsonV310(cards.map(card => createPhysicalCardJson(card, user)))
 
 }
 

@@ -86,7 +86,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mChallenge extends MappedString(this, 10)  {
     override def defaultValue = Random.nextInt(99999999).toString()
   }
-  object mJsonWebToken extends MappedString(this, 1024)
+  object mJsonWebToken extends MappedString(this, 2048)
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get

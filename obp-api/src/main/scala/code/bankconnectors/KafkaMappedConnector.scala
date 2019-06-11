@@ -333,7 +333,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
 
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
     val limit: OBPLimit = queryParams.collect { case OBPLimit(value) => OBPLimit(value) }.headOption.get
     val offset = queryParams.collect { case OBPOffset(value) => OBPOffset(value) }.headOption.get
     val fromDate = queryParams.collect { case OBPFromDate(date) => OBPFromDate(date) }.headOption.get
@@ -491,7 +491,7 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
   }
 
   // Get one counterparty by the Counterparty Id
-  override def getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) = Future{
 
     if (APIUtil.getPropsAsBoolValue("get_counterparties_from_OBP_DB", true)) {
       (Counterparties.counterparties.vend.getCounterparty(counterpartyId.value), callContext)
@@ -537,29 +537,6 @@ object KafkaMappedConnector extends Connector with KafkaHelper with MdcLoggable 
       (tryo{KafkaCounterparty(r)}, callContext)
     }
   }
-
-  override def createOrUpdatePhysicalCard(bankCardNumber: String,
-                      nameOnCard: String,
-                      issueNumber: String,
-                      serialNumber: String,
-                      validFrom: Date,
-                      expires: Date,
-                      enabled: Boolean,
-                      cancelled: Boolean,
-                      onHotList: Boolean,
-                      technology: String,
-                      networks: List[String],
-                      allows: List[String],
-                      accountId: String,
-                      bankId: String,
-                      replacement: Option[CardReplacementInfo],
-                      pinResets: List[PinResetInfo],
-                      collected: Option[CardCollectionInfo],
-                      posted: Option[CardPostedInfo]
-                     ) : Box[PhysicalCard] = {
-    Empty
-  }
-
 
   protected override def makePaymentImpl(fromAccount: BankAccount,
                                          toAccount: BankAccount,

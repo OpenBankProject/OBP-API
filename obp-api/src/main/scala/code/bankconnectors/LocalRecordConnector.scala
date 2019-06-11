@@ -104,14 +104,14 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }))
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: OBPQueryParam*) = {
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
     val transactions = for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
     } yield {
       updateAccountTransactions(bank, account)
-      account.envelopes(queryParams: _*).map(createTransaction(_, account))
+      account.envelopes(queryParams).map(createTransaction(_, account))
     }
     transactions.map( transactions => (transactions, callContext))
   }
@@ -126,29 +126,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
       (createTransaction(envelope,account), callContext)
     }
   }
-
-  override def createOrUpdatePhysicalCard(bankCardNumber: String,
-                      nameOnCard: String,
-                      issueNumber: String,
-                      serialNumber: String,
-                      validFrom: Date,
-                      expires: Date,
-                      enabled: Boolean,
-                      cancelled: Boolean,
-                      onHotList: Boolean,
-                      technology: String,
-                      networks: List[String],
-                      allows: List[String],
-                      accountId: String,
-                      bankId: String,
-                      replacement: Option[CardReplacementInfo],
-                      pinResets: List[PinResetInfo],
-                      collected: Option[CardCollectionInfo],
-                      posted: Option[CardPostedInfo]
-                     ) : Box[PhysicalCard] = {
-    Empty
-  }
-
 
   override protected def makePaymentImpl(fromAccount: BankAccount,  toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease

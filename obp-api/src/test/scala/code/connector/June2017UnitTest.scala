@@ -18,7 +18,7 @@ class June2017UnitTest extends FunSuite
   
   
   test("getTransactionRequests210 kafka message") {
-    val messageDocs: ArrayBuffer[MessageDoc] = KafkaMappedConnector_vJune2017.messageDocs.filter(_.process=="obp.get.transactionRequests210")
+    val messageDocs: ArrayBuffer[MessageDoc] = KafkaMappedConnector_vJune2017.messageDocs.filter(_.process=="obp.getTransactionRequests210")
     val outboundMessage: JValue = Extraction.decompose(messageDocs.head.exampleOutboundMessage)
     val inboundMessage: JValue = Extraction.decompose(messageDocs.head.exampleInboundMessage)
   

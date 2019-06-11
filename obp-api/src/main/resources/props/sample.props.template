@@ -6,7 +6,7 @@
 
 ### Base configuration
 
-## Which data connector to use
+## Which data connector to use, if config star as connector, should make sure other connector config appropriate and works
 connector=mapped
 #connector=mongodb
 #connector=kafka
@@ -14,6 +14,7 @@ connector=mapped
 #connector=akka_vDec2018
 #connector=rest_vMar2019
 #connector=obpjvm
+#connector=star
 #connector=...
 
 ## whether export LocalMappedConnector methods as endpoints, it is just for develop, default is false
@@ -30,6 +31,9 @@ connector=mapped
 #connector.cache.ttl.seconds.getCounterpartyFromTransaction=10
 #connector.cache.ttl.seconds.getCounterpartiesFromTransaction=10
 #connector.cache.ttl.seconds.APIMethods121.getTransactions=10
+
+## MethodRouting cache time-to-live in seconds, caching defaults to 30 seconds
+#methodRouting.cache.ttl.seconds=30
 
 ## enable logging all the database queries in log file
 #logging.database.queries.enable=true

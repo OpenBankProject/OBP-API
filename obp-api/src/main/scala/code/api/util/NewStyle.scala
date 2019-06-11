@@ -3,6 +3,7 @@ package code.api.util
 import java.util.Date
 
 import code.api.APIFailureNewStyle
+import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
@@ -19,6 +20,7 @@ import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
+import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
@@ -28,6 +30,7 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
@@ -35,6 +38,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
+import java.util.UUID.randomUUID
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -170,9 +174,18 @@ object NewStyle {
     (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerBranch), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCustomerData), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getMethodRoutings), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
   )
 
   object HttpCode {
@@ -341,7 +354,7 @@ object NewStyle {
     }
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerId(customerId, callContext) map {
-        unboxFullOrFail(_, callContext, CustomerNotFoundByCustomerId)
+        unboxFullOrFail(_, callContext, s"$CustomerNotFoundByCustomerId. Current CustomerId($customerId)")
       }
     }
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): OBPReturnType[Customer] = {
@@ -598,7 +611,7 @@ object NewStyle {
     
     def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
     {
-      Connector.connector.vend.getCounterpartyByCounterpartyIdFuture(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
+      Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
           i._2)
       }
@@ -840,6 +853,29 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
       }
 
+    def updateBankAccount(
+                           bankId: BankId,
+                           accountId: AccountId,
+                           accountType: String,
+                           accountLabel: String,
+                           branchId: String,
+                           accountRoutingScheme: String,
+                           accountRoutingAddress: String,
+                           callContext: Option[CallContext]
+                         ): OBPReturnType[BankAccount] =
+      Connector.connector.vend.updateBankAccount(
+        bankId: BankId,
+        accountId: AccountId,
+        accountType: String,
+        accountLabel: String,
+        branchId: String,
+        accountRoutingScheme: String,
+        accountRoutingAddress: String,
+        callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+      }
+    
     def findCustomers(customerIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
       val customerList = customerIds.filterNot(StringUtils.isBlank).distinct
         .map(Consumers.consumers.vend.getConsumerByConsumerIdFuture)
@@ -1232,7 +1268,154 @@ object NewStyle {
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
+
+    def createPhysicalCard(
+      bankCardNumber: String,
+      nameOnCard: String,
+      cardType: String,
+      issueNumber: String,
+      serialNumber: String,
+      validFrom: Date,
+      expires: Date,
+      enabled: Boolean,
+      cancelled: Boolean,
+      onHotList: Boolean,
+      technology: String,
+      networks: List[String],
+      allows: List[String],
+      accountId: String,
+      bankId: String,
+      replacement: Option[CardReplacementInfo],
+      pinResets: List[PinResetInfo],
+      collected: Option[CardCollectionInfo],
+      posted: Option[CardPostedInfo],
+      customerId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[PhysicalCard] =
+      Connector.connector.vend.createPhysicalCard(
+        bankCardNumber: String,
+        nameOnCard: String,
+        cardType: String,
+        issueNumber: String,
+        serialNumber: String,
+        validFrom: Date,
+        expires: Date,
+        enabled: Boolean,
+        cancelled: Boolean,
+        onHotList: Boolean,
+        technology: String,
+        networks: List[String],
+        allows: List[String],
+        accountId: String,
+        bankId: String,
+        replacement: Option[CardReplacementInfo],
+        pinResets: List[PinResetInfo],
+        collected: Option[CardCollectionInfo],
+        posted: Option[CardPostedInfo],
+        customerId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateCardError"), i._2)
+      }
+
+    def updatePhysicalCard(
+      cardId: String,
+      bankCardNumber: String,
+      nameOnCard: String,
+      cardType: String,
+      issueNumber: String,
+      serialNumber: String,
+      validFrom: Date,
+      expires: Date,
+      enabled: Boolean,
+      cancelled: Boolean,
+      onHotList: Boolean,
+      technology: String,
+      networks: List[String],
+      allows: List[String],
+      accountId: String,
+      bankId: String,
+      replacement: Option[CardReplacementInfo],
+      pinResets: List[PinResetInfo],
+      collected: Option[CardCollectionInfo],
+      posted: Option[CardPostedInfo],
+      customerId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[PhysicalCardTrait] =
+      Connector.connector.vend.updatePhysicalCard(
+        cardId: String,
+        bankCardNumber: String,
+        nameOnCard: String,
+        cardType: String,
+        issueNumber: String,
+        serialNumber: String,
+        validFrom: Date,
+        expires: Date,
+        enabled: Boolean,
+        cancelled: Boolean,
+        onHotList: Boolean,
+        technology: String,
+        networks: List[String],
+        allows: List[String],
+        accountId: String,
+        bankId: String,
+        replacement: Option[CardReplacementInfo],
+        pinResets: List[PinResetInfo],
+        collected: Option[CardCollectionInfo],
+        posted: Option[CardPostedInfo],
+        customerId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateCardError"), i._2)
+      }
     
+    def getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) : OBPReturnType[List[PhysicalCard]] =
+      Connector.connector.vend.getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, CardNotFound), i._2)
+      }
+
+    def getPhysicalCardForBank(bankId: BankId, cardId:String ,callContext:Option[CallContext]) : OBPReturnType[PhysicalCardTrait] =
+      Connector.connector.vend.getPhysicalCardForBank(bankId: BankId, cardId: String, callContext:Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CardNotFound Current CardId($cardId)"), i._2)
+      }
+
+    def deletePhysicalCardForBank(bankId: BankId, cardId:String ,callContext:Option[CallContext]) : OBPReturnType[Boolean] =
+      Connector.connector.vend.deletePhysicalCardForBank(bankId: BankId, cardId: String, callContext:Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CardNotFound Current CardId($cardId)"), i._2)
+      }
+    def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
+      this.getMethodRoutings(methodName.toOption)
+    }
+
+    def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
+      MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(methodRouting)
+     }
+
+    def deleteMethodRouting(methodRoutingId: String) = Future {
+      MethodRoutingProvider.connectorMethodProvider.vend.delete(methodRoutingId)
+    }
+
+    def getMethodRoutingById(methodRoutingId : String, callContext: Option[CallContext]): OBPReturnType[MethodRoutingT] = {
+      val methodRoutingBox: Box[MethodRoutingT] = MethodRoutingProvider.connectorMethodProvider.vend.getById(methodRoutingId)
+      val methodRouting = unboxFullOrFail(methodRoutingBox, callContext, MethodRoutingNotFoundByMethodRoutingId)
+      Future{
+        (methodRouting, callContext)
+      }
+    }
+
+    private[this] val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "30").toInt // default 30 seconds
+
+    def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL second) {
+          MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern)
+        }
+      }
+    }
+
   }
 
 }

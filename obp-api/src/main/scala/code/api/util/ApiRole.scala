@@ -62,6 +62,12 @@ object ApiRole {
   case class CanUpdateCustomerIdentity(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCustomerIdentity = CanUpdateCustomerIdentity()
 
+  case class CanUpdateCustomerBranch(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerBranch = CanUpdateCustomerBranch()
+
+  case class CanUpdateCustomerData(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCustomerData = CanUpdateCustomerData()
+
   case class CanUpdateCustomerCreditLimit(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCustomerCreditLimit = CanUpdateCustomerCreditLimit()
 
@@ -80,6 +86,9 @@ object ApiRole {
   case class CanCreateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccount = CanCreateAccount()
 
+  case class CanUpdateAccount(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateAccount = CanUpdateAccount()
+  
   case class CanGetAnyUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAnyUser = CanGetAnyUser()
 
@@ -143,9 +152,21 @@ object ApiRole {
   case class CanCreateCardsForBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCardsForBank = CanCreateCardsForBank()
 
+  case class CanUpdateCardsForBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateCardsForBank = CanUpdateCardsForBank()
+
+  case class CanDeleteCardsForBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCardsForBank = CanDeleteCardsForBank()
+
+  case class CanGetCardsForBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCardsForBank = CanGetCardsForBank()
+  
   case class CanCreateBranch(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateBranch = CanCreateBranch()
 
+  case class CanUpdateBranch(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBranch = CanUpdateBranch()
+  
   case class CanCreateBranchAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateBranchAtAnyBank = CanCreateBranchAtAnyBank()
 
@@ -302,6 +323,19 @@ object ApiRole {
   case class CanDeleteSystemView(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteSystemView = CanDeleteSystemView()
 
+
+  case class CanGetMethodRoutings(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetMethodRoutings = CanGetMethodRoutings()
+
+  case class CanCreateMethodRouting(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateMethodRouting = CanCreateMethodRouting()
+
+  case class CanUpdateMethodRouting(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateMethodRouting = CanUpdateMethodRouting()
+
+  case class CanDeleteMethodRouting(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteMethodRouting = CanDeleteMethodRouting()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -318,6 +352,7 @@ object ApiRole {
       canGetCustomerAddress ::
       canDeleteCustomerAddress ::
       canCreateAccount ::
+      canUpdateAccount ::
       canGetAnyUser ::
       canCreateAnyTransactionRequest ::
       canAddSocialMediaHandle ::
@@ -336,8 +371,12 @@ object ApiRole {
       canCreateConsumer ::
       canCreateTransactionType::
       canCreateCardsForBank ::
+      canDeleteCardsForBank ::
+      canUpdateCardsForBank ::
+      canGetCardsForBank ::
       canCreateBranch ::
-      canCreateBranchAtAnyBank ::
+      canCreateBranchAtAnyBank :: 
+      canUpdateBranch ::
       canCreateAtm ::
       canCreateAtmAtAnyBank ::
       canCreateProduct ::
@@ -378,13 +417,13 @@ object ApiRole {
       canGetAccountApplications::
       canUpdateAccountApplications::
       canReadFx::
-        canUpdateProductAttribute ::
-        canGetProductAttribute ::
-        canDeleteProductAttribute ::
-        canCreateProductAttribute ::
-        canMaintainProductCollection ::
-        canDeleteBranchAtAnyBank ::
-        canDeleteBranch ::
+      canUpdateProductAttribute ::
+      canGetProductAttribute ::
+      canDeleteProductAttribute ::
+      canCreateProductAttribute ::
+      canMaintainProductCollection ::
+      canDeleteBranchAtAnyBank ::
+      canDeleteBranch ::
       canCreateSystemView ::
       canUpdateSystemView ::
       canGetSystemView ::
@@ -393,8 +432,14 @@ object ApiRole {
       canUpdateCustomerEmail ::
       canUpdateCustomerMobilePhoneNumber ::
       canUpdateCustomerIdentity ::
+      canUpdateCustomerBranch ::
       canUpdateCustomerCreditLimit ::
       canUpdateCustomerCreditRatingAndSource ::
+      canUpdateCustomerData ::
+      canGetMethodRoutings ::
+      canCreateMethodRouting ::
+      canUpdateMethodRouting ::
+      canDeleteMethodRouting ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)

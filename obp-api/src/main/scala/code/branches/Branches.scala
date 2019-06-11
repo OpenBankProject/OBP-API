@@ -216,9 +216,9 @@ trait BranchesProvider {
   Common logic for returning branches.
   Implementation details in branchesData
    */
-  final def getBranches(bankId : BankId ,queryParams: OBPQueryParam*) : Option[List[BranchT]] = {
+  final def getBranches(bankId : BankId ,queryParams: List[OBPQueryParam]= Nil) : Option[List[BranchT]] = {
     // If we get branches filter them
-    val branches: Option[List[BranchT]] = getBranchesFromProvider(bankId : BankId ,queryParams:_*)
+    val branches: Option[List[BranchT]] = getBranchesFromProvider(bankId : BankId ,queryParams)
 
     branches match {
       case Some(branches) => {
@@ -246,7 +246,7 @@ trait BranchesProvider {
   }
 
   protected def getBranchFromProvider(bankId: BankId, branchId : BranchId) : Option[BranchT]
-  protected def getBranchesFromProvider(bank : BankId, queryParams:OBPQueryParam*): Option[List[BranchT]]
+  protected def getBranchesFromProvider(bank : BankId, queryParams: List[OBPQueryParam]): Option[List[BranchT]]
 
 // End of Trait
 }

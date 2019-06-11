@@ -51,7 +51,7 @@ object ErrorMessages {
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
   val TooManyRequests = "OBP-10018: Too Many Requests."
   val InvalidBoolean = "OBP-10019: Invalid Boolean. Could not convert value to a boolean type."
-  val InvalidUri = "OBP-404: 404 Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
+  val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
 
   // General Sort and Paging
@@ -126,6 +126,7 @@ object ErrorMessages {
   val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
   val ElasticSearchEmptyQueryBody = "OBP-20053: The Elasticsearch query body cannot be empty"
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
+  val UserNotFoundByUserId = "OBP-20057: User not found by userId."
 
   // OAuth 2
   val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
@@ -222,7 +223,10 @@ object ErrorMessages {
   val DeleteUserAuthContextNotFound = "OBP-30056: UserAuthContext not found by USER_AUTH_CONTEXT_ID."
   val UserAuthContextUpdateNotFound = "OBP-30057: User Auth Context Update not found by AUTH_CONTEXT_UPDATE_ID."
   val UpdateCustomerError = "OBP-30058: Cannot update the Customer"
-
+  
+  val CardNotFound = "OBP-30059: This Card can not be found for the user "
+  val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
+  
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -374,6 +378,9 @@ object ErrorMessages {
   val CreateMeetingInviteeException = "OBP-60012: Create Meeting Invitee Exception. "
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
 
+  // MethodRouting Exceptions (OBP-7XXXX)
+  val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
+  val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
 
   ///////////
 

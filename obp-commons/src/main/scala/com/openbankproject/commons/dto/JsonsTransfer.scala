@@ -117,6 +117,7 @@ case class OutBoundGetTransactions(outboundAdapterCallContext: OutboundAdapterCa
                                    bankId: BankId,
                                    accountId: AccountId,
                                    limit: Int,
+                                   offset: Int,
                                    fromDate: String,
                                    toDate: String) extends TopicTrait
 case class InBoundGetTransactions(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[TransactionCommons]) extends InBoundTrait[List[TransactionCommons]]
@@ -507,7 +508,7 @@ case class OutBoundGetPhysicalCardsForBank(outboundAdapterCallContext: OutboundA
 case class InBoundGetPhysicalCardsForBank(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[PhysicalCard]) extends InBoundTrait[List[PhysicalCard]]
 
 
-case class OutBoundCreateOrUpdatePhysicalCard(outboundAdapterCallContext: OutboundAdapterCallContext,
+case class OutBoundCreatePhysicalCard(outboundAdapterCallContext: OutboundAdapterCallContext,
                                               bankCardNumber: String,
                                               nameOnCard: String,
                                               issueNumber: String,
@@ -526,7 +527,7 @@ case class OutBoundCreateOrUpdatePhysicalCard(outboundAdapterCallContext: Outbou
                                               pinResets: List[PinResetInfo],
                                               collected: Option[CardCollectionInfo],
                                               posted: Option[CardPostedInfo]) extends TopicTrait
-case class InBoundCreateOrUpdatePhysicalCard(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard) extends InBoundTrait[PhysicalCard]
+case class InBoundCreatePhysicalCard(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard) extends InBoundTrait[PhysicalCard]
 
 
 case class OutBoundMakePayment(outboundAdapterCallContext: OutboundAdapterCallContext,

@@ -1734,7 +1734,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
     // Check we are starting from a clean slate (no atms for this bank)
     // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
-    val existingAtms: Option[List[AtmT]] = Atms.atmsProvider.vend.getAtms(bankId1, OBPLimit(1000)) //OBPLimit(1000) is just a place holder
+    val existingAtms: Option[List[AtmT]] = Atms.atmsProvider.vend.getAtms(bankId1, List(OBPLimit(1000))) //OBPLimit(1000) is just a place holder
 
     // We want the size of the list inside the Option
     val existingAtmsCount = countOfAtms(existingAtms)
@@ -1745,7 +1745,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     response should equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
-    val countAtmsAfter = countOfAtms(Atms.atmsProvider.vend.getAtms(bankId1, OBPLimit(1000))) //OBPLimit(1000) is just a place holder
+    val countAtmsAfter = countOfAtms(Atms.atmsProvider.vend.getAtms(bankId1, List(OBPLimit(1000)))) //OBPLimit(1000) is just a place holder
     countAtmsAfter should equal(standardBranches.size) // We expect N branches
 
     // Check that for each branch we did indeed create something good

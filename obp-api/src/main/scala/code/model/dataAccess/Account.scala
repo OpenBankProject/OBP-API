@@ -101,7 +101,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   //find all the envelopes related to this account
   def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(transactionsForAccount.get)
 
-  def envelopes(queryParams: OBPQueryParam*): List[OBPEnvelope] = {
+  def envelopes(queryParams: List[OBPQueryParam]): List[OBPEnvelope] = {
     import com.mongodb.DBObject
     import net.liftweb.mongodb.FindOption
 

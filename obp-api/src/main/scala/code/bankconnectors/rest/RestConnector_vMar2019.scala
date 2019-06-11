@@ -81,7 +81,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     It will read the method from Connector.scala and generate the messageDoc and implemented the methods:
     Take the `def getBankFuture` for example: 
     messageDocs += MessageDoc(
-    process = "obp.get.Bank",
+    process = "obp.getBank",
     messageFormat = messageFormat,
     description = "Get Bank",
     outboundTopic = None,
@@ -160,7 +160,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   // ---------- created on Tue Apr 30 20:09:28 CST 2019
 
   messageDocs += MessageDoc(
-    process = "obp.get.InboundAdapterInfoInternal",
+    process = "obp.getInboundAdapterInfoInternal",
     messageFormat = messageFormat,
     description = "Get Adapter Info",
     outboundTopic = None,
@@ -236,7 +236,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getAdapterInfo")
 
   messageDocs += MessageDoc(
-    process = "obp.get.Bank",
+    process = "obp.getBank",
     messageFormat = messageFormat,
     description = "Get Bank",
     outboundTopic = None,
@@ -389,7 +389,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getBanksFuture")
 
   messageDocs += MessageDoc(
-    process = "obp.get.InboundAccountCommons",
+    process = "obp.getInboundAccountCommons",
     messageFormat = messageFormat,
     description = "Get Bank Accounts For User",
     outboundTopic = None,
@@ -472,7 +472,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getBankAccountsForUserFuture")
 
   messageDocs += MessageDoc(
-    process = "obp.get.CoreAccountCommons",
+    process = "obp.getCoreAccountCommons",
     messageFormat = messageFormat,
     description = "Get Core Bank Accounts",
     outboundTopic = None,
@@ -547,7 +547,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getCoreBankAccountsFuture")
 
   messageDocs += MessageDoc(
-    process = "obp.get.BankAccount",
+    process = "obp.getBankAccount",
     messageFormat = messageFormat,
     description = "Check Bank Account Exists",
     outboundTopic = None,
@@ -634,7 +634,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("checkBankAccountExistsFuture")
 
   messageDocs += MessageDoc(
-    process = "obp.get.TransactionCoreCommons",
+    process = "obp.getTransactionCoreCommons",
     messageFormat = messageFormat,
     description = "Get Transactions Core",
     outboundTopic = None,
@@ -718,7 +718,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   }("getTransactionsCore")
 
   messageDocs += MessageDoc(
-    process = "obp.get.CustomerCommons",
+    process = "obp.getCustomerCommons",
     messageFormat = messageFormat,
     description = "Get Customers By User Id",
     outboundTopic = None,
@@ -851,15 +851,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
       URLEncoder.encode(value, "UTF-8")
     }
-    //build queryParams: OBPQueryParam* as query parameters
+    //build queryParams: List[OBPQueryParam] as query parameters
     val queryParams: Option[String] = variables.lastOption
       .filter(it => it._1 == "queryParams" && it._2.isInstanceOf[Seq[_]])
-      .map(_._2.asInstanceOf[Seq[OBPQueryParam]])
+      .map(_._2.asInstanceOf[List[OBPQueryParam]])
       .map { queryParams =>
-        val limit = OBPQueryParam.getLimit(queryParams: _*)
-        val offset = OBPQueryParam.getOffset(queryParams: _*)
-        val fromDate = OBPQueryParam.getFromDate(queryParams: _*)
-        val toDate = OBPQueryParam.getToDate(queryParams: _*)
+        val limit = OBPQueryParam.getLimit(queryParams)
+        val offset = OBPQueryParam.getOffset(queryParams)
+        val fromDate = OBPQueryParam.getFromDate(queryParams)
+        val toDate = OBPQueryParam.getToDate(queryParams)
         s"?${OBPQueryParam.LIMIT}=${limit}&${OBPQueryParam.OFFSET}=${offset}&${OBPQueryParam.FROM_DATE}=${fromDate}&${OBPQueryParam.TO_DATE}=${toDate}"
       }
     variables.dropRight(queryParams.size)

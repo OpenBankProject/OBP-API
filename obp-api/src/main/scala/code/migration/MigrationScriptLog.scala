@@ -13,7 +13,7 @@ class MigrationScriptLog extends MigrationScriptLogTrait with LongKeyedMapper[Mi
   object IsSuccessful extends MappedBoolean(this)
   object StartDate extends MappedLong(this)
   object EndDate extends MappedLong(this)
-  object Remark extends MappedString(this, 10240)
+  object Remark extends MappedString(this, 1024)
 
   override def primaryKey: Long = id.get
   override def migrationScriptLogId: String = MigrationScriptLogId.get
