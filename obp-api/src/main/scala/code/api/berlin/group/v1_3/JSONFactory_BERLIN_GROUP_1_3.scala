@@ -189,17 +189,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
     AccountBalancesV13(
       account = BalanceAccount(
-        currency = bankAccount.currency,
-        iban = bankAccount.iban.getOrElse("")
+        currency = APIUtil.stringOrNull(bankAccount.currency),
+        iban = APIUtil.stringOptionOrNull(bankAccount.iban)
       ),
       `balances` = AccountBalance(
         amount = AmountOfMoneyV13(
-          currency = bankAccount.currency,
+          currency = APIUtil.stringOrNull(bankAccount.currency),
           content = bankAccount.balance.toString()
         ),
-        balanceType = bankAccount.accountType,
-        lastChangeDateTime = APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
-        lastCommittedTransaction = if(latestUncompletedEndDate ==null) null else latestUncompletedEndDate.toString
+        balanceType = APIUtil.stringOrNull(bankAccount.accountType),
+        lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
+        lastCommittedTransaction = if(latestUncompletedEndDate == null) null else latestUncompletedEndDate.toString
       ) :: Nil
     ) 
   }
