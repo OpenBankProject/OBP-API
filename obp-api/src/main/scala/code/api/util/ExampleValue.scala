@@ -187,7 +187,7 @@ object ExampleValue {
   val cardTypeExample = ConnectorField("Credit", s"The type of the physical card. eg: credit, debit ...")
   glossaryItems += makeGlossaryItem("Adapter.card_type", cardTypeExample)
 
-  val cardIdExample = ConnectorField("36f8a9e6-c2b1-407a-8bd0-421b7119307e", s"A string that MUST uniquely identify the card on this OBP instance. It COULD be a UUID but is generally a short string that easily identifies the physical card.")
+  val cardIdExample = ConnectorField("36f8a9e6-c2b1-407a-8bd0-421b7119307e ", s"A string that MUST uniquely identify the card on this OBP instance. It SHOULD be a UUID.")
   glossaryItems += makeGlossaryItem("Adapter.card_id", cardIdExample)
   
   val nameOnCardExample = ConnectorField(owner1Example.value, s"The name on the physical card")
