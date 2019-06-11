@@ -36,8 +36,10 @@ import java.util.Date
  */
 
 trait PhysicalCardTrait {
+  def cardId: String // This is the UUID for the card.
   def bankId: String
   def bankCardNumber: String
+  def cardType: String
   def nameOnCard: String
   def issueNumber: String
   def serialNumber: String
@@ -54,11 +56,14 @@ trait PhysicalCardTrait {
   def pinResets: List[PinResetInfo]
   def collected: Option[CardCollectionInfo]
   def posted: Option[CardPostedInfo]
+  def customerId: String
 }
 
 case class PhysicalCard  (
+  val cardId : String,
   val bankId: String,
   val bankCardNumber : String,
+  val cardType : String,
   val nameOnCard : String,
   val issueNumber : String,
   val serialNumber : String,
@@ -74,7 +79,9 @@ case class PhysicalCard  (
   val replacement : Option[CardReplacementInfo],
   val pinResets : List[PinResetInfo],
   val collected : Option[CardCollectionInfo],
-  val posted : Option[CardPostedInfo]) extends PhysicalCardTrait
+  val posted : Option[CardPostedInfo],
+  val customerId: String
+) extends PhysicalCardTrait
 
 
 sealed trait CardAction

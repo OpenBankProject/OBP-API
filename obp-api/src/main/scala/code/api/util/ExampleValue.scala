@@ -181,6 +181,24 @@ object ExampleValue {
   val valueExample = ConnectorField("FYIUYF6SUYFSD", s"This key should be used with Adapter.key together. They are the pair.")
   glossaryItems += makeGlossaryItem("Adapter.value", valueExample)
 
+  val bankCardNumberExample = ConnectorField("364435172576215", s"The number of the physical card")
+  glossaryItems += makeGlossaryItem("Adapter.card_number", bankCardNumberExample)
+
+  val cardTypeExample = ConnectorField("Credit", s"The type of the physical card. eg: credit, debit ...")
+  glossaryItems += makeGlossaryItem("Adapter.card_type", cardTypeExample)
+
+  val cardIdExample = ConnectorField("36f8a9e6-c2b1-407a-8bd0-421b7119307e ", s"A string that MUST uniquely identify the card on this OBP instance. It SHOULD be a UUID.")
+  glossaryItems += makeGlossaryItem("Adapter.card_id", cardIdExample)
+  
+  val nameOnCardExample = ConnectorField(owner1Example.value, s"The name on the physical card")
+  glossaryItems += makeGlossaryItem("Adapter.name_on_card", nameOnCardExample)
+
+  val issueNumberExample = ConnectorField("1", s"The issue number of the physical card, eg 1,2,3,4 ....")
+  glossaryItems += makeGlossaryItem("Adapter.issue_number", issueNumberExample)
+  
+  val serialNumberExample = ConnectorField("1324234", s"The serial number of the physical card, eg 1123.")
+  glossaryItems += makeGlossaryItem("Adapter.serial_number", serialNumberExample)
+  
   val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 
 

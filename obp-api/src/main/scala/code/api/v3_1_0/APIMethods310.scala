@@ -13,6 +13,7 @@ import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
+import code.api.v1_3_0.{JSONFactory1_3_0, PostPhysicalCardJSON}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
@@ -254,7 +255,7 @@ trait APIMethods310 {
       "GET",
       "/management/metrics/top-apis",
       "Get Top APIs",
-      s"""Get metrics abou the most popular APIs. e.g.: total count, response time (in ms), etc.
+      s"""Get metrics about the most popular APIs. e.g.: total count, response time (in ms), etc.
         |
         |Should be able to filter on the following fields
         |
@@ -4256,6 +4257,268 @@ trait APIMethods310 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      addCardForBank,
+      implementedInApiVersion,
+      nameOf(addCardForBank),
+      "POST",
+      "/management/banks/BANK_ID/cards",
+      "Create Card",
+      s"""Create Card at bank specified by BANK_ID .
+         |
+         |${authenticationRequiredMessage(true)}
+         |""",
+      createPhysicalCardJsonV310,
+      physicalCardJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        AllowedValuesAre,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard),
+      Some(List(canCreateCardsForBank)))
+    lazy val addCardForBank: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreatePhysicalCardJsonV310 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {json.extract[CreatePhysicalCardJsonV310]}
+            
+            _ <- postJson.allows match {
+              case List() => Future {true}
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+            }
+
+            failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
+            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardReplacementReason.valueOf(postJson.replacement.reason_requested)
+            }
+            
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateCardsForBank, callContext)
+            
+            (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
+            
+            (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            
+            (card, callContext) <- NewStyle.function.createPhysicalCard(
+              bankCardNumber=postJson.card_number,
+              nameOnCard=postJson.name_on_card,
+              cardType = postJson.card_type,
+              issueNumber=postJson.issue_number,
+              serialNumber=postJson.serial_number,
+              validFrom=postJson.valid_from_date,
+              expires=postJson.expires_date,
+              enabled=postJson.enabled,
+              cancelled=false,
+              onHotList=false,
+              technology=postJson.technology,
+              networks= postJson.networks,
+              allows= postJson.allows,
+              accountId= postJson.account_id,
+              bankId=bankId.value,
+              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
+              pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
+              collected= Option(CardCollectionInfo(postJson.collected)),
+              posted= Option(CardPostedInfo(postJson.posted)),
+              customerId = postJson.customer_id,
+              callContext
+            )
+          } yield {
+            (createPhysicalCardJson(card, u), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updatedCardForBank,
+      implementedInApiVersion,
+      nameOf(updatedCardForBank),
+      "PUT",
+      "/management/banks/BANK_ID/cards/CARD_ID",
+      "Update Card",
+      s"""Update Card at bank specified by CARD_ID .
+         |${authenticationRequiredMessage(true)}
+         |""",
+      updatePhysicalCardJsonV310,
+      physicalCardJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        AllowedValuesAre,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard),
+      Some(List(canCreateCardsForBank)))
+    lazy val updatedCardForBank: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canUpdateCardsForBank, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePhysicalCardJsonV310 "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UpdatePhysicalCardJsonV310]
+            }
+
+            _ <- postJson.allows match {
+              case List() => Future {1}
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+            }
+
+            failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
+            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardReplacementReason.valueOf(postJson.replacement.reason_requested)
+            }
+            
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+
+            (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
+
+            (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
+            
+            (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
+            
+            (card, callContext) <- NewStyle.function.updatePhysicalCard(
+              cardId = cardId,
+              bankCardNumber=card.bankCardNumber, 
+              cardType = postJson.card_type,
+              nameOnCard=postJson.name_on_card,
+              issueNumber=postJson.issue_number,
+              serialNumber=postJson.serial_number,
+              validFrom=postJson.valid_from_date,
+              expires=postJson.expires_date,
+              enabled=postJson.enabled,
+              cancelled=false,
+              onHotList=false,
+              technology=postJson.technology,
+              networks= postJson.networks,
+              allows= postJson.allows,
+              accountId= postJson.account_id,
+              bankId=bankId.value,
+              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
+              pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
+              collected= Option(CardCollectionInfo(postJson.collected)),
+              posted = Option(CardPostedInfo(postJson.posted)),
+              customerId = postJson.customer_id,
+              callContext = callContext
+            )
+          } yield {
+            (createPhysicalCardJson(card, u), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getCardsForBank,
+      implementedInApiVersion,
+      nameOf(getCardsForBank),
+      "GET",
+      "/management/banks/BANK_ID/cards",
+      "Get Cards for the specified bank",
+      """Should be able to filter on the following fields
+        |
+        |eg:/management/banks/BANK_ID/cards?customer_id=66214b8e-259e-44ad-8868-3eb47be70646$account_id=8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0
+        |
+        |1 customer_id should be valid customer_id, otherwise, it will return an empty card list.  
+        |
+        |2 account_id should be valid account_id , otherwise, it will return an empty card list.  
+        |
+        |
+        |${authenticationRequiredMessage(true)}""".stripMargin,
+      emptyObjectJson,
+      physicalCardsJsonV310,
+      List(UserNotLoggedIn,BankNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard))
+    lazy val getCardsForBank : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            httpParams <- NewStyle.function.createHttpParams(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
+            }
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (cards,callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, u, obpQueryParams, callContext)
+          } yield {
+            (createPhysicalCardsJson(cards, u), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCardForBank,
+      implementedInApiVersion,
+      nameOf(getCardForBank),
+      "GET",
+      "/management/banks/BANK_ID/cards/CARD_ID",
+      "Get Card By Id",
+      "",
+      emptyObjectJson,
+      physicalCardJsonV310,
+      List(UserNotLoggedIn,BankNotFound, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard))
+    lazy val getCardForBank : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId ::  Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
+            (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
+            (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
+          } yield {
+            (createPhysicalCardJson(card, u), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteCardForBank,
+      implementedInApiVersion,
+      nameOf(deleteCardForBank),
+      "DELETE",
+      "/management/banks/BANK_ID/cards/CARD_ID",
+      "Delete Card",
+      s"""Delete a Card at bank specified by CARD_ID .
+         |
+          |${authenticationRequiredMessage(true)}
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        AllowedValuesAre,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard),
+      Some(List(canCreateCardsForBank)))
+    lazy val deleteCardForBank: OBPEndpoint = {
+      case "management"::"banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canDeleteCardsForBank, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, Some(cc)) 
+            (result, callContext) <- NewStyle.function.deletePhysicalCardForBank(bankId, cardId, callContext)
+          } yield {
+            (Full(result), HttpCode.`204`(callContext))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       updateCustomerBranch,

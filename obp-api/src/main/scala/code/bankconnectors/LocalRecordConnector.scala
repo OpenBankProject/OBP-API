@@ -127,29 +127,6 @@ private object LocalRecordConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def createOrUpdatePhysicalCard(bankCardNumber: String,
-                      nameOnCard: String,
-                      issueNumber: String,
-                      serialNumber: String,
-                      validFrom: Date,
-                      expires: Date,
-                      enabled: Boolean,
-                      cancelled: Boolean,
-                      onHotList: Boolean,
-                      technology: String,
-                      networks: List[String],
-                      allows: List[String],
-                      accountId: String,
-                      bankId: String,
-                      replacement: Option[CardReplacementInfo],
-                      pinResets: List[PinResetInfo],
-                      collected: Option[CardCollectionInfo],
-                      posted: Option[CardPostedInfo]
-                     ) : Box[PhysicalCard] = {
-    Empty
-  }
-
-
   override protected def makePaymentImpl(fromAccount: BankAccount,  toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
