@@ -3145,6 +3145,19 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23"
   )
 
+  val moderatedCoreAccountJsonV310 = ModeratedCoreAccountJsonV310(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    bank_id= "String",
+    label= "String",
+    number= "String",
+    owners =  List(userJSONV121),
+    `type`= "String",
+    balance = amountOfMoneyJsonV121,
+    account_routings = List(accountRoutingJsonV121),
+    account_rules = List(accountRuleJsonV300),
+    account_attributes = List(accountAttributeResponseJson)
+  )
+
   val accountApplicationJson = AccountApplicationJson(
     product_code = "saveing1",
     user_id = Some(ExampleValue.userIdExample.value),

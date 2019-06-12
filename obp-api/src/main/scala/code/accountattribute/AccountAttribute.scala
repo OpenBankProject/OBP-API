@@ -37,6 +37,8 @@ trait AccountAttributeProvider {
   private val logger = Logger(classOf[AccountAttributeProvider])
 
   def getAccountAttributesFromProvider(accountId: AccountId, productCode: ProductCode): Future[Box[List[AccountAttribute]]]
+  def getAccountAttributesByAccount(bankId: BankId,
+                                    accountId: AccountId): Future[Box[List[AccountAttribute]]]
 
   def getAccountAttributeById(productAttributeId: String): Future[Box[AccountAttribute]]
 
@@ -59,6 +61,8 @@ trait AccountAttributeProvider {
 
 class RemotedataAccountAttributeCaseClasses {
   case class getAccountAttributesFromProvider(accountId: AccountId, productCode: ProductCode)
+  case class getAccountAttributesByAccount(bankId: BankId,
+                                           accountId: AccountId)
 
   case class getAccountAttributeById(accountAttributeId: String)
 

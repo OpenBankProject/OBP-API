@@ -187,7 +187,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getPrivateAccountById), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
@@ -807,6 +808,17 @@ object NewStyle {
         accountId: AccountId,
         productCode: ProductCode,
         accountAttributes,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    def getAccountAttributesByAccount(bankId: BankId,
+                                      accountId: AccountId,
+                                      callContext: Option[CallContext]): OBPReturnType[List[AccountAttribute]] = {
+      Connector.connector.vend.getAccountAttributesByAccount(
+        bankId: BankId,
+        accountId: AccountId,
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

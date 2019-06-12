@@ -20,6 +20,16 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
         )
     }
 
+  override def getAccountAttributesByAccount(bankId: BankId,
+                                             accountId: AccountId): Future[Box[List[AccountAttribute]]] = {
+    Future {
+      Box !!  MappedAccountAttribute.findAll(
+        By(MappedAccountAttribute.mBankIdId, bankId.value),
+        By(MappedAccountAttribute.mAccountId, accountId.value)
+      )
+    }
+  }
+
   override def getAccountAttributeById(accountAttributeId: String): Future[Box[AccountAttribute]] = Future {
     MappedAccountAttribute.find(By(MappedAccountAttribute.mAccountAttributeId, accountAttributeId))
   }
@@ -78,7 +88,7 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
       }
     }
   }
-
+  
   override def deleteAccountAttribute(accountAttributeId: String): Future[Box[Boolean]] = Future {
     Some(
       MappedAccountAttribute.bulkDelete_!!(By(MappedAccountAttribute.mAccountAttributeId, accountAttributeId))

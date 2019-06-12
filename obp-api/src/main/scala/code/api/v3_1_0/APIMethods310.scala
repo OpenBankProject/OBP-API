@@ -18,7 +18,7 @@ import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0.JSONFactory210
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
+import code.api.v3_0_0.JSONFactory300.{createAdapterInfoJson, createCoreBankAccountJSON}
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
 import code.bankconnectors.akka.AkkaConnector_vDec2018
@@ -4803,7 +4803,55 @@ trait APIMethods310 {
         }
       }
     }
-    
+
+
+
+    resourceDocs += ResourceDoc(
+      getPrivateAccountById,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountById),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get Account by Id (Full)",
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* IBAN
+        |* Available views (sorted by short_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authentication using OAuth.
+        |
+        |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |""".stripMargin,
+      emptyObjectJson,
+      moderatedCoreAccountJsonV310,
+      List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      Catalogs(notCore, notPSD2, notOBWG),
+      apiTagAccount ::  apiTagNewStyle :: Nil)
+    lazy val getPrivateAccountById : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
+            _ <- NewStyle.function.hasViewAccess(view, u)
+            moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              bankId,
+              accountId,
+              callContext: Option[CallContext])
+          } yield {
+            (JSONFactory310.createCoreBankAccountJSON(moderatedAccount, accountAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
     
 
 
