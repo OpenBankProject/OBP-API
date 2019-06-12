@@ -102,8 +102,9 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
 
   def updateCustomerScaData(customerId: String,
                             mobileNumber: Option[String],
-                            email: Option[String]): Future[Box[Customer]] = 
-    (actor ? cc.updateCustomerScaData(customerId, mobileNumber, email)).mapTo[Box[Customer]]
+                            email: Option[String],
+                            customerNumber: Option[String]): Future[Box[Customer]] = 
+    (actor ? cc.updateCustomerScaData(customerId, mobileNumber, email, customerNumber)).mapTo[Box[Customer]]
   
   def updateCustomerCreditData(customerId: String,
                                creditRating: Option[String],

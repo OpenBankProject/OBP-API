@@ -176,7 +176,7 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
 
   }
   
-  override def updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String]): Future[Box[Customer]] = Future {
+  override def updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String], customerNumber: Option[String]): Future[Box[Customer]] = Future {
     MappedCustomer.find(
       By(MappedCustomer.mCustomerId, customerId)
     ) map {
@@ -187,6 +187,10 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         }
         email match {
           case Some(mail) => c.mEmail(mail)
+          case _          => // There is no update
+        }
+        customerNumber match {
+          case Some(customerNumber) => c.mNumber(customerNumber)
           case _          => // There is no update
         }
         c.saveMe()

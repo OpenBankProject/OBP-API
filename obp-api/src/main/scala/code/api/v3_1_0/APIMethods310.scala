@@ -3994,6 +3994,62 @@ trait APIMethods310 {
               customerId,
               None,
               Some(putData.email),
+              None,
+              callContext)
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateCustomerNumber,
+      implementedInApiVersion,
+      nameOf(updateCustomerNumber),
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/number",
+      "Update the number of a Customer",
+      s"""Update the number of the Customer specified by CUSTOMER_ID.
+         |
+        |
+        |${authenticationRequiredMessage(true)}
+         |
+        |""",
+      putUpdateCustomerNumberJsonV310,
+      customerJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(canUpdateCustomerNumber :: Nil)
+    )
+
+    lazy val updateCustomerNumber : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "number" ::  Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerNumber, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerNumberJsonV310 "
+            putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutUpdateCustomerNumberJsonV310]
+            }
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            
+            (customerNumberIsAvalible, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, putData.customer_number, callContext)
+            //There should not be a customer for this number, If there is, then we throw the exception. 
+            _ <- Helper.booleanToFuture(failMsg= s"$CustomerNumberAlreadyExists Current customer_number(${putData.customer_number}) and Current bank_id(${bankId.value})" ) {customerNumberIsAvalible}
+            
+            (customer, callContext) <- NewStyle.function.updateCustomerScaData(
+              customerId,
+              None,
+              None,
+              Some(putData.customer_number),
               callContext)
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`200`(callContext))
@@ -4043,6 +4099,7 @@ trait APIMethods310 {
             (customer, callContext) <- NewStyle.function.updateCustomerScaData(
               customerId,
               Some(putData.mobile_phone_number),
+              None,
               None,
               callContext)
           } yield {

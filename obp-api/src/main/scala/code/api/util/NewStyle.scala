@@ -186,7 +186,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createAccount)
   )
 
   object HttpCode {
@@ -356,6 +357,11 @@ object NewStyle {
     def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): OBPReturnType[Customer] = {
       Connector.connector.vend.getCustomerByCustomerId(customerId, callContext) map {
         unboxFullOrFail(_, callContext, s"$CustomerNotFoundByCustomerId. Current CustomerId($customerId)")
+      }
+    }
+    def checkCustomerNumberAvailable(bankId: BankId, customerNumber: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.checkCustomerNumberAvailable(bankId: BankId, customerNumber: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse", 400), i._2) 
       }
     }
     def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): OBPReturnType[Customer] = {
@@ -1235,11 +1241,13 @@ object NewStyle {
     def updateCustomerScaData(customerId: String,
                               mobileNumber: Option[String],
                               email: Option[String],
+                              customerNumber: Option[String],
                               callContext: Option[CallContext]): OBPReturnType[Customer] =
       Connector.connector.vend.updateCustomerScaData(
         customerId,
         mobileNumber,
         email,
+        customerNumber,
         callContext) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerError), i._2)
       }
