@@ -67,7 +67,7 @@ package object bankconnectors {
 
     val bankId: Option[String] = bankIdInArgs match {
       case Some(v) => Some(v.toString())
-      case None => args.toStream.map(getNestBankId(_)).find(_.isDefined).flatten.map(_.toString)
+      case None => args.toStream.map(getNestedBankId(_)).find(_.isDefined).flatten.map(_.toString)
     }
 
     val connectorName: Box[String] = bankId match {
@@ -123,7 +123,7 @@ package object bankconnectors {
     * @param obj to extract bankId object
     * @return Some(bankId) or None, type maybe Option[String] or Option[BankId]
     */
-  private[this] def getNestBankId(obj: Any): Option[Any] = {
+  private[this] def getNestedBankId(obj: Any): Option[Any] = {
     val processObj: Option[Any] = obj match {
       case null | None => None
       case _: EmptyBox => None
@@ -154,7 +154,7 @@ package object bankconnectors {
           .map(_._2)
           .orElse {
             argNameToValues.values
-              .map(getNestBankId(_))
+              .map(getNestedBankId(_))
               .find(it => it.isDefined)
           }
       }
