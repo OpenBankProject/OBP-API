@@ -264,9 +264,9 @@ trait APIMethods210 {
 
     // COUNTERPARTY
     resourceDocs += ResourceDoc(
-      createTransactionRequestCouterparty,
+      createTransactionRequestCounterparty,
       apiVersion,
-      "createTransactionRequestCouterparty",
+      "createTransactionRequestCounterparty",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
       "Create Transaction Request (COUNTERPARTY)",
@@ -391,7 +391,7 @@ trait APIMethods210 {
     // Different Transaction Request approaches:
     lazy val createTransactionRequestSandboxTan = createTransactionRequest
     lazy val createTransactionRequestSepa = createTransactionRequest
-    lazy val createTransactionRequestCouterparty = createTransactionRequest
+    lazy val createTransactionRequestCounterparty = createTransactionRequest
     lazy val createTransactionRequestFreeForm = createTransactionRequest
 
     // This handles the above cases
