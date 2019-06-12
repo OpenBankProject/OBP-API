@@ -161,7 +161,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     //}
     //token.consumerId(0)
     val currentTime = Platform.currentTime
-    val tokenDuration : Long = Helpers.weeks(4)
+    val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
+    val tokenDuration : Long = Helpers.weeks(expiration)
     val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
                                                     None,
                                                     Some(userId),

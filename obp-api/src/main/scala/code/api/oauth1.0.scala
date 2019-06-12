@@ -824,7 +824,8 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     }
 
     val currentTime = Platform.currentTime
-    val tokenDuration : Long = Helpers.weeks(4)
+    val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
+    val tokenDuration : Long = Helpers.weeks(expiration)
 
     val tokenSaved = Tokens.tokens.vend.createToken(TokenType.Access,
       consumerId,
