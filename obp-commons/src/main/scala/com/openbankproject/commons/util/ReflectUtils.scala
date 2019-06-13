@@ -7,7 +7,6 @@ import net.liftweb.common.Box
 
 import scala.collection.immutable.List
 import scala.language.postfixOps
-import scala.reflect.api.{TypeCreator, Universe}
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 
@@ -231,6 +230,26 @@ object ReflectUtils {
         else throw new IllegalArgumentException(s"Type tag defined in $mirror cannot be migrated to other mirrors.")
     })
   }
+
+  def classToSymbol(clazz: Class[_]): ru.ClassSymbol = ru.runtimeMirror(clazz.getClassLoader).classSymbol(clazz)
+
+  /**
+    * if type is concrete, get the constructor parameter name map type
+    * @param tp to do extract type
+    * @return a map of constructor parameter name to type, if tp is abstract, return empty amp
+    */
+  def getConstructorParamInfo(tp: ru.Type): Map[String, ru.Type] = tp.typeSymbol.isClass match {
+    case false => Map.empty[String, ru.Type]
+    case true => {
+      ReflectUtils.getPrimaryConstructor(tp).paramLists.headOption.getOrElse(Nil).map(it => (it.name.toString, it.info)).toMap
+    }
+  }
+  /**
+    * if type is concrete, get the constructor parameter name map type
+    * @param clazz to do extract class object
+    * @return a map of constructor parameter name to type, if tp is abstract, return empty amp
+    */
+  def getConstructorInfo(clazz: Class[_]): Map[String, ru.Type] = getConstructorParamInfo(classToSymbol(clazz).toType)
 
   /**
     * convert a object to it's sibling, please have a loot the example:
