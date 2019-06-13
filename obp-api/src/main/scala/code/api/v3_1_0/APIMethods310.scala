@@ -10,6 +10,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
+import code.api.util.ExampleValue._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
@@ -4534,8 +4535,10 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
             (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
             (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
+            (cardAttributes, callContext) <- NewStyle.function.getCardAttributesFromProvider(cardId, callContext)
           } yield {
-            (createPhysicalCardJson(card, u), HttpCode.`200`(callContext))
+            val commonsData: List[CardAttributeCommons]= cardAttributes
+            (createPhysicalCardWithAttributesJson(card, commonsData, u), HttpCode.`200`(callContext))
           }
         }
       }
@@ -4573,6 +4576,75 @@ trait APIMethods310 {
             (result, callContext) <- NewStyle.function.deletePhysicalCardForBank(bankId, cardId, callContext)
           } yield {
             (Full(result), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createCardAttribute,
+      implementedInApiVersion,
+      nameOf(createCardAttribute),
+      "POST",
+      "/management/banks/BANK_ID/cards/CARD_ID/attribute",
+      "Create Card Attribute",
+      s""" Create Card Attribute
+         |
+         |Card Attributes are used to describe a financial Product with a list of typed key value pairs.
+         |
+         |Each Card Attribute is linked to its Card by CARD_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      CardAttributeJson(
+        cardAttributeNameExample.value,
+        CardAttributeType.DOUBLE.toString, 
+        cardAttributeValueExample.value
+      ),
+      CardAttributeCommons(
+        Some(BankId(bankIdExample.value)), 
+        Some(cardIdExample.value),
+        Some(cardAttributeIdExample.value), 
+        cardAttributeNameExample.value,
+        CardAttributeType.DOUBLE, 
+        cardAttributeValueExample.value),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard, apiTagNewStyle))
+
+    lazy val createCardAttribute : OBPEndpoint = {
+      case "management"::"banks" :: bankId :: "cards" :: cardId :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (_, callContext) <- NewStyle.function.getPhysicalCardForBank(BankId(bankId), cardId, callContext)
+            
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CardAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CardAttributeJson]
+            }
+            
+            createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardAttributeType.withName(postedData.`type`)
+            }
+            
+            (cardAttribute, callContext) <- NewStyle.function.createOrUpdateCardAttribute(
+              Some(BankId(bankId)),
+              Some(cardId),
+              None,
+              postedData.name,
+              createCardAttribute,
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            val commonsData: CardAttributeCommons = cardAttribute
+            (commonsData, HttpCode.`201`(callContext))
           }
       }
     }

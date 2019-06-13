@@ -16,15 +16,16 @@ import code.atms.MappedAtm
 import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
+import code.cardattribute.CardAttribute
 import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdate, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddress
 import code.fx.{FXRate, MappedFXRate, fx}
-import code.kycchecks.{ KycChecks}
-import code.kycdocuments.{KycDocuments}
-import code.kycmedias.{KycMedias}
-import code.kycstatuses.{KycStatuses}
+import code.kycchecks.KycChecks
+import code.kycdocuments.KycDocuments
+import code.kycmedias.KycMedias
+import code.kycstatuses.KycStatuses
 import code.management.ImporterAPI.ImporterTransaction
 import code.meetings.Meeting
 import code.metadata.comments.Comments
@@ -781,6 +782,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       callContext: Option[CallContext]), 
       callContext)
   }
+
+  override def createOrUpdateCardAttribute(
+    bankId: Option[BankId],
+    cardId: Option[String],
+    cardAttributeId: Option[String],
+    name: String,
+    attributeType: CardAttributeType.Value,
+    value: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CardAttribute]] = {
+    CardAttribute.cardAttributeProvider.vend.createOrUpdateCardAttribute(
+      bankId: Option[BankId],
+      cardId: Option[String],
+      cardAttributeId: Option[String],
+      name: String,
+      attributeType: CardAttributeType.Value,
+      value: String)map { (_, callContext) }
+  }
+
+  override def getCardAttributesFromProvider(
+    cardId: String, 
+    callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = {
+    CardAttribute.cardAttributeProvider.vend.getCardAttributesFromProvider(cardId: String) map { (_, callContext) }
+  }
+  
   /**
     * Perform a payment (in the sandbox) Store one or more transactions
    */
