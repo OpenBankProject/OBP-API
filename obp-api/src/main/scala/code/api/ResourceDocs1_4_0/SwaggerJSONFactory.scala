@@ -15,6 +15,7 @@ import scala.reflect.runtime.universe._
 import java.lang.{Boolean => JBoolean, Double => JDouble, Float => JFloat, Integer => JInt, Long => JLong}
 import java.math.{BigDecimal => JBigDecimal}
 
+import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer

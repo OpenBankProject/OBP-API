@@ -373,6 +373,11 @@ case class AccountAttributeJson(
   value: String,
 )
 
+case class CardAttributeJson(
+  name: String,
+  `type`: String,
+  value: String,
+)
 
 case class AccountAttributeResponseJson(
   bank_id: String,
@@ -542,7 +547,33 @@ case class PhysicalCardJsonV310(
   pin_reset: List[PinResetJSON],
   collected: Date,
   posted: Date,
-  customer_id: String)
+  customer_id: String
+)
+
+case class PhysicalCardWithAttributesJsonV310(
+  card_id: String,
+  bank_id: String,
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  cancelled: Boolean,
+  on_hot_list: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account: code.api.v1_2_1.AccountJSON,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String,
+  card_attributes: List[CardAttribute]
+)
 
 case class PhysicalCardsJsonV310(
   cards : List[PhysicalCardJsonV310])
@@ -1067,6 +1098,33 @@ object JSONFactory310{
 
   def createPhysicalCardsJson(cards : List[PhysicalCard], user : User) : PhysicalCardsJsonV310 = 
     PhysicalCardsJsonV310(cards.map(card => createPhysicalCardJson(card, user)))
+
+  def createPhysicalCardWithAttributesJson(card: PhysicalCardTrait, cardAttributes: List[CardAttribute],user : User): PhysicalCardWithAttributesJsonV310 = {
+    PhysicalCardWithAttributesJsonV310(
+      card_id = stringOrNull(card.cardId),
+      bank_id = stringOrNull(card.bankId),
+      card_number = stringOrNull(card.bankCardNumber),
+      card_type = stringOrNull(card.cardType),
+      name_on_card = stringOrNull(card.nameOnCard),
+      issue_number = stringOrNull(card.issueNumber),
+      serial_number = stringOrNull(card.serialNumber),
+      valid_from_date = card.validFrom,
+      expires_date = card.expires,
+      enabled = card.enabled,
+      cancelled = card.cancelled,
+      on_hot_list = card.onHotList,
+      technology = stringOrNull(card.technology),
+      networks = card.networks,
+      allows = card.allows.map(cardActionsToString).toList,
+      account = createAccountJson(card.account, user),
+      replacement = card.replacement.map(createReplacementJson).getOrElse(null),
+      pin_reset = card.pinResets.map(createPinResetJson),
+      collected = card.collected.map(_.date).getOrElse(null),
+      posted = card.posted.map(_.date).getOrElse(null),
+      customer_id = stringOrNull(card.customerId),
+      card_attributes = cardAttributes
+    )
+  }
 
 }
 

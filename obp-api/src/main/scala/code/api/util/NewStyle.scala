@@ -186,6 +186,12 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.createCardAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.deleteCardForBank), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCardForBank), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getCardsForBank), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updatedCardForBank), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.addCardForBank), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString)
   )
 
@@ -1394,7 +1400,38 @@ object NewStyle {
     def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }
-
+    def createOrUpdateCardAttribute(
+      bankId: Option[BankId],
+      cardId: Option[String],
+      cardAttributeId: Option[String],
+      name: String,
+      attributeType: CardAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[CardAttribute] = {
+      Connector.connector.vend.createOrUpdateCardAttribute(
+        bankId: Option[BankId],
+        cardId: Option[String],
+        cardAttributeId: Option[String],
+        name: String,
+        attributeType: CardAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    def getCardAttributesFromProvider(
+      cardId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[List[CardAttribute]] = {
+      Connector.connector.vend.getCardAttributesFromProvider(
+        cardId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
     def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
       MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(methodRouting)
      }
@@ -1427,3 +1464,4 @@ object NewStyle {
   }
 
 }
+

@@ -2,8 +2,7 @@ package code.methodrouting
 
 /* For Connector method routing, star connector use this provider to find proxy connector name */
 
-import code.api.util.JsonFieldReName
-import com.openbankproject.commons.model.{Converter, ProductCollection, ProductCollectionCommons}
+import com.openbankproject.commons.model.{Converter, JsonFieldReName, ProductCollection, ProductCollectionCommons}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 

@@ -45,6 +45,7 @@ import code.api.util.migration.Migration
 import code.atms.MappedAtm
 import code.bankconnectors.ConnectorEndpoints
 import code.branches.MappedBranch
+import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
 import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
@@ -587,7 +588,8 @@ object ToSchemify {
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,
-    MappedAccountAttribute
+    MappedAccountAttribute,
+    MappedCardAttribute
   )
 
   // The following tables are accessed directly via Mapper / JDBC

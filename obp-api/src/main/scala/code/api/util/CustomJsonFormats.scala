@@ -4,6 +4,7 @@ import java.util.regex.Pattern
 
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
+import com.openbankproject.commons.model.JsonFieldReName
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
@@ -127,8 +128,5 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
   }
 }
 
-/**
-  * a mark trait, any type that extends this trait will rename field from Camel-Case to snakify naming
-  */
-trait JsonFieldReName
+
 

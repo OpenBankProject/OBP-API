@@ -31,6 +31,12 @@ import java.util.Date
 
 import scala.collection.immutable.List
 
+/**
+  * a mark trait, any type that extends this trait will rename field from Camel-Case to snakify naming
+  */
+trait JsonFieldReName
+
+
 //--------- enums
 object AccountAttributeType extends Enumeration{
   type ProductAttributeType = Value
@@ -46,6 +52,17 @@ object AccountAttributeType extends Enumeration{
 
 object ProductAttributeType extends Enumeration{
   type ProductAttributeType = Value
+  val STRING = Value("STRING")
+
+  val INTEGER = Value("INTEGER")
+
+  val DOUBLE = Value("DOUBLE")
+
+  val DATE_WITH_DAY = Value("DATE_WITH_DAY")
+}
+
+object CardAttributeType extends Enumeration{
+  type CardAttributeType = Value
   val STRING = Value("STRING")
 
   val INTEGER = Value("INTEGER")
@@ -119,6 +136,25 @@ trait AccountAttribute {
   def attributeType: AccountAttributeType.Value
   def value: String
 }
+
+trait CardAttribute {
+  def bankId: Option[BankId]
+  def cardId: Option[String]
+  def cardAttributeId: Option[String]
+  def name: String
+  def attributeType: CardAttributeType.Value
+  def value: String
+}
+case class CardAttributeCommons(
+  bankId: Option[BankId],
+  cardId: Option[String],
+  cardAttributeId: Option[String],
+  name: String,
+  attributeType: CardAttributeType.Value,
+  value: String
+) extends CardAttribute with JsonFieldReName
+
+object CardAttributeCommons extends Converter[CardAttribute, CardAttributeCommons]
 
 trait AtmT {
   def atmId: AtmId
