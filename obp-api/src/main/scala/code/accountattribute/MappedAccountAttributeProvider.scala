@@ -1,7 +1,7 @@
 package code.accountattribute
 
 import code.util.{MappedUUID, UUIDString}
-import com.openbankproject.commons.model.{AccountAttribute, AccountAttributeType, AccountId, BankId, ProductCode}
+import com.openbankproject.commons.model.{AccountAttribute, AccountAttributeType, AccountId, BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -19,6 +19,16 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
           By(MappedAccountAttribute.mCode, productCode.value)
         )
     }
+
+  override def getAccountAttributesByAccount(bankId: BankId,
+                                             accountId: AccountId): Future[Box[List[AccountAttribute]]] = {
+    Future {
+      Box !!  MappedAccountAttribute.findAll(
+        By(MappedAccountAttribute.mBankIdId, bankId.value),
+        By(MappedAccountAttribute.mAccountId, accountId.value)
+      )
+    }
+  }
 
   override def getAccountAttributeById(accountAttributeId: String): Future[Box[AccountAttribute]] = Future {
     MappedAccountAttribute.find(By(MappedAccountAttribute.mAccountAttributeId, accountAttributeId))
@@ -58,7 +68,27 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
       }
     }
   }
-
+  override def createAccountAttributes(bankId: BankId, 
+                                       accountId: AccountId,
+                                       productCode: ProductCode,
+                                       accountAttributes: List[ProductAttribute]): Future[Box[List[AccountAttribute]]] = {
+    Future {
+      tryo {
+        for {
+          accountAttribute <- accountAttributes
+        } yield {
+          MappedAccountAttribute.create.mAccountId(accountId.value)
+            .mBankIdId(bankId.value)
+            .mCode(productCode.value)
+            .mName(accountAttribute.name)
+            .mType(accountAttribute.attributeType.toString())
+            .mValue(accountAttribute.value)
+            .saveMe()
+        }
+      }
+    }
+  }
+  
   override def deleteAccountAttribute(accountAttributeId: String): Future[Box[Boolean]] = Future {
     Some(
       MappedAccountAttribute.bulkDelete_!!(By(MappedAccountAttribute.mAccountAttributeId, accountAttributeId))
