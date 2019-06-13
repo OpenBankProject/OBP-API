@@ -205,6 +205,7 @@ object ExampleValue {
   //------------------------------------------------------------
   // TODO @Simon please fix the follow example values to reasonable values
   val dateOfBirthExample = ConnectorField("2018-03-09", "customer birthday")
+  val customerTitleExample = ConnectorField("title of customer", "fix me")
 
   // can rename to "fromDateExample" and "toDateExample", if it is reasonable
   val outBoundGetTransactionsFromDateExample = ConnectorField("2018-03-09", "fix me")

@@ -164,8 +164,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 
+
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Thu Jun 13 10:58:18 CST 2019
+// ---------- create on Thu Jun 13 11:07:28 CST 2019
 
 messageDocs += MessageDoc(
     process = "obp.createCustomer",
@@ -252,7 +253,7 @@ messageDocs += MessageDoc(
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
       lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
-      title=titleExample.value,
+      title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
     ),
@@ -276,6 +277,7 @@ messageDocs += MessageDoc(
   }
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
     
     
     
