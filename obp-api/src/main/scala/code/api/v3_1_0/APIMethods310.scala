@@ -4593,19 +4593,6 @@ trait APIMethods310 {
          |
          |Each Card Attribute is linked to its Card by CARD_ID
          |
-         |Typical card attributes might be:
-         |
-         |ISIN (for International bonds)
-         |VKN (for German bonds)
-         |REDCODE (markit short code for credit derivative)
-         |LOAN_ID (e.g. used for Anacredit reporting)
-         |
-         |ISSUE_DATE (When the bond was issued in the market)
-         |MATURITY_DATE (End of life time of a product)
-         |TRADABLE
-         |
-         |See [FPML](http://www.fpml.org/) for more examples.
-         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
