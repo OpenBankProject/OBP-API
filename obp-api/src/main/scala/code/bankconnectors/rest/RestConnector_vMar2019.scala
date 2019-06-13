@@ -55,6 +55,10 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 
+import code.api.util.ExampleValue._
+
+import code.api.util.APIUtil._
+
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
   import com.openbankproject.commons.model.{CustomerFaceImage, CreditLimit, CreditRating, AmountOfMoney}
@@ -156,659 +160,126 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     }
   }("getBankFuture")
    */
-  //---------------- dynamic start -------------------please don't modify this line
-  // ---------- created on Tue Apr 30 20:09:28 CST 2019
+  
 
-  messageDocs += MessageDoc(
-    process = "obp.getInboundAdapterInfoInternal",
+
+
+//---------------- dynamic start -------------------please don't modify this line
+// ---------- create on Thu Jun 13 10:58:18 CST 2019
+
+messageDocs += MessageDoc(
+    process = "obp.createCustomer",
     messageFormat = messageFormat,
-    description = "Get Adapter Info",
-    outboundTopic = None,
-    inboundTopic = None,
+    description = "Create Customer",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).response),
     exampleOutboundMessage = (
-      OutBoundGetAdapterInfo(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        consumerId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string"))),
-        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
-          username = Option("string"),
-          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))))
-      ),
+     OutBoundCreateCustomer(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      consumerId=Some(consumerIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value))),
+      outboundAdapterAuthInfo=Some( OutboundAdapterAuthInfo(userId=Some(userIdExample.value),
+      username=Some(usernameExample.value),
+      linkedCustomers=Some(List( BasicLinkedCustomer(customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value))),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value))),
+      authViews=Some(List( AuthView(view= ViewBasic(id=viewIdExample.value,
+      name=viewNameExample.value,
+      description=viewDescriptionExample.value),
+      account= AccountBasic(id=accountIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      customerOwners=List( InternalBasicCustomer(bankId=bankIdExample.value,
+      customerId=customerIdExample.value,
+      customerNumber=customerNumberExample.value,
+      legalName=legalNameExample.value,
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
+      userOwners=List( InternalBasicUser(userId=userIdExample.value,
+      emailAddress=emailExample.value,
+      name=usernameExample.value))))))))),
+      bankId=BankId(bankIdExample.value),
+      legalName=legalNameExample.value,
+      mobileNumber=mobileNumberExample.value,
+      email=emailExample.value,
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      url=urlExample.value),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      relationshipStatus=relationshipStatusExample.value,
+      dependents=dependentsExample.value.toInt,
+      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      highestEducationAttained=highestEducationAttainedExample.value,
+      employmentStatus=employmentStatusExample.value,
+      kycStatus=kycStatusExample.value.toBoolean,
+      lastOkDate=parseDate(outBoundCreateCustomerLastOkDateExample.value).getOrElse(sys.error("outBoundCreateCustomerLastOkDateExample.value is not validate date format.")),
+      creditRating=Some( CreditRating(rating=ratingExample.value,
+      source=sourceExample.value)),
+      creditLimit=Some( AmountOfMoney(currency=currencyExample.value,
+      amount=creditLimitAmountExample.value)),
+      title=titleExample.value,
+      branchId=branchIdExample.value,
+      nameSuffix=nameSuffixExample.value)
+    ),
     exampleInboundMessage = (
-      InBoundGetAdapterInfo(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = InboundAdapterInfoInternal(errorCode = "string",
-          backendMessages = List(InboundStatusMessage(source = "string",
-            status = "string",
-            errorCode = "string",
-            text = "string")),
-          name = "string",
-          version = "string",
-          git_commit = "string",
-          date = "string"))
-      ),
+     InBoundCreateCustomer(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+      sessionId=Some(sessionIdExample.value),
+      generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
+      value=valueExample.value)))),
+      status= Status(errorCode=statusErrorCodeExample.value,
+      backendMessages=List( InboundStatusMessage(source=sourceExample.value,
+      status=inboundStatusMessageStatusExample.value,
+      errorCode=inboundStatusMessageErrorCodeExample.value,
+      text=inboundStatusMessageTextExample.value))),
+      data= CustomerCommons(customerId=customerIdExample.value,
+      bankId=bankIdExample.value,
+      number=customerNumberExample.value,
+      legalName=legalNameExample.value,
+      mobileNumber=mobileNumberExample.value,
+      email=emailExample.value,
+      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      url=urlExample.value),
+      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      relationshipStatus=relationshipStatusExample.value,
+      dependents=dependentsExample.value.toInt,
+      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
+      highestEducationAttained=highestEducationAttainedExample.value,
+      employmentStatus=employmentStatusExample.value,
+      creditRating= CreditRating(rating=ratingExample.value,
+      source=sourceExample.value),
+      creditLimit= CreditLimit(currency=currencyExample.value,
+      amount=creditLimitAmountExample.value),
+      kycStatus=kycStatusExample.value.toBoolean,
+      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      title=titleExample.value,
+      branchId=branchIdExample.value,
+      nameSuffix=nameSuffixExample.value))
+    ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
+  // url example: /createCustomer
+  override def createCustomer(bankId: BankId, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImageTrait, dateOfBirth: Date, relationshipStatus: String, dependents: Int, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: Option[CreditRatingTrait], creditLimit: Option[AmountOfMoneyTrait], title: String, branchId: String, nameSuffix: String, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
+    import net.liftweb.json.Serialization.write
 
-  // url example: /getAdapterInfo
-  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getAdapterInfo")
-        sendGetRequest[InBoundGetAdapterInfo](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
+    val url = getUrl("createCustomer")
+    val outboundAdapterCallContext = Box(callContext.map(_.toOutboundAdapterCallContext)).openOrThrowException(NoCallContext)
+    val jsonStr = write(OutBoundCreateCustomer(outboundAdapterCallContext , bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix))
+    sendPostRequest[InBoundCreateCustomer](url, callContext, jsonStr)
+      .map{ boxedResult =>
+      boxedResult match {
+        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
+        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
       }
+    
     }
-  }("getAdapterInfo")
-
-  messageDocs += MessageDoc(
-    process = "obp.getBank",
-    messageFormat = messageFormat,
-    description = "Get Bank",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetBank(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        consumerId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string"))),
-        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
-          username = Option("string"),
-          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankId = BankId(value = "string"))
-      ),
-    exampleInboundMessage = (
-      InBoundGetBank(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = BankCommons(bankId = BankId(value = "string"),
-          shortName = "string",
-          fullName = "string",
-          logoUrl = "string",
-          websiteUrl = "string",
-          bankRoutingScheme = "string",
-          bankRoutingAddress = "string",
-          swiftBic = "string",
-          nationalIdentifier = "string"))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getBankFuture/bankId/{bankId}
-  override def getBank(bankId: BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBankFuture", ("bankId", bankId))
-        sendGetRequest[InBoundGetBank](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getBankFuture")
-
-  messageDocs += MessageDoc(
-    process = "obp.getBanks",
-    messageFormat = messageFormat,
-    description = "Get Banks",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetBanks(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        consumerId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string"))),
-        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
-          username = Option("string"),
-          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))))
-      ),
-    exampleInboundMessage = (
-      InBoundGetBanks(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = List(BankCommons(bankId = BankId(value = "string"),
-          shortName = "string",
-          fullName = "string",
-          logoUrl = "string",
-          websiteUrl = "string",
-          bankRoutingScheme = "string",
-          bankRoutingAddress = "string",
-          swiftBic = "string",
-          nationalIdentifier = "string")))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getBanksFuture
-  override def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBanksFuture")
-        sendGetRequest[InBoundGetBanks](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getBanksFuture")
-
-  messageDocs += MessageDoc(
-    process = "obp.getInboundAccountCommons",
-    messageFormat = messageFormat,
-    description = "Get Bank Accounts For User",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetBankAccountsForUser(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        consumerId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string"))),
-        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
-          username = Option("string"),
-          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        username = "string")
-      ),
-    exampleInboundMessage = (
-      InBoundGetBankAccountsForUser(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = List(InboundAccountCommons(bankId = "string",
-          branchId = "string",
-          accountId = "string",
-          accountNumber = "string",
-          accountType = "string",
-          balanceAmount = "string",
-          balanceCurrency = "string",
-          owners = List("string"),
-          viewsToGenerate = List("string"),
-          bankRoutingScheme = "string",
-          bankRoutingAddress = "string",
-          branchRoutingScheme = "string",
-          branchRoutingAddress = "string",
-          accountRoutingScheme = "string",
-          accountRoutingAddress = "string")))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getBankAccountsForUserFuture/username/{username}
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getBankAccountsForUserFuture", ("username", username))
-        sendGetRequest[InBoundGetBankAccountsForUser](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getBankAccountsForUserFuture")
-
-  messageDocs += MessageDoc(
-    process = "obp.getCoreAccountCommons",
-    messageFormat = messageFormat,
-    description = "Get Core Bank Accounts",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetCoreBankAccounts(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        consumerId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string"))),
-        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
-          username = Option("string"),
-          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankIdAccountIds = List(BankIdAccountId(bankId = BankId(value = "string"),
-          accountId = AccountId(value = "string"))))
-      ),
-    exampleInboundMessage = (
-      InBoundGetCoreBankAccounts(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = List(CoreAccount(id = "string",
-          label = "string",
-          bankId = "string",
-          accountType = "string",
-          accountRoutings = List(AccountRouting(scheme = "string",
-            address = "string")))))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getCoreBankAccountsFuture/bankIdAccountIds/{bankIdAccountIds}
-  override def getCoreBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Future[Box[(List[CoreAccount], Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCoreBankAccountsFuture", ("bankIdAccountIds", bankIdAccountIds))
-        sendGetRequest[InBoundGetCoreBankAccounts](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getCoreBankAccountsFuture")
-
-  messageDocs += MessageDoc(
-    process = "obp.getBankAccount",
-    messageFormat = messageFormat,
-    description = "Check Bank Account Exists",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundCheckBankAccountExists(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        consumerId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string"))),
-        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
-          username = Option("string"),
-          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        bankId = BankId(value = "string"),
-        accountId = AccountId(value = "string"))
-      ),
-    exampleInboundMessage = (
-      InBoundCheckBankAccountExists(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = BankAccountCommons(accountId = AccountId(value = "string"),
-          accountType = "string",
-          balance = BigDecimal("123.321"),
-          currency = "string",
-          name = "string",
-          label = "string",
-          iban = Option("string"),
-          number = "string",
-          bankId = BankId(value = "string"),
-          lastUpdate = new Date(),
-          branchId = "string",
-          accountRoutingScheme = "string",
-          accountRoutingAddress = "string",
-          accountRoutings = List(AccountRouting(scheme = "string",
-            address = "string")),
-          accountRules = List(AccountRule(scheme = "string",
-            value = "string")),
-          accountHolder = "string"))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /checkBankAccountExistsFuture/bankId/{bankId}/accountId/{accountId}
-  override def checkBankAccountExists(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("checkBankAccountExistsFuture", ("bankId", bankId), ("accountId", accountId))
-        sendGetRequest[InBoundCheckBankAccountExists](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("checkBankAccountExistsFuture")
-
-  messageDocs += MessageDoc(
-    process = "obp.getTransactionCoreCommons",
-    messageFormat = messageFormat,
-    description = "Get Transactions Core",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetTransactionsCore(bankId = BankId(value = "string"),
-        accountID = AccountId(value = "string"),
-        limit = 123,
-        offset = 123,
-        fromDate = "string",
-        toDate = "string")
-      ),
-    exampleInboundMessage = (
-      InBoundGetTransactionsCore(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = List(TransactionCore(id = TransactionId(value = "string"),
-          thisAccount = BankAccountCommons(accountId = AccountId(value = "string"),
-            accountType = "string",
-            balance = BigDecimal("123.321"),
-            currency = "string",
-            name = "string",
-            label = "string",
-            iban = Option("string"),
-            number = "string",
-            bankId = BankId(value = "string"),
-            lastUpdate = new Date(),
-            branchId = "string",
-            accountRoutingScheme = "string",
-            accountRoutingAddress = "string",
-            accountRoutings = List(AccountRouting(scheme = "string",
-              address = "string")),
-            accountRules = List(AccountRule(scheme = "string",
-              value = "string")),
-            accountHolder = "string"),
-          otherAccount = CounterpartyCore(kind = "string",
-            counterpartyId = "string",
-            counterpartyName = "string",
-            thisBankId = BankId(value = "string"),
-            thisAccountId = AccountId(value = "string"),
-            otherBankRoutingScheme = "string",
-            otherBankRoutingAddress = Option("string"),
-            otherAccountRoutingScheme = "string",
-            otherAccountRoutingAddress = Option("string"),
-            otherAccountProvider = "string",
-            isBeneficiary = true),
-          transactionType = "string",
-          amount = BigDecimal("123.321"),
-          currency = "string",
-          description = Option("string"),
-          startDate = new Date(),
-          finishDate = new Date(),
-          balance = BigDecimal("123.321"))))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getTransactionsCore/bankId/{bankId}/accountID/{accountID}/queryParams/{queryParams}
-  override def getTransactionsCore(bankId: BankId, accountID: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getTransactionsCore", ("bankId", bankId), ("accountID", accountID), ("queryParams", queryParams))
-        sendGetRequest[InBoundGetTransactionsCore](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getTransactionsCore")
-
-  messageDocs += MessageDoc(
-    process = "obp.getCustomerCommons",
-    messageFormat = messageFormat,
-    description = "Get Customers By User Id",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundGetCustomersByUserId(outboundAdapterCallContext = OutboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        consumerId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string"))),
-        outboundAdapterAuthInfo = Option(OutboundAdapterAuthInfo(userId = Option("string"),
-          username = Option("string"),
-          linkedCustomers = Option(List(BasicLinkedCustomer(customerId = "string",
-            customerNumber = "string",
-            legalName = "string"))),
-          userAuthContext = Option(List(BasicUserAuthContext(key = "string",
-            value = "string"))),
-          authViews = Option(List(AuthView(view = ViewBasic(id = "string",
-            name = "string",
-            description = "string"),
-            account = AccountBasic(id = "string",
-              accountRoutings = List(AccountRouting(scheme = "string",
-                address = "string")),
-              customerOwners = List(InternalBasicCustomer(bankId = "string",
-                customerId = "string",
-                customerNumber = "string",
-                legalName = "string",
-                dateOfBirth = new Date())),
-              userOwners = List(InternalBasicUser(userId = "string",
-                emailAddress = "string",
-                name = "string"))))))))),
-        userId = "string")
-      ),
-    exampleInboundMessage = (
-      InBoundGetCustomersByUserId(inboundAdapterCallContext = InboundAdapterCallContext(correlationId = "string",
-        sessionId = Option("string"),
-        generalContext = Option(List(BasicGeneralContext(key = "string",
-          value = "string")))),
-        inboundStatus,
-        data = List(CustomerCommons(customerId = "string",
-          bankId = "string",
-          number = "string",
-          legalName = "string",
-          mobileNumber = "string",
-          email = "string",
-          faceImage = CustomerFaceImage(date = new Date(),
-            url = "string"),
-          dateOfBirth = new Date(),
-          relationshipStatus = "string",
-          dependents = 123,
-          dobOfDependents = List(new Date()),
-          highestEducationAttained = "string",
-          employmentStatus = "string",
-          creditRating = CreditRating(rating = "string",
-            source = "string"),
-          creditLimit = CreditLimit(currency = "string",
-            amount = "string"),
-          kycStatus = true,
-          lastOkDate = new Date(),
-          title = "string",
-          branchId = "string",
-          nameSuffix = "string")))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  // url example: /getCustomersByUserIdFuture/userId/{userId}
-  override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second) {
-        val url = getUrl("getCustomersByUserIdFuture", ("userId", userId))
-        sendGetRequest[InBoundGetCustomersByUserId](url, callContext)
-          .map { boxedResult =>
-            boxedResult.map { result =>
-              (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
-            }
-
-          }
-      }
-    }
-  }("getCustomersByUserIdFuture")
-
-  //---------------- dynamic end ---------------------please don't modify this line
+  }
+    
+//---------------- dynamic end ---------------------please don't modify this line
+    
+    
+    
+    
 
 
   private[this] def sendGetRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext]) =

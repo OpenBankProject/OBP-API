@@ -37,6 +37,20 @@ object CodeGenerateUtils {
           .flatMap(it => fieldName.map(it + _.capitalize))
         result = composedName.flatMap(getExampleValue)
       }
+      // special logic for InternalBasicUser kind naming, example: usenameExample
+      if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.endsWith("User")).isDefined) {
+        val composedName1 = fieldName.map("user"+ _.capitalize)
+        val composedName2 = fieldName.map("user"+ _)
+        result = composedName1.flatMap(getExampleValue).orElse(composedName2.flatMap(getExampleValue))
+      }
+      // scome class name start with Core, should ignore "Core"
+      if(result.isEmpty && parentType.filter(_.typeSymbol.name.toString.startsWith("Core")).isDefined) {
+        val composedName = parentType.map(_.typeSymbol.name.toString)
+          .map(_.replaceFirst("^Core|Commons$", ""))
+          .map(StringUtils.uncapitalize)
+          .flatMap(it => fieldName.map(it + _.capitalize))
+        result = composedName.flatMap(getExampleValue)
+      }
       if(result.isEmpty) {
         result = fieldName.flatMap(getExampleValue(_))
       }
@@ -45,6 +59,15 @@ object CodeGenerateUtils {
       }
       if(result.isEmpty) {
         result = getExampleValue(uncapitalizedTypeName)
+      }
+      //some example name is just type name: TransactionId(value: String) ---> transactionIdExample
+      if(result.isEmpty && parentType.exists(_.typeSymbol.name.toString.endsWith("Id"))) {
+        result = getExampleValue(parentType.map(_.typeSymbol.name.toString).get)
+      }
+      //some field name start with other, example otherBankId, then find with bankId
+      if(result.isEmpty && fieldName.exists(_.startsWith("other"))) {
+        val removedOtherFieldName = fieldName.map(_.substring("other".size)).map(StringUtils.uncapitalize).get
+        result = getExampleValue(removedOtherFieldName)
       }
       result
     }
@@ -78,33 +101,48 @@ object CodeGenerateUtils {
 
     if (tp =:= ru.typeOf[String]) {
       example
-        .map(it => s""""$it"""")
         .getOrElse(""""string"""")
-    } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer] || tp =:= ru.typeOf[Long] || tp =:= ru.typeOf[java.lang.Long]) {
-      example
-        .getOrElse("123")
-    } else if (tp =:= ru.typeOf[Float] || tp =:= ru.typeOf[Double] || tp =:= ru.typeOf[java.lang.Float] || tp =:= ru.typeOf[java.lang.Double]) {
-      example
-        .getOrElse("123.123")
+    } else if (tp =:= ru.typeOf[Int] || tp =:= ru.typeOf[java.lang.Integer]) {
+      example.map(it => s"$it.toInt").getOrElse("123")
+    } else if (tp =:= ru.typeOf[Long] || tp =:= ru.typeOf[java.lang.Long]) {
+      example.map(it => s"$it.toLong").getOrElse("123")
+    } else if (tp =:= ru.typeOf[Float] || tp =:= ru.typeOf[java.lang.Float]) {
+      example.map(it => s"$it.toFloat").getOrElse("123.123")
+    } else if (tp =:= ru.typeOf[Double] || tp =:= ru.typeOf[java.lang.Double]) {
+      example.map(it => s"$it.toDouble").getOrElse("123.123")
     } else if (tp =:= ru.typeOf[BigDecimal]) {
-      val numberValue = example.getOrElse("123.321")
-      s"""BigDecimal("$numberValue")"""
+      val numberValue = example.getOrElse(""""123.321"""")
+      s"""BigDecimal($numberValue)"""
     } else if (tp =:= ru.typeOf[Date]) {
-      fieldName.flatMap(getDate(_))
-        .getOrElse("new Date()")
+      example.map(date => s"""parseDate($date).getOrElse(sys.error("$date is not validate date format."))""").getOrElse("new Date()")
     } else if (tp =:= ru.typeOf[Boolean] || tp =:= ru.typeOf[java.lang.Boolean]) {
-      example.getOrElse("true")
+      example.map(it => s"$it.toBoolean").getOrElse("true")
     } else if(concreteObpType.isDefined && isConstructorSingleParam) {
-      val value = createDocExample(getSingleConstructorType.get, fieldName)
-      s"""${concreteObpType.get.typeSymbol.name}($value)"""
+      example match {
+        case Some(v) if(getSingleConstructorType.get =:= typeOf[String]) => s"""${concreteObpType.get.typeSymbol.name}($v)"""
+        case _ => {
+          val value = createDocExample(getSingleConstructorType.get, fieldName, parentFieldName, parentType)
+          s"""${concreteObpType.get.typeSymbol.name}($value)"""
+        }
+      }
     } else if(tp <:< typeOf[Option[_]]) {
       val TypeRef(_, _, args: List[Type]) = tp
       val optionValue = createDocExample(args.head, fieldName, parentFieldName, parentType)
       s"""Some($optionValue)"""
-    } else if(typeName.matches("""List|Seq|Array""")) {
+    } else if(typeName.matches("""Array|List|Seq""")) {
       val TypeRef(_, _, args: List[Type]) = tp
-      val singleValue = createDocExample(args.head)
-      s"""$typeName($singleValue)"""
+      (example, typeName) match {
+        case (Some(v), "Array") if(args.head =:= typeOf[String]) => s"""$v.split("[,;]")"""
+        case (Some(v), "List")  if(args.head =:= typeOf[String]) => s"""$v.split("[,;]").toList"""
+        case (Some(v), "Seq")   if(args.head =:= typeOf[String]) => s"""$v.split("[,;]").toSeq"""
+        case (Some(v), "Array") if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq)"""
+        case (Some(v), "List")  if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq).toList"""
+        case (Some(v), "Seq")   if(args.head =:= typeOf[Date]) => s"""$v.split("[,;]").map(parseDate).flatMap(_.toSeq).toSeq"""
+        case (None, _) => {
+          val singleValue = createDocExample(args.head, fieldName.map(_.replaceFirst("s$", "")))// if fieldName endsWith s, remove s
+          s"""$typeName($singleValue)"""
+        }
+      }
     } else if(typeName.matches("""Tuple\d+""")) {
       val TypeRef(_, _, args: List[Type]) = tp
        args.map(createDocExample(_)).mkString("(", ", ", ")")
@@ -132,31 +170,9 @@ object CodeGenerateUtils {
 
   private def getExampleValue(name: String): Option[String] =
     exampleNameToValue.lift(name).orElse {
-      exampleNameToValue.find(_._1.startsWith(name)).map(_._2)
+      exampleNameToValue.lift(name + "Amount")
     }
 
-  private def getDate(name: String): Option[String] = {
-
-    def canParseDate(date: String, format: DateFormat) = try {
-      format.parse(date)
-      true
-    } catch {
-      case _: ParseException => false
-    }
-
-    val dateFormatNameToValue = Map(
-      ("code.api.util.APIUtil.DateWithDayFormat", APIUtil.DateWithDayFormat),
-      ("code.api.util.APIUtil.DateWithSecondsFormat", APIUtil.DateWithSecondsFormat),
-      ("code.api.util.APIUtil.DateWithMsFormat", APIUtil.DateWithMsFormat),
-      ("code.api.util.APIUtil.DateWithMsRollbackFormat", APIUtil.DateWithMsRollbackFormat),
-    )
-
-    getExampleValue(name).map { value =>
-      val foundFormatName = dateFormatNameToValue.find(keyValue => canParseDate(value, keyValue._2)).map(_._1)
-      foundFormatName.map(it => s"""$it.parse("$value")""")
-        .getOrElse(sys.error(s"the date value is not support formate that APIUtil supplied, the date value is: $value"))
-    }
-  }
   /**
     * extract ExampleValues, to map, key is removed Example val name, value is ConnectorField#value
     */
@@ -168,12 +184,9 @@ object CodeGenerateUtils {
       .withFilter(_.asMethod.returnType <:< typeOf[ConnectorField])
       .map(_.asMethod)
       .map { method =>
-        val value = ReflectUtils.invokeMethod(ExampleValue, method)
-          .asInstanceOf[ConnectorField]
-          .value
         val name = method.name.toString
         val removePostfixName = StringUtils.removeEnd(name, "Example")
-        (removePostfixName, value)
+        (removePostfixName, s"$name.value")
       }
       .toMap
   }

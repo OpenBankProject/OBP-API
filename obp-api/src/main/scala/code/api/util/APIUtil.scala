@@ -30,7 +30,7 @@ package code.api.util
 import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
-import java.text.SimpleDateFormat
+import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
 
 import code.api.Constant._
@@ -2517,4 +2517,16 @@ Returns a string showed to the developer
     customers.map(createInternalLinkedBasicCustomerJson)
   }
 
+  /**
+    * parse string to Date object, use the follow Format object to do parse:
+    *   DateWithDayFormat, DateWithSecondsFormat, DateWithMsFormat, DateWithMsRollbackFormat
+    * return the first parse success object
+    * @param date date string to do parse
+    * @return Some(Date) or None
+    */
+  def parseDate(date: String): Option[Date] = {
+    val currentSupportFormats = List(DateWithDayFormat, DateWithSecondsFormat, DateWithMsFormat, DateWithMsRollbackFormat)
+    val parsePosition = new ParsePosition(0)
+    currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null !=)
+  }
 }

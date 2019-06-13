@@ -202,6 +202,70 @@ object ExampleValue {
   
   val cbsErrorCodeExample = ConnectorField("500-OFFLINE", "An error code returned by the CBS")
 
+  //------------------------------------------------------------
+  // TODO @Simon please fix the follow example values to reasonable values
+  val dateOfBirthExample = ConnectorField("2018-03-09", "customer birthday")
+
+  // can rename to "fromDateExample" and "toDateExample", if it is reasonable
+  val outBoundGetTransactionsFromDateExample = ConnectorField("2018-03-09", "fix me")
+  val outBoundGetTransactionsToDateExample = ConnectorField("2018-03-09", "fix me")
+
+  val inboundAdapterInfoInternalErrorCodeExample = ConnectorField("error code", "fix me")
+  val inboundAdapterInfoInternalNameExample = ConnectorField("NAME", "fix me")
+  val inboundAdapterInfoInternalGit_commitExample = ConnectorField("git_commit", "fix me")
+  val inboundAdapterInfoInternalDateExample = ConnectorField("date String", "fix me")
+  val inboundAdapterInfoInternalVersionExample = ConnectorField("version string", "fix me")
+
+  val inboundStatusMessageStatusExample = ConnectorField("Status string", "fix me")
+  val inboundStatusMessageErrorCodeExample = ConnectorField("errorCode string", "fix me")
+  val inboundStatusMessageTextExample = ConnectorField("text string", "fix me")
+
+  val statusErrorCodeExample = ConnectorField("status error code string", "fix me")
+
+  val bankShortNameExample = ConnectorField("bank shortName string", "fix me")
+  val bankFullNameExample = ConnectorField("bank fullName string", "fix me")
+  val bankLogoUrlExample = ConnectorField("bank logoUrl string", "fix me")
+  val bankWebsiteUrlExample = ConnectorField("bank websiteUrl string", "fix me")
+  val bankSwiftBicExample = ConnectorField("bank swiftBic string", "fix me")
+  val bankNationalIdentifierExample = ConnectorField("bank nationalIdentifier string", "fix me")
+
+  val bankAccountExample = ConnectorField("bankAccount nationalIdentifier string", "fix me")
+  val bankAccountNameExample = ConnectorField("bankAccount name string", "fix me")
+  val bankAccountNumberExample = ConnectorField("bankAccount number string", "fix me")
+  val bankAccountLastUpdateExample = ConnectorField("2018-03-09", "fix me")
+  val bankAccountAccountHolderExample = ConnectorField("bankAccount accountHolder string", "fix me")
+
+  val accountRuleSchemeExample = ConnectorField("AccountRule scheme string", "fix me")
+  val accountRuleValueExample = ConnectorField("AccountRule value string", "fix me")
+
+  //the follow two examples are list type, InboundAccount#owners: List[String]  InboundAccount#viewsToGenerate: List[String]
+  // the value should divided with , or ;
+  val inboundAccountOwnersExample = ConnectorField("InboundAccount,owners,list,string", "fix me, if there are multiple values, split with ,or;")
+  val inboundAccountViewsToGenerateExample = ConnectorField("InboundAccount;viewsToGenerate;list;string", "fix me, if there are multiple values, split with ,or;")
+
+  val transactionUuidExample = ConnectorField("Transaction uuid string", "fix me")
+  val transactionStartDateExample = ConnectorField("2019-09-07", "fix me, Transaction start Date string")
+  val transactionFinishDateExample = ConnectorField("2019-09-08", "fix me, Transaction finish Date string")
+
+  val counterpartyNationalIdentifierExample = ConnectorField("Counterparty nationalIdentifier string", "fix me")
+  val counterpartyKindExample = ConnectorField("Counterparty kind string", "fix me")
+
+  // the follow examples all contains "others" part, but there are corresponding examples: bankRoutingSchemeExample, bankRoutingAddressExample...
+  // if these are duplicate with those examples, just delete the follow examples
+  val counterpartyOtherBankRoutingSchemeExample = ConnectorField("Counterparty otherBankRoutingScheme string", "fix me")
+  val counterpartyOtherBankRoutingAddressExample = ConnectorField("Counterparty otherBankRoutingAddress string", "fix me")
+  val counterpartyOtherAccountRoutingSchemeExample = ConnectorField("Counterparty otherAccountRoutingScheme string", "fix me")
+  val counterpartyOtherAccountRoutingAddressExample = ConnectorField("Counterparty otherAccountRoutingAddress string", "fix me")
+  val counterpartyOtherAccountProviderExample = ConnectorField("Counterparty otherAccountProvider string", "fix me")
+
+
+  val customerFaceImageDateExample = ConnectorField("2019-09-08", "fix me, CustomerFaceImage Date string")
+  val customerLastOkDateExample = ConnectorField("2019-09-08", "fix me, lastOkDate Date string")
+  val dobOfDependentsExample = ConnectorField("2019-09-08,2019-01-03", "fix me, dobOfDependent Date string list, split with ,or ;")
+
+  // @Simon, whether can make customerLastOkDateExample and outBoundCreateCustomerLastOkDateExample a single one: lastOkDateExample
+  // if yes, please rename the follow to lastOkDateExample, and delete outBoundCreateCustomerLastOkDateExample
+  val outBoundCreateCustomerLastOkDateExample = ConnectorField("2019-09-12", "fix me, lastOkDate Date string")
 
 }
 
