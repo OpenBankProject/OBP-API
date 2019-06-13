@@ -13,6 +13,8 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 
+import code.api.util.CodeGenerateUtils.createDocExample
+
 object RestConnectorBuilder extends App {
 
   val genMethodNames1 = List(
@@ -111,7 +113,7 @@ object RestConnectorBuilder extends App {
   // to check whether example is correct.
   private val tp: ru.Type = ReflectUtils.getTypeByName("com.openbankproject.commons.dto.InBoundGetProductCollectionItemsTree")
 
-  println(ReflectUtils.createDocExample(tp))
+  println(createDocExample(tp))
 }
 
 case class GetGenerator(methodName: String, tp: Type) {
@@ -134,13 +136,13 @@ case class GetGenerator(methodName: String, tp: Type) {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\S)", "      $1")
+    createDocExample(outBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     if(!ReflectUtils.isTypeExists(typeName)) typeName += "Future"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\S)", "      $1")
+    createDocExample(inBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
@@ -247,12 +249,12 @@ case class PostGenerator(methodName: String, tp: Type) {
   private[this] val outBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}"
     val outBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(outBoundType).replaceAll("(?m)^(\\S)", "      $1")
+    createDocExample(outBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
   private[this] val inBoundExample = {
     var typeName = s"com.openbankproject.commons.dto.InBound${methodName.capitalize}"
     val inBoundType = ReflectUtils.getTypeByName(typeName)
-    ReflectUtils.createDocExample(inBoundType).replaceAll("(?m)^(\\S)", "      $1")
+    createDocExample(inBoundType).replaceAll("(?m)^(\\S)", "      $1")
   }
 
   val signature = s"$methodName$paramAnResult"
