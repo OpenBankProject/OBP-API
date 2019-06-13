@@ -369,8 +369,6 @@ case class AccountApplicationResponseJson(
 )
 
 case class AccountAttributeJson(
-  bank_id: String,
-  account_id: String,
   name: String,
   `type`: String,
   value: String,
