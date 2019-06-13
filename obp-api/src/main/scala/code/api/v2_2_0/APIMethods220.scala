@@ -750,7 +750,7 @@ trait APIMethods220 {
             }
 
             _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
-              hasEntitlement("", user_id, canCreateAccount) || user_id ==u.userId
+              hasEntitlement("", u.userId, canCreateAccount) || user_id ==u .userId
             }
             initialBalanceAsString = consentJson.balance.amount
             accountType = consentJson.`type`
