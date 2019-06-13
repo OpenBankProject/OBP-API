@@ -17,6 +17,10 @@ object RemotedataAccountAttribute extends ObpActorInit with AccountAttributeProv
   override def getAccountAttributesFromProvider(accountId: AccountId,
                                                 productCode: ProductCode): Future[Box[List[AccountAttribute]]] = 
     (actor ? cc.getAccountAttributesFromProvider(accountId, productCode)).mapTo[Box[List[AccountAttribute]]]
+  
+  override def getAccountAttributesByAccount(bankId: BankId,
+                                             accountId: AccountId): Future[Box[List[AccountAttribute]]] = 
+    (actor ? cc.getAccountAttributesByAccount(bankId, accountId)).mapTo[Box[List[AccountAttribute]]]
 
   override def getAccountAttributeById(productAttributeId: String): Future[Box[AccountAttribute]] = 
     (actor ? cc.getAccountAttributeById(productAttributeId)).mapTo[Box[AccountAttribute]]
@@ -29,6 +33,12 @@ object RemotedataAccountAttribute extends ObpActorInit with AccountAttributeProv
                                               attributeType: AccountAttributeType.Value,
                                               value: String): Future[Box[AccountAttribute]] = 
     (actor ? cc.createOrUpdateAccountAttribute(bankId, accountId, productCode, productAttributeId , name , attributeType , value )).mapTo[Box[AccountAttribute]]
+
+  override def createAccountAttributes(bankId: BankId,
+                                              accountId: AccountId,
+                                              productCode: ProductCode,
+                                              productAttributes: List[ProductAttribute]): Future[Box[List[AccountAttribute]]] = 
+    (actor ? cc.createAccountAttributes(bankId, accountId, productCode, productAttributes)).mapTo[Box[List[AccountAttribute]]]
 
   override def deleteAccountAttribute(accountAttributeId: String): Future[Box[Boolean]] = 
     (actor ? cc.deleteAccountAttribute(accountAttributeId)).mapTo[Box[Boolean]]

@@ -30,9 +30,11 @@ import java.lang
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.util.RateLimitPeriod.LimitCallPeriod
 import code.api.util.{APIUtil, RateLimitPeriod}
-import code.api.v1_2_1.RateLimiting
+import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
+import code.api.v1_2_1.{ModeratedAccountJSON, RateLimiting, UserJSONV121, ViewJSONV121}
 import code.api.v1_3_0.JSONFactory1_3_0._
 import code.api.v1_3_0.{PhysicalCardJSON, PinResetJSON, ReplacementJSON}
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
@@ -41,16 +43,17 @@ import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
+import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
+import code.api.v3_0_0.{AccountRuleJsonV300, ModeratedCoreAccountJsonV300}
 import code.consent.MappedConsent
 import code.context.UserAuthContextUpdate
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
-import code.model.{Consumer, User}
+import code.model.{Consumer, ModeratedBankAccount, User}
 import com.openbankproject.commons.model.Product
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
-
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -366,8 +369,6 @@ case class AccountApplicationResponseJson(
 )
 
 case class AccountAttributeJson(
-  bank_id: String,
-  account_id: String,
   name: String,
   `type`: String,
   value: String,
@@ -577,6 +578,44 @@ case class PhysicalCardWithAttributesJsonV310(
 
 case class PhysicalCardsJsonV310(
   cards : List[PhysicalCardJsonV310])
+
+case class CreateAccountJSONV310(
+                                 user_id : String,
+                                 label   : String,
+                                 `type` : String,
+                                 balance : AmountOfMoneyJsonV121,
+                                 branch_id : String,
+                                 account_routing: AccountRoutingJsonV121,
+                                 account_attributes: List[AccountAttributeResponseJson]
+                                )
+
+case class ModeratedAccountJSON310(
+                                    id : String,
+                                    label : String,
+                                    number : String,
+                                    owners : List[UserJSONV121],
+                                    `type` : String,
+                                    balance : AmountOfMoneyJsonV121,
+                                    IBAN : String,
+                                    swift_bic: String,
+                                    views_available : List[ViewJSONV121],
+                                    bank_id : String,
+                                    account_routing :AccountRoutingJsonV121,
+                                    account_attributes: List[AccountAttributeResponseJson]
+                                  )
+
+case class ModeratedCoreAccountJsonV310(
+                                         id: String,
+                                         bank_id: String,
+                                         label: String,
+                                         number: String,
+                                         owners: List[UserJSONV121],
+                                         `type`: String,
+                                         balance: AmountOfMoneyJsonV121,
+                                         account_routings: List[AccountRoutingJsonV121],
+                                         account_rules: List[AccountRuleJsonV300],
+                                         account_attributes: List[AccountAttributeResponseJson]
+                                       )
 
 /**
   * this case class is a generic list items container for serialized to json string
@@ -1123,6 +1162,60 @@ object JSONFactory310{
       posted = card.posted.map(_.date).getOrElse(null),
       customer_id = stringOrNull(card.customerId),
       card_attributes = cardAttributes
+    )
+  }
+
+  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): CreateAccountJSONV310 = {
+    CreateAccountJSONV310(
+      user_id = userId,
+      label = account.label,
+      `type` = account.accountType,
+      balance = AmountOfMoneyJsonV121(
+        account.currency,
+        account.balance.toString()
+      ),
+      branch_id = account.branchId,
+      account_routing = AccountRoutingJsonV121(
+        scheme = account.accountRoutingScheme,
+        address = account.accountRoutingAddress
+      ),
+      accountAttributes.map(createAccountAttributeJson)
+    )
+  }
+
+  def createBankAccountJSON(account : ModeratedBankAccount, 
+                            viewsAvailable : List[ViewJSONV121], 
+                            accountAttributes: List[AccountAttribute]) : ModeratedAccountJSON310 =  {
+    val bankName = account.bankName.getOrElse("")
+    new ModeratedAccountJSON310(
+      account.accountId.value,
+      stringOptionOrNull(account.label),
+      stringOptionOrNull(account.number),
+      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      stringOptionOrNull(account.accountType),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      stringOptionOrNull(account.iban),
+      stringOptionOrNull(None),//set it None for V121
+      viewsAvailable,
+      stringOrNull(account.bankId.value),
+      AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
+      accountAttributes.map(createAccountAttributeJson)
+    )
+  }
+
+  def createCoreBankAccountJSON(account : ModeratedBankAccount, accountAttributes: List[AccountAttribute]) : ModeratedCoreAccountJsonV310 =  {
+    val bankName = account.bankName.getOrElse("")
+    new ModeratedCoreAccountJsonV310 (
+      account.accountId.value,
+      stringOrNull(account.bankId.value),
+      stringOptionOrNull(account.label),
+      stringOptionOrNull(account.number),
+      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      stringOptionOrNull(account.accountType),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAccountRoutingsJSON(account.accountRoutings),
+      createAccountRulesJSON(account.accountRules),
+      accountAttributes.map(createAccountAttributeJson)
     )
   }
 

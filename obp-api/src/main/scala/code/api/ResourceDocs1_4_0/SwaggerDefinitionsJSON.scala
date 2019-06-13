@@ -9,7 +9,7 @@ import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, Acco
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.{APIUtil, ApiTrigger}
+import code.api.util.{APIUtil, ApiTrigger, ExampleValue}
 import code.api.util.ExampleValue._
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
@@ -51,7 +51,7 @@ object SwaggerDefinitionsJSON {
     address ="String"
   )
 
-  val branchId = BranchId(value = "String")
+  val branchId = BranchId(value = ExampleValue.branchIdExample.value)
 
   // from code.model, not from normal version JSON Factory
   ///////////////////////////////////////////////////////////////////////////
@@ -306,12 +306,12 @@ object SwaggerDefinitionsJSON {
 
 
   val fromAccountTransfer = FromAccountTransfer(
-    mobile_phone_number = "String",
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
     nickname = "String"
   )
 
   val toAccountTransferToPhone = ToAccountTransferToPhone(
-    mobile_phone_number = "String"
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
   )
 
   val toAccountTransferToAtmKycDocument = ToAccountTransferToAtmKycDocument(
@@ -320,9 +320,9 @@ object SwaggerDefinitionsJSON {
   )
 
   val toAccountTransferToAtm = ToAccountTransferToAtm(
-    legal_name = "String",
+    legal_name = ExampleValue.legalNameExample.value,
     date_of_birth = "20181230",
-    mobile_phone_number = "String",
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
     kyc_document = toAccountTransferToAtmKycDocument
   )
 
@@ -427,8 +427,8 @@ object SwaggerDefinitionsJSON {
   import code.api.v1_2_1._
 
   val makePaymentJson = MakePaymentJson(
-    bank_id = bankIdExample.value,
-    account_id =accountIdExample.value,
+    bank_id = "gh.29.uk",
+    account_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     amount = "10"
   )
 
@@ -1101,35 +1101,35 @@ object SwaggerDefinitionsJSON {
   )
 
   val postCustomerJson = PostCustomerJson(
-    customer_number = "String",
-    legal_name = "String",
-    mobile_phone_number = "String",
-    email = "String",
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
-    relationship_status = "String",
-    dependants = 1,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
-    highest_education_attained = "String",
-    employment_status = "String",
-    kyc_status = true,
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject
   )
 
   val customerJsonV140 = CustomerJsonV140(
-    customer_id = customerIdExample.value,
-    customer_number = "String",
-    legal_name = "String",
-    mobile_phone_number = "String",
-    email = "String",
+    customer_id = "String",
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
-    relationship_status = "String",
-    dependants = 10,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
-    highest_education_attained = "String",
-    employment_status = "String",
-    kyc_status = true,
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject
   )
 
@@ -1406,7 +1406,7 @@ object SwaggerDefinitionsJSON {
     id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
     bank_id = bankIdExample.value,
     customer_name = "String",
-    customer_number = "String",
+    customer_number = ExampleValue.customerNumberExample.value,
     category = "String",
     detail = "String",
     channel = "String",
@@ -1514,7 +1514,7 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value,
     customer_id = customerIdExample.value,
     id = "PlaceholderString",
-    customer_number = "PlaceholderString",
+    customer_number = ExampleValue.customerNumberExample.value,
     `type` = "PlaceholderString",
     number = "PlaceholderString",
     issue_date = DateWithDayExampleObject,
@@ -1529,7 +1529,7 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value,
     customer_id = "PlaceholderString",
     id = "PlaceholderString",
-    customer_number = "PlaceholderString",
+    customer_number = ExampleValue.customerNumberExample.value,
     `type` = "PlaceholderString",
     url = "PlaceholderString",
     date = DateWithDayExampleObject,
@@ -1543,10 +1543,10 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value,
     customer_id = customerIdExample.value,
     id = "PlaceholderString",
-    customer_number = "PlaceholderString",
+    customer_number = ExampleValue.customerNumberExample.value,
     date = DateWithDayExampleObject,
     how = "PlaceholderString",
-    staff_user_id = "PlaceholderString",
+    staff_user_id = ExampleValue.userIdExample.value,
     staff_name = "PlaceholderString",
     satisfied = true,
     comments = "PlaceholderString"
@@ -1555,14 +1555,14 @@ object SwaggerDefinitionsJSON {
 
   var kycStatusJSON = KycStatusJSON(
     customer_id = customerIdExample.value,
-    customer_number = "PlaceholderString",
+    customer_number = ExampleValue.customerNumberExample.value,
     ok = true,
     date = DateWithDayExampleObject
   )
   var kycStatusesJSON = KycStatusesJSON(statuses = List(kycStatusJSON))
 
   var socialMediaJSON = SocialMediaJSON(
-    customer_number = "PlaceholderString",
+    customer_number = ExampleValue.customerNumberExample.value,
     `type` = "PlaceholderString",
     handle = "PlaceholderString",
     date_added = DateWithDayExampleObject,
@@ -1581,8 +1581,8 @@ object SwaggerDefinitionsJSON {
   )
 
   val userJsonV200 = UserJsonV200(
-    user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
-    email = "robert.x.0.gh@example.com",
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
     provider_id = "OBP",
     provider = "OBP",
     username = "robert.x.0.gh",
@@ -1759,7 +1759,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val postKycDocumentJSON = PostKycDocumentJSON(
-    customer_number = "1234",
+    customer_number = ExampleValue.customerNumberExample.value,
     `type` = "passport",
     number = "12345",
     issue_date = DateWithDayExampleObject,
@@ -1768,7 +1768,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val postKycMediaJSON = PostKycMediaJSON(
-    customer_number = "1239879",
+    customer_number = ExampleValue.customerNumberExample.value,
     `type` = "image",
     url = "http://www.example.com/id-docs/123/image.png",
     date = DateWithDayExampleObject,
@@ -1793,22 +1793,22 @@ object SwaggerDefinitionsJSON {
   )
 
   val createCustomerJson = CreateCustomerJson(
-    title = "String",
-    branchId = "String",
-    nameSuffix = "String",
-    user_id = userIdExample.value,
-    customer_number = "String",
-    legal_name = "String",
-    mobile_phone_number = "String",
-    email = "String",
+    title = ExampleValue.titleExample.value,
+    branchId = ExampleValue.branchIdExample.value,
+    nameSuffix = ExampleValue.nameSuffixExample.value,
+    user_id = ExampleValue.userIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
-    relationship_status = "String",
-    dependants = 1,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
-    highest_education_attained = "String",
-    employment_status = "String",
-    kyc_status = true,
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject
   )
 
@@ -1849,12 +1849,12 @@ object SwaggerDefinitionsJSON {
   )
 
   val metricJson = MetricJson(
-    user_id = "134",
+    user_id = ExampleValue.userIdExample.value,
     url = "www.openbankproject.com",
     date = DateWithDayExampleObject,
     user_name = "OBP",
     app_name = "SOFI",
-    developer_email = "contact@tesobe.ocm",
+    developer_email = ExampleValue.emailExample.value,
     implemented_by_partial_function = "getBanks",
     implemented_in_version = "v210",
     consumer_id = "123",
@@ -1864,8 +1864,8 @@ object SwaggerDefinitionsJSON {
   )
 
   val resourceUserJSON = ResourceUserJSON(
-    user_id = "123",
-    email = "contact@tesobe.com",
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
     provider_id = "obp",
     provider = "obp",
     username = "TESOBE"
@@ -1912,20 +1912,20 @@ object SwaggerDefinitionsJSON {
   val customerJsonV210 = CustomerJsonV210(
     bank_id = bankIdExample.value,
     customer_id = customerIdExample.value,
-    customer_number = "123",
-    legal_name = "legal_name",
-    mobile_phone_number = "123",
-    email = "contact@tesobe.com",
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
-    relationship_status = "123",
-    dependants = 123,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
-    highest_education_attained = "123",
-    employment_status = "123",
-    kyc_status = true,
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject
   )
   
@@ -1947,112 +1947,112 @@ object SwaggerDefinitionsJSON {
 
   val postCustomerJsonV210 =
     PostCustomerJsonV210(
-      user_id = "user_id to attach this customer to e.g. 123213",
-      customer_number = "new customer number 687687678",
-      legal_name = "NONE",
-      mobile_phone_number = "+44 07972 444 876",
-      email = "person@example.com",
+      user_id = ExampleValue.userIdExample.value,
+      customer_number = ExampleValue.customerNumberExample.value,
+      legal_name = ExampleValue.legalNameExample.value,
+      mobile_phone_number = ExampleValue.mobileNumberExample.value,
+      email = ExampleValue.emailExample.value,
       face_image = customerFaceImageJson,
       date_of_birth = DateWithDayExampleObject,
-      relationship_status = "Single",
-      dependants = 5,
+      relationship_status = ExampleValue.relationshipStatusExample.value,
+      dependants = ExampleValue.dependentsExample.value.toInt,
       dob_of_dependants = List(DateWithDayExampleObject),
       credit_rating = customerCreditRatingJSON,
       credit_limit = amountOfMoneyJsonV121,
-      highest_education_attained = "Bachelor’s Degree",
-      employment_status = "Employed",
-      kyc_status = true,
+      highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+      employment_status = ExampleValue.employmentStatusExample.value,
+      kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
       last_ok_date = DateWithDayExampleObject
     )
 
   val customerJsonV300 = CustomerJsonV300(
     bank_id = bankIdExample.value,
     customer_id = customerIdExample.value,
-    customer_number = "123",
-    legal_name = "legal_name",
-    mobile_phone_number = "123",
-    email = "contact@tesobe.com",
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
     face_image = customerFaceImageJson,
     date_of_birth = "19900101",
-    relationship_status = "123",
-    dependants = 123,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
     dob_of_dependants = List("19900101"),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
-    highest_education_attained = "123",
-    employment_status = "123",
-    kyc_status = true,
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject,
-    title  = "Dr.",
-    branchId = "12314",
-    nameSuffix = "Sr"
+    title  = ExampleValue.titleExample.value,
+    branchId = ExampleValue.branchIdExample.value,
+    nameSuffix = ExampleValue.nameSuffixExample.value
   )
   
   val postCustomerJsonV310 =
     PostCustomerJsonV310(
-      legal_name = "Tom Tom",
-      mobile_phone_number = "+44 07972 444 876",
-      email = "person@example.com",
+      legal_name = ExampleValue.legalNameExample.value,
+      mobile_phone_number = ExampleValue.mobileNumberExample.value,
+      email = ExampleValue.emailExample.value,
       face_image = customerFaceImageJson,
       date_of_birth = DateWithDayExampleObject,
-      relationship_status = "Single",
-      dependants = 5,
+      relationship_status = ExampleValue.relationshipStatusExample.value,
+      dependants = ExampleValue.dependentsExample.value.toInt,
       dob_of_dependants = List(DateWithDayExampleObject),
       credit_rating = customerCreditRatingJSON,
       credit_limit = amountOfMoneyJsonV121,
-      highest_education_attained = "string",
-      employment_status = "Employed",
-      kyc_status = true,
+      highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+      employment_status = ExampleValue.employmentStatusExample.value,
+      kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
       last_ok_date = DateWithDayExampleObject,
-      title  = "Dr.",
-      branchId = "12314",
-      nameSuffix = "Sr"
+      title  = ExampleValue.titleExample.value,
+      branchId = ExampleValue.branchIdExample.value,
+      nameSuffix = ExampleValue.nameSuffixExample.value
     )
   
   val customerJsonV310 = CustomerJsonV310(
     bank_id = bankIdExample.value,
-    customer_id = customerIdExample.value,
-    customer_number = "123",
-    legal_name = "legal_name",
-    mobile_phone_number = "123",
-    email = "contact@tesobe.com",
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
-    relationship_status = "Single",
-    dependants = 3,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
-    highest_education_attained = "Bachelor",
-    employment_status = "Self-employed",
-    kyc_status = true,
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
     last_ok_date = DateWithDayExampleObject,
-    title  = "Dr.",
-    branchId = "12314",
-    nameSuffix = "Sr"
+    title  = ExampleValue.titleExample.value,
+    branchId = ExampleValue.branchIdExample.value,
+    nameSuffix = ExampleValue.nameSuffixExample.value
   )
 
 
   val putUpdateCustomerDataJsonV310 = PutUpdateCustomerDataJsonV310(
     face_image = customerFaceImageJson,
-    relationship_status = "Single",
-    dependants = 2,
-    highest_education_attained = "Bachelor",
-    employment_status = "Self-employed"
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value
   )
 
   val putCustomerBranchJsonV310 = PutUpdateCustomerBranchJsonV310(branch_id = "123")
-  val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = "123")
+  val postCustomerNumberJsonV310 = PostCustomerNumberJsonV310(customer_number = ExampleValue.customerNumberExample.value)
   val putUpdateCustomerEmailJsonV310 = PutUpdateCustomerEmailJsonV310("marko@tesobe.com")
   val putUpdateCustomerNumberJsonV310 = PutUpdateCustomerNumberJsonV310(customerNumberExample.value)
   val putUpdateCustomerMobileNumberJsonV310 = PutUpdateCustomerMobilePhoneNumberJsonV310("+381631954907")
   val putUpdateCustomerCreditLimitJsonV310 = PutUpdateCustomerCreditLimitJsonV310(AmountOfMoney("EUR", "1000"))
   val putUpdateCustomerCreditRatingAndSourceJsonV310 = PutUpdateCustomerCreditRatingAndSourceJsonV310("Good", "Bank")
   val putUpdateCustomerIdentityJsonV310 = PutUpdateCustomerIdentityJsonV310(
-    legal_name = "Tom Tom",
+    legal_name = ExampleValue.legalNameExample.value,
     date_of_birth = DateWithDayExampleObject,
-    title  = "Dr.",
-    name_suffix = "Sr")
+    title  = ExampleValue.titleExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value)
 
   val taxResidenceV310 = TaxResidenceV310(domain = "Enter some domain", tax_number = "Enter some number", tax_residence_id = "902ba3bb-dedd-45e7-9319-2fd3f2cd98a1")
   val postTaxResidenceJsonV310 = PostTaxResidenceJsonV310(domain = "Enter some domain", tax_number = "Enter some number")
@@ -2088,9 +2088,9 @@ object SwaggerDefinitionsJSON {
     app_name = "SOFI",
     app_type = "Web",
     description = "Account Management",
-    developer_email = "contact@tesobe.com",
+    developer_email = ExampleValue.emailExample.value,
     redirect_url = "www.openbankproject.com",
-    created_by_user_id = "123213",
+    created_by_user_id = ExampleValue.userIdExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,
     created = DateWithDayExampleObject
@@ -2105,7 +2105,7 @@ object SwaggerDefinitionsJSON {
     app_name = "SOFI",
     app_type = "Web",
     description = "Account Management",
-    developer_email = "contact@tesobe.com",
+    developer_email = ExampleValue.emailExample.value,
     redirect_url = "www.openbankproject.com",
     created_by_user = resourceUserJSON,
     enabled = true,
@@ -2121,7 +2121,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val productJsonV210 = ProductJsonV210(
-    bank_id = bankIdExample.value,
+    bank_id = "bankid123",
     code = "prod1",
     name = "product name",
     category = "category",
@@ -2313,7 +2313,7 @@ object SwaggerDefinitionsJSON {
   val counterpartyJsonV220 = CounterpartyJsonV220(
     name = postCounterpartyJSON.name,
     description = postCounterpartyJSON.description,
-    created_by_user_id = "49e1e147-64c1-4823-ad9f-89efcd02a9fa",
+    created_by_user_id = ExampleValue.userIdExample.value,
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
     this_view_id = "owner",
@@ -2344,7 +2344,7 @@ object SwaggerDefinitionsJSON {
   val counterpartyWithMetadataJson = CounterpartyWithMetadataJson(
     name = postCounterpartyJSON.name,
     description = postCounterpartyJSON.description,
-    created_by_user_id = "49e1e147-64c1-4823-ad9f-89efcd02a9fa",
+    created_by_user_id = ExampleValue.userIdExample.value,
     this_bank_id = bankIdExample.value,
     this_account_id =accountIdExample.value,
     this_view_id = "owner",
@@ -2445,7 +2445,7 @@ object SwaggerDefinitionsJSON {
 
 
   val createAccountJSONV220 = CreateAccountJSONV220(
-    user_id = "66214b8e-259e-44ad-8868-3eb47be70646",
+    user_id = userIdExample.value,
     label = "Label",
     `type` = "CURRENT",
     balance = AmountOfMoneyJsonV121(
@@ -3019,7 +3019,7 @@ object SwaggerDefinitionsJSON {
   val glossaryDescriptionJsonV300 =  GlossaryDescriptionJsonV300 (markdown= "String", html = "String")
 
   val glossaryItemJsonV300 = GlossaryItemJsonV300(
-    title = "String",
+    title = ExampleValue.titleExample.value,
     description = glossaryDescriptionJsonV300
   )
 
@@ -3081,7 +3081,7 @@ object SwaggerDefinitionsJSON {
     url = "https://localhost.openbankproject.com",
     http_method = "POST",
     http_protocol = "HTTP/1.1",
-    created_by_user_id = "b1fd9b29-659d-4838-a300-ea65b65b5fb6",
+    created_by_user_id = ExampleValue.userIdExample.value,
     is_active = true
   )
 
@@ -3094,14 +3094,14 @@ object SwaggerDefinitionsJSON {
   
   val userAuthContextJson = UserAuthContextJson(
     user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
-    user_id = "qieuriopwoir987203984729384ipeiu",
+    user_id = ExampleValue.userIdExample.value,
     key = "CUSTOMER_NUMBER",
     value = "78987432"
   )
 
   val userAuthContextUpdateJson = UserAuthContextUpdateJson(
     user_auth_context_update_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
-    user_id = "qieuriopwoir987203984729384ipeiu",
+    user_id = ExampleValue.userIdExample.value,
     key = "CUSTOMER_NUMBER",
     value = "78987432",
     status = UserAuthContextUpdateStatus.INITIATED.toString
@@ -3129,8 +3129,6 @@ object SwaggerDefinitionsJSON {
   )
 
   val accountAttributeJson = AccountAttributeJson(
-    bank_id = bankIdExample.value,
-    account_id =accountIdExample.value,
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
@@ -3145,9 +3143,22 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23"
   )
 
+  val moderatedCoreAccountJsonV310 = ModeratedCoreAccountJsonV310(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    bank_id= "String",
+    label= "String",
+    number= "String",
+    owners =  List(userJSONV121),
+    `type`= "String",
+    balance = amountOfMoneyJsonV121,
+    account_routings = List(accountRoutingJsonV121),
+    account_rules = List(accountRuleJsonV300),
+    account_attributes = List(accountAttributeResponseJson)
+  )
+
   val accountApplicationJson = AccountApplicationJson(
     product_code = "saveing1",
-    user_id = Some("123"),
+    user_id = Some(ExampleValue.userIdExample.value),
     customer_id = Some(customerIdExample.value)
   )
 
@@ -3194,7 +3205,7 @@ object SwaggerDefinitionsJSON {
   val contactDetailsJson = ContactDetailsJson(
     name = "Simon ",
     mobile_phone = "+44 07972 444 876",
-    email_address = "contact@tesobe.com"
+    email_address = ExampleValue.emailExample.value
   )
   
   val inviteeJson = InviteeJson(

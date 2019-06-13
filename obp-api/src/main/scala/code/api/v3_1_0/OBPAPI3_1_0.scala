@@ -212,7 +212,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_2_0.getExplictCounterpartyById ::
                           Implementations2_2_0.getMessageDocs ::
                           Implementations2_2_0.createBank ::
-                          Implementations2_2_0.createAccount ::
+                          // Implementations2_2_0.createAccount ::
                           //Implementations2_2_0.createAtm ::
                           //Implementations2_2_0.createProduct ::
 //                          Implementations2_2_0.config ::
@@ -226,7 +226,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // Possible Endpoints from 3.0.0
   val endpointsOf3_0_0 = Implementations3_0_0.getCoreTransactionsForBankAccount ::
                           Implementations3_0_0.getTransactionsForBankAccount ::
-                          Implementations3_0_0.getPrivateAccountById ::
+                          // Implementations3_0_0.getPrivateAccountById ::
                           Implementations3_0_0.getPublicAccountById ::
                           Implementations3_0_0.getCoreAccountById ::
                           Implementations3_0_0.getViewsForBankAccount ::
@@ -367,6 +367,8 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.updateMethodRouting ::
                           Implementations3_1_0.deleteMethodRouting ::
                           Implementations3_1_0.updateCustomerNumber ::
+                          Implementations3_1_0.createAccount ::
+                          Implementations3_1_0.getPrivateAccountById ::
                           Implementations3_1_0.createCardAttribute ::
                           Nil
   
