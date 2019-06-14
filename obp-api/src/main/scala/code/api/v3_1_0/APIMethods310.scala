@@ -4782,7 +4782,7 @@ trait APIMethods310 {
         |
         |Note: The Amount must be zero.""".stripMargin,
       createAccountJSONV220,
-      createAccountJSONV220,
+      createAccountJsonV310,
       List(
         InvalidJsonFormat,
         BankNotFound,
@@ -4859,7 +4859,7 @@ trait APIMethods310 {
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
-            (_, callContext) <- NewStyle.function.createAccountAttributes(
+            (accountAttributes, callContext) <- NewStyle.function.createAccountAttributes(
               bankId,
               accountId,
               ProductCode(accountType),
@@ -4871,7 +4871,7 @@ trait APIMethods310 {
             //2 Add permission to the user
             //3 Set the user as the account holder
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
-            (JSONFactory220.createAccountJSON(userIdAccountOwner, bankAccount), HttpCode.`200`(callContext))
+            (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`200`(callContext))
           }
         }
       }

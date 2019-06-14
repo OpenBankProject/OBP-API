@@ -579,7 +579,7 @@ case class PhysicalCardWithAttributesJsonV310(
 case class PhysicalCardsJsonV310(
   cards : List[PhysicalCardJsonV310])
 
-case class CreateAccountJSONV310(
+case class CreateAccountJsonV310(
                                  user_id : String,
                                  label   : String,
                                  `type` : String,
@@ -1165,8 +1165,8 @@ object JSONFactory310{
     )
   }
 
-  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): CreateAccountJSONV310 = {
-    CreateAccountJSONV310(
+  def createAccountJSON(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): CreateAccountJsonV310 = {
+    CreateAccountJsonV310(
       user_id = userId,
       label = account.label,
       `type` = account.accountType,

@@ -67,6 +67,7 @@ case class ProductAttributeCommons(
                                     name :String,
                                     attributeType : ProductAttributeType.Value,
                                     value :String) extends ProductAttribute
+object ProductAttributeCommons extends Converter[ProductAttribute, ProductAttributeCommons]
 
 
 case class ProductCollectionCommons(

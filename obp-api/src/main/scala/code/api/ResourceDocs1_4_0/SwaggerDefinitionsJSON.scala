@@ -3337,6 +3337,16 @@ object SwaggerDefinitionsJSON {
     customer_id = customerIdExample.value
   )
 
+  val createAccountJsonV310 = CreateAccountJsonV310(
+    user_id = userIdExample.value,
+    label   = labelExample.value,
+    `type` = accountTypeExample.value,
+    balance =  amountOfMoneyJsonV121,
+    branch_id  = branchIdExample.value,
+    account_routing = accountRoutingJsonV121,
+    account_attributes=  List(accountAttributeResponseJson)
+  )
+  
   val physicalCardsJsonV310 = PhysicalCardsJsonV310(List(physicalCardJsonV310))
   
   //The common error or success format.
