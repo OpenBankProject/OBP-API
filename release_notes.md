@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+14/06/2019    7a1c453       Added props: sca_phone_api_key and sca_phone_api_secret. We For now, OBP-API use `nexmo` server 
+                            as the SMS provider. Please check `nexmo` website, and get the api key and value there.
 03/06/2019    5194b48       The table viewimpl is replaced with a table viewdefinition
                             The table viewprivileges is replaced with a table accountaccess
                             Please note that next props must be set up:
