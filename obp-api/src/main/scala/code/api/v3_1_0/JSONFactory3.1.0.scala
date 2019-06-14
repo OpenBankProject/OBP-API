@@ -381,8 +381,6 @@ case class CardAttributeJson(
 )
 
 case class AccountAttributeResponseJson(
-  bank_id: String,
-  account_id: String,
   product_code: String,
   account_attribute_id: String,
   name: String,
@@ -616,6 +614,21 @@ case class ModeratedCoreAccountJsonV310(
                                          account_rules: List[AccountRuleJsonV300],
                                          account_attributes: List[AccountAttributeResponseJson]
                                        )
+
+case class ModeratedAccountJSON(
+                                 id : String,
+                                 label : String,
+                                 number : String,
+                                 owners : List[UserJSONV121],
+                                 `type` : String,
+                                 balance : AmountOfMoneyJsonV121,
+                                 IBAN : String,
+                                 swift_bic: String,
+                                 views_available : List[ViewJSONV121],
+                                 bank_id : String,
+                                 account_routing :AccountRoutingJsonV121,
+                                 account_attributes: List[AccountAttributeResponseJson]
+                               )
 
 /**
   * this case class is a generic list items container for serialized to json string
@@ -1057,8 +1070,6 @@ object JSONFactory310{
 
   def createAccountAttributeJson(accountAttribute: AccountAttribute) : AccountAttributeResponseJson = {
     AccountAttributeResponseJson(
-      bank_id = accountAttribute.bankId.value,
-      account_id = accountAttribute.accountId.value,
       product_code = accountAttribute.productCode.value,
       account_attribute_id = accountAttribute.accountAttributeId,
       name = accountAttribute.name,

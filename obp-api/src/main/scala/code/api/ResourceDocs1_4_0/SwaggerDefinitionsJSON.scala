@@ -3134,8 +3134,6 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23"
   )  
   val accountAttributeResponseJson = AccountAttributeResponseJson(
-    bank_id = bankIdExample.value,
-    account_id =accountIdExample.value,
     product_code = "saving1",
     account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
@@ -3153,6 +3151,21 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
     account_rules = List(accountRuleJsonV300),
+    account_attributes = List(accountAttributeResponseJson)
+  )
+
+  val moderatedAccountJSON310 = ModeratedAccountJSON310(
+    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+    label = "NoneLabel",
+    number = "123",
+    owners = List(userJSONV121),
+    `type` = "OBP",
+    balance = amountOfMoneyJsonV121,
+    IBAN = "DE89 3704 0044 0532 0130 00",
+    swift_bic = "OKOYFIHH",
+    views_available = List(viewJSONV121),
+    bank_id = bankIdExample.value,
+    account_routing = accountRoutingJsonV121,
     account_attributes = List(accountAttributeResponseJson)
   )
 
