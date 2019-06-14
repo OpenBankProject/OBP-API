@@ -4775,9 +4775,9 @@ trait APIMethods310 {
         |
         |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
         |
-        |If the POST body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+        |If the PUT body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
         |
-        |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
+        |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.
         |
         |The 'type' field SHOULD be a product_code from Product.
         |If the type matches a product_code from Product, account attributes will be created that match the Product Attributes.
