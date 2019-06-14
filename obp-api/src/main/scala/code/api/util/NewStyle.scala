@@ -195,7 +195,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getPrivateAccountById), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getPrivateAccountByIdFull), ApiVersion.v3_1_0.toString)
   )
 
   object HttpCode {
