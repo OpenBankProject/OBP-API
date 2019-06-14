@@ -374,7 +374,7 @@ trait APIMethods220 {
       emptyObjectJson,
       messageDocsJson,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagDocumentation, apiTagApi)
     )
 
@@ -814,7 +814,7 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 

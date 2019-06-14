@@ -411,7 +411,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       emptyObjectJson, //exampleResourceDocsJson
       UnknownError :: Nil,
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagDocumentation, apiTagApi)
     )
 
@@ -459,7 +459,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       emptyObjectJson,
       UnknownError :: Nil,
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagDocumentation, apiTagApi)
     )
 

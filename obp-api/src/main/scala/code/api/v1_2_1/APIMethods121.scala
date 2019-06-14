@@ -126,7 +126,7 @@ trait APIMethods121 {
       emptyObjectJson,
       apiInfoJSON,
       List(UnknownError, "no connector set"),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: Nil)
 
     def root(apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
@@ -970,7 +970,7 @@ trait APIMethods121 {
       emptyObjectJson,
       otherAccountJSON,
       List(BankAccountNotFound, UnknownError),
-      Catalogs(notCore, PSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount))
 
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {

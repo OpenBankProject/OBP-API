@@ -1048,7 +1048,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 
@@ -1078,7 +1078,7 @@ trait APIMethods310 {
       emptyObjectJson,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagApi, apiTagNewStyle))
 
 
@@ -1112,7 +1112,7 @@ trait APIMethods310 {
       emptyObjectJson,
       transactionJSON,
       List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagTransaction, apiTagNewStyle))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
@@ -1290,7 +1290,7 @@ trait APIMethods310 {
       emptyObjectJson,
       rateLimitingInfoV310,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagApi, apiTagNewStyle))
 
 
@@ -3172,7 +3172,7 @@ trait APIMethods310 {
       emptyObjectJson,
       messageDocsJson,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagDocumentation, apiTagApi)
     )
 

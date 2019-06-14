@@ -946,7 +946,7 @@ trait APIMethods300 {
       emptyObjectJson,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagApi, apiTagNewStyle))
 
 
@@ -1664,7 +1664,7 @@ trait APIMethods300 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(notCore, PSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
   
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
@@ -1701,7 +1701,7 @@ trait APIMethods300 {
         ViewNotFound,
         InvalidConnectorResponse,
         UnknownError),
-      Catalogs(notCore, PSD2, OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
   
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
@@ -1999,7 +1999,7 @@ trait APIMethods300 {
       emptyObjectJson,
       glossaryItemsJsonV300,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagDocumentation :: Nil)
 
     lazy val getApiGlossary : OBPEndpoint = {
