@@ -4816,10 +4816,10 @@ trait APIMethods310 {
               account.isEmpty
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
-            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateAccountJSONV220]
             }
-            user_id = if (consentJson.user_id.nonEmpty) consentJson.user_id else u.userId
+            user_id = if (putJson.user_id.nonEmpty) putJson.user_id else u.userId
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
               isValidID(accountId.value)
             }
@@ -4834,15 +4834,15 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
               hasEntitlement("", user_id, canCreateAccount) || user_id ==u.userId
             }
-            initialBalanceAsString = consentJson.balance.amount
-            accountType = consentJson.`type`
-            accountLabel = consentJson.label
+            initialBalanceAsString = putJson.balance.amount
+            accountType = putJson.`type`
+            accountLabel = putJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)
             }
             _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(consentJson.balance.currency)}
-            currency = consentJson.balance.currency
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(putJson.balance.currency)}
+            currency = putJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
               bankId,
@@ -4852,9 +4852,9 @@ trait APIMethods310 {
               currency,
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
-              consentJson.branch_id,
-              consentJson.account_routing.scheme,
-              consentJson.account_routing.address,
+              putJson.branch_id,
+              putJson.account_routing.scheme,
+              putJson.account_routing.address,
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
