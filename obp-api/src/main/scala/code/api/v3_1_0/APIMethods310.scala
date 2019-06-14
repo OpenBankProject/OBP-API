@@ -4811,38 +4811,39 @@ trait APIMethods310 {
         cc =>{
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext) 
+            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
               account.isEmpty
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
-            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateAccountJSONV220]
             }
-            user_id = if (consentJson.user_id.nonEmpty) consentJson.user_id else u.userId
+            loggedInUserId = u.userId
+            userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
               isValidID(accountId.value)
             }
             _ <- Helper.booleanToFuture(InvalidBankIdFormat){
               isValidID(accountId.value)
             }
-            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(user_id, callContext)
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, callContext)
             // User can create account for self or an account for another user if they have CanCreateAccount role
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
               isValidID(accountId.value)
             }
             _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
-              hasEntitlement("", user_id, canCreateAccount) || user_id ==u.userId
+              hasEntitlement(bankId.value, userIdAccountOwner, canCreateAccount) || userIdAccountOwner ==loggedInUserId
             }
-            initialBalanceAsString = consentJson.balance.amount
-            accountType = consentJson.`type`
-            accountLabel = consentJson.label
+            initialBalanceAsString = createAccountJson.balance.amount
+            accountType = createAccountJson.`type`
+            accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)
             }
             _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(consentJson.balance.currency)}
-            currency = consentJson.balance.currency
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
+            currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
               bankId,
@@ -4852,9 +4853,9 @@ trait APIMethods310 {
               currency,
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
-              consentJson.branch_id,
-              consentJson.account_routing.scheme,
-              consentJson.account_routing.address,
+              createAccountJson.branch_id,
+              createAccountJson.account_routing.scheme,
+              createAccountJson.account_routing.address,
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
@@ -4870,7 +4871,7 @@ trait APIMethods310 {
             //2 Add permission to the user
             //3 Set the user as the account holder
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
-            (JSONFactory220.createAccountJSON(user_id, bankAccount), HttpCode.`200`(callContext))
+            (JSONFactory220.createAccountJSON(userIdAccountOwner, bankAccount), HttpCode.`200`(callContext))
           }
         }
       }
