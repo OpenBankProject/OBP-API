@@ -1,7 +1,9 @@
 package code.api.v2_2_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages
+import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.ErrorMessages.UserHasMissingRoles
+import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import net.liftweb.json.JsonAST._
@@ -18,6 +20,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
   }
   
   val mockAccountId1 = "NEW_MOCKED_ACCOUNT_ID_01"
+  val mockAccountId2 = "NEW_MOCKED_ACCOUNT_ID_02"
   
   
   feature("Assuring that Get all accounts at all banks works as expected - v2.2.0") {
@@ -108,6 +111,21 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
         }
       And("The new created account has to be private")
       isPublicAll.forall(_ == false) should equal(true)
+
+      Then("We test login user create account for other users with no role first")
+      val requestPutNewAccountId = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId2).PUT <@ (user1)
+      val responseWithNoRole = makePutRequest(requestPutNewAccountId, write(accountPutJSON.copy(user_id = resourceUser2.userId)))
+
+      responseWithNoRole.code should equal(403)
+      responseWithNoRole.body.toString contains(s"$UserHasMissingRoles") should be (true)
+
+
+      Then("We grant the roles and test it again")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
+      val responseWithOtherUesrV310 = makePutRequest(requestPutNewAccountId, write(accountPutJSON.copy(user_id = resourceUser2.userId)))
+      
+      Then("We should get a 200")
+      responseWithOtherUesrV310.code should equal(200)
     }
 
     scenario("We create an account, but with wrong format of account_id ") {

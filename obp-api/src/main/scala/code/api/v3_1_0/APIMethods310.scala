@@ -4784,7 +4784,7 @@ trait APIMethods310 {
         |
         |Note: The Amount MUST be zero.""".stripMargin,
       createAccountJSONV220,
-      createAccountJSONV220,
+      createAccountJsonV310,
       List(
         InvalidJsonFormat,
         BankNotFound,
@@ -4813,38 +4813,39 @@ trait APIMethods310 {
         cc =>{
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext) 
+            (account, callContext) <- Connector.connector.vend.getBankAccount(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
               account.isEmpty
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateAccountJSONV220 "
-            putJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateAccountJSONV220]
             }
-            user_id = if (putJson.user_id.nonEmpty) putJson.user_id else u.userId
+            loggedInUserId = u.userId
+            userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
               isValidID(accountId.value)
             }
             _ <- Helper.booleanToFuture(InvalidBankIdFormat){
               isValidID(accountId.value)
             }
-            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(user_id, callContext)
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, callContext)
             // User can create account for self or an account for another user if they have CanCreateAccount role
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
               isValidID(accountId.value)
             }
             _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
-              hasEntitlement("", user_id, canCreateAccount) || user_id ==u.userId
+              hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
             }
-            initialBalanceAsString = putJson.balance.amount
-            accountType = putJson.`type`
-            accountLabel = putJson.label
+            initialBalanceAsString = createAccountJson.balance.amount
+            accountType = createAccountJson.`type`
+            accountLabel = createAccountJson.label
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)
             }
             _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(putJson.balance.currency)}
-            currency = putJson.balance.currency
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
+            currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
               bankId,
@@ -4854,13 +4855,13 @@ trait APIMethods310 {
               currency,
               initialBalanceAsNumber,
               postedOrLoggedInUser.name,
-              putJson.branch_id,
-              putJson.account_routing.scheme,
-              putJson.account_routing.address,
+              createAccountJson.branch_id,
+              createAccountJson.account_routing.scheme,
+              createAccountJson.account_routing.address,
               callContext
             )
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
-            (_, callContext) <- NewStyle.function.createAccountAttributes(
+            (accountAttributes, callContext) <- NewStyle.function.createAccountAttributes(
               bankId,
               accountId,
               ProductCode(accountType),
@@ -4872,7 +4873,7 @@ trait APIMethods310 {
             //2 Add permission to the user
             //3 Set the user as the account holder
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
-            (JSONFactory220.createAccountJSON(user_id, bankAccount), HttpCode.`200`(callContext))
+            (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`200`(callContext))
           }
         }
       }
