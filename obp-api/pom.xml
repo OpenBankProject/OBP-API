@@ -349,6 +349,12 @@
       <scope>test</scope>
     </dependency>
     <!-- embeded kafka for unit test end -->
+    <!-- https://mvnrepository.com/artifact/com.nexmo/client -->
+    <dependency>
+      <groupId>com.nexmo</groupId>
+      <artifactId>client</artifactId>
+      <version>4.0.1</version>
+    </dependency>
   </dependencies>
 
   <build>

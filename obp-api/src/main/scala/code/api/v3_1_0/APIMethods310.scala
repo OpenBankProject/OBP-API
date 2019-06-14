@@ -40,6 +40,8 @@ import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
+import com.nexmo.client.NexmoClient
+import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.{CreditLimit, _}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
@@ -3211,12 +3213,12 @@ trait APIMethods310 {
       """.stripMargin
 
     resourceDocs += ResourceDoc(
-      createConsent,
+      createConsentEmail,
       implementedInApiVersion,
-      nameOf(createConsent),
+      nameOf(createConsentEmail),
       "POST",
-      "/banks/BANK_ID/my/consents/SCA_METHOD",
-      "Create Consent",
+      "/banks/BANK_ID/my/consents/EMAIL",
+      "Create Consent (EMAIL)",
       s"""
          |
          |$generalObpConsentText
@@ -3233,7 +3235,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      PostConsentJsonV310(email = "marko@tesobe.com", `for`="ALL_MY_ACCOUNTS", view="owner"),
+      postConsentEmailJsonV310,
       consentJsonV310,
       List(
         UserNotLoggedIn,
@@ -3245,6 +3247,44 @@ trait APIMethods310 {
       Catalogs(Core, PSD2, OBWG),
       apiTagConsent :: apiTagNewStyle :: Nil)
 
+    resourceDocs += ResourceDoc(
+      createConsentSms,
+      implementedInApiVersion,
+      nameOf(createConsentSms),
+      "POST",
+      "/banks/BANK_ID/my/consents/SMS",
+      "Create Consent (SMS)",
+      s"""
+         |
+         |$generalObpConsentText
+         |
+         |This endpoint starts the process of creating a Consent.
+         |
+         |The Consent is created in an ${ConsentStatus.INITIATED} state.
+         |
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Bounds (OOB) to the User via the transport defined in SCA_METHOD
+         |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+         |
+         |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postConsentPhoneJsonV310,
+      consentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      apiTagConsent :: apiTagNewStyle :: Nil)
+
+    lazy val createConsentEmail = createConsent
+    lazy val createConsentSms = createConsent
+
     lazy val createConsent : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents"  :: scaMethod :: Nil JsonPost json -> _  => {
         cc =>
@@ -3254,9 +3294,9 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJsonV310 "
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[PostConsentJsonV310]
+              json.extract[PostConsentBodyCommonJson]
             }
             createdConsent <- Future(Consents.consentProvider.vend.createConsent(user)) map {
               i => connectorEmptyResponse(i, callContext)
@@ -3265,19 +3305,48 @@ trait APIMethods310 {
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-          } yield {
-            scaMethod match {
-              case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-                org.scalameta.logger.elem(scaMethod)
-                val params = PlainMailBodyType(createdConsent.challenge) :: List(To(consentJson.email))
-                Mailer.sendMail(
-                  From("challenge@tesobe.com"),
-                  Subject("Challenge request"),
-                  params :_*
-                )
-              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
-              case _ =>
+            _ <- scaMethod match {
+            case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
+              for{
+                failMsg <- Future {s"$InvalidJsonFormat The Json body should be the $PostConsentEmailJsonV310"}
+                postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                  json.extract[PostConsentEmailJsonV310]
+                }
+                params = PlainMailBodyType(s"Your consent challenge : ${createdConsent.challenge}") :: List(To(postConsentEmailJson.email))
+                _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("Challenge challenge"), params :_*)}
+              } yield Future{true}
+            case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+              for {
+                failMsg <- Future {
+                  s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310"
+                }
+                postConsentPhoneJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                  json.extract[PostConsentPhoneJsonV310]
+                }
+                phoneNumber = postConsentPhoneJson.phone_number
+                failMsg =s"$MissingPropsValueAtThisInstance sca_phone_api_key"
+                nexmoApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                  APIUtil.getPropsValue("sca_phone_api_key").openOrThrowException(s"")
+                }
+                failMsg = s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
+                nexmoApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                   APIUtil.getPropsValue("sca_phone_api_secret").openOrThrowException(s"")
+                }
+                client = new NexmoClient.Builder()
+                  .apiKey(nexmoApiKey)
+                  .apiSecret(nexmoApiSecret)
+                  .build();
+                messageText = s"Your consent challenge : ${createdConsent.challenge}";
+                message = new TextMessage("OBP-API", phoneNumber, messageText);
+                response <- Future{client.getSmsClient().submitMessage(message)}
+                failMsg = s"$smsServerNotWork: $phoneNumber. Or Please to use EMAIL first." 
+                _ <- Helper.booleanToFuture(failMsg) {
+                  response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
+                }
+              } yield Future{true}
+            case _ =>Future{true}
             }
+          } yield {
             (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
           }
       }
