@@ -4,7 +4,7 @@ import code.api.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.updateAccountRequestJsonV310
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{ApiRole, ApiVersion}
 import code.api.v2_2_0.CreateAccountJSONV220
 import code.api.v3_0_0.ModeratedCoreAccountJsonV300
@@ -23,6 +23,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
 
   lazy val testBankId = randomBankId
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountJSONV220.copy(user_id = resourceUser1.userId)
+  lazy val putCreateAccountOtherUserJsonV310 = SwaggerDefinitionsJSON.createAccountJSONV220.copy(user_id = resourceUser2.userId)
   
   
   feature("test Update Account") {
@@ -83,16 +84,40 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
       Then("We should get a 200")
       response310.code should equal(200)
-      val customer = response310.body.extract[CreateAccountJSONV220]
-      customer.`type` should be (putCreateAccountJSONV310.`type`)
-      customer.`label` should be (putCreateAccountJSONV310.`label`)
-      customer.balance.amount.toDouble should be (putCreateAccountJSONV310.balance.amount.toDouble)
-      customer.balance.currency should be (putCreateAccountJSONV310.balance.currency)
-      customer.branch_id should be (putCreateAccountJSONV310.branch_id)
-      customer.user_id should be (putCreateAccountJSONV310.user_id)
-      customer.label should be (putCreateAccountJSONV310.label)
-      customer.account_routing should be (putCreateAccountJSONV310.account_routing)
+      val account = response310.body.extract[CreateAccountJSONV220]
+      account.`type` should be (putCreateAccountJSONV310.`type`)
+      account.`label` should be (putCreateAccountJSONV310.`label`)
+      account.balance.amount.toDouble should be (putCreateAccountJSONV310.balance.amount.toDouble)
+      account.balance.currency should be (putCreateAccountJSONV310.balance.currency)
+      account.branch_id should be (putCreateAccountJSONV310.branch_id)
+      account.user_id should be (putCreateAccountJSONV310.user_id)
+      account.label should be (putCreateAccountJSONV310.label)
+      account.account_routing should be (putCreateAccountJSONV310.account_routing)
+
+      Then("We make a request v3.1.0 but with other user")
+      val request310WithNewAccountId = (v3_1_0_Request / "banks" / testBankId / "accounts" / "TEST_ACCOUNT_ID2" ).PUT <@(user1)
+      val responseWithNoRole = makePutRequest(request310WithNewAccountId, write(putCreateAccountOtherUserJsonV310))
+      Then("We should get a 403 and some error message")
+      responseWithNoRole.code should equal(403)
+      responseWithNoRole.body.toString contains(s"$UserHasMissingRoles") should be (true)
+
+
+      Then("We grant the roles and test it again")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
+      val responseWithOtherUesrV310 = makePutRequest(request310WithNewAccountId, write(putCreateAccountOtherUserJsonV310))
+      
+      val account2 = responseWithOtherUesrV310.body.extract[CreateAccountJSONV220]
+      account2.`type` should be (putCreateAccountOtherUserJsonV310.`type`)
+      account2.`label` should be (putCreateAccountOtherUserJsonV310.`label`)
+      account2.balance.amount.toDouble should be (putCreateAccountOtherUserJsonV310.balance.amount.toDouble)
+      account2.balance.currency should be (putCreateAccountOtherUserJsonV310.balance.currency)
+      account2.branch_id should be (putCreateAccountOtherUserJsonV310.branch_id)
+      account2.user_id should be (putCreateAccountOtherUserJsonV310.user_id)
+      account2.label should be (putCreateAccountOtherUserJsonV310.label)
+      account2.account_routing should be (putCreateAccountOtherUserJsonV310.account_routing)
+
     }
+    
   }
 
 } 

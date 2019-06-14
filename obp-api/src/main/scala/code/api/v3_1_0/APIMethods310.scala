@@ -4833,7 +4833,7 @@ trait APIMethods310 {
               isValidID(accountId.value)
             }
             _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
-              hasEntitlement(bankId.value, userIdAccountOwner, canCreateAccount) || userIdAccountOwner ==loggedInUserId
+              hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
             }
             initialBalanceAsString = createAccountJson.balance.amount
             accountType = createAccountJson.`type`
