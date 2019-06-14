@@ -478,7 +478,28 @@ case class MeetingsJsonV310(
   meetings: List[MeetingJsonV310]
 )
 
-case class PostConsentJsonV310(email: String, `for`: String, view: String)
+trait PostConsentCommonBody{
+  val `for`: String
+  val view: String
+}
+
+case class PostConsentBodyCommonJson(
+  `for`: String, 
+  view: String
+) extends PostConsentCommonBody
+
+case class PostConsentEmailJsonV310(
+  `for`: String,
+  view: String,
+  email: String
+) extends PostConsentCommonBody
+
+case class PostConsentPhoneJsonV310(
+  `for`: String,
+  view: String,
+  phone_number: String
+) extends PostConsentCommonBody
+
 case class ConsentJsonV310(consent_id: String, jwt: String, status: String)
 case class ConsentsJsonV310(consents: List[ConsentJsonV310])
 
