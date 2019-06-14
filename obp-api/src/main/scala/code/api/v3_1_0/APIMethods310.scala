@@ -4773,14 +4773,16 @@ trait APIMethods310 {
       "Create Account",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
         |
+        |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
         |
-        |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
+        |If the POST body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
         |
-        |If USER_ID is not specified the account will be owned by the logged in User.
+        |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
         |
-        |The type field should be a product_code from Product.
+        |The 'type' field SHOULD be a product_code from Product.
+        |If the type matches a product_code from Product, account attributes will be created that match the Product Attributes.
         |
-        |Note: The Amount must be zero.""".stripMargin,
+        |Note: The Amount MUST be zero.""".stripMargin,
       createAccountJSONV220,
       createAccountJSONV220,
       List(
