@@ -4879,9 +4879,9 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      getPrivateAccountById,
+      getPrivateAccountByIdFull,
       implementedInApiVersion,
-      nameOf(getPrivateAccountById),
+      nameOf(getPrivateAccountByIdFull),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
@@ -4902,11 +4902,11 @@ trait APIMethods310 {
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""".stripMargin,
       emptyObjectJson,
-      moderatedCoreAccountJsonV310,
+      moderatedAccountJSON310,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  apiTagNewStyle :: Nil)
-    lazy val getPrivateAccountById : OBPEndpoint = {
+    lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
           for {
@@ -4920,7 +4920,9 @@ trait APIMethods310 {
               accountId,
               callContext: Option[CallContext])
           } yield {
-            (JSONFactory310.createCoreBankAccountJSON(moderatedAccount, accountAttributes), HttpCode.`200`(callContext))
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
+            (JSONFactory310.createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes), HttpCode.`200`(callContext))
           }
       }
     }
