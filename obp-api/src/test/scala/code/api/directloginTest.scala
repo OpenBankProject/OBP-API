@@ -1,6 +1,7 @@
 package code.api
 
 import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages._
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
@@ -9,8 +10,6 @@ import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest.BeforeAndAfter
-import code.api.util.ErrorMessages._
-import code.api.v1_2_1.ErrorMessage
 
 
 

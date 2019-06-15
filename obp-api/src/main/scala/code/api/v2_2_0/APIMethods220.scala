@@ -153,7 +153,7 @@ trait APIMethods220 {
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _<- booleanToBox(createViewJsonV121.name.startsWith("_"), InvalidCustomViewFormat)
             u <- cc.user ?~!UserNotLoggedIn
-            account <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            account <- BankAccounts(bankId, accountId) ?~! BankAccountNotFound
             createViewJson = CreateViewJson(
               createViewJsonV121.name,
               createViewJsonV121.description,
@@ -208,7 +208,7 @@ trait APIMethods220 {
             view <- Views.views.vend.view(viewId, BankIdAccountId(bankId, accountId))
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             u <- cc.user ?~!UserNotLoggedIn
-            account <- BankAccount(bankId, accountId) ?~!BankAccountNotFound
+            account <- BankAccounts(bankId, accountId) ?~!BankAccountNotFound
             updateViewJson = UpdateViewJSON(
               updateJsonV121.description,
               metadata_view = view.metadataView, //this only used from V300, here just copy from currentView . 
@@ -483,7 +483,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
               hasEntitlement("", u.userId, canCreateBranchAtAnyBank)
@@ -536,7 +536,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             canCreateAtm <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
@@ -590,7 +590,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createProductEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createProductEntitlementsRequiredForAnyBank),
@@ -656,7 +656,7 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             canCreateFx <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createFxEntitlementsRequiredForAnyBank),
@@ -1071,7 +1071,7 @@ trait APIMethods220 {
             u <- cc.user ?~! UserNotLoggedIn
             _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! s"$BankNotFound Current BANK_ID = $bankId"
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! s"$BankNotFound Current BANK_ID = $bankId"
             (account, callContext) <- Connector.connector.vend.checkBankAccountExistsLegacy(bankId, AccountId(accountId.value), Some(cc)) ?~! s"$AccountNotFound Current ACCOUNT_ID = ${accountId.value}"
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {InvalidJsonFormat+PostCounterpartyJSON}
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
@@ -1086,7 +1086,7 @@ trait APIMethods220 {
             _<- if (APIUtil.isSandboxMode){
               for{
                 _ <- booleanToBox(postJson.description.length <= 36, s"$InvalidValueLength. The maxsinec length of `description` filed is ${MappedCounterparty.mDescription.maxLen}")
-                (bank, callContext) <- Bank(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
+                (bank, callContext) <- Banks(BankId(postJson.other_bank_routing_address), Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}."
                 account <- Connector.connector.vend.checkBankAccountExistsLegacy(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address),Some(cc)) ?~! s"$CounterpartyNotFound Current BANK_ID = ${postJson.other_bank_routing_address}. and Current ACCOUNT_ID = ${postJson.other_account_routing_address}. "
               } yield {
                 account

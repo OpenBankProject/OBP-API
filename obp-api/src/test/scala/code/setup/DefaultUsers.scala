@@ -8,7 +8,7 @@ import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.api.util.ErrorMessages._
 import code.consumer.Consumers
 import code.model.TokenType._
-import code.model.User
+import code.model.UserProvider
 import code.token.Tokens
 import net.liftweb.util.Helpers._
 import net.liftweb.util.TimeHelpers.TimeSpan
@@ -44,10 +44,10 @@ trait DefaultUsers {
   val defaultProvider = APIUtil.getPropsValue("hostname", "")
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = User.createResourceUser(defaultProvider, None, None, None, userId).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser2 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser3 = User.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser4 = User.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser1 = UserProvider.createResourceUser(defaultProvider, None, None, None, userId).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser2 = UserProvider.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser3 = UserProvider.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser4 = UserProvider.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   // create the tokens in database, we only need token-key and token-secret
   lazy val testToken1 = Tokens.tokens.vend.createToken(

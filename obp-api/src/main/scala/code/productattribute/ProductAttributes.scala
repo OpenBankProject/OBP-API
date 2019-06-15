@@ -11,7 +11,7 @@ import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
-object ProductAttribute extends SimpleInjector {
+object ProductAttributes extends SimpleInjector {
 
   val productAttributeProvider = new Inject(buildOne _) {}
 

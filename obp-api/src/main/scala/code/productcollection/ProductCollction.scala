@@ -9,7 +9,7 @@ import net.liftweb.util.SimpleInjector
 import scala.concurrent.Future
 
 
-object ProductCollection extends SimpleInjector {
+object ProductCollections extends SimpleInjector {
 
   val productCollection = new Inject(buildOne _) {}
 

@@ -1002,7 +1002,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(
               hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
               ||
@@ -1050,7 +1050,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canUpdateBranch) == true, s"$UserHasMissingRoles $canUpdateBranch")
             postBranchJsonV300 <- tryo {json.extract[PostBranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + PostBranchJsonV300.toString()}
             branchJsonV300 = BranchJsonV300(
@@ -1116,7 +1116,7 @@ trait APIMethods300 {
         cc =>
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
-            (bank, _) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, _) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
               ||
               hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
@@ -2195,7 +2195,7 @@ trait APIMethods300 {
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements)
 
             _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
-              postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
+              postedData.bank_id.nonEmpty == false || Banks(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
             }
 
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {

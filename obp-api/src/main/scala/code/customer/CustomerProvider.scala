@@ -12,7 +12,7 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 
 
-object Customer extends SimpleInjector {
+object Customers extends SimpleInjector {
 
   val customerProvider = new Inject(buildOne _) {}
 

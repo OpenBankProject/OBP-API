@@ -10,7 +10,7 @@ import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
-object CardAttribute extends SimpleInjector {
+object CardAttributes extends SimpleInjector {
 
   val cardAttributeProvider = new Inject(buildOne _) {}
 

@@ -17,14 +17,14 @@ import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
 import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
-import code.customer.Customer
+import code.customer.Customers
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
-import code.meetings.Meeting
+import code.meetings.Meetings
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
@@ -156,7 +156,7 @@ trait APIMethods200 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             privateViewsUserCanAccess <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-            privateAccounts <- Full(BankAccount.privateAccounts(privateViewsUserCanAccess))
+            privateAccounts <- Full(BankAccounts.privateAccounts(privateViewsUserCanAccess))
           } yield {
             successJsonResponse(privateBankAccountsListToJson(privateAccounts, privateViewsUserCanAccess ))
           }
@@ -196,7 +196,7 @@ trait APIMethods200 {
               for {
                 u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
                 privateViewsUserCanAccess <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-                privateAccounts <- Full(BankAccount.privateAccounts(privateViewsUserCanAccess))
+                privateAccounts <- Full(BankAccounts.privateAccounts(privateViewsUserCanAccess))
               } yield {
                 val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, u, privateAccounts, privateViewsUserCanAccess)
                 val response = successJsonResponse(coreBankAccountListJson)
@@ -238,7 +238,7 @@ trait APIMethods200 {
         cc =>
           for {
             publicViews <- Full(Views.views.vend.publicViews)
-            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccount.publicAccounts(publicViews), publicViews)} ?~! "Could not get accounts."
+            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccounts.publicAccounts(publicViews), publicViews)} ?~! "Could not get accounts."
           } yield {
             Full(successJsonResponse(publicAccountsJson))
           }
@@ -589,9 +589,9 @@ trait APIMethods200 {
         cc => {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canGetSocialMediaHandles), UserHasMissingRoles + CanGetSocialMediaHandles)
-            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            customer <- Customers.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
             val json = JSONFactory200.createSocialMediasJSON(kycSocialMedias)
@@ -823,9 +823,9 @@ trait APIMethods200 {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canAddSocialMediaHandle), UserHasMissingRoles + CanAddSocialMediaHandle)
-            _ <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            _ <- Customers.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             _ <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
                 postedData.customer_number,
@@ -877,7 +877,7 @@ trait APIMethods200 {
           // Should be a generic guard we can use for all calls (also for userId etc.)
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccount(bankId, accountId) ?~ BankAccountNotFound
+            account <- BankAccounts(bankId, accountId) ?~ BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(account.bankId,account.accountId))
             moderatedAccount <- account.moderatedBankAccount(view, cc.user, Some(cc))
@@ -927,7 +927,7 @@ trait APIMethods200 {
 
           for {
             params <- createQueriesByHttpParams(req.request.headers)
-            bankAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+            bankAccount <- BankAccounts(bankId, accountId) ?~! BankAccountNotFound
             // Assume owner view was requested
             view <- Views.views.vend.view( ViewId("owner"), BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
             (transactions, callContext) <- bankAccount.getModeratedTransactions(cc.user, view, None, params)
@@ -977,8 +977,8 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~ BankNotFound // Check bank exists.
-            account <- BankAccount(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~ BankNotFound // Check bank exists.
+            account <- BankAccounts(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
             view <- Views.views.vend.view(viewId, BankIdAccountId(account.bankId, account.accountId))
             _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
@@ -1017,8 +1017,8 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
-            account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
+            account <- BankAccounts(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             permissions <- account permissions u
           } yield {
             val permissionsJSON = JSONFactory121.createPermissionsJSON(permissions.sortBy(_.user.emailAddress))
@@ -1052,8 +1052,8 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
-            account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
+            account <- BankAccounts(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             permission <- account permission(u, provider, providerId)
           } yield {
             // TODO : Note this is using old createViewsJSON without can_add_counterparty etc.
@@ -1122,8 +1122,8 @@ trait APIMethods200 {
             user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~! ErrorMessages.InvalidUserId
             _ <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! s"Bank $bankId not found"
+            postedOrLoggedInUser <- UserProvider.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! s"Bank $bankId not found"
             // User can create account for self or an account for another user if they have CanCreateAccount role
             _ <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, canCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! ErrorMessages.InvalidAccountBalanceAmount
@@ -1133,7 +1133,7 @@ trait APIMethods200 {
             _ <- booleanToBox(0 == initialBalanceAsNumber) ?~! s"Initial balance must be zero"
             currency <- tryo (jsonBody.balance.currency) ?~! ErrorMessages.InvalidAccountBalanceCurrency
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
-            _ <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
+            _ <- booleanToBox(BankAccounts(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
             bankAccount <- Connector.connector.vend.createBankAccountLegacy(
               bankId, accountId, accountType, 
@@ -1197,7 +1197,7 @@ trait APIMethods200 {
               Box(Some(1))
             else
               cc.user ?~! "User must be logged in to retrieve Transaction Types data"
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             transactionTypes <- TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId) // ~> APIFailure("No transation types available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -1294,14 +1294,14 @@ trait APIMethods200 {
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
               _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-              fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! BankNotFound
+              fromAccount <- BankAccounts(bankId, accountId) ?~! AccountNotFound
 
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
-              toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+              toAccount <- BankAccounts(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
               // Prevent default value for transaction request type (at least).
               // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
               validTransactionRequestTypes <- tryo{APIUtil.getPropsValue("transactionRequests_supported_types", "")}
@@ -1360,8 +1360,8 @@ trait APIMethods200 {
               u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
               _ <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-              fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! BankNotFound
+              fromAccount <- BankAccounts(bankId, accountId) ?~! AccountNotFound
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
               _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
 
@@ -1384,7 +1384,7 @@ trait APIMethods200 {
 
               toBankId  = BankId(existingTransactionRequest.body.to_sandbox_tan.get.bank_id)
               toAccountId  = AccountId(existingTransactionRequest.body.to_sandbox_tan.get.account_id)
-              toAccount <- BankAccount(toBankId, toAccountId) ?~! s"$AccountNotFound,toBankId($toBankId) and toAccountId($toAccountId) is invalid ."
+              toAccount <- BankAccounts(toBankId, toAccountId) ?~! s"$AccountNotFound,toBankId($toBankId) and toAccountId($toAccountId) is invalid ."
             
               //create transaction and insert its id into the transaction request
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(fromAccount, toAccount, existingTransactionRequest)
@@ -1445,8 +1445,8 @@ trait APIMethods200 {
           if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~! UserNotLoggedIn
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-              fromAccount <- BankAccount(bankId, accountId) ?~! AccountNotFound
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! BankNotFound
+              fromAccount <- BankAccounts(bankId, accountId) ?~! AccountNotFound
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId,fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
@@ -1575,13 +1575,13 @@ trait APIMethods200 {
               _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
               u <- cc.user ?~! UserNotLoggedIn
               _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-              (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+              (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
               postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
               now = Calendar.getInstance().getTime()
               sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
               customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
               staffToken <- tryo{code.opentok.OpenTokUtil.generateTokenForModerator(60)}
-              meeting <- Meeting.meetingProvider.vend.createMeeting(bank.bankId, u, u, postedData.provider_id, postedData.purpose_id, now, sessionId, customerToken, staffToken
+              meeting <- Meetings.meetingProvider.vend.createMeeting(bank.bankId, u, u, postedData.provider_id, postedData.purpose_id, now, sessionId, customerToken, staffToken
                                                                     ,null,null)//These two are used from V310
             } yield {
               // Format the data as V2.0.0 json
@@ -1629,13 +1629,13 @@ trait APIMethods200 {
           if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
             for {
               _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! BankNotFound
               _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
               _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
               u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-              (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+              (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
               // now = Calendar.getInstance().getTime()
-              meetings <- Meeting.meetingProvider.vend.getMeetings(bank.bankId, u)
+              meetings <- Meetings.meetingProvider.vend.getMeetings(bank.bankId, u)
             }
               yield {
                 // Format the data as V2.0.0 json
@@ -1687,11 +1687,11 @@ trait APIMethods200 {
           if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
             for {
               u <- cc.user ?~! UserNotLoggedIn
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! BankNotFound
               _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
               _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-              (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-              meeting <- Meeting.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
+              (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
+              meeting <- Meetings.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
             }
               yield {
                 // Format the data as V2.0.0 json
@@ -1751,17 +1751,17 @@ trait APIMethods200 {
           for {
             u <- cc.user ?~! UserNotLoggedIn// TODO. CHECK user has role to create a customer / create a customer for another user id.
             _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             requiredEntitlements = canCreateCustomer ::
                                    canCreateUserCustomerLink ::
                                    Nil
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
             _ <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), UserHasMissingRoles + requiredEntitlementsTxt)
-            _ <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
+            _ <- tryo(assert(Customers.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
-            _ <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            customer <- Customer.customerProvider.vend.addCustomer(bankId,
+            _ <- UserProvider.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
+            customer <- Customers.customerProvider.vend.addCustomer(bankId,
               postedData.customer_number,
               postedData.legal_name,
               postedData.mobile_phone_number,
@@ -1909,10 +1909,10 @@ trait APIMethods200 {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! BankNotFound
             postedData <- tryo{json.extract[CreateUserCustomerLinkJson]} ?~! ErrorMessages.InvalidJsonFormat
             _ <- booleanToBox(postedData.user_id.nonEmpty) ?~! "Field user_id is not defined in the posted json!"
-            user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
+            user <- UserProvider.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             _ <- booleanToBox(postedData.customer_id.nonEmpty) ?~! "Field customer_id is not defined in the posted json!"
             (customer, callContext) <- Connector.connector.vend.getCustomerByCustomerIdLegacy(postedData.customer_id, callContext) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             _ <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank) ||
@@ -1969,7 +1969,7 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
+            _ <- UserProvider.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
             postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
             role <- tryo{valueOf(postedData.role_name)} ?~! {IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")}
             _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
@@ -1978,7 +1978,7 @@ trait APIMethods200 {
                                   canCreateEntitlementAtAnyBank ::
                                   Nil
             _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! { UserNotSuperAdminOrMissRole + allowedEntitlements.mkString(", ") + "!" }
-            _ <- booleanToBox(postedData.bank_id.nonEmpty == false || Bank(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
+            _ <- booleanToBox(postedData.bank_id.nonEmpty == false || Banks(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
             _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, EntitlementAlreadyExists )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
           } yield {
@@ -2308,7 +2308,7 @@ trait APIMethods200 {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             //(bank, callContext) <- Bank(bankId, Some(cc)) ?~! BankNotFound
-            customers <- tryo{Customer.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
+            customers <- tryo{Customers.customerProvider.vend.getCustomersByUserId(u.userId)} ?~! UserCustomerLinksNotFoundForUser
           } yield {
             val json = JSONFactory1_4_0.createCustomersJson(customers)
             successJsonResponse(Extraction.decompose(json))

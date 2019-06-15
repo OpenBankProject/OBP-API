@@ -8,7 +8,7 @@ import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
-object TaxResidence extends SimpleInjector {
+object TaxResidences extends SimpleInjector {
 
   val taxResidence = new Inject(buildOne _) {}
 

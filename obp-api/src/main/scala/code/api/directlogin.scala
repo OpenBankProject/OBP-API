@@ -32,7 +32,7 @@ import code.api.util.APIUtil._
 import code.api.util._
 import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
-import code.model.{Consumer, Token, TokenType, User}
+import code.model.{Consumer, Token, TokenType, UserProvider}
 import code.token.Tokens
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.nimbusds.jwt.JWTClaimsSet

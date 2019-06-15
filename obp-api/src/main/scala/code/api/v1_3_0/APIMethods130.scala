@@ -6,7 +6,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiVersion, ErrorMessages}
 import code.bankconnectors.Connector
-import code.model.Bank
+import code.model.Banks
 import com.openbankproject.commons.model.BankId
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
@@ -74,7 +74,7 @@ trait APIMethods130 {
         cc => {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             cards <- Connector.connector.vend.getPhysicalCardsForBankLegacy(bank, u , Nil)//This `queryParams` will be used from V310
           } yield {
              val cardsJson = JSONFactory1_3_0.createPhysicalCardsJSON(cards, u)

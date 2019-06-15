@@ -9,7 +9,7 @@ import code.api.v2_0_0.CreateCustomerJson
 import code.atms.Atms
 import code.bankconnectors.Connector
 import code.branches.Branches
-import code.customer.Customer
+import code.customer.Customers
 import code.usercustomerlinks.UserCustomerLink
 import code.views.Views
 import com.openbankproject.commons.model._
@@ -78,12 +78,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc => {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(u.userId)} ?~! ErrorMessages.UserCustomerLinksNotFoundForUser
-            ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
+            ucl <- tryo{ucls.find(x=>Customers.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
             _ <- booleanToBox(ucl.size > 0, ErrorMessages.UserCustomerLinksNotFoundForUser)
             u <- ucl
-            info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+            info <- Customers.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(info)
             successJsonResponse(Extraction.decompose(json))
@@ -114,7 +114,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc =>{
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             //au <- ResourceUser.find(By(ResourceUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
@@ -210,7 +210,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
             httpParams <- createHttpParamsByUrl(cc.url)
             obpQueryParams <- createQueriesByHttpParams(httpParams)
@@ -269,7 +269,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             
             httpParams <- createHttpParamsByUrl(cc.url)
             obpQueryParams <- createQueriesByHttpParams(httpParams)
@@ -328,7 +328,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               Box(Some(1))
             else
               cc.user ?~! UserNotLoggedIn
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -368,7 +368,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           for {
             // Get crm events from the active provider
             _ <- cc.user ?~! UserNotLoggedIn
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
           } yield {
             // Format the data as json
@@ -475,8 +475,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- BankAccounts(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
@@ -548,11 +548,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               transBodyJson <- tryo{json.extract[TransactionRequestBodyJsonV140]} ?~ {ErrorMessages.InvalidJsonFormat}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- BankAccounts(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
-              toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+              toAccount <- BankAccounts(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
               _ <- tryo(assert(fromAccount.currency == toAccount.currency)) ?~! {"Counterparty and holder accounts have differing currencies."}
               _ <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
               _ <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
@@ -610,8 +610,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
           if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false)) {
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! BankAccountNotFound
+              (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- BankAccounts(bankId, accountId) ?~! BankAccountNotFound
               view <- Views.views.vend.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId))
               _ <- booleanToBox(u.hasViewAccess(view), UserNoPermissionAccessView)
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
@@ -668,15 +668,15 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc =>
           for {
             u <- cc.user ?~! "User must be logged in to post Customer"
-            (bank, callContext ) <- Bank(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
+            (bank, callContext ) <- Banks(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             requiredEntitlements = ApiRole.canCreateCustomer :: ApiRole.canCreateUserCustomerLink :: Nil
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
             _ <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
-            _ <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
+            _ <- tryo(assert(Customers.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo{if (postedData.user_id.nonEmpty) postedData.user_id else u.userId} ?~ s"Problem getting user_id"
-            _ <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            customer <- Customer.customerProvider.vend.addCustomer(bankId,
+            _ <- UserProvider.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
+            customer <- Customers.customerProvider.vend.addCustomer(bankId,
                 postedData.customer_number,
                 postedData.legal_name,
                 postedData.mobile_phone_number,
