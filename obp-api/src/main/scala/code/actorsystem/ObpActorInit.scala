@@ -9,6 +9,7 @@ import net.liftweb.common._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.reflect.ClassTag
 
 trait ObpActorInit extends MdcLoggable{
   // Default is 3 seconds, which should be more than enough for slower systems
@@ -21,37 +22,19 @@ trait ObpActorInit extends MdcLoggable{
   implicit val timeout = Timeout(ACTOR_TIMEOUT * (1000 milliseconds))
 
   /**
-    * This function extracts the payload from Future.
-    * It is used for Old Style Endpoints at Kafka connector.
-    * @param f The payload wrapped into Future
-    * @tparam T The type of the payload
-    * @return The payload
-    */
-  def extractFuture[T](f: Future[Any]): T = {
-    val r = f.map {
-      case s: Set[_] => s.asInstanceOf[Set[T]]
-      case l: List[_] => l.asInstanceOf[List[T]]
-      case t: T => t
-      case _ => Empty ~> APIFailure(s"future extraction failed", 501)
-    }
-    Await.result(r, TIMEOUT).asInstanceOf[T]
-  }
-
-  /**
     * This function extracts the payload from Future and wraps it to Box.
     * It is used for Old Style Endpoints at Kafka connector.
     * @param f The payload wrapped into Future
     * @tparam T The type of the payload
     * @return The payload wrapped into Box
     */
-  def extractFutureToBox[T](f: Future[Any]): Box[T] = {
-    val r = f.map {
-      case pf: ParamFailure[_] => Empty ~> pf
-      case af: APIFailure => Empty ~> af
+  def extractFutureToBox[T: ClassTag](f: Future[Any]): Box[T] = {
+    val r: Future[Box[T]] = f.map {
+      case f@ (_: ParamFailure[_] | _: APIFailure) => Empty ~> f
       case f: Failure => f
       case Empty => Empty
       case t: T => Full(t)
-      case _ => Empty ~> APIFailure(s"future extraction to box failed", 501)
+      case _ => Empty ~> APIFailure("future extraction to box failed", 501)
     }
     
     Await.result(r, TIMEOUT)

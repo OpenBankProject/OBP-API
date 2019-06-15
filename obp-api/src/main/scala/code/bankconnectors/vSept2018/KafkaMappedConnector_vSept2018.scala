@@ -1208,7 +1208,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             accountRoutingAddress= fromAccount.accountRoutingAddress)
           )
           _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
-          kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
+          kafkaMessage <- processToBox(req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetTransactionRequests210]().toString(false)
           inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransactionRequests210 class with the Message Doc : You received this ($received). We expected this ($expected)"
@@ -1306,7 +1306,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             viewId = viewId.value)
           )
           _<-Full(logger.debug(s"Kafka getCounterparties Req says: is: $req"))
-          kafkaMessage <- processToBox[OutboundGetCounterparties](req)
+          kafkaMessage <- processToBox(req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCounterparties]().toString(false)
           inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! {

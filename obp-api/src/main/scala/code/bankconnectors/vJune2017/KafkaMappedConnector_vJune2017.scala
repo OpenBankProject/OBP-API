@@ -210,7 +210,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
         val box = for {
          _ <- Full(logger.debug("Enter GetBanks BOX1: prekafka") )
-          kafkaMessage <- processToBox[OutboundGetBanks](req)
+          kafkaMessage <- processToBox(req)
          _ <- Full(logger.debug(s"Enter GetBanks BOX2: postkafka: $kafkaMessage") )
          inboundGetBanks <- tryo{kafkaMessage.extract[InboundGetBanks]} ?~! s"$InboundGetBanks extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
          _ <- Full(logger.debug(s"Enter GetBanks BOX3 : $inboundGetBanks") )
@@ -326,7 +326,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         logger.debug(s"Kafka getBank Req says:  is: $req")
 
         val box= for {
-          kafkaMessage <- processToBox[OutboundGetBank](req)
+          kafkaMessage <- processToBox(req)
           inboundGetBank <- tryo {
             kafkaMessage.extract[InboundGetBank]
           } ?~! s"$InboundGetBank extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -436,7 +436,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       val box = for {
         authInfo <- getAuthInfoFirstCbsCall(username, callContext)
         req = OutboundGetAccounts(authInfo, internalCustomers)
-        kafkaMessage <- processToBox[OutboundGetAccounts](req)
+        kafkaMessage <- processToBox(req)
         inboundGetAccounts <- tryo {
           kafkaMessage.extract[InboundGetAccounts]
         } ?~! s"$InboundGetAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -558,7 +558,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           authInfo <- getAuthInfo(callContext)
           req = OutboundGetAccountbyAccountID(authInfo, bankId.toString, accountId.value)
           _ <- Full(logger.debug(s"Kafka getBankAccount says: req is: $req"))
-          kafkaMessage <- processToBox[OutboundGetAccountbyAccountID](req)
+          kafkaMessage <- processToBox(req)
           inboundGetAccountbyAccountID <- tryo{kafkaMessage.extract[InboundGetAccountbyAccountID]} ?~! s"$InboundGetAccountbyAccountID extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (inboundAccountJune2017, status) <- Full(inboundGetAccountbyAccountID.data, inboundGetAccountbyAccountID.status)
         } yield{
@@ -618,7 +618,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           accountId = accountId.value
         )
         _ <- Full(logger.debug(s"Kafka checkBankAccountExists says: req is: $req"))
-        kafkaMessage <- processToBox[OutboundCheckBankAccountExists](req)
+        kafkaMessage <- processToBox(req)
         inboundCheckBankAccountExists <- tryo {
           kafkaMessage.extract[InboundCheckBankAccountExists]
         } ?~! s"$InboundCheckBankAccountExists extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -690,7 +690,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
           BankIdAccountIds
         )
         _ <- Full(logger.debug(s"Kafka getCoreBankAccounts says: req is: $req"))
-        kafkaMessage <- processToBox[OutboundGetCoreBankAccounts](req)
+        kafkaMessage <- processToBox(req)
         inboundGetCoreBankAccounts <- tryo {
           kafkaMessage.extract[InboundGetCoreBankAccounts]
         } ?~! s"$InboundGetCoreBankAccounts extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -839,7 +839,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       CacheKeyFromArguments.buildCacheKey {
         def callAdapter(callContext: Option[CallContext]) = {
           val box = for {
-            kafkaMessage <- processToBox[OutboundGetTransactions](req)
+            kafkaMessage <- processToBox(req)
             inboundGetTransactions <- tryo {
               kafkaMessage.extract[InboundGetTransactions]
             } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -916,7 +916,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
 
           logger.debug(s"Kafka getTransactions says: req is: $req")
           val box = for {
-            kafkaMessage <- processToBox[OutboundGetTransactions](req)
+            kafkaMessage <- processToBox(req)
             inboundGetTransactions <- tryo {
               kafkaMessage.extract[InboundGetTransactions]
             } ?~! s"$InvalidConnectorResponseForGetTransactions $InboundGetTransactions extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -1006,7 +1006,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         authInfo <- getAuthInfo(callContext)
         req = OutboundGetTransaction(authInfo, bankId.value, accountId.value, transactionId.value)
         _ <- Full(logger.debug(s"Kafka getTransaction Req says:  is: $req"))
-        kafkaMessage <- processToBox[OutboundGetTransaction](req)
+        kafkaMessage <- processToBox(req)
         inboundGetTransaction <- tryo {
           kafkaMessage.extract[InboundGetTransaction]
         } ?~! s"$InvalidConnectorResponseForGetTransaction $InboundGetTransaction extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -1212,7 +1212,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
         bespoke: List[CounterpartyBespoke])
       )
       _<- Full(logger.debug(s"Kafka createCounterparty Req says: is: $req"))
-      kafkaMessage <- processToBox[OutboundCreateCounterparty](req)
+      kafkaMessage <- processToBox(req)
       inboundCreateCounterparty <- tryo{kafkaMessage.extract[InboundCreateCounterparty]} ?~! s"$InboundCreateCounterparty extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
       (authInfo, internalCounterparty, status) <- Full(inboundCreateCounterparty.authInfo, inboundCreateCounterparty.data, inboundCreateCounterparty.status)
     } yield{
@@ -1317,7 +1317,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             accountRoutingAddress = fromAccount.accountRoutingAddress)
         )
         _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
-        kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
+        kafkaMessage <- processToBox(req)
         inboundGetTransactionRequests210 <- tryo {
           kafkaMessage.extract[InboundGetTransactionRequests210]
         } ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InboundGetTransactionRequests210 extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
@@ -1419,7 +1419,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             viewId = viewId.value)
           )
           _<-Full(logger.debug(s"Kafka getCounterparties Req says: is: $req"))
-          kafkaMessage <- processToBox[OutboundGetCounterparties](req)
+          kafkaMessage <- processToBox(req)
           inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! s"$InboundGetCounterparties extract error. Both check API and Adapter Inbound Case Classes need be the same ! "
           (authInfo, internalCounterparties, status) <- Full(inboundGetCounterparties.authInfo, inboundGetCounterparties.data, inboundGetCounterparties.status)
         } yield{
