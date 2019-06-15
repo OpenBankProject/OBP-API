@@ -488,8 +488,6 @@ class Boot extends MdcLoggable {
 
     Migration.database.executeScripts()
 
-    Glossary.glossaryItems
-
     // whether export LocalMappedConnector methods as endpoints, it is just for develop
     if (APIUtil.getPropsAsBoolValue("connector.export.LocalMappedConnector", false)){
       ConnectorEndpoints.registerConnectorEndpoints
