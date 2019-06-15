@@ -995,7 +995,7 @@ object JSONFactory310{
   def createProductTreeJson(productsList: List[Product], rootProductCode: String): ProductTreeJsonV310 = {
     def getProductTree(list: List[Product], code: String): Option[ProductTreeJsonV310] = {
       productsList.filter(_.code.value == code) match {
-       case x :: Nil =>
+       case x :: _ =>
          Some(
            ProductTreeJsonV310(
              bank_id = x.bankId.toString,
