@@ -50,7 +50,7 @@ import code.context.UserAuthContextUpdate
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
-import code.model.{Consumer, ModeratedBankAccount, User}
+import code.model.{Consumer, ModeratedBankAccount, UserX}
 import com.openbankproject.commons.model.Product
 import code.webhook.AccountWebhook
 import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
@@ -911,7 +911,7 @@ object JSONFactory310{
   
   def createEntitlementJsonsV310(tr: List[Entitlement]) = {
     val idToUser: Map[String, Box[String]] = tr.map(_.userId).distinct.map {
-     userId => (userId, User.findByUserId(userId).map(_.name))
+     userId => (userId, UserX.findByUserId(userId).map(_.name))
     } toMap;
 
     EntitlementJSonsV310(
@@ -1029,7 +1029,7 @@ object JSONFactory310{
   def createProductTreeJson(productsList: List[Product], rootProductCode: String): ProductTreeJsonV310 = {
     def getProductTree(list: List[Product], code: String): Option[ProductTreeJsonV310] = {
       productsList.filter(_.code.value == code) match {
-       case x :: Nil =>
+       case x :: _ =>
          Some(
            ProductTreeJsonV310(
              bank_id = x.bankId.toString,

@@ -12,7 +12,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequest
 import code.api.v2_0_0.TransactionRequestBodyJsonV200
 import code.bankconnectors.Connector
 import code.fx.fx
-import code.model.BankAccount
+import code.model.BankAccountX
 import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.TransactionRequestStatus
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -56,11 +56,11 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
 
       def getFromAccount: BankAccount = {
-        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+        BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount: BankAccount = {
-        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+        BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount

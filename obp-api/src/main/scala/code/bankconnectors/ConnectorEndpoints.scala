@@ -96,9 +96,9 @@ object ConnectorEndpoints extends RestHelper{
   }
 
   def getParamValues(params: List[String], symbols: List[ru.Symbol], optionCC: Option[CallContext], queryParams: Seq[OBPQueryParam]): Seq[Any] = {
-    val paramNameToValue: Map[String, String] = params.grouped(2).map{
-      case name::value::Nil => (name.asInstanceOf[String], value)
-      case name::Nil => (name.asInstanceOf[String], null)
+    val paramNameToValue: Map[String, String] = params.grouped(2).map{ pair =>
+      val name::tail = pair
+      (name, tail.headOption.orNull)
     }.toMap
 
     val queryParamValues: Seq[OBPQueryParam] = symbols.lastOption.find(_.info <:< paramsType).map(_ => queryParams).getOrElse(Nil)

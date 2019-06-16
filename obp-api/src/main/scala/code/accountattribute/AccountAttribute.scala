@@ -10,7 +10,7 @@ import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
-object AccountAttribute extends SimpleInjector {
+object AccountAttributeX extends SimpleInjector {
 
   val accountAttributeProvider = new Inject(buildOne _) {}
 

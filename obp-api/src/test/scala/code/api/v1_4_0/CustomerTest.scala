@@ -5,7 +5,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJsonV140}
 import code.api.v2_0_0.{CreateCustomerJson, V200ServerSetup}
-import code.customer.Customer
+import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
@@ -42,7 +42,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
   override def afterAll() {
     super.afterAll()
-    Customer.customerProvider.vend.bulkDeleteCustomers()
+    CustomerX.customerProvider.vend.bulkDeleteCustomers()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
 

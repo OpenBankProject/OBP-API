@@ -36,11 +36,6 @@ import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.{ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
 
-import code.api.Polish.v2_1_1_1.APIMethods_AISApi
-import code.api.Polish.v2_1_1_1.APIMethods_ASApi
-import code.api.Polish.v2_1_1_1.APIMethods_CAFApi
-import code.api.Polish.v2_1_1_1.APIMethods_PISApi
-
 import scala.collection.mutable.ArrayBuffer
 
 

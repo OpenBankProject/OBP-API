@@ -129,7 +129,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       sessionId <- tryo(cc.sessionId.getOrElse(""))?~! "getAuthInfo: session id can not be got from callContext!"
       permission <- Views.views.vend.getPermissionForUser(user)?~! "getAuthInfo: No permission for this user"
       views <- tryo(permission.views)?~! "getAuthInfo: No views for this user"
-      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))?~! "getAuthInfo: No linked customers for this user"
+      linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))?~! "getAuthInfo: No linked customers for this user"
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) ?~! "getAuthInfo: No userAuthContexts for this user"
       basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)
@@ -1208,7 +1208,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             accountRoutingAddress= fromAccount.accountRoutingAddress)
           )
           _ <- Full(logger.debug(s"Kafka getTransactionRequests210 Req says: is: $req"))
-          kafkaMessage <- processToBox[OutboundGetTransactionRequests210](req)
+          kafkaMessage <- processToBox(req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetTransactionRequests210]().toString(false)
           inboundGetTransactionRequests210 <- tryo{kafkaMessage.extract[InboundGetTransactionRequests210]} ?~! s"$InvalidConnectorResponseForGetTransactionRequests210, $InvalidConnectorResponse Please check your to.obp.api.1.caseclass.$OutboundGetTransactionRequests210 class with the Message Doc : You received this ($received). We expected this ($expected)"
@@ -1306,7 +1306,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
             viewId = viewId.value)
           )
           _<-Full(logger.debug(s"Kafka getCounterparties Req says: is: $req"))
-          kafkaMessage <- processToBox[OutboundGetCounterparties](req)
+          kafkaMessage <- processToBox(req)
           received = liftweb.json.compactRender(kafkaMessage)
           expected = SchemaFor[InboundGetCounterparties]().toString(false)
           inboundGetCounterparties <- tryo{kafkaMessage.extract[InboundGetCounterparties]} ?~! {

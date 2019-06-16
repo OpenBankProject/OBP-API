@@ -8,7 +8,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.{BankAccountNotFound, attemptedToOpenAnEmptyBox}
 import code.context.UserAuthContextProvider
-import code.customer.Customer
+import code.customer.CustomerX
 import code.model.Consumer
 import code.views.Views
 import com.openbankproject.commons.model._
@@ -55,7 +55,7 @@ case class CallContext(
       consumerId <- this.consumer.map(_.consumerId.get) //If there is no consumer, then will go to `.openOr` method, to return anonymousAccess box.
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
-      linkedCustomers <- tryo(Customer.customerProvider.vend.getCustomersByUserId(user.userId))
+      linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
       basicUserAuthContexts = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))

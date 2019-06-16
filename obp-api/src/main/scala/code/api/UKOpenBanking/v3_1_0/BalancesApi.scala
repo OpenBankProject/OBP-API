@@ -2,29 +2,25 @@ package code.api.UKOpenBanking.v3_1_0
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.JvalueCaseClass
-import net.liftweb.json
-import net.liftweb.json._
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
-import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
-import code.api.util.NewStyle.HttpCode
+import code.api.util.ErrorMessages._
+import code.api.util.{ApiTag, NewStyle}
 import code.bankconnectors.Connector
 import code.model._
 import code.util.Helper
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.json
+import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
-import code.api.util.ApiTag
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 
 object APIMethods_BalancesApi extends RestHelper {
     val apiVersion = OBP_UKOpenBanking_310.apiVersion
@@ -122,7 +118,7 @@ object APIMethods_BalancesApi extends RestHelper {
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
 
-            (account, callContext) <- Future { BankAccount(BankId(defaultBankId), accountId, callContext) } map {
+            (account, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 

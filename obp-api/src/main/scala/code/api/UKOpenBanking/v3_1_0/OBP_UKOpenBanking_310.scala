@@ -32,16 +32,9 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.OBPRestHelper
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
-import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
-import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
-import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{APIUtil, ApiVersion, ScannedApiVersion, ScannedApis}
+import code.api.util.{ScannedApiVersion, ScannedApis}
 import code.util.Helper.MdcLoggable
-
-import code.api.UKOpenBanking.v3_1_0.APIMethods_FundsConfirmationsApi
 
 import scala.collection.mutable.ArrayBuffer
 

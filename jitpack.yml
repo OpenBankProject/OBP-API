@@ -1,0 +1,3 @@
+install:
+  - echo "Running a custom install command"
+  - ./mvn.sh clean install -pl .,obp-commons && ./mvn.sh install -DskipTests -pl obp-api

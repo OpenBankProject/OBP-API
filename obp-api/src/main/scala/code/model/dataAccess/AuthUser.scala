@@ -337,18 +337,18 @@ import net.liftweb.util.Helpers._
    */
   override def sendPasswordReset(name: String) {
     findUserByUsernameLocally(name).toList ::: findUsersByEmailLocally(name) map {
-      case user if user.validated_? =>
-        user.resetUniqueId().save
+      // reason of case parameter name is "u" instead of "user": trait AuthUser have constant mumber name is "user"
+      // So if the follow case paramter name is "user" will cause compile warnings
+      case u if u.validated_? =>
+        u.resetUniqueId().save
         val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
-          passwordResetPath.mkString("/", "/", "/")+urlEncode(user.getUniqueId())
-        Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + user.username),
-          To(user.getEmail) ::
-            generateResetEmailBodies(user, resetLink) :::
+          passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
+        Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + u.username),
+          To(u.getEmail) ::
+            generateResetEmailBodies(u, resetLink) :::
             (bccEmail.toList.map(BCC(_))) :_*)
-      case user =>
-        sendValidationEmail(user)
-      case _ => 
-        // Avoid any action
+      case u =>
+        sendValidationEmail(u)
     }
     // In order to prevent any leakage of information we use the same message for all cases
     S.notice(userNameNotFoundString)

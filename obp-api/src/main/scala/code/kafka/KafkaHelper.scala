@@ -2,8 +2,9 @@ package code.kafka
 
 import akka.pattern.{AskTimeoutException, ask}
 import code.actorsystem.{ObpActorInit, ObpLookupSystem}
-import code.api.util.APIUtil.{gitCommit, unboxFullOrFail}
-import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.APIFailureNewStyle
+import code.api.util.APIUtil.{fullBoxOrException, gitCommit, unboxFull, unboxFullOrFail}
+import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
 import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{ObpApiLoopback, TopicTrait}
@@ -52,8 +53,11 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     * @param request The request we send to Kafka
     * @return Kafka's Inbound message as JValue
     */
-  def process (request: Map[String, String]): JValue ={
-    extractFuture(actor ? request)
+  def process (request: Map[String, String]): JValue = {
+    val boxedJValue = processToBox(request)
+    fullBoxOrException(boxedJValue)
+    // fullBoxOrException(boxedJValue) already process Empty and Failure, So the follow throw exception message just a stub.
+    boxedJValue.openOrThrowException("future extraction to box failed")
   }
 
   /**
@@ -63,8 +67,8 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     * @tparam T the type of the Outbound message
     * @return Kafka's Inbound message as JValue wrapped into Box
     */
-  def processToBox[T](request: T): Box[JValue] = {
-    extractFutureToBox(actor ? request)
+  def processToBox(request: Any): Box[JValue] = {
+    extractFutureToBox[JValue](actor ? request)
   }
 
   /**

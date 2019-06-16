@@ -4,7 +4,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerMessagesJson}
 import code.api.v2_0_0.CreateCustomerJson
-import code.customer.{Customer, MappedCustomerMessage}
+import code.customer.{CustomerX, MappedCustomerMessage}
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
@@ -60,7 +60,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       var response = makePostRequest(request, write(customerJson))
 
-      val customer: Box[Customer] = Customer.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, testBankId1)
+      val customer: Box[Customer] = CustomerX.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, testBankId1)
       val customerId = customer match {
         case Full(c) => c.customerId
         case Empty => "Empty"
@@ -93,14 +93,14 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     super.beforeAll()
     MappedCustomerMessage.bulkDelete_!!()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
-    Customer.customerProvider.vend.bulkDeleteCustomers()
+    CustomerX.customerProvider.vend.bulkDeleteCustomers()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     MappedCustomerMessage.bulkDelete_!!()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
-    Customer.customerProvider.vend.bulkDeleteCustomers()
+    CustomerX.customerProvider.vend.bulkDeleteCustomers()
   }
 
 }

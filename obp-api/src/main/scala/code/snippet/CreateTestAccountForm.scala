@@ -3,7 +3,7 @@ package code.snippet
 import code.bankconnectors.Connector
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
-import code.model.{Bank, BankAccount}
+import code.model.{BankX, BankAccountX}
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.js.JsCmds.SetHtml
@@ -87,8 +87,8 @@ object CreateTestAccountForm{
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
         currentAuthUser <- AuthUser.currentUser ?~! "You need to be logged in to create an account"
         user <- Users.users.vend.getResourceUserByResourceUserId(currentAuthUser.user.get) ?~ "Server error: could not identify user"
-        (bank, callContext) <- Bank(bankId, None) ?~ s"Bank $bankId not found"
-        accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
+        (bank, callContext) <- BankX(bankId, None) ?~ s"Bank $bankId not found"
+        accountDoesNotExist <- booleanToBox(BankAccountX(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
         bankAccount <- Connector.connector.vend.createBankAccountLegacy(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, user.name,
                                                                          "", "", "")//added field in V220

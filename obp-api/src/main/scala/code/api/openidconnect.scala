@@ -32,7 +32,7 @@ import java.util.Date
 import javax.net.ssl.HttpsURLConnection
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiVersion}
-import code.model.User
+import code.model.UserX
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.token.Tokens
 import code.util.Helper.MdcLoggable
@@ -100,7 +100,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   emailVerified <- tryo{(json_user \ "email_verified").extractOrElse[Boolean](false)}
                   userEmail <- tryo{(json_user \ "email").extractOrElse[String]("")}
                   auth_user: AuthUser <- AuthUser.find(By(AuthUser.email, userEmail))
-                  resource_user: ResourceUser <- User.findResourceUserByResourceUserId(auth_user.user.get)
+                  resource_user: ResourceUser <- UserX.findResourceUserByResourceUserId(auth_user.user.get)
                   if emailVerified && resource_user.userPrimaryKey.value > 0
                 } yield {
                   saveAuthorizationToken(accessToken, accessToken, resource_user.userPrimaryKey.value)

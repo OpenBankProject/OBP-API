@@ -15,7 +15,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
 import code.api.util.ErrorMessages._
-import code.model.BankAccount
+import code.model.BankAccountX
 import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 
 class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
@@ -51,11 +51,11 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
-          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
@@ -195,11 +195,11 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
-          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
@@ -333,11 +333,11 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
-          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
@@ -387,11 +387,11 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
-          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
@@ -450,11 +450,11 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
-          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
@@ -654,11 +654,11 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
-          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
@@ -834,11 +834,11 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
-          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
