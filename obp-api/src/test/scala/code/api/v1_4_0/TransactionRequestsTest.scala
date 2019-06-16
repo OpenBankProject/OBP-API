@@ -12,7 +12,7 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 import code.api.util.ErrorMessages._
-import code.model.BankAccounts
+import code.model.BankAccountX
 import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
 
 class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
@@ -42,11 +42,11 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
-          BankAccounts(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccounts(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount
@@ -173,11 +173,11 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         createAccountAndOwnerView(Some(resourceUser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
-          BankAccounts(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+          BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
 
         def getToAccount: BankAccount = {
-          BankAccounts(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+          BankAccountX(bankId, accountId2).getOrElse(fail("couldn't get to account"))
         }
 
         val fromAccount = getFromAccount

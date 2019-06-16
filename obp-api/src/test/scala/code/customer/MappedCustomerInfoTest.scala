@@ -48,7 +48,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
     Then("We should get a 200")
     responsePost.code should equal(200)
 
-    val customer: Box[Customer] = Customers.customerProvider.vend.getCustomerByCustomerNumber(nmb, bankId)
+    val customer: Box[Customer] = CustomerX.customerProvider.vend.getCustomerByCustomerNumber(nmb, bankId)
     val customerId = customer match {
       case Full(c) => c.customerId
       case Empty => "Empty"
@@ -63,7 +63,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
     scenario("No customer info exists for user and we try to get it") {
       Given("No MappedCustomer exists for a user")
       When("We try to get it")
-      val found = Customers.customerProvider.vend.getCustomerByUserId(testBankId1, resourceUser2.userId)
+      val found = CustomerX.customerProvider.vend.getCustomerByUserId(testBankId1, resourceUser2.userId)
 
       Then("We don't")
       found.isDefined should equal(false)
@@ -73,7 +73,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       val customerId = createCustomer(testBankId1, resourceUser1, APIUtil.generateUUID(), user1)
       Given("MappedCustomer exists for a user")
       When("We try to get it")
-      val foundOpt = Customers.customerProvider.vend.getCustomerByUserId(testBankId1, resourceUser1.userId)
+      val foundOpt = CustomerX.customerProvider.vend.getCustomerByUserId(testBankId1, resourceUser1.userId)
 
       Then("We do")
       foundOpt.isDefined should equal(true)
@@ -90,7 +90,7 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       val customerNumber = "123213213213213"
 
       When("We try to get the user for a bank with that customer number")
-      val found = Customers.customerProvider.vend.getUser(BankId("some-bank"), customerNumber)
+      val found = CustomerX.customerProvider.vend.getUser(BankId("some-bank"), customerNumber)
 
       Then("We should not find a user")
       found.isDefined should equal(false)
@@ -102,13 +102,13 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       Given("Customer info exists for a different bank")
       val customer2 = createCustomer(testBankId2, resourceUser1, customerNumber, user1)
       When("We try to get the user for the same bank")
-      val user = Customers.customerProvider.vend.getUser(BankId(testBankId2.value), customerNumber)
+      val user = CustomerX.customerProvider.vend.getUser(BankId(testBankId2.value), customerNumber)
 
       Then("We should find a user")
       user.isDefined should equal(true)
 
       When("We try to get the user for a different bank")
-      val found = Customers.customerProvider.vend.getUser(BankId(testBankId2.value + "asdsad"), customerNumber)
+      val found = CustomerX.customerProvider.vend.getUser(BankId(testBankId2.value + "asdsad"), customerNumber)
 
       Then("We should not find a user")
       found.isDefined should equal(false)
@@ -118,17 +118,17 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
       val customerNumber = "123213213213213"
 
       When("We check is the customer number available")
-      val available = Customers.customerProvider.vend.checkCustomerNumberAvailable(testBankId2, customerNumber)
+      val available = CustomerX.customerProvider.vend.checkCustomerNumberAvailable(testBankId2, customerNumber)
       Then("We should get positive answer")
       available should equal(true)
       createCustomer(testBankId2, resourceUser1, customerNumber, user1)
       When("We check is the customer number available after creation")
-      val notAvailable = Customers.customerProvider.vend.checkCustomerNumberAvailable(testBankId2, customerNumber)
+      val notAvailable = CustomerX.customerProvider.vend.checkCustomerNumberAvailable(testBankId2, customerNumber)
       Then("We should get negative answer")
       notAvailable should equal(false)
 
       When("We try to get the user for that bank")
-      val found = Customers.customerProvider.vend.getUser(testBankId2, customerNumber)
+      val found = CustomerX.customerProvider.vend.getUser(testBankId2, customerNumber)
 
       Then("We should not find a user")
       found.isDefined should equal(true)
@@ -140,14 +140,14 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
   override def beforeAll() = {
     super.beforeAll()
     MappedBank.bulkDelete_!!()
-    Customers.customerProvider.vend.bulkDeleteCustomers()
+    CustomerX.customerProvider.vend.bulkDeleteCustomers()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
 
   override def afterEach() = {
     super.afterEach()
     MappedBank.bulkDelete_!!()
-    Customers.customerProvider.vend.bulkDeleteCustomers()
+    CustomerX.customerProvider.vend.bulkDeleteCustomers()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
 }

@@ -7,7 +7,7 @@ import java.util.Date
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.consumer.Consumers
-import code.customer.Customers
+import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -87,7 +87,7 @@ object Migration extends MdcLoggable {
     }  
     
     private def generateAndPopulateMissingCustomerUUIDs(): Boolean = {
-      Customers.customerProvider.vend.populateMissingUUIDs()
+      CustomerX.customerProvider.vend.populateMissingUUIDs()
     }
 
     private def generateAndPopulateMissingConsumersUUIDs(): Boolean = {

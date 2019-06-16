@@ -57,7 +57,7 @@ private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTa
 
   def id_ = id.get.toString
   def datePosted = date.get
-  def postedBy = UserProvider.findByResourceUserId(userId.get)
+  def postedBy = UserX.findByResourceUserId(userId.get)
   def viewId = ViewId(forView.get)
   def value = tag.get
 }

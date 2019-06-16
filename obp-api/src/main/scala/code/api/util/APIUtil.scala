@@ -43,7 +43,7 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
 import code.consumer.Consumers
-import code.customer.Customers
+import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
@@ -1378,7 +1378,7 @@ Returns a string showed to the developer
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {
       for {id <- ids
-           c = Customers.customerProvider.vend.getCustomerByCustomerId(id)
+           c = CustomerX.customerProvider.vend.getCustomerByCustomerId(id)
            u <- c
       } yield {
         u

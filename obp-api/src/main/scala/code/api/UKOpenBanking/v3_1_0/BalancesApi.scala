@@ -118,7 +118,7 @@ object APIMethods_BalancesApi extends RestHelper {
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
 
-            (account, callContext) <- Future { BankAccounts(BankId(defaultBankId), accountId, callContext) } map {
+            (account, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 

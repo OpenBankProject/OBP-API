@@ -593,7 +593,7 @@ object NewStyle {
 
 
     def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
-      Future { UserProvider.findByUserId(userId).map(user =>(user, callContext))} map {
+      Future { UserX.findByUserId(userId).map(user =>(user, callContext))} map {
         unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)")
       }
     }
@@ -635,7 +635,7 @@ object NewStyle {
     
     def toBankAccount(counterparty: CounterpartyTrait, callContext: Option[CallContext]) : Future[BankAccount] =
     {
-      Future{BankAccounts.toBankAccount(counterparty)} map {
+      Future{BankAccountX.toBankAccount(counterparty)} map {
         unboxFullOrFail(_, callContext, s"$UnknownError ")
       }
     }
@@ -859,7 +859,7 @@ object NewStyle {
       }
 
     def findUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[User]] = Future {
-      val userList = userIds.filterNot(StringUtils.isBlank).distinct.map(UserProvider.findByUserId).collect {
+      val userList = userIds.filterNot(StringUtils.isBlank).distinct.map(UserX.findByUserId).collect {
         case Full(user) => user
       }
       (userList, callContext)

@@ -31,7 +31,7 @@ import code.api.util.APIUtil.{OBPReturnType, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.Connector
-import code.customer.Customers
+import code.customer.CustomerX
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -50,13 +50,13 @@ case class BankExtended(bank: Bank) {
   def publicAccounts(publicViewsForBank: List[View]) : List[BankAccount] = {
     publicViewsForBank
       .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
-      .flatMap(a => BankAccounts(a.bankId, a.accountId))
+      .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   def privateAccounts(privateViewsUserCanAccessAtOneBank : List[View]) : List[BankAccount] = {
     privateViewsUserCanAccessAtOneBank
       .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
-      .flatMap(a => BankAccounts(a.bankId, a.accountId))
+      .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -83,7 +83,7 @@ case class BankExtended(bank: Bank) {
   }
 }
 
-object Banks {
+object BankX {
 
   def apply(bankId: BankId, callContext: Option[CallContext]) : Box[(Bank, Option[CallContext])] = {
     Connector.connector.vend.getBankLegacy(bankId, callContext)
@@ -199,7 +199,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   final def customerOwners: Set[Customer] = {
     val customerList = for{
       accountHolder <- (AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList)
-      customers <- Customers.customerProvider.vend.getCustomersByUserId(accountHolder.userId)
+      customers <- CustomerX.customerProvider.vend.getCustomersByUserId(accountHolder.userId)
     } yield {
       customers
     }
@@ -232,7 +232,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
       for{
-        u <- UserProvider.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
+        u <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
         p <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), u)
       } yield p
     else
@@ -250,7 +250,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
       for{
-        otherUser <- UserProvider.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
+        otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         savedView <- Views.views.vend.addPermission(viewUID, otherUser) ?~ "could not save the privilege"
       } yield savedView
     else
@@ -268,7 +268,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
       for{
-        otherUser <- UserProvider.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
+        otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         grantedViews <- Views.views.vend.addPermissions(viewUIDs, otherUser) ?~ "could not save the privilege"
       } yield grantedViews
     else
@@ -286,7 +286,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
       for{
-        otherUser <- UserProvider.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
+        otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- Views.views.vend.revokePermission(viewUID, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
@@ -305,7 +305,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     //check if the user have access to the owner view in this the account
     if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId)))
       for{
-        otherUser <- UserProvider.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
+        otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
         isRevoked <- Views.views.vend.revokeAllPermissions(bankId, accountId, otherUser)
       } yield isRevoked
     else
@@ -443,7 +443,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       val explictCounterpartiesBox = Connector.connector.vend.getCounterpartiesLegacy(view.bankId, view.accountId, view.viewId)
       explictCounterpartiesBox match {
         case Full((counterparties, callContext))=> {
-          val explictModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccounts.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty))
+          val explictModeratedOtherBankAccounts: List[ModeratedOtherBankAccount] = counterparties.flatMap(BankAccountX.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty))
           Full(explictModeratedOtherBankAccounts ++ implicitModeratedOtherBankAccounts)
         }
         case _ => Full(implicitModeratedOtherBankAccounts)
@@ -460,7 +460,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     */
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedOtherBankAccount] =
     if(APIUtil.hasAccess(view, user))
-      Connector.connector.vend.getCounterpartyByCounterpartyIdLegacy(CounterpartyId(counterpartyID), None).map(_._1).flatMap(BankAccounts.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
+      Connector.connector.vend.getCounterpartyByCounterpartyIdLegacy(CounterpartyId(counterpartyID), None).map(_._1).flatMap(BankAccountX.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
         //First check the explict counterparty
         case Full(moderatedOtherBankAccount) => Full(moderatedOtherBankAccount)
         //Than we checked the implict counterparty.
@@ -471,7 +471,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
 
 }
 
-object BankAccounts {
+object BankAccountX {
 
   def apply(bankId: BankId, accountId: AccountId) : Box[BankAccount] = {
     Connector.connector.vend.getBankAccount(bankId, accountId)
@@ -493,7 +493,7 @@ object BankAccounts {
       for{
         toBankId <- Full(BankId(counterparty.otherBankRoutingAddress))
         toAccountId <- Full(AccountId(counterparty.otherAccountRoutingAddress))
-        toAccount <- BankAccounts(toBankId, toAccountId) ?~! s"${ErrorMessages.CounterpartyNotFound} Current Value: BANK_ID(counterparty.otherBankRoutingAddress=$toBankId) and ACCOUNT_ID(counterparty.otherAccountRoutingAddress=$toAccountId), please use correct OBP BankAccount to create the Counterparty.!!!!! "
+        toAccount <- BankAccountX(toBankId, toAccountId) ?~! s"${ErrorMessages.CounterpartyNotFound} Current Value: BANK_ID(counterparty.otherBankRoutingAddress=$toBankId) and ACCOUNT_ID(counterparty.otherAccountRoutingAddress=$toAccountId), please use correct OBP BankAccount to create the Counterparty.!!!!! "
       } yield{
         toAccount
       }
@@ -559,13 +559,13 @@ object BankAccounts {
   def publicAccounts(publicViews: List[View]) : List[BankAccount] = {
     publicViews
       .map(v=>BankIdAccountId(v.bankId,v.accountId)).distinct
-      .flatMap(a => BankAccounts(a.bankId, a.accountId))
+      .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   def privateAccounts(privateViewsUserCanAccess: List[View]) : List[BankAccount] = {
     privateViewsUserCanAccess
       .map(v => BankIdAccountId(v.bankId,v.accountId)).distinct.
-      flatMap(a => BankAccounts(a.bankId, a.accountId))
+      flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 }
 

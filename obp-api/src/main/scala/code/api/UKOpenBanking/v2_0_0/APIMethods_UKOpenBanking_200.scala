@@ -89,7 +89,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            (bankAccount, callContext) <- Future { BankAccounts(BankId(defaultBankId), accountId, callContext) } map {
+            (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
@@ -179,7 +179,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
 
-            (account, callContext) <- Future { BankAccounts(BankId(defaultBankId), accountId, callContext) } map {
+            (account, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
 

@@ -32,7 +32,7 @@ import code.api.util.ApiRole._
 import code.api.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.customer.Customers
+import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.usercustomerlinks.UserCustomerLink
 import com.github.dwickern.macros.NameOf.nameOf
@@ -49,7 +49,7 @@ class CustomerAddressTest extends V310ServerSetup {
 
   override def afterAll(): Unit = {
     super.afterAll()
-    Customers.customerProvider.vend.bulkDeleteCustomers()
+    CustomerX.customerProvider.vend.bulkDeleteCustomers()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
 

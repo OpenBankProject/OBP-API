@@ -93,7 +93,7 @@ case class UserExtended(val user: User) extends MdcLoggable {
 }
 
 
-object UserProvider {
+object UserX {
 
   def findByResourceUserId(id : Long) : Box[User] =
     Users.users.vend.getUserByResourceUserId(id)

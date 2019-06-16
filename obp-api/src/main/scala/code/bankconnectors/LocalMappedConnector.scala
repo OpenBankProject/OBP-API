@@ -3,8 +3,8 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.accountapplication.AccountApplications
-import code.accountattribute.AccountAttributes
+import code.accountapplication.AccountApplicationX
+import code.accountattribute.AccountAttributeX
 import code.accountholders.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -16,11 +16,11 @@ import code.atms.MappedAtm
 import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
-import code.cardattribute.CardAttributes
+import code.cardattribute.CardAttributeX
 import code.cards.MappedPhysicalCard
 import code.context.{UserAuthContextProvider, UserAuthContextUpdate, UserAuthContextUpdateProvider}
 import code.customer._
-import code.customeraddress.CustomerAddresses
+import code.customeraddress.CustomerAddressX
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
@@ -36,12 +36,12 @@ import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
-import code.productattribute.ProductAttributes
-import code.productcollection.ProductCollections
+import code.productattribute.ProductAttributeX
+import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
 import code.products.MappedProduct
 import com.openbankproject.commons.model.Product
-import code.taxresidence.TaxResidences
+import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionrequests._
 import code.users.Users
@@ -792,7 +792,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     value: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[CardAttribute]] = {
-    CardAttributes.cardAttributeProvider.vend.createOrUpdateCardAttribute(
+    CardAttributeX.cardAttributeProvider.vend.createOrUpdateCardAttribute(
       bankId: Option[BankId],
       cardId: Option[String],
       cardAttributeId: Option[String],
@@ -804,7 +804,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCardAttributesFromProvider(
     cardId: String, 
     callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = {
-    CardAttributes.cardAttributeProvider.vend.getCardAttributesFromProvider(cardId: String) map { (_, callContext) }
+    CardAttributeX.cardAttributeProvider.vend.getCardAttributesFromProvider(cardId: String) map { (_, callContext) }
   }
   
   /**
@@ -2001,7 +2001,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     bankId: BankId,
     customerNumber: String,
     callContext: Option[CallContext]
-  ) = Future{(tryo {Customers.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)}, callContext) }
+  ) = Future{(tryo {CustomerX.customerProvider.vend.checkCustomerNumberAvailable(bankId, customerNumber)}, callContext) }
   
   
   override def createCustomer(
@@ -2026,7 +2026,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                nameSuffix: String,
                                callContext: Option[CallContext]
                              ) = Future{
-    (Customers.customerProvider.vend.addCustomer(
+    (CustomerX.customerProvider.vend.addCustomer(
       bankId,
       Random.nextInt(Integer.MAX_VALUE).toString,
       legalName,
@@ -2054,7 +2054,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      email: Option[String],
                                      customerNumber: Option[String],
                                      callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
-      Customers.customerProvider.vend.updateCustomerScaData(
+      CustomerX.customerProvider.vend.updateCustomerScaData(
         customerId,
         mobileNumber,
         email,
@@ -2067,7 +2067,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                         creditSource: Option[String],
                                         creditLimit: Option[AmountOfMoney],
                                         callContext: Option[CallContext]): OBPReturnType[Box[Customer]] =
-      Customers.customerProvider.vend.updateCustomerCreditData(
+      CustomerX.customerProvider.vend.updateCustomerCreditData(
         customerId,
         creditRating,
         creditSource,
@@ -2088,7 +2088,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                           nameSuffix: Option[String],
                                           callContext: Option[CallContext]
                                          ): OBPReturnType[Box[Customer]] =
-      Customers.customerProvider.vend.updateCustomerGeneralData(
+      CustomerX.customerProvider.vend.updateCustomerGeneralData(
         customerId,
         legalName,
         faceImage,
@@ -2105,37 +2105,37 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
   
   def getCustomersByUserIdLegacy(userId: String, callContext: Option[CallContext]): Box[(List[Customer], Option[CallContext])] = {
-    Full((Customers.customerProvider.vend.getCustomersByUserId(userId), callContext))
+    Full((CustomerX.customerProvider.vend.getCustomersByUserId(userId), callContext))
   }  
   
   override def getCustomersByUserId(userId: String, callContext: Option[CallContext]): Future[Box[(List[Customer],Option[CallContext])]]=
-    Customers.customerProvider.vend.getCustomersByUserIdFuture(userId) map {
+    CustomerX.customerProvider.vend.getCustomersByUserIdFuture(userId) map {
       customersBox =>(customersBox.map(customers=>(customers,callContext)))
     }
 
   override def getCustomerByCustomerIdLegacy(customerId: String, callContext: Option[CallContext])  =
-    Customers.customerProvider.vend.getCustomerByCustomerId(customerId) map {
+    CustomerX.customerProvider.vend.getCustomerByCustomerId(customerId) map {
       customersBox =>(customersBox,callContext)
     }
   
   override def getCustomerByCustomerId(customerId : String, callContext: Option[CallContext]): Future[Box[(Customer,Option[CallContext])]] =
-    Customers.customerProvider.vend.getCustomerByCustomerIdFuture(customerId)  map {
+    CustomerX.customerProvider.vend.getCustomerByCustomerIdFuture(customerId)  map {
       i => i.map(
         customer => (customer, callContext)
       )
     }
   override def getCustomerByCustomerNumber(customerNumber : String, bankId : BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] =
-    Customers.customerProvider.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId)  map {
+    CustomerX.customerProvider.vend.getCustomerByCustomerNumberFuture(customerNumber, bankId)  map {
       i => i.map(
         customer => (customer, callContext)
       )
     }
 
   override def getCustomers(bankId : BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
-    Customers.customerProvider.vend.getCustomersFuture(bankId, queryParams)
+    CustomerX.customerProvider.vend.getCustomersFuture(bankId, queryParams)
 
   override def getCustomerAddress(customerId : String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAddress]]] =
-    CustomerAddresses.address.vend.getAddress(customerId) map {
+    CustomerAddressX.address.vend.getAddress(customerId) map {
       (_, callContext)
     }
   override def createCustomerAddress(customerId: String,
@@ -2150,7 +2150,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      tags: String,
                                      status: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] =
-    CustomerAddresses.address.vend.createAddress(
+    CustomerAddressX.address.vend.createAddress(
       customerId,
       line1,
       line2,
@@ -2176,7 +2176,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      tags: String,
                                      status: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] =
-    CustomerAddresses.address.vend.updateAddress(
+    CustomerAddressX.address.vend.updateAddress(
       customerAddressId,
       line1,
       line2,
@@ -2191,20 +2191,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   override def deleteCustomerAddress(customerAddressId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
-    CustomerAddresses.address.vend.deleteAddress(customerAddressId) map {
+    CustomerAddressX.address.vend.deleteAddress(customerAddressId) map {
       (_, callContext)
     }
 
   override def getTaxResidence(customerId : String, callContext: Option[CallContext]): OBPReturnType[Box[List[TaxResidence]]] =
-    TaxResidences.taxResidence.vend.getTaxResidence(customerId) map {
+    TaxResidenceX.taxResidence.vend.getTaxResidence(customerId) map {
       (_, callContext)
     }
   override def createTaxResidence(customerId : String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] =
-    TaxResidences.taxResidence.vend.createTaxResidence(customerId, domain, taxNumber) map {
+    TaxResidenceX.taxResidence.vend.createTaxResidence(customerId, domain, taxNumber) map {
       (_, callContext)
     }
   override def deleteTaxResidence(taxResidenceId : String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
-    TaxResidences.taxResidence.vend.deleteTaxResidence(taxResidenceId) map {
+    TaxResidenceX.taxResidence.vend.deleteTaxResidence(taxResidenceId) map {
       (_, callContext)
     }
 
@@ -2267,7 +2267,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       value: String,
       callContext: Option[CallContext]
     ): OBPReturnType[Box[ProductAttribute]] =
-    ProductAttributes.productAttributeProvider.vend.createOrUpdateProductAttribute(
+    ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
       bankId: BankId,
       productCode: ProductCode,
       productAttributeId: Option[String],
@@ -2282,7 +2282,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                   productCode: ProductCode,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[List[ProductAttribute]]] = 
-    ProductAttributes.productAttributeProvider.vend.getProductAttributesFromProvider(bank: BankId, productCode: ProductCode) map {
+    ProductAttributeX.productAttributeProvider.vend.getProductAttributesFromProvider(bank: BankId, productCode: ProductCode) map {
       (_, callContext)
     }
   
@@ -2290,7 +2290,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     productAttributeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ProductAttribute]] = 
-    ProductAttributes.productAttributeProvider.vend.getProductAttributeById(productAttributeId: String) map{
+    ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(productAttributeId: String) map{
       (_, callContext)
     }
   
@@ -2298,7 +2298,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     productAttributeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = 
-    ProductAttributes.productAttributeProvider.vend.deleteProductAttribute(productAttributeId: String) map {
+    ProductAttributeX.productAttributeProvider.vend.deleteProductAttribute(productAttributeId: String) map {
       (_, callContext)
     }
 
@@ -2312,7 +2312,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                value: String,
                                                callContext: Option[CallContext]
                                              ): OBPReturnType[Box[AccountAttribute]] = {
-    AccountAttributes.accountAttributeProvider.vend.createOrUpdateAccountAttribute(bankId: BankId,
+    AccountAttributeX.accountAttributeProvider.vend.createOrUpdateAccountAttribute(bankId: BankId,
                                                                                   accountId: AccountId,
                                                                                   productCode: ProductCode,
                                                                                   accountAttributeId: Option[String],
@@ -2326,7 +2326,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                        accountAttributes: List[ProductAttribute],
                                        callContext: Option[CallContext]
                                        ): OBPReturnType[Box[List[AccountAttribute]]] = {
-    AccountAttributes.accountAttributeProvider.vend.createAccountAttributes(
+    AccountAttributeX.accountAttributeProvider.vend.createAccountAttributes(
       bankId: BankId,
       accountId: AccountId,
       productCode: ProductCode,
@@ -2337,7 +2337,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                              accountId: AccountId,
                                              callContext: Option[CallContext]
                                             ): OBPReturnType[Box[List[AccountAttribute]]] = {
-    AccountAttributes.accountAttributeProvider.vend.getAccountAttributesByAccount(
+    AccountAttributeX.accountAttributeProvider.vend.getAccountAttributesByAccount(
       bankId: BankId,
       accountId: AccountId) map { (_, callContext) }
   }
@@ -2349,32 +2349,32 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     customerId: Option[String],
     callContext: Option[CallContext]
     ): OBPReturnType[Box[AccountApplication]] =
-    AccountApplications.accountApplication.vend.createAccountApplication(productCode, userId, customerId) map {
+    AccountApplicationX.accountApplication.vend.createAccountApplication(productCode, userId, customerId) map {
       (_, callContext)
     }
 
   override def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] =
-    AccountApplications.accountApplication.vend.getAll() map {
+    AccountApplicationX.accountApplication.vend.getAll() map {
       (_, callContext)
     }
 
   override def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
-    AccountApplications.accountApplication.vend.getById(accountApplicationId) map {
+    AccountApplicationX.accountApplication.vend.getById(accountApplicationId) map {
       (_, callContext)
     }
 
   override  def updateAccountApplicationStatus(accountApplicationId:String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] =
-    AccountApplications.accountApplication.vend.updateStatus(accountApplicationId, status) map {
+    AccountApplicationX.accountApplication.vend.updateStatus(accountApplicationId, status) map {
       (_, callContext)
     }
   
   override  def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
-    ProductCollections.productCollection.vend.getOrCreateProductCollection(collectionCode, productCodes) map {
+    ProductCollectionX.productCollection.vend.getOrCreateProductCollection(collectionCode, productCodes) map {
       (_, callContext)
     } 
   
   override  def getProductCollection(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] =
-    ProductCollections.productCollection.vend.getProductCollection(collectionCode) map {
+    ProductCollectionX.productCollection.vend.getProductCollection(collectionCode) map {
       (_, callContext)
     } 
   

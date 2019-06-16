@@ -1,7 +1,7 @@
 package code.metadata.counterparties
 
 
-import code.model.UserProvider
+import code.model.UserX
 import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
@@ -147,7 +147,7 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   object geoLatitude extends DoubleField(this,0)
 
   override def datePosted = date.get
-  override def postedBy = UserProvider.findByResourceUserId(userId.get)
+  override def postedBy = UserX.findByResourceUserId(userId.get)
   override def longitude = geoLongitude.get
   override def latitude = geoLatitude.get
 

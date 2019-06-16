@@ -753,7 +753,7 @@ object APIMethods_TransactionsApi extends RestHelper {
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
-            (bankAccount, callContext) <- Future { BankAccounts(BankId(defaultBankId), accountId, callContext) } map {
+            (bankAccount, callContext) <- Future { BankAccountX(BankId(defaultBankId), accountId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(DefaultBankIdNotSet, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)

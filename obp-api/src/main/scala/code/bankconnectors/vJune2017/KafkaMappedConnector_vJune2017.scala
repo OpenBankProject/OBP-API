@@ -453,7 +453,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
         //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
         val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-        val customerList :List[Customer]= Customers.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
+        val customerList :List[Customer]= CustomerX.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
         val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
 
         val box = callAdapter(callContext, internalCustomers)
@@ -486,7 +486,7 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
         //TODO, these Customers should not be get from here, it make some side effects. It is better get it from Parameters.
         val currentResourceUserId = AuthUser.getCurrentResourceUserUserId
-        val customerList :List[Customer]= Customers.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
+        val customerList :List[Customer]= CustomerX.customerProvider.vend.getCustomersByUserId(currentResourceUserId)
         val internalCustomers = JsonFactory_vJune2017.createCustomersJson(customerList)
 
         def callAdapter(callContext: Option[CallContext], internalCustomers: InternalBasicCustomers) = {

@@ -129,7 +129,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       sessionId <- tryo(cc.sessionId.getOrElse(""))?~! "getAuthInfo: session id can not be got from callContext!"
       permission <- Views.views.vend.getPermissionForUser(user)?~! "getAuthInfo: No permission for this user"
       views <- tryo(permission.views)?~! "getAuthInfo: No views for this user"
-      linkedCustomers <- tryo(Customers.customerProvider.vend.getCustomersByUserId(user.userId))?~! "getAuthInfo: No linked customers for this user"
+      linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))?~! "getAuthInfo: No linked customers for this user"
       likedCustomersBasic = JsonFactory_vSept2018.createBasicCustomerJson(linkedCustomers)
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) ?~! "getAuthInfo: No userAuthContexts for this user"
       basicUserAuthContexts = JsonFactory_vSept2018.createBasicUserAuthContextJson(userAuthContexts)

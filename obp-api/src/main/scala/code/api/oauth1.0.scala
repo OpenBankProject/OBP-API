@@ -35,7 +35,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.consumer.Consumers
-import code.model.{Consumer, TokenType, UserProvider}
+import code.model.{Consumer, TokenType, UserX}
 import code.nonce.Nonces
 import code.token.Tokens
 import code.users.Users
