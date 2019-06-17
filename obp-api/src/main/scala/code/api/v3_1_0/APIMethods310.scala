@@ -3339,7 +3339,7 @@ trait APIMethods310 {
                 messageText = s"Your consent challenge : ${createdConsent.challenge}";
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
-                failMsg = s"$smsServerNotWork: $phoneNumber. Or Please to use EMAIL first." 
+                failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
                 _ <- Helper.booleanToFuture(failMsg) {
                   response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
                 }
