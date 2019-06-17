@@ -2529,4 +2529,21 @@ Returns a string showed to the developer
     val parsePosition = new ParsePosition(0)
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null !=)
   }
+
+  def validatePsd2Certificate(cc: CallContext): OBPReturnType[Box[Boolean]] = {
+    val result: Box[Boolean] = getPropsAsBoolValue("requirePsd2Certificates", false) match {
+      case false => Full(true)
+      case true => 
+        // TODO Obtain PEM encoded certificate
+        X509.validate("Obtain PEM encoded certificate")
+    }
+    Future(result) map {
+      x =>
+        (
+          fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, Some(cc.toLight))),
+          Some(cc)
+        )
+    }
+  }
+  
 }

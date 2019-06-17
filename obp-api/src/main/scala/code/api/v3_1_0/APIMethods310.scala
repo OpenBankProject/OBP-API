@@ -1122,6 +1122,7 @@ trait APIMethods310 {
         cc =>
           for {
             (user, callContext) <- authorizedAccess(cc)
+            (_, _) <- validatePsd2Certificate(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
