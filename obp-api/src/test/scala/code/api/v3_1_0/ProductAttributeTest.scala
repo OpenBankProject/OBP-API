@@ -34,6 +34,7 @@ import code.api.util.ErrorMessages._
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ProductAttributeType
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -107,6 +108,21 @@ class ProductAttributeTest extends V310ServerSetup {
       responseDelete310.code should equal(204)
 
       makeGetRequest(requestGet310).code should equal(400)
+
+      Then("We call create endpoint with another `tpye`")
+      val responseCreate310DateWithDay = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.DATE_WITH_DAY}")))
+      Then("We should get a 201")
+      responseCreate310DateWithDay.code should equal(201)
+
+      val responseCreate310Integer = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.INTEGER}")))
+      Then("We should get a 201")
+      responseCreate310Integer.code should equal(201)
+
+      val responseCreate310Double = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.DOUBLE}")))
+      Then("We should get a 201")
+      responseCreate310Double.code should equal(201)
+
+
     }
   }
 
@@ -129,6 +145,16 @@ class ProductAttributeTest extends V310ServerSetup {
       val createProductEntitlementsRequiredText = UserHasMissingRoles + canCreateProductAttribute
       And("error should be " + createProductEntitlementsRequiredText)
       response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
+    }
+    scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v3.1.0")
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
+      val request310 = createProductAttributeEndpoint.POST <@(user1)
+      val response310 = makePostRequest(request310, write(postProductAttributeJson.copy(`type` = "worngType")))
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And(s"error should be $InvalidJsonFormat" )
+      response310.body.extract[ErrorMessage].message contains( s"$InvalidJsonFormat The `Type` filed can only accept the following field:")
     }
   }
   
