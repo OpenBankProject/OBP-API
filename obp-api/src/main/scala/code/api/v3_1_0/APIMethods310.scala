@@ -4812,6 +4812,79 @@ trait APIMethods310 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      updateCardAttribute,
+      implementedInApiVersion,
+      nameOf(updateCardAttribute),
+      "PUT",
+      "/management/banks/BANK_ID/cards/CARD_ID/attributes/CARD_ATTRIBUTE_ID",
+      "Update Card Attribute",
+      s""" Update Card Attribute
+         |
+         |Card Attributes are used to describe a financial Product with a list of typed key value pairs.
+         |
+         |Each Card Attribute is linked to its Card by CARD_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      CardAttributeJson(
+        cardAttributeNameExample.value,
+        CardAttributeType.DOUBLE.toString,
+        cardAttributeValueExample.value
+      ),
+      CardAttributeCommons(
+        Some(BankId(bankIdExample.value)),
+        Some(cardIdExample.value),
+        Some(cardAttributeIdExample.value),
+        cardAttributeNameExample.value,
+        CardAttributeType.DOUBLE,
+        cardAttributeValueExample.value),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard, apiTagNewStyle))
+
+    lazy val updateCardAttribute : OBPEndpoint = {
+      case "management"::"banks" :: bankId :: "cards" :: cardId :: "attributes" :: cardAttributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (_, callContext) <- NewStyle.function.getPhysicalCardForBank(BankId(bankId), cardId, callContext)
+            (_, callContext) <- NewStyle.function.getCardAttributeById(cardAttributeId, callContext)
+
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CardAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CardAttributeJson]
+            }
+
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
+            createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardAttributeType.withName(postedData.`type`)
+            }
+
+            (cardAttribute, callContext) <- NewStyle.function.createOrUpdateCardAttribute(
+              Some(BankId(bankId)),
+              Some(cardId),
+              Some(cardAttributeId),
+              postedData.name,
+              createCardAttribute,
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            val commonsData: CardAttributeCommons = cardAttribute
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
     resourceDocs += ResourceDoc(
       updateCustomerBranch,
       implementedInApiVersion,

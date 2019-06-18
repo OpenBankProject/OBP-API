@@ -190,6 +190,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createCardAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateCardAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteCardForBank), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCardForBank), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getCardsForBank), ApiVersion.v3_1_0.toString),
@@ -1441,6 +1442,12 @@ object NewStyle {
     def getMethodRoutingsByMethdName(methodName: Box[String]): Future[List[MethodRoutingT]] = Future {
       this.getMethodRoutings(methodName.toOption)
     }
+    def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
+      Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)"), i._2)
+      }
+    
+    
     def createOrUpdateCardAttribute(
       bankId: Option[BankId],
       cardId: Option[String],

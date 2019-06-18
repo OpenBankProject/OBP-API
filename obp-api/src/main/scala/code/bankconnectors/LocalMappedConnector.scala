@@ -783,6 +783,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       callContext)
   }
 
+  override def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) = {
+    CardAttributeX.cardAttributeProvider.vend.getCardAttributeById(cardAttributeId: String)map { (_, callContext) }
+  }
+  
   override def createOrUpdateCardAttribute(
     bankId: Option[BankId],
     cardId: Option[String],
