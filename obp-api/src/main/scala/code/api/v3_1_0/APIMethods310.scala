@@ -2064,12 +2064,18 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+            
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankId),
               ProductCode(productCode),
               None,
               postedData.name,
-              ProductAttributeType.withName(postedData.`type`),
+              productAttributeType,
               postedData.value,
               callContext: Option[CallContext]
             )
@@ -2156,12 +2162,18 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+            
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankId),
               ProductCode(productCode),
               Some(productAttributeId),
               postedData.name,
-              ProductAttributeType.withName(postedData.`type`),
+              productAttributeType,
               postedData.value,
               callContext: Option[CallContext]
             )
@@ -2776,13 +2788,19 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountAttributeJson]
             }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+            accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              AccountAttributeType.withName(postedData.`type`)
+            }
+            
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateAccountAttribute(
               BankId(bankId),
               AccountId(accountId),
               ProductCode(productCode),
               None,
               postedData.name,
-              AccountAttributeType.withName(postedData.`type`),
+              accountAttributeType,
               postedData.value,
               callContext: Option[CallContext]
             )
@@ -3339,7 +3357,7 @@ trait APIMethods310 {
                 messageText = s"Your consent challenge : ${createdConsent.challenge}";
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
-                failMsg = s"$smsServerNotWork: $phoneNumber. Or Please to use EMAIL first." 
+                failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
                 _ <- Helper.booleanToFuture(failMsg) {
                   response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
                 }
@@ -4698,6 +4716,8 @@ trait APIMethods310 {
               json.extract[CardAttributeJson]
             }
             
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
             }
