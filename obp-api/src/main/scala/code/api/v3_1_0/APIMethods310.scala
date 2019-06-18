@@ -2167,7 +2167,7 @@ trait APIMethods310 {
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
             }
-            
+            (_, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankId),
               ProductCode(productCode),
