@@ -6,7 +6,6 @@ import code.api.v3_1_0.ListResult
 import code.consent.ConsentStatus
 import code.context.UserAuthContextUpdateStatus
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestStatus, TransactionRequestTypes}
-import com.openbankproject.commons.model.AccountAttributeType.AccountAttributeType
 import com.openbankproject.commons.model.{AccountAttributeType, CardAttributeType, JsonFieldReName, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json.JsonAST.JValue
@@ -14,7 +13,7 @@ import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
 import scala.reflect.runtime.{universe => ru}
-import scala.reflect.{ClassTag, ManifestFactory}
+import scala.reflect.{ManifestFactory}
 
 trait CustomJsonFormats {
   implicit val formats: Formats = CustomJsonFormats.formats
@@ -22,17 +21,17 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
+  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
+  } + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {
@@ -166,65 +165,30 @@ object IdTypeSerializer extends Serializer[Any] {
 
 }
 
-/*object EnumerationSerializer extends Serializer[Enumeration] {
-
-  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Enumeration] = {
-    case (typeInfo @ TypeInfo(entityType, _), json) if(isEnumeType(entityType)) => {
-      val enumName = json.asInstanceOf[JString].s
-      val withName = entityType.getMethod("withName", classOf[String])
-      withName.invoke(null, enumName).asInstanceOf[Enumeration]
+/**
+  *  Enumeration Serializer, remember: all the Enumeration should add to  code.api.util.EnumerationSerializer#enumerationSerializers
+  * @param enums multiple Enumeration
+  */
+class EnumerationSerializer(enums: Enumeration*) extends Serializer[Enumeration#Value] {
+  val EnumerationClass = classOf[Enumeration#Value]
+  val formats = Serialization.formats(NoTypeHints)
+  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Enumeration#Value] = {
+    case (TypeInfo(EnumerationClass, _), json) => json match {
+      case JString(value) => enums.find(_.values.exists(_.toString == value)).get.withName(value)
+      case value          => throw new MappingException("Can't convert " + value + " to " + EnumerationClass)
     }
   }
 
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case x if(isEnume(x)) => JString(x.toString())
-  }
-
-  private def isEnume(obj: Any) = {
-   obj != null &&  obj.getClass.getName == "scala.Enumeration$Val"
- }
-  private def isEnumeType(clazz: Class[_]) = {
-    clazz.getName == "scala.Enumeration$Value"
-  }
-}*/
-class EnumerationSerializer[T <: Enumeration: ClassTag](enum: Enumeration ) extends Serializer[T] {
-
-  import JsonDSL._
-  // def EnumerationClass[T] = classOf[T]
-
-  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), T] = {
-    case (TypeInfo(clazz, _), json) => json match {
-      case JObject(List(JField(name, JString(value)))) => fetchEnumValue(value)
-      case JString(value) => fetchEnumValue(value)
-      case value => throw new MappingException("Can't convert " + value + " to " + clazz)
-    }
-  }
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case x: T#Value => x.toString
-  }
-
-  private def fetchEnumValue(value: String): T = {
-    enum.values.find(_.toString == value).getOrElse(throw new Exception("Invalid enum value => " + value)).asInstanceOf[T]
+  def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case i: Enumeration#Value => JString(i.toString)
   }
 }
 
 object EnumerationSerializer{
-  val enumerationSerizers =  new EnumerationSerializer(ConsentStatus) ::
-                                new EnumerationSerializer(AccountAttributeType) ::
-                                new EnumerationSerializer(ProductAttributeType) ::
-                                new EnumerationSerializer(CardAttributeType) ::
-                                new EnumerationSerializer(StrongCustomerAuthentication) ::
-                                new EnumerationSerializer(UserAuthContextUpdateStatus) ::
-                                new EnumerationSerializer(TransactionRequestStatus) ::
-                                new EnumerationSerializer(TransactionChallengeTypes) ::
-                                new EnumerationSerializer(TransactionRequestTypes) ::
-                                new EnumerationSerializer(CryptoSystem) ::
-                                new EnumerationSerializer(RateLimitPeriod) ::
-                                new EnumerationSerializer(ApiStandards) ::
-                                new EnumerationSerializer(ApiShortVersions) ::
-                                new EnumerationSerializer(ChargePolicy) ::
-                                Nil
+  val enumerationSerializers = new EnumerationSerializer(ConsentStatus,
+    AccountAttributeType, ProductAttributeType, CardAttributeType, StrongCustomerAuthentication, UserAuthContextUpdateStatus
+    , TransactionRequestStatus, TransactionChallengeTypes, TransactionRequestTypes, CryptoSystem, RateLimitPeriod
+    , ApiStandards, ApiShortVersions, ChargePolicy)
 }
 
 @scala.annotation.meta.field
