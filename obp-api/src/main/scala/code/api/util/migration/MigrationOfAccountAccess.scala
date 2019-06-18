@@ -49,12 +49,16 @@ object TableAccountAccess {
         val deadForeignKeys = x2.diff(x1)
     
         val endDate = System.currentTimeMillis()
+
+        ////  (${accountAccess.map(_.id).mkString(",")});
+
+
         val comment: String =
           s"""Account access size: $accountAccessSize;
              |View privileges size: $viewPrivilegesSize;
              |List of dead foreign keys at the field ViewPrivileges.view_c: ${deadForeignKeys.mkString(",")};
              |Duration: ${endDate - startDate} ms;
-             |Primary keys of the inserted rows: (${accountAccess.map(_.id).mkString(",")});
+             |Primary keys of the inserted rows: NOPE too risky
                  """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful

@@ -115,11 +115,14 @@ object TableViewDefinition {
         val viewDefinition = ViewDefinition.findAll()
         val viewDefinitionSize = viewDefinition.size
         val endDate = System.currentTimeMillis()
+
+        //  (${viewDefinition.map(_.id).mkString(",")});
+
         val comment: String =
           s"""View implementation size: ${views.size};
              |View definition size: $viewDefinitionSize;
              |Duration: ${endDate - startDate} ms;
-             |Primary keys of the inserted rows: (${viewDefinition.map(_.id).mkString(",")});
+             |Primary keys of the inserted rows: NOPE too risky.
              """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
