@@ -3161,8 +3161,6 @@ object SwaggerDefinitionsJSON {
     owners = List(userJSONV121),
     `type` = "OBP",
     balance = amountOfMoneyJsonV121,
-    IBAN = "DE89 3704 0044 0532 0130 00",
-    swift_bic = "OKOYFIHH",
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
     account_routing = accountRoutingJsonV121,
