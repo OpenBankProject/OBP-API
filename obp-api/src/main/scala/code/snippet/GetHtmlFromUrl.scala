@@ -29,7 +29,7 @@ package code.snippet
 
 import net.liftweb.util.{Helpers, Props}
 import Helpers._
-import code.api.util.APIUtil
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import code.util.Helper.MdcLoggable
 
 import scala.xml.{NodeSeq, XML}
@@ -40,7 +40,7 @@ import scala.xml.{NodeSeq, XML}
 object GetHtmlFromUrl extends MdcLoggable {
 
     def vendorSupport(): NodeSeq = {
-      val vendorSupportHtmlUrl = APIUtil.getPropsValue("webui_vendor_support_html_url", "")
+      val vendorSupportHtmlUrl = getWebUiPropsValue("webui_vendor_support_html_url", "")
 
       def vendorSupportHtml = tryo(scala.io.Source.fromURL(vendorSupportHtmlUrl))
       logger.debug("vendorSupportHtml: " + vendorSupportHtml)

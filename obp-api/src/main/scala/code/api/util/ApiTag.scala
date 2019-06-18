@@ -58,6 +58,7 @@ object ApiTag {
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
+  val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
 
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0

@@ -34,6 +34,8 @@ connector=mapped
 
 ## MethodRouting cache time-to-live in seconds, caching defaults to 30 seconds
 #methodRouting.cache.ttl.seconds=30
+## webui props cache time-to-live in seconds, caching defaults to 20 seconds
+#webui.props.cache.ttl.seconds=20
 
 ## enable logging all the database queries in log file
 #logging.database.queries.enable=true

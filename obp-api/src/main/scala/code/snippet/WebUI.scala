@@ -28,21 +28,16 @@ Berlin 13359, Germany
 
 package code.snippet
 
+import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress}
 import code.api.util.{APIUtil, CustomJsonFormats}
-import code.api.util.APIUtil.getRemoteIpAddress
 import code.util.Helper.MdcLoggable
-import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds.Run
 import net.liftweb.http.{S, SessionVar}
-import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
-import code.api.util.APIUtil.activeBrand
+import net.liftweb.util.{CssSel, Props}
 
 import scala.xml.{NodeSeq, XML}
-import scala.io.Source
 
-
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 
 class WebUI extends MdcLoggable{
@@ -79,31 +74,31 @@ class WebUI extends MdcLoggable{
   }
 
   def headerLogoLeft = {
-    "img [src]" #> APIUtil.getPropsValue("webui_header_logo_left_url", "")
+    "img [src]" #> getWebUiPropsValue("webui_header_logo_left_url", "")
   }
 
   def headerLogoRight: CssSel = {
-    "img [src]" #> APIUtil.getPropsValue("webui_header_logo_right_url", "")
+    "img [src]" #> getWebUiPropsValue("webui_header_logo_right_url", "")
   }
 
   def footer2LogoLeft = {
-    "img [src]" #> APIUtil.getPropsValue("webui_footer2_logo_left_url", "")
+    "img [src]" #> getWebUiPropsValue("webui_footer2_logo_left_url", "")
   }
 
   def footer2MiddleText: CssSel = {
-    "#footer2-middle-text *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_footer2_middle_text", ""))
+    "#footer2-middle-text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_footer2_middle_text", ""))
   }
 
   def aboutBackground: CssSel = {
-    "#main-about [style]" #> ("background-image: url(" + APIUtil.getPropsValue("webui_index_page_about_section_background_image_url", "") + ");")
+    "#main-about [style]" #> ("background-image: url(" + getWebUiPropsValue("webui_index_page_about_section_background_image_url", "") + ");")
   }
 
   def aboutText: CssSel = {
-    "#main-about-text *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_index_page_about_section_text", ""))
+    "#main-about-text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_index_page_about_section_text", ""))
   }
 
   def topText: CssSel = {
-    "#top-text *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_top_text", ""))
+    "#top-text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_top_text", ""))
   }
 
 
@@ -119,7 +114,7 @@ class WebUI extends MdcLoggable{
   def apiExplorerLink: CssSel = {
     val tags = S.attr("tags") openOr ""
     // Note the Props value might contain a query parameter e.g. ?psd2=true
-    val baseUrl = APIUtil.getPropsValue("webui_api_explorer_url", "")
+    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
     // hack (we should use url operators instead) so we can add further query parameters if one is already included in the the baseUrl
     val baseUrlWithQ =  baseUrl.contains("?") match {
       case true => baseUrl +  s"&tags=$tags${brandString}" // ? found so add & instead
@@ -130,12 +125,12 @@ class WebUI extends MdcLoggable{
 
   // Link to API Manager
   def apiManagerLink: CssSel = {
-    ".api-manager-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_manager_url", ""))
+    ".api-manager-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_manager_url", ""))
   }
 
   // Link to API Tester
   def apiTesterLink: CssSel = {
-    ".api-tester-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_tester_url", ""))
+    ".api-tester-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_tester_url", ""))
   }
 
   // Link to API
@@ -155,12 +150,12 @@ class WebUI extends MdcLoggable{
 
   // Social Finance (Sofi)
   def sofiLink: CssSel = {
-    ".sofi-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_sofi_url", ""))
+    ".sofi-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sofi_url", ""))
   }
 
   // CreateDirectLoginToken
   def createDirectLoginToken: CssSel = {
-    APIUtil.getPropsValue("webui_create_directlogin_token_url", "") match {
+    getWebUiPropsValue("webui_create_directlogin_token_url", "") match {
       case "" => ".create-direct-login-token-link " #> scala.xml.Unparsed("")
       case value => ".create-direct-login-token-link a [href]" #> scala.xml.Unparsed(value)
     }
@@ -168,58 +163,58 @@ class WebUI extends MdcLoggable{
 
   // Points to the documentation. Probably a sandbox specific link is good.
   def apiDocumentationLink: CssSel = {
-    ".api-documentation-link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
+    ".api-documentation-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
   }
 
   // For example customers and credentials
   // This relies on the page for sandbox documentation having an anchor called example-customer-logins
   def exampleSandboxCredentialsLink: CssSel = {
-    ".example_sandbox_credentials_link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_documentation_url", "") + "#customer-logins")
+    ".example_sandbox_credentials_link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "") + "#customer-logins")
   }
 
   // For link to OAuth Client SDKs
   def sdksLink: CssSel = {
-    ".sdks_link a [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_sdks_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS"))
+    ".sdks_link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sdks_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS"))
   }
 
   // Text about data in FAQ
   def faqDataText: CssSel = {
-    ".faq-data-text *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_faq_data_text", "This depends on the end point and/or OBP instance you are using. A combination of synthetic, anonymised and real data may be available. Please ask support for more information."))
+    ".faq-data-text *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_faq_data_text", "This depends on the end point and/or OBP instance you are using. A combination of synthetic, anonymised and real data may be available. Please ask support for more information."))
   }
 
   // Link to FAQ
   def faqLink: CssSel = {
-    val link = scala.xml.Unparsed(APIUtil.getPropsValue("webui_faq_url", "https://openbankproject.com/faq/"))
+    val link = scala.xml.Unparsed(getWebUiPropsValue("webui_faq_url", "https://openbankproject.com/faq/"))
     //".faq-link a *" #>  link &
     ".faq-link a [href]" #> link
   }
 
   // Email address re FAQ
   def faqEmail: CssSel = {
-    val email = scala.xml.Unparsed(APIUtil.getPropsValue("webui_faq_email", "contact@openbankproject.com"))
+    val email = scala.xml.Unparsed(getWebUiPropsValue("webui_faq_email", "contact@openbankproject.com"))
     val emailMailto = scala.xml.Unparsed("mailto:" + email.toString())
     ".faq-email a *" #>  email &
     ".faq-email a [href]" #> emailMailto
   }
 
   // API Explorer URL from Props
-  val apiExplorerUrl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_api_explorer_url", ""))
+  val apiExplorerUrl = scala.xml.Unparsed(getWebUiPropsValue("webui_api_explorer_url", ""))
 
   // DirectLogin documentation url
   def directLoginDocumentationUrl: CssSel = {
-    val directlogindocumentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login"))
+    val directlogindocumentationurl = scala.xml.Unparsed(getWebUiPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login"))
     ".direct-login-documentation-url a [href]" #> directlogindocumentationurl
   }
 
   // OAuth1.0a documentation url
   def oauth1DocumentationUrl: CssSel = {
-    val oauth1documentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a"))
+    val oauth1documentationurl = scala.xml.Unparsed(getWebUiPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a"))
     ".oauth-1-documentation-url a [href]" #> oauth1documentationurl
   }
 
   // OAuth2.0 link on FAQ
   def oauth2DocumentationUrl: CssSel = {
-    val oauth2documentationurl = scala.xml.Unparsed(APIUtil.getPropsValue("webui_oauth_2_documentation_url", apiExplorerUrl + "/glossary#OAuth-2"))
+    val oauth2documentationurl = scala.xml.Unparsed(getWebUiPropsValue("webui_oauth_2_documentation_url", apiExplorerUrl + "/glossary#OAuth-2"))
     ".oauth-2-documentation-url a [href]" #> oauth2documentationurl
   }
 
@@ -231,7 +226,7 @@ class WebUI extends MdcLoggable{
 
   // Support platform link
   def supportPlatformLink: CssSel = {
-    val supportplatformlink = scala.xml.Unparsed(APIUtil.getPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))
+    val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))
         ".support-platform-link a [href]" #> supportplatformlink &
           ".support-platform-link a *" #> supportplatformlink.toString().replace("https://","").replace("http://", "")
   }
@@ -239,18 +234,18 @@ class WebUI extends MdcLoggable{
 
   // Page title
   def pageTitle = {
-    val prefix = APIUtil.getPropsValue("webui_page_title_prefix", "Open Bank Project: ")
+    val prefix = getWebUiPropsValue("webui_page_title_prefix", "Open Bank Project: ")
     scala.xml.XML.loadString(s"<title>$prefix<lift:Menu.title /></title>")
   }
 
   def mainStyleSheet: CssSel = {
-    "#main_style_sheet [href]" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_main_style_sheet", "/media/css/website.css"))
+    "#main_style_sheet [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_main_style_sheet", "/media/css/website.css"))
   }
 
 
 
   def getStartedText: CssSel = {
-    "@get-started *" #> scala.xml.Unparsed(APIUtil.getPropsValue("webui_get_started_text", "Get started building your applications now!"))
+    "@get-started *" #> scala.xml.Unparsed(getWebUiPropsValue("webui_get_started_text", "Get started building your applications now!"))
   }
 
 
@@ -307,7 +302,7 @@ class WebUI extends MdcLoggable{
 
   def contentLoader(property: String, contentId : String) : NodeSeq = {
     // Get the url that has the content we want to use
-    val url = APIUtil.getPropsValue(property, "")
+    val url = getWebUiPropsValue(property, "")
 
 
     // See if we need to do something
@@ -354,7 +349,7 @@ class WebUI extends MdcLoggable{
 
 
   def overrideStyleSheet: CssSel = {
-    val stylesheet = APIUtil.getPropsValue("webui_override_style_sheet", "")
+    val stylesheet = getWebUiPropsValue("webui_override_style_sheet", "")
     if (stylesheet.isEmpty) {
       "#override_style_sheet" #> ""
     } else {
@@ -377,7 +372,7 @@ class WebUI extends MdcLoggable{
 
 
     val mainPartners: Option[String] = {
-      APIUtil.getPropsValue("webui_main_partners")
+      Some(getWebUiPropsValue("webui_main_partners", ""))
     }
 
 

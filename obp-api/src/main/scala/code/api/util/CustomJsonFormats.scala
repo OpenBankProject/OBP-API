@@ -109,19 +109,12 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
     }
   }
 
-  private val camelRegex = Pattern.compile("""[a-z0-9][A-Z]|[A-Z]{2,}[a-z]""")
+  private[this] def isNeedRenameFieldNames(entityType: Class[_], jValue: JValue): Boolean = {
+    val isJsonFieldRename = clazz.isAssignableFrom(entityType)
 
-  private[this] def isNeedRenameFieldNames(entityType: Class[_], jvalue: JValue): Boolean = {
-    // the reason of the if else clause:
-    // when entity type is not JsonFieldReName, not need check the field list, will have better performance
-    if(clazz.isAssignableFrom(entityType)) {
-      jvalue match {
-        case JObject(fieldList) => fieldList.forall(jfield => !camelRegex.matcher(jfield.name).find())
-        case _ => false
-      }
-    } else  {
-      false
-    }
+    isJsonFieldRename  &&
+      jValue.isInstanceOf[JObject] &&
+      jValue.asInstanceOf[JObject].obj.exists(jField => StringHelpers.camelifyMethod(jField.name) != jField.name)
   }
 
   // check given object is some Id, only type name ends with "Id" and have a single param constructor
@@ -183,21 +176,6 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
     case x: ListResult[_] => {
       val singleField = JField(x.name, Extraction.decompose(x.results))
       JObject(singleField)
-    }
-  }
-
-  private val camelRegex = Pattern.compile("""[a-z0-9][A-Z]|[A-Z]{2,}[a-z]""")
-
-  private[this] def isNeedRenameFieldNames(entityType: Class[_], jvalue: JValue): Boolean = {
-    // the reason of the if else clause:
-    // when entity type is not JsonFieldReName, not need check the field list, will have better performance
-    if(clazz.isAssignableFrom(entityType)) {
-      jvalue match {
-        case JObject(fieldList) => fieldList.forall(jfield => !camelRegex.matcher(jfield.name).find())
-        case _ => false
-      }
-    } else  {
-      false
     }
   }
 }
