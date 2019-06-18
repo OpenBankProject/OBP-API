@@ -125,8 +125,12 @@ object ErrorMessages {
   val ElasticSearchIndexNotFound = "OBP-20051: Elasticsearch index or indices not found."
   val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
   val ElasticSearchEmptyQueryBody = "OBP-20053: The Elasticsearch query body cannot be empty"
+  val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
+  val MissingQueryParams = "OBP-20055: These query parameters are missing: "
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
+
+  val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
   // OAuth 2
   val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
@@ -138,15 +142,13 @@ object ErrorMessages {
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
 
-  val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
-  val MissingQueryParams = "OBP-20055: These query parameters are missing: "
-  
-  
-
-  val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
-
-
-
+  // X.509
+  val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
+  val X509ParsingFailed = "OBP-20301: Parsing failed for PEM Encoded Certificate."
+  val X509CertificateExpired = "OBP-20302: PEM Encoded Certificate expired."
+  val X509CertificateNotYetValid = "OBP-20303: PEM Encoded Certificate not yet valid."
+  val X509CannotGetRSAPublicKey = "OBP-20304:  RSA public key cannot be found at PEM Encoded Certificate."
+  val X509CannotGetECPublicKey = "OBP-20305:  EC public key cannot be found at PEM Encoded Certificate."
 
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -226,6 +228,7 @@ object ErrorMessages {
   
   val CardNotFound = "OBP-30059: This Card can not be found for the user "
   val CardAlreadyExists = "OBP-30060: Card already exists. Please specify different values for bankId, card_number and issueNumber."
+  val CardAttributeNotFound = "OBP-30061: Card Attribute not found. Please specify a valid value for CARD_ATTRIBUTE_ID."
   
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
@@ -298,7 +301,7 @@ object ErrorMessages {
   val ConsentDisabled = "OBP-35007: Consents are not allowed at this instance. "
   val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
   val ConsentAllowedScaMethods = "OBP-35009: Only SMS and EMAIL are supported as SCA methods. "
-  val smsServerNotWork = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
+  val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
 
   // General Resource related messages above here
 

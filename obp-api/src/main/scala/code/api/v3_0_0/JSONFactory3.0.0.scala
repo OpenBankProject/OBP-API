@@ -38,6 +38,8 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.EntitlementJSONs
 import code.api.v2_0_0.JSONFactory200.{UserJsonV200, UsersJsonV200}
 import code.api.v2_1_0.CustomerCreditRatingJSON
+import code.api.v3_1_0.AccountAttributeResponseJson
+import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.atms.Atms.Atm
 import code.branches.Branches.Branch
 import code.entitlement.Entitlement
@@ -278,6 +280,20 @@ case class ModeratedCoreAccountJsonV300(
                                          balance: AmountOfMoneyJsonV121,
                                          account_routings: List[AccountRoutingJsonV121],
                                          account_rules: List[AccountRuleJsonV300]
+)
+
+
+case class NewModeratedCoreAccountJsonV300(
+  id: String,
+  bank_id: String,
+  label: String,
+  number: String,
+  owners: List[UserJSONV121],
+  `type`: String,
+  balance: AmountOfMoneyJsonV121,
+  account_routings: List[AccountRoutingJsonV121],
+  views_basic: List[ViewBasic],
+  account_attributes: List[AccountAttributeResponseJson]
 )
 
 case class ModeratedCoreAccountsJsonV300(
@@ -767,6 +783,23 @@ object JSONFactory300{
     routings.map(i => AccountRoutingJsonV121(scheme = i.scheme, address = i.address))
   }
 
+  //Here we added the views and accountAttributes here.
+  def createNewCoreBankAccountJson(account : ModeratedBankAccount, availableViews: List[View],accountAttributes: List[AccountAttribute]) : NewModeratedCoreAccountJsonV300 =  {
+    val bankName = account.bankName.getOrElse("")
+    new NewModeratedCoreAccountJsonV300 (
+      account.accountId.value,
+      stringOrNull(account.bankId.value),
+      stringOptionOrNull(account.label),
+      stringOptionOrNull(account.number),
+      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      stringOptionOrNull(account.accountType),
+      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      createAccountRoutingsJSON(account.accountRoutings),
+      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasic(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
+      accountAttributes.map(createAccountAttributeJson)
+    )
+  }
+  
   def createCoreBankAccountJSON(account : ModeratedBankAccount) : ModeratedCoreAccountJsonV300 =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedCoreAccountJsonV300 (

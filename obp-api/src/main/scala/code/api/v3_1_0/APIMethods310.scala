@@ -1123,6 +1123,7 @@ trait APIMethods310 {
         cc =>
           for {
             (user, callContext) <- authorizedAccess(cc)
+            _ <- validatePsd2Certificate(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
@@ -2065,12 +2066,18 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+            
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankId),
               ProductCode(productCode),
               None,
               postedData.name,
-              ProductAttributeType.withName(postedData.`type`),
+              productAttributeType,
               postedData.value,
               callContext: Option[CallContext]
             )
@@ -2157,12 +2164,18 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}, ${ProductAttributeType.STRING}, ${ProductAttributeType.INTEGER} and ${ProductAttributeType.DATE_WITH_DAY}"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+            (_, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankId),
               ProductCode(productCode),
               Some(productAttributeId),
               postedData.name,
-              ProductAttributeType.withName(postedData.`type`),
+              productAttributeType,
               postedData.value,
               callContext: Option[CallContext]
             )
@@ -2464,7 +2477,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "createProduct",
       "PUT",
-      "/banks/BANK_ID/products/CODE",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
       "Create Product",
       s"""Create or Update Product for the Bank.
          |
@@ -2731,7 +2744,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createAccountAttribute),
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/products/CODE/attribute",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/products/PRODUCT_CODE/attribute",
       "Create Account Attribute",
       s""" Create Account Attribute
          |
@@ -2777,13 +2790,19 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountAttributeJson]
             }
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+            accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              AccountAttributeType.withName(postedData.`type`)
+            }
+            
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateAccountAttribute(
               BankId(bankId),
               AccountId(accountId),
               ProductCode(productCode),
               None,
               postedData.name,
-              AccountAttributeType.withName(postedData.`type`),
+              accountAttributeType,
               postedData.value,
               callContext: Option[CallContext]
             )
@@ -2792,8 +2811,82 @@ trait APIMethods310 {
           }
       }
     }
-    
-    
+
+    resourceDocs += ResourceDoc(
+      updateAccountAttribute,
+      implementedInApiVersion,
+      nameOf(updateAccountAttribute),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/products/PRODUCT_CODE/attributes/ACCOUNT_ATTRIBUTE_ID",
+      "Update Account Attribute",
+      s""" Update Account Attribute
+         |
+         |$accountAttributeGeneralInfo
+         |
+         |Typical account attributes might be:
+         |
+         |ISIN (for International bonds)
+         |VKN (for German bonds)
+         |REDCODE (markit short code for credit derivative)
+         |LOAN_ID (e.g. used for Anacredit reporting)
+         |
+         |ISSUE_DATE (When the bond was issued in the market)
+         |MATURITY_DATE (End of life time of a product)
+         |TRADABLE
+         |
+         |See [FPML](http://www.fpml.org/) for more examples.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountAttributeJson,
+      accountAttributeResponseJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle))
+
+    lazy val updateAccountAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attributes" :: accountAtrributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountAttributeJson]
+            }
+            
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+            accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              AccountAttributeType.withName(postedData.`type`)
+            }
+            
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), callContext)
+            (_, callContext) <- NewStyle.function.getAccountAttributeById(accountAtrributeId, callContext)
+            
+
+            (accountAttribute, callContext) <- NewStyle.function.createOrUpdateAccountAttribute(
+              BankId(bankId),
+              AccountId(accountId),
+              ProductCode(productCode),
+              Some(accountAtrributeId),
+              postedData.name,
+              accountAttributeType,
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createAccountAttributeJson(accountAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }    
 
 
 
@@ -3340,7 +3433,7 @@ trait APIMethods310 {
                 messageText = s"Your consent challenge : ${createdConsent.challenge}";
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
-                failMsg = s"$smsServerNotWork: $phoneNumber. Or Please to use EMAIL first." 
+                failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
                 _ <- Helper.booleanToFuture(failMsg) {
                   response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
                 }
@@ -4699,6 +4792,8 @@ trait APIMethods310 {
               json.extract[CardAttributeJson]
             }
             
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
             }
@@ -4719,6 +4814,79 @@ trait APIMethods310 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      updateCardAttribute,
+      implementedInApiVersion,
+      nameOf(updateCardAttribute),
+      "PUT",
+      "/management/banks/BANK_ID/cards/CARD_ID/attributes/CARD_ATTRIBUTE_ID",
+      "Update Card Attribute",
+      s""" Update Card Attribute
+         |
+         |Card Attributes are used to describe a financial Product with a list of typed key value pairs.
+         |
+         |Each Card Attribute is linked to its Card by CARD_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      CardAttributeJson(
+        cardAttributeNameExample.value,
+        CardAttributeType.DOUBLE.toString,
+        cardAttributeValueExample.value
+      ),
+      CardAttributeCommons(
+        Some(BankId(bankIdExample.value)),
+        Some(cardIdExample.value),
+        Some(cardAttributeIdExample.value),
+        cardAttributeNameExample.value,
+        CardAttributeType.DOUBLE,
+        cardAttributeValueExample.value),
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagCard, apiTagNewStyle))
+
+    lazy val updateCardAttribute : OBPEndpoint = {
+      case "management"::"banks" :: bankId :: "cards" :: cardId :: "attributes" :: cardAttributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (_, callContext) <- NewStyle.function.getPhysicalCardForBank(BankId(bankId), cardId, callContext)
+            (_, callContext) <- NewStyle.function.getCardAttributeById(cardAttributeId, callContext)
+
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CardAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CardAttributeJson]
+            }
+
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${CardAttributeType.DOUBLE}, ${CardAttributeType.STRING}, ${CardAttributeType.INTEGER} and ${CardAttributeType.DATE_WITH_DAY}"
+            createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              CardAttributeType.withName(postedData.`type`)
+            }
+
+            (cardAttribute, callContext) <- NewStyle.function.createOrUpdateCardAttribute(
+              Some(BankId(bankId)),
+              Some(cardId),
+              Some(cardAttributeId),
+              postedData.name,
+              createCardAttribute,
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            val commonsData: CardAttributeCommons = cardAttribute
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
     resourceDocs += ResourceDoc(
       updateCustomerBranch,
       implementedInApiVersion,

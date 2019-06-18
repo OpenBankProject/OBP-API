@@ -40,7 +40,7 @@ object Migration extends MdcLoggable {
     if(comment.length() > 1024) {
       val traceUUID = APIUtil.generateUUID()
       val traceText = " Trace UUID: "  + traceUUID
-      remark = remark.substring(970) + traceText
+      remark = remark.substring(0,970) + traceText
       logger.info(traceText)
       logger.info(comment)
     }

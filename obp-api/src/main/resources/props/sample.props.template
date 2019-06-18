@@ -588,3 +588,8 @@ database_messages_scheduler_interval=3600
 # sca_phone_api_key = oXAjqAJ6rvCunpzN
 # sca_phone_api_secret =oXAjqAJ6rvCunpzN123sdf
 # 
+
+# -- PSD2 Certificates --------------------------
+# In case isn't defined default value is "false"
+# requirePsd2Certificates=false
+# -----------------------------------------------
