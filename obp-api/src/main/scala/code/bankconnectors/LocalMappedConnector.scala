@@ -4,7 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 
 import code.accountapplication.AccountApplicationX
-import code.accountattribute.AccountAttributeX
+import code.accountattribute.{AccountAttributeX, MappedAccountAttribute}
 import code.accountholders.AccountHolders
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.cache.Caching
@@ -2302,6 +2302,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
 
+  override def getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]) = 
+    AccountAttributeX.accountAttributeProvider.vend.getAccountAttributeById(accountAttributeId: String) map {
+      (_, callContext)
+    }
+  
   override def createOrUpdateAccountAttribute(
                                                bankId: BankId,
                                                accountId: AccountId,

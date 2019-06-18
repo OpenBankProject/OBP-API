@@ -40,6 +40,8 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 import java.util.UUID.randomUUID
 
+import code.accountattribute.AccountAttributeX
+
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_4_0.getTransactionRequestTypes), ApiVersion.v1_4_0.toString),
@@ -159,6 +161,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.updateAccountAttribute), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createConsent), ApiVersion.v3_1_0.toString),
@@ -781,6 +784,10 @@ object NewStyle {
       }
     }
 
+    def getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]): OBPReturnType[AccountAttribute] = 
+      Connector.connector.vend.getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
 
     def createOrUpdateAccountAttribute(
                                         bankId: BankId,
@@ -937,6 +944,11 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Current collection code($collectionCode)", 400), i._2)
       }
     }
+    def getProduct(bankId : BankId, productCode : ProductCode, callContext: Option[CallContext]) : OBPReturnType[Product] =
+      Future {Connector.connector.vend.getProduct(bankId : BankId, productCode : ProductCode)} map {
+        i => (unboxFullOrFail(i, callContext, ProductNotFoundByProductCode + " {" + productCode.value + "}", 400), callContext)
+      }
+    
     def getProductCollection(collectionCode: String, 
                              callContext: Option[CallContext]): OBPReturnType[List[ProductCollection]] = {
       Connector.connector.vend.getProductCollection(collectionCode, callContext) map {

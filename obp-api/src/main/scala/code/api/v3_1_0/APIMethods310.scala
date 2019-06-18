@@ -2475,7 +2475,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       "createProduct",
       "PUT",
-      "/banks/BANK_ID/products/CODE",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
       "Create Product",
       s"""Create or Update Product for the Bank.
          |
@@ -2742,7 +2742,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(createAccountAttribute),
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/products/CODE/attribute",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/products/PRODUCT_CODE/attribute",
       "Create Account Attribute",
       s""" Create Account Attribute
          |
@@ -2809,8 +2809,82 @@ trait APIMethods310 {
           }
       }
     }
-    
-    
+
+    resourceDocs += ResourceDoc(
+      updateAccountAttribute,
+      implementedInApiVersion,
+      nameOf(updateAccountAttribute),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/products/PRODUCT_CODE/attributes/ACCOUNT_ATTRIBUTE_ID",
+      "Update Account Attribute",
+      s""" Update Account Attribute
+         |
+         |$accountAttributeGeneralInfo
+         |
+         |Typical account attributes might be:
+         |
+         |ISIN (for International bonds)
+         |VKN (for German bonds)
+         |REDCODE (markit short code for credit derivative)
+         |LOAN_ID (e.g. used for Anacredit reporting)
+         |
+         |ISSUE_DATE (When the bond was issued in the market)
+         |MATURITY_DATE (End of life time of a product)
+         |TRADABLE
+         |
+         |See [FPML](http://www.fpml.org/) for more examples.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      accountAttributeJson,
+      accountAttributeResponseJson,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagAccount, apiTagNewStyle))
+
+    lazy val updateAccountAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "accounts" :: accountId :: "products" :: productCode :: "attributes" :: accountAtrributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          for {
+            (_, callContext) <- authorizedAccess(cc)
+            
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountAttributeJson]
+            }
+            
+            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+              s"${AccountAttributeType.DOUBLE}, ${AccountAttributeType.STRING}, ${AccountAttributeType.INTEGER} and ${AccountAttributeType.DATE_WITH_DAY}"
+            accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              AccountAttributeType.withName(postedData.`type`)
+            }
+            
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), callContext)
+            (_, callContext) <- NewStyle.function.getAccountAttributeById(accountAtrributeId, callContext)
+            
+
+            (accountAttribute, callContext) <- NewStyle.function.createOrUpdateAccountAttribute(
+              BankId(bankId),
+              AccountId(accountId),
+              ProductCode(productCode),
+              Some(accountAtrributeId),
+              postedData.name,
+              accountAttributeType,
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createAccountAttributeJson(accountAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }    
 
 
 
