@@ -1,18 +1,20 @@
 package code.api.util
 
-import java.util.regex.Pattern
-
+import code.api.ChargePolicy
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
-import com.openbankproject.commons.model.JsonFieldReName
+import code.consent.ConsentStatus
+import code.context.UserAuthContextUpdateStatus
+import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestStatus, TransactionRequestTypes}
+import com.openbankproject.commons.model.AccountAttributeType.AccountAttributeType
+import com.openbankproject.commons.model.{AccountAttributeType, CardAttributeType, JsonFieldReName, ProductAttributeType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
 import scala.reflect.runtime.{universe => ru}
-
-import scala.reflect.ManifestFactory
+import scala.reflect.{ClassTag, ManifestFactory}
 
 trait CustomJsonFormats {
   implicit val formats: Formats = CustomJsonFormats.formats
@@ -20,17 +22,17 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + BigDecimalSerializer + FiledRenameSerializer + ListResultSerializer
+  } + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer ++ EnumerationSerializer.enumerationSerizers
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {
@@ -68,22 +70,11 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
           renamedJObject
         } else {
           val children = renamedJObject.asInstanceOf[JObject].obj
-          val childrenNames = children.map(_.name)
           val nullFields = optionalFields.filter(pair => !children.contains(pair._1)).map(pair => JField(pair._1, pair._2)).toList
           val jObject: JValue = JObject(children ++: nullFields)
           jObject
         }
-
-        val idFieldToIdValueName: Map[String, String] = getSomeIdFieldInfo(entityType)
-        val processedIdJObject = if(idFieldToIdValueName.isEmpty){
-            addedNullValues
-          } else {
-            addedNullValues.mapField {
-              case JField(name, jValue) if(idFieldToIdValueName.contains(name)) => JField(name, JObject(JField(idFieldToIdValueName(name), jValue)))
-              case jField => jField
-            }
-        }
-        Extraction.extract(processedIdJObject,typeInfo).asInstanceOf[JsonFieldReName]
+        Extraction.extract(addedNullValues,typeInfo).asInstanceOf[JsonFieldReName]
       }
       case x => throw new MappingException("Can't convert " + x + " to JsonFieldReName")
     }
@@ -97,13 +88,7 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
         .map(pair => {
           val paramName = StringHelpers.snakify(pair._1)
           val paramValue = pair._2
-          isSomeId(paramValue) match {
-            case false => JField(paramName, Extraction.decompose(paramValue))
-            case true => {
-              val idValue = ReflectUtils.getConstructorArgs(paramValue).head._2
-              JField(paramName, Extraction.decompose(idValue))
-            }
-           }
+          JField(paramName, Extraction.decompose(paramValue))
         }) .toList
       JObject(renamedJFields)
     }
@@ -117,32 +102,6 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
       jValue.asInstanceOf[JObject].obj.exists(jField => StringHelpers.camelifyMethod(jField.name) != jField.name)
   }
 
-  // check given object is some Id, only type name ends with "Id" and have a single param constructor
-  private def isSomeId(obj: Any) = obj match {
-    case null => false
-    case _ => obj.getClass.getSimpleName.endsWith("Id") && ReflectUtils.getPrimaryConstructor(obj).asMethod.paramLists.headOption.exists(_.size == 1)
-  }
-  private def isSomeIdType(tp: ru.Type) = tp.typeSymbol.name.toString.endsWith("Id") && ReflectUtils.getConstructorParamInfo(tp).size == 1
-
-  /**
-    * extract constructor params those type is some id, and return the field name to the id constructor value name
-    * for example:
-    * case class Foo(name: String, bankId: BankId(value:String))
-    * getSomeIdFieldInfo(typeOf[Foo]) == Map(("bankId" -> "value"))
-    * @param clazz to do extract class
-    * @return field name to id type single value name
-    */
-  private def getSomeIdFieldInfo(clazz: Class[_]) = {
-    val paramNameToType: Map[String, ru.Type] = ReflectUtils.getConstructorInfo(clazz)
-    paramNameToType
-      .filter(nameToType => isSomeIdType(nameToType._2))
-      .map(nameToType => {
-          val (name, paramType) = nameToType
-          val singleParamName = ReflectUtils.getConstructorParamInfo(paramType).head._1
-          (name, singleParamName)
-        }
-      )
-  }
   private def getAnnotedFields(clazz: Class[_], annotationType: ru.Type): Map[String, ru.Type] = {
     val symbol  = ReflectUtils.classToSymbol(clazz)
     ReflectUtils.getPrimaryConstructor(symbol.toType)
@@ -180,7 +139,93 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
   }
 }
 
+object IdTypeSerializer extends Serializer[Any] {
 
+  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any] = {
+    case (typeInfo @ TypeInfo(entityType, _), json) if(isSomeIdType(entityType)) => {
+      val singleParamName = ReflectUtils.getPrimaryConstructor(ReflectUtils.classToSymbol(entityType)).paramLists.head.head.name.toString
+      val idObject = JObject(List(JField(singleParamName, json)))
+      Extraction.extract(idObject,typeInfo)
+    }
+  }
+
+  def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case x if(isSomeId(x)) => {
+      val idValue = ReflectUtils.getConstructorArgs(x).head._2
+      Extraction.decompose(idValue)
+    }
+  }
+
+
+  // check given object is some Id, only type name ends with "Id" and have a single param constructor
+  private def isSomeId(obj: Any) = obj match {
+    case null => false
+    case _ => obj.getClass.getSimpleName.endsWith("Id") && ReflectUtils.getPrimaryConstructor(obj).asMethod.paramLists.headOption.exists(_.size == 1)
+  }
+  private def isSomeIdType(clazz: Class[_]) = clazz.getSimpleName.endsWith("Id") && clazz.getConstructors.exists(_.getParameterTypes.size == 1)
+
+}
+
+/*object EnumerationSerializer extends Serializer[Enumeration] {
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Enumeration] = {
+    case (typeInfo @ TypeInfo(entityType, _), json) if(isEnumeType(entityType)) => {
+      val enumName = json.asInstanceOf[JString].s
+      val withName = entityType.getMethod("withName", classOf[String])
+      withName.invoke(null, enumName).asInstanceOf[Enumeration]
+    }
+  }
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case x if(isEnume(x)) => JString(x.toString())
+  }
+
+  private def isEnume(obj: Any) = {
+   obj != null &&  obj.getClass.getName == "scala.Enumeration$Val"
+ }
+  private def isEnumeType(clazz: Class[_]) = {
+    clazz.getName == "scala.Enumeration$Value"
+  }
+}*/
+class EnumerationSerializer[T <: Enumeration: ClassTag](enum: Enumeration ) extends Serializer[T] {
+
+  import JsonDSL._
+  // def EnumerationClass[T] = classOf[T]
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), T] = {
+    case (TypeInfo(clazz, _), json) => json match {
+      case JObject(List(JField(name, JString(value)))) => fetchEnumValue(value)
+      case JString(value) => fetchEnumValue(value)
+      case value => throw new MappingException("Can't convert " + value + " to " + clazz)
+    }
+  }
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case x: T#Value => x.toString
+  }
+
+  private def fetchEnumValue(value: String): T = {
+    enum.values.find(_.toString == value).getOrElse(throw new Exception("Invalid enum value => " + value)).asInstanceOf[T]
+  }
+}
+
+object EnumerationSerializer{
+  val enumerationSerizers =  new EnumerationSerializer(ConsentStatus) ::
+                                new EnumerationSerializer(AccountAttributeType) ::
+                                new EnumerationSerializer(ProductAttributeType) ::
+                                new EnumerationSerializer(CardAttributeType) ::
+                                new EnumerationSerializer(StrongCustomerAuthentication) ::
+                                new EnumerationSerializer(UserAuthContextUpdateStatus) ::
+                                new EnumerationSerializer(TransactionRequestStatus) ::
+                                new EnumerationSerializer(TransactionChallengeTypes) ::
+                                new EnumerationSerializer(TransactionRequestTypes) ::
+                                new EnumerationSerializer(CryptoSystem) ::
+                                new EnumerationSerializer(RateLimitPeriod) ::
+                                new EnumerationSerializer(ApiStandards) ::
+                                new EnumerationSerializer(ApiShortVersions) ::
+                                new EnumerationSerializer(ChargePolicy) ::
+                                Nil
+}
 
 @scala.annotation.meta.field
 @scala.annotation.meta.param

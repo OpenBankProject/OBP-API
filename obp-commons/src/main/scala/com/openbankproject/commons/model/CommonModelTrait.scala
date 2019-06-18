@@ -39,7 +39,7 @@ trait JsonFieldReName
 
 //--------- enums
 object AccountAttributeType extends Enumeration{
-  type ProductAttributeType = Value
+  type AccountAttributeType = Value
   val STRING = Value("STRING")
 
   val INTEGER = Value("INTEGER")
