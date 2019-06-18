@@ -44,6 +44,7 @@ import code.users.Users
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
+import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsProvider}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
@@ -5252,7 +5253,6 @@ trait APIMethods310 {
               transDetailsJson.value.currency == fromAccount.currency
             }
 
-
             amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
             chargePolicy = transDetailsJson.charge_policy
 
@@ -5281,6 +5281,139 @@ trait APIMethods310 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      getWebUiPropses,
+      implementedInApiVersion,
+      nameOf(getWebUiPropses),
+      "GET",
+      "/management/webui_props",
+      "Get WebUiPropses",
+      s"""
+      |
+      |Get the all WebUiProps key values, those props key with "webui_" can be stored in DB, this endpoint get all from DB.
+      |
+      |""",
+      emptyObjectJson,
+      ListResult(
+        "webui_props",
+        (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"))))
+      )
+      ,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      Some(List(canGetWebUiProps))
+    )
+
+
+    lazy val getWebUiPropses: OBPEndpoint = {
+      case "management" :: "webui_props":: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetWebUiProps, callContext)
+            webUiPropss <- Future{ MappedWebUiPropsProvider.getAll() }
+          } yield {
+            val listCommons: List[WebUiPropsCommons] = webUiPropss
+            (ListResult("webui_props", listCommons), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createWebUiProps,
+      implementedInApiVersion,
+      nameOf(createWebUiProps),
+      "POST",
+      "/management/webui_props",
+      "Add WebUiProps",
+      s"""Add a WebUiProps.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Explaination of Fields:
+         |
+         |* name is required String value
+         |* value is required String value
+         |
+         |""",
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
+      WebUiPropsCommons( "webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateWebUiProps)))
+
+    lazy val createWebUiProps : OBPEndpoint = {
+      case "management" :: "webui_props" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canCreateWebUiProps, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[WebUiPropsCommons]} "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[WebUiPropsCommons]
+            }
+            invalidMsg = s"""$InvalidWebUiProps name must be start with "webui_": ${postedData.name} """
+            _ <- NewStyle.function.tryons(invalidMsg, 400, callContext) {
+              require(postedData.name.startsWith("webui_"))
+            }
+            Full(webUiProps) <- Future {  MappedWebUiPropsProvider.createOrUpdate(postedData) }
+          } yield {
+            val commonsData: WebUiPropsCommons = webUiProps
+            (commonsData, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      deleteWebUiProps,
+      implementedInApiVersion,
+      nameOf(deleteWebUiProps),
+      "DELETE",
+      "/management/webui_props/WEB_UI_PROPS_ID",
+      "Delete WebUiProps",
+      s"""Delete a WebUiProps specified by WEB_UI_PROPS_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      Catalogs(notCore, notPSD2, notOBWG),
+      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteWebUiProps)))
+
+    lazy val deleteWebUiProps : OBPEndpoint = {
+      case "management" :: "webui_props" :: webUiPropsId ::  Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteWebUiProps, callContext)
+            deleted: Box[Boolean] <- Future {MappedWebUiPropsProvider.delete(webUiPropsId)}
+          } yield {
+            (deleted, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
   }
 }
 

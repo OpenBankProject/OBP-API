@@ -32,7 +32,8 @@ import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.dataAccess.{Admin, AuthUser}
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{CssSel, Props}
+import net.liftweb.util.CssSel
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 import scala.xml.NodeSeq
 
@@ -87,7 +88,7 @@ class Login {
   // Used to display custom message to users when they login.
   // For instance we can use it to display example login on a sandbox
     def customiseLogin : CssSel = {
-      val specialLoginInstructions  = scala.xml.Unparsed(APIUtil.getPropsValue("webui_login_page_special_instructions", ""))
+      val specialLoginInstructions  = scala.xml.Unparsed(getWebUiPropsValue("webui_login_page_special_instructions", ""))
       // In case we use Extraction.decompose
       implicit val formats = CustomJsonFormats.formats
       "#login-special-instructions *" #> specialLoginInstructions &

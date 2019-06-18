@@ -94,6 +94,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.util.Helper.MdcLoggable
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
+import code.webuiprops.WebUiProps
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -623,5 +624,6 @@ object ToSchemify {
     MappedConsent,
     MigrationScriptLog,
     MethodRouting,
+    WebUiProps,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }

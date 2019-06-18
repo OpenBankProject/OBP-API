@@ -46,6 +46,7 @@ import net.liftweb.util._
 import scala.collection.immutable.List
 import scala.xml.{NodeSeq, Text}
 import scala.concurrent.ExecutionContext.Implicits.global
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -406,7 +407,7 @@ import net.liftweb.util.Helpers._
 
 
   def agreeTerms = {
-    val url = APIUtil.getPropsValue("webui_agree_terms_url", "")
+    val url = getWebUiPropsValue("webui_agree_terms_url", "")
     if (url.isEmpty) {
       s""
     } else {
@@ -415,7 +416,7 @@ import net.liftweb.util.Helpers._
   }
 
   def agreePrivacyPolicy = {
-    val url = APIUtil.getPropsValue("webui_agree_privacy_policy_url", "")
+    val url = getWebUiPropsValue("webui_agree_privacy_policy_url", "")
     if (url.isEmpty) {
       s""
     } else {

@@ -387,6 +387,9 @@ object ErrorMessages {
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
 
+  // WebUiProps Exceptions (OBP-8XXXX)
+  val InvalidWebUiProps = "OBP-80001: Incorrect format of name."
+
   ///////////
 
 
