@@ -143,11 +143,12 @@ object ErrorMessages {
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
 
   // X.509
-  val X509GeneralError = "OBP-20300: PEM Encoded Certificate's issue."
+  val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
   val X509ParsingFailed = "OBP-20301: Parsing failed for PEM Encoded Certificate."
   val X509CertificateExpired = "OBP-20302: PEM Encoded Certificate expired."
   val X509CertificateNotYetValid = "OBP-20303: PEM Encoded Certificate not yet valid."
-  val X509CannotGetRSAPublicKey = "OBP-20304:  Public key cannot be found at PEM Encoded Certificate."
+  val X509CannotGetRSAPublicKey = "OBP-20304:  RSA public key cannot be found at PEM Encoded Certificate."
+  val X509CannotGetECPublicKey = "OBP-20305:  EC public key cannot be found at PEM Encoded Certificate."
 
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."

@@ -2538,11 +2538,7 @@ Returns a string showed to the developer
         X509.validate("Obtain PEM encoded certificate")
     }
     Future(result) map {
-      x =>
-        (
-          fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, Some(cc.toLight))),
-          Some(cc)
-        )
+      x => (fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, Some(cc.toLight))), Some(cc))
     }
   }
   
