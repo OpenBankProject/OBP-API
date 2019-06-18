@@ -21,6 +21,7 @@ class AccountTest extends V300ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getFirehoseAccountsAtOneBank))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.getCoreAccountById))
   
   // Need test endpoints -- /my/accounts - corePrivateAccountsAllBanks - V300
   def getCorePrivateAccountsAllBanksV300(consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -56,4 +57,21 @@ class AccountTest extends V300ServerSetup {
     }}
 
 
+  feature(s"test $ApiEndpoint3") {
+    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
+      Given("We prepare the accounts in V300ServerSetup, just check the response")
+
+      When("We send the request")
+      val requestGet = (v3_0Request /"my" / "banks" / testBankId1.value/ "accounts" / testAccountId1.value / "account").GET <@ (user1)
+      val httpResponse = makeGetRequest(requestGet)
+
+      Then("We should get a 200 and check the response body")
+      httpResponse.code should equal(200)
+      val newModeratedCoreAccountJsonV300 = httpResponse.body.extract[NewModeratedCoreAccountJsonV300]
+      newModeratedCoreAccountJsonV300.account_attributes.length == 0 should be (true)
+      newModeratedCoreAccountJsonV300.views_basic.length >= 1 should be (true)
+
+    }
+  }
+  
   }

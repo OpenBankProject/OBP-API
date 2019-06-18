@@ -615,8 +615,6 @@ case class ModeratedAccountJSON310(
                                     owners : List[UserJSONV121],
                                     `type` : String,
                                     balance : AmountOfMoneyJsonV121,
-                                    IBAN : String,
-                                    swift_bic: String,
                                     views_available : List[ViewJSONV121],
                                     bank_id : String,
                                     account_routing :AccountRoutingJsonV121,
@@ -1226,8 +1224,6 @@ object JSONFactory310{
       createOwnersJSON(account.owners.getOrElse(Set()), bankName),
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
-      stringOptionOrNull(account.iban),
-      stringOptionOrNull(None),//set it None for V121
       viewsAvailable,
       stringOrNull(account.bankId.value),
       AccountRoutingJsonV121(stringOptionOrNull(account.accountRoutingScheme),stringOptionOrNull(account.accountRoutingAddress)),
