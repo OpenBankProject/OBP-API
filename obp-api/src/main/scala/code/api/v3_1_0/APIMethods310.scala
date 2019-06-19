@@ -4276,7 +4276,7 @@ trait APIMethods310 {
       implementedInApiVersion,
       nameOf(updateCustomerIdentity),
       "PUT",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/general-data",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/identity",
       "Update the general data of a Customer",
       s"""Update the general data of the Customer specified by CUSTOMER_ID.
         |
