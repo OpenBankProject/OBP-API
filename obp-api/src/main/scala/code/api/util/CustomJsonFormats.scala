@@ -20,18 +20,25 @@ trait CustomJsonFormats {
 }
 
 object CustomJsonFormats {
+  private val customSerializers =
+                          BigDecimalSerializer ::
+                          FiledRenameSerializer ::
+                          ListResultSerializer ::
+                          IdTypeSerializer ::
+                          EnumerationSerializer.enumerationSerializers ::
+                          Nil
 
-  val formats: Formats = net.liftweb.json.DefaultFormats + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
+  val formats: Formats = net.liftweb.json.DefaultFormats ++ customSerializers
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
+  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless ++ customSerializers
 
-  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
+  val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) ++ customSerializers
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
     val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
-  } + BigDecimalSerializer + FiledRenameSerializer + IdTypeSerializer + ListResultSerializer + EnumerationSerializer.enumerationSerializers
+  } ++ customSerializers
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {
@@ -112,7 +119,12 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
   private def getObjAnnotedFields(obj: Any, annotationType: ru.Type): Map[String, ru.Type] = getAnnotedFields(obj.getClass, annotationType)
 }
 
-object ListResultSerializer extends Serializer[ListResult[_]] {
+/**
+  * the reason of type parameter is Any instead of ListResult[_]:
+  * 1. if use ListResult[_], it is impossible to add this to a List: CustomJsonFormats#customSerializers
+  * 2. this type parameter not really have any function.
+  */
+object ListResultSerializer extends Serializer[Any] {
   private val clazz = classOf[ListResult[_]]
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ListResult[_]] = {
@@ -185,10 +197,12 @@ class EnumerationSerializer(enums: Enumeration*) extends Serializer[Enumeration#
 }
 
 object EnumerationSerializer{
-  val enumerationSerializers = new EnumerationSerializer(ConsentStatus,
-    AccountAttributeType, ProductAttributeType, CardAttributeType, StrongCustomerAuthentication, UserAuthContextUpdateStatus
-    , TransactionRequestStatus, TransactionChallengeTypes, TransactionRequestTypes, CryptoSystem, RateLimitPeriod
-    , ApiStandards, ApiShortVersions, ChargePolicy)
+  val enumerationSerializers = new EnumerationSerializer(
+    ConsentStatus, AccountAttributeType, ProductAttributeType, CardAttributeType,
+    StrongCustomerAuthentication, UserAuthContextUpdateStatus, TransactionRequestStatus, TransactionChallengeTypes,
+    TransactionRequestTypes, CryptoSystem, RateLimitPeriod, ApiStandards,
+    ApiShortVersions, ChargePolicy
+  )
 }
 
 @scala.annotation.meta.field
