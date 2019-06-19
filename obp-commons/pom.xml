@@ -19,6 +19,16 @@
             <artifactId>lift-common_${scala.version}</artifactId>
         </dependency>
         <dependency>
+            <groupId>net.liftweb</groupId>
+            <artifactId>lift-json_${scala.version}</artifactId>
+            <version>${lift.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.liftweb</groupId>
+            <artifactId>lift-util_${scala.version}</artifactId>
+            <version>${lift.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-reflect</artifactId>
             <scope>compile</scope>
