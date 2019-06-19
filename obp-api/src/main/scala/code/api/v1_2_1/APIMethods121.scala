@@ -857,7 +857,7 @@ trait APIMethods121 {
       apiVersion,
       "removePermissionForUserForBankAccountForOneView",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views/VIEW_ID",
       "Revoke access to one View.",
       s"""Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
         |
