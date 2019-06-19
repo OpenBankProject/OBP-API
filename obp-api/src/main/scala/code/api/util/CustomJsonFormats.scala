@@ -155,8 +155,9 @@ object ListResultSerializer extends Serializer[Any] {
 object IdTypeSerializer extends Serializer[Any] {
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any] = {
-    case (typeInfo @ TypeInfo(entityType, _), json) if(isSomeIdType(entityType)) => {
-      val singleParamName = ReflectUtils.getPrimaryConstructor(ReflectUtils.classToSymbol(entityType)).paramLists.head.head.name.toString
+    case (typeInfo @ TypeInfo(entityType, _), json) if(isSomeIdType(entityType) && !json.isInstanceOf[JObject]) => {
+      //it must be not null, because case if already check there is a constructor have single parameter
+      val singleParamName = entityType.getConstructors.find(_.getParameterCount == 1).map(_.getParameters.head.getName).orNull
       val idObject = JObject(List(JField(singleParamName, json)))
       Extraction.extract(idObject,typeInfo)
     }
@@ -173,7 +174,7 @@ object IdTypeSerializer extends Serializer[Any] {
     val className = clazz.getName
     className.endsWith("Id") && (className.startsWith("code.") || className.startsWith("com.openbankproject.commons."))
   }
-  private def isSomeIdType(clazz: Class[_]) = idClass(clazz) && clazz.getConstructors.exists(_.getParameters.size == 1)
+  private def isSomeIdType(clazz: Class[_]) = idClass(clazz) && clazz.getConstructors.exists(_.getParameterCount == 1)
 
 }
 
