@@ -852,6 +852,27 @@ trait APIMethods121 {
       }
     }
 
+
+    val generalRevokeAccessToViewText : String =
+      """
+        |The User is identified by PROVIDER_ID at their PROVIDER.
+        |
+        |The Account is specified by BANK_ID and ACCOUNT_ID.
+        |
+        |The View is specified by VIEW_ID.
+        |
+        |
+        |PROVIDER (may be a URL so) must be URL Encoded.
+        |
+        |PROVIDER_ID is normally equivalent to USERNAME. However, see Get User by ID or GET Current User for Provider information.
+        |
+        |Attempting to revoke access to a public view will return an error message.
+        |
+        |An Account Owner cannot revoke access to an Owner View unless at least one other User has Owner View access.
+        |
+      """.stripMargin
+
+
     resourceDocs += ResourceDoc(
       removePermissionForUserForBankAccountForOneView,
       apiVersion,
@@ -861,20 +882,7 @@ trait APIMethods121 {
       "Revoke access to one View.",
       s"""Revokes access to a View on an Account for a certain User.
          |
-         |The User is identified by PROVIDER_ID at their PROVIDER.
-         |
-         |The Account is specified by BANK_ID and ACCOUNT_ID.
-         |
-         |The View is specified by VIEW_ID.
-         |
-        |
-        |PROVIDER (may be a URL so) must be URL Encoded.
-        |
-        |PROVIDER_ID is normally equivalent to USERNAME. However, see Get User by ID or GET Current User for Provider information.
-        |
-        |Attempting to revoke access to a public view will return an error message.
-        |
-        |An Account Owner cannot revoke access to an Owner View unless at least one other User has Owner View access.
+         |$generalRevokeAccessToViewText
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
@@ -907,10 +915,12 @@ trait APIMethods121 {
       apiVersion,
       "removePermissionForUserForBankAccountForAllViews",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views",
       "Revoke access to all Views on Account",
-      s"""Revokes the user identified by PROVIDER_ID at their provider PROVIDER access to all the views at BANK_ID for account ACCOUNT_ID.
-        |
+      s""""Revokes access to all Views on an Account for a certain User.
+         |
+         |$generalRevokeAccessToViewText
+         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson,
