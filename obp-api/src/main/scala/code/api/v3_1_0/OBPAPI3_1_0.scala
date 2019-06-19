@@ -371,7 +371,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.createAccount ::
                           Implementations3_1_0.getPrivateAccountByIdFull ::
                           Implementations3_1_0.createCardAttribute ::
-                          Implementations3_1_0.getWebUiPropses ::
+                          Implementations3_1_0.getWebUiProps ::
                           Implementations3_1_0.createWebUiProps ::
                           Implementations3_1_0.deleteWebUiProps ::
                           Implementations3_1_0.updateCardAttribute ::

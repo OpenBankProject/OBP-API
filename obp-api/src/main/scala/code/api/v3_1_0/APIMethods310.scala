@@ -5170,12 +5170,12 @@ trait APIMethods310 {
 
 
     resourceDocs += ResourceDoc(
-      getWebUiPropses,
+      getWebUiProps,
       implementedInApiVersion,
-      nameOf(getWebUiPropses),
+      nameOf(getWebUiProps),
       "GET",
       "/management/webui_props",
-      "Get WebUiPropses",
+      "Get WebUiProps",
       s"""
       |
       |Get the all WebUiProps key values, those props key with "webui_" can be stored in DB, this endpoint get all from DB.
@@ -5198,7 +5198,7 @@ trait APIMethods310 {
     )
 
 
-    lazy val getWebUiPropses: OBPEndpoint = {
+    lazy val getWebUiProps: OBPEndpoint = {
       case "management" :: "webui_props":: Nil JsonGet req => {
         cc =>
           for {

@@ -48,7 +48,7 @@ class WebUiPropsTest extends V310ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createWebUiProps))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getWebUiPropses))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getWebUiProps))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.deleteWebUiProps))
 
   val rightEntity = WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com")
