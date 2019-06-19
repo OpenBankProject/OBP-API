@@ -4274,8 +4274,8 @@ trait APIMethods310 {
       nameOf(updateCustomerIdentity),
       "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/identity",
-      "Update the general data of a Customer",
-      s"""Update the general data of the Customer specified by CUSTOMER_ID.
+      "Update the identity data of a Customer",
+      s"""Update the identity data of the Customer specified by CUSTOMER_ID.
         |
         |
         |${authenticationRequiredMessage(true)}
