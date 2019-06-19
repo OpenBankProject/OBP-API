@@ -1,5 +1,7 @@
 package code.api.util
 
+import java.util.regex.Pattern
+
 import code.api.ChargePolicy
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
@@ -13,7 +15,7 @@ import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 
 import scala.reflect.runtime.{universe => ru}
-import scala.reflect.{ManifestFactory}
+import scala.reflect.ManifestFactory
 
 trait CustomJsonFormats {
   implicit val formats: Formats = CustomJsonFormats.formats
@@ -161,19 +163,17 @@ object IdTypeSerializer extends Serializer[Any] {
   }
 
   def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case x if(isSomeId(x)) => {
+    case x if(x != null && isSomeIdType(x.getClass)) => {
       val idValue = ReflectUtils.getConstructorArgs(x).head._2
       Extraction.decompose(idValue)
     }
   }
 
-
-  // check given object is some Id, only type name ends with "Id" and have a single param constructor
-  private def isSomeId(obj: Any) = obj match {
-    case null => false
-    case _ => obj.getClass.getSimpleName.endsWith("Id") && ReflectUtils.getPrimaryConstructor(obj).asMethod.paramLists.headOption.exists(_.size == 1)
+  private def idClass(clazz: Class[_]) = {
+    val className = clazz.getName
+    className.endsWith("Id") && (className.startsWith("code.") || className.startsWith("com.openbankproject.commons."))
   }
-  private def isSomeIdType(clazz: Class[_]) = clazz.getSimpleName.endsWith("Id") && clazz.getConstructors.exists(_.getParameterTypes.size == 1)
+  private def isSomeIdType(clazz: Class[_]) = idClass(clazz) && clazz.getConstructors.exists(_.getParameters.size == 1)
 
 }
 
