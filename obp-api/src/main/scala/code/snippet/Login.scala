@@ -37,7 +37,7 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 import scala.xml.NodeSeq
 
-class Login {
+class Login extends CustomJsonFormats {
 
   def loggedIn = {
     if(!AuthUser.loggedIn_?){
@@ -90,7 +90,6 @@ class Login {
     def customiseLogin : CssSel = {
       val specialLoginInstructions  = scala.xml.Unparsed(getWebUiPropsValue("webui_login_page_special_instructions", ""))
       // In case we use Extraction.decompose
-      implicit val formats = CustomJsonFormats.formats
       "#login-special-instructions *" #> specialLoginInstructions &
       "#brand [value]" #> activeBrand
     }

@@ -62,7 +62,7 @@ case class UserJSONRecord(email: String, password: String, user_name: String)
 
 // TODO Extract this into a separate application.
 
-object PostCounterpartyMetadata extends SendServerRequests {
+object PostCounterpartyMetadata extends SendServerRequests with CustomJsonFormats {
 
 
   def debugBreak() {
@@ -73,8 +73,6 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
 
   def main(args : Array[String]) {
-    implicit val formats = CustomJsonFormats.formats
-
     //load json for counterpaties
     // val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/korea/loaded_06/OBP_sandbox_counterparties_pretty.json"
 

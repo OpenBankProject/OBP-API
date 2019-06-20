@@ -69,8 +69,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   val SUCCESS: Int = 201
   val FAILED: Int = 400
 
-  implicit val formats = Serialization.formats(NoTypeHints)
-
   //tests running on the actual sandbox?
   val server = TestServer
   def baseRequest = host(server.host, server.port)

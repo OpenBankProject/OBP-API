@@ -38,7 +38,6 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.{InboundAccount, User}
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers
 
@@ -66,7 +65,7 @@ object JSONFactoryGateway {
 
 }
 
-object GatewayLogin extends RestHelper with MdcLoggable {
+object GatewayLogin extends RestHelperX with MdcLoggable {
 
   val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description
 

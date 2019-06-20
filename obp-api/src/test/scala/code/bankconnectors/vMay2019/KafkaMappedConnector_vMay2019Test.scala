@@ -25,7 +25,7 @@ Berlin 13359, Germany
 
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
-import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
+import code.api.util.{APIUtil, CallContext}
 import code.bankconnectors.Connector
 import code.bankconnectors.vMar2017.InboundBank
 import code.bankconnectors.vSept2018._
@@ -37,8 +37,6 @@ import net.liftweb.common.{Box, Failure, Full}
 import org.scalatest.Tag
 
 class KafkaMappedConnector_vMay2019Test extends KafkaSetup with ServerSetupWithTestData {
-
-  override implicit val formats = CustomJsonFormats.formats
 
   object kafkaTest extends Tag("kafkaTest")
 

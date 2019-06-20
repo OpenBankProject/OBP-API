@@ -10,7 +10,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AccountId
 import net.liftweb.common.Full
-import net.liftweb.http.rest.RestHelper
+import code.api.RestHelperX
 import net.liftweb.json
 import net.liftweb.json._
 
@@ -18,7 +18,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object APIMethods_AccountsApi extends RestHelper {
+object APIMethods_AccountsApi extends RestHelperX {
     val apiVersion = OBP_UKOpenBanking_310.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()

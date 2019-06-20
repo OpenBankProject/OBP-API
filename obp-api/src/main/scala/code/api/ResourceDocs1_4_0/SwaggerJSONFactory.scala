@@ -186,8 +186,6 @@ object SwaggerJSONFactory {
       Some(ResponseObjectSchemaJson(s"#/definitions/${caseClassName}"))
     }
 
-    implicit val formats = CustomJsonFormats.formats
-
     val infoTitle = "Open Bank Project API"
     val infoDescription = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2018. Licensed under the AGPL and commercial licences."
     val infoContact = InfoContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
@@ -635,8 +633,6 @@ object SwaggerJSONFactory {
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Array[AnyRef]): liftweb.json.JValue = {
-  
-    implicit val formats = CustomJsonFormats.formats
   
     //Translate every entity(JSON Case Class) in a list to appropriate swagger format
     val baseEntities = (resourceDocList.map(_.exampleRequestBody) ::: resourceDocList.map(_.successResponseBody) ::: allSwaggerDefinitionCaseClasses.toList)

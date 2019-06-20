@@ -1,7 +1,5 @@
 package code.api.util
 
-import java.util.regex.Pattern
-
 import code.api.ChargePolicy
 import code.api.util.ApiRole.rolesMappedToClasses
 import code.api.v3_1_0.ListResult
@@ -156,25 +154,26 @@ object IdTypeSerializer extends Serializer[Any] {
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any] = {
     case (typeInfo @ TypeInfo(entityType, _), json) if(isSomeIdType(entityType) && !json.isInstanceOf[JObject]) => {
-      //it must be not null, because case if already check there is a constructor have single parameter
-      val singleParamName = entityType.getConstructors.find(_.getParameterCount == 1).map(_.getParameters.head.getName).orNull
-      val idObject = JObject(List(JField(singleParamName, json)))
+      val idObject = JObject(JField("value", json))
       Extraction.extract(idObject,typeInfo)
     }
   }
 
   def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case x if(x != null && isSomeIdType(x.getClass)) => {
-      val idValue = ReflectUtils.getConstructorArgs(x).head._2
+      val idValue = ReflectUtils.getCallByNameValue(x, "value")
       Extraction.decompose(idValue)
     }
   }
 
-  private def idClass(clazz: Class[_]) = {
+  private def isSomeIdType(clazz: Class[_]) = {
     val className = clazz.getName
-    className.endsWith("Id") && (className.startsWith("code.") || className.startsWith("com.openbankproject.commons."))
+    className.endsWith("Id") &&
+    (className.startsWith("code.") || className.startsWith("com.openbankproject.commons.")) &&
+    clazz.getConstructors.exists(constructor => {
+      constructor.getParameterCount == 1 && constructor.getParameters.head.getName == "value"
+    })
   }
-  private def isSomeIdType(clazz: Class[_]) = idClass(clazz) && clazz.getConstructors.exists(_.getParameterCount == 1)
 
 }
 

@@ -42,7 +42,6 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{InMemoryResponse, PostRequest, Req, S}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -56,7 +55,7 @@ import scala.concurrent.Future
 * so they could authenticate their users.
 */
 
-object OAuthHandshake extends RestHelper with MdcLoggable {
+object OAuthHandshake extends RestHelperX with MdcLoggable {
 
   serve
   {

@@ -1,7 +1,6 @@
 package code.api.v1_2_1
 
 import java.net.URL
-import java.util.Random
 import java.util.UUID.randomUUID
 
 import com.tesobe.CacheKeyFromArguments
@@ -12,12 +11,10 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors._
-import code.metadata.comments.Comments
 import code.metadata.counterparties.Counterparties
-import code.model.{BankX, BankAccountX, ModeratedTransactionMetadata, toBankAccountExtended, toBankExtended, toUserExtended}
+import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, toBankAccountExtended, toBankExtended, toUserExtended}
 import code.util.Helper.booleanToBox
 import code.views.Views
-import com.google.common.cache.CacheBuilder
 import com.openbankproject.commons.model.{Bank, UpdateViewJSON, _}
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.JsonResponse
@@ -30,8 +27,6 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scalacache.ScalaCache
-import scalacache.guava.GuavaCache
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.

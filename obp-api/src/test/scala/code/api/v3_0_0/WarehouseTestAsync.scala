@@ -5,7 +5,7 @@ package code.api.v3_0_0
 import code.api.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanSearchWarehouse
-import code.api.util.ApiVersion
+import code.api.util.{ApiVersion, CustomJsonFormats}
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.setup.{APIResponse, DefaultUsers}
@@ -18,7 +18,7 @@ import scala.concurrent.Future
 /**
   * Created by Marko Milić on 09/04/18.
   */
-class WarehouseTestAsync extends V300ServerSetupAsync with DefaultUsers {
+class WarehouseTestAsync extends V300ServerSetupAsync with DefaultUsers with CustomJsonFormats {
   /**
     * Test tags
     * Example: To run tests with tag "getPermissions":

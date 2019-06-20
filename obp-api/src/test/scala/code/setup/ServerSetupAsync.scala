@@ -27,8 +27,6 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
-import java.text.SimpleDateFormat
-
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.{APIUtil, CustomJsonFormats}
@@ -43,8 +41,6 @@ trait ServerSetupAsync extends AsyncFeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
   with Matchers with MdcLoggable {
-
-  implicit val formats = CustomJsonFormats.emptyHintFormats
 
   val server = TestServer
   def baseRequest = host(server.host, server.port)

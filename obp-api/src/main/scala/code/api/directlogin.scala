@@ -32,14 +32,13 @@ import code.api.util.APIUtil._
 import code.api.util._
 import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
-import code.model.{Consumer, Token, TokenType, UserX}
+import code.model.{Consumer, Token, TokenType}
 import code.token.Tokens
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers
 
@@ -74,7 +73,7 @@ object JSONFactory {
   }
 }
 
-object DirectLogin extends RestHelper with MdcLoggable {
+object DirectLogin extends RestHelperX with MdcLoggable {
 
   // Our version of serve
   def dlServe(handler : PartialFunction[Req, JsonResponse]) : Unit = {

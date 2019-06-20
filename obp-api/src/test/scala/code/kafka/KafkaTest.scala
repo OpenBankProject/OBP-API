@@ -3,10 +3,9 @@ package code.kafka
 import java.util.Date
 
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
-import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
+import code.api.util.{APIUtil, CallContext}
 import code.api.v2_1_0.TransactionRequestBodyCommonJSON
 import code.bankconnectors.Connector
-import code.bankconnectors.vMar2017.InboundBank
 import code.bankconnectors.vSept2018._
 import code.setup.{KafkaSetup, ServerSetupWithTestData}
 import com.openbankproject.commons.dto.{InBoundGetKycChecks, InBoundGetKycMedias, InBoundGetKycStatuses}
@@ -17,8 +16,6 @@ import org.scalatest.Tag
 import scala.collection.immutable.List
 
 class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
-
-  override implicit val formats = CustomJsonFormats.formats
   
   object kafkaTest extends Tag("kafkaTest")
   

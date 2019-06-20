@@ -30,20 +30,14 @@ package code.api
 import java.net.URLDecoder
 
 import code.api.Constant._
-import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.{NotImplemented, attemptedToOpenAnEmptyBox}
+import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util._
-import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.util.Helper.MdcLoggable
-import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
@@ -80,7 +74,7 @@ case class UserNotFound(providerId : String, userId: String) extends APIFailure 
   val msg = s"user $userId not found at provider $providerId"
 }
 
-trait OBPRestHelper extends RestHelper with MdcLoggable {
+trait OBPRestHelper extends RestHelperX with MdcLoggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
 

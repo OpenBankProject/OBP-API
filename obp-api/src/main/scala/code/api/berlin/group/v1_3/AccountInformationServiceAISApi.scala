@@ -14,7 +14,7 @@ import code.model._
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.Full
-import net.liftweb.http.rest.RestHelper
+import code.api.RestHelperX
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 
@@ -23,7 +23,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object APIMethods_AccountInformationServiceAISApi extends RestHelper {
+object APIMethods_AccountInformationServiceAISApi extends RestHelperX {
     val apiVersion =  OBP_BERLIN_GROUP_1_3.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()

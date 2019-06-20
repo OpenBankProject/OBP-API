@@ -85,7 +85,7 @@ case class Consent(createdByUserId: String,
   }
 }
 
-object Consent {
+object Consent extends CustomJsonFormats {
   
   private def verifyHmacSignedJwt(jwtToken: String, c: MappedConsent): Boolean = {
     JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
@@ -198,7 +198,6 @@ object Consent {
   }
  
   private def hasConsentInternalOldStyle(consentIdAsJwt: String): Box[User] = {
-    implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Box[User] = {
       // 1. Get or Create a User
@@ -242,7 +241,6 @@ object Consent {
   } 
   
   private def hasConsentInternal(consentIdAsJwt: String): Future[Box[User]] = {
-    implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
       // 1. Get or Create a User
@@ -339,8 +337,6 @@ object Consent {
       entitlements=Nil,
       views=views.getOrElse(Nil)
     )
-    
-    implicit val formats = CustomJsonFormats.formats
     val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)

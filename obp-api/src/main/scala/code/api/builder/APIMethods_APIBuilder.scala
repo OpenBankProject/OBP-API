@@ -1,14 +1,11 @@
 package code.api.builder
-import java.util.UUID
-
 import code.api.builder.JsonFactory_APIBuilder._
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.{ApiVersion, CustomJsonFormats}
 import code.api.util.ErrorMessages._
+import code.api.util.{ApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json
 import net.liftweb.json.Extraction._
 import net.liftweb.json._
 import net.liftweb.mapper.By
@@ -22,7 +19,6 @@ trait APIMethods_APIBuilder { self: RestHelper =>
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
-    implicit val formats = CustomJsonFormats.formats
     val TemplateNotFound = "OBP-31001: Template not found. Please specify a valid value for TEMPLATE_ID."
     def endpointsOfBuilderAPI = getTemplates :: getTemplate :: createTemplate :: deleteTemplate :: Nil
     resourceDocs += ResourceDoc(getTemplates, apiVersion, "getTemplates", "GET", "/templates", "Get Templates", "Return All Templates", emptyObjectJson, templatesJson, List(UserNotLoggedIn, UnknownError), Catalogs(notCore, notPSD2, notOBWG), apiTagApiBuilder :: Nil)

@@ -20,7 +20,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
-object WebhookHttpClient extends MdcLoggable {
+object WebhookHttpClient extends MdcLoggable with CustomJsonFormats {
 
   /**
     * This function starts the webhook event for instance ApiTrigger.onBalanceChange.
@@ -70,7 +70,6 @@ object WebhookHttpClient extends MdcLoggable {
   private def getEventPayload(request: WebhookRequest): RequestEntity = {
     request.trigger match {
       case OnBalanceChange() | OnCreditTransaction() | OnDebitTransaction() =>
-        implicit val formats = CustomJsonFormats.formats
         val json = liftweb.json.compactRender(Extraction.decompose(request.toEventPayload))
         val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
         entity
@@ -209,7 +208,6 @@ object WebhookHttpClient extends MdcLoggable {
     )
     makeRequest(getHttpRequest(uri, "GET", "HTTP/1.1"), request)
 
-    implicit val formats = CustomJsonFormats.formats
     case class User(name: String, job: String)
     val user = User("morpheus", "leader")
     val json = liftweb.json.compactRender(Extraction.decompose(user))

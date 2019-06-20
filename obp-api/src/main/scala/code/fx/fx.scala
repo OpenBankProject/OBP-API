@@ -19,7 +19,7 @@ import scala.concurrent.duration._
   *
   * One pound -> X Euros etc.
   */
-object fx extends MdcLoggable {
+object fx extends MdcLoggable with CustomJsonFormats {
 
   val TTL = APIUtil.getPropsAsIntValue("code.fx.exchangeRate.cache.ttl.seconds", 0)
 
@@ -69,7 +69,6 @@ object fx extends MdcLoggable {
       date: String,
       inverseRate: Double
     )
-    implicit val formats = CustomJsonFormats.formats
     fromCurrency == toCurrency match {
       case true => 
         Some(1)

@@ -2,27 +2,26 @@ package code.kafka
 
 import akka.pattern.{AskTimeoutException, ask}
 import code.actorsystem.{ObpActorInit, ObpLookupSystem}
-import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{fullBoxOrException, gitCommit, unboxFull, unboxFullOrFail}
-import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
+import code.api.util.APIUtil.{fullBoxOrException, gitCommit}
 import code.api.util.ErrorMessages._
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{ObpApiLoopback, TopicTrait}
 import net.liftweb
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JNull
-import net.liftweb.json.{Extraction, JValue, MappingException}
-
-import scala.concurrent.Future
 import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.{Extraction, JValue}
 import net.liftweb.util.Helpers
 import org.apache.kafka.common.KafkaException
 import org.apache.kafka.common.errors._
 
+import scala.concurrent.Future
+
 object KafkaHelper extends KafkaHelper
 
-trait KafkaHelper extends ObpActorInit with MdcLoggable {
+trait KafkaHelper extends ObpActorInit with MdcLoggable with CustomJsonFormats {
 
   override val actorName = "KafkaStreamsHelperActor" //CreateActorNameFromClassName(this.getClass.getName)
   override val actor = ObpLookupSystem.getKafkaActor(actorName)
@@ -89,9 +88,9 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     * @return Kafka's Inbound message into Future
     */
   def processRequest[T: Manifest](request: TopicTrait): Future[Box[T]] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
     import liftweb.json.compactRender
-    implicit val formats = CustomJsonFormats.formats
+
+    import scala.concurrent.ExecutionContext.Implicits.global
     val tp = manifest[T].runtimeClass
 
     (actor ? request)
@@ -141,7 +140,6 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
   def sendOutboundAdapterError(error: String): Unit = actor ! OutboundAdapterError(error)
 
   def sendOutboundAdapterError(error: String, request: TopicTrait): Unit = {
-    implicit val formats = CustomJsonFormats.formats
     val requestJson =json.compactRender(Extraction.decompose(request))
     s"""$error
        |The request is: ${requestJson}
@@ -154,7 +152,6 @@ trait KafkaHelper extends ObpActorInit with MdcLoggable {
     */
   def echoKafkaServer: Future[ObpApiLoopback] = {
     import scala.concurrent.ExecutionContext.Implicits.global
-    implicit val formats = CustomJsonFormats.formats
     for{
       connectorVersion <- Future {APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")}
       startTime = Helpers.now

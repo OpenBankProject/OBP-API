@@ -1,16 +1,15 @@
 package code.bankconnectors
 
-import code.api.APIFailureNewStyle
+import code.api.{APIFailureNewStyle, RestHelperX}
 import code.api.util.APIUtil.{OBPEndpoint, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, InboundAdapterCallContext}
+import com.openbankproject.commons.model.InboundAdapterCallContext
 import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.http.rest.RestHelper
 import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -18,7 +17,7 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.reflect.runtime.{universe => ru}
 
-object ConnectorEndpoints extends RestHelper{
+object ConnectorEndpoints extends RestHelperX{
 
   def registerConnectorEndpoints = {
     oauthServe(connectorGetMethod)

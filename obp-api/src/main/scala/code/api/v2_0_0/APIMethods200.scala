@@ -15,15 +15,10 @@ import code.api.v1_2_1.{JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
-import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.kycchecks.KycChecks
-import code.kycdocuments.KycDocuments
-import code.kycmedias.KycMedias
-import code.kycstatuses.KycStatuses
 import code.meetings.Meetings
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -41,16 +36,14 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
-import scala.Option
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 // Makes JValue assignment to Nil work
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import net.liftweb.json.Extraction
-
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
+import net.liftweb.json.Extraction
 
 
 trait APIMethods200 {

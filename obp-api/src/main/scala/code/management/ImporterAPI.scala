@@ -11,7 +11,7 @@ import com.openbankproject.commons.model.Transaction
 import net.liftweb.common.Full
 import net.liftweb.http._
 import net.liftweb.http.js.JsExp
-import net.liftweb.http.rest.RestHelper
+import code.api.RestHelperX
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.{Extraction}
 import net.liftweb.util.Helpers._
@@ -21,7 +21,7 @@ import net.liftweb.util.Helpers._
  * that bank national identifier is unique (when in reality it should only be unique for a given
  * country). So if it looks like it's doing things in a very weird way, that's because it is.
  */
-object ImporterAPI extends RestHelper with MdcLoggable {
+object ImporterAPI extends RestHelperX with MdcLoggable {
 
   case class TransactionsToInsert(l : List[ImporterTransaction])
   case class InsertedTransactions(l : List[Transaction])

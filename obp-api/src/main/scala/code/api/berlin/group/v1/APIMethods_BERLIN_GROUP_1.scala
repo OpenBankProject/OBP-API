@@ -3,7 +3,7 @@ package code.api.berlin.group.v1
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
+import code.api.util. NewStyle
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -13,14 +13,14 @@ import code.util.Helper
 import code.views.Views
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 import net.liftweb.common.Full
-import net.liftweb.http.rest.RestHelper
+import code.api.RestHelperX
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object APIMethods_BERLIN_GROUP_1 extends RestHelper{
+object APIMethods_BERLIN_GROUP_1 extends RestHelperX {
     val implementedInApiVersion = OBP_BERLIN_GROUP_1.apiVersion
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()

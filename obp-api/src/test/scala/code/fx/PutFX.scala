@@ -56,7 +56,6 @@ import code.util.{OAuthClient, ObpGet, ObpPut}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.RequestVar
 import net.liftweb.json._
-import net.liftweb.util.Props
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
@@ -68,7 +67,7 @@ case class FxJson(from_currency_code: String,
                   inverse_conversion_value: Double,
                   effective_date: Date)
 
-object PutFX extends SendServerRequests {
+object PutFX extends SendServerRequests with CustomJsonFormats {
 
 
   def debugBreak() {
@@ -76,9 +75,6 @@ object PutFX extends SendServerRequests {
   }
 
   def main(args : Array[String]) {
-
-    // this sets the date format to "yyyy-MM-dd'T'HH:mm:ss'Z'" i.e. ISO 8601 No milliseconds UTC
-    implicit val formats = CustomJsonFormats.formats // Brings in default date formats etc.
 
     val adminUserUsername = APIUtil.getPropsValue("import.admin_user.username").getOrElse("ERROR")
     println(s"adminUserUsername is $adminUserUsername")

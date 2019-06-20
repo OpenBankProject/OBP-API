@@ -28,7 +28,6 @@ import java.util.Date
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v2_1_0._
 import code.bankconnectors._
 import code.branches.Branches.Branch
 import code.fx.{FXRate, fx}
@@ -45,7 +44,6 @@ import code.model.dataAccess._
 import com.openbankproject.commons.model.Product
 import code.transaction.MappedTransaction
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.transactionrequests.TransactionRequests._
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, TTLCache}
@@ -627,7 +625,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
       accountId = accountId.toString,
       queryParams = queryParams.toString)
 
-    implicit val formats = CustomJsonFormats.formats
     val rList = process(req).extract[List[InternalTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.accountId == accountId.value && x.bankId == bankId.value)
@@ -687,7 +684,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
 
     // Since result is single account, we need only first list entry
-    implicit val formats = CustomJsonFormats.formats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount_vMar2017])
     }
@@ -794,7 +790,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
     )
 
     // Since result is single account, we need only first list entry
-    implicit val formats = CustomJsonFormats.formats
     val r = {
       cachedAccount.getOrElseUpdate( req.toString, () => process(req).extract[InboundAccount_vMar2017])
     }
@@ -853,7 +848,6 @@ trait KafkaMappedConnector_vMar2017 extends Connector with KafkaHelper with MdcL
         counterpartyId = counterpartyId.toString
       )
       // Since result is single account, we need only first list entry
-      implicit val formats = CustomJsonFormats.formats
       val r = {
         cachedCounterparty.getOrElseUpdate(req.toString, () => process(req).extract[InboundCounterparty])
       }

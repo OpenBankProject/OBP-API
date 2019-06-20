@@ -3,11 +3,9 @@ package code.api.ResourceDocs1_4_0
 import java.util.UUID.randomUUID
 
 import code.api.builder.OBP_APIBuilder
-
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.ApiRole._
 import code.api.util.ApiStandards._
 import code.api.util._
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -35,7 +33,6 @@ import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
 import scala.collection.mutable.ArrayBuffer
 
 // So we can include resource docs from future versions
-import java.text.SimpleDateFormat
 
 import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
@@ -55,7 +52,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val implementedInApiVersion = ApiVersion.v1_4_0
 
-    implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
+    protected implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
 
     def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
     {

@@ -60,7 +60,6 @@ object Glossary {
 	// NOTE! Some glossary items are defined in ExampleValue.scala
 
 
-	//implicit val formats = CustomJsonFormats.formats
 	//val prettyJson: String = extraction(decompose(authInfoExample))
 
 

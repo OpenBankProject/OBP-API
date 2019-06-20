@@ -18,8 +18,7 @@ import net.liftweb.util.Helpers._
 case class Header(key: String, value: String)
 case class ObpError(error :String)
 
-object ObpAPI extends MdcLoggable {
-  implicit val formats = CustomJsonFormats.formats
+object ObpAPI extends MdcLoggable with CustomJsonFormats {
   val dateFormat = APIUtil.DateWithMsRollbackFormat
   
   val defaultProvider = APIUtil.getPropsValue("defaultAuthProvider").getOrElse("")
@@ -217,8 +216,7 @@ object ObpAPI extends MdcLoggable {
 
 
 
-object OBPRequest extends MdcLoggable {
-  implicit val formats = CustomJsonFormats.formats
+object OBPRequest extends MdcLoggable with CustomJsonFormats {
   //returns a tuple of the status code and response body as a string
   def apply(apiPath : String, jsonBody : Option[JValue], method : String, headers : List[Header]) : Box[(Int, String)] = {
     val statusAndBody = tryo {
@@ -281,8 +279,7 @@ object OBPRequest extends MdcLoggable {
 
 //Ugly duplicate of above to be able to get rid of /obp prefix.
 //Should be done without it
-object OBPInternalRequest extends MdcLoggable {
-  implicit val formats = CustomJsonFormats.formats
+object OBPInternalRequest extends MdcLoggable with CustomJsonFormats {
   //returns a tuple of the status code and response body as a string
   def apply(apiPath : String, jsonBody : Option[JValue], method : String, headers : List[Header]) : Box[(Int, String)] = {
     val statusAndBody = tryo {
@@ -390,8 +387,7 @@ object ObpInternalDelete {
   }
 }
 
-object APIUtils extends MdcLoggable {
-  implicit val formats = CustomJsonFormats.formats
+object APIUtils extends MdcLoggable with CustomJsonFormats {
 
   def getAPIResponseBody(responseCode : Int, body : String) : Box[JValue] = {
     responseCode match {
@@ -413,7 +409,6 @@ object APIUtils extends MdcLoggable {
 }
 
 object ObpJson {
-  implicit val formats = CustomJsonFormats.formats
   case class BanksJson(banks : Option[List[BankJson]]) {
     def bankJsons: List[BankJson] = {
       banks.toList.flatten

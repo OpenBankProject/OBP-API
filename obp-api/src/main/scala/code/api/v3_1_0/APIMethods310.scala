@@ -61,9 +61,7 @@ import scala.concurrent.Future
 trait APIMethods310 {
   self: RestHelper =>
 
-  val Implementations3_1_0 = new Implementations310() 
-  // note, because RestHelper have a impicit Formats, it is not correct for OBP, so here override it
-  protected implicit override abstract def formats: Formats = CustomJsonFormats.formats
+  val Implementations3_1_0 = new Implementations310()
 
   class Implementations310 {
 

@@ -40,7 +40,7 @@ import scala.xml.{NodeSeq, XML}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 
-class WebUI extends MdcLoggable{
+class WebUI extends MdcLoggable with CustomJsonFormats {
 
   @transient protected val log = logger //Logger(this.getClass)
 
@@ -368,8 +368,6 @@ class WebUI extends MdcLoggable{
   def createMainPartners: CssSel = {
 
     import net.liftweb.json._
-    implicit val formats = CustomJsonFormats.formats
-
 
     val mainPartners: Option[String] = {
       Some(getWebUiPropsValue("webui_main_partners", ""))

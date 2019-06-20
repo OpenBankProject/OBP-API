@@ -21,7 +21,7 @@ import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metrics.APIMetrics
-import code.model.{BankX, BankAccountX, Consumer, UserX, toUserExtended}
+import code.model.{BankAccountX, BankX, Consumer, UserX, toUserExtended}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.usercustomerlinks.UserCustomerLink
@@ -29,6 +29,7 @@ import code.users.Users
 import code.util.Helper.booleanToBox
 import code.views.Views
 import com.openbankproject.commons.model._
+import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -47,9 +48,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.util.Helper
 import code.util.Helper._
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Serialization.write
-import net.liftweb.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -458,7 +457,7 @@ trait APIMethods210 {
                   toAccountId = AccountId(transactionRequestBodySandboxTan.to.account_id)
                   (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext) 
                   
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodySandboxTan)}
                   
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
@@ -488,7 +487,7 @@ trait APIMethods210 {
                   _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyCounterparty)}
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
@@ -517,7 +516,7 @@ trait APIMethods210 {
                   _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transDetailsSEPAJson)}
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,
@@ -536,7 +535,7 @@ trait APIMethods210 {
                   }
                   // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                   transactionRequestAccountJSON = TransactionRequestAccountJsonV140(fromAccount.bankId.value, fromAccount.accountId.value) 
-                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyFreeForm)(Serialization.formats(NoTypeHints))}
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyFreeForm)}
                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
                                                                                                      viewId,
                                                                                                      fromAccount,

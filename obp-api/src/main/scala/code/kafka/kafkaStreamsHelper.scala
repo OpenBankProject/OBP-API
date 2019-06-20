@@ -25,9 +25,7 @@ import scala.util.Try
 /**
   * Actor for accessing kafka from North side.
   */
-class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelper with MdcLoggable with KafkaConfig with AvroSerializer {
-
-  implicit val formats = CustomJsonFormats.formats
+class KafkaStreamsHelperActor extends Actor with ObpActorInit with ObpActorHelper with MdcLoggable with KafkaConfig with AvroSerializer with CustomJsonFormats {
 
   implicit val materializer = ActorMaterializer()
 

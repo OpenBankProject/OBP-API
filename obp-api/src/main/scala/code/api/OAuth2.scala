@@ -35,7 +35,6 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
-import net.liftweb.http.rest.RestHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -45,7 +44,7 @@ import scala.concurrent.Future
 * so they could authenticate their users.
 */
 
-object OAuth2Login extends RestHelper with MdcLoggable {
+object OAuth2Login extends RestHelperX with MdcLoggable {
 
   private def getValueOfOAuh2HeaderField(sc: CallContext) = {
     val valueOfAuthReqHeaderField = sc.authReqHeaderField.getOrElse("")
