@@ -1170,8 +1170,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
         cc => {
           for {
-            (_, callContext) <-
-              getBranchesIsPublic match {
+            (_, callContext) <- getBranchesIsPublic match {
                 case false => authorizedAccess(cc)
                 case true => anonymousAccess(cc)
               }
@@ -1264,8 +1263,7 @@ trait APIMethods300 {
           val nearLatitude = S.param("nearLatitude")
           val nearLongitude = S.param("nearLongitude")
           for {
-            (_, callContext) <-
-              getBranchesIsPublic match {
+            (_, callContext) <- getBranchesIsPublic match {
                 case false => authorizedAccess(cc)
                 case true => anonymousAccess(cc)
               }
@@ -1350,8 +1348,7 @@ trait APIMethods300 {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
         cc =>
           for {
-            (_, callContext) <-
-              getAtmsIsPublic match {
+            (_, callContext) <- getAtmsIsPublic match {
                 case false => authorizedAccess(cc)
                 case true => anonymousAccess(cc)
               }
@@ -1399,8 +1396,7 @@ trait APIMethods300 {
           val limit = S.param("limit")
           val offset = S.param("offset")
           for {
-            (_, callContext) <-
-              getAtmsIsPublic match {
+            (_, callContext) <- getAtmsIsPublic match {
                 case false => authorizedAccess(cc)
                 case true => anonymousAccess(cc)
               }
