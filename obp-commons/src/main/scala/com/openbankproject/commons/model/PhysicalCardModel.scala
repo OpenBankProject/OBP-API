@@ -115,14 +115,16 @@ case object CardReplacementReason {
   case object LOST extends CardReplacementReason
   case object STOLEN extends CardReplacementReason
   case object RENEW extends CardReplacementReason
+  case object FIRST extends CardReplacementReason
 
   def valueOf(value: String) = value match {
     case "LOST" => LOST
     case "STOLEN" => STOLEN
     case "RENEW" => RENEW
+    case "FIRST" => FIRST
     case _ => throw new IllegalArgumentException ("Incorrect CardReplacementReason value: " + value)
   }
-  val availableValues = "LOST" :: "STOLEN" :: "RENEW" :: Nil
+  val availableValues = "LOST" :: "STOLEN" :: "RENEW" :: "FIRST" :: Nil
 }
 
 

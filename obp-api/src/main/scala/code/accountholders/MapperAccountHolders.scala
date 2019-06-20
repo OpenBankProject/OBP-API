@@ -28,6 +28,7 @@ class MapperAccountHolders extends LongKeyedMapper[MapperAccountHolders] with Id
 
 object MapperAccountHolders extends MapperAccountHolders with AccountHolders with LongKeyedMetaMapper[MapperAccountHolders] with MdcLoggable  {
 
+  // NOTE: !!! Uses a DIFFERENT TABLE NAME PREFIX TO ALL OTHERS i.e. MAPPER not MAPPED !!!!!
 
   override def dbIndexes = Index(accountBankPermalink, accountPermalink) :: Nil
 

@@ -225,6 +225,10 @@ trait APIMethods220 {
       }
     }
 
+    // Not used yet.
+    val getFxIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getFxIsPublic", false)
+
+
     resourceDocs += ResourceDoc(
       getCurrentFxRate,
       implementedInApiVersion,
@@ -239,11 +243,16 @@ trait APIMethods220 {
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagFx, apiTagNewStyle))
 
+    val getCurrentFxRateIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getCurrentFxRateIsPublic", false)
+
     lazy val getCurrentFxRate: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <-  authorizedAccess(cc)
+            (_, callContext) <- getCurrentFxRateIsPublic match {
+              case false => authorizedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
             _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx) {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canReadFx)
             }
