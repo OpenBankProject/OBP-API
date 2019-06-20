@@ -148,6 +148,7 @@ object MapperViews extends Views with MdcLoggable {
         By(AccountAccess.bank_id, viewUID.bankId.value),
         By(AccountAccess.account_id, viewUID.accountId.value),
         By(AccountAccess.view_fk, viewDefinition.id))
+      // Check if we are allowed to remove the View from the User
       _ <- accessRemovableAsBox(viewDefinition, user)
     } yield {
       aa.delete_!

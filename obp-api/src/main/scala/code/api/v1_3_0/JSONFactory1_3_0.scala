@@ -79,6 +79,7 @@ object JSONFactory1_3_0 {
         case CardReplacementReason.LOST => CardReplacementReason.LOST.toString
         case CardReplacementReason.STOLEN => CardReplacementReason.STOLEN.toString
         case CardReplacementReason.RENEW => CardReplacementReason.RENEW.toString
+        case CardReplacementReason.FIRST => CardReplacementReason.FIRST.toString
         case _ => ""
       }
     )

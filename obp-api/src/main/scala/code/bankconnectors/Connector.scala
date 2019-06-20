@@ -1650,6 +1650,8 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                             ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
 
+  def getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def createOrUpdateAccountAttribute(
                                       bankId: BankId,
                                       accountId: AccountId,
@@ -1682,6 +1684,8 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                                   value: String,
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
 

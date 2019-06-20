@@ -387,7 +387,7 @@ trait APIMethods300 {
         |
         |""".stripMargin,
       emptyObjectJson,
-      moderatedCoreAccountJsonV300,
+      newModeratedCoreAccountJsonV300,
       List(BankAccountNotFound,UnknownError),
       Catalogs(Core, PSD2, notOBWG),
       apiTagAccount ::  apiTagNewStyle :: Nil)
@@ -402,8 +402,13 @@ trait APIMethods300 {
           view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(account.bankId, account.accountId), callContext)
           _ <- NewStyle.function.hasViewAccess(view, u)
           moderatedAccount <- NewStyle.function.moderatedBankAccount(account, view, Full(u), callContext)
+          (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+            bankId,
+            accountId,
+            callContext: Option[CallContext])
         } yield {
-            (createCoreBankAccountJSON(moderatedAccount), HttpCode.`200`(callContext))
+          val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId))
+          (createNewCoreBankAccountJson(moderatedAccount, availableViews, accountAttributes), HttpCode.`200`(callContext))
         }
       }
     }

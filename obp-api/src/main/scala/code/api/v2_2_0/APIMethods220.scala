@@ -225,6 +225,10 @@ trait APIMethods220 {
       }
     }
 
+    // Not used yet.
+    val getFxIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getFxIsPublic", false)
+
+
     resourceDocs += ResourceDoc(
       getCurrentFxRate,
       implementedInApiVersion,

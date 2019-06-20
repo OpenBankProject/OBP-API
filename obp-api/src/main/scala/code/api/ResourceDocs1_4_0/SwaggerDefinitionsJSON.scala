@@ -14,7 +14,7 @@ import code.api.util.ExampleValue._
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
-import code.api.v3_0_0.{LobbyJsonV330, _}
+import code.api.v3_0_0.{LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
 import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
@@ -3161,8 +3161,6 @@ object SwaggerDefinitionsJSON {
     owners = List(userJSONV121),
     `type` = "OBP",
     balance = amountOfMoneyJsonV121,
-    IBAN = "DE89 3704 0044 0532 0130 00",
-    swift_bic = "OKOYFIHH",
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
     account_routing = accountRoutingJsonV121,
@@ -3373,6 +3371,19 @@ object SwaggerDefinitionsJSON {
   )
   
   val physicalCardsJsonV310 = PhysicalCardsJsonV310(List(physicalCardJsonV310))
+  
+  val newModeratedCoreAccountJsonV300 = NewModeratedCoreAccountJsonV300(
+    id = accountIdExample.value,
+    bank_id= bankIdExample.value,
+    label= labelExample.value,
+    number= accountNumberExample.value,
+    owners =  List(userJSONV121),
+    `type`= accountTypeExample.value,
+    balance = amountOfMoneyJsonV121,
+    account_routings = List(accountRoutingJsonV121),
+    views_basic = List(viewBasic),
+    account_attributes = List(accountAttributeResponseJson)
+  )
   
   //The common error or success format.
   //Just some helper format to use in Json 

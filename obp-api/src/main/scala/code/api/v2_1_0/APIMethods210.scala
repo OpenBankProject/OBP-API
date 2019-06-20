@@ -994,7 +994,7 @@ trait APIMethods210 {
             }
 
             failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
-            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            replacementReasionRequest <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardReplacementReason.valueOf(postJson.replacement.reason_requested)
             }
 
@@ -1016,7 +1016,7 @@ trait APIMethods210 {
               allows= postJson.allows,
               accountId= postJson.account_id,
               bankId=bankId.value,
-              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
+              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, replacementReasionRequest)),
               pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted= Option(CardPostedInfo(postJson.posted)),
