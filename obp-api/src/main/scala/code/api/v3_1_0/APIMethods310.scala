@@ -5247,7 +5247,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[WebUiPropsCommons]
             }
-            invalidMsg = s"""$InvalidWebUiProps name must be start with "webui_": ${postedData.name} """
+            invalidMsg = s"""$InvalidWebUiProps name must be start with webui_, but current post name is: ${postedData.name} """
             _ <- NewStyle.function.tryons(invalidMsg, 400, callContext) {
               require(postedData.name.startsWith("webui_"))
             }
