@@ -2590,8 +2590,7 @@ trait APIMethods310 {
       case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
         cc => {
           for {
-            (_, callContext) <- 
-              getProductsIsPublic match {
+            (_, callContext) <- getProductsIsPublic match {
                 case false => authorizedAccess(cc)
                 case true => anonymousAccess(cc)
               }
@@ -2655,8 +2654,7 @@ trait APIMethods310 {
         }
         cc => {
           for {
-            (_, callContext) <-
-              getProductsIsPublic match {
+            (_, callContext) <- getProductsIsPublic match {
                 case false => authorizedAccess(cc)
                 case true => anonymousAccess(cc)
               }
@@ -2708,8 +2706,7 @@ trait APIMethods310 {
       case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
         cc => {
           for {
-            (_, callContext) <-
-              getProductsIsPublic match {
+            (_, callContext) <- getProductsIsPublic match {
                 case false => authorizedAccess(cc)
                 case true => anonymousAccess(cc)
               }
