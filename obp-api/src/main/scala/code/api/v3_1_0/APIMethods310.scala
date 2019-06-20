@@ -2759,6 +2759,8 @@ trait APIMethods310 {
          |
          |See [FPML](http://www.fpml.org/) for more examples.
          |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -4751,6 +4753,8 @@ trait APIMethods310 {
          |Card Attributes are used to describe a financial Product with a list of typed key value pairs.
          |
          |Each Card Attribute is linked to its Card by CARD_ID
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
          |
          |${authenticationRequiredMessage(true)}
          |
