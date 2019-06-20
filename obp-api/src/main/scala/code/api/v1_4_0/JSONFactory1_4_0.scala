@@ -7,8 +7,8 @@ import code.api.util.{ApiRole, PegdownOptions}
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.Product
 import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests._
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
@@ -430,12 +430,16 @@ object JSONFactory1_4_0 {
         case Some(i: String) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
         case List(i: String, _*) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
         case Some(List(i: String, _*)) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "array","items": {"type": "string","format": "date-time"}}"""
-         
+
         //String-->
         case i: String                     => "\""  + key + """": {"type":"string"}"""
         case Some(i: String)               => "\""  + key + """": {"type":"string"}"""
         case List(i: String, _*)           => "\""  + key + """": {"type": "array","items": {"type": "string"}}""" 
         case Some(List(i: String, _*))     => "\""  + key + """": {"type": "array","items": {"type": "string"}}"""
+
+        // is some id type, just treat as String
+        case x if isIdValue(x)             => "\""  + key + """": {"type":"string"}"""
+
         //Int 
         case i: Int                        => "\""  + key + """": {"type":"integer"}"""
         case Some(i: Int)                  => "\""  + key + """": {"type":"integer"}"""
@@ -493,7 +497,19 @@ object JSONFactory1_4_0 {
         """{ "type": "object", "properties" : {""" + fields + """}}"""
     definition
   }
-  
+
+  /**
+    * check given object is some id typ, that means it is OBP project type, the value type name end with "Id",
+    * and have single param constructor, and constructor param name is "value"
+    * @param obj given object to do check
+    * @return only obj type name end with "Id" and have single param constructor and param name is "value"
+    */
+  private def isIdValue(obj: Any) = {
+    obj != null &&
+    obj.getClass.getName.matches("""(cod\.|com\.openbankproject\.commons\.).+Id""") &&
+      ReflectUtils.getConstructorArgs(obj).keySet == Set("value")
+  }
+
   def createTypedBody(exampleRequestBody: scala.Product): JValue = {
     val res = translateEntity(exampleRequestBody,false)
     json.parse(res)
