@@ -1122,7 +1122,7 @@ trait APIMethods310 {
         cc =>
           for {
             (user, callContext) <- authorizedAccess(cc)
-            _ <- validatePsd2Certificate(cc)
+            _ <- validatePsd2Certificate(callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.view(viewId, BankIdAccountId(account.bankId, account.accountId), callContext)
@@ -5107,7 +5107,7 @@ trait APIMethods310 {
             //2 Add permission to the user
             //3 Set the user as the account holder
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
-            (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`200`(callContext))
+            (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
           }
         }
       }
