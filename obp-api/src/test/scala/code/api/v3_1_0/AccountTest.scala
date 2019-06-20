@@ -81,8 +81,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
-      Then("We should get a 200")
-      response310.code should equal(200)
+      Then("We should get a 201")
+      response310.code should equal(201)
       val account = response310.body.extract[CreateAccountJSONV220]
       account.`type` should be (putCreateAccountJSONV310.`type`)
       account.`label` should be (putCreateAccountJSONV310.`label`)
