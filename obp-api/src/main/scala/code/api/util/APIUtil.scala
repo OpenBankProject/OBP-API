@@ -162,6 +162,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => None
     }
   }
+  /**
+    * Purpose of this helper function is to get the PSD2-CERT value from a Request Headers.
+    * @return the PSD2-CERT value from a Request Header as a String
+    */
+  def `getPSD2-CERT`(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`PSD2-CERT`).toList match {
+      case x :: Nil => Some(x.values.mkString(", "))
+      case _ => None
+    }
+  }
   def hasConsentId(requestHeaders: List[HTTPParam]): Boolean = {
     getConsentId(requestHeaders).isDefined
   }
@@ -2530,15 +2540,17 @@ Returns a string showed to the developer
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null !=)
   }
 
-  def validatePsd2Certificate(cc: CallContext): OBPReturnType[Box[Boolean]] = {
+  def validatePsd2Certificate(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
     val result: Box[Boolean] = getPropsAsBoolValue("requirePsd2Certificates", false) match {
       case false => Full(true)
-      case true => 
-        // TODO Obtain PEM encoded certificate
-        X509.validate("Obtain PEM encoded certificate")
+      case true =>
+        `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
+          case Some(pem) => X509.validate(pem)
+          case None => Failure(X509CannotGetCertificate)
+        }
     }
     Future(result) map {
-      x => (fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, Some(cc.toLight))), Some(cc))
+      x => (fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, cc.map(_.toLight))), cc)
     }
   }
   
