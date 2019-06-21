@@ -1581,6 +1581,13 @@ trait APIMethods300 {
          |
          |If you want to see more information on the Views, use the Account Detail call.
          |
+         |optional request parameters:
+         |
+         |* account_type_filter: one or many accountType value, split by comma
+         |* account_type_filter_operation: the filter type of account_type_filter, value must be INCLUDE or EXCLUDE
+         |
+         |whole url example:
+         |/banks/BANK_ID/accounts/private?account_type_filter=330,CURRENT+PLUS&account_type_filter_operation=INCLUDE
          |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
@@ -1597,12 +1604,26 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+
+            accountTypeFilter = req.params.get("account_type_filter").map(_.flatMap(_.split(",")))
+            accountTypeFilterOperation = req.params.get("account_type_filter_operation").flatMap(_.headOption).getOrElse("INCLUDE")
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidFilterParameterFormat request parameter account_type_filter_operation is: ${accountTypeFilterOperation} """) {
+              accountTypeFilterOperation == "INCLUDE" || accountTypeFilterOperation == "EXCLUDE"
+            }
+
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             ((accounts, callContext)) <- Connector.connector.vend.getCoreBankAccounts(availablePrivateAccounts, callContext) map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
+            val filteredAccounts = accounts.filter(account => {
+              (accountTypeFilter, accountTypeFilterOperation) match {
+                case (Some(filters), "INCLUDE") if filters.nonEmpty => filters.contains(account.accountType)
+                case (Some(filters), "EXCLUDE") if filters.nonEmpty => !filters.contains(account.accountType)
+                case _ => true
+              }
+            })
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(filteredAccounts), HttpCode.`200`(callContext))
           }
       }
     }
