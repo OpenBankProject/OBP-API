@@ -2,13 +2,13 @@ package code.api.v2_0_0
 
 import code.api.util.ErrorMessages.InvalidFilterParameterFormat
 import code.api.util.{CallContext, NewStyle}
-import code.util.Helper
+import code.api.util.APIUtil.unboxFullOrFail
 import com.openbankproject.commons.model.{BankIdAccountId, CoreAccount}
 import net.liftweb.http.Req
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
@@ -39,9 +39,14 @@ object AccountsHelper {
   private def filterWithAccountType(coreAccounts: List[CoreAccount], req: Req): List[CoreAccount] = {
     val filters = req.params.get("account_type_filter").map(_.flatMap(_.split(","))).getOrElse(Nil)
     val filtersOperation = req.params.get("account_type_filter_operation").flatMap(_.headOption).getOrElse("INCLUDE")
-    Helper.booleanToFuture(failMsg = s"""$InvalidFilterParameterFormat request parameter account_type_filter_operation is: ${filtersOperation} """) {
-      filtersOperation == "INCLUDE" || filtersOperation == "EXCLUDE"
-    }
+
+    val failMsg = s"""${InvalidFilterParameterFormat}request parameter account_type_filter_operation must be either INCLUDE or EXCLUDE, current it is: ${filtersOperation} """
+
+    // validate account_type_filter_operation parameter
+    unboxFullOrFail(tryo {
+      assume(filtersOperation == "INCLUDE" || filtersOperation == "EXCLUDE")
+    }, None, failMsg)
+
     coreAccounts.filter({ account =>
       (filters, filtersOperation) match {
         case (f, "INCLUDE") if f.nonEmpty => filters.contains(account.accountType)
