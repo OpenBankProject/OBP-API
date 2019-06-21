@@ -1821,5 +1821,14 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                     fromPerson : String,
                     callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def makeHistoricalPayment(fromAccount: BankAccount,
+                            toAccount: BankAccount,
+                            posted: Date,
+                            completed: Date,
+                            amount: BigDecimal,
+                            description: String,
+                            transactionRequestType: TransactionRequestTypes,
+                            chargePolicy: String,
+                            callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = Future{(Failure(setUnimplementedError), callContext)}
 
 }

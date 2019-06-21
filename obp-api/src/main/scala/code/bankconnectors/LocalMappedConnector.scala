@@ -43,6 +43,7 @@ import code.products.MappedProduct
 import com.openbankproject.commons.model.Product
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.TransactionRequestTypes
 import code.transactionrequests._
 import code.users.Users
 import code.util.Helper
@@ -852,6 +853,97 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def makeHistoricalPayment(
+    fromAccount: BankAccount,
+    toAccount: BankAccount,
+    posted: Date,
+    completed: Date,
+    amount: BigDecimal,
+    description: String,
+    transactionRequestType: TransactionRequestTypes,
+    chargePolicy: String,
+    callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= {
+    for{
+      rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${fromAccount.currency} to ${fromAccount.currency}) is not supported.", 400, callContext) {
+        fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value))}
+      fromTransAmt = -amount//from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, rate)
+      (sentTransactionId, callContext) <- saveHistoricalTransaction(
+        fromAccount: BankAccount,
+        toAccount: BankAccount,
+        posted: Date,
+        completed: Date,
+        amount = fromTransAmt,
+        description: String,
+        transactionRequestType: TransactionRequestTypes,
+        chargePolicy: String,
+        callContext: Option[CallContext]
+      )
+      (_sentTransactionId, callContext) <- saveHistoricalTransaction(
+        toAccount: BankAccount,
+        fromAccount: BankAccount,
+        posted: Date,
+        completed: Date,
+        amount = toTransAmt,
+        description: String,
+        transactionRequestType: TransactionRequestTypes,
+        chargePolicy: String,
+        callContext: Option[CallContext])
+    } yield{
+      (sentTransactionId, callContext)
+    }
+  }
+  
+  
+  private def saveHistoricalTransaction(
+    fromAccount: BankAccount,
+    toAccount: BankAccount,
+    posted: Date,
+    completed: Date,
+    amount: BigDecimal,
+    description: String,
+    transactionRequestType: TransactionRequestTypes,
+    chargePolicy: String,
+    callContext: Option[CallContext]
+  ) = Future {(
+    for{
+      currency <- Full(fromAccount.currency)
+      //update the balance of the fromAccount for which a transaction is being created
+      newAccountBalance <- Full(Helper.convertToSmallestCurrencyUnits(fromAccount.balance, currency) + Helper.convertToSmallestCurrencyUnits(amount, currency))
+
+      //Here is the `LocalMappedConnector`, once get this point, fromAccount must be a mappedBankAccount. So can use asInstanceOf.... 
+      _ <- tryo(fromAccount.asInstanceOf[MappedBankAccount].accountBalance(newAccountBalance).save()) ?~! UpdateBankAccountException
+
+      mappedTransaction <- tryo(MappedTransaction.create
+        .bank(fromAccount.bankId.value)
+        .account(fromAccount.accountId.value)
+        .transactionType(transactionRequestType.toString)
+        .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
+        .newAccountBalance(newAccountBalance)
+        .currency(currency)
+        .tStartDate(posted)
+        .tFinishDate(completed)
+        .description(description)
+        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
+        .counterpartyAccountHolder(toAccount.accountHolder)
+        .counterpartyAccountNumber(toAccount.number)
+        .counterpartyAccountKind(toAccount.accountType)
+        .counterpartyBankName(toAccount.bankName)
+        .counterpartyIban(toAccount.iban.getOrElse(""))
+        .counterpartyNationalId(toAccount.nationalIdentifier)
+        //New data: real counterparty (toCounterparty: CounterpartyTrait)
+        //      .CPCounterPartyId(toAccount.accountId.value)
+        .CPOtherAccountRoutingScheme(toAccount.accountRoutingScheme)
+        .CPOtherAccountRoutingAddress(toAccount.accountRoutingAddress)
+        .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
+        .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
+        .chargePolicy(chargePolicy)
+        .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
+    } yield{
+      mappedTransaction.theTransactionId
+    }, callContext)
+  }
+  
   /**
     * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
     * Returns the id of the saved transactionId.<br>

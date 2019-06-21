@@ -1,9 +1,9 @@
 package code.api.v3_1_0
 
+import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
 
-import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
@@ -14,15 +14,13 @@ import code.api.util.ExampleValue._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
-import code.api.v1_3_0.{JSONFactory1_3_0, PostPhysicalCardJSON}
 import code.api.v2_0_0.CreateMeetingJson
-import code.api.v2_1_0.JSONFactory210
+import code.api.v2_1_0._
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.{createAdapterInfoJson, createCoreBankAccountJSON}
+import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
-import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
@@ -34,20 +32,20 @@ import code.methodrouting.MethodRoutingCommons
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import com.openbankproject.commons.model.Product
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.SANDBOX_TAN
 import code.users.Users
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
-import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsProvider}
+import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
-import com.openbankproject.commons.model.{CreditLimit, _}
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import com.openbankproject.commons.model.{CreditLimit, Product, _}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{Extraction, Formats, parse}
+import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import net.liftweb.util.{Helpers, Mailer}
@@ -2758,6 +2756,8 @@ trait APIMethods310 {
          |
          |See [FPML](http://www.fpml.org/) for more examples.
          |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -4273,8 +4273,8 @@ trait APIMethods310 {
       nameOf(updateCustomerIdentity),
       "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/identity",
-      "Update the general data of a Customer",
-      s"""Update the general data of the Customer specified by CUSTOMER_ID.
+      "Update the identity data of a Customer",
+      s"""Update the identity data of the Customer specified by CUSTOMER_ID.
         |
         |
         |${authenticationRequiredMessage(true)}
@@ -4751,6 +4751,8 @@ trait APIMethods310 {
          |
          |Each Card Attribute is linked to its Card by CARD_ID
          |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""",
@@ -5163,6 +5165,113 @@ trait APIMethods310 {
       }
     }
 
+    // SANDBOX_TAN. (we no longer create a resource doc for the general case)
+    resourceDocs += ResourceDoc(
+      saveHistoricalTransaction,
+      implementedInApiVersion,
+      nameOf(saveHistoricalTransaction),
+      "POST",
+      "/management/historical/transactions ",
+      "Save Historical Transactions ",
+      s"""
+         |Import the historical transactions.
+         | 
+         |Note: `transaction_request_type` hardcode ${SANDBOX_TAN.toString} now.
+       """.stripMargin,
+      postHistoricalTransactionJson,
+      postHistoricalTransactionResponseJson,
+      List(
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest),
+      Some(List(canCreateHistoricalTransaction))
+    )
+
+
+    lazy val saveHistoricalTransaction : OBPEndpoint =  {
+      case "management"  :: "historical" :: "transactions" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canCreateHistoricalTransaction, callContext)
+
+            // Check the input JSON format, here is just check the common parts of all four types
+            transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostHistoricalTransactionJson ", 400, callContext) {
+              json.extract[PostHistoricalTransactionJson]
+            }
+            fromAccountPost =transDetailsJson.from
+            (_, callContext) <- NewStyle.function.getBank(BankId(fromAccountPost.bank_id), callContext)
+            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(fromAccountPost.bank_id), AccountId(fromAccountPost.account_id), callContext)
+
+            toAccountPost =transDetailsJson.to
+            (_, callContext) <- NewStyle.function.getBank(BankId(toAccountPost.bank_id), callContext)
+            (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(toAccountPost.bank_id), AccountId(toAccountPost.account_id), callContext)
+
+            amountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is ${transDetailsJson.value.amount} ", 400, callContext) {
+              BigDecimal(transDetailsJson.value.amount)
+            }
+
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${amountNumber}'") {
+              amountNumber > BigDecimal("0")
+            }
+
+            posted <- NewStyle.function.tryons(s"$InvalidDateFormat Current `posted` field is ${transDetailsJson.posted}. Please use this format ${DateWithSecondsFormat.toPattern}! ", 400, callContext) {
+              new SimpleDateFormat(DateWithSeconds).parse(transDetailsJson.posted)
+            }
+
+            completed <- NewStyle.function.tryons(s"$InvalidDateFormat Current `completed` field  is ${transDetailsJson.completed}. Please use this format ${DateWithSecondsFormat.toPattern}! ", 400, callContext) {
+              new SimpleDateFormat(DateWithSeconds).parse(transDetailsJson.completed)
+            }
+            
+            // Prevent default value for transaction request type (at least).
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+              isValidCurrencyISOCode(transDetailsJson.value.currency)
+            }
+
+            // Prevent default value for transaction request type (at least).
+            _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}") {
+              transDetailsJson.value.currency == fromAccount.currency
+            }
+
+
+            amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
+            chargePolicy = transDetailsJson.charge_policy
+
+            (transactionId, callContext) <- NewStyle.function.makeHistoricalPayment(
+              fromAccount,
+              toAccount,
+              posted,
+              completed,
+              amountNumber,
+              transDetailsJson.description,
+              SANDBOX_TAN,
+              chargePolicy,
+              callContext
+            )
+          } yield {
+            (JSONFactory310.createPostHistoricalTransactionResponseJson(
+              transactionId,
+              fromAccountPost,
+              toAccountPost,
+              value= amountOfMoneyJson,
+              description = transDetailsJson.description,
+              posted,
+              completed,
+              transactionRequestType =transDetailsJson.transaction_request_type,
+              chargePolicy =transDetailsJson.charge_policy), HttpCode.`201`(callContext))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       getWebUiProps,
@@ -5172,9 +5281,9 @@ trait APIMethods310 {
       "/management/webui_props",
       "Get WebUiProps",
       s"""
-      |
+         |
       |Get the all WebUiProps key values, those props key with "webui_" can be stored in DB, this endpoint get all from DB.
-      |
+         |
       |""",
       emptyObjectJson,
       ListResult(
@@ -5295,7 +5404,6 @@ trait APIMethods310 {
           }
       }
     }
-
   }
 }
 

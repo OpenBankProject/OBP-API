@@ -45,6 +45,7 @@ import code.api.util.ErrorMessages._
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 import net.liftweb.json.Extraction
 
+import code.api.v2_0_0.AccountsHelper._
 
 trait APIMethods200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -253,6 +254,8 @@ trait APIMethods200 {
         |For each account the API returns the account ID and the views available to the user..
         |Each account must have at least one private View.
         |
+        |$accountTypeFilterText
+        |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
@@ -269,7 +272,7 @@ trait APIMethods200 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            (coreAccounts, callContext) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)
+            (coreAccounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
             (createBasicAccountsJson(coreAccounts), HttpCode.`200`(callContext))
           }

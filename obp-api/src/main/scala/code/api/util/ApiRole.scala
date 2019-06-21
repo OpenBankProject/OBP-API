@@ -339,6 +339,9 @@ object ApiRole {
   case class CanDeleteMethodRouting(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteMethodRouting = CanDeleteMethodRouting()
 
+  case class CanCreateHistoricalTransaction(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateHistoricalTransaction = CanCreateHistoricalTransaction()
+
   case class CanGetWebUiProps(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetWebUiProps = CanGetWebUiProps()
 
@@ -453,6 +456,7 @@ object ApiRole {
       canUpdateMethodRouting ::
       canDeleteMethodRouting :: 
       canUpdateCustomerNumber ::
+      canCreateHistoricalTransaction ::
       canGetWebUiProps ::
       canCreateWebUiProps ::
       canDeleteWebUiProps ::

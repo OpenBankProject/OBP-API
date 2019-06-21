@@ -40,6 +40,9 @@ import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
+import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, _}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, TransactionRequestAccountJsonV140}
+import code.api.v2_0_0.{EntitlementJSONs, MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
@@ -668,6 +671,30 @@ case class ModeratedAccountJSON(
   */
 case class ListResult[+T <: List[_]](name: String, results: T)
 
+case class PostHistoricalTransactionJson(
+  from: TransactionRequestAccountJsonV140,
+  to: TransactionRequestAccountJsonV140,
+  value: AmountOfMoneyJsonV121,
+  description: String,
+  posted: String,
+  completed: String,
+  transaction_request_type: String,
+  charge_policy: String
+)
+
+case class PostHistoricalTransactionResponseJson(
+  transaction_id: String,
+  from: TransactionRequestAccountJsonV140,
+  to: TransactionRequestAccountJsonV140,
+  value: AmountOfMoneyJsonV121,
+  description: String,
+  posted: Date,
+  completed: Date,
+  transaction_request_type: String,
+  charge_policy: String
+)
+
+
 object JSONFactory310{
   def createCheckbookOrdersJson(checkbookOrders: CheckbookOrdersJson): CheckbookOrdersJson =
     checkbookOrders
@@ -1244,6 +1271,30 @@ object JSONFactory310{
       createAccountRoutingsJSON(account.accountRoutings),
       createAccountRulesJSON(account.accountRules),
       accountAttributes.map(createAccountAttributeJson)
+    )
+  }
+  
+  def createPostHistoricalTransactionResponseJson(
+    transactionId: TransactionId,
+    from: TransactionRequestAccountJsonV140,
+    to: TransactionRequestAccountJsonV140,
+    value: AmountOfMoneyJsonV121,
+    description: String,
+    posted: Date,
+    completed: Date,
+    transactionRequestType: String,
+    chargePolicy: String
+  ) : PostHistoricalTransactionResponseJson = {
+    PostHistoricalTransactionResponseJson(
+      transaction_id = transactionId.value,
+      from: TransactionRequestAccountJsonV140,
+      to: TransactionRequestAccountJsonV140,
+      value: AmountOfMoneyJsonV121,
+      description: String,
+      posted: Date,
+      completed: Date,
+      transaction_request_type = transactionRequestType,
+      chargePolicy: String
     )
   }
 
