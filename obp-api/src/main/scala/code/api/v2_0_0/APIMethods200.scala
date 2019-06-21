@@ -15,15 +15,10 @@ import code.api.v1_2_1.{JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON
 import code.api.v2_0_0.JSONFactory200.{privateBankAccountsListToJson, _}
-import code.api.v3_0_0.JSONFactory300
 import code.bankconnectors.Connector
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.kycchecks.KycChecks
-import code.kycdocuments.KycDocuments
-import code.kycmedias.KycMedias
-import code.kycstatuses.KycStatuses
 import code.meetings.Meetings
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -41,7 +36,6 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
-import scala.Option
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -52,6 +46,7 @@ import net.liftweb.json.Extraction
 
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 
+import code.api.v2_0_0.AccountsHelper._
 
 trait APIMethods200 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -260,6 +255,8 @@ trait APIMethods200 {
         |For each account the API returns the account ID and the views available to the user..
         |Each account must have at least one private View.
         |
+        |$accountTypeFilterText
+        |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
       emptyObjectJson,
@@ -276,7 +273,7 @@ trait APIMethods200 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            (coreAccounts, callContext) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)
+            (coreAccounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
             (createBasicAccountsJson(coreAccounts), HttpCode.`200`(callContext))
           }
