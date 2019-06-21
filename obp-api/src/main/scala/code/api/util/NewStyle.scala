@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{DateWithMsExampleObject, OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -41,6 +41,8 @@ import scala.concurrent.Future
 import java.util.UUID.randomUUID
 
 import code.accountattribute.AccountAttributeX
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.amountOfMoneyJsonV121
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.TransactionRequestTypes
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -199,6 +201,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.saveHistoricalTransaction), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getPrivateAccountByIdFull), ApiVersion.v3_1_0.toString)
   )
 
@@ -1508,6 +1511,31 @@ object NewStyle {
         }
       }
     }
+    
+    def makeHistoricalPayment(
+      fromAccount: BankAccount,
+      toAccount: BankAccount,
+      posted:  Date,
+      completed: Date,
+      amount: BigDecimal,
+      description: String,
+      transactionRequestType: TransactionRequestTypes,
+      chargePolicy: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[TransactionId] =
+      Connector.connector.vend.makeHistoricalPayment(
+        fromAccount: BankAccount,
+        toAccount: BankAccount,
+        posted:  Date,
+        completed: Date,
+        amount: BigDecimal,
+        description: String,
+        transactionRequestType: TransactionRequestTypes,
+        chargePolicy: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateTransactionsException"), i._2)
+      }
 
   }
 

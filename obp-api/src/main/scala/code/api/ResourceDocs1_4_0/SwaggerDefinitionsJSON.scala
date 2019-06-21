@@ -267,7 +267,7 @@ object SwaggerDefinitionsJSON {
     id = transactionTypeId,
     bankId = bankId,
     shortCode = "80080",
-    summary = "SANSANDBOX_TAN",
+    summary = SANDBOX_TAN.toString,
     description = "This is the sandbox mode, charging litter money.",
     charge = amountOfMoney
   )
@@ -3383,6 +3383,29 @@ object SwaggerDefinitionsJSON {
     account_routings = List(accountRoutingJsonV121),
     views_basic = List(viewBasic),
     account_attributes = List(accountAttributeResponseJson)
+  )
+  
+  val postHistoricalTransactionJson = PostHistoricalTransactionJson(
+    from = transactionRequestAccountJsonV140,
+    to = transactionRequestAccountJsonV140,
+    value = amountOfMoneyJsonV121,
+    description = "this is for work",
+    posted = DateWithSecondsExampleString,
+    completed= DateWithSecondsExampleString,
+    transaction_request_type= SANDBOX_TAN.toString,
+    charge_policy= "SHARED"
+  )
+
+  val postHistoricalTransactionResponseJson = PostHistoricalTransactionResponseJson(
+    transaction_id = "123",
+    from = transactionRequestAccountJsonV140,
+    to = transactionRequestAccountJsonV140,
+    value = amountOfMoneyJsonV121,
+    description = "this is for work",
+    posted = DateWithMsExampleObject,
+    completed= DateWithMsExampleObject,
+    transaction_request_type= SANDBOX_TAN.toString,
+    charge_policy= "SHARED"
   )
   
   //The common error or success format.
