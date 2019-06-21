@@ -339,6 +339,9 @@ object ApiRole {
   case class CanDeleteMethodRouting(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteMethodRouting = CanDeleteMethodRouting()
 
+  case class CanCreateHistoricalTransaction(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateHistoricalTransaction = CanCreateHistoricalTransaction()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -444,6 +447,7 @@ object ApiRole {
       canUpdateMethodRouting ::
       canDeleteMethodRouting :: 
       canUpdateCustomerNumber ::
+      canCreateHistoricalTransaction ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
