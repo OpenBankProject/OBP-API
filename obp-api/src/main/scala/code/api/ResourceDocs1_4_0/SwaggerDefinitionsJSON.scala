@@ -2437,8 +2437,8 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value,
     from_currency_code = "EUR",
     to_currency_code = "USD",
-    conversion_value = 1,
-    inverse_conversion_value = 1,
+    conversion_value = 1.136305,
+    inverse_conversion_value = 0.8800454103431737,
     effective_date = DateWithDayExampleObject
   )
 

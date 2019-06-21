@@ -642,6 +642,18 @@ trait APIMethods220 {
       "Create Fx",
       s"""Create or Update Fx for the Bank.
           |
+          |Example:
+          |
+          |“from_currency_code”:“EUR”,
+          |“to_currency_code”:“USD”,
+          |“conversion_value”: 1.136305,
+          |“inverse_conversion_value”: 1 / 1.136305 = 0.8800454103431737,
+          |
+          | Thus 1 Euro = 1.136305 US Dollar
+          | and
+          | 1 US Dollar = 0.8800 Euro
+          |
+          |
          |${authenticationRequiredMessage(true) }
           |
           |""",
