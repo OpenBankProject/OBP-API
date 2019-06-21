@@ -9,6 +9,8 @@ import net.liftweb.http.Req
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 /**
   * this helper is make sure some common value or function can be used by different APIMethodsXxx
   * because they are in different scope, any value defined in one trait, can't be access by others, just copy
