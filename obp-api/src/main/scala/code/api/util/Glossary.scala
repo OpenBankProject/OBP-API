@@ -1774,6 +1774,35 @@ object Glossary {
 
 
 
+	glossaryItems += GlossaryItem(
+		title = "SCA (Strong Customer Authentication)",
+		description =
+			s"""|
+|SCA is the process by which a Customer of the Bank securely identifies him/her self to the Bank.
+|
+|Generally this involves using an Out Of Bounds (OOB) form of communication e.g. a One Time Password (OTP) / code sent to a mobile phone.
+|
+|In the OBP APIs, SCA is invoked during Transaction Requests and Consent creation.
+|
+|See the following endpoints:
+|
+|[Create Consent via SMS](/index#OBPv3_1_0-createConsentSms)
+|[Create Consent via Email (for testing purposes)](/index#OBPv3_1_0-createConsentEmail)
+|[Answer Consent Challenge](/index#OBPv3_1_0-answerConsentChallenge)
+|
+|[Create Transaction Request](/index#OBPv2_1_0-createTransactionRequestSandboxTan)
+|[Answer Transaction Request Challenge](/index#OBPv2_1_0-answerTransactionRequestChallenge)
+|
+|Possible SCA flows:
+|
+|<img width="468" alt="obp-sca-image-1" src="https://user-images.githubusercontent.com/485218/58027906-ed786500-7b19-11e9-817e-c02e53ef9bd2.png"></img>
+|
+|
+|
+""")
+
+
+
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 
 
