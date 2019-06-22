@@ -163,7 +163,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: apiTagBerlinGroupMandatory :: Nil
      )
 
      lazy val createConsent : OBPEndpoint = {
