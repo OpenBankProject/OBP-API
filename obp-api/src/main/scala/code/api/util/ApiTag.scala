@@ -60,6 +60,9 @@ object ApiTag {
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
 
+  // To mark the Berlin Group APIs as "Mandatory"
+  val apiTagBerlinGroupMandatory = ResourceDocTag("Berlin-Group-Mandatory")
+
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0
   val apiTagAccountAccess = ResourceDocTag("UK-AccountAccess")
