@@ -72,6 +72,11 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>com.tesobe</groupId>
+        <artifactId>obp-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>net.liftweb</groupId>
         <artifactId>lift-common_${scala.version}</artifactId>
         <version>${lift.version}</version>
@@ -155,9 +160,16 @@
           </executions>
         </plugin>
         <plugin>
-          <groupId>org.mortbay.jetty</groupId>
-          <artifactId>maven-jetty-plugin</artifactId>
-          <version>6.1.26</version>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>jetty-maven-plugin</artifactId>
+          <version>${jetty.version}</version>
+          <configuration>
+            <scanIntervalSeconds>5</scanIntervalSeconds>
+            <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
+            <webApp>
+              <contextPath>/</contextPath>
+            </webApp>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

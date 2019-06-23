@@ -26,7 +26,6 @@
     <dependency>
       <groupId>com.tesobe</groupId>
       <artifactId>obp-commons</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.everit-org.json-schema</groupId>
@@ -493,15 +492,6 @@
           <configuration>
             <nosuffix>true</nosuffix>
             <encoding>${project.build.sourceEncoding}</encoding>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.mortbay.jetty</groupId>
-          <artifactId>maven-jetty-plugin</artifactId>
-          <configuration>
-            <contextPath>/</contextPath>
-            <scanIntervalSeconds>5</scanIntervalSeconds>
-            <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
           </configuration>
         </plugin>
         <plugin>

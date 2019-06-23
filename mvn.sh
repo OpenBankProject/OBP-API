@@ -4,4 +4,4 @@
 # just in case someone still uses java 1.7
 export MAVEN_OPTS="-Xmx1024m -Xms1024m -Xss2048k -XX:MaxPermSize=1024m"
 
-mvn $1 $2 $3 $4
+mvn $1 $2 $3 $4 $5 $6 $7 $8
