@@ -26,13 +26,21 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import code.api.ErrorMessage
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiVersion
+import code.api.util.ApiRole.CanCreateHistoricalTransaction
+import code.api.util.{ApiRole, ApiVersion}
 import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
+import code.api.v3_0_0.NewModeratedCoreAccountJsonV300
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import org.scalatest.Tag
+import net.liftweb.json.Serialization.write
 
 class TransactionTest extends V310ServerSetup {
 
@@ -45,7 +53,19 @@ class TransactionTest extends V310ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getTransactionRequests))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.saveHistoricalTransaction))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.getCoreAccountById))
 
+  val bankId1 = testBankId1.value
+  val bankId2 = testBankId2.value
+  val bankAccountId1 = testAccountId1.value
+  val bankAccountId2 = testAccountId0.value
+  val postJson = SwaggerDefinitionsJSON.postHistoricalTransactionJson.copy(
+    from = TransactionRequestAccountJsonV140(bankId1,bankAccountId1),
+    to = TransactionRequestAccountJsonV140(bankId2,bankAccountId2),
+    value = AmountOfMoneyJsonV121("EUR","1000")
+  )
+  
   feature("Get Transaction by Id - v3.1.0")
   {
     scenario("We will Get Transaction by Id - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
@@ -73,6 +93,87 @@ class TransactionTest extends V310ServerSetup {
       response310.code should equal(200)
       response310.body.extract[TransactionRequestWithChargeJSONs210]
     }
+  }
+
+  feature(s"$ApiEndpoint2")
+  {
+    scenario("We will test saveHistoricalTransaction --user is not Login", ApiEndpoint2, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "historical" / "transactions").POST
+      val response310 = makePostRequest(request310, write(postJson))
+      Then("We should get a 400")
+      response310.code should equal(400)
+      And("error should be " + UserNotLoggedIn)
+      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+    
+    scenario("We will test saveHistoricalTransaction --user is not Login, but no Role", ApiEndpoint2, VersionOfApi) {
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
+      val response310 = makePostRequest(request310, write(postJson))
+      Then("We should get a 400")
+      response310.code should equal(403)
+      response310.body.toString contains (ApiRole.canCreateHistoricalTransaction.toString()) should be (true)
+    }
+
+    scenario("We will test saveHistoricalTransaction --user is not Login, with Role and with Proper values", ApiEndpoint2, VersionOfApi) {
+      When("We make a request v3.1.0")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
+            
+      val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
+      val response310 = makePostRequest(request310, write(postJson))
+      
+      Then("We should get a 201")
+      response310.code should equal(201)
+      val responseJson = response310.body.extract[PostHistoricalTransactionResponseJson]
+      responseJson.value should be(postJson.value)
+      responseJson.description should be(postJson.description)
+      responseJson.transaction_id.length > 0 should be (true)
+    }
+
+    scenario("We will test saveHistoricalTransaction --user is not Login, with Role and with Proper values, and check the account balance", ApiEndpoint2, VersionOfApi) {
+      When("We make a request v3.1.0")
+      
+      //Before call saveHistoricalTransaction, we need store the balance for both account:
+      //ApiEndpoint3
+      val requestGetAccount1 = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
+      httpResponseGetAccount1.code should equal(200)
+      val accountI1Balance = httpResponseGetAccount1.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+
+      val requestGetAccount2 = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
+      httpResponseGetAccount2.code should equal(200)
+      val accountI2Balance= httpResponseGetAccount2.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      
+      
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
+
+      val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
+      val response310 = makePostRequest(request310, write(postJson))
+
+      Then("We should get a 201")
+      response310.code should equal(201)
+      val responseJson = response310.body.extract[PostHistoricalTransactionResponseJson]
+      responseJson.value should be(postJson.value)
+      responseJson.description should be(postJson.description)
+      responseJson.transaction_id.length > 0 should be (true)
+
+      val requestGetAccount1After = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
+      httpResponseGetAccount1After.code should equal(200)
+      val accountI1BalanceAfter = httpResponseGetAccount1After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+
+      val requestGetAccount2After = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
+      httpResponseGetAccount2After.code should equal(200)
+      val accountI2BalanceAfter= httpResponseGetAccount2After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+
+      (BigDecimal(accountI1BalanceAfter) - BigDecimal(accountI1Balance)) should be (BigDecimal(-1000)) 
+      (BigDecimal(accountI2BalanceAfter) - BigDecimal(accountI2Balance)) should be (BigDecimal(1000)) 
+    }
+    
+    
   }
 
 }

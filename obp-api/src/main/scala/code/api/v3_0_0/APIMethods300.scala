@@ -30,7 +30,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.grum.geocalc.{Coordinate, EarthCalc, Point}
 import com.openbankproject.commons.model._
 import net.liftweb.common._
-import net.liftweb.http.S
+import net.liftweb.http.{Req, S}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, compactRender}
@@ -40,6 +40,8 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+
+import code.api.v2_0_0.AccountsHelper._
 
 
 trait APIMethods300 {
@@ -423,7 +425,9 @@ trait APIMethods300 {
       s"""Returns the list of accounts containing private views for the user.
          |Each account lists the views available to the user.
          |
-        |${authenticationRequiredMessage(true)}
+         |$accountTypeFilterText
+         |
+         |${authenticationRequiredMessage(true)}
          |""",
       emptyObjectJson,
       coreAccountsJsonV300,
@@ -439,12 +443,12 @@ trait APIMethods300 {
 
     lazy val corePrivateAccountsAllBanks : OBPEndpoint = {
       //get private accounts for all banks
-      case "my" :: "accounts" :: Nil JsonGet _ => {
+      case "my" :: "accounts" :: Nil JsonGet req => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            (coreAccounts, callContext) <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, callContext)
+            (coreAccounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(coreAccounts), HttpCode.`200`(callContext))
           }
@@ -1568,7 +1572,7 @@ trait APIMethods300 {
         }
       }
     }
-  
+
     resourceDocs += ResourceDoc(
       privateAccountsAtOneBank,
       implementedInApiVersion,
@@ -1581,6 +1585,7 @@ trait APIMethods300 {
          |
          |If you want to see more information on the Views, use the Account Detail call.
          |
+         |$accountTypeFilterText
          |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
@@ -1598,9 +1603,7 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            ((accounts, callContext)) <- Connector.connector.vend.getCoreBankAccounts(availablePrivateAccounts, callContext) map {
-              connectorEmptyResponse(_, callContext)
-            }
+            (accounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
           } yield {
             (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
           }
@@ -1622,6 +1625,7 @@ trait APIMethods300 {
          |
          |If you want to see more information on the Views, use the Account Detail call.
          |
+         |$accountTypeFilterText
          |
          |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
@@ -1639,8 +1643,12 @@ trait APIMethods300 {
             (Full(u), callContext) <- authorizedAccess(cc)
              (_, callContext)<- NewStyle.function.getBank(bankId, callContext)
             bankAccountIds <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            bankIdAccountIds <- getFilteredCoreAccounts(bankAccountIds, req, callContext).map { it=>
+              val accountIds = it._1.map(_.id)
+              accountIds.map(accountId => BankIdAccountId(bankId, AccountId(accountId)))
+            }
           } yield {
-            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankAccountIds), HttpCode.`200`(callContext))
+            (JSONFactory300.createAccountsIdsByBankIdAccountIds(bankIdAccountIds), HttpCode.`200`(callContext))
           }
       }
     }
@@ -2021,6 +2029,7 @@ trait APIMethods300 {
         |
         |Can be used to onboard the account to the API - since all other account and transaction endpoints require views to be assigned.
         |
+        |$accountTypeFilterText
         |
         |${authenticationRequiredMessage(true)}
       """,
@@ -2039,8 +2048,13 @@ trait APIMethods300 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
             (accounts, callContext) <- NewStyle.function.getBankAccountsHeldFuture(availableAccounts.toList, callContext)
+
+            accountHelds <- getFilteredCoreAccounts(availableAccounts.toList, req, callContext).map { it =>
+              val coreAccountIds: List[String] = it._1.map(_.id)
+              accounts.filter(accountHeld =>coreAccountIds.contains(accountHeld.id))
+            }
           } yield {
-            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accounts), HttpCode.`200`(callContext))
+            (JSONFactory300.createCoreAccountsByCoreAccountsJSON(accountHelds), HttpCode.`200`(callContext))
           }
       }
     }

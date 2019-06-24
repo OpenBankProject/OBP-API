@@ -63,7 +63,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   
  // @code.setup.TestConnectorSetup.createAccounts we can know, the accountIds in test database.
   val testAccountId1 = AccountId("testAccount1")
-  val testAccountId2 = AccountId("testAccount2")
+  val testAccountId0 = AccountId("testAccount0")
   
   val mockCustomerNumber1 = "93934903201"
   val mockCustomerNumber2 = "93934903202"

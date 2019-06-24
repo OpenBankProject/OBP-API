@@ -59,6 +59,9 @@ object ApiTag {
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
 
+  // To mark the Berlin Group APIs suggested order of implementation
+  val apiTagBerlinGroupAisA = ResourceDocTag("Berlin-Group-AIS-A")
+
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0
   val apiTagAccountAccess = ResourceDocTag("UK-AccountAccess")

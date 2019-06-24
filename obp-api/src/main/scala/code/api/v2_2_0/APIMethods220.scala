@@ -236,7 +236,21 @@ trait APIMethods220 {
       "GET",
       "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
       "Get Current FxRate",
-      """Get the latest FXRate specified by BANK_ID, FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
+      """Get the latest FX rate specified by BANK_ID, FROM_CURRENCY_CODE and TO_CURRENCY_CODE
+        |
+        |OBP may try different sources of FX rate information depending on the Connector in operation.
+        |
+        |For example we want to convert EUR => USD:
+        |
+        |OBP will:
+        |1st try - Connector (database, core banking system or external FX service)
+        |2nd try part 1 - fallbackexchangerates/eur.json
+        |2nd try part 2 - fallbackexchangerates/usd.json (the inverse rate is used)
+        |3rd try - Hardcoded map of FX rates.
+        |
+        |![FX Flow](https://user-images.githubusercontent.com/485218/60005085-1eded600-966e-11e9-96fb-798b102d9ad0.png)
+        |
+      """.stripMargin,
       emptyObjectJson,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
@@ -641,6 +655,18 @@ trait APIMethods220 {
       "/banks/BANK_ID/fx",
       "Create Fx",
       s"""Create or Update Fx for the Bank.
+          |
+          |Example:
+          |
+          |“from_currency_code”:“EUR”,
+          |“to_currency_code”:“USD”,
+          |“conversion_value”: 1.136305,
+          |“inverse_conversion_value”: 1 / 1.136305 = 0.8800454103431737,
+          |
+          | Thus 1 Euro = 1.136305 US Dollar
+          | and
+          | 1 US Dollar = 0.8800 Euro
+          |
           |
          |${authenticationRequiredMessage(true) }
           |
