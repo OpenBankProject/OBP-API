@@ -213,13 +213,13 @@ As a last option, an ASPSP might in addition accept a command with access rights
        "DELETE",
        "/consents/CONSENTID",
        "Delete Consent",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             The TPP can delete an account information consent object if needed.""",
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
+       ApiTag("Account Information Service (AIS)")   :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val deleteConsent : OBPEndpoint = {
