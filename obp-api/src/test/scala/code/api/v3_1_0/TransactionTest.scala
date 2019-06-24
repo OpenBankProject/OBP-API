@@ -31,6 +31,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateHistoricalTransaction
 import code.api.util.{ApiRole, ApiVersion}
 import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.v1_2_1.TransactionJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
 import code.api.v3_0_0.NewModeratedCoreAccountJsonV300
@@ -55,6 +56,7 @@ class TransactionTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getTransactionRequests))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.saveHistoricalTransaction))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.getCoreAccountById))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getTransactionByIdForBankAccount))
 
   val bankId1 = testBankId1.value
   val bankId2 = testBankId2.value
@@ -97,7 +99,7 @@ class TransactionTest extends V310ServerSetup {
 
   feature(s"$ApiEndpoint2")
   {
-    scenario("We will test saveHistoricalTransaction --user is not Login", ApiEndpoint2, VersionOfApi) {
+    scenario("We will test saveHistoricalTransaction --user is not Login", ApiEndpoint2, ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions").POST
       val response310 = makePostRequest(request310, write(postJson))
@@ -171,6 +173,17 @@ class TransactionTest extends V310ServerSetup {
 
       (BigDecimal(accountI1BalanceAfter) - BigDecimal(accountI1Balance)) should be (BigDecimal(-1000)) 
       (BigDecimal(accountI2BalanceAfter) - BigDecimal(accountI2Balance)) should be (BigDecimal(1000)) 
+      
+      Then("We can get the transaction back")
+      val transactionNewId = responseJson.transaction_id
+      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / "owner" / "transactions" / transactionNewId / "transaction").GET <@ (user1)
+      val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
+
+      getTransactionbyIdResponse.code should equal(200)
+      getTransactionbyIdResponse.body.extract[TransactionJSON].id should be(transactionNewId)
+      getTransactionbyIdResponse.body.extract[TransactionJSON].details.`type` should be(postJson.`type`)
+      getTransactionbyIdResponse.body.extract[TransactionJSON].details.description should be(postJson.description)
+      
     }
     
     

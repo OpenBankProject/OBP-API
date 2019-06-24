@@ -860,7 +860,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     completed: Date,
     amount: BigDecimal,
     description: String,
-    transactionRequestType: TransactionRequestTypes,
+    transactionRequestType: String,
     chargePolicy: String,
     callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]]= {
     for{
@@ -875,7 +875,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         completed: Date,
         amount = fromTransAmt,
         description: String,
-        transactionRequestType: TransactionRequestTypes,
+        transactionRequestType: String,
         chargePolicy: String,
         callContext: Option[CallContext]
       )
@@ -886,7 +886,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         completed: Date,
         amount = toTransAmt,
         description: String,
-        transactionRequestType: TransactionRequestTypes,
+        transactionRequestType: String,
         chargePolicy: String,
         callContext: Option[CallContext])
     } yield{
@@ -902,7 +902,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     completed: Date,
     amount: BigDecimal,
     description: String,
-    transactionRequestType: TransactionRequestTypes,
+    transactionRequestType: String,
     chargePolicy: String,
     callContext: Option[CallContext]
   ) = Future {(
@@ -917,7 +917,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       mappedTransaction <- tryo(MappedTransaction.create
         .bank(fromAccount.bankId.value)
         .account(fromAccount.accountId.value)
-        .transactionType(transactionRequestType.toString)
+        .transactionType(transactionRequestType)
         .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
         .newAccountBalance(newAccountBalance)
         .currency(currency)

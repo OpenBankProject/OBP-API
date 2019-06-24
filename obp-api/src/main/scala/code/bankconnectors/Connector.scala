@@ -1827,7 +1827,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
                             completed: Date,
                             amount: BigDecimal,
                             description: String,
-                            transactionRequestType: TransactionRequestTypes,
+                            transactionRequestType: String,
                             chargePolicy: String,
                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = Future{(Failure(setUnimplementedError), callContext)}
 

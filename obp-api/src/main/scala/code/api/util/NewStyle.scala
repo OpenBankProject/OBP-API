@@ -1519,7 +1519,7 @@ object NewStyle {
       completed: Date,
       amount: BigDecimal,
       description: String,
-      transactionRequestType: TransactionRequestTypes,
+      transactionRequestType: String,
       chargePolicy: String,
       callContext: Option[CallContext]
     ) : OBPReturnType[TransactionId] =
@@ -1530,7 +1530,7 @@ object NewStyle {
         completed: Date,
         amount: BigDecimal,
         description: String,
-        transactionRequestType: TransactionRequestTypes,
+        transactionRequestType: String,
         chargePolicy: String,
         callContext: Option[CallContext]
       ) map {

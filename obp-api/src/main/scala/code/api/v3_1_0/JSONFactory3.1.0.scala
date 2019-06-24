@@ -573,6 +573,13 @@ case class PhysicalCardJsonV310(
   customer_id: String
 )
 
+case class AccountBasicV310(
+  id : String,
+  label : String,
+  views_available : List[ViewBasic],
+  bank_id : String
+)
+
 case class PhysicalCardWithAttributesJsonV310(
   card_id: String,
   bank_id: String,
@@ -589,7 +596,7 @@ case class PhysicalCardWithAttributesJsonV310(
   technology: String,
   networks: List[String],
   allows: List[String],
-  account: code.api.v1_2_1.AccountJSON,
+  account: AccountBasicV310,
   replacement: ReplacementJSON,
   pin_reset: List[PinResetJSON],
   collected: Date,
@@ -678,7 +685,7 @@ case class PostHistoricalTransactionJson(
   description: String,
   posted: String,
   completed: String,
-  transaction_request_type: String,
+  `type`: String,
   charge_policy: String
 )
 
@@ -1195,7 +1202,7 @@ object JSONFactory310{
   def createPhysicalCardsJson(cards : List[PhysicalCard], user : User) : PhysicalCardsJsonV310 = 
     PhysicalCardsJsonV310(cards.map(card => createPhysicalCardJson(card, user)))
 
-  def createPhysicalCardWithAttributesJson(card: PhysicalCardTrait, cardAttributes: List[CardAttribute],user : User): PhysicalCardWithAttributesJsonV310 = {
+  def createPhysicalCardWithAttributesJson(card: PhysicalCardTrait, cardAttributes: List[CardAttribute],user : User, views: List[View]): PhysicalCardWithAttributesJsonV310 = {
     PhysicalCardWithAttributesJsonV310(
       card_id = stringOrNull(card.cardId),
       bank_id = stringOrNull(card.bankId),
@@ -1212,7 +1219,11 @@ object JSONFactory310{
       technology = stringOrNull(card.technology),
       networks = card.networks,
       allows = card.allows.map(cardActionsToString).toList,
-      account = createAccountJson(card.account, user),
+      account = AccountBasicV310(
+        card.account.accountId.value,
+        card.account.label,
+        views.map(view => ViewBasic(view.viewId.value, view.name, view.description)),
+        card.account.bankId.value),
       replacement = card.replacement.map(createReplacementJson).getOrElse(null),
       pin_reset = card.pinResets.map(createPinResetJson),
       collected = card.collected.map(_.date).getOrElse(null),
