@@ -4,11 +4,44 @@ import java.security.PublicKey
 import java.security.cert.{CertificateExpiredException, CertificateNotYetValidException, X509Certificate}
 import java.security.interfaces.{ECPublicKey, RSAPublicKey}
 
+import com.github.dwickern.macros.NameOf
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.util.X509CertUtils
 import net.liftweb.common.{Box, Failure, Full}
 
 object X509 {
+  
+  object OID {
+    lazy val role = "2.5.4.72"
+  }
+  
+  case class SubjectAttribute(key: String, value: String)
+  
+  private def extractSubjectAttributes(encodedCert: String): List[SubjectAttribute] = {
+    // Parse X.509 certificate
+    val cert: X509Certificate = X509CertUtils.parse(encodedCert)
+    if (cert == null) {
+      // Parsing failed
+      Nil
+    } else {
+        cert.getSubjectDN().getName().split(",").toList.map {
+        attribute => attribute.trim.split("=").toList match {
+          case key :: value :: Nil => SubjectAttribute(key, value)
+        }
+      }
+    }
+  }
+  
+  def getRoles(encodedCert: String): String = {
+    extractSubjectAttributes(encodedCert).filter{
+      attribute => attribute.key.contains(OID.role) || attribute.key.contains(NameOf.nameOf(OID.role))
+    } match {
+      case x :: Nil => x.value
+      case _ => ""
+    }
+  }
+  
+  
 
   /**
     * The certificate must be validated before it may be used.
@@ -23,7 +56,7 @@ object X509 {
       Failure(ErrorMessages.X509ParsingFailed)
     } else {
       try {
-        cert.checkValidity
+        cert.checkValidity()
         Full(true)
       }
       catch {

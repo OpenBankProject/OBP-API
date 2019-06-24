@@ -2539,13 +2539,47 @@ Returns a string showed to the developer
     val parsePosition = new ParsePosition(0)
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null !=)
   }
-
-  def validatePsd2Certificate(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+  
+  def passesPsd2Aisp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
     val result: Box[Boolean] = getPropsAsBoolValue("requirePsd2Certificates", false) match {
       case false => Full(true)
       case true =>
         `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
-          case Some(pem) => X509.validate(pem)
+          case Some(pem) => 
+            val validatedPem = X509.validate(pem)
+            validatedPem match {
+              case Full(true) =>
+                Full(X509.getRoles(pem).contains("psp_ai"))match {
+                  case Full(true) => Full(true)
+                  case Full(false) => Failure(X509ActionIsNotAllowed)
+                }
+              case _ =>
+                validatedPem
+            }
+          case None => Failure(X509CannotGetCertificate)
+        }
+    }
+    Future(result) map {
+      x => (fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, cc.map(_.toLight))), cc)
+    }
+  }
+  
+  def passesPsd2Pisp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    val result: Box[Boolean] = getPropsAsBoolValue("requirePsd2Certificates", false) match {
+      case false => Full(true)
+      case true =>
+        `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
+          case Some(pem) => 
+            val validatedPem = X509.validate(pem)
+            validatedPem match {
+              case Full(true) =>
+                Full(X509.getRoles(pem).contains("psp_pi"))match {
+                  case Full(true) => Full(true)
+                  case Full(false) => Failure(X509ActionIsNotAllowed)
+                }
+              case _ =>
+                validatedPem
+            }
           case None => Failure(X509CannotGetCertificate)
         }
     }
