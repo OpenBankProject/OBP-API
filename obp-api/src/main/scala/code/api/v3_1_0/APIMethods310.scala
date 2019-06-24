@@ -5174,7 +5174,6 @@ trait APIMethods310 {
       }
     }
 
-    // SANDBOX_TAN. (we no longer create a resource doc for the general case)
     resourceDocs += ResourceDoc(
       saveHistoricalTransaction,
       implementedInApiVersion,
@@ -5184,8 +5183,6 @@ trait APIMethods310 {
       "Save Historical Transactions ",
       s"""
          |Import the historical transactions.
-         | 
-         |Note: `transaction_request_type` hardcode ${SANDBOX_TAN.toString} now.
        """.stripMargin,
       postHistoricalTransactionJson,
       postHistoricalTransactionResponseJson,
@@ -5255,6 +5252,9 @@ trait APIMethods310 {
 
             amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
             chargePolicy = transDetailsJson.charge_policy
+            
+            //There is no constarin for the type for now. 
+            transactionType = transDetailsJson.`type` 
 
             (transactionId, callContext) <- NewStyle.function.makeHistoricalPayment(
               fromAccount,
@@ -5263,7 +5263,7 @@ trait APIMethods310 {
               completed,
               amountNumber,
               transDetailsJson.description,
-              SANDBOX_TAN,
+              transactionType,
               chargePolicy,
               callContext
             )
@@ -5276,7 +5276,7 @@ trait APIMethods310 {
               description = transDetailsJson.description,
               posted,
               completed,
-              transactionRequestType =transDetailsJson.transaction_request_type,
+              transactionRequestType = transactionType,
               chargePolicy =transDetailsJson.charge_policy), HttpCode.`201`(callContext))
           }
       }

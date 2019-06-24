@@ -15,7 +15,7 @@ import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
-import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PutUpdateCustomerEmailJsonV310, _}
+import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -3392,7 +3392,7 @@ object SwaggerDefinitionsJSON {
     description = "this is for work",
     posted = DateWithSecondsExampleString,
     completed= DateWithSecondsExampleString,
-    transaction_request_type= SANDBOX_TAN.toString,
+    `type`= SANDBOX_TAN.toString,
     charge_policy= "SHARED"
   )
 

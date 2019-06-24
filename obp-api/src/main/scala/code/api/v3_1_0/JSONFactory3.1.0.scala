@@ -678,7 +678,7 @@ case class PostHistoricalTransactionJson(
   description: String,
   posted: String,
   completed: String,
-  transaction_request_type: String,
+  `type`: String,
   charge_policy: String
 )
 
