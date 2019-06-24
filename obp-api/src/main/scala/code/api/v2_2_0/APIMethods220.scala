@@ -236,7 +236,21 @@ trait APIMethods220 {
       "GET",
       "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
       "Get Current FxRate",
-      """Get the latest FXRate specified by BANK_ID, FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
+      """Get the latest FX rate specified by BANK_ID, FROM_CURRENCY_CODE and TO_CURRENCY_CODE
+        |
+        |OBP may try different sources of FX rate information depending on the Connector in operation.
+        |
+        |For example we want to convert EUR => USD:
+        |
+        |OBP will:
+        |1st try - Connector (database, core banking system or external FX service)
+        |2nd try part 1 - fallbackexchangerates/eur.json
+        |2nd try part 2 - fallbackexchangerates/usd.json (the inverse rate is used)
+        |3rd try - Hardcoded map of FX rates.
+        |
+        |![FX Flow](https://user-images.githubusercontent.com/485218/60005085-1eded600-966e-11e9-96fb-798b102d9ad0.png)
+        |
+      """.stripMargin,
       emptyObjectJson,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
