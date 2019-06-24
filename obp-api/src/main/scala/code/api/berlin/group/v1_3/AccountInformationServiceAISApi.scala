@@ -4,7 +4,7 @@ import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import net.liftweb.json
 import net.liftweb.json._
-import code.api.util.APIUtil.{defaultBankId, _}
+import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
 import code.api.util.{ApiTag, ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
@@ -171,6 +171,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -225,6 +226,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (NotImplemented, callContext)
            }
@@ -308,6 +310,7 @@ of the PSU at this ASPSP.
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
   
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
   
@@ -363,6 +366,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
@@ -641,6 +645,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "authorisationIds" : ""
@@ -728,6 +733,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "access" : {
@@ -813,6 +819,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "scaStatus" : "psuAuthenticated"
@@ -844,6 +851,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "consentStatus" : { }
@@ -1018,6 +1026,7 @@ The ASPSP might add balance information, if transaction lists without balances a
            for {
 
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
 
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
 
@@ -1267,6 +1276,7 @@ This applies in the following scenarios:
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -1357,6 +1367,7 @@ There are the following request types on this access path:
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse(""""""""), callContext)
            }
