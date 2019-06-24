@@ -153,6 +153,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     balances: List[TransactionsJsonV13Balance] = TransactionsJsonV13Balance() :: Nil,
     _links: TransactionsLinksV13 = TransactionsLinksV13()
   )
+  
+  case class ConsentStatusJsonV13(
+    consentStatus: String
+  )
 
   def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map(

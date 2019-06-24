@@ -10,6 +10,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
+import code.consent.Consents
 import code.model._
 import code.util.Helper
 import code.views.Views
@@ -17,6 +18,7 @@ import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import net.liftweb.http.js.JE.JsRaw
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -221,12 +223,18 @@ As a last option, an ASPSP might in addition accept a command with access rights
      )
 
      lazy val deleteConsent : OBPEndpoint = {
-       case "consents" :: consentid :: Nil JsonDelete _ => {
+       case "consents" :: consentId :: Nil JsonDelete _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (NotImplemented, callContext)
+             (Full(user), callContext) <- authorizedAccess(cc)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+             }
+             consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+           } yield {
+             (JsRaw(""), HttpCode.`204`(callContext))
            }
          }
        }
@@ -832,23 +840,25 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
             Read the status of an account information consent resource.""",
        json.parse(""""""),
        json.parse("""{
-  "consentStatus" : { }
-}"""),
+                      "consentStatus": "received"
+                     }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val getConsentStatus : OBPEndpoint = {
-       case "consents" :: consentid:: "status" :: Nil JsonGet _ => {
+       case "consents" :: consentId:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "consentStatus" : { }
-}"""), callContext)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status), HttpCode.`200`(callContext))
            }
+             
          }
        }
             
