@@ -177,7 +177,9 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       val responseGetCard = makeGetRequest(requestGetCard)
       And("We should get 200 and updated card data")
       responseGetCard.code should equal(200)
-      responseGetCard.body.extract[PhysicalCardJsonV310] should be (cardJsonV31)
+      responseGetCard.body.extract[PhysicalCardWithAttributesJsonV310].bank_id should be (cardJsonV31.bank_id)
+      responseGetCard.body.extract[PhysicalCardWithAttributesJsonV310].allows should be (cardJsonV31.allows)
+      responseGetCard.body.extract[PhysicalCardWithAttributesJsonV310].card_number should be (cardJsonV31.card_number)
 
       Then("We test the update card by cardId")
       val updatedCardJson = properCardJson.copy(name_on_card = "testName1")
@@ -193,7 +195,9 @@ class CardTest extends V310ServerSetup with DefaultUsers {
       val responseGetCardAfterUpdated = makeGetRequest(requestGetCardAfterUpdated)
       And("We should get 200 and updated card data")
       responseGetCardAfterUpdated.code should equal(200)
-      responseGetCardAfterUpdated.body.extract[PhysicalCardJsonV310] should be (cardJsonV31.copy(name_on_card = "testName1"))
+      responseGetCardAfterUpdated.body.extract[PhysicalCardWithAttributesJsonV310].card_type should be (cardJsonV31.copy(name_on_card = "testName1").card_type)
+      responseGetCardAfterUpdated.body.extract[PhysicalCardWithAttributesJsonV310].card_number should be (cardJsonV31.copy(name_on_card = "testName1").card_number)
+      responseGetCardAfterUpdated.body.extract[PhysicalCardWithAttributesJsonV310].card_type should be (cardJsonV31.copy(name_on_card = "testName1").card_type)
       
       
       Then("We test the delete card by cardId")

@@ -238,7 +238,7 @@ case class CoreAccountJsonV300(
 )
 
 
-case class ViewBasic(
+case class ViewBasicV300(
   id: String,
   short_name: String,
   description: String,
@@ -251,7 +251,7 @@ case class CoreAccountJson(
   bank_id: String,
   account_type: String,
   account_routings: List[AccountRoutingJsonV121],
-  views: List[ViewBasic]
+  views: List[ViewBasicV300]
 )
 
 case class AccountHeldJson(
@@ -292,7 +292,7 @@ case class NewModeratedCoreAccountJsonV300(
   `type`: String,
   balance: AmountOfMoneyJsonV121,
   account_routings: List[AccountRoutingJsonV121],
-  views_basic: List[ViewBasic],
+  views_basic: List[ViewBasicV300],
   account_attributes: List[AccountAttributeResponseJson]
 )
 
@@ -755,8 +755,8 @@ object JSONFactory300{
       coreAccount.accountRoutings.map(accountRounting =>AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address)),
       views = Views.views.vend
         .viewsForAccount(BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id))).filter(_.isPrivate)
-        .map(mappedView => 
-          ViewBasic(
+        .map(mappedView =>
+          ViewBasicV300(
             mappedView.viewId.value,
             mappedView.name,
             mappedView.description,
@@ -795,7 +795,7 @@ object JSONFactory300{
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       createAccountRoutingsJSON(account.accountRoutings),
-      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasic(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
+      views_basic = availableViews.map(view => code.api.v3_0_0.ViewBasicV300(id = view.viewId.value, short_name = view.name, description = view.description, is_public = view.isPublic)),
       accountAttributes.map(createAccountAttributeJson)
     )
   }
