@@ -24,7 +24,7 @@ import code.consent.ConsentStatus
 import code.context.UserAuthContextUpdateStatus
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.{GeoTag, _}
+import com.openbankproject.commons.model.{GeoTag, ViewBasic, _}
 import net.liftweb.json
 
 import scala.collection.immutable.List
@@ -2608,10 +2608,10 @@ object SwaggerDefinitionsJSON {
     account_routings = List(accountRoutingJsonV121)
   )
   
-  val viewBasic = ViewBasic(
-    id = "123",
-    short_name ="short_name",
-    description = "description",
+  val viewBasicV300 = ViewBasicV300(
+    id = viewIdExample.value,
+    short_name =viewNameExample.value,
+    description = viewDescriptionExample.value,
     is_public = false
   )
   
@@ -2621,7 +2621,7 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value,
     account_type = "330",
     account_routings = List(accountRoutingJsonV121),
-    views = List(viewBasic)
+    views = List(viewBasicV300)
   )
   
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJson))
@@ -3381,7 +3381,7 @@ object SwaggerDefinitionsJSON {
     `type`= accountTypeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
-    views_basic = List(viewBasic),
+    views_basic = List(viewBasicV300),
     account_attributes = List(accountAttributeResponseJson)
   )
   
@@ -3406,6 +3406,53 @@ object SwaggerDefinitionsJSON {
     completed= DateWithMsExampleObject,
     transaction_request_type= SANDBOX_TAN.toString,
     charge_policy= "SHARED"
+  )
+  
+  val viewBasicCommons = ViewBasic(
+    id = viewIdExample.value,
+    name =viewNameExample.value,
+    description = viewDescriptionExample.value,
+  )
+  
+  val accountBasicV310 = AccountBasicV310(
+    id = accountIdExample.value,
+    label = labelExample.value,
+    views_available = List(viewBasicCommons),
+    bank_id =  bankIdExample.value
+  )
+  
+  val cardAttributeCommons = CardAttributeCommons(
+    bankId = Some(BankId(bankIdExample.value)),
+    cardId = Some(cardIdExample.value),
+    cardAttributeId = Some(cardAttributeIdExample.value),
+    name = cardAttributeNameExample.value,
+    attributeType = CardAttributeType.STRING,
+    value = cardAttributeValueExample.value
+  )
+  
+  val physicalCardWithAttributesJsonV310 = PhysicalCardWithAttributesJsonV310(
+    card_id = cardIdExample.value,
+    bank_id = bankIdExample.value,
+    card_number = bankCardNumberExample.value,
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    cancelled = true,
+    on_hot_list = true,
+    technology = "technologyString1",
+    networks = List("networks1"),
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account = accountBasicV310,
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject,
+    customer_id = customerIdExample.value,
+    card_attributes = List(cardAttributeCommons)
   )
   
   //The common error or success format.

@@ -4688,9 +4688,14 @@ trait APIMethods310 {
       "GET",
       "/management/banks/BANK_ID/cards/CARD_ID",
       "Get Card By Id",
-      "",
+      s"""
+         |This will the datails of the card.
+         |It shows the account infomation which linked the the card.
+         |Also shows the card attributes of the card. 
+         |
+       """.stripMargin,
       emptyObjectJson,
-      physicalCardJsonV310,
+      physicalCardWithAttributesJsonV310,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard))
@@ -4704,8 +4709,9 @@ trait APIMethods310 {
             (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
             (cardAttributes, callContext) <- NewStyle.function.getCardAttributesFromProvider(cardId, callContext)
           } yield {
+            val views: List[View] = Views.views.vend.viewsForAccount(BankIdAccountId(card.account.bankId, card.account.accountId))
             val commonsData: List[CardAttributeCommons]= cardAttributes
-            (createPhysicalCardWithAttributesJson(card, commonsData, u), HttpCode.`200`(callContext))
+            (createPhysicalCardWithAttributesJson(card, commonsData, u, views), HttpCode.`200`(callContext))
           }
         }
       }
