@@ -6,7 +6,7 @@ import code.api.util.ErrorMessages
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.SimpleInjector
 
 trait BerlinGroupConsent {
@@ -17,6 +17,7 @@ trait BerlinGroupConsent {
   def validUntil: Date
   def frequencyPerDay : Int
   def combinedServiceIndicator: Boolean
+  def lastActionDate: Date
 }
 
 /*
@@ -99,6 +100,7 @@ object MappedBerlinGroupConsentProvider extends BerlinGroupConsentProvider {
         .mValidUntil(validUntil)
         .mFrequencyPerDay(frequencyPerDay)
         .mCombinedServiceIndicator(combinedServiceIndicator)
+        .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
       .saveMe()
     }
   }

@@ -23,6 +23,7 @@ class MappedBerlinGroupConsent extends BerlinGroupConsent with LongKeyedMapper[M
   object mValidUntil extends MappedDate(this)
   object mFrequencyPerDay extends MappedInt(this)
   object mCombinedServiceIndicator extends MappedBoolean(this)
+  object mLastActionDate extends MappedDate(this)
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
@@ -31,6 +32,7 @@ class MappedBerlinGroupConsent extends BerlinGroupConsent with LongKeyedMapper[M
   override def validUntil = mValidUntil.get
   override def frequencyPerDay = mFrequencyPerDay.get
   override def combinedServiceIndicator = mCombinedServiceIndicator.get
+  override def lastActionDate = mLastActionDate.get
 }
 
 object MappedBerlinGroupConsent extends MappedBerlinGroupConsent with LongKeyedMetaMapper[MappedBerlinGroupConsent] {

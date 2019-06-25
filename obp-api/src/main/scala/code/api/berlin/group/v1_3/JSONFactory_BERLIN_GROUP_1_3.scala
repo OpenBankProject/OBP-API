@@ -1,7 +1,8 @@
 package code.api.berlin.group.v1_3
 
+import java.text.SimpleDateFormat
 import java.util.Date
-
+import code.api.util.APIUtil._
 import code.api.berlin.group.model.consent.BerlinGroupConsent
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.ModeratedTransaction
@@ -160,19 +161,19 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
 
   case class ConsentAccessAccountsJson(
-    iban: String,
-    bban: String,
-    pan: String,
-    maskedPan: String,
-    msisdn: String,
-    currency: String
+    iban: Option[String],
+    bban: Option[String],
+    pan: Option[String],
+    maskedPan: Option[String],
+    msisdn: Option[String],
+    currency: Option[String]
   )
   case class ConsentAccessJson(
-    accounts: List[ConsentAccessAccountsJson],
-    balances: List[ConsentAccessAccountsJson],
-    transactions: List[ConsentAccessAccountsJson],
-    availableAccounts: Option[String],
-    allPsd2: Option[String]
+    accounts: Option[List[ConsentAccessAccountsJson]] = Some(Nil), //For now, only set the `Nil`, not fully support this yet. 
+    balances: Option[List[ConsentAccessAccountsJson]] = None,
+    transactions: Option[List[ConsentAccessAccountsJson]] = None,
+    availableAccounts: Option[String] = None,
+    allPsd2: Option[String] = None
   )
   case class PostConsentJson(
     access: ConsentAccessJson,
@@ -189,6 +190,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     consentId: String,
     consentStatus: String,
     _links: ConsentLinksV13
+  )
+
+
+  case class GetConsentResponseJson(
+    access: ConsentAccessJson,
+    recurringIndicator: Boolean,
+    validUntil: String,
+    frequencyPerDay: Int,
+    combinedServiceIndicator: Boolean,
+    lastActionDate: String,
+    consentStatus: String
   )
 
   def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
@@ -274,11 +286,23 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createConsentResponseJson(createdConsent: BerlinGroupConsent) : PostConsentResponseJson = {
+  def createPostConsentResponseJson(createdConsent: BerlinGroupConsent) : PostConsentResponseJson = {
     PostConsentResponseJson(
       consentId = createdConsent.consentId,
       consentStatus =createdConsent.status,
       _links= ConsentLinksV13(s"v1/consents/${createdConsent.consentId}/authorisations")
+    )
+  }
+
+  def createGetConsentResponseJson(createdConsent: BerlinGroupConsent) : GetConsentResponseJson = {
+    GetConsentResponseJson(
+      access = ConsentAccessJson(),
+      recurringIndicator = createdConsent.recurringIndicator,
+      validUntil = new SimpleDateFormat(DateWithDay).format(createdConsent.validUntil), 
+      frequencyPerDay = createdConsent.frequencyPerDay,
+      combinedServiceIndicator= createdConsent.combinedServiceIndicator,
+      lastActionDate= new SimpleDateFormat(DateWithDay).format(createdConsent.lastActionDate),
+      consentStatus= createdConsent.status
     )
   }
 

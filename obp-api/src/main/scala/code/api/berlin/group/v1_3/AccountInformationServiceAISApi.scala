@@ -86,9 +86,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
   * to see the list of available payment accounts with balances.
 """,
        json.parse("""{
-                      "access": {
-                        "accounts": []
-                      },
+                      "access": {"accounts": []},
                       "recurringIndicator": false,
                       "validUntil": "2020-12-31",
                       "frequencyPerDay": 4,
@@ -124,8 +122,8 @@ As a last option, an ASPSP might in addition accept a command with access rights
                new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
              }
              
-             failMsg = s"Only Support empty accout List for now. will retrun an accessible account list. "
-             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.isEmpty}
+             failMsg = s"$InvalidDateFormat Only Support empty accout List for now. It will retrun an accessible account list. "
+             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
              
              createdConsent <- Future(BerlinGroupConsents.consentProvider.vend.createConsent(
                u,
@@ -137,7 +135,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                i => connectorEmptyResponse(i, callContext)
              }
            } yield {
-             (createConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
+             (createPostConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
            }
          }
        }
@@ -600,135 +598,38 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "GET",
        "/consents/CONSENTID",
        "Get Consent Request",
-       s"""${mockedDataText(true)}
-Returns the content of an account information consent object. 
-This is returning the data for the TPP especially in cases, 
-where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
-""",
-       json.parse(""""""),
-       json.parse("""{
-  "access" : {
-    "balances" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "availableAccounts" : "allAccounts",
-    "accounts" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "transactions" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "allPsd2" : "allAccounts"
-  },
-  "consentStatus" : { },
-  "validUntil" : "2020-12-31",
-  "lastActionDate" : "2018-07-01",
-  "recurringIndicator" : false,
-  "frequencyPerDay" : 4
-}"""),
+       s"""
+          Returns the content of an account information consent object. 
+          This is returning the data for the TPP especially in cases, 
+          where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
+          """,
+                 json.parse(""""""),
+                 json.parse("""{
+            "access" : {
+              "accounts" : [ ],
+            },
+            "consentStatus" : "received",
+            "validUntil" : "2020-12-31",
+            "lastActionDate" : "2018-07-01",
+            "recurringIndicator" : false,
+            "frequencyPerDay" : 4
+          }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
-       case "consents" :: consentid :: Nil JsonGet _ => {
+       case "consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "access" : {
-    "balances" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "availableAccounts" : "allAccounts",
-    "accounts" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "transactions" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "allPsd2" : "allAccounts"
-  },
-  "consentStatus" : { },
-  "validUntil" : "2020-12-31",
-  "lastActionDate" : "2018-07-01",
-  "recurringIndicator" : false,
-  "frequencyPerDay" : 4
-}"""), callContext)
+
+             createdConsent <- Future(BerlinGroupConsents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+                 i => connectorEmptyResponse(i, callContext)
+               }
+           } yield {
+             (createGetConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
            }
          }
        }
