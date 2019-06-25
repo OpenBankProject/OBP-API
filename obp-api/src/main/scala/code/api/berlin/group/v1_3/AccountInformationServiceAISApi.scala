@@ -585,7 +585,7 @@ Reads account data from a given card account addressed by "account-id".
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: Nil
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
@@ -1019,7 +1019,7 @@ The ASPSP might add balance information, if transaction lists without balances a
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val getTransactionList : OBPEndpoint = {
