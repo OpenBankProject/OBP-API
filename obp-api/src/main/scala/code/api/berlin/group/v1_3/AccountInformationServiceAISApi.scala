@@ -2,23 +2,23 @@ package code.api.builder.AccountInformationServiceAISApi
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
-import net.liftweb.json
-import net.liftweb.json._
-import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiTag, ApiVersion, NewStyle}
-import code.api.util.ErrorMessages._
+import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
 import code.api.util.ApiTag._
+import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
+import code.api.util.{ApiTag, NewStyle}
 import code.bankconnectors.Connector
-import code.consent.Consents
+import code.consent.{ConsentStatus, Consents}
 import code.model._
 import code.util.Helper
 import code.views.Views
-import net.liftweb.common.Full
-import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json
+import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -173,6 +173,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -227,6 +228,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
          cc =>
            for {
              (Full(user), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
@@ -371,6 +373,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
@@ -637,7 +640,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 """,
        json.parse(""""""),
        json.parse("""{
-  "authorisationIds" : ""
+  "authorisationIds" : "faa3657e-13f0-4feb-a6c3-34bf21a9ae8e"
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
@@ -645,14 +648,16 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
-       case "consents" :: consentid:: "authorisations" :: Nil JsonGet _ => {
+       case "consents" :: consentId:: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "authorisationIds" : ""
-}"""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(List(consent.secret)), HttpCode.`200`(callContext))
            }
          }
        }
@@ -736,6 +741,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "access" : {
@@ -796,6 +802,16 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
            }
          }
        }
+
+
+
+      def tweakStatusNames(status: String) = {
+        val scaStatus = status
+          .replace(ConsentStatus.INITIATED.toString, "started")
+          .replace(ConsentStatus.ACCEPTED.toString, "finalised")
+          .replace(ConsentStatus.REJECTED.toString, "failed")
+        scaStatus
+      }
             
      resourceDocs += ResourceDoc(
        getConsentScaStatus,
@@ -809,7 +825,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 """,
        json.parse(""""""),
        json.parse("""{
-  "scaStatus" : "psuAuthenticated"
+  "scaStatus" : "started"
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
@@ -817,14 +833,19 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
-       case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
+       case "consents" :: consentId:: "authorisations" :: authorisationId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "scaStatus" : "psuAuthenticated"
-}"""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+             }
+             _ <- Helper.booleanToFuture(failMsg = AuthorizationNotFound) {
+               consent.secret == authorisationId
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(tweakStatusNames(consent.status)), HttpCode.`200`(callContext))
            }
          }
        }
@@ -852,6 +873,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
@@ -1028,6 +1050,7 @@ The ASPSP might add balance information, if transaction lists without balances a
            for {
 
             (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
 
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
 
@@ -1277,6 +1300,7 @@ This applies in the following scenarios:
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse("""{
   "challengeData" : {
@@ -1367,6 +1391,7 @@ There are the following request types on this access path:
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
              } yield {
              (json.parse(""""""""), callContext)
            }
