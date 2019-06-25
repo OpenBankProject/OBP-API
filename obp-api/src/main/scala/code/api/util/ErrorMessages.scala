@@ -150,6 +150,7 @@ object ErrorMessages {
   val X509CannotGetRSAPublicKey = "OBP-20304: RSA public key cannot be found at PEM Encoded Certificate."
   val X509CannotGetECPublicKey = "OBP-20305: EC public key cannot be found at PEM Encoded Certificate."
   val X509CannotGetCertificate = "OBP-20306: PEM Encoded Certificate cannot be found at request header."
+  val X509ActionIsNotAllowed = "OBP-20307: PEM Encoded Certificate does not provide the proper role for the action has been taken."
 
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -303,6 +304,7 @@ object ErrorMessages {
   val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
   val ConsentAllowedScaMethods = "OBP-35009: Only SMS and EMAIL are supported as SCA methods. "
   val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
+  val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
 
   // General Resource related messages above here
 
