@@ -677,7 +677,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
-       case "consents" :: consentid :: Nil JsonGet _ => {
+       case "consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
@@ -1120,7 +1120,7 @@ access token.
        "POST",
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent",
-       s"""${mockedDataText(true)}
+       s"""
 Create an authorisation sub-resource and start the authorisation process of a consent. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -1155,65 +1155,29 @@ This applies in the following scenarios:
 """,
        json.parse(""""""),
        json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""),
+                       "scaStatus": "received",
+                       "psuMessage": "Please use your BankApp for transaction Authorisation.",
+                       "_links":
+                         {
+                           "scaStatus":  {"href":"/v1/payments/qwer3456tzui7890/authorisations/123auth456"}
+                         }
+                     }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
-       case "consents" :: consentid:: "authorisations" :: Nil JsonPost _ => {
+       case "consents" :: consentId:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
+             consent <- Future(BerlinGroupConsents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+              }
              } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""), callContext)
+             (createStartConsentAuthorisationJson(consent), HttpCode.`201`(callContext))
            }
          }
        }

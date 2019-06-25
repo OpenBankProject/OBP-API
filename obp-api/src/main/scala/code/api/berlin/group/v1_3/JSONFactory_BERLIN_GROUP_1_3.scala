@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import code.api.util.APIUtil._
 import code.api.berlin.group.model.consent.BerlinGroupConsent
+import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi.tweakStatusNames
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{BankAccount, CoreAccount, TransactionRequest}
@@ -206,6 +207,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     lastActionDate: String,
     consentStatus: String
   )
+  
+  case class StartConsentAuthorisationJson(
+    scaStatus: String,
+    pushMessage: String,
+    _links: ScaStatusJsonV13
+  )
 
   def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map(
@@ -307,6 +314,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       combinedServiceIndicator= createdConsent.combinedServiceIndicator,
       lastActionDate= new SimpleDateFormat(DateWithDay).format(createdConsent.lastActionDate),
       consentStatus= createdConsent.status
+    )
+  }
+
+  def createStartConsentAuthorisationJson(consent: BerlinGroupConsent) : StartConsentAuthorisationJson = {
+    StartConsentAuthorisationJson(
+      scaStatus = consent.status,
+      pushMessage = "started", //TODO Not implment how to fill this.
+      _links =  ScaStatusJsonV13("/v1.3/payments/sepa-credit-transfers/1234-wertiq-98")//TODO, Not sure, what is this for??
     )
   }
 
