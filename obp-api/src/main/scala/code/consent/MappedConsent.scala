@@ -1,12 +1,13 @@
 package code.consent
 
+import java.util.Date
 import scala.util.Random
 import code.api.util.ErrorMessages
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper._
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.mapper.{MappedString, _}
+import net.liftweb.util.Helpers.{now, tryo}
 
 object MappedConsentProvider extends ConsentProvider {
   override def getConsentByConsentId(consentId: String): Box[MappedConsent] = {
@@ -25,7 +26,26 @@ object MappedConsentProvider extends ConsentProvider {
         .mStatus(ConsentStatus.INITIATED.toString)
         .saveMe()
     }
-  }  
+  }
+  override def createBerlinGroupConsent(
+    user: User,
+    recurringIndicator: Boolean,
+    validUntil: Date,
+    frequencyPerDay: Int,
+    combinedServiceIndicator: Boolean) ={
+    tryo {
+      MappedConsent
+        .create
+        .mUserId(user.userId)
+        .mStatus(ConsentStatus.RECEIVED.toString)
+        .mRecurringIndicator(recurringIndicator)
+        .mValidUntil(validUntil)
+        .mFrequencyPerDay(frequencyPerDay)
+        .mCombinedServiceIndicator(combinedServiceIndicator)
+        .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
+        .saveMe()
+    }}
+  
   override def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
@@ -88,12 +108,25 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   }
   object mJsonWebToken extends MappedString(this, 2048)
 
+  //The following are added for BerlinGroup
+  object mRecurringIndicator extends MappedBoolean(this)
+  object mValidUntil extends MappedDate(this)
+  object mFrequencyPerDay extends MappedInt(this)
+  object mCombinedServiceIndicator extends MappedBoolean(this)
+  object mLastActionDate extends MappedDate(this)
+
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
   override def secret: String = mSecret.get
   override def status: String = mStatus.get
   override def challenge: String = mChallenge.get
   override def jsonWebToken: String = mJsonWebToken.get
+
+  override def recurringIndicator: Boolean = mRecurringIndicator.get
+  override def validUntil = mValidUntil.get
+  override def frequencyPerDay = mFrequencyPerDay.get
+  override def combinedServiceIndicator = mCombinedServiceIndicator.get
+  override def lastActionDate = mLastActionDate.get
 
 }
 

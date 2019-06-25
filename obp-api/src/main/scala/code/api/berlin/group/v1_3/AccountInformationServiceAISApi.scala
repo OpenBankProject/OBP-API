@@ -1,10 +1,19 @@
 package code.api.builder.AccountInformationServiceAISApi
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
+import net.liftweb.json
+import net.liftweb.json._
+import code.api.util.APIUtil.{defaultBankId, _}
+import code.api.util.{ApiTag, ApiVersion, NewStyle}
 import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
+import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiTag, NewStyle}
 import code.bankconnectors.Connector
@@ -12,6 +21,8 @@ import code.consent.{ConsentStatus, Consents}
 import code.model._
 import code.util.Helper
 import code.views.Views
+import net.liftweb.common.Full
+import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 import net.liftweb.common.Full
@@ -81,128 +92,56 @@ As a last option, an ASPSP might in addition accept a command with access rights
   * to see the list of available payment accounts with balances.
 """,
        json.parse("""{
-  "access" : {
-    "balances" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "availableAccounts" : "allAccounts",
-    "accounts" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "transactions" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "allPsd2" : "allAccounts"
-  },
-  "combinedServiceIndicator" : false,
-  "validUntil" : "2020-12-31",
-  "recurringIndicator" : false,
-  "frequencyPerDay" : 4
-}"""),
+                      "access": {"accounts": []},
+                      "recurringIndicator": false,
+                      "validUntil": "2020-12-31",
+                      "frequencyPerDay": 4,
+                      "combinedServiceIndicator": false
+                    }"""),
        json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "consentId" : { },
-  "scaMethods" : "",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "self" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithTransactionAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "status" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "consentStatus" : { },
-  "message" : "message"
-}"""),
+                      "consentStatus": "received",
+                      "consentId": "1234-wertiq-983",
+                      "_links": {
+                        "startAuthorisation": {
+                          "href": "v1.3/consents/1234-wertiq-983/authorisations"
+                        }
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val createConsent : OBPEndpoint = {
-       case "consents" :: Nil JsonPost _ => {
+       case "consents" :: Nil JsonPost json -> _  =>  {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "consentId" : { },
-  "scaMethods" : "",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "self" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithTransactionAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "status" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "consentStatus" : { },
-  "message" : "message"
-}"""), callContext)
+             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
+             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               json.extract[PostConsentJson]
+             }
+
+             failMsg = s"$InvalidDateFormat Current `validUntil` field is ${consentJson.validUntil}. Please use this format ${DateWithDayFormat.toPattern}!"
+             validUntil <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
+             }
+             
+             failMsg = s"$InvalidDateFormat Only Support empty accout List for now. It will retrun an accessible account list. "
+             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
+             
+             createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
+               u,
+               recurringIndicator = consentJson.recurringIndicator,
+               validUntil = validUntil,
+               frequencyPerDay = consentJson.frequencyPerDay,
+               combinedServiceIndicator = consentJson.combinedServiceIndicator
+             )) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+           } yield {
+             (createPostConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
            }
          }
        }
@@ -633,7 +572,7 @@ Reads account data from a given card account addressed by "account-id".
        "GET",
        "/consents/CONSENTID/authorisations",
        "Get Consent Authorisation Sub-Resources Request",
-       s"""${mockedDataText(true)}
+       s"""
 Return a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
@@ -737,68 +676,16 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
-       case "consents" :: consentid :: Nil JsonGet _ => {
+       case "consents" :: consentId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             } yield {
-             (json.parse("""{
-  "access" : {
-    "balances" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "availableAccounts" : "allAccounts",
-    "accounts" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "transactions" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "allPsd2" : "allAccounts"
-  },
-  "consentStatus" : { },
-  "validUntil" : "2020-12-31",
-  "lastActionDate" : "2018-07-01",
-  "recurringIndicator" : false,
-  "frequencyPerDay" : 4
-}"""), callContext)
+             createdConsent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+                 i => connectorEmptyResponse(i, callContext)
+               }
+           } yield {
+             (createGetConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
            }
          }
        }
@@ -1232,7 +1119,7 @@ access token.
        "POST",
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent",
-       s"""${mockedDataText(true)}
+       s"""
 Create an authorisation sub-resource and start the authorisation process of a consent. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -1267,65 +1154,29 @@ This applies in the following scenarios:
 """,
        json.parse(""""""),
        json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""),
+                       "scaStatus": "received",
+                       "psuMessage": "Please use your BankApp for transaction Authorisation.",
+                       "_links":
+                         {
+                           "scaStatus":  {"href":"/v1/payments/qwer3456tzui7890/authorisations/123auth456"}
+                         }
+                     }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
-       case "consents" :: consentid:: "authorisations" :: Nil JsonPost _ => {
+       case "consents" :: consentId:: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+              }
              } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""), callContext)
+             (createStartConsentAuthorisationJson(consent), HttpCode.`201`(callContext))
            }
          }
        }
@@ -1383,7 +1234,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
