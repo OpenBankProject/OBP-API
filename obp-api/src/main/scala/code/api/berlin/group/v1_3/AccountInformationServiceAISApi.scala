@@ -1234,7 +1234,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
