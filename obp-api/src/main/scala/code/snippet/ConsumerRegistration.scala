@@ -27,14 +27,15 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.util.{APIUtil, ErrorMessages}
+import code.consumer.Consumers
 import code.model._
 import code.model.dataAccess.AuthUser
-import net.liftweb.common.{Empty, Full}
 import code.util.Helper.MdcLoggable
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{CssSel, FieldError, Helpers, Props}
-import code.consumer.Consumers
+import net.liftweb.util.{FieldError, Helpers}
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 class ConsumerRegistration extends MdcLoggable {
 
@@ -51,11 +52,11 @@ class ConsumerRegistration extends MdcLoggable {
 
 
   // Can be used to show link to an online form to collect more information about the App / Startup
-  val registrationMoreInfoUrl = APIUtil.getPropsValue("webui_post_consumer_registration_more_info_url", "")
+  val registrationMoreInfoUrl = getWebUiPropsValue("webui_post_consumer_registration_more_info_url", "")
 
   val registrationMoreInfoText : String = registrationMoreInfoUrl match {
     case "" => ""
-    case _  =>  APIUtil.getPropsValue("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
+    case _  =>  getWebUiPropsValue("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
   }
 
   
@@ -87,7 +88,7 @@ class ConsumerRegistration extends MdcLoggable {
     def showResults(consumer : Consumer) = {
       val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
-      val createDirectLoginToken = APIUtil.getPropsValue("webui_create_directlogin_token_url", "")
+      val createDirectLoginToken = getWebUiPropsValue("webui_create_directlogin_token_url", "")
       //thanks for registering, here's your key, etc.
       "#app-consumer_id *" #> consumer.id.get &
       "#app-name *" #> consumer.name.get &
@@ -205,11 +206,11 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
       val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
-      val apiExplorerUrl = APIUtil.getPropsValue("webui_api_explorer_url", "unknown host")
-      val directLoginDocumentationUrl = APIUtil.getPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
-      val oauthDocumentationUrl = APIUtil.getPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
+      val apiExplorerUrl = getWebUiPropsValue("webui_api_explorer_url", "unknown host")
+      val directLoginDocumentationUrl = getWebUiPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
+      val oauthDocumentationUrl = getWebUiPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
       val oauthEndpointUrl = thisApiInstance + "/oauth/initiate"
-      val createDirectLoginTokenUrl = APIUtil.getPropsValue("webui_create_directlogin_token_url", "")
+      val createDirectLoginTokenUrl = getWebUiPropsValue("webui_create_directlogin_token_url", "")
       val directLoginEndpointUrl = thisApiInstance + "/my/logins/direct"
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +

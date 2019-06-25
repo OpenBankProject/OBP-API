@@ -342,6 +342,15 @@ object ApiRole {
   case class CanCreateHistoricalTransaction(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateHistoricalTransaction = CanCreateHistoricalTransaction()
 
+  case class CanGetWebUiProps(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetWebUiProps = CanGetWebUiProps()
+
+  case class CanCreateWebUiProps(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateWebUiProps = CanCreateWebUiProps()
+
+  case class CanDeleteWebUiProps(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteWebUiProps = CanDeleteWebUiProps()
+
   private val roles =
       canSearchAllTransactions ::
       canSearchAllAccounts ::
@@ -448,6 +457,9 @@ object ApiRole {
       canDeleteMethodRouting :: 
       canUpdateCustomerNumber ::
       canCreateHistoricalTransaction ::
+      canGetWebUiProps ::
+      canCreateWebUiProps ::
+      canDeleteWebUiProps ::
       Nil
 
   lazy val rolesMappedToClasses = roles.map(_.getClass)
