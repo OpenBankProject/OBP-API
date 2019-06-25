@@ -304,6 +304,7 @@ object ErrorMessages {
   val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
   val ConsentAllowedScaMethods = "OBP-35009: Only SMS and EMAIL are supported as SCA methods. "
   val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
+  val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
 
   // General Resource related messages above here
 

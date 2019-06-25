@@ -156,7 +156,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   
   case class ConsentStatusJsonV13(
     consentStatus: String
-  )
+  )  
+  case class ScaStatusJsonV13(
+    scaStatus: String
+  )  
+  case class AuthorisationJsonV13(authorisationIds: List[String])
 
   def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map(
