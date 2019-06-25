@@ -214,13 +214,13 @@ As a last option, an ASPSP might in addition accept a command with access rights
        "DELETE",
        "/consents/CONSENTID",
        "Delete Consent",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             The TPP can delete an account information consent object if needed.""",
        json.parse(""""""),
        json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
+       ApiTag("Account Information Service (AIS)")   :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val deleteConsent : OBPEndpoint = {
@@ -842,7 +842,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "GET",
        "/consents/CONSENTID/status",
        "Consent status request",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Read the status of an account information consent resource.""",
        json.parse(""""""),
        json.parse("""{
@@ -850,7 +850,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
                      }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupAisA :: Nil
+       ApiTag("Account Information Service (AIS)")   :: apiTagBerlinGroupAisA :: Nil
      )
 
      lazy val getConsentStatus : OBPEndpoint = {

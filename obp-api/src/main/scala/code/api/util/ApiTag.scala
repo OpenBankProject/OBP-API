@@ -58,6 +58,7 @@ object ApiTag {
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
+  val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
 
   // To mark the Berlin Group APIs suggested order of implementation
   val apiTagBerlinGroupAisA = ResourceDocTag("Berlin-Group-AIS-A")
