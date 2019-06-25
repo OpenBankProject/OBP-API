@@ -2,6 +2,7 @@ package code.api.berlin.group.v1_3
 
 import java.util.Date
 
+import code.api.berlin.group.model.consent.BerlinGroupConsent
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{BankAccount, CoreAccount, TransactionRequest}
@@ -158,6 +159,38 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     consentStatus: String
   )
 
+  case class ConsentAccessAccountsJson(
+    iban: String,
+    bban: String,
+    pan: String,
+    maskedPan: String,
+    msisdn: String,
+    currency: String
+  )
+  case class ConsentAccessJson(
+    accounts: List[ConsentAccessAccountsJson],
+    balances: List[ConsentAccessAccountsJson],
+    transactions: List[ConsentAccessAccountsJson],
+    availableAccounts: Option[String],
+    allPsd2: Option[String]
+  )
+  case class PostConsentJson(
+    access: ConsentAccessJson,
+    recurringIndicator: Boolean,
+    validUntil: String,
+    frequencyPerDay: Int,
+    combinedServiceIndicator: Boolean
+  )
+  case class ConsentLinksV13(
+    startAuthorisation: String
+  )
+
+  case class PostConsentResponseJson(
+    consentId: String,
+    consentStatus: String,
+    _links: ConsentLinksV13
+  )
+
   def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map(
       x => CoreAccountJsonV13(
@@ -238,6 +271,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         booked= transactions.map(createTransactionJSON),
         pending = transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON)
       )
+    )
+  }
+
+  def createConsentResponseJson(createdConsent: BerlinGroupConsent) : PostConsentResponseJson = {
+    PostConsentResponseJson(
+      consentId = createdConsent.consentId,
+      consentStatus =createdConsent.status,
+      _links= ConsentLinksV13(s"v1/consents/${createdConsent.consentId}/authorisations")
     )
   }
 
