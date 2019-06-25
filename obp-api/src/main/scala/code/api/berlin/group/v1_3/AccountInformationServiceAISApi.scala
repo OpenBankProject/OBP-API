@@ -6,7 +6,6 @@ import java.util.Date
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
-import code.api.berlin.group.model.consent.BerlinGroupConsents
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
@@ -132,7 +131,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
              failMsg = s"$InvalidDateFormat Only Support empty accout List for now. It will retrun an accessible account list. "
              _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
              
-             createdConsent <- Future(BerlinGroupConsents.consentProvider.vend.createConsent(
+             createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
                u,
                recurringIndicator = consentJson.recurringIndicator,
                validUntil = validUntil,
@@ -573,7 +572,7 @@ Reads account data from a given card account addressed by "account-id".
        "GET",
        "/consents/CONSENTID/authorisations",
        "Get Consent Authorisation Sub-Resources Request",
-       s"""${mockedDataText(true)}
+       s"""
 Return a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
@@ -682,7 +681,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             createdConsent <- Future(BerlinGroupConsents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+             createdConsent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                  i => connectorEmptyResponse(i, callContext)
                }
            } yield {
@@ -1173,7 +1172,7 @@ This applies in the following scenarios:
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             consent <- Future(BerlinGroupConsents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
               }
              } yield {

@@ -3,13 +3,12 @@ package code.api.berlin.group.v1_3
 import java.text.SimpleDateFormat
 import java.util.Date
 import code.api.util.APIUtil._
-import code.api.berlin.group.model.consent.BerlinGroupConsent
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi.tweakStatusNames
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{BankAccount, CoreAccount, TransactionRequest}
 import net.liftweb.json.JValue
-
+import code.consent.Consent
 import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
@@ -297,7 +296,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createPostConsentResponseJson(createdConsent: BerlinGroupConsent) : PostConsentResponseJson = {
+  def createPostConsentResponseJson(createdConsent: Consent) : PostConsentResponseJson = {
     PostConsentResponseJson(
       consentId = createdConsent.consentId,
       consentStatus =createdConsent.status,
@@ -305,7 +304,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createGetConsentResponseJson(createdConsent: BerlinGroupConsent) : GetConsentResponseJson = {
+  def createGetConsentResponseJson(createdConsent: Consent) : GetConsentResponseJson = {
     GetConsentResponseJson(
       access = ConsentAccessJson(),
       recurringIndicator = createdConsent.recurringIndicator,
@@ -317,7 +316,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createStartConsentAuthorisationJson(consent: BerlinGroupConsent) : StartConsentAuthorisationJson = {
+  def createStartConsentAuthorisationJson(consent: Consent) : StartConsentAuthorisationJson = {
     StartConsentAuthorisationJson(
       scaStatus = consent.status,
       pushMessage = "started", //TODO Not implment how to fill this.

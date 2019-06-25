@@ -37,8 +37,6 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.ResourceDocs300.ResourceDocs310
 import code.api.ResourceDocs1_4_0._
 import code.api._
-import code.api.berlin.group.model.consent.MappedBerlinGroupConsent
-
 import code.api.builder.APIBuilder_Connector
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
@@ -626,7 +624,6 @@ object ToSchemify {
     MappedConsent,
     MigrationScriptLog,
     MethodRouting,
-    MappedBerlinGroupConsent,
     WebUiProps,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
