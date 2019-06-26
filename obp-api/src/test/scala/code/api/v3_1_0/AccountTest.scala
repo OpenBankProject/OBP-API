@@ -58,8 +58,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
       responseGet.body.extract[ModeratedCoreAccountJsonV300].`type` should be (testPutJson.`type`)
       responseGet.body.extract[ModeratedCoreAccountJsonV300].label should be (testPutJson.label)
-      responseGet.body.extract[ModeratedCoreAccountJsonV300].account_routings.head.scheme should be (testPutJson.account_routing.scheme)
-      responseGet.body.extract[ModeratedCoreAccountJsonV300].account_routings.head.address should be (testPutJson.account_routing.address)
+      responseGet.body.extract[ModeratedCoreAccountJsonV300].account_routings.toString() contains (testPutJson.account_routing.scheme) should be (true)
+      responseGet.body.extract[ModeratedCoreAccountJsonV300].account_routings.toString() contains (testPutJson.account_routing.address) should be (true)
       
     }
   }
