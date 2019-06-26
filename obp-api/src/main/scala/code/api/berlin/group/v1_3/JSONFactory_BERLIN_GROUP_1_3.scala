@@ -213,7 +213,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: ScaStatusJsonV13
   )
 
-  def createTransactionListJSON(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
+  def createAccountListJson(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map(
       x => CoreAccountJsonV13(
         resourceId = x.id,
