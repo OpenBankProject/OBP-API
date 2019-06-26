@@ -2540,7 +2540,7 @@ Returns a string showed to the developer
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null !=)
   }
   
-  def passesPsd2Aisp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+  def passesPsd2ServiceProvider(cc: Option[CallContext], serviceProvider: String): OBPReturnType[Box[Boolean]] = {
     val result: Box[Boolean] = getPropsAsBoolValue("requirePsd2Certificates", false) match {
       case false => Full(true)
       case true =>
@@ -2549,7 +2549,7 @@ Returns a string showed to the developer
             val validatedPem = X509.validate(pem)
             validatedPem match {
               case Full(true) =>
-                Full(X509.getRoles(pem).contains("psp_ai"))match {
+                Full(X509.getRoles(pem).contains(serviceProvider)) match {
                   case Full(true) => Full(true)
                   case Full(false) => Failure(X509ActionIsNotAllowed)
                 }
@@ -2563,29 +2563,17 @@ Returns a string showed to the developer
       x => (fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, cc.map(_.toLight))), cc)
     }
   }
-  
+  def passesPsd2Aisp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_ai.toString())
+  }
   def passesPsd2Pisp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-    val result: Box[Boolean] = getPropsAsBoolValue("requirePsd2Certificates", false) match {
-      case false => Full(true)
-      case true =>
-        `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
-          case Some(pem) => 
-            val validatedPem = X509.validate(pem)
-            validatedPem match {
-              case Full(true) =>
-                Full(X509.getRoles(pem).contains("psp_pi"))match {
-                  case Full(true) => Full(true)
-                  case Full(false) => Failure(X509ActionIsNotAllowed)
-                }
-              case _ =>
-                validatedPem
-            }
-          case None => Failure(X509CannotGetCertificate)
-        }
-    }
-    Future(result) map {
-      x => (fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, cc.map(_.toLight))), cc)
-    }
+    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_pi.toString())
+  }
+  def passesPsd2Icsp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_ic.toString())
+  }
+  def passesPsd2Assp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_as.toString())
   }
   
 }
