@@ -63,32 +63,23 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     
   )
   case class BalanceAccount(
-    bban: String = "BARC12345612345678",
+    bban: String = "",
     currency: String =  "EUR",
     iban : String =  "FR7612345987650123456789014",
-    maskedPan: String =  "123456xxxxxx1234",
-    msisdn : String =  "+49 170 1234567",
-    pan: String ="5409050000000000"
+    maskedPan: String =  "",
+    msisdn : String =  "",
+    pan: String =""
   )
   case class AccountBalancesV13(
     account:BalanceAccount= BalanceAccount(),
     `balances`: List[AccountBalance] = AccountBalance() ::Nil
   )
   case class TransactionsLinksV13(
-    download: String =  "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    additionalProp1: String =  "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    additionalProp2: String =  "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    additionalProp3: String =  "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    account: String
   )
   case class TransactionsV13TransactionsLinks(
-    account: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    first: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    next: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    previous: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    last: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    additionalProp1: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    additionalProp2: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    additionalProp3: String ="/v1/payments/sepa-credit-transfers/1234-wertiq-983"    
+    account: String ,
+   
   )
   case class ExchangeRateJson(
     sourceCurrency: String = "EUR",
@@ -114,11 +105,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
   case class TransactionJsonV13(
     transactionId: String,
-    entryReference: String ="string",
-    endToEndId: String ="string",
-    mandateId: String ="string",
-    checkId: String ="string",
-    creditorId: String ="string",
+    entryReference: String ="",
+    endToEndId: String ="",
+    mandateId: String ="",
+    checkId: String ="",
+    creditorId: String ="",
     bookingDate: Date,
     valueDate: Date,
     transactionAmount: AmountOfMoneyV13,
@@ -129,31 +120,31 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     debtorName: String = "Debtor Name",
     debtorAccount: CreditorAccountJson = CreditorAccountJson(),
     ultimateDebtor: String = "Ultimate Debtor",
-    remittanceInformationUnstructured: String= "string",
-    remittanceInformationStructured: String = "string",
+    remittanceInformationUnstructured: String= "",
+    remittanceInformationStructured: String = "",
     purposeCode: String = "BKDF",
     bankTransactionCode: String = "PMNT-RCDT-ESCT",
-    proprietaryBankTransactionCode: String = "string",
+    proprietaryBankTransactionCode: String = "",
     _links: TransactionJsonV13Links = TransactionJsonV13Links(),
   )
   
   case class TransactionsV13Transactions(
     booked: List[TransactionJsonV13], 
     pending: List[TransactionJsonV13],
-    _links: TransactionsV13TransactionsLinks = TransactionsV13TransactionsLinks()
+    _links: TransactionsV13TransactionsLinks 
   )
   case class TransactionsJsonV13Balance(
     balanceAmount :  AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
-    balanceType: String =  "closingBooked",
-    lastChangeDateTime: String = "2019-01-28T13:32:26.290Z",
-    referenceDate: String = "string",
-    lastCommittedTransaction: String =  "string"
+    balanceType: String =  "",
+    lastChangeDateTime: String = "",
+    referenceDate: String = "",
+    lastCommittedTransaction: String =  ""
   )
   case class TransactionsJsonV13(
-    account:BalanceAccount = BalanceAccount(),
+    account:BalanceAccount,
     transactions:TransactionsV13Transactions,
-    balances: List[TransactionsJsonV13Balance] = TransactionsJsonV13Balance() :: Nil,
-    _links: TransactionsLinksV13 = TransactionsLinksV13()
+    balances: List[TransactionsJsonV13Balance] ,
+    _links: TransactionsLinksV13 
   )
   
   case class ConsentStatusJsonV13(
@@ -224,10 +215,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         cashAccountType = "",
         bic="",
         _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") 
-          :: Transactions(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/transactions") 
-          :: AdditionalProp1("/v1/payments/sepa-credit-transfers/1234-wertiq-983")
-          :: AdditionalProp2("/v1/payments/sepa-credit-transfers/1234-wertiq-983")
-          :: AdditionalProp3("/v1/payments/sepa-credit-transfers/1234-wertiq-983")
           :: Nil
         )
        )
@@ -288,11 +275,26 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   }
   
   def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonV13 = {
+    val ids = transactions.map(_.bankAccount.map(_.accountId.value)).flatten
+    val accountIbans = transactions.map(_.bankAccount.map(_.iban.getOrElse(""))).flatten
+    val accontCurrencys = transactions.map(_.bankAccount.map(_.currency.getOrElse(""))).flatten
+    val accontBalances = transactions.map(_.bankAccount.map(_.balance)).flatten
+    
+    val accontId = if (ids.isEmpty) "" else ids.head
+    val accountIban = if (accountIbans.isEmpty) "" else accountIbans.head
+    val accountCurrency = if (accontCurrencys.isEmpty) "" else accontCurrencys.head
+    val accontBalance = if (accontBalances.isEmpty) "" else accontBalances.head
+    
+    
     TransactionsJsonV13(
-      transactions= TransactionsV13Transactions(
+      BalanceAccount(currency = accountCurrency, iban = accountIban),
+      TransactionsV13Transactions(
         booked= transactions.map(createTransactionJSON),
-        pending = transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON)
-      )
+        pending = transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON),
+        _links = TransactionsV13TransactionsLinks(s"/v1/accounts/$accontId")
+      ),
+      balances = List(TransactionsJsonV13Balance(balanceAmount = AmountOfMoneyV13(accountCurrency, accontBalance))),
+      _links = TransactionsLinksV13(s"/v1/accounts/$accontId")
     )
   }
 
