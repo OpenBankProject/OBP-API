@@ -2540,12 +2540,12 @@ Returns a string showed to the developer
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null !=)
   }
   
-  def passesPsd2ServiceProvider(cc: Option[CallContext], serviceProvider: String): OBPReturnType[Box[Boolean]] = {
+  private def passesPsd2ServiceProviderCommon(cc: Option[CallContext], serviceProvider: String) = {
     val result: Box[Boolean] = getPropsAsBoolValue("requirePsd2Certificates", false) match {
       case false => Full(true)
       case true =>
         `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
-          case Some(pem) => 
+          case Some(pem) =>
             val validatedPem = X509.validate(pem)
             validatedPem match {
               case Full(true) =>
@@ -2559,6 +2559,11 @@ Returns a string showed to the developer
           case None => Failure(X509CannotGetCertificate)
         }
     }
+    result
+  }
+  
+  def passesPsd2ServiceProvider(cc: Option[CallContext], serviceProvider: String): OBPReturnType[Box[Boolean]] = {
+    val result = passesPsd2ServiceProviderCommon(cc, serviceProvider)
     Future(result) map {
       x => (fullBoxOrException(x ~> APIFailureNewStyle(X509GeneralError, 400, cc.map(_.toLight))), cc)
     }
@@ -2574,6 +2579,23 @@ Returns a string showed to the developer
   }
   def passesPsd2Assp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
     passesPsd2ServiceProvider(cc, PemCertificateRole.psp_as.toString())
+  }
+
+
+  def passesPsd2ServiceProviderOldStyle(cc: Option[CallContext], serviceProvider: String): Box[Boolean] = {
+    passesPsd2ServiceProviderCommon(cc, serviceProvider) ?~! X509GeneralError
+  }
+  def passesPsd2AispOldStyle(cc: Option[CallContext]): Box[Boolean] = {
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_ai.toString())
+  }
+  def passesPsd2PispOldStyle(cc: Option[CallContext]): Box[Boolean] = {
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_pi.toString())
+  }
+  def passesPsd2IcspOldStyle(cc: Option[CallContext]): Box[Boolean] = {
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_ic.toString())
+  }
+  def passesPsd2AsspOldStyle(cc: Option[CallContext]): Box[Boolean] = {
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_as.toString())
   }
   
 }
