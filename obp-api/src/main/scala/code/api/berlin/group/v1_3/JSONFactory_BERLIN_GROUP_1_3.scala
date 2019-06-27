@@ -242,11 +242,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       x => CoreAccountJsonV13(
         resourceId = x.id,
         iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else "",
-        currency = "",
+        currency = "", // TODO
         name = x.label,
         status = "",
-        cashAccountType = "",
-        bic="",
+        cashAccountType = x.accountType,
+        bic="", // TODO
         _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") 
           :: Nil
         )
