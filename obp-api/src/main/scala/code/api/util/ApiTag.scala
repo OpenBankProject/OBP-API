@@ -61,7 +61,7 @@ object ApiTag {
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
 
   // To mark the Berlin Group APIs suggested order of implementation
-  val apiTagBerlinGroupAisA = ResourceDocTag("Berlin-Group-AIS-A")
+  val apiTagBerlinGroupM = ResourceDocTag("Berlin-Group-M")
 
   
   //Note: the followings are for the code generator -- UKOpenBankingV3.1.0

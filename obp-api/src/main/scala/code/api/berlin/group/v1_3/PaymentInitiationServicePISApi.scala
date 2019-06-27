@@ -306,7 +306,19 @@ Check the transaction status of a payment initiation.""",
            }
          }
        }
-            
+
+
+  val additionalInstructions : String =
+    """
+      |Additional Instructions:
+      |
+      |for PAYMENT_SERVICE use payments
+      |
+      |for PAYMENT_PRODUCT use sepa-credit-transfers
+      |
+    """.stripMargin
+
+
      resourceDocs += ResourceDoc(
        initiatePayment,
        apiVersion,
@@ -314,7 +326,7 @@ Check the transaction status of a payment initiation.""",
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT",
        "Payment initiation request",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method is used to initiate a payment at the ASPSP.
 
 ## Variants of Payment Initiation Requests
@@ -360,6 +372,10 @@ response message of a Payment Initation Request for a payment, where multiple au
 Also if any data is needed for the next action, like selecting an SCA method is not supported in the response, 
 since all starts of the multiple authorisations are fully equal. 
 In these cases, first an authorisation sub-resource has to be generated following the 'startAuthorisation' link.
+
+
+$additionalInstructions
+
 """,
        json.parse("""{
                      "debtorAccount": {
@@ -387,7 +403,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
                     }"""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val initiatePayment : OBPEndpoint = {
