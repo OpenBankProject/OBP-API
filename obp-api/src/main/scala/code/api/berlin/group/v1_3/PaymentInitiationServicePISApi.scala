@@ -1,21 +1,23 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
-import code.api.APIFailureNewStyle
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.SepaCreditTransfersJson
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiTag, ApiVersion, NewStyle}
+import code.api.util.{ApiRole, ApiTag, ApiVersion, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
 import code.model._
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -359,23 +361,109 @@ Also if any data is needed for the next action, like selecting an SCA method is 
 since all starts of the multiple authorisations are fully equal. 
 In these cases, first an authorisation sub-resource has to be generated following the 'startAuthorisation' link.
 """,
-       json.parse(""""""),
-       json.parse(""""""""),
+       json.parse("""{
+                     "debtorAccount": {
+                       "iban": "ibanstring"
+                     },
+                    "instructedAmount": {
+                     "currency": "EUR",
+                     "amount": "1234"
+                    },
+                    "creditorAccount": {
+                    "iban": "ibanstring"
+                    },
+                    "creditorName": "70charname"
+                    }"""),
+       json.parse("""{
+                      "transactionStatus": "RCVD",
+                      "paymentId": "1234-wertiq-983",
+                      "_links":
+                        {
+                        "scaRedirect": {"href": "answer transaction request url"},
+                        "self": {"href": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"},
+                        "status": {"href": "/v1/payments/1234-wertiq-983/status"},
+                        "scaStatus": {"href": "/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                        }
+                    }"""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val initiatePayment : OBPEndpoint = {
-       case payment_service :: payment_product :: Nil JsonPost _ => {
+       case paymentService :: paymentProduct :: Nil JsonPost json -> _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse(""""""""), callContext)
+             
+             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersJson ", 400, callContext) {
+               json.extract[SepaCreditTransfersJson]
+             }
+             isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
+               BigDecimal(transDetailsJson.instructedAmount.amount)
+             }
+
+             paymentProductType <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","payment-product")}: '${paymentProduct}'. Only Support `sepa_credit_transfers` now.",400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct)
+             }
+
+             _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'") {
+               isValidAmountNumber > BigDecimal("0")
+             }
+
+             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'") {
+               isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
+             }
+
+             // Prevent default value for transaction request type (at least).
+             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'") {
+               isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
+             }
+
+             _ <- NewStyle.function.isEnabledTransactionRequests()
+             fromAccountIban = transDetailsJson.debtorAccount.iban
+             toAccountIban = transDetailsJson.creditorAccount.iban
+             
+             (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
+             (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+
+             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
+               
+               u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
+                 hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
+             }
+            
+             // Prevent default value for transaction request type (at least).
+             _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}") {
+               transDetailsJson.instructedAmount.currency == fromAccount.currency
+             }
+
+             amountOfMoneyJSON = transDetailsJson.instructedAmount
+
+             (createdTransactionRequest,callContext) <- paymentProductType match {
+               case TransactionRequestTypes.sepa_credit_transfers => {
+                 for {
+                   (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(
+                     u,
+                     ViewId("Owner"),//This is the default 
+                     fromAccount,
+                     toAccount,
+                     TransactionRequestType(paymentProductType.toString),
+                     TransactionRequestCommonBodyJSONCommons(
+                       amountOfMoneyJSON,
+                      ""
+                     ),
+                     "",
+                     "",
+                     callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
+                 } yield (createdTransactionRequest, callContext)
+               }
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(createdTransactionRequest), HttpCode.`201`(callContext))
            }
-         }
        }
+     }
             
      resourceDocs += ResourceDoc(
        startPaymentAuthorisation,
