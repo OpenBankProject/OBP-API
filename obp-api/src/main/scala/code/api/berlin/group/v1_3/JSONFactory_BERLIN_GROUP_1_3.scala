@@ -5,8 +5,12 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi.tweakStatusNames
 import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, TransactionRequestAccountJsonV140}
+import code.api.v2_0_0.TransactionRequestChargeJsonV200
+import code.api.v2_1_0.JSONFactory210.stringOrNull
+import code.api.v2_1_0.TransactionRequestWithChargeJSON210
 import code.model.ModeratedTransaction
-import com.openbankproject.commons.model.{BankAccount, CoreAccount, TransactionRequest}
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, BankAccount, CoreAccount, TransactionRequest}
 import net.liftweb.json.JValue
 import code.consent.Consent
 import scala.collection.immutable.List
@@ -204,6 +208,35 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: ScaStatusJsonV13
   )
 
+  case class PaymentAccountJson(
+    iban: String
+  )
+  case class InstructedAmountJson(
+    currency: String,
+    amount: String
+  )
+  case class SepaCreditTransfersJson(
+    debtorAccount: PaymentAccountJson,
+    instructedAmount: AmountOfMoneyJsonV121,
+    creditorAccount: PaymentAccountJson,
+    creditorName: String
+  )
+
+  case class LinkHrefJson(
+    href: String
+  )
+  case class InitiatePaymentResponseLinks(
+    scaRedirect: LinkHrefJson,
+    self: LinkHrefJson,
+    status: LinkHrefJson,
+    scaStatus: LinkHrefJson
+  )
+  case class InitiatePaymentResponseJson(
+    transactionStatus: String,
+    paymentId: String,
+    _links: InitiatePaymentResponseLinks
+  )
+  
   def createAccountListJson(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map(
       x => CoreAccountJsonV13(
@@ -326,4 +359,52 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
+  def createTransactionRequestJson(tr : TransactionRequest) : InitiatePaymentResponseJson = {
+//    - 'ACCC': 'AcceptedSettlementCompleted' -
+//      Settlement on the creditor's account has been completed.
+//      - 'ACCP': 'AcceptedCustomerProfile' -
+//      Preceding check of technical validation was successful.
+//      Customer profile check was also successful.
+//    - 'ACSC': 'AcceptedSettlementCompleted' -
+//      Settlement on the debtor�s account has been completed.
+//    - 'ACSP': 'AcceptedSettlementInProcess' -
+//      All preceding checks such as technical validation and customer profile were successful and therefore the payment initiation has been accepted for execution.
+//      - 'ACTC': 'AcceptedTechnicalValidation' -
+//      Authentication and syntactical and semantical validation are successful.
+//    - 'ACWC': 'AcceptedWithChange' -
+//      Instruction is accepted but a change will be made, such as date or remittance not sent.
+//      - 'ACWP': 'AcceptedWithoutPosting' -
+//      Payment instruction included in the credit transfer is accepted without being posted to the creditor customer�s account.
+//      - 'RCVD': 'Received' -
+//      Payment initiation has been received by the receiving agent.
+//      - 'PDNG': 'Pending' -
+//      Payment initiation or individual transaction included in the payment initiation is pending.
+//    Further checks and status update will be performed.
+//    - 'RJCT': 'Rejected' -
+//      Payment initiation or individual transaction included in the payment initiation has been rejected.
+//      - 'CANC': 'Cancelled'
+//    Payment initiation has been cancelled before execution
+//    Remark: This codeis accepted as new code by ISO20022.
+//      - 'ACFC': 'AcceptedFundsChecked' -
+//      Preceding check of technical validation and customer profile was successful and an automatic funds check was positive .
+//      Remark: This code is accepted as new code by ISO20022.
+//      - 'PATC': 'PartiallyAcceptedTechnical'
+//    Correct The payment initiation needs multiple authentications, where some but not yet all have been performed. Syntactical and semantical validations are successful.
+//    Remark: This code is accepted as new code by ISO20022.
+//      - 'PART': 'PartiallyAccepted' -
+//      A number of transactions have been accepted, whereas another number of transactions have not yet achieved 'accepted' status.
+//      Remark: This code may be
+    val transactionId = tr.id.value
+    InitiatePaymentResponseJson(
+      transactionStatus = "RCVD", //TODO hardcode this first, there are 14 different status in BerlinGroup. 
+      paymentId = transactionId,
+      _links = InitiatePaymentResponseLinks(
+        scaRedirect = LinkHrefJson("answer transaction request url"),
+        self = LinkHrefJson(s"/v1/payments/sepa-credit-transfers/$transactionId"),
+        status = LinkHrefJson(s"/v1/payments/$transactionId/status"),
+        scaStatus = LinkHrefJson(s"/v1/payments/$transactionId/authorisations/${transactionId}xx")
+      )
+    )
+  }
+  
 }

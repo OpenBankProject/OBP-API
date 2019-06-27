@@ -403,6 +403,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val accountAndCallcontext = getBankAccountLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext])
     (accountAndCallcontext.map(_._1), accountAndCallcontext.map(_._2).getOrElse(callContext))
   }
+
+  override def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future
+  {
+    (MappedBankAccount
+      .find(By(MappedBankAccount.accountIban, iban))
+      .map(
+        account =>
+          account
+            .mAccountRoutingScheme(APIUtil.ValueOrOBP(account.accountRoutingScheme))
+            .mAccountRoutingAddress(APIUtil.ValueOrOBPId(account.accountRoutingAddress, account.accountId.value))
+      ), callContext)
+  }
   
   def getBankAccountCommon(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
     MappedBankAccount

@@ -269,6 +269,8 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
 
   //This one return the Future.
   def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
+  
+  def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Future[Box[List[BankAccount]]]= Future{Failure(setUnimplementedError)}
 

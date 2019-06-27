@@ -291,6 +291,12 @@ object NewStyle {
       }
     }
 
+    def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
+      Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current IBAN is $iban", 400 ), i._2)
+      }
+    }
+
     def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) } map { i =>
         (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId"), i._2)
