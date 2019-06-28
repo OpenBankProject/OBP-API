@@ -413,7 +413,7 @@ $additionalInstructions
              _ <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT-SERVICE in the URL.")}: '${paymentService}'.It should be one of ${PaymentServiceTypes.values.toList}",400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
-             transactionRequestTypes <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be one of (sepa_credit_transfers, instant_sepa_credit_transfers, target_2_payments, cross_border_credit_transfers).",400, callContext) {
+             transactionRequestTypes <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be one of (sepa-credit-transfers, instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers).",400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
 
