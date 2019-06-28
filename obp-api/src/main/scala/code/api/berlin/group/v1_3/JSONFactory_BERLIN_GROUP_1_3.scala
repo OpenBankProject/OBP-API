@@ -53,7 +53,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   
   case class AmountOfMoneyV13(
     currency : String,
-    content : String
+    amount : String
   )
   case class AccountBalance(
     amount : AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
@@ -297,7 +297,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       `balances` = AccountBalance(
         amount = AmountOfMoneyV13(
           currency = APIUtil.stringOrNull(bankAccount.currency),
-          content = bankAccount.balance.toString()
+          amount = bankAccount.balance.toString()
         ),
         balanceType = APIUtil.stringOrNull(bankAccount.accountType),
         lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
