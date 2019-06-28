@@ -162,10 +162,22 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Get Payment Information",
-       s"""${mockedDataText(true)}
-Returns the content of a payment object""",
-       json.parse(""""""),
-       json.parse(""""""""),
+       s"""
+        Returns the content of a payment object""",
+       emptyObjectJson,
+       json.parse("""{
+                      "debtorAccount":{
+                        "iban":"GR12 1234 5123 4511 3981 4475 477"
+                      },
+                      "instructedAmount":{
+                        "currency":"EUR",
+                        "amount":"1234"
+                      },
+                      "creditorAccount":{
+                        "iban":"GR12 1234 5123 4514 4575 3645 077"
+                      },
+                      "creditorName":"70charname"
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM ::Nil
@@ -338,7 +350,7 @@ Check the transaction status of a payment initiation.""",
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT",
        "Payment initiation request",
-       s"""${mockedDataText(false)}
+       s"""
 This method is used to initiate a payment at the ASPSP.
 
 ## Variants of Payment Initiation Requests
