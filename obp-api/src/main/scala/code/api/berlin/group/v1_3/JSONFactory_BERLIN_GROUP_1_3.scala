@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import code.api.util.APIUtil._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi.tweakStatusNames
-import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.util.{APIUtil, CustomJsonFormats, ExampleValue}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, TransactionRequestAccountJsonV140}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v2_1_0.JSONFactory210.stringOrNull
@@ -35,21 +35,21 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     lastCommittedTransaction: String = "string",
   )
   case class CoreAccountJsonV13(
-    resourceId: String,
-    iban: String,
-    bban: String ="BARC12345612345678",
-    msisdn: String ="+49 170 1234567",
-    currency: String,
-    name: String,
-    product: String ="string",
-    cashAccountType: String,
-    status: String="enabled",
-    bic: String,
-    linkedAccounts: String ="string",
-    usage: String ="PRIV",
-    details: String ="string",
-    balances: CoreAccountBalancesJson = CoreAccountBalancesJson(),
-    _links: List[links],
+                                 resourceId: String,
+                                 iban: String,
+                                 bban: String,
+                                 msisdn: String ="+49 170 1234567",
+                                 currency: String,
+                                 name: String,
+                                 product: String,
+                                 cashAccountType: String,
+                                 status: String="enabled",
+                                 bic: String,
+                                 linkedAccounts: String ="string",
+                                 usage: String ="PRIV",
+                                 details: String ="",
+                                 balances: CoreAccountBalancesJson = CoreAccountBalancesJson(),
+                                 _links: List[links],
   )
 
   case class CoreAccountsJsonV13(accounts: List[CoreAccountJsonV13])
@@ -238,19 +238,24 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
   
   def createAccountListJson(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
-    CoreAccountsJsonV13(coreAccounts.map(
-      x => CoreAccountJsonV13(
-        resourceId = x.id,
-        iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else "",
-        currency = "", // TODO
-        name = x.label,
-        status = "",
-        cashAccountType = x.accountType,
-        bic="", // TODO
-        _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") 
-          :: Nil
+    CoreAccountsJsonV13(coreAccounts.map {
+      x =>
+        val iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else ""
+        val bban = if (iban.size > 4) iban.substring(4) else ""
+        CoreAccountJsonV13(
+          resourceId = x.id,
+          iban = iban,
+          bban = bban,
+          currency = "", // TODO
+          name = x.label,
+          status = "",
+          cashAccountType = x.accountType,
+          product = x.accountType,
+          bic=getBicFromBankId(x.bankId),
+          _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") 
+            :: Nil
         )
-       )
+    }
     )
   }
 
@@ -266,10 +271,16 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     // sum of the unCompletedTransactions and the account.balance is the current expectd amount:
     val sumOfAll = (bankAccount.balance+ sumOfAllUncompletedTransactionrequests).toString()
 
+    val iban = if (bankAccount.accountRoutings.headOption.isDefined && bankAccount.accountRoutings.head.scheme == "IBAN") bankAccount.accountRoutings.head.address else ""
+    val bban = if (iban.size > 4) iban.substring(4) else ""
+    
     AccountBalancesV13(
       account = BalanceAccount(
         currency = APIUtil.stringOrNull(bankAccount.currency),
-        iban = APIUtil.stringOptionOrNull(bankAccount.iban)
+        iban = iban,
+        bban = bban,
+        pan = bankAccount.number,
+        maskedPan = getMaskedPrimaryAccountNumber(accountNumber = bankAccount.number)
       ),
       `balances` = AccountBalance(
         amount = AmountOfMoneyV13(
