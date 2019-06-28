@@ -266,10 +266,10 @@ of the PSU at this ASPSP.
   
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
             
-            Full((coreAccounts,callContext1)) <- {Connector.connector.vend.getCoreBankAccounts(availablePrivateAccounts, callContext)}
+            Full((coreAccounts)) <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
             
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(coreAccounts), callContext)
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountListJson(coreAccounts, u), callContext)
           }
          }
        }
