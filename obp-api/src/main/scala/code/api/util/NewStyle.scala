@@ -293,7 +293,7 @@ object NewStyle {
 
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
-        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current IBAN is $iban", 400 ), i._2)
+        (unboxFullOrFail(i._1, callContext,s"${BankAccountNotFound.replaceAll("BANK_ID and ACCOUNT_ID. ", "IBAN.")} Current IBAN is $iban", 400 ), i._2)
       }
     }
 

@@ -8,6 +8,12 @@ import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
 object TransactionRequests extends SimpleInjector {
+  
+  //These are berlin Group Standard
+  object PaymentServiceTypes extends Enumeration {
+    type PaymentServiceTypes = Value
+    val payments, bulk_payments, periodic_payments = Value
+  }
 
   object TransactionRequestStatus extends Enumeration {
     type TransactionRequestStatus = Value
@@ -22,8 +28,8 @@ object TransactionRequests extends SimpleInjector {
   object TransactionRequestTypes extends Enumeration {
     type TransactionRequestTypes = Value
     val SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT,
-      sepa_credit_transfers//There are BerlinGroup Standard
-    = Value
+    //The following are BerlinGroup Standard 
+    sepa_credit_transfers, instant_sepa_credit_transfers, target_2_payments, cross_border_credit_transfers= Value
   }
 
   def updatestatus(newStatus: String) = {}
