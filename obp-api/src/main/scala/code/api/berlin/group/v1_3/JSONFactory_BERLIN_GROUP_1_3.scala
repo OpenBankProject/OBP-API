@@ -237,22 +237,31 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: InitiatePaymentResponseLinks
   )
   
-  def createAccountListJson(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
+  def createAccountListJson(coreAccounts: List[BankAccount]): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map {
       x =>
-        val iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else ""
-        val bban = if (iban.size > 4) iban.substring(4) else ""
+        val iBan = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else ""
+        val bBan = if (iBan.size > 4) iBan.substring(4) else ""
+        val balance = 
+          CoreAccountBalancesJson(
+            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
+            balanceType = "",
+            lastChangeDateTime = "",
+            referenceDate = "",
+            lastCommittedTransaction = ""
+          )
         CoreAccountJsonV13(
-          resourceId = x.id,
-          iban = iban,
-          bban = bban,
-          currency = "", // TODO
+          resourceId = x.accountId.value,
+          iban = iBan,
+          bban = bBan,
+          currency = x.currency,
           name = x.label,
           status = "",
           cashAccountType = x.accountType,
           product = x.accountType,
-          bic=getBicFromBankId(x.bankId),
-          _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") 
+          balances = balance,
+          bic = getBicFromBankId(x.bankId.value),
+          _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances") 
             :: Nil
         )
     }
