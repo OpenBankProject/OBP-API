@@ -11,7 +11,7 @@ import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
 import code.model._
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, PaymentServiceTypes}
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.Full
@@ -346,15 +346,13 @@ There are the following **payment products**:
     - ***pain.001-target-2-payments***
     - ***pain.001-cross-border-credit-transfers***
 
-Furthermore the request body depends on the **payment-service**
-  * ***payments***: A single payment initiation request.
-  * ***bulk-payments***: A collection of several payment iniatiation requests.
-  
-    In case of a *pain.001* message there are more than one payments contained in the *pain.001 message.
-    
-    In case of a *JSON* there are several JSON payment blocks contained in a joining list.
-  * ***periodic-payments***: 
-    Create a standing order initiation resource for recurrent i.e. periodic payments addressable under {paymentId} 
+  - Furthermore the request body depends on the **payment-service**
+    - ***payments***: A single payment initiation request.
+    - ***bulk-payments***: A collection of several payment iniatiation requests.
+      In case of a *pain.001* message there are more than one payments contained in the *pain.001 message.
+      In case of a *JSON* there are several JSON payment blocks contained in a joining list.
+    - ***periodic-payments***: 
+     Create a standing order initiation resource for recurrent i.e. periodic payments addressable under {paymentId} 
      with all data relevant for the corresponding payment product and the execution of the standing order contained in a JSON body. 
 
 This is the first step in the API to initiate the related recurring/periodic payment.
@@ -411,16 +409,19 @@ $additionalInstructions
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             
+
+             _ <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT-SERVICE in the URL.")}: '${paymentService}'.It should be one of ${PaymentServiceTypes.values.toList}",400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             transactionRequestTypes <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be one of (sepa_credit_transfers, instant_sepa_credit_transfers, target_2_payments, cross_border_credit_transfers).",400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+
              transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersJson ", 400, callContext) {
                json.extract[SepaCreditTransfersJson]
              }
              isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
                BigDecimal(transDetailsJson.instructedAmount.amount)
-             }
-
-             paymentProductType <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","payment-product")}: '${paymentProduct}'. Only Support `sepa_credit_transfers` now.",400, callContext) {
-               TransactionRequestTypes.withName(paymentProduct)
              }
 
              _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'") {
@@ -439,7 +440,7 @@ $additionalInstructions
              _ <- NewStyle.function.isEnabledTransactionRequests()
              fromAccountIban = transDetailsJson.debtorAccount.iban
              toAccountIban = transDetailsJson.creditorAccount.iban
-             
+
              (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
              (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
 
@@ -448,7 +449,7 @@ $additionalInstructions
                u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
                  hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
              }
-            
+
              // Prevent default value for transaction request type (at least).
              _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}") {
                transDetailsJson.instructedAmount.currency == fromAccount.currency
@@ -456,7 +457,7 @@ $additionalInstructions
 
              amountOfMoneyJSON = transDetailsJson.instructedAmount
 
-             (createdTransactionRequest,callContext) <- paymentProductType match {
+             (createdTransactionRequest,callContext) <- transactionRequestTypes match {
                case TransactionRequestTypes.sepa_credit_transfers => {
                  for {
                    (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(
@@ -464,7 +465,7 @@ $additionalInstructions
                      ViewId("Owner"),//This is the default 
                      fromAccount,
                      toAccount,
-                     TransactionRequestType(paymentProductType.toString),
+                     TransactionRequestType(transactionRequestTypes.toString),
                      TransactionRequestCommonBodyJSONCommons(
                        amountOfMoneyJSON,
                       ""
