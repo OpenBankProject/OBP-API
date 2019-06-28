@@ -2,17 +2,15 @@ package code.api.berlin.group.v1_3
 
 import java.text.SimpleDateFormat
 import java.util.Date
+
 import code.api.util.APIUtil._
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi.tweakStatusNames
-import code.api.util.{APIUtil, CustomJsonFormats, ExampleValue}
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJsonV140, TransactionRequestAccountJsonV140}
-import code.api.v2_0_0.TransactionRequestChargeJsonV200
-import code.api.v2_1_0.JSONFactory210.stringOrNull
-import code.api.v2_1_0.TransactionRequestWithChargeJSON210
-import code.model.ModeratedTransaction
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, BankAccount, CoreAccount, TransactionRequest}
-import net.liftweb.json.JValue
+import code.api.util.{APIUtil, CustomJsonFormats}
+import code.bankconnectors.Connector
 import code.consent.Consent
+import code.model.ModeratedTransaction
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, BankAccount, TransactionRequest, User}
+import net.liftweb.json.JValue
+
 import scala.collection.immutable.List
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
@@ -237,22 +235,37 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: InitiatePaymentResponseLinks
   )
   
-  def createAccountListJson(coreAccounts: List[CoreAccount]): CoreAccountsJsonV13 = {
+  def createAccountListJson(coreAccounts: List[BankAccount], user: User): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map {
       x =>
-        val iban = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else ""
-        val bban = if (iban.size > 4) iban.substring(4) else ""
+        val iBan = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else ""
+        val bBan = if (iBan.size > 4) iBan.substring(4) else ""
+        
+        val transactionRequests: List[TransactionRequest] = Connector.connector.vend.getTransactionRequests210(user, x).map(_._1)getOrElse(Nil)
+        // get the latest end_date of `COMPLETED` transactionRequests
+        val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
+        //get the latest end_date of !`COMPLETED` transactionRequests
+        val latestUncompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status != "COMPLETED").map(_.end_date).headOption.getOrElse(null)
+        val balance =
+          CoreAccountBalancesJson(
+            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
+            balanceType = APIUtil.stringOrNull(x.accountType),
+            lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
+            referenceDate = "",
+            lastCommittedTransaction = if(latestUncompletedEndDate == null) null else latestUncompletedEndDate.toString
+          )
         CoreAccountJsonV13(
-          resourceId = x.id,
-          iban = iban,
-          bban = bban,
-          currency = "", // TODO
+          resourceId = x.accountId.value,
+          iban = iBan,
+          bban = bBan,
+          currency = x.currency,
           name = x.label,
           status = "",
           cashAccountType = x.accountType,
           product = x.accountType,
-          bic=getBicFromBankId(x.bankId),
-          _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.id}/balances") 
+          balances = balance,
+          bic = getBicFromBankId(x.bankId.value),
+          _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances") 
             :: Nil
         )
     }
