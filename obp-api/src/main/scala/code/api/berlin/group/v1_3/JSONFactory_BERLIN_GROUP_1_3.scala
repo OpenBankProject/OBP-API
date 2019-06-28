@@ -36,7 +36,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
                                  resourceId: String,
                                  iban: String,
                                  bban: String,
-                                 msisdn: String ="+49 170 1234567",
                                  currency: String,
                                  name: String,
                                  product: String,
