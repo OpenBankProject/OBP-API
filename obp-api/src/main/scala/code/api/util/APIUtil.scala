@@ -42,6 +42,7 @@ import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, util, _}
+import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
 import code.entitlement.Entitlement
@@ -2596,6 +2597,17 @@ Returns a string showed to the developer
   }
   def passesPsd2AsspOldStyle(cc: Option[CallContext]): Box[Boolean] = {
     passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_as.toString())
+  }
+  
+  
+  
+  def getMaskedPrimaryAccountNumber(accountNumber: String): String = {
+    val (first, second) = accountNumber.splitAt(accountNumber.size/2)
+    first.substring(0, first.size - 3) + "***" + "***" + second.substring(3)
+  }
+  
+  def getBicFromBankId(bankId: String)= {
+    Connector.connector.vend.getBankLegacy(BankId(bankId), None).map(_._1.swiftBic).getOrElse("")
   }
   
 }
