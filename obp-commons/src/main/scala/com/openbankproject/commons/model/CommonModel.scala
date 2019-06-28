@@ -530,6 +530,16 @@ case class TransactionRequestTransferToAccount(
                                                 future_date: String,
                                                 to: ToAccountTransferToAccount
                                               ) extends TransactionRequestCommonBodyJSON
+case class PaymentAccount( //This is from berlinGroup
+  iban: String
+)
+
+case class SepaCreditTransfers( //This is from berlinGroup
+  debtorAccount: PaymentAccount,
+  instructedAmount: AmountOfMoneyJsonV121,
+  creditorAccount: PaymentAccount,
+  creditorName: String
+)
 
 case class TransactionRequestBodyAllTypes (
                                             to_sandbox_tan: Option[TransactionRequestAccount],
@@ -538,6 +548,7 @@ case class TransactionRequestBodyAllTypes (
                                             to_transfer_to_phone: Option[TransactionRequestTransferToPhone] = None, //TODO not stable
                                             to_transfer_to_atm: Option[TransactionRequestTransferToAtm]= None,//TODO not stable
                                             to_transfer_to_account: Option[TransactionRequestTransferToAccount]= None,//TODO not stable
+                                            to_sepa_credit_transfers: Option[SepaCreditTransfers]= None,//TODO not stable, from berlin Group
                                             value: AmountOfMoney,
                                             description: String
                                           )

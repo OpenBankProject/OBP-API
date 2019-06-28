@@ -205,20 +205,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: ScaStatusJsonV13
   )
 
-  case class PaymentAccountJson(
-    iban: String
-  )
-  case class InstructedAmountJson(
-    currency: String,
-    amount: String
-  )
-  case class SepaCreditTransfersJson(
-    debtorAccount: PaymentAccountJson,
-    instructedAmount: AmountOfMoneyJsonV121,
-    creditorAccount: PaymentAccountJson,
-    creditorName: String
-  )
-
   case class LinkHrefJson(
     href: String
   )

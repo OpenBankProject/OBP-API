@@ -1,6 +1,5 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.SepaCreditTransfersJson
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import net.liftweb.json
 import net.liftweb.json._
@@ -11,13 +10,14 @@ import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
 import code.model._
-import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, PaymentServiceTypes}
+import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
+import net.liftweb.json.Serialization.write
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -168,16 +168,28 @@ Returns the content of a payment object""",
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM ::Nil
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT-SERVICE in the URL.")}: '${paymentService}'.It should be one of (payments, bulk-payments, periodic-payments)",400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             transactionRequestTypes <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be one of (sepa-credit-transfers, instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers).",400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
+
+             transactionRequesBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ",400, callContext) {
+               transactionRequest.body.to_sepa_credit_transfers.get
+             }
+             
              } yield {
-             (json.parse(""""""""), callContext)
+             (transactionRequesBody, callContext)
            }
          }
        }
@@ -410,16 +422,19 @@ $additionalInstructions
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
 
-             _ <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT-SERVICE in the URL.")}: '${paymentService}'.It should be one of ${PaymentServiceTypes.values.toList}",400, callContext) {
+             _ <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT-SERVICE in the URL.")}: '${paymentService}'.It should be one of (payments, bulk-payments, periodic-payments)",400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
              transactionRequestTypes <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be one of (sepa-credit-transfers, instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers).",400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
 
-             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersJson ", 400, callContext) {
-               json.extract[SepaCreditTransfersJson]
+             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers ", 400, callContext) {
+               json.extract[SepaCreditTransfers]
              }
+
+             transDetailsSerialized <- NewStyle.function.tryons (s"$UnknownError Can not serialize in request Json ", 400, callContext){write(transDetailsJson)(Serialization.formats(NoTypeHints))}
+             
              isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
                BigDecimal(transDetailsJson.instructedAmount.amount)
              }
@@ -470,7 +485,7 @@ $additionalInstructions
                        amountOfMoneyJSON,
                       ""
                      ),
-                     "",
+                     transDetailsSerialized,
                      "",
                      callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                  } yield (createdTransactionRequest, callContext)

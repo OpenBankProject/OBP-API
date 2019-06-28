@@ -272,6 +272,11 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
       Some(parsedDetails.extract[TransactionRequestTransferToAccount])
     else
       None
+    //This is Berlin Group Types:
+    val t_to_sepa_credit_transfers = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.sepa_credit_transfers)
+      Some(parsedDetails.extract[SepaCreditTransfers]) //TODO, here may need a internal case class, but for now, we used it from request json body.
+    else
+      None
     
     val t_body = TransactionRequestBodyAllTypes(
       to_sandbox_tan = t_to_sandbox_tan,
@@ -280,6 +285,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
       to_transfer_to_phone = t_to_transfer_to_phone, 
       to_transfer_to_atm = t_to_transfer_to_atm,
       to_transfer_to_account = t_to_transfer_to_account,
+      to_sepa_credit_transfers = t_to_sepa_credit_transfers,
       value = t_amount,
       description = mBody_Description.get
     )
