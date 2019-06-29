@@ -18,4 +18,5 @@ trait AuthorisationProvider {
                           scaStatus: String,
                           challengeData: String
                          ): Box[Authorisation]
+  def checkAnswer(paymentId: String, authorizationId: String, challengeData: String): Box[Authorisation]
 }

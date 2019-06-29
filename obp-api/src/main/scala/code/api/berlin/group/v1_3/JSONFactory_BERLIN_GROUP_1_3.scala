@@ -232,6 +232,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
                                            psuMessage: String,
                                            _links: ScaStatusJsonV13
                                           )
+
+  case class UpdatePaymentPsuDataJson(
+    scaAuthenticationData: String
+  )
+  
   
   def createAccountListJson(coreAccounts: List[BankAccount], user: User): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map {
