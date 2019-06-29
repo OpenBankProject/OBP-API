@@ -8,7 +8,7 @@ import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.consent.Consent
 import code.model.ModeratedTransaction
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, BankAccount, TransactionRequest, User}
+import com.openbankproject.commons.model._
 import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
@@ -218,6 +218,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     transactionStatus: String,
     paymentId: String,
     _links: InitiatePaymentResponseLinks
+  )
+  case class CheckAvailabilityOfFundsJson(
+    instructedAmount: AmountOfMoneyJsonV121,
+    account: PaymentAccount,
   )
   
   def createAccountListJson(coreAccounts: List[BankAccount], user: User): CoreAccountsJsonV13 = {

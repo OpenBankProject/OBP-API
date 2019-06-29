@@ -485,10 +485,6 @@ $additionalInstructions
                isValidAmountNumber > BigDecimal("0")
              }
 
-             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'") {
-               isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
-             }
-
              // Prevent default value for transaction request type (at least).
              _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'") {
                isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
