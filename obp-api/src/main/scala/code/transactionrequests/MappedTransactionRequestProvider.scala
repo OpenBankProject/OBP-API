@@ -258,18 +258,23 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     else
       None
 
-    val t_to_transfer_to_phone = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_PHONE) 
+    val t_to_transfer_to_phone = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_PHONE && details.nonEmpty) 
       Some(parsedDetails.extract[TransactionRequestTransferToPhone])
     else
       None
 
-    val t_to_transfer_to_atm = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ATM) 
+    val t_to_transfer_to_atm = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ATM && details.nonEmpty) 
       Some(parsedDetails.extract[TransactionRequestTransferToAtm])
     else
       None
     
-    val t_to_transfer_to_account = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ACCOUNT)
+    val t_to_transfer_to_account = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.TRANSFER_TO_ACCOUNT && details.nonEmpty)
       Some(parsedDetails.extract[TransactionRequestTransferToAccount])
+    else
+      None
+    //This is Berlin Group Types:
+    val t_to_sepa_credit_transfers = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.sepa_credit_transfers && details.nonEmpty)
+      Some(parsedDetails.extract[SepaCreditTransfers]) //TODO, here may need a internal case class, but for now, we used it from request json body.
     else
       None
     
@@ -280,6 +285,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
       to_transfer_to_phone = t_to_transfer_to_phone, 
       to_transfer_to_atm = t_to_transfer_to_atm,
       to_transfer_to_account = t_to_transfer_to_account,
+      to_sepa_credit_transfers = t_to_sepa_credit_transfers,
       value = t_amount,
       description = mBody_Description.get
     )
