@@ -311,7 +311,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                paymentid,
                authorisationid
              )) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError ")
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current PAYMENT_ID($paymentid) and AUTHORISATION_ID($authorisationid)")
              }
              
            } yield {
@@ -816,7 +816,10 @@ There are the following request types on this access path:
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
-             (json.parse(""""""""), callContext)
+             (json.parse("""
+               {
+                 "scaStatus":"psuAuthenticated"
+               }"""), callContext)
            }
          }
        }
@@ -828,7 +831,7 @@ There are the following request types on this access path:
        "PUT",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
        "Update PSU data for payment initiation",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This methods updates PSU data on the authorisation resource if needed. 
 It may authorise a payment within the Embedded SCA Approach where needed.
 
@@ -872,16 +875,28 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
        case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse(""""""""), callContext)
+              (_, callContext) <- authorizedAccess(cc)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+              authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+                paymentid,
+                authorisationid
+              )) map {
+                unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current PAYMENT_ID($paymentid) and AUTHORISATION_ID($authorisationid)")
+              }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(authorisation), callContext)
            }
          }
        }
