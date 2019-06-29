@@ -485,7 +485,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       StartPaymentAuthorisationJson(
         scaStatus = authorization.scaStatus,
         authorisationId = authorization.authorisationId,
-        psuMessage = "",
+        psuMessage = "Please check your SMS at a mobile device.",
         _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${authorization.authorisationId}")
       )
   }

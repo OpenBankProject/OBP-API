@@ -15,6 +15,7 @@ trait AuthorisationProvider {
   def createAuthorization(paymentId: String,
                           authenticationType: String, 
                           authenticationMethodId: String,
-                          scaStatus: String
+                          scaStatus: String,
+                          challengeData: String
                          ): Box[Authorisation]
 }

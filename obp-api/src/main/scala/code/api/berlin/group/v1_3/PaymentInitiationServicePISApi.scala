@@ -1,5 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
+import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -638,9 +639,11 @@ This applies in the following scenarios:
           }
           authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
             paymentId,
+            AuthenticationType.SMS_OTP.toString,
             "",
-            "",
-            ConsentStatus.RECEIVED.toString)) map {
+            ScaStatus.received.toString,
+            "12345" // TODO Implement SMS sending
+          )) map {
             unboxFullOrFail(_, callContext, s"$UnknownError ")
           }
         } yield {

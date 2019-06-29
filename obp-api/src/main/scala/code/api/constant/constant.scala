@@ -31,3 +31,13 @@ object ResponseHeader {
   final lazy val `Correlation-Id` = "Correlation-Id"
 }
 
+object BerlinGroup extends Enumeration {
+  object ScaStatus extends Enumeration{
+    type ChargePolicy = Value
+    val received, psuIdentified, psuAuthenticated, scaMethodSelected, started, finalised, failed, exempted = Value
+  }
+  object AuthenticationType extends Enumeration{
+    type ChargePolicy = Value
+    val SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP = Value
+  }
+}
