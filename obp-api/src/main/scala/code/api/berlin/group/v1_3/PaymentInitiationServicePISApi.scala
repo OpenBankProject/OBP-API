@@ -200,12 +200,12 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              }
              (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
 
-             transactionRequesBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ",400, callContext) {
+             transactionRequestBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ",400, callContext) {
                transactionRequest.body.to_sepa_credit_transfers.get
              }
              
              } yield {
-             (transactionRequesBody, callContext)
+             (transactionRequestBody, callContext)
            }
          }
        }
