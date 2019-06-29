@@ -685,7 +685,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                  i => connectorEmptyResponse(i, callContext)
                }
            } yield {
-             (createGetConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
+             (createGetConsentResponseJson(createdConsent), HttpCode.`200`(callContext))
            }
          }
        }
