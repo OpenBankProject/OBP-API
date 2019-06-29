@@ -225,7 +225,24 @@ Read a list of all authorisation subresources IDs which have been created.
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
        emptyObjectJson,
-       emptyObjectJson,
+       json.parse("""[
+                       {
+                           "scaStatus": "RECEIVED",
+                           "authorisationId": "940948c7-1c86-4d88-977e-e739bf2c1492",
+                           "psuMessage": "Please check your SMS at a mobile device.",
+                           "_links": {
+                               "scaStatus": "/v1.3/payments/sepa-credit-transfers/940948c7-1c86-4d88-977e-e739bf2c1492"
+                           }
+                       },
+                       {
+                           "scaStatus": "RECEIVED",
+                           "authorisationId": "0ae75eee-deba-41d6-8116-1a4d6e05dd83",
+                           "psuMessage": "Please check your SMS at a mobile device.",
+                           "_links": {
+                               "scaStatus": "/v1.3/payments/sepa-credit-transfers/0ae75eee-deba-41d6-8116-1a4d6e05dd83"
+                           }
+                       }
+                     ]"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
@@ -473,7 +490,7 @@ $additionalInstructions
                         "status": {"href": "/v1/payments/1234-wertiq-983/status"},
                         "scaStatus": {"href": "/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                         }
-                    }"""""),
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
@@ -599,14 +616,15 @@ This applies in the following scenarios:
 """,
        json.parse(""""""),
        json.parse("""{
-          "challengeData" : {
-             "scaStatus": "received",
-             "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
-             "psuMessage": "Please check your SMS at a mobile device.",
-             "_links": {
-                 "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
-             }
-         }"""),
+                      "challengeData": {
+                        "scaStatus": "received",
+                        "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
+                        "psuMessage": "Please check your SMS at a mobile device.",
+                        "_links": {
+                          "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                        }
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
