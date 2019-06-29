@@ -9,6 +9,7 @@ import code.bankconnectors.Connector
 import code.consent.Consent
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
 import net.liftweb.common.Full
 import net.liftweb.json.JValue
@@ -220,6 +221,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     transactionStatus: String,
     paymentId: String,
     _links: InitiatePaymentResponseLinks
+  )
+  case class CheckAvailabilityOfFundsJson(
+    instructedAmount: AmountOfMoneyJsonV121,
+    account: PaymentAccount,
   )
   
   case class StartPaymentAuthorisationJson(scaStatus: String, 

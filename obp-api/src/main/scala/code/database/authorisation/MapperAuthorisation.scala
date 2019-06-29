@@ -28,8 +28,11 @@ object Authorisation extends Authorisation with LongKeyedMetaMapper[Authorisatio
 }
 
 object MappedAuthorisationProvider extends AuthorisationProvider {
-   override def getAuthorizationByAuthorizationId(authorizationId: String): Box[Authorisation] = {
-    val result: Box[Authorisation] = Authorisation.find(By(Authorisation.AuthorisationId, authorizationId))
+   override def getAuthorizationByAuthorizationId(paymentId: String, authorizationId: String): Box[Authorisation] = {
+    val result: Box[Authorisation] = Authorisation.find(
+      By(Authorisation.PaymentId, paymentId),
+      By(Authorisation.AuthorisationId, authorizationId)
+    )
      result
   }
    override def getAuthorizationByPaymentId(paymentId: String): Box[List[Authorisation]] = {

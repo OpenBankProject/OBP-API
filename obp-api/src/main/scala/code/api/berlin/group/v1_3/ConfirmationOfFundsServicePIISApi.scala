@@ -2,6 +2,7 @@ package code.api.builder.ConfirmationOfFundsServicePIISApi
 
 import code.api.APIFailureNewStyle
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import net.liftweb.json
 import net.liftweb.json._
 import code.api.util.APIUtil.{defaultBankId, _}
@@ -10,6 +11,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
+import code.fx.fx
 import code.model._
 import code.util.Helper
 import code.views.Views
@@ -40,41 +42,67 @@ object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
        "POST",
        "/funds-confirmations",
        "Confirmation of Funds Request",
-       s"""${mockedDataText(true)}
-Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by IBAN and TPP respectively""",
-       json.parse("""{
-  "payee" : "payee",
-  "instructedAmount" : {
-    "amount" : "123",
-    "currency" : "EUR"
-  },
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  },
-  "cardNumber" : "cardNumber"
-}"""),
-       json.parse("""{
-  "fundsAvailable" : true
-}"""),
+       s"""
+        Creates a confirmation of funds request at the ASPSP. Checks whether a specific amount is available at point of 
+        time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by IBAN and TPP respectively""",
+       json.parse(
+         """{
+          "instructedAmount" : {
+            "amount" : "123",
+            "currency" : "EUR"
+          },
+          "account" : {
+            "bban" : "BARC12345612345678",
+          }
+         }"""),
+       json.parse(
+         """{
+          "fundsAvailable" : true
+         }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Confirmation of Funds Service (PIIS)") :: apiTagMockedData :: Nil
+       ApiTag("Confirmation of Funds Service (PIIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val checkAvailabilityOfFunds : OBPEndpoint = {
-       case "funds-confirmations" :: Nil JsonPost _ => {
+       case "funds-confirmations" ::  Nil JsonPost json -> _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+
+             checkAvailabilityOfFundsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CheckAvailabilityOfFundsJson ", 400, callContext) {
+               json.extract[CheckAvailabilityOfFundsJson]
+             }
+
+             requestAccountAmount <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${checkAvailabilityOfFundsJson.instructedAmount.amount} ", 400, callContext) {
+               BigDecimal(checkAvailabilityOfFundsJson.instructedAmount.amount)
+             }
+
+             requestAccountCurrency = checkAvailabilityOfFundsJson.instructedAmount.currency
+
+             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${ requestAccountCurrency}'") {
+               isValidCurrencyISOCode(requestAccountCurrency)
+             }
+
+             requestAccountIban = checkAvailabilityOfFundsJson.account.iban
+             (bankAccount, callContext) <- NewStyle.function.getBankAccountByIban(requestAccountIban, callContext)
+             currentAccountCurrency = bankAccount.currency
+             currentAccountBalance = bankAccount.balance
+
+
+             //From change from requestAccount Currency to currentBankAccount Currency
+             rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${requestAccountCurrency} to ${currentAccountCurrency}) is not supported.", 400, callContext) {
+               fx.exchangeRate(requestAccountCurrency, currentAccountCurrency)}
+
+             requestChangedCurrencyAmount = fx.convert(requestAccountAmount, rate)
+
+             fundsAvailable = (currentAccountBalance >= requestChangedCurrencyAmount)
+            
              } yield {
-             (json.parse("""{
-  "fundsAvailable" : true
-}"""), callContext)
+             (net.liftweb.json.parse(s"""{
+                  "fundsAvailable" : $fundsAvailable
+                }"""), 
+               callContext)
            }
          }
        }

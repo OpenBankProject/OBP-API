@@ -70,7 +70,7 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
        "POST",
        "/consents",
        "Create consent",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method create a consent resource, defining access rights to dedicated accounts of 
 a given PSU-ID. These accounts are addressed explicitly in the method as 
 parameters as a core function.
@@ -109,7 +109,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                     }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val createConsent : OBPEndpoint = {
@@ -128,7 +128,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
              }
              
-             failMsg = s"$InvalidDateFormat Only Support empty accout List for now. It will retrun an accessible account list. "
+             failMsg = s"$InvalidJsonContent Only Support empty accounts List for now. It will return an accessible account List. "
              _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
              
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
@@ -249,7 +249,7 @@ of the PSU at this ASPSP.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getAccountList : OBPEndpoint = {
@@ -304,7 +304,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getBalances : OBPEndpoint = {
@@ -572,7 +572,7 @@ Reads account data from a given card account addressed by "account-id".
        "GET",
        "/consents/CONSENTID/authorisations",
        "Get Consent Authorisation Sub-Resources Request",
-       s"""
+       s"""${mockedDataText(false)}
 Return a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
@@ -583,7 +583,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
@@ -608,7 +608,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "GET",
        "/consents/CONSENTID",
        "Get Consent Request",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Returns the content of an account information consent object. 
 This is returning the data for the TPP especially in cases, 
 where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
@@ -672,7 +672,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getConsentInformation : OBPEndpoint = {
@@ -707,7 +707,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
        "GET",
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Read the SCA status of the consent authorisation.",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
 """,
        json.parse(""""""),
@@ -716,7 +716,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getConsentScaStatus : OBPEndpoint = {
@@ -1119,7 +1119,7 @@ access token.
        "POST",
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent",
-       s"""
+       s"""${mockedDataText(false)}
 Create an authorisation sub-resource and start the authorisation process of a consent. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -1163,7 +1163,7 @@ This applies in the following scenarios:
                      }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {

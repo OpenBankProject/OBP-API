@@ -33,13 +33,13 @@ object APIMethods_CommonServicesApi extends RestHelper {
       deleteSigningBasket ::
       getConsentScaStatus ::
       getPaymentCancellationScaStatus ::
-      // getPaymentInitiationAuthorisation ::
+      getPaymentInitiationAuthorisation ::
       getPaymentInitiationScaStatus ::
       getSigningBasketAuthorisation ::
       getSigningBasketScaStatus ::
       getSigningBasketStatus ::
       startConsentAuthorisation ::
-      // startPaymentAuthorisation ::
+      startPaymentAuthorisation ::
       startPaymentInitiationCancellationAuthorisation ::
       startSigningBasketAuthorisation ::
       updateConsentsPsuData ::
