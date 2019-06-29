@@ -405,7 +405,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 //      Remark: This code may be
     val transactionId = tr.id.value
     InitiatePaymentResponseJson(
-      transactionStatus = "RCVD", //TODO hardcode this first, there are 14 different status in BerlinGroup. 
+      transactionStatus = tr.status match {
+        case "COMPLETED" => "ACCC"
+        case "INITIATED" => "RCVD"
+      },
       paymentId = transactionId,
       _links = InitiatePaymentResponseLinks(
         scaRedirect = LinkHrefJson("answer transaction request url"),
