@@ -1,23 +1,23 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
-import net.liftweb.json
-import net.liftweb.json._
-import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiRole, ApiTag, ApiVersion, NewStyle}
-import code.api.util.ErrorMessages._
+import code.api.util.APIUtil._
 import code.api.util.ApiTag._
+import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.bankconnectors.Connector
+import code.api.util.{ApiRole, ApiTag, NewStyle}
+import code.consent.ConsentStatus
+import code.database.authorisation.Authorisations
 import code.model._
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
-import code.views.Views
-import net.liftweb.common.Full
-import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
+import net.liftweb.common.Full
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json
 import net.liftweb.json.Serialization.write
+import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -178,7 +178,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                         "amount":"1234"
                       },
                       "creditorAccount":{
-                        "iban":"GR12 1234 5123 4514 4575 3645 077"
+                        "iban":"GR12 1234 5123 4514 4575 3645 077wefwrevwervwe"
                       },
                       "creditorName":"70charname"
                     }"""),
@@ -222,27 +222,32 @@ Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
-       json.parse(""""""),
-       json.parse("""{
-  "authorisationIds" : ""
-}"""),
+       emptyObjectJson,
+       emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "authorisationIds" : ""
-}"""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationsJson(authorisations), callContext)
            }
-         }
        }
+     }
             
      resourceDocs += ResourceDoc(
        getPaymentInitiationCancellationAuthorisationInformation,
@@ -606,39 +611,29 @@ This applies in the following scenarios:
        ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
-     lazy val startPaymentAuthorisation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "authorisations" :: Nil JsonPost _ => {
-         cc =>
-           for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""), callContext)
-           }
-         }
-       }
+  lazy val startPaymentAuthorisation : OBPEndpoint = {
+    case paymentService :: paymentProduct :: paymentId :: "authorisations" :: Nil JsonPost json -> _  => {
+      cc =>
+        for {
+          (_, callContext) <- authorizedAccess(cc)
+          _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+            PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+          }
+          _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+            TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+          }
+          authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+            paymentId,
+            "",
+            "",
+            ConsentStatus.RECEIVED.toString)) map {
+            unboxFullOrFail(_, callContext, s"$UnknownError ")
+          }
+        } yield {
+          (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(authorisation), callContext)
+        }
+    }
+  }
             
      resourceDocs += ResourceDoc(
        startPaymentInitiationCancellationAuthorisation,

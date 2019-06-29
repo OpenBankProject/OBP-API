@@ -7,8 +7,11 @@ import code.api.util.APIUtil._
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.consent.Consent
+import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
+import net.liftweb.common.Full
 import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
@@ -224,12 +227,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     account: PaymentAccount,
   )
   
+  case class StartPaymentAuthorisationJson(scaStatus: String, 
+                                           authorisationId: String,
+                                           psuMessage: String,
+                                           _links: ScaStatusJsonV13
+                                          )
+  
   def createAccountListJson(coreAccounts: List[BankAccount], user: User): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map {
       x =>
-        val iBan = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else ""
-        val bBan = if (iBan.size > 4) iBan.substring(4) else ""
-        
+        val (iBan: String, bBan: String) = getIbanAndBban(x)
+
         val transactionRequests: List[TransactionRequest] = Connector.connector.vend.getTransactionRequests210(user, x).map(_._1)getOrElse(Nil)
         // get the latest end_date of `COMPLETED` transactionRequests
         val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
@@ -261,6 +269,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
+  private def getIbanAndBban(x: BankAccount) = {
+    val iBan = if (x.accountRoutings.headOption.isDefined && x.accountRoutings.head.scheme == "IBAN") x.accountRoutings.head.address else ""
+    val bBan = if (iBan.size > 4) iBan.substring(4) else ""
+    (iBan, bBan)
+  }
+
   def createAccountBalanceJSON(bankAccount: BankAccount, transactionRequests: List[TransactionRequest]) = {
     // get the latest end_date of `COMPLETED` transactionRequests
     val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
@@ -273,9 +287,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     // sum of the unCompletedTransactions and the account.balance is the current expectd amount:
     val sumOfAll = (bankAccount.balance+ sumOfAllUncompletedTransactionrequests).toString()
 
-    val iban = if (bankAccount.accountRoutings.headOption.isDefined && bankAccount.accountRoutings.head.scheme == "IBAN") bankAccount.accountRoutings.head.address else ""
-    val bban = if (iban.size > 4) iban.substring(4) else ""
-    
+    val (iban: String, bban: String) = getIbanAndBban(bankAccount)
+
     AccountBalancesV13(
       account = BalanceAccount(
         currency = APIUtil.stringOrNull(bankAccount.currency),
@@ -296,11 +309,16 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     ) 
   }
   
-  def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJsonV13 = {
+  def createTransactionJSON(transaction : ModeratedTransaction, creditorAccount: CreditorAccountJson) : TransactionJsonV13 = {
+    val address = transaction.otherBankAccount.map(_.accountRoutingAddress).getOrElse(None).getOrElse("")
+    val scheme = transaction.otherBankAccount.map(_.accountRoutingScheme).getOrElse(None).getOrElse("")
+    val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
+    val debtorAccountJson = CreditorAccountJson(bban=bban, iban=iban, pan = pan, maskedPan = maskedPan, currency = currency)
     TransactionJsonV13(
       transactionId = transaction.id.value,
       creditorName = "",
-      creditorAccount = CreditorAccountJson(iban = APIUtil.stringOptionOrNull(transaction.bankAccount.get.iban)),
+      creditorAccount = creditorAccount,
+      debtorAccount = debtorAccountJson,
       transactionAmount = AmountOfMoneyV13(APIUtil.stringOptionOrNull(transaction.currency), transaction.amount.get.toString()),
       bookingDate = transaction.startDate.get,
       valueDate = transaction.finishDate.get,
@@ -308,39 +326,74 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
   
-  def createTransactionFromRequestJSON(transactionRequest : TransactionRequest) : TransactionJsonV13 = {
+  def createTransactionFromRequestJSON(transactionRequest : TransactionRequest, creditorAccount: CreditorAccountJson) : TransactionJsonV13 = {
+    val (iban, bban, pan, maskedPan, currency) = extractAccountData(transactionRequest.other_account_routing_scheme, transactionRequest.other_account_routing_address)
+    val debtorAccountJson = CreditorAccountJson(bban=bban, iban=iban, pan = pan, maskedPan = maskedPan, currency = currency)
     TransactionJsonV13(
       transactionId = transactionRequest.id.value,
       creditorName = transactionRequest.name,
-      creditorAccount = CreditorAccountJson(iban = transactionRequest.from.account_id),
+      creditorAccount = creditorAccount,
+      debtorAccount = debtorAccountJson,
       transactionAmount = AmountOfMoneyV13(transactionRequest.charge.value.currency, transactionRequest.charge.value.amount),
       bookingDate = transactionRequest.start_date,
       valueDate = transactionRequest.end_date,
       remittanceInformationUnstructured = transactionRequest.body.description
     )
   }
-  
-  def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonV13 = {
-    val ids = transactions.map(_.bankAccount.map(_.accountId.value)).flatten
-    val accountIbans = transactions.map(_.bankAccount.map(_.iban.getOrElse(""))).flatten
-    val accontCurrencys = transactions.map(_.bankAccount.map(_.currency.getOrElse(""))).flatten
-    val accontBalances = transactions.map(_.bankAccount.map(_.balance)).flatten
-    
-    val accontId = if (ids.isEmpty) "" else ids.head
-    val accountIban = if (accountIbans.isEmpty) "" else accountIbans.head
-    val accountCurrency = if (accontCurrencys.isEmpty) "" else accontCurrencys.head
-    val accontBalance = if (accontBalances.isEmpty) "" else accontBalances.head
-    
+
+  private def extractAccountData(scheme: String, address: String) = {
+    val (iban: String, bban: String, pan: String, maskedPan: String, currency: String) = Connector.connector.vend.getBankAccountByRouting(
+      scheme,
+      address,
+      None
+    ) match {
+      case Full((account, _)) =>
+        val (iban: String, bban: String) = getIbanAndBban(account)
+        val (pan, maskedPan) = (account.number, getMaskedPrimaryAccountNumber(accountNumber = account.number))
+        (iban, bban, pan, maskedPan, account.currency)
+      case _ => ("", "", "", "")
+    }
+    (iban, bban, pan, maskedPan, currency)
+  }
+
+  def createTransactionsJson(bankAccount: BankAccount, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonV13 = {
+    val accountId = bankAccount.accountId.value
+    val (iban: String, bban: String) = getIbanAndBban(bankAccount)
+    // get the latest end_date of `COMPLETED` transactionRequests
+    val latestCompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status == "COMPLETED").map(_.end_date).headOption.getOrElse(null)
+    //get the latest end_date of !`COMPLETED` transactionRequests
+    val latestUncompletedEndDate = transactionRequests.sortBy(_.end_date).reverse.filter(_.status != "COMPLETED").map(_.end_date).headOption.getOrElse(null)
+
+    val creditorAccount = CreditorAccountJson(
+      iban = iban,
+      bban = bban,
+      pan = bankAccount.number,
+      msisdn = "",
+      maskedPan = getMaskedPrimaryAccountNumber(accountNumber = bankAccount.number)
+    )
     
     TransactionsJsonV13(
-      BalanceAccount(currency = accountCurrency, iban = accountIban),
-      TransactionsV13Transactions(
-        booked= transactions.map(createTransactionJSON),
-        pending = transactionRequests.filter(_.status!="COMPLETED").map(createTransactionFromRequestJSON),
-        _links = TransactionsV13TransactionsLinks(s"/v1/accounts/$accontId")
+      BalanceAccount(
+        currency = bankAccount.currency, 
+        iban = iban,
+        bban = bban,
+        pan = bankAccount.number,
+        maskedPan = getMaskedPrimaryAccountNumber(accountNumber = bankAccount.number)
       ),
-      balances = List(TransactionsJsonV13Balance(balanceAmount = AmountOfMoneyV13(accountCurrency, accontBalance))),
-      _links = TransactionsLinksV13(s"/v1/accounts/$accontId")
+      TransactionsV13Transactions(
+        booked= transactions.map(t => createTransactionJSON(t, creditorAccount)),
+        pending = transactionRequests.filter(_.status!="COMPLETED").map(t => createTransactionFromRequestJSON(t, creditorAccount)),
+        _links = TransactionsV13TransactionsLinks(s"/v1/accounts/$accountId")
+      ),
+      balances = List(
+        TransactionsJsonV13Balance(
+          balanceAmount = AmountOfMoneyV13(bankAccount.currency, bankAccount.balance.toString()),
+          balanceType = APIUtil.stringOrNull(bankAccount.accountType),
+          lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
+          lastCommittedTransaction = if(latestUncompletedEndDate == null) null else latestUncompletedEndDate.toString
+        )
+      ),
+      _links = TransactionsLinksV13(s"/v1/accounts/$accountId")
     )
   }
 
@@ -423,5 +476,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       )
     )
   }
-  
+
+  def createStartPaymentAuthorisationsJson(authorizations: List[Authorisation]): List[StartPaymentAuthorisationJson] = {
+    authorizations.map(createStartPaymentAuthorisationJson)
+  }
+
+  def createStartPaymentAuthorisationJson(authorization: Authorisation) = {
+      StartPaymentAuthorisationJson(
+        scaStatus = authorization.scaStatus,
+        authorisationId = authorization.authorisationId,
+        psuMessage = "",
+        _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${authorization.authorisationId}")
+      )
+  }
 }
