@@ -311,22 +311,48 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 Check the transaction status of a payment initiation.""",
        json.parse(""""""),
        json.parse("""{
-  "transactionStatus" : "ACCP"
-}"""),
+                      "transactionStatus": "ACCP",
+                      "fundsAvailable": true
+                     }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "status" :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "transactionStatus" : "ACCP"
-}"""), callContext)
+             
+             _ <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT-SERVICE in the URL.")}: '${paymentService}'.It should be one of (payments, bulk-payments, periodic-payments)",400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             transactionRequestTypes <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be one of (sepa-credit-transfers, instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers).",400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
+
+             transactionRequestStatus = transactionRequest.status
+
+             transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
+               BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
+             }
+             
+             transactionRequestFromAccount = transactionRequest.from
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(transactionRequestFromAccount.bank_id), AccountId(transactionRequestFromAccount.account_id), callContext)
+             
+             fromAccountBalance = fromAccount.balance
+             fundsAvalible = fromAccountBalance >= transactionRequestAmount
+             
+
+
+           } yield {
+             (json.parse(s"""{
+                           "transactionStatus": "$transactionRequestStatus",
+                           "fundsAvailable": $fundsAvalible
+                          }"""
+             ), callContext)
            }
          }
        }
