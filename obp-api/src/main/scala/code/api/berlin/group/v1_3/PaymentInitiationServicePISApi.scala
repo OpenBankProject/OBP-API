@@ -282,9 +282,9 @@ Retrieve a list of all created cancellation authorisation sub-resources.
        apiVersion,
        nameOf(getPaymentInitiationScaStatus),
        "GET",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
        "Read the SCA Status of the payment authorisation",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
        json.parse(""""""),
@@ -293,18 +293,32 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "scaStatus" : "psuAuthenticated"
-}"""), callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+               paymentid,
+               authorisationid
+             )) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+             
+           } yield {
+             (json.parse(
+               s"""{
+                "scaStatus" : "${authorisation.scaStatus}"
+              }"""), callContext)
            }
          }
        }
@@ -314,7 +328,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        apiVersion,
        nameOf(getPaymentInitiationStatus),
        "GET",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/status",
        "Payment initiation status request",
        s"""${mockedDataText(false)}
 Check the transaction status of a payment initiation.""",
@@ -545,7 +559,7 @@ $additionalInstructions
        apiVersion,
        nameOf(startPaymentAuthorisation),
        "POST",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
        "Start the authorisation process for a payment initiation",
        s"""${mockedDataText(false)}
 Create an authorisation sub-resource and start the authorisation process. 
@@ -640,7 +654,7 @@ This applies in the following scenarios:
        apiVersion,
        nameOf(startPaymentInitiationCancellationAuthorisation),
        "POST",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment",
        s"""${mockedDataText(true)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
@@ -745,7 +759,7 @@ This applies in the following scenarios:
        apiVersion,
        nameOf(updatePaymentCancellationPsuData),
        "PUT",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/CANCELLATIONID",
        "Update PSU Data for payment initiation cancellation",
        s"""${mockedDataText(true)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
@@ -812,7 +826,7 @@ There are the following request types on this access path:
        apiVersion,
        nameOf(updatePaymentPsuData),
        "PUT",
-       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations/AUTHORISATIONID",
+       "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
        "Update PSU data for payment initiation",
        s"""${mockedDataText(true)}
 This methods updates PSU data on the authorisation resource if needed. 

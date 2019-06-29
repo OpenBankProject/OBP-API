@@ -177,6 +177,7 @@ object ErrorMessages {
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
   val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
   val ConsumerNotFoundByConsumerId = "OBP-30019: Consumer not found. Please specify a valid value for CONSUMER_ID."
+  
 
   val CreateBankError = "OBP-30020: Could not create the Bank"
   val UpdateBankError = "OBP-30021: Could not update the Bank"
@@ -307,6 +308,8 @@ object ErrorMessages {
   val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
   val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
 
+  //Authorisations
+  val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
   // General Resource related messages above here
 
 
