@@ -11,7 +11,9 @@ object Authorisations extends SimpleInjector {
 
 trait AuthorisationProvider {
   def getAuthorizationByAuthorizationId(authorizationId: String): Box[Authorisation]
-  def createAuthorization(authenticationType: String, 
+  def getAuthorizationByPaymentId(paymentId: String): Box[List[Authorisation]]
+  def createAuthorization(paymentId: String,
+                          authenticationType: String, 
                           authenticationMethodId: String,
                           scaStatus: String
                          ): Box[Authorisation]

@@ -7,8 +7,9 @@ import code.api.util.APIUtil._
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.bankconnectors.Connector
 import code.consent.Consent
+import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, BankAccount, TransactionRequest, User}
+import com.openbankproject.commons.model.{BankAccount, TransactionRequest, User}
 import net.liftweb.common.Full
 import net.liftweb.json.JValue
 
@@ -220,6 +221,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     paymentId: String,
     _links: InitiatePaymentResponseLinks
   )
+  
+  case class StartPaymentAuthorisationJson(scaStatus: String, 
+                                           authorisationId: String,
+                                           psuMessage: String,
+                                           _links: ScaStatusJsonV13
+                                          )
   
   def createAccountListJson(coreAccounts: List[BankAccount], user: User): CoreAccountsJsonV13 = {
     CoreAccountsJsonV13(coreAccounts.map {
@@ -464,5 +471,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       )
     )
   }
-  
+
+  def createStartPaymentAuthorisationsJson(authorizations: List[Authorisation]): List[StartPaymentAuthorisationJson] = {
+    authorizations.map(createStartPaymentAuthorisationJson)
+  }
+
+  def createStartPaymentAuthorisationJson(authorization: Authorisation) = {
+      StartPaymentAuthorisationJson(
+        scaStatus = authorization.scaStatus,
+        authorisationId = authorization.authorisationId,
+        psuMessage = "",
+        _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${authorization.authorisationId}")
+      )
+  }
 }

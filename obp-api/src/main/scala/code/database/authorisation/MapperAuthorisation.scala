@@ -11,12 +11,14 @@ class Authorisation extends LongKeyedMapper[Authorisation] with IdPK with Create
   // Enum: received, psuIdentified, psuAuthenticated, scaMethodSelected, started, finalised, failed, exempted
   object ScaStatus extends MappedString(this, 20)
   object AuthorisationId extends MappedUUID(this)
+  object PaymentId extends MappedUUID(this)
   // Enum: SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP
   object AuthenticationType extends MappedString(this, 10)
   object AuthenticationMethodId extends MappedString(this, 35)
 
   def scaStatus: String = ScaStatus.get
   def authorisationId: String = AuthorisationId.get
+  def paymentId: String = PaymentId.get
   def authenticationType: String = AuthenticationType.get
   def authenticationMethodId: String = AuthenticationMethodId.get
 }
@@ -30,16 +32,21 @@ object MappedAuthorisationProvider extends AuthorisationProvider {
     val result: Box[Authorisation] = Authorisation.find(By(Authorisation.AuthorisationId, authorizationId))
      result
   }
+   override def getAuthorizationByPaymentId(paymentId: String): Box[List[Authorisation]] = {
+    tryo(Authorisation.findAll(By(Authorisation.PaymentId, paymentId)))
+  }
 
-  def createAuthorization(authenticationType: String,
+  def createAuthorization(paymentId: String,
+                          authenticationType: String,
                           authenticationMethodId: String,
                           scaStatus: String
                          ): Box[Authorisation] = tryo {
     Authorisation
       .create
+      .PaymentId(paymentId)
       .AuthenticationType(authenticationType)
       .AuthenticationMethodId(authenticationMethodId)
-      .ScaStatus(scaStatus)
+      .ScaStatus(scaStatus).saveMe()
   }
 }
 
