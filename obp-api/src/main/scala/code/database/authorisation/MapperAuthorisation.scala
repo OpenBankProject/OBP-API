@@ -15,12 +15,14 @@ class Authorisation extends LongKeyedMapper[Authorisation] with IdPK with Create
   // Enum: SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP
   object AuthenticationType extends MappedString(this, 10)
   object AuthenticationMethodId extends MappedString(this, 35)
+  object ChallengeData extends MappedString(this, 1024)
 
   def scaStatus: String = ScaStatus.get
   def authorisationId: String = AuthorisationId.get
   def paymentId: String = PaymentId.get
   def authenticationType: String = AuthenticationType.get
   def authenticationMethodId: String = AuthenticationMethodId.get
+  def challengeData: String = ChallengeData.get
 }
 
 object Authorisation extends Authorisation with LongKeyedMetaMapper[Authorisation] {
@@ -42,13 +44,15 @@ object MappedAuthorisationProvider extends AuthorisationProvider {
   def createAuthorization(paymentId: String,
                           authenticationType: String,
                           authenticationMethodId: String,
-                          scaStatus: String
+                          scaStatus: String,
+                          challengeData: String
                          ): Box[Authorisation] = tryo {
     Authorisation
       .create
       .PaymentId(paymentId)
       .AuthenticationType(authenticationType)
       .AuthenticationMethodId(authenticationMethodId)
+      .ChallengeData(challengeData)
       .ScaStatus(scaStatus).saveMe()
   }
 }
