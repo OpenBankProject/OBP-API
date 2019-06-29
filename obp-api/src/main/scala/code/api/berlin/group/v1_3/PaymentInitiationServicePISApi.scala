@@ -1,6 +1,5 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.SepaCreditTransfersJson
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import net.liftweb.json
 import net.liftweb.json._
@@ -11,13 +10,14 @@ import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.bankconnectors.Connector
 import code.model._
-import code.transactionrequests.TransactionRequests.{TransactionRequestTypes, PaymentServiceTypes}
+import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
+import net.liftweb.json.Serialization.write
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -30,7 +30,11 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
-    val endpoints = 
+  def checkPaymentServerError(paymentService: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentService}'.It should be `payments` for now, will support (bulk-payments, periodic-payments) soon"
+  def checkPaymentProductError(paymentProduct: String) = s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be `sepa-credit-transfers`for now, will support (instant-sepa-credit-transfers, target-2-payments, cross-border-credit-transfers) soon."
+
+
+  val endpoints = 
       cancelPayment ::
       getPaymentCancellationScaStatus ::
       getPaymentInformation ::
@@ -162,22 +166,46 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Get Payment Information",
-       s"""${mockedDataText(true)}
-Returns the content of a payment object""",
-       json.parse(""""""),
-       json.parse(""""""""),
+       s"""
+        Returns the content of a payment object""",
+       emptyObjectJson,
+       json.parse("""{
+                      "debtorAccount":{
+                        "iban":"GR12 1234 5123 4511 3981 4475 477"
+                      },
+                      "instructedAmount":{
+                        "currency":"EUR",
+                        "amount":"1234"
+                      },
+                      "creditorAccount":{
+                        "iban":"GR12 1234 5123 4514 4575 3645 077"
+                      },
+                      "creditorName":"70charname"
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM ::Nil
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
+
+             transactionRequestBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ",400, callContext) {
+               transactionRequest.body.to_sepa_credit_transfers.get
+             }
+             
              } yield {
-             (json.parse(""""""""), callContext)
+             (transactionRequestBody, callContext)
            }
          }
        }
@@ -287,22 +315,48 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 Check the transaction status of a payment initiation.""",
        json.parse(""""""),
        json.parse("""{
-  "transactionStatus" : "ACCP"
-}"""),
+                      "transactionStatus": "ACCP"
+                     }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "status" :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentid:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "transactionStatus" : "ACCP"
-}"""), callContext)
+             
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
+
+             transactionRequestStatus = transactionRequest.status match {
+               case "COMPLETED" => "ACCC"
+               case "INITIATED" => "RCVD"
+             }
+
+             //Do not support `fundsAvailable` for now. 
+//             transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
+//               BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
+//             }
+//             transactionRequestFromAccount = transactionRequest.from
+//             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(transactionRequestFromAccount.bank_id), AccountId(transactionRequestFromAccount.account_id), callContext)
+//             fromAccountBalance = fromAccount.balance
+//             fundsAvalible = fromAccountBalance >= transactionRequestAmount
+             
+
+
+           } yield {
+             (json.parse(s"""{
+                           "transactionStatus": "$transactionRequestStatus"
+                          }"""
+             ), callContext)
            }
          }
        }
@@ -326,7 +380,7 @@ Check the transaction status of a payment initiation.""",
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT",
        "Payment initiation request",
-       s"""${mockedDataText(false)}
+       s"""
 This method is used to initiate a payment at the ASPSP.
 
 ## Variants of Payment Initiation Requests
@@ -410,16 +464,19 @@ $additionalInstructions
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
 
-             _ <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT-SERVICE in the URL.")}: '${paymentService}'.It should be one of ${PaymentServiceTypes.values.toList}",400, callContext) {
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
-             transactionRequestTypes <- NewStyle.function.tryons(s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE","PAYMENT_PRODUCT in the URL.")}: '${paymentProduct}'.It should be one of (sepa_credit_transfers, instant_sepa_credit_transfers, target_2_payments, cross_border_credit_transfers).",400, callContext) {
+             transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
 
-             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersJson ", 400, callContext) {
-               json.extract[SepaCreditTransfersJson]
+             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers ", 400, callContext) {
+               json.extract[SepaCreditTransfers]
              }
+
+             transDetailsSerialized <- NewStyle.function.tryons (s"$UnknownError Can not serialize in request Json ", 400, callContext){write(transDetailsJson)(Serialization.formats(NoTypeHints))}
+             
              isValidAmountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${transDetailsJson.instructedAmount.amount} ", 400, callContext) {
                BigDecimal(transDetailsJson.instructedAmount.amount)
              }
@@ -470,7 +527,7 @@ $additionalInstructions
                        amountOfMoneyJSON,
                       ""
                      ),
-                     "",
+                     transDetailsSerialized,
                      "",
                      callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                  } yield (createdTransactionRequest, callContext)

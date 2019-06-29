@@ -37,7 +37,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
                                  resourceId: String,
                                  iban: String,
                                  bban: String,
-                                 msisdn: String ="+49 170 1234567",
                                  currency: String,
                                  name: String,
                                  product: String,
@@ -55,7 +54,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   
   case class AmountOfMoneyV13(
     currency : String,
-    content : String
+    amount : String
   )
   case class AccountBalance(
     amount : AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
@@ -207,20 +206,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: ScaStatusJsonV13
   )
 
-  case class PaymentAccountJson(
-    iban: String
-  )
-  case class InstructedAmountJson(
-    currency: String,
-    amount: String
-  )
-  case class SepaCreditTransfersJson(
-    debtorAccount: PaymentAccountJson,
-    instructedAmount: AmountOfMoneyJsonV121,
-    creditorAccount: PaymentAccountJson,
-    creditorName: String
-  )
-
   case class LinkHrefJson(
     href: String
   )
@@ -303,7 +288,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       `balances` = AccountBalance(
         amount = AmountOfMoneyV13(
           currency = APIUtil.stringOrNull(bankAccount.currency),
-          content = bankAccount.balance.toString()
+          amount = bankAccount.balance.toString()
         ),
         balanceType = APIUtil.stringOrNull(bankAccount.accountType),
         lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
@@ -428,7 +413,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createTransactionRequestJson(tr : TransactionRequest) : InitiatePaymentResponseJson = {
+  def createTransactionRequestJson(transactionRequest : TransactionRequest) : InitiatePaymentResponseJson = {
 //    - 'ACCC': 'AcceptedSettlementCompleted' -
 //      Settlement on the creditor's account has been completed.
 //      - 'ACCP': 'AcceptedCustomerProfile' -
@@ -463,15 +448,19 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 //      - 'PART': 'PartiallyAccepted' -
 //      A number of transactions have been accepted, whereas another number of transactions have not yet achieved 'accepted' status.
 //      Remark: This code may be
-    val transactionId = tr.id.value
+    //map OBP transactionRequestId to BerlinGroup PaymentId
+    val paymentId = transactionRequest.id.value
     InitiatePaymentResponseJson(
-      transactionStatus = "RCVD", //TODO hardcode this first, there are 14 different status in BerlinGroup. 
-      paymentId = transactionId,
+      transactionStatus = transactionRequest.status match {
+        case "COMPLETED" => "ACCC"
+        case "INITIATED" => "RCVD"
+      },
+      paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
         scaRedirect = LinkHrefJson("answer transaction request url"),
-        self = LinkHrefJson(s"/v1/payments/sepa-credit-transfers/$transactionId"),
-        status = LinkHrefJson(s"/v1/payments/$transactionId/status"),
-        scaStatus = LinkHrefJson(s"/v1/payments/$transactionId/authorisations/${transactionId}xx")
+        self = LinkHrefJson(s"/v1/payments/sepa-credit-transfers/$paymentId"),
+        status = LinkHrefJson(s"/v1/payments/$paymentId/status"),
+        scaStatus = LinkHrefJson(s"/v1/payments/$paymentId/authorisations/${paymentId}xx")
       )
     )
   }
