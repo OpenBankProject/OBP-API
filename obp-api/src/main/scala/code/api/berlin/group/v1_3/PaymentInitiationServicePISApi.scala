@@ -166,7 +166,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Get Payment Information",
-       s"""
+       s"""${mockedDataText(false)}
         Returns the content of a payment object""",
        emptyObjectJson,
        json.parse("""{
@@ -184,7 +184,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                     }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM ::Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM ::Nil
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
@@ -217,7 +217,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
        "Get Payment Initiation Authorisation Sub-Resources Request",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Read a list of all authorisation subresources IDs which have been created.
 
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
@@ -226,7 +226,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentInitiationAuthorisation : OBPEndpoint = {
@@ -316,7 +316,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/status",
        "Payment initiation status request",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Check the transaction status of a payment initiation.""",
        json.parse(""""""),
        json.parse("""{
@@ -324,7 +324,7 @@ Check the transaction status of a payment initiation.""",
                      }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
@@ -385,7 +385,7 @@ Check the transaction status of a payment initiation.""",
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT",
        "Payment initiation request",
-       s"""
+       s"""${mockedDataText(false)}
 This method is used to initiate a payment at the ASPSP.
 
 ## Variants of Payment Initiation Requests
@@ -460,7 +460,7 @@ $additionalInstructions
                     }"""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val initiatePayment : OBPEndpoint = {
@@ -547,7 +547,7 @@ $additionalInstructions
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
        "Start the authorisation process for a payment initiation",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Create an authorisation sub-resource and start the authorisation process. 
 The message might in addition transmit authentication and authorisation related data. 
 
@@ -608,7 +608,7 @@ This applies in the following scenarios:
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
   lazy val startPaymentAuthorisation : OBPEndpoint = {
