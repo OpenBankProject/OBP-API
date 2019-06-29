@@ -128,7 +128,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
              }
              
-             failMsg = s"$InvalidDateFormat Only Support empty accout List for now. It will retrun an accessible account list. "
+             failMsg = s"$InvalidJsonContent Only Support empty accounts List for now. It will return an accessible account List. "
              _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
              
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
