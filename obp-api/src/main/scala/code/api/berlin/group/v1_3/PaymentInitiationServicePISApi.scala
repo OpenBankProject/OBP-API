@@ -807,7 +807,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -879,7 +879,7 @@ There are the following request types on this access path:
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
+       case paymentService :: paymentProduct :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
          cc =>
            for {
               (_, callContext) <- authorizedAccess(cc)
