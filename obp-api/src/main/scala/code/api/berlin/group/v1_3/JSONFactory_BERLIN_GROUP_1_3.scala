@@ -368,7 +368,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createTransactionRequestJson(tr : TransactionRequest) : InitiatePaymentResponseJson = {
+  def createTransactionRequestJson(transactionRequest : TransactionRequest) : InitiatePaymentResponseJson = {
 //    - 'ACCC': 'AcceptedSettlementCompleted' -
 //      Settlement on the creditor's account has been completed.
 //      - 'ACCP': 'AcceptedCustomerProfile' -
@@ -403,18 +403,19 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 //      - 'PART': 'PartiallyAccepted' -
 //      A number of transactions have been accepted, whereas another number of transactions have not yet achieved 'accepted' status.
 //      Remark: This code may be
-    val transactionId = tr.id.value
+    //map OBP transactionRequestId to BerlinGroup PaymentId
+    val paymentId = transactionRequest.id.value
     InitiatePaymentResponseJson(
-      transactionStatus = tr.status match {
+      transactionStatus = transactionRequest.status match {
         case "COMPLETED" => "ACCC"
         case "INITIATED" => "RCVD"
       },
-      paymentId = transactionId,
+      paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
         scaRedirect = LinkHrefJson("answer transaction request url"),
-        self = LinkHrefJson(s"/v1/payments/sepa-credit-transfers/$transactionId"),
-        status = LinkHrefJson(s"/v1/payments/$transactionId/status"),
-        scaStatus = LinkHrefJson(s"/v1/payments/$transactionId/authorisations/${transactionId}xx")
+        self = LinkHrefJson(s"/v1/payments/sepa-credit-transfers/$paymentId"),
+        status = LinkHrefJson(s"/v1/payments/$paymentId/status"),
+        scaStatus = LinkHrefJson(s"/v1/payments/$paymentId/authorisations/${paymentId}xx")
       )
     )
   }
