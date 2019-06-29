@@ -53,6 +53,7 @@ import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIDMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
+import code.database.authorisation.Authorisation
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
@@ -625,5 +626,6 @@ object ToSchemify {
     MigrationScriptLog,
     MethodRouting,
     WebUiProps,
+    Authorisation,
   )++ APIBuilder_Connector.allAPIBuilderModels
 }
