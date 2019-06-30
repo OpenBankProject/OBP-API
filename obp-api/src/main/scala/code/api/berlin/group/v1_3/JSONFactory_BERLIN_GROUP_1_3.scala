@@ -418,7 +418,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       frequencyPerDay = createdConsent.frequencyPerDay,
       combinedServiceIndicator= createdConsent.combinedServiceIndicator,
       lastActionDate= new SimpleDateFormat(DateWithDay).format(createdConsent.lastActionDate),
-      consentStatus= createdConsent.status
+      consentStatus= createdConsent.status.toLowerCase()
     )
   }
 
@@ -494,10 +494,17 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         _links = ScaStatusJsonV13(s"/v1.3/payments/sepa-credit-transfers/${authorization.authorisationId}")
       )
   }
+
+  def createStartPaymentCancellationAuthorisationsJson(authorizations: List[Authorisation],
+                                                       paymentService: String,
+                                                       paymentProduct: String,
+                                                       paymentId: String): List[StartPaymentAuthorisationJson] = {
+    authorizations.map(createStartPaymentCancellationAuthorisationJson(_, paymentService, paymentProduct, paymentId))
+  }
   def createStartPaymentCancellationAuthorisationJson(authorization: Authorisation,
                                                       paymentService: String,
                                                       paymentProduct: String,
-                                                      paymentId: String,
+                                                      paymentId: String
                                                      ) = {
       StartPaymentAuthorisationJson(
         scaStatus = authorization.scaStatus,
