@@ -701,14 +701,16 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
            for {
              (_, callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+             _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
-             _ <- Helper.booleanToFuture(failMsg = AuthorizationNotFound) {
-               consent.secret == authorisationId
+             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+               authorisationId
+             )) map {
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)")
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(tweakStatusNames(consent.status)), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(authorisation.scaStatus), HttpCode.`200`(callContext))
            }
          }
        }

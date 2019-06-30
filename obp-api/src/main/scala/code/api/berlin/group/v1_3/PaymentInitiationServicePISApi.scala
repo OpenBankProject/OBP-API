@@ -276,33 +276,14 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        nameOf(getPaymentInitiationCancellationAuthorisationInformation),
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
-       "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
+       "Get Cancellation Authorisation Sub-Resources Request",
        s"""${mockedDataText(false)}
 Retrieve a list of all created cancellation authorisation sub-resources.
 """,
        emptyObjectJson,
-       json.parse("""[{
-                      "scaStatus":"received",
-                      "authorisationId":"cfd4d711-6eb2-4d92-ab53-bbb93f67e066",
-                      "psuMessage":"Please check your SMS at a mobile device.",
-                      "_links":{
-                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENTID/cfd4d711-6eb2-4d92-ab53-bbb93f67e066"
-                      }
-                    },{
-                      "scaStatus":"received",
-                      "authorisationId":"8e248863-f906-4b1e-9852-34573df0d9dc",
-                      "psuMessage":"Please check your SMS at a mobile device.",
-                      "_links":{
-                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENTID/8e248863-f906-4b1e-9852-34573df0d9dc"
-                      }
-                    },{
-                      "scaStatus":"received",
-                      "authorisationId":"53421435-f73c-4a46-9f52-a4f4c5efe7c3",
-                      "psuMessage":"Please check your SMS at a mobile device.",
-                      "_links":{
-                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENTID/53421435-f73c-4a46-9f52-a4f4c5efe7c3"
-                      }
-                    }]"""),
+       json.parse("""{
+  "cancellationIds" : ["faa3657e-13f0-4feb-a6c3-34bf21a9ae8e]"
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
@@ -324,11 +305,8 @@ Retrieve a list of all created cancellation authorisation sub-resources.
                unboxFullOrFail(_, callContext, s"$UnknownError ")
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationsJson(
-               authorisations,
-               paymentService, 
-               paymentProduct, 
-               paymentId), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.CancellationJsonV13(
+               authorisations.map(_.authorisationId)), callContext)
            }
          }
        }
