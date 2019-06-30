@@ -158,6 +158,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     scaStatus: String
   )  
   case class AuthorisationJsonV13(authorisationIds: List[String])
+  case class CancellationJsonV13(cancellationIds: List[String])
 
   case class ConsentAccessAccountsJson(
     iban: Option[String],
