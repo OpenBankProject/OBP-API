@@ -418,7 +418,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       frequencyPerDay = createdConsent.frequencyPerDay,
       combinedServiceIndicator= createdConsent.combinedServiceIndicator,
       lastActionDate= new SimpleDateFormat(DateWithDay).format(createdConsent.lastActionDate),
-      consentStatus= createdConsent.status
+      consentStatus= createdConsent.status.toLowerCase()
     )
   }
 
