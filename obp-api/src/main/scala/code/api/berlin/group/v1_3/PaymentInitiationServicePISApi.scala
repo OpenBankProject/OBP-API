@@ -228,7 +228,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        emptyObjectJson,
        json.parse("""[
                        {
-                           "scaStatus": "RECEIVED",
+                           "scaStatus": "received",
                            "authorisationId": "940948c7-1c86-4d88-977e-e739bf2c1492",
                            "psuMessage": "Please check your SMS at a mobile device.",
                            "_links": {
@@ -236,7 +236,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
                            }
                        },
                        {
-                           "scaStatus": "RECEIVED",
+                           "scaStatus": "received",
                            "authorisationId": "0ae75eee-deba-41d6-8116-1a4d6e05dd83",
                            "psuMessage": "Please check your SMS at a mobile device.",
                            "_links": {
@@ -277,23 +277,58 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
        "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Retrieve a list of all created cancellation authorisation sub-resources.
 """,
-       json.parse(""""""),
-       json.parse(""""""""),
+       emptyObjectJson,
+       json.parse("""[{
+                      "scaStatus":"received",
+                      "authorisationId":"cfd4d711-6eb2-4d92-ab53-bbb93f67e066",
+                      "psuMessage":"Please check your SMS at a mobile device.",
+                      "_links":{
+                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENTID/cfd4d711-6eb2-4d92-ab53-bbb93f67e066"
+                      }
+                    },{
+                      "scaStatus":"received",
+                      "authorisationId":"8e248863-f906-4b1e-9852-34573df0d9dc",
+                      "psuMessage":"Please check your SMS at a mobile device.",
+                      "_links":{
+                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENTID/8e248863-f906-4b1e-9852-34573df0d9dc"
+                      }
+                    },{
+                      "scaStatus":"received",
+                      "authorisationId":"53421435-f73c-4a46-9f52-a4f4c5efe7c3",
+                      "psuMessage":"Please check your SMS at a mobile device.",
+                      "_links":{
+                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENTID/53421435-f73c-4a46-9f52-a4f4c5efe7c3"
+                      }
+                    }]"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentInitiationCancellationAuthorisationInformation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId :: "cancellation-authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse(""""""""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationsJson(
+               authorisations,
+               paymentService, 
+               paymentProduct, 
+               paymentId), callContext)
            }
          }
        }
