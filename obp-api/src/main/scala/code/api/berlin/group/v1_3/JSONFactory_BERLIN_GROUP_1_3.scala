@@ -59,11 +59,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     amount : String
   )
   case class AccountBalance(
-    amount : AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
-    balanceType: String = "closingBooked",
-    lastChangeDateTime: String = "string",
-    lastCommittedTransaction: String = "string",
-    referenceDate: String = "string",
+                             balanceAmount : AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
+                             balanceType: String = "closingBooked",
+                             lastChangeDateTime: String = "string",
+                             lastCommittedTransaction: String = "string",
+                             referenceDate: String = "string",
     
   )
   case class BalanceAccount(
@@ -76,7 +76,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
   case class AccountBalancesV13(
                                  account:BalanceAccount= BalanceAccount(),
-                                 `balanceAmount`: List[AccountBalance] = AccountBalance() :: Nil
+                                 `balances`: List[AccountBalance] = AccountBalance() :: Nil
   )
   case class TransactionsLinksV13(
     account: String
@@ -302,8 +302,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         pan = bankAccount.number,
         maskedPan = getMaskedPrimaryAccountNumber(accountNumber = bankAccount.number)
       ),
-      `balanceAmount` = AccountBalance(
-        amount = AmountOfMoneyV13(
+      `balances` = AccountBalance(
+        balanceAmount = AmountOfMoneyV13(
           currency = APIUtil.stringOrNull(bankAccount.currency),
           amount = bankAccount.balance.toString()
         ),

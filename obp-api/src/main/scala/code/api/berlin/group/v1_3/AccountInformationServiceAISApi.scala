@@ -619,61 +619,33 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 """,
        json.parse(""""""),
        json.parse("""{
-  "access" : {
-    "balances" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "availableAccounts" : "allAccounts",
-    "accounts" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "transactions" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "allPsd2" : "allAccounts"
-  },
-  "consentStatus" : { },
-  "validUntil" : "2020-12-31",
-  "lastActionDate" : "2018-07-01",
-  "recurringIndicator" : false,
-  "frequencyPerDay" : 4
-}"""),
+                      "access": {
+                        "accounts": [
+                          {
+                            "bban": "BARC12345612345678",
+                            "maskedPan": "123456xxxxxx1234",
+                            "iban": "FR7612345987650123456789014",
+                            "currency": "EUR",
+                            "msisdn": "+49 170 1234567",
+                            "pan": "5409050000000000"
+                          },
+                          {
+                            "bban": "BARC12345612345678",
+                            "maskedPan": "123456xxxxxx1234",
+                            "iban": "FR7612345987650123456789014",
+                            "currency": "EUR",
+                            "msisdn": "+49 170 1234567",
+                            "pan": "5409050000000000"
+                          }
+                        ]
+                      },
+                      "recurringIndicator": false,
+                      "validUntil": "2020-12-31",
+                      "frequencyPerDay": 4,
+                      "combinedServiceIndicator": false,
+                      "lastActionDate": "2019-06-30",
+                      "consentStatus": "received"
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
@@ -769,7 +741,9 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status.toLowerCase()), HttpCode.`200`(callContext))
+             val status = consent.status.toLowerCase()
+               .replace(ConsentStatus.REVOKED.toString.toLowerCase(), "revokedByPsu")
+             (JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(status), HttpCode.`200`(callContext))
            }
              
          }
