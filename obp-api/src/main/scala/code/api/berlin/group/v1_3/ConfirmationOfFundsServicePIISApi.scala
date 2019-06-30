@@ -52,7 +52,7 @@ object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
             "currency" : "EUR"
           },
           "account" : {
-            "bban" : "BARC12345612345678",
+            "iban" : "BARC12345612345678",
           }
          }"""),
        json.parse(
