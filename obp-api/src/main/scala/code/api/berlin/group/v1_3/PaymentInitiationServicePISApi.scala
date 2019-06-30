@@ -408,10 +408,7 @@ Check the transaction status of a payment initiation.""",
 
            } yield {
              (json.parse(s"""{
-                           "transactionStatus": "$transactionRequestStatus,"
-                           "_links": {
-                            "scaRedirect": {"href": "https://www.testbank.com/asdfasdfasdf"}
-                            }
+                           "transactionStatus": "$transactionRequestStatus"
                           }"""
              ), callContext)
            }
