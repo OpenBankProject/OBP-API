@@ -261,7 +261,7 @@ of the PSU at this ASPSP.
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
-  
+            _ <- passesPsd2Aisp(callContext)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
   
             bankId = BankId(defaultBankId)
