@@ -703,7 +703,14 @@ This applies in the following scenarios:
   * The signing basket needs to be authorised yet.
 """,
        json.parse(""""""),
-       json.parse(""""""),
+       json.parse("""{
+                      "scaStatus":"received",
+                      "authorisationId":"8a49b79b-b400-4e6b-b88d-637c3a71479d",
+                      "psuMessage":"Please check your SMS at a mobile device.",
+                      "_links":{
+                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/8a49b79b-b400-4e6b-b88d-637c3a71479d"
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
@@ -749,7 +756,7 @@ This applies in the following scenarios:
        "PUT",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/CANCELLATIONID",
        "Update PSU Data for payment initiation cancellation",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
 It may authorise a cancellation of the payment within the Embedded SCA Approach where needed.
 
@@ -791,24 +798,50 @@ There are the following request types on this access path:
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
 """,
-       json.parse(""""""),
-       json.parse(""""""""),
+       json.parse("""{"scaAuthenticationData":"12345"}"""),
+       json.parse("""{
+                      "scaStatus":"finalised",
+                      "authorisationId":"4f4a8b7f-9968-4183-92ab-ca512b396bfc",
+                      "psuMessage":"Please check your SMS at a mobile device.",
+                      "_links":{
+                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonPut _ => {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: cancellationId :: Nil JsonPut json -> _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             } yield {
-             (json.parse("""
-               {
-                 "scaStatus":"psuAuthenticated"
-               }"""), callContext)
+             failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
+             updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               json.extract[UpdatePaymentPsuDataJson]
+             }
+
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(
+               paymentId,
+               cancellationId, 
+               updatePaymentPsuDataJson.scaAuthenticationData))map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
+               authorisation,
+               paymentService,
+               paymentProduct,
+               paymentId
+             ), callContext)
            }
          }
        }
