@@ -1,6 +1,7 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentJson,UpdatePaymentPsuDataJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -224,7 +225,24 @@ Read a list of all authorisation subresources IDs which have been created.
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
        emptyObjectJson,
-       emptyObjectJson,
+       json.parse("""[
+                       {
+                           "scaStatus": "RECEIVED",
+                           "authorisationId": "940948c7-1c86-4d88-977e-e739bf2c1492",
+                           "psuMessage": "Please check your SMS at a mobile device.",
+                           "_links": {
+                               "scaStatus": "/v1.3/payments/sepa-credit-transfers/940948c7-1c86-4d88-977e-e739bf2c1492"
+                           }
+                       },
+                       {
+                           "scaStatus": "RECEIVED",
+                           "authorisationId": "0ae75eee-deba-41d6-8116-1a4d6e05dd83",
+                           "psuMessage": "Please check your SMS at a mobile device.",
+                           "_links": {
+                               "scaStatus": "/v1.3/payments/sepa-credit-transfers/0ae75eee-deba-41d6-8116-1a4d6e05dd83"
+                           }
+                       }
+                     ]"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
@@ -312,7 +330,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                paymentid,
                authorisationid
              )) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError ")
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current PAYMENT_ID($paymentid) and AUTHORISATION_ID($authorisationid)")
              }
              
            } yield {
@@ -472,7 +490,7 @@ $additionalInstructions
                         "status": {"href": "/v1/payments/1234-wertiq-983/status"},
                         "scaStatus": {"href": "/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                         }
-                    }"""""),
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
@@ -598,29 +616,15 @@ This applies in the following scenarios:
 """,
        json.parse(""""""),
        json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""),
+                      "challengeData": {
+                        "scaStatus": "received",
+                        "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
+                        "psuMessage": "Please check your SMS at a mobile device.",
+                        "_links": {
+                          "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                        }
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
@@ -810,7 +814,7 @@ There are the following request types on this access path:
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
@@ -819,7 +823,10 @@ There are the following request types on this access path:
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              } yield {
-             (json.parse(""""""""), callContext)
+             (json.parse("""
+               {
+                 "scaStatus":"psuAuthenticated"
+               }"""), callContext)
            }
          }
        }
@@ -831,7 +838,7 @@ There are the following request types on this access path:
        "PUT",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
        "Update PSU data for payment initiation",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This methods updates PSU data on the authorisation resource if needed. 
 It may authorise a payment within the Embedded SCA Approach where needed.
 
@@ -870,21 +877,47 @@ There are the following request types on this access path:
     WARNING: This method need a reduced header, 
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
+    
+    NOTE: For this endpoint, for sandbox mode, the `scaAuthenticationData` is fixed value: 12345. To make the process work.
+          Normally the app use will get SMS/EMAIL to get the value for this process.
+      
 """,
-       json.parse(""""""),
-       json.parse(""""""""),
+       json.parse("""{"scaAuthenticationData":"12345"}"""),
+       json.parse("""{
+                        "scaStatus": "received",
+                        "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
+                        "psuMessage": "Please check your SMS at a mobile device.",
+                        "_links": {
+                            "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
+                        }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
+       case paymentService :: paymentProduct :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse(""""""""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+
+             failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
+             updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               json.extract[UpdatePaymentPsuDataJson]
+             }
+             
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(paymentid,authorisationid, updatePaymentPsuDataJson.scaAuthenticationData))map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(authorisation), callContext)
            }
          }
        }

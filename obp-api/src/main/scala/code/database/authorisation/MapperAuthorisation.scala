@@ -1,7 +1,10 @@
 package code.database.authorisation
 
+import code.api.BerlinGroup.ScaStatus
+import code.api.util.ErrorMessages
+import code.consent.{ConsentStatus, MappedConsent}
 import code.util.MappedUUID
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.{BaseIndex, By, CreatedUpdated, IdPK, LongKeyedMapper, LongKeyedMetaMapper, MappedString, UniqueIndex}
 import net.liftweb.util.Helpers.tryo
 
@@ -55,6 +58,24 @@ object MappedAuthorisationProvider extends AuthorisationProvider {
       .ChallengeData(challengeData)
       .ScaStatus(scaStatus).saveMe()
   }
+
+  def checkAnswer(paymentId: String, authorizationId: String, challengeData: String): Box[Authorisation] =
+    getAuthorizationByAuthorizationId(paymentId: String, authorizationId: String) match {
+      case Full(authorisation) =>
+        authorisation.scaStatus match {
+          case value if value == ScaStatus.received.toString =>
+            val status = if (authorisation.challengeData == challengeData) ScaStatus.finalised.toString else ScaStatus.failed.toString
+            tryo(authorisation.ScaStatus(status).saveMe())
+          case _ =>
+            Full(authorisation)
+        }
+      case Empty =>
+        Empty ?~! s"${ErrorMessages.AuthorisationNotFound} Current PAYMENT_ID($paymentId) and AUTHORISATION_ID ($authorizationId),"
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
 }
 
 
