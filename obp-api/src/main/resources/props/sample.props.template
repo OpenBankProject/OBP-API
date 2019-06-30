@@ -250,7 +250,7 @@ allow_account_deletion=true
 BankMockKey=change_me
 
 
-
+#####################################################################################
 ## Web interface configuration
 
 ## IMPLEMENTING BANK SPECIFIC BRANDING ON ONE OBP INSTANCE ########################
@@ -261,6 +261,16 @@ BankMockKey=change_me
 # And invoke by calling index etc with ?brand=<BANK_ID>
 # e.g. http://127.0.0.1:8080/?brand=x
 # For any properties that don't have a bank specific flavour, the standard props name will be used.
+#
+#
+#
+## IMPLEMENTING REAL TIME CHANGES TO webui_ PROPERTIES ########################
+# Properties begining with "webui_" may also be stored in the database via OBP API calls
+# Modifications will cause realtime content changes in the HTML (subject to webui.props.cache.ttl.seconds) once the page is reloaded.
+# See the following APIs in API Explorer:
+# Add WebUiProps
+# Delete WebUiProps
+# Get WebUiProps
 ####################################################################################
 
 
@@ -372,6 +382,8 @@ webui_agree_terms_url =
 webui_display_for_banks_section = true
 
 webui_get_started_text = Get started building your application using this sandbox now
+
+## End of webui_ section ########
 
 
 ## API Options
