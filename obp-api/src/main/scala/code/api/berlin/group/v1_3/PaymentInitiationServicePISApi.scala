@@ -668,7 +668,7 @@ This applies in the following scenarios:
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -703,65 +703,41 @@ This applies in the following scenarios:
   * The signing basket needs to be authorised yet.
 """,
        json.parse(""""""),
-       json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""),
+       json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonPost _ => {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+               paymentId,
+               "",
+               AuthenticationType.SMS_OTP.toString,
+               "",
+               ScaStatus.received.toString,
+               "12345" // TODO Implement SMS sending
+             )) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
+               authorisation,
+               paymentService,
+               paymentProduct,
+               paymentId
+             ), callContext)
            }
          }
        }
