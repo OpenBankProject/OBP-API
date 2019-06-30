@@ -42,6 +42,12 @@ object MappedAuthorisationProvider extends AuthorisationProvider {
     )
      result
   }
+  override def getAuthorizationByAuthorizationId(authorizationId: String): Box[Authorisation] = {
+    val result: Box[Authorisation] = Authorisation.find(
+      By(Authorisation.AuthorisationId, authorizationId)
+    )
+     result
+  }
   
   override def getAuthorizationByPaymentId(paymentId: String): Box[List[Authorisation]] = {
     tryo(Authorisation.findAll(By(Authorisation.PaymentId, paymentId)))

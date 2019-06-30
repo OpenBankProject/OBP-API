@@ -45,6 +45,32 @@ object MappedConsentProvider extends ConsentProvider {
         .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
         .saveMe()
     }}
+  override def updateBerlinGroupConsent(
+                                         consentId: String,
+    user: User,
+    recurringIndicator: Boolean,
+    validUntil: Date,
+    frequencyPerDay: Int,
+    combinedServiceIndicator: Boolean) ={
+    MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
+      case Full(consent) =>
+        tryo(consent
+          .mUserId(user.userId)
+          .mRecurringIndicator(recurringIndicator)
+          .mValidUntil(validUntil)
+          .mFrequencyPerDay(frequencyPerDay)
+          .mCombinedServiceIndicator(combinedServiceIndicator)
+          .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
+          .saveMe()
+        )
+      case Empty =>
+        Empty ?~! ErrorMessages.ConsentNotFound
+      case Failure(msg, _, _) =>
+        Failure(msg)
+      case _ =>
+        Failure(ErrorMessages.UnknownError)
+    }
+  }
   
   override def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
