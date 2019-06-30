@@ -383,6 +383,29 @@ webui_display_for_banks_section = true
 
 webui_get_started_text = Get started building your application using this sandbox now
 
+
+webui_dummy_customer_logins = Customer Logins\
+                              \
+                              TODO we should be able to put markdown here and have it rendered as such in the glossary
+                              Developers can use the following logins to get access to dummy customer accounts and transactions.\
+                              \
+                              \
+                                  {\
+                                    "user_name":"john",\
+                                    "password":"ford",\
+                                    "email":"john.ford@example.com"\
+                                  },\
+                                  {\
+                                    "user_name":"jane",\
+                                    "password":"burrel",\
+                                    "email":"jane.burrel@example.com"\
+                                  },\
+                              \
+                              \
+                              Please ask a member of the Open Bank Project team for more logins if you require. You can use this [application](https://sofit.openbankproject.com) which also uses OAuth to browse your transaction data (use the above username/password).\
+
+
+
 ## End of webui_ section ########
 
 

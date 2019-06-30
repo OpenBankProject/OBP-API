@@ -5,6 +5,8 @@ import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdEx
 
 import scala.collection.mutable.ArrayBuffer
 
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+
 
 object Glossary {
 
@@ -1803,7 +1805,30 @@ object Glossary {
 
 
 
-	// NOTE! Some glossary items are generated in ExampleValue.scala
+	glossaryItems += GlossaryItem(
+		title = "Dummy Customer Logins",
+		description =
+			s"""|
+|The following dummy Customer Logins may be used by developers testing their applications on this sandbox:
+|
+|${getWebUiPropsValue("webui_dummy_customer_logins", "")}
+|
+|
+|
+|${scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "") + "#customer-logins")}
+|
+|
+|
+|
+|
+|
+""")
 
+
+
+
+///////////////////////////////////////////////////////////////////
+	// NOTE! Some glossary items are generated in ExampleValue.scala
+//////////////////////////////////////////////////////////////////
 
 }
