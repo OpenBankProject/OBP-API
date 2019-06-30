@@ -1,28 +1,22 @@
 package code.api.builder.AccountInformationServiceAISApi
 
 import java.text.SimpleDateFormat
-import java.util.Date
 
 import code.api.APIFailureNewStyle
-import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
+import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
-import net.liftweb.json
-import net.liftweb.json._
-import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiTag, ApiVersion, NewStyle}
+import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiTag, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
+import code.database.authorisation.Authorisations
 import code.model._
 import code.util.Helper
 import code.views.Views
-import net.liftweb.common.Full
-import net.liftweb.http.rest.RestHelper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
 import net.liftweb.common.Full
@@ -139,6 +133,16 @@ As a last option, an ASPSP might in addition accept a command with access rights
                combinedServiceIndicator = consentJson.combinedServiceIndicator
              )) map {
                i => connectorEmptyResponse(i, callContext)
+             }
+             _ <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+               "",
+               createdConsent.consentId,
+               AuthenticationType.SMS_OTP.toString,
+               "",
+               ScaStatus.received.toString,
+               "12345" // TODO Implement SMS sending
+             )) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
              }
            } yield {
              (createPostConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
@@ -257,7 +261,7 @@ of the PSU at this ASPSP.
          cc =>
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
-  
+            _ <- passesPsd2Aisp(callContext)
             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
   
             bankId = BankId(defaultBankId)
@@ -592,11 +596,11 @@ This function returns an array of hyperlinks to all generated authorisation sub-
            for {
              (_, callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-               unboxFullOrFail(_, callContext, ConsentNotFound)
+             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(List(consent.secret)), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(authorisations.map(_.authorisationId)), HttpCode.`200`(callContext))
            }
          }
        }
@@ -681,11 +685,11 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             createdConsent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                  i => connectorEmptyResponse(i, callContext)
                }
            } yield {
-             (createGetConsentResponseJson(createdConsent), HttpCode.`200`(callContext))
+             (createGetConsentResponseJson(consent), HttpCode.`200`(callContext))
            }
          }
        }
