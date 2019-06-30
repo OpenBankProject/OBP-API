@@ -643,6 +643,7 @@ This applies in the following scenarios:
           }
           authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
             paymentId,
+            "",
             AuthenticationType.SMS_OTP.toString,
             "",
             ScaStatus.received.toString,
