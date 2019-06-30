@@ -15,6 +15,7 @@ class Authorisation extends LongKeyedMapper[Authorisation] with IdPK with Create
   object ScaStatus extends MappedString(this, 20)
   object AuthorisationId extends MappedUUID(this)
   object PaymentId extends MappedUUID(this)
+  object ConsentId extends MappedUUID(this)
   // Enum: SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP
   object AuthenticationType extends MappedString(this, 10)
   object AuthenticationMethodId extends MappedString(this, 35)
@@ -23,6 +24,7 @@ class Authorisation extends LongKeyedMapper[Authorisation] with IdPK with Create
   def scaStatus: String = ScaStatus.get
   def authorisationId: String = AuthorisationId.get
   def paymentId: String = PaymentId.get
+  def consentId: String = ConsentId.get
   def authenticationType: String = AuthenticationType.get
   def authenticationMethodId: String = AuthenticationMethodId.get
   def challengeData: String = ChallengeData.get
@@ -40,11 +42,16 @@ object MappedAuthorisationProvider extends AuthorisationProvider {
     )
      result
   }
-   override def getAuthorizationByPaymentId(paymentId: String): Box[List[Authorisation]] = {
+  
+  override def getAuthorizationByPaymentId(paymentId: String): Box[List[Authorisation]] = {
     tryo(Authorisation.findAll(By(Authorisation.PaymentId, paymentId)))
+  }
+  override def getAuthorizationByConsentId(consentId: String): Box[List[Authorisation]] = {
+    tryo(Authorisation.findAll(By(Authorisation.ConsentId, consentId)))
   }
 
   def createAuthorization(paymentId: String,
+                          consentId: String,
                           authenticationType: String,
                           authenticationMethodId: String,
                           scaStatus: String,
@@ -53,6 +60,7 @@ object MappedAuthorisationProvider extends AuthorisationProvider {
     Authorisation
       .create
       .PaymentId(paymentId)
+      .ConsentId(consentId)
       .AuthenticationType(authenticationType)
       .AuthenticationMethodId(authenticationMethodId)
       .ChallengeData(challengeData)

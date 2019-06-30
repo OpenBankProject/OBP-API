@@ -194,6 +194,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
@@ -253,6 +254,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
          cc =>
            for {
              (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
@@ -320,6 +322,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
@@ -365,7 +368,7 @@ Check the transaction status of a payment initiation.""",
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             
+             _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
@@ -501,7 +504,7 @@ $additionalInstructions
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-
+             _ <- passesPsd2Pisp(callContext)
              _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
                PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
              }
@@ -635,6 +638,7 @@ This applies in the following scenarios:
       cc =>
         for {
           (_, callContext) <- authorizedAccess(cc)
+          _ <- passesPsd2Pisp(callContext)
           _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
             PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
           }
@@ -643,6 +647,7 @@ This applies in the following scenarios:
           }
           authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
             paymentId,
+            "",
             AuthenticationType.SMS_OTP.toString,
             "",
             ScaStatus.received.toString,
@@ -822,6 +827,7 @@ There are the following request types on this access path:
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
              } yield {
              (json.parse("""
                {
@@ -901,7 +907,7 @@ There are the following request types on this access path:
          cc =>
            for {
              (_, callContext) <- authorizedAccess(cc)
-
+             _ <- passesPsd2Pisp(callContext)
              failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
              updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                json.extract[UpdatePaymentPsuDataJson]
