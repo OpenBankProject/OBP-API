@@ -316,7 +316,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   
   def createTransactionJSON(transaction : ModeratedTransaction, creditorAccount: CreditorAccountJson) : TransactionJsonV13 = {
     val address = transaction.otherBankAccount.map(_.accountRoutingAddress).getOrElse(None).getOrElse("")
-    val scheme = transaction.otherBankAccount.map(_.accountRoutingScheme).getOrElse(None).getOrElse("")
+    val scheme: String = transaction.otherBankAccount.map(_.accountRoutingScheme).getOrElse(None).getOrElse("")
     val (iban, bban, pan, maskedPan, currency) = extractAccountData(scheme, address)
     val debtorAccountJson = CreditorAccountJson(bban=bban, iban=iban, pan = pan, maskedPan = maskedPan, currency = currency)
     TransactionJsonV13(
@@ -346,7 +346,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  private def extractAccountData(scheme: String, address: String) = {
+  private def extractAccountData(scheme: String, address: String): (String, String, String, String, String) = {
     val (iban: String, bban: String, pan: String, maskedPan: String, currency: String) = Connector.connector.vend.getBankAccountByRouting(
       scheme,
       address,
@@ -356,7 +356,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         val (iban: String, bban: String) = getIbanAndBban(account)
         val (pan, maskedPan) = (account.number, getMaskedPrimaryAccountNumber(accountNumber = account.number))
         (iban, bban, pan, maskedPan, account.currency)
-      case _ => ("", "", "", "")
+      case _ => ("", "", "", "", "")
     }
     (iban, bban, pan, maskedPan, currency)
   }
