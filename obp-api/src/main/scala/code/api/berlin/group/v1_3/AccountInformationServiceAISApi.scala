@@ -769,7 +769,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status.toLowerCase()), HttpCode.`200`(callContext))
            }
              
          }
