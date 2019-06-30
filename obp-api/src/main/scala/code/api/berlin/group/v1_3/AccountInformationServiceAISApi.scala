@@ -134,7 +134,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
              )) map {
                i => connectorEmptyResponse(i, callContext)
              }
-             _ <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+/*             _ <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
                "",
                createdConsent.consentId,
                AuthenticationType.SMS_OTP.toString,
@@ -143,7 +143,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                "12345" // TODO Implement SMS sending
              )) map {
                unboxFullOrFail(_, callContext, s"$UnknownError ")
-             }
+             }*/
            } yield {
              (createPostConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
            }
@@ -1136,7 +1136,7 @@ This applies in the following scenarios:
                        "psuMessage": "Please use your BankApp for transaction Authorisation.",
                        "_links":
                          {
-                           "scaStatus":  {"href":"/v1/payments/qwer3456tzui7890/authorisations/123auth456"}
+                           "scaStatus":  {"href":"/v1/consents/qwer3456tzui7890/authorisations/123auth456"}
                          }
                      }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1153,8 +1153,18 @@ This applies in the following scenarios:
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
               }
-             } yield {
-             (createStartConsentAuthorisationJson(consent), HttpCode.`201`(callContext))
+             authorization <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+               "",
+               consent.consentId,
+               AuthenticationType.SMS_OTP.toString,
+               "",
+               ScaStatus.received.toString,
+               "12345" // TODO Implement SMS sending
+             )) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+           } yield {
+             (createStartConsentAuthorisationJson(consent, authorization), HttpCode.`201`(callContext))
            }
          }
        }
@@ -1166,7 +1176,7 @@ This applies in the following scenarios:
        "PUT",
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Update PSU Data for consents",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method update PSU data on the consents  resource if needed. 
 It may authorise a consent within the Embedded SCA Approach where needed.
 
@@ -1208,21 +1218,57 @@ There are the following request types on this access path:
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
 """,
-       json.parse(""""""),
+       json.parse("""{
+                      "access": {"accounts": []},
+                      "recurringIndicator": false,
+                      "validUntil": "2020-12-31",
+                      "frequencyPerDay": 4,
+                      "combinedServiceIndicator": false
+                    }"""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
-       case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
+       case "consents" :: consentId:: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+               authorisationId
+             )) map {
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)")
+             }
+             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
+             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               jsonPut.extract[PostConsentJson]
+             }
+
+             failMsg = s"$InvalidDateFormat Current `validUntil` field is ${consentJson.validUntil}. Please use this format ${DateWithDayFormat.toPattern}!"
+             validUntil <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
+             }
+
+             failMsg = s"$InvalidJsonContent Only Support empty accounts List for now. It will return an accessible account List. "
+             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
+             consent <- Future(Consents.consentProvider.vend.updateBerlinGroupConsent(
+               consentId,
+               u,
+               recurringIndicator = consentJson.recurringIndicator,
+               validUntil = validUntil,
+               frequencyPerDay = consentJson.frequencyPerDay,
+               combinedServiceIndicator = consentJson.combinedServiceIndicator
+             )) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
              } yield {
-             (json.parse(""""""""), callContext)
+             (createPostConsentResponseJson(consent), HttpCode.`200`(callContext))
            }
          }
        }

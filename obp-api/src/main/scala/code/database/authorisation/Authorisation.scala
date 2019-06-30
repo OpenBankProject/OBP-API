@@ -10,6 +10,7 @@ object Authorisations extends SimpleInjector {
 }
 
 trait AuthorisationProvider {
+  def getAuthorizationByAuthorizationId( authorizationId: String): Box[Authorisation]
   def getAuthorizationByAuthorizationId(paymentId: String, authorizationId: String): Box[Authorisation]
   def getAuthorizationByPaymentId(paymentId: String): Box[List[Authorisation]]
   def getAuthorizationByConsentId(consentId: String): Box[List[Authorisation]]

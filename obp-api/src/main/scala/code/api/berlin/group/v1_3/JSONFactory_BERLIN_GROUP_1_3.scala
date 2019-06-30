@@ -405,7 +405,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   def createPostConsentResponseJson(createdConsent: Consent) : PostConsentResponseJson = {
     PostConsentResponseJson(
       consentId = createdConsent.consentId,
-      consentStatus =createdConsent.status,
+      consentStatus = createdConsent.status.toLowerCase(),
       _links= ConsentLinksV13(s"v1/consents/${createdConsent.consentId}/authorisations")
     )
   }
@@ -422,11 +422,11 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createStartConsentAuthorisationJson(consent: Consent) : StartConsentAuthorisationJson = {
+  def createStartConsentAuthorisationJson(consent: Consent, authorization: Authorisation) : StartConsentAuthorisationJson = {
     StartConsentAuthorisationJson(
-      scaStatus = consent.status,
+      scaStatus = consent.status.toLowerCase(),
       pushMessage = "started", //TODO Not implment how to fill this.
-      _links =  ScaStatusJsonV13("/v1.3/payments/sepa-credit-transfers/1234-wertiq-98")//TODO, Not sure, what is this for??
+      _links =  ScaStatusJsonV13(s"/v1.3/consents/${consent.consentId}/authorisations/${authorization.authorisationId}")//TODO, Not sure, what is this for??
     )
   }
 
