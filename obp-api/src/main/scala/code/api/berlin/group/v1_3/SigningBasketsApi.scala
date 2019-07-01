@@ -78,17 +78,17 @@ The resource identifications of these transactions are contained in the  payload
     "category" : { }
   } ],
   "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "self" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithTransactionAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "status" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "scaStatus" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "self" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithTransactionAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "status" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP",
@@ -128,17 +128,17 @@ The resource identifications of these transactions are contained in the  payload
     "category" : { }
   } ],
   "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "self" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithTransactionAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "status" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "scaStatus" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "self" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithTransactionAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "status" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP",
@@ -367,14 +367,14 @@ This applies in the following scenarios:
   "scaMethods" : "",
   "scaStatus" : "psuAuthenticated",
   "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "scaStatus" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
@@ -402,14 +402,14 @@ This applies in the following scenarios:
   "scaMethods" : "",
   "scaStatus" : "psuAuthenticated",
   "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "scaStatus" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaRedirect" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "selectAuthenticationMethod" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "authoriseTransaction" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "scaOAuth" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "updatePsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }

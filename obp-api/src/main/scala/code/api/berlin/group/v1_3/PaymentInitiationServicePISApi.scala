@@ -86,11 +86,11 @@ The response to this DELETE command will tell the TPP whether the
   },
   "scaMethods" : "",
   "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP"
@@ -117,11 +117,11 @@ The response to this DELETE command will tell the TPP whether the
   },
   "scaMethods" : "",
   "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP"
@@ -192,7 +192,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                         "amount":"1234"
                       },
                       "creditorAccount":{
-                        "iban":"GR12 1234 5123 4514 4575 3645 077wefwrevwervwe"
+                        "iban":"GR12 1234 5123 4514 4575 3645 077"
                       },
                       "creditorName":"70charname"
                     }"""),
@@ -529,9 +529,9 @@ $additionalInstructions
                       "_links":
                         {
                         "scaRedirect": {"href": "answer transaction request url"},
-                        "self": {"href": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"},
-                        "status": {"href": "/v1/payments/1234-wertiq-983/status"},
-                        "scaStatus": {"href": "/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                        "self": {"href": "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"},
+                        "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
+                        "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
                         }
                     }"""),
        List(UserNotLoggedIn, UnknownError),

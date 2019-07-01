@@ -379,7 +379,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       TransactionsV13Transactions(
         booked= transactions.map(transaction => createTransactionJSON(bankAccount, transaction, creditorAccount)),
         pending = transactionRequests.filter(_.status!="COMPLETED").map(transactionRequest => createTransactionFromRequestJSON(bankAccount, transactionRequest, creditorAccount)),
-        _links = TransactionsV13TransactionsLinks(LinkHrefJson(s"/v1/accounts/$accountId"))
+        _links = TransactionsV13TransactionsLinks(LinkHrefJson(s"/v1.3/accounts/$accountId"))
       )
     )
   }
@@ -399,7 +399,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       CardTransactionsV13Transactions(
         booked= transactions.map(t => createCardTransactionJson(t)),
         pending = Nil,
-        _links = CardTransactionsLinksV13(LinkHrefJson(s"/v1/card-accounts/$accountId"))
+        _links = CardTransactionsLinksV13(LinkHrefJson(s"/v1.3/card-accounts/$accountId"))
       )
     )
   }
@@ -408,7 +408,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     PostConsentResponseJson(
       consentId = createdConsent.consentId,
       consentStatus = createdConsent.status.toLowerCase(),
-      _links= ConsentLinksV13(s"v1/consents/${createdConsent.consentId}/authorisations")
+      _links= ConsentLinksV13(s"v1.3/consents/${createdConsent.consentId}/authorisations")
     )
   }
 
@@ -477,9 +477,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
         scaRedirect = LinkHrefJson("answer transaction request url"),
-        self = LinkHrefJson(s"/v1/payments/sepa-credit-transfers/$paymentId"),
-        status = LinkHrefJson(s"/v1/payments/$paymentId/status"),
-        scaStatus = LinkHrefJson(s"/v1/payments/$paymentId/authorisations/${paymentId}xx")
+        self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId"),
+        status = LinkHrefJson(s"/v1.3/payments/$paymentId/status"),
+        scaStatus = LinkHrefJson(s"/v1.3/payments/$paymentId/authorisations/${paymentId}xx")
       )
     )
   }
