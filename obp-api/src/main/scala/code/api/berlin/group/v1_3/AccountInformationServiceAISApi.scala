@@ -565,7 +565,7 @@ Reads account data from a given card account addressed by "account-id".
              } map { unboxFull(_) }
 
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createCardTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
            }
          }
        }
