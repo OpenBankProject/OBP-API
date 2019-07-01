@@ -512,7 +512,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         scaStatus = authorization.scaStatus,
         authorisationId = authorization.authorisationId,
         psuMessage = "Please check your SMS at a mobile device.",
-        _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/${authorization.authorisationId}")
+        _links = ScaStatusJsonV13(s"/v1.3/${paymentService}/${paymentProduct}/${paymentId}/cancellation-authorisations/${authorization.authorisationId}")
       )
   }
 }

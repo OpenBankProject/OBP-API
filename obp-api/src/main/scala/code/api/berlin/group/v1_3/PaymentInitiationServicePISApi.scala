@@ -137,7 +137,7 @@ The response to this DELETE command will tell the TPP whether the
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
        "Read the SCA status of the payment cancellation's authorisation.",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
        json.parse(""""""),
@@ -146,18 +146,29 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: cancellationId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "scaStatus" : "psuAuthenticated"
-}"""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+               paymentId,
+               cancellationId
+             )) map {
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current CANCELLATION_ID($cancellationId)")
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(authorisation.scaStatus), HttpCode.`200`(callContext))
            }
          }
        }
