@@ -499,7 +499,7 @@ This account-id then can be retrieved by the
        nameOf(getCardAccountTransactionList),
        "GET",
        "/card-accounts/ACCOUNT_ID/transactions",
-       "Read transaction list of an account",
+       "Read transaction list of a card account",
        s"""${mockedDataText(false)}
 Reads account data from a given card account addressed by "account-id".
 """,
