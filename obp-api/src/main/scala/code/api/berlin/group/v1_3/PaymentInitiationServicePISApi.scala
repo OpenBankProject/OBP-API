@@ -192,7 +192,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                         "amount":"1234"
                       },
                       "creditorAccount":{
-                        "iban":"GR12 1234 5123 4514 4575 3645 077wefwrevwervwe"
+                        "iban":"GR12 1234 5123 4514 4575 3645 077"
                       },
                       "creditorName":"70charname"
                     }"""),
