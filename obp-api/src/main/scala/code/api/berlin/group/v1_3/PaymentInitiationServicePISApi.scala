@@ -1,7 +1,7 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentJson,UpdatePaymentPsuDataJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentJson, UpdatePaymentPsuDataJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -10,6 +10,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiRole, ApiTag, NewStyle}
 import code.consent.ConsentStatus
 import code.database.authorisation.Authorisations
+import code.fx.fx
 import code.model._
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
@@ -85,11 +86,11 @@ The response to this DELETE command will tell the TPP whether the
   },
   "scaMethods" : "",
   "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP"
@@ -116,11 +117,11 @@ The response to this DELETE command will tell the TPP whether the
   },
   "scaMethods" : "",
   "_links" : {
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithAuthenticationMethodSelection" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisation" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithAuthenticationMethodSelection" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuAuthentication" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisationWithPsuIdentification" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "startAuthorisation" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP"
@@ -136,7 +137,7 @@ The response to this DELETE command will tell the TPP whether the
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
        "Read the SCA status of the payment cancellation's authorisation.",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
        json.parse(""""""),
@@ -145,18 +146,29 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentCancellationScaStatus : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: cancellationId :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "scaStatus" : "psuAuthenticated"
-}"""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+               paymentId,
+               cancellationId
+             )) map {
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current CANCELLATION_ID($cancellationId)")
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(authorisation.scaStatus), HttpCode.`200`(callContext))
            }
          }
        }
@@ -180,7 +192,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
                         "amount":"1234"
                       },
                       "creditorAccount":{
-                        "iban":"GR12 1234 5123 4514 4575 3645 077wefwrevwervwe"
+                        "iban":"GR12 1234 5123 4514 4575 3645 077"
                       },
                       "creditorName":"70charname"
                     }"""),
@@ -228,7 +240,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        emptyObjectJson,
        json.parse("""[
                        {
-                           "scaStatus": "RECEIVED",
+                           "scaStatus": "received",
                            "authorisationId": "940948c7-1c86-4d88-977e-e739bf2c1492",
                            "psuMessage": "Please check your SMS at a mobile device.",
                            "_links": {
@@ -236,7 +248,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
                            }
                        },
                        {
-                           "scaStatus": "RECEIVED",
+                           "scaStatus": "received",
                            "authorisationId": "0ae75eee-deba-41d6-8116-1a4d6e05dd83",
                            "psuMessage": "Please check your SMS at a mobile device.",
                            "_links": {
@@ -276,24 +288,37 @@ This function returns an array of hyperlinks to all generated authorisation sub-
        nameOf(getPaymentInitiationCancellationAuthorisationInformation),
        "GET",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
-       "Will deliver an array of resource identifications to all generated cancellation authorisation sub-resources.",
-       s"""${mockedDataText(true)}
+       "Get Cancellation Authorisation Sub-Resources Request",
+       s"""${mockedDataText(false)}
 Retrieve a list of all created cancellation authorisation sub-resources.
 """,
-       json.parse(""""""),
-       json.parse(""""""""),
+       emptyObjectJson,
+       json.parse("""{
+  "cancellationIds" : ["faa3657e-13f0-4feb-a6c3-34bf21a9ae8e]"
+}"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val getPaymentInitiationCancellationAuthorisationInformation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId :: "cancellation-authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse(""""""""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.CancellationJsonV13(
+               authorisations.map(_.authorisationId)), callContext)
            }
          }
        }
@@ -378,24 +403,39 @@ Check the transaction status of a payment initiation.""",
              (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
 
              transactionRequestStatus = transactionRequest.status match {
-               case "COMPLETED" => "ACCC"
+               case "COMPLETED" => "ACCP"
                case "INITIATED" => "RCVD"
              }
 
-             //Do not support `fundsAvailable` for now. 
-//             transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
-//               BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
-//             }
-//             transactionRequestFromAccount = transactionRequest.from
-//             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(transactionRequestFromAccount.bank_id), AccountId(transactionRequestFromAccount.account_id), callContext)
-//             fromAccountBalance = fromAccount.balance
-//             fundsAvalible = fromAccountBalance >= transactionRequestAmount
+             transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
+               BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
+             }
+             transactionRequestCurrency <- NewStyle.function.tryons(s"${UnknownError} can not get currency from this paymentId(${paymentid})",400, callContext) {
+               transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.currency
+             }
              
+             
+             transactionRequestFromAccount = transactionRequest.from
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(transactionRequestFromAccount.bank_id), AccountId(transactionRequestFromAccount.account_id), callContext)
+             fromAccountBalance = fromAccount.balance
+             fromAccountCurrency = fromAccount.currency
+             fundsAvalible = fromAccountBalance >= transactionRequestAmount
 
+
+             //From change from requestAccount Currency to currentBankAccount Currency
+             rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${transactionRequestCurrency} to ${fromAccountCurrency}) is not supported.", 400, callContext) {
+               fx.exchangeRate(transactionRequestCurrency, fromAccountCurrency)}
+
+             requestChangedCurrencyAmount = fx.convert(transactionRequestAmount, rate)
+
+             fundsAvailable = (fromAccountBalance >= requestChangedCurrencyAmount)
+
+             transactionRequestStatusChekedFunds = if(fundsAvailable) transactionRequestStatus else "RCVD"
 
            } yield {
              (json.parse(s"""{
-                           "transactionStatus": "$transactionRequestStatus"
+                           "transactionStatus": "$transactionRequestStatusChekedFunds"
+                           "fundsAvailable": "$fundsAvailable"
                           }"""
              ), callContext)
            }
@@ -489,9 +529,9 @@ $additionalInstructions
                       "_links":
                         {
                         "scaRedirect": {"href": "answer transaction request url"},
-                        "self": {"href": "/v1/payments/sepa-credit-transfers/1234-wertiq-983"},
-                        "status": {"href": "/v1/payments/1234-wertiq-983/status"},
-                        "scaStatus": {"href": "/v1/payments/1234-wertiq-983/authorisations/123auth456"}
+                        "self": {"href": "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"},
+                        "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
+                        "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
                         }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -668,7 +708,7 @@ This applies in the following scenarios:
        "POST",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
        "Start the authorisation process for the cancellation of the addressed payment",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment. 
 The message might in addition transmit authentication and authorisation related data.
 
@@ -704,64 +744,47 @@ This applies in the following scenarios:
 """,
        json.parse(""""""),
        json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""),
+                      "scaStatus":"received",
+                      "authorisationId":"8a49b79b-b400-4e6b-b88d-637c3a71479d",
+                      "psuMessage":"Please check your SMS at a mobile device.",
+                      "_links":{
+                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/8a49b79b-b400-4e6b-b88d-637c3a71479d"
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val startPaymentInitiationCancellationAuthorisation : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: Nil JsonPost _ => {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "challengeData" : {
-    "otpMaxLength" : 0,
-    "additionalInformation" : "additionalInformation",
-    "image" : "image",
-    "imageLink" : "http://example.com/aeiou",
-    "otpFormat" : "characters",
-    "data" : "data"
-  },
-  "scaMethods" : "",
-  "scaStatus" : "psuAuthenticated",
-  "_links" : {
-    "scaStatus" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithEncryptedPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaRedirect" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "selectAuthenticationMethod" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "startAuthorisationWithPsuAuthentication" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "authoriseTransaction" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "scaOAuth" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "updatePsuIdentification" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "chosenScaMethod" : "",
-  "psuMessage" : { }
-}"""), callContext)
+             (_, callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Pisp(callContext)
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+               paymentId,
+               "",
+               AuthenticationType.SMS_OTP.toString,
+               "",
+               ScaStatus.received.toString,
+               "12345" // TODO Implement SMS sending
+             )) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
+               authorisation,
+               paymentService,
+               paymentProduct,
+               paymentId
+             ), callContext)
            }
          }
        }
@@ -773,7 +796,7 @@ This applies in the following scenarios:
        "PUT",
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/CANCELLATIONID",
        "Update PSU Data for payment initiation cancellation",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method updates PSU data on the cancellation authorisation resource if needed. 
 It may authorise a cancellation of the payment within the Embedded SCA Approach where needed.
 
@@ -815,24 +838,50 @@ There are the following request types on this access path:
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
 """,
-       json.parse(""""""),
-       json.parse(""""""""),
+       json.parse("""{"scaAuthenticationData":"12345"}"""),
+       json.parse("""{
+                      "scaStatus":"finalised",
+                      "authorisationId":"4f4a8b7f-9968-4183-92ab-ca512b396bfc",
+                      "psuMessage":"Please check your SMS at a mobile device.",
+                      "_links":{
+                        "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Payment Initiation Service (PIS)") :: apiTagMockedData :: apiTagBerlinGroupM :: Nil
+       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updatePaymentCancellationPsuData : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid:: "cancellation-authorisations" :: cancellationid :: Nil JsonPut _ => {
+       case paymentService :: paymentProduct :: paymentId:: "cancellation-authorisations" :: cancellationId :: Nil JsonPut json -> _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authorizedAccess(cc)
+             (_, callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
-             } yield {
-             (json.parse("""
-               {
-                 "scaStatus":"psuAuthenticated"
-               }"""), callContext)
+             failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
+             updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               json.extract[UpdatePaymentPsuDataJson]
+             }
+
+             _ <- NewStyle.function.tryons(checkPaymentServerError(paymentService),400, callContext) {
+               PaymentServiceTypes.withName(paymentService.replaceAll("-","_"))
+             }
+             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
+               TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(
+               paymentId,
+               cancellationId, 
+               updatePaymentPsuDataJson.scaAuthenticationData))map {
+               i => connectorEmptyResponse(i, callContext)
+             }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentCancellationAuthorisationJson(
+               authorisation,
+               paymentService,
+               paymentProduct,
+               paymentId
+             ), callContext)
            }
          }
        }

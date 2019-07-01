@@ -97,7 +97,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                       "consentId": "1234-wertiq-983",
                       "_links": {
                         "startAuthorisation": {
-                          "href": "v1.3/consents/1234-wertiq-983/authorisations"
+                          "href": "/v1.3/consents/1234-wertiq-983/authorisations"
                         }
                       }
                     }"""),
@@ -134,7 +134,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
              )) map {
                i => connectorEmptyResponse(i, callContext)
              }
-             _ <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+/*             _ <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
                "",
                createdConsent.consentId,
                AuthenticationType.SMS_OTP.toString,
@@ -143,7 +143,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                "12345" // TODO Implement SMS sending
              )) map {
                unboxFullOrFail(_, callContext, s"$UnknownError ")
-             }
+             }*/
            } yield {
              (createPostConsentResponseJson(createdConsent), HttpCode.`201`(callContext))
            }
@@ -217,8 +217,8 @@ of the PSU at this ASPSP.
     "resourceId" : "resourceId",
     "bban" : "BARC12345612345678",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "balances" : "",
@@ -236,8 +236,8 @@ of the PSU at this ASPSP.
     "resourceId" : "resourceId",
     "bban" : "BARC12345612345678",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "balances" : "",
@@ -352,8 +352,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -370,8 +370,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -402,8 +402,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -420,8 +420,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -499,39 +499,71 @@ This account-id then can be retrieved by the
        nameOf(getCardAccountTransactionList),
        "GET",
        "/card-accounts/ACCOUNT_ID/transactions",
-       "Read transaction list of an account",
+       "Read transaction list of a card account",
        s"""${mockedDataText(false)}
 Reads account data from a given card account addressed by "account-id".
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "cardTransactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+                      "cardAccount": {
+                        "maskedPan": "525412******3241"
+                      },
+                      "transactions": {
+                        "booked": [
+                          {
+                            "cardTransactionId": "201710020036959",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "256.67"
+                            },
+                            "transactionDate": "2017-10-25",
+                            "bookingDate": "2017-10-26",
+                            "originalAmount": {
+                              "currency": "SEK",
+                              "amount": "2499"
+                            },
+                            "cardAcceptorAddress": {
+                              "city": "STOCKHOLM",
+                              "country": "SE"
+                            },
+                            "maskedPan": "525412******3241",
+                            "proprietaryBankTransactionCode": "PURCHASE",
+                            "invoiced": false,
+                            "transactionDetails": "WIFIMARKET.SE"
+                          },
+                          {
+                            "cardTransactionId": "201710020091863",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "10.72"
+                            },
+                            "transactionDate": "2017-10-25",
+                            "bookingDate": "2017-10-26",
+                            "originalAmount": {
+                              "currency": "SEK",
+                              "amount": "99"
+                            },
+                            "cardAcceptorAddress": {
+                              "city": "STOCKHOLM",
+                              "country": "SE"
+                            },
+                            "maskedPan": "525412******8999",
+                            "proprietaryBankTransactionCode": "PURCHASE",
+                            "invoiced": false,
+                            "transactionDetails": "ICA SUPERMARKET SKOGHA"
+                          }
+                        ],
+                        "pending": [],
+                        "_links": {
+                          "cardAccount": {
+                            "href": "/v1.3/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99"
+                          }
+                        }
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM ::Nil
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
@@ -539,33 +571,34 @@ Reads account data from a given card account addressed by "account-id".
          cc =>
            for {
 
-            (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
 
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
 
-            bankId = BankId(defaultBankId)
+             bankId = BankId(defaultBankId)
 
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
 
-            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
 
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
 
-            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
 
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
 
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+             (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
 
-            } yield {
-              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
-            }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createCardTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
+           }
          }
        }
             
@@ -619,61 +652,33 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
 """,
        json.parse(""""""),
        json.parse("""{
-  "access" : {
-    "balances" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "availableAccounts" : "allAccounts",
-    "accounts" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "transactions" : [ {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    }, {
-      "bban" : "BARC12345612345678",
-      "maskedPan" : "123456xxxxxx1234",
-      "iban" : "FR7612345987650123456789014",
-      "currency" : "EUR",
-      "msisdn" : "+49 170 1234567",
-      "pan" : "5409050000000000"
-    } ],
-    "allPsd2" : "allAccounts"
-  },
-  "consentStatus" : { },
-  "validUntil" : "2020-12-31",
-  "lastActionDate" : "2018-07-01",
-  "recurringIndicator" : false,
-  "frequencyPerDay" : 4
-}"""),
+                      "access": {
+                        "accounts": [
+                          {
+                            "bban": "BARC12345612345678",
+                            "maskedPan": "123456xxxxxx1234",
+                            "iban": "FR7612345987650123456789014",
+                            "currency": "EUR",
+                            "msisdn": "+49 170 1234567",
+                            "pan": "5409050000000000"
+                          },
+                          {
+                            "bban": "BARC12345612345678",
+                            "maskedPan": "123456xxxxxx1234",
+                            "iban": "FR7612345987650123456789014",
+                            "currency": "EUR",
+                            "msisdn": "+49 170 1234567",
+                            "pan": "5409050000000000"
+                          }
+                        ]
+                      },
+                      "recurringIndicator": false,
+                      "validUntil": "2020-12-31",
+                      "frequencyPerDay": 4,
+                      "combinedServiceIndicator": false,
+                      "lastActionDate": "2019-06-30",
+                      "consentStatus": "received"
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
@@ -729,14 +734,16 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
            for {
              (_, callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+             _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
-             _ <- Helper.booleanToFuture(failMsg = AuthorizationNotFound) {
-               consent.secret == authorisationId
+             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+               authorisationId
+             )) map {
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)")
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(tweakStatusNames(consent.status)), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(authorisation.scaStatus), HttpCode.`200`(callContext))
            }
          }
        }
@@ -769,7 +776,9 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status), HttpCode.`200`(callContext))
+             val status = consent.status.toLowerCase()
+               .replace(ConsentStatus.REVOKED.toString.toLowerCase(), "revokedByPsu")
+             (JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(status), HttpCode.`200`(callContext))
            }
              
          }
@@ -801,7 +810,7 @@ This call is only available on transactions as reported in a JSON format.
   },
   "creditorName" : "Creditor Name",
   "_links" : {
-    "transactionDetails" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "transactionDetails" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "remittanceInformationStructured" : "remittanceInformationStructured",
   "ultimateCreditor" : "Ultimate Creditor",
@@ -855,7 +864,7 @@ This call is only available on transactions as reported in a JSON format.
   },
   "creditorName" : "Creditor Name",
   "_links" : {
-    "transactionDetails" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "transactionDetails" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "remittanceInformationStructured" : "remittanceInformationStructured",
   "ultimateCreditor" : "Ultimate Creditor",
@@ -906,30 +915,62 @@ The ASPSP might add balance information, if transaction lists without balances a
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "transactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "account" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+                      "account": {
+                        "iban": "DE2310010010123456788"
+                      },
+                      "transactions": {
+                        "booked": [
+                          {
+                            "transactionId": "1234567",
+                            "creditorName": "John Miles",
+                            "creditorAccount": {
+                              "iban": "DE67100100101306118605"
+                            },
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "256.67"
+                            },
+                            "bookingDate": "2017-10-25",
+                            "valueDate": "2017-10-26",
+                            "remittanceInformationUnstructured": "Example 1"
+                          },
+                          {
+                            "transactionId": "1234568",
+                            "debtorName": "Paul Simpson",
+                            "debtorAccount": {
+                              "iban": "NL76RABO0359400371"
+                            },
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "343.01"
+                            },
+                            "bookingDate": "2017-10-25",
+                            "valueDate": "2017-10-26",
+                            "remittanceInformationUnstructured": "Example 2"
+                          }
+                        ],
+                        "pending": [
+                          {
+                            "transactionId": "1234569",
+                            "creditorName": "Claude Renault",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014"
+                            },
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "-100.03"
+                            },
+                            "valueDate": "2017-10-26",
+                            "remittanceInformationUnstructured": "Example 3"
+                          }
+                        ],
+                        "_links": {
+                          "account": {
+                            "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853- f5400a64e80f"
+                          }
+                        }
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
@@ -999,8 +1040,8 @@ Give detailed information about the addressed account together with balance info
   "resourceId" : "resourceId",
   "bban" : "BARC12345612345678",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "balances" : "",
@@ -1030,8 +1071,8 @@ Give detailed information about the addressed account together with balance info
   "resourceId" : "resourceId",
   "bban" : "BARC12345612345678",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "balances" : "",
@@ -1069,8 +1110,8 @@ access token.
   "resourceId" : "resourceId",
   "maskedPan" : "123456xxxxxx1234",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "name" : "name",
@@ -1099,8 +1140,8 @@ access token.
   "resourceId" : "resourceId",
   "maskedPan" : "123456xxxxxx1234",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "name" : "name",
@@ -1162,7 +1203,7 @@ This applies in the following scenarios:
                        "psuMessage": "Please use your BankApp for transaction Authorisation.",
                        "_links":
                          {
-                           "scaStatus":  {"href":"/v1/payments/qwer3456tzui7890/authorisations/123auth456"}
+                           "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                          }
                      }"""),
        List(UserNotLoggedIn, UnknownError),
@@ -1179,8 +1220,18 @@ This applies in the following scenarios:
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
               }
-             } yield {
-             (createStartConsentAuthorisationJson(consent), HttpCode.`201`(callContext))
+             authorization <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
+               "",
+               consent.consentId,
+               AuthenticationType.SMS_OTP.toString,
+               "",
+               ScaStatus.received.toString,
+               "12345" // TODO Implement SMS sending
+             )) map {
+               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             }
+           } yield {
+             (createStartConsentAuthorisationJson(consent, authorization), HttpCode.`201`(callContext))
            }
          }
        }
@@ -1192,7 +1243,7 @@ This applies in the following scenarios:
        "PUT",
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Update PSU Data for consents",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
 This method update PSU data on the consents  resource if needed. 
 It may authorise a consent within the Embedded SCA Approach where needed.
 
@@ -1234,21 +1285,57 @@ There are the following request types on this access path:
     therefore many optional elements are not present. 
     Maybe in a later version the access path will change.
 """,
-       json.parse(""""""),
+       json.parse("""{
+                      "access": {"accounts": []},
+                      "recurringIndicator": false,
+                      "validUntil": "2020-12-31",
+                      "frequencyPerDay": 4,
+                      "combinedServiceIndicator": false
+                    }"""),
        json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
-       case "consents" :: consentid:: "authorisations" :: authorisationid :: Nil JsonPut _ => {
+       case "consents" :: consentId:: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
+             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+               unboxFullOrFail(_, callContext, ConsentNotFound)
+             }
+             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
+               authorisationId
+             )) map {
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)")
+             }
+             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
+             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               jsonPut.extract[PostConsentJson]
+             }
+
+             failMsg = s"$InvalidDateFormat Current `validUntil` field is ${consentJson.validUntil}. Please use this format ${DateWithDayFormat.toPattern}!"
+             validUntil <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
+             }
+
+             failMsg = s"$InvalidJsonContent Only Support empty accounts List for now. It will return an accessible account List. "
+             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
+             consent <- Future(Consents.consentProvider.vend.updateBerlinGroupConsent(
+               consentId,
+               u,
+               recurringIndicator = consentJson.recurringIndicator,
+               validUntil = validUntil,
+               frequencyPerDay = consentJson.frequencyPerDay,
+               combinedServiceIndicator = consentJson.combinedServiceIndicator
+             )) map {
+               i => connectorEmptyResponse(i, callContext)
+             }
              } yield {
-             (json.parse(""""""""), callContext)
+             (createPostConsentResponseJson(consent), HttpCode.`200`(callContext))
            }
          }
        }
