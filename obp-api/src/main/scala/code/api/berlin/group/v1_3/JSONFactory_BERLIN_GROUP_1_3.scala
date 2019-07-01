@@ -43,12 +43,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
                                  name: String,
                                  product: String,
                                  cashAccountType: String,
-                                 status: String="enabled",
+//                                 status: String="enabled",
                                  bic: String,
-                                 linkedAccounts: String ="string",
-                                 usage: String ="PRIV",
-                                 details: String ="",
-                                 balances: CoreAccountBalancesJson = CoreAccountBalancesJson(),
+//                                 linkedAccounts: String ="string",
+//                                 usage: String ="PRIV",
+//                                 details: String ="",
+                                 balances: CoreAccountBalancesJson,
                                  _links: List[links],
   )
 
@@ -230,8 +230,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
   
   
-  def createAccountListJson(coreAccounts: List[BankAccount], user: User): CoreAccountsJsonV13 = {
-    CoreAccountsJsonV13(coreAccounts.map {
+  def createAccountListJson(bankAccounts: List[BankAccount], user: User): CoreAccountsJsonV13 = {
+    CoreAccountsJsonV13(bankAccounts.map {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
@@ -245,7 +245,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
             balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
             balanceType = APIUtil.stringOrNull(x.accountType),
             lastChangeDateTime = if(latestCompletedEndDate == null) null else APIUtil.DateWithDayFormat.format(latestCompletedEndDate),
-            referenceDate = "",
             lastCommittedTransaction = if(latestUncompletedEndDate == null) null else latestUncompletedEndDate.toString
           )
         CoreAccountJsonV13(
@@ -254,7 +253,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           bban = bBan,
           currency = x.currency,
           name = x.label,
-          status = "",
           cashAccountType = x.accountType,
           product = x.accountType,
           balances = balance,
