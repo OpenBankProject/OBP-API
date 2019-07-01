@@ -1,7 +1,7 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentJson,UpdatePaymentPsuDataJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentJson, UpdatePaymentPsuDataJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -10,6 +10,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiRole, ApiTag, NewStyle}
 import code.consent.ConsentStatus
 import code.database.authorisation.Authorisations
+import code.fx.fx
 import code.model._
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
@@ -396,19 +397,35 @@ Check the transaction status of a payment initiation.""",
              }
 
              //Do not support `fundsAvailable` for now. 
-//             transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
-//               BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
-//             }
-//             transactionRequestFromAccount = transactionRequest.from
-//             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(transactionRequestFromAccount.bank_id), AccountId(transactionRequestFromAccount.account_id), callContext)
-//             fromAccountBalance = fromAccount.balance
-//             fundsAvalible = fromAccountBalance >= transactionRequestAmount
+             transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
+               BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
+             }
+             transactionRequestCurrency <- NewStyle.function.tryons(s"${UnknownError} can not get currency from this paymentId(${paymentid})",400, callContext) {
+               transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.currency
+             }
              
+             
+             transactionRequestFromAccount = transactionRequest.from
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(transactionRequestFromAccount.bank_id), AccountId(transactionRequestFromAccount.account_id), callContext)
+             fromAccountBalance = fromAccount.balance
+             fromAccountCurrency = fromAccount.currency
+             fundsAvalible = fromAccountBalance >= transactionRequestAmount
 
+
+             //From change from requestAccount Currency to currentBankAccount Currency
+             rate <- NewStyle.function.tryons(s"$InvalidCurrency The requested currency conversion (${transactionRequestCurrency} to ${fromAccountCurrency}) is not supported.", 400, callContext) {
+               fx.exchangeRate(transactionRequestCurrency, fromAccountCurrency)}
+
+             requestChangedCurrencyAmount = fx.convert(transactionRequestAmount, rate)
+
+             fundsAvailable = (fromAccountBalance >= requestChangedCurrencyAmount)
+
+             transactionRequestStatusChekedFunds = if(fundsAvailable) transactionRequestStatus else "RCVD"
 
            } yield {
              (json.parse(s"""{
-                           "transactionStatus": "$transactionRequestStatus"
+                           "transactionStatus": "$transactionRequestStatusChekedFunds"
+                           "fundsAvailable": "$fundsAvailable"
                           }"""
              ), callContext)
            }
