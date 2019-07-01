@@ -546,7 +546,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     val paymentId = transactionRequest.id.value
     InitiatePaymentResponseJson(
       transactionStatus = transactionRequest.status match {
-        case "COMPLETED" => "ACCC"
+        case "COMPLETED" => "ACCP"
         case "INITIATED" => "RCVD"
       },
       paymentId = paymentId,

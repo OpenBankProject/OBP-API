@@ -392,7 +392,7 @@ Check the transaction status of a payment initiation.""",
              (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
 
              transactionRequestStatus = transactionRequest.status match {
-               case "COMPLETED" => "ACCC"
+               case "COMPLETED" => "ACCP"
                case "INITIATED" => "RCVD"
              }
 
