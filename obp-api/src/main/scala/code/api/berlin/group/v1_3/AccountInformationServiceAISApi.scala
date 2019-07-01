@@ -97,7 +97,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                       "consentId": "1234-wertiq-983",
                       "_links": {
                         "startAuthorisation": {
-                          "href": "v1.3/consents/1234-wertiq-983/authorisations"
+                          "href": "/v1.3/consents/1234-wertiq-983/authorisations"
                         }
                       }
                     }"""),
@@ -217,8 +217,8 @@ of the PSU at this ASPSP.
     "resourceId" : "resourceId",
     "bban" : "BARC12345612345678",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "balances" : "",
@@ -236,8 +236,8 @@ of the PSU at this ASPSP.
     "resourceId" : "resourceId",
     "bban" : "BARC12345612345678",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "balances" : "",
@@ -352,8 +352,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -370,8 +370,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -402,8 +402,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -420,8 +420,8 @@ respectively the OAuth2 access token.
     "resourceId" : "resourceId",
     "maskedPan" : "123456xxxxxx1234",
     "_links" : {
-      "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+      "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+      "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
     },
     "usage" : "PRIV",
     "name" : "name",
@@ -556,7 +556,7 @@ Reads account data from a given card account addressed by "account-id".
                         "pending": [],
                         "_links": {
                           "cardAccount": {
-                            "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99"
+                            "href": "/v1.3/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99"
                           }
                         }
                       }
@@ -810,7 +810,7 @@ This call is only available on transactions as reported in a JSON format.
   },
   "creditorName" : "Creditor Name",
   "_links" : {
-    "transactionDetails" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "transactionDetails" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "remittanceInformationStructured" : "remittanceInformationStructured",
   "ultimateCreditor" : "Ultimate Creditor",
@@ -864,7 +864,7 @@ This call is only available on transactions as reported in a JSON format.
   },
   "creditorName" : "Creditor Name",
   "_links" : {
-    "transactionDetails" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "transactionDetails" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "remittanceInformationStructured" : "remittanceInformationStructured",
   "ultimateCreditor" : "Ultimate Creditor",
@@ -966,7 +966,7 @@ The ASPSP might add balance information, if transaction lists without balances a
                         ],
                         "_links": {
                           "account": {
-                            "href": "/v1/accounts/3dc3d5b3-7023-4848-9853- f5400a64e80f"
+                            "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853- f5400a64e80f"
                           }
                         }
                       }
@@ -1040,8 +1040,8 @@ Give detailed information about the addressed account together with balance info
   "resourceId" : "resourceId",
   "bban" : "BARC12345612345678",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "balances" : "",
@@ -1071,8 +1071,8 @@ Give detailed information about the addressed account together with balance info
   "resourceId" : "resourceId",
   "bban" : "BARC12345612345678",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "balances" : "",
@@ -1110,8 +1110,8 @@ access token.
   "resourceId" : "resourceId",
   "maskedPan" : "123456xxxxxx1234",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "name" : "name",
@@ -1140,8 +1140,8 @@ access token.
   "resourceId" : "resourceId",
   "maskedPan" : "123456xxxxxx1234",
   "_links" : {
-    "balances" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
+    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
+    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
   },
   "usage" : "PRIV",
   "name" : "name",
@@ -1203,7 +1203,7 @@ This applies in the following scenarios:
                        "psuMessage": "Please use your BankApp for transaction Authorisation.",
                        "_links":
                          {
-                           "scaStatus":  {"href":"/v1/consents/qwer3456tzui7890/authorisations/123auth456"}
+                           "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                          }
                      }"""),
        List(UserNotLoggedIn, UnknownError),
