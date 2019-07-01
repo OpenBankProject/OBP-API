@@ -396,7 +396,6 @@ Check the transaction status of a payment initiation.""",
                case "INITIATED" => "RCVD"
              }
 
-             //Do not support `fundsAvailable` for now. 
              transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
                BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
              }
