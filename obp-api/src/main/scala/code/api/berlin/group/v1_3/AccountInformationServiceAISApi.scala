@@ -505,30 +505,62 @@ Reads account data from a given card account addressed by "account-id".
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "cardTransactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "cardAccount" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "cardAccount" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+                      "cardAccount": {
+                        "maskedPan": "525412******3241"
+                      },
+                      "transactions": {
+                        "booked": [
+                          {
+                            "cardTransactionId": "201710020036959",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "256.67"
+                            },
+                            "transactionDate": "2017-10-25",
+                            "bookingDate": "2017-10-26",
+                            "originalAmount": {
+                              "currency": "SEK",
+                              "amount": "2499"
+                            },
+                            "cardAcceptorAddress": {
+                              "city": "STOCKHOLM",
+                              "country": "SE"
+                            },
+                            "maskedPan": "525412******3241",
+                            "proprietaryBankTransactionCode": "PURCHASE",
+                            "invoiced": false,
+                            "transactionDetails": "WIFIMARKET.SE"
+                          },
+                          {
+                            "cardTransactionId": "201710020091863",
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "10.72"
+                            },
+                            "transactionDate": "2017-10-25",
+                            "bookingDate": "2017-10-26",
+                            "originalAmount": {
+                              "currency": "SEK",
+                              "amount": "99"
+                            },
+                            "cardAcceptorAddress": {
+                              "city": "STOCKHOLM",
+                              "country": "SE"
+                            },
+                            "maskedPan": "525412******8999",
+                            "proprietaryBankTransactionCode": "PURCHASE",
+                            "invoiced": false,
+                            "transactionDetails": "ICA SUPERMARKET SKOGHA"
+                          }
+                        ],
+                        "pending": [],
+                        "_links": {
+                          "cardAccount": {
+                            "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99"
+                          }
+                        }
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM ::Nil
@@ -883,30 +915,62 @@ The ASPSP might add balance information, if transaction lists without balances a
 """,
        json.parse(""""""),
        json.parse("""{
-  "balances" : "",
-  "_links" : {
-    "download" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "transactions" : {
-    "booked" : "",
-    "_links" : {
-      "next" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "last" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "previous" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "account" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983",
-      "first" : "/v1/payments/sepa-credit-transfers/1234-wertiq-983"
-    },
-    "pending" : ""
-  },
-  "account" : {
-    "bban" : "BARC12345612345678",
-    "maskedPan" : "123456xxxxxx1234",
-    "iban" : "FR7612345987650123456789014",
-    "currency" : "EUR",
-    "msisdn" : "+49 170 1234567",
-    "pan" : "5409050000000000"
-  }
-}"""),
+                      "account": {
+                        "iban": "DE2310010010123456788"
+                      },
+                      "transactions": {
+                        "booked": [
+                          {
+                            "transactionId": "1234567",
+                            "creditorName": "John Miles",
+                            "creditorAccount": {
+                              "iban": "DE67100100101306118605"
+                            },
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "256.67"
+                            },
+                            "bookingDate": "2017-10-25",
+                            "valueDate": "2017-10-26",
+                            "remittanceInformationUnstructured": "Example 1"
+                          },
+                          {
+                            "transactionId": "1234568",
+                            "debtorName": "Paul Simpson",
+                            "debtorAccount": {
+                              "iban": "NL76RABO0359400371"
+                            },
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "343.01"
+                            },
+                            "bookingDate": "2017-10-25",
+                            "valueDate": "2017-10-26",
+                            "remittanceInformationUnstructured": "Example 2"
+                          }
+                        ],
+                        "pending": [
+                          {
+                            "transactionId": "1234569",
+                            "creditorName": "Claude Renault",
+                            "creditorAccount": {
+                              "iban": "FR7612345987650123456789014"
+                            },
+                            "transactionAmount": {
+                              "currency": "EUR",
+                              "amount": "-100.03"
+                            },
+                            "valueDate": "2017-10-26",
+                            "remittanceInformationUnstructured": "Example 3"
+                          }
+                        ],
+                        "_links": {
+                          "account": {
+                            "href": "/v1/accounts/3dc3d5b3-7023-4848-9853- f5400a64e80f"
+                          }
+                        }
+                      }
+                    }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
