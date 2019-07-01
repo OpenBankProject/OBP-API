@@ -531,7 +531,7 @@ Reads account data from a given card account addressed by "account-id".
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM ::Nil
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
@@ -539,33 +539,34 @@ Reads account data from a given card account addressed by "account-id".
          cc =>
            for {
 
-            (Full(u), callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
+             _ <- passesPsd2Aisp(callContext)
 
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
 
-            bankId = BankId(defaultBankId)
+             bankId = BankId(defaultBankId)
 
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
 
-            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
 
-            view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
+             view <- NewStyle.function.view(ViewId("owner"), BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
 
-            params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
 
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
 
-            (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
-              x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
-            } map { unboxFull(_) }
+             (transactions, callContext) <- Future { bankAccount.getModeratedTransactions(Full(u), view, callContext, params)} map {
+               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
+             } map { unboxFull(_) }
 
-            } yield {
-              (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
-            }
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
+           }
          }
        }
             
