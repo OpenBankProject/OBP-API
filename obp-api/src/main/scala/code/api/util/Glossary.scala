@@ -5,12 +5,16 @@ import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdEx
 
 import scala.collection.mutable.ArrayBuffer
 
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+
 
 object Glossary {
 
-    case class GlossaryItem(
+	// reason of description is function: because we want make description is dynamic, so description can read
+	// webui_ props dynamic instead of a constant string.
+ case class GlossaryItem(
 															 title: String,
-															 description: String,
+															 description: () => String,
 															 htmlDescription: String,
 															 textDescription: String
                             )
@@ -27,9 +31,8 @@ object Glossary {
 
 	object GlossaryItem {
 
-
 		// Constructs a GlossaryItem from just two parameters.
-		def apply(title: String, description: String): GlossaryItem = {
+		def apply(title: String, description: => String): GlossaryItem = {
 
 			// Convert markdown to HTML
 			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(description)
@@ -44,7 +47,7 @@ object Glossary {
 
 			new GlossaryItem(
 				title,
-				description,
+				() => description,
 				htmlDescription,
 				textDescription
 			)
@@ -1803,7 +1806,30 @@ object Glossary {
 
 
 
-	// NOTE! Some glossary items are generated in ExampleValue.scala
+	glossaryItems += GlossaryItem(
+		title = "Dummy Customer Logins",
+		description =
+			s"""|
+|The following dummy Customer Logins may be used by developers testing their applications on this sandbox:
+|
+|${getWebUiPropsValue("webui_dummy_customer_logins", "")}
+|
+|
+|
+|${scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "") + "#customer-logins")}
+|
+|
+|
+|
+|
+|
+""")
 
+
+
+
+///////////////////////////////////////////////////////////////////
+	// NOTE! Some glossary items are generated in ExampleValue.scala
+//////////////////////////////////////////////////////////////////
 
 }
