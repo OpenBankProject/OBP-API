@@ -10,9 +10,11 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 object Glossary {
 
-    case class GlossaryItem(
+	// reason of description is function: because we want make description is dynamic, so description can read
+	// webui_ props dynamic instead of a constant string.
+ case class GlossaryItem(
 															 title: String,
-															 description: String,
+															 description: () => String,
 															 htmlDescription: String,
 															 textDescription: String
                             )
@@ -29,9 +31,8 @@ object Glossary {
 
 	object GlossaryItem {
 
-
 		// Constructs a GlossaryItem from just two parameters.
-		def apply(title: String, description: String): GlossaryItem = {
+		def apply(title: String, description: => String): GlossaryItem = {
 
 			// Convert markdown to HTML
 			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(description)
@@ -46,7 +47,7 @@ object Glossary {
 
 			new GlossaryItem(
 				title,
-				description,
+				() => description,
 				htmlDescription,
 				textDescription
 			)
