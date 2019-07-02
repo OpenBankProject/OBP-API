@@ -455,16 +455,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def oauthHeaderRequiredJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message = "Authentication via OAuth is required", code = 400)), getHeaders() ::: headers.list, Nil, 400)
 
+  lazy val CurrencyIsoCodeFromXmlFile: Elem = LiftRules.getResource("/media/xml/ISOCurrencyCodes.xml").map{ url =>
+    val input: InputStream = url.openStream()
+    val xml = XML.load(input)
+    if (input != null) input.close()
+    xml
+  }.openOrThrowException(s"$UnknownError,ISOCurrencyCodes.xml is missing in OBP server.  ")
+  
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
-    //just for initialization the Elem variable
-    var xml: Elem = <html/>
-    LiftRules.getResource("/media/xml/ISOCurrencyCodes.xml").map{ url =>
-      val input: InputStream = url.openStream()
-      xml = XML.load(input)
-    }
-    val stringArray = (xml \ "CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+")
-    stringArray.contains(currencyCode)
+    val currencyIsoCodeArray = (CurrencyIsoCodeFromXmlFile \"CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+")
+    currencyIsoCodeArray.contains(currencyCode)
   }
 
   /** Check the id values from GUI, such as ACCOUNT_ID, BANK_ID ...  */
@@ -2610,4 +2611,11 @@ Returns a string showed to the developer
     Connector.connector.vend.getBankLegacy(BankId(bankId), None).map(_._1.swiftBic).getOrElse("")
   }
   
+}
+
+
+object app extends App{
+  val a = APIUtil.isValidCurrencyISOCode("EUR")
+  a
+  a
 }
