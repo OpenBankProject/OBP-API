@@ -5364,6 +5364,20 @@ trait APIMethods310 {
          |
          |```
          |
+         |Insert image examples:
+         |
+         |```
+         |// set width=100 and height=50
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =100x50)"}
+         |
+         |// only set height=50
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =x50)"}
+         |
+         |// only width=20%
+         |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =20%x)"}
+         |
+         |```
+         |
          |""",
       WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
       WebUiPropsCommons( "webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
