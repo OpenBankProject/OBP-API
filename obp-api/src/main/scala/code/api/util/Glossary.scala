@@ -1825,6 +1825,113 @@ object Glossary {
 |
 """)
 
+	glossaryItems += GlossaryItem(
+		title = "Sandbox Introductions",
+		description =
+			s"""
+#### Hello!
+
+This is a special page for the ${getWebUiPropsValue("webui_sandbox_bank_name", "")} Bank Open API Sandbox.
+
+#### TL;DR
+
+Go here: ${getWebUiPropsValue("webui_sandbox_bank_name", "")} Bank API Sandbox
+
+#### Status
+This document may be updated.
+
+#### Overview
+
+${getWebUiPropsValue("webui_sandbox_bank_name", "")} Bank's Open API provides a RESTful interface for developers to build customer facing applications accessing ${getWebUiPropsValue("webui_sandbox_bank_name", "")}  Bank's financial information. This sandbox contains simulated transaction data for imaginary customers that match certain customer profiles.
+
+#### What sort of applications can I build with the OBP API?
+
+Customer facing retail banking and fintech applications for consumers, SMEs, associations, charities, governments and NGOs; including (but not limited to!) Personal Finance Management (PFM) Solutions, online accounting integration, financial widgets, Savings Apps, Education Apps, Gamification, Peace of Mind Apps, Transparency Apps, Crowd funding, on boarding, CRM etc..
+
+#### What data and services can I access?
+
+This instance contains simulated customer related data. You can create sandbox payments, customer, products and accounts.
+
+#### Using the ${getWebUiPropsValue("webui_sandbox_bank_name", "")} Bank Open APIs you can:
+
+    Get account information, balance and transaction history of multiple bank accounts
+    
+    Create/Access different views on accounts. Each view grants a subset of the data to a restricted group of users. For example, a customer could offer special views on his account to his accountants, auditors or regulators. A charity might open their accounts to the public
+    
+    Initiate payments
+
+#### Application registration
+
+You will need to register your application [here]($getServerUrl/consumer-registration). You will get a consumer key and consumer secret for the calls requiring OAuth or Direct Login authentication.
+
+#### Direct Login and OAuth
+
+The easiest way to authenticate is to use Direct Login.
+
+To use OAuth1 we recommend you use (and fork) one of the OAuth Starter SDKs
+
+Both Direct Login and OAuth1 will allow you to access the dummy sandbox customer accounts that have created for you.
+
+You can also authenticate using your Google account and the Google OAuth 2 server (link to follow). Note that if you authenticate with your Google account, you will need to create your own accounts and transactions by making payments between accounts.
+
+**Note**: Note: Many examples in the docs / SDKs use the general OBP sandbox domain. Make sure you use the correct domain in all calls i.e. ***$getServerUrl*** !
+#### API documentation
+
+    For the latest version (recommended) see 3.1.0
+
+The following dummy Customer Logins may be used by developers testing their applications on this sandbox:
+	
+${getWebUiPropsValue("webui_dummy_customer_logins", "")}
+
+Developers can use the following logins to get access to dummy customer accounts and transactions.
+
+Please ask a member of the Open Bank Project team for more logins if you require. You can use this application which also uses OAuth to browse your transaction data (use the above username/password).
+
+#### FAQ:
+*   Q: I'm getting a 401 even if I enter the right consumer key and secret. Is the endpoint: apisandbox... correct ?
+
+    A: No, its praxiabank.openbankproject.com
+
+*   Q: I'm getting 404's / errors
+
+    A: Avoid trailing slashes:
+
+    $getServerUrl/obp/v3.0.0
+    200 OK
+
+    $getServerUrl/obp/v3.0.0/
+    404 Not Found
+
+    $getServerUrl/obp/v3.0.0/banks
+    200 OK
+
+    $getServerUrl/obp/v3.0.0/banks/
+    400 Not Found {"error":"OBP-30001: Bank not found. Please specify a valid value for BANK_ID."}
+
+    $getServerUrl/obp/v3.0.0/banks/bop.01.com.au
+    200 OK
+
+    $getServerUrl/obp/v3.0.0/banks/bop.01.com.au/
+    404 Not Found
+
+*   Q: Why doesn't it work?
+
+    A: Double check parameters are spelt correctly (including http vs https etc.)
+
+    A: Check your encoding (use UTF8)
+
+#### Questions / Contact?
+
+* To contact Open Bank Project use:
+
+    Email: contact@openbankproject.com 
+
+    Twitter: [@OpenBankProject](https://twitter.com/openbankproject)
+
+    Slack: [Open Bank Project Slack channel](https://openbankproject.slack.com) | [Get Invited](https://slack.openbankproject.com/)
+    
+ """)
+
 
 
 
