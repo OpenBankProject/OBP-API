@@ -19,6 +19,7 @@ import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
+import scala.reflect.runtime.universe
 
 object SwaggerJSONFactory {
   //Info Object
@@ -412,8 +413,13 @@ object SwaggerJSONFactory {
 
     val paramNameToType: List[String] = constructorParamList.map(it => {
       val paramName = convertParamName(it.name.toString)
-      val paramType = it.info
-      val paramValue = ReflectUtils.invokeMethod(entity, it.name.toString)
+      val typeAndValue: (universe.Type, Any) = (it.info, ReflectUtils.invokeMethod(entity, it.name.toString)) match {
+        case (info, v) if(v.isInstanceOf[() => _]) => (info.typeArgs.head, v.asInstanceOf[()=>_].apply())
+        case (info, v) => (info, v)
+      }
+      val paramType = typeAndValue._1
+      val paramValue = typeAndValue._2
+
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 

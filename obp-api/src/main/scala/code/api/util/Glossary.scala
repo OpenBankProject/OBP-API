@@ -5,16 +5,17 @@ import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdEx
 
 import scala.collection.mutable.ArrayBuffer
 
+
 object Glossary {
 
-    class GlossaryItem(
-															 val title: String,
-															 descriptionFunc: => String,
-															 val htmlDescription: String,
-															 val textDescription: String
-                            ) {
-			def description = descriptionFunc
-		}
+	// reason of description is function: because we want make description is dynamic, so description can read
+	// webui_ props dynamic instead of a constant string.
+ case class GlossaryItem(
+															 title: String,
+															 description: () => String,
+															 htmlDescription: String,
+															 textDescription: String
+                            )
 
 		def makeGlossaryItem (title: String, connectorField: ConnectorField) : GlossaryItem = {
 			GlossaryItem(
@@ -27,11 +28,6 @@ object Glossary {
 		}
 
 	object GlossaryItem {
-		def apply(title: String,
-							description: => String,
-							htmlDescription: String,
-							textDescription: String) = new GlossaryItem(title, description, htmlDescription, textDescription)
-
 
 		// Constructs a GlossaryItem from just two parameters.
 		def apply(title: String, description: => String): GlossaryItem = {
@@ -49,7 +45,7 @@ object Glossary {
 
 			new GlossaryItem(
 				title,
-				description,
+				() => description,
 				htmlDescription,
 				textDescription
 			)
