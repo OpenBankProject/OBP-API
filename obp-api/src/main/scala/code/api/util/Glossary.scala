@@ -1879,7 +1879,7 @@ You can also authenticate using your Google account and the Google OAuth 2 serve
 
     For the latest version (recommended) see 3.1.0
 
-The following dummy Customer Logins may be used by developers testing their applications on this sandbox:
+#### Customer logins
 	
 ${getWebUiPropsValue("webui_dummy_customer_logins", "")}
 
@@ -1890,7 +1890,7 @@ Please ask a member of the Open Bank Project team for more logins if you require
 #### FAQ:
 *   Q: I'm getting a 401 even if I enter the right consumer key and secret. Is the endpoint: apisandbox... correct ?
 
-    A: No, its praxiabank.openbankproject.com
+    A: No, its $getServerUrl
 
 *   Q: I'm getting 404's / errors
 

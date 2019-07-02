@@ -2612,10 +2612,3 @@ Returns a string showed to the developer
   }
   
 }
-
-
-object app extends App{
-  val a = APIUtil.isValidCurrencyISOCode("EUR")
-  a
-  a
-}
