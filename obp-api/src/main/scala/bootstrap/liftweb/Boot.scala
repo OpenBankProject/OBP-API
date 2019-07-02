@@ -34,7 +34,7 @@ import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
-import code.api.ResourceDocs1_4_0.ResourceDocs300.ResourceDocs310
+import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400}
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.builder.APIBuilder_Connector
@@ -288,6 +288,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v2_2_0)
     enableVersionIfAllowed(ApiVersion.v3_0_0)
     enableVersionIfAllowed(ApiVersion.v3_1_0)
+    enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.apiBuilder)
 
     // TODO Wrap these with enableVersionIfAllowed as well
@@ -307,6 +308,7 @@ class Boot extends MdcLoggable {
     LiftRules.statelessDispatch.append(ResourceDocs220)
     LiftRules.statelessDispatch.append(ResourceDocs300)
     LiftRules.statelessDispatch.append(ResourceDocs310)
+    LiftRules.statelessDispatch.append(ResourceDocs400)
     ////////////////////////////////////////////////////
 
 

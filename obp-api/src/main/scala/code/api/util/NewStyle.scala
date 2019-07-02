@@ -12,6 +12,7 @@ import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
@@ -202,7 +203,8 @@ object NewStyle {
     (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.saveHistoricalTransaction), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getPrivateAccountByIdFull), ApiVersion.v3_1_0.toString)
+    (nameOf(Implementations3_1_0.getPrivateAccountByIdFull), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations4_0_0.getBanks), ApiVersion.v4_0_0.toString)
   )
 
   object HttpCode {
