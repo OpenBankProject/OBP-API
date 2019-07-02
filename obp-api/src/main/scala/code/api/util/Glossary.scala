@@ -5,15 +5,16 @@ import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdEx
 
 import scala.collection.mutable.ArrayBuffer
 
-
 object Glossary {
 
-    case class GlossaryItem(
-															 title: String,
-															 description: String,
-															 htmlDescription: String,
-															 textDescription: String
-                            )
+    class GlossaryItem(
+															 val title: String,
+															 descriptionFunc: => String,
+															 val htmlDescription: String,
+															 val textDescription: String
+                            ) {
+			def description = descriptionFunc
+		}
 
 		def makeGlossaryItem (title: String, connectorField: ConnectorField) : GlossaryItem = {
 			GlossaryItem(
@@ -26,10 +27,14 @@ object Glossary {
 		}
 
 	object GlossaryItem {
+		def apply(title: String,
+							description: => String,
+							htmlDescription: String,
+							textDescription: String) = new GlossaryItem(title, description, htmlDescription, textDescription)
 
 
 		// Constructs a GlossaryItem from just two parameters.
-		def apply(title: String, description: String): GlossaryItem = {
+		def apply(title: String, description: => String): GlossaryItem = {
 
 			// Convert markdown to HTML
 			val htmlDescription = PegdownOptions.convertPegdownToHtmlTweaked(description)
