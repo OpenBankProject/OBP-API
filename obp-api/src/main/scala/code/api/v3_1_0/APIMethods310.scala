@@ -5348,6 +5348,22 @@ trait APIMethods310 {
          |* name is required String value
          |* value is required String value
          |
+         |The line break and double quotations should do escape, example:
+         |
+         |```
+         |
+         |{"name": "webui_some", "value": "this value
+         |have "line break" and double quotations."}
+         |
+         |```
+         |should do escape like this:
+         |
+         |```
+         |
+         |{"name": "webui_some", "value": "this value\\nhave \\"line break\\" and double quotations."}
+         |
+         |```
+         |
          |""",
       WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
       WebUiPropsCommons( "webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
