@@ -45,17 +45,20 @@ case class BanksJson400(banks: List[BankJson400])
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
+    val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
+    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
+    val routings = bank.bankRoutingScheme match {
+      case "OBP" => bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+      case "BIC" => obp :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+      case _ => obp :: bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+    }
     new BankJson400(
       stringOrNull(bank.bankId.value),
       stringOrNull(bank.shortName),
       stringOrNull(bank.fullName),
       stringOrNull(bank.logoUrl),
       stringOrNull(bank.websiteUrl),
-      List(
-        BankRoutingJsonV121("Bank_ID", bank.bankId.value),
-        BankRoutingJsonV121("bic-swift", bank.swiftBic),
-        BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress)
-      ).filter(a => stringOrNull(a.address) != null)
+      routings.filter(a => stringOrNull(a.address) != null)
     )
   }
 
