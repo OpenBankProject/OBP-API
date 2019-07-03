@@ -28,7 +28,7 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress}
+import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
 import code.api.util.{APIUtil, CustomJsonFormats, Glossary, PegdownOptions}
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{S, SessionVar}
@@ -153,11 +153,11 @@ class WebUI extends MdcLoggable{
   }
 
   def sandboxIntroductionLink: CssSel = {
-    "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sandbox_introductions_url", "api_documentation"))
+    "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(s"${getServerUrl}/introduction")
   }
 
   def apiDocumentation: CssSel = {
-    val title = "Sandbox Introductions"
+    val title = "Sandbox Introduction"
     val description = Glossary.glossaryItems
       .find(_.title == title)
       .map(_.description)
