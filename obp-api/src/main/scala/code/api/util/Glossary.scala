@@ -1833,10 +1833,6 @@ object Glossary {
 
 This is a special page for the ${getWebUiPropsValue("webui_sandbox_bank_name", "")} Bank Open API Sandbox.
 
-#### TL;DR
-
-Go here: ${getWebUiPropsValue("webui_sandbox_bank_name", "")} Bank API Sandbox
-
 #### Status
 This document may be updated.
 
