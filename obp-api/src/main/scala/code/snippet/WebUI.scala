@@ -29,7 +29,7 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress}
-import code.api.util.{APIUtil, CustomJsonFormats, Glossary}
+import code.api.util.{APIUtil, CustomJsonFormats, Glossary, PegdownOptions}
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.Helpers._
@@ -160,10 +160,10 @@ class WebUI extends MdcLoggable{
     val title = "Sandbox Introductions"
     val description = Glossary.glossaryItems
       .find(_.title == title)
-      .map(_.htmlDescription)
+      .map(_.description)
       .getOrElse(sys.error(s"not found the title of $title in Glossary"))
 
-    "#api_documentation_content" #> scala.xml.Unparsed(description)
+    "#api_documentation_content" #> scala.xml.Unparsed(PegdownOptions.convertPegdownToHtmlTweaked(description()))
   }
 
   // CreateDirectLoginToken
