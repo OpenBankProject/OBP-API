@@ -152,8 +152,8 @@ class WebUI extends MdcLoggable{
     ".sofi-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sofi_url", ""))
   }
 
-  def sandboxIntroductionsLink: CssSel = {
-    "#sandbox-introductions-link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sandbox_introductions_url", "http://localhost:8080/api_documentation"))
+  def sandboxIntroductionLink: CssSel = {
+    "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sandbox_introductions_url", "api_documentation"))
   }
 
   def apiDocumentation: CssSel = {
@@ -163,7 +163,7 @@ class WebUI extends MdcLoggable{
       .map(_.description)
       .getOrElse(sys.error(s"not found the title of $title in Glossary"))
 
-    "#api_documentation_content" #> scala.xml.Unparsed(PegdownOptions.convertPegdownToHtmlTweaked(description()))
+    "#api_documentation_content *" #> scala.xml.Unparsed(PegdownOptions.convertPegdownToHtmlTweaked(description()))
   }
 
   // CreateDirectLoginToken

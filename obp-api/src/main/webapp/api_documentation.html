@@ -27,11 +27,30 @@ Berlin 13359, Germany
   Sebastian Henschel : sebastian AT tesobe DOT com
 -->
 
-<div id="register-consumer" data-lift="surround?with=default;at=content">
+<div data-lift="surround?with=default;at=content">
 	<div data-lift="WebUI.apiDocumentation">
 		<div id="api_documentation_content">
 
 		</div>
 	</div>
+    <style>
+        #api_documentation_content {
+
+        }
+        #api_documentation_content ul {
+            display: block;
+            list-style-type: disc;
+            margin-block-start: 1em;
+            margin-block-end: 1em;
+            margin-inline-start: 0px;
+            margin-inline-end: 0px;
+            padding-inline-start: 40px;
+        }
+
+        #api_documentation_content li {
+            display: list-item;
+            text-align: -webkit-match-parent;
+        }
+    </style>
 </div>
 
