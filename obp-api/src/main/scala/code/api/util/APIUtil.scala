@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
 
+import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.OBP_APIBuilder
@@ -50,6 +51,7 @@ import code.metrics._
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
+import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.openbankproject.commons.model.{Customer, _}
@@ -2609,6 +2611,25 @@ Returns a string showed to the developer
   
   def getBicFromBankId(bankId: String)= {
     Connector.connector.vend.getBankLegacy(BankId(bankId), None).map(_._1.swiftBic).getOrElse("")
+  }
+
+  /**
+    * This function finds a phone number of an Customer in accordance to next rule:
+    * - account -> holders -> User -> User Customer Links -> Customer.phone_number
+    * @param bankId The BANK_ID
+    * @param accountId The ACCOUNT_ID
+    * @return The phone number of a Customer
+    */
+  def getPhoneNumbersForAccount(bankId: BankId, accountId: AccountId): String = {
+    AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList match {
+      case x :: _ =>
+        UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(x.userId) match {
+          case x :: _ =>
+            CustomerX.customerProvider.vend.getCustomerByCustomerId(x.customerId).map(_.mobileNumber).getOrElse("")
+          case _ => ""
+        }
+      case _ => ""
+    }
   }
   
 }
