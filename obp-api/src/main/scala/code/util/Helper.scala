@@ -207,7 +207,7 @@ object Helper{
     //case2: API-Explore oauth login: url = "/oauth/authorize?oauth_token=V0JTCDYXWUNTXDZ3VUDNM1HE3Q1PZR2WJ4PURXQA&logUserOut=false"
     val extractCleanURL = url.split("\\?oauth_token")(0)
 
-    validUrls.contains(extractCleanURL)
+    validUrls.contains(extractCleanURL) || extractCleanURL.startsWith("/payment_otp/")
   }
 
    /**
