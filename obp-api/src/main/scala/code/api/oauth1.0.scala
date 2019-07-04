@@ -735,6 +735,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     logger.debug("OAuthparameters: " + OAuthparameters)
     logger.debug("Decoded OAuthparameters: " + decodedOAuthParams)
     logger.debug("Signature's base: " + signatureBase)
+    logger.debug("Decode Signature's base: " + URLDecoder.decode(URLDecoder.decode(signatureBase)))
     logger.debug("Computed signature: " + computedSignature)
     logger.debug("Computed and encoded signature: " + computedAndEncoded)
     logger.debug("Received signature:" + received)

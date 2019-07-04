@@ -1825,6 +1825,12 @@ object Glossary {
 |
 """)
 
+  glossaryItems += GlossaryItem(
+    title = "Sandbox Introduction",
+    description =
+      s"""
+          ${getWebUiPropsValue("webui_sandbox_introduction", "")}
+ """)  
 
 
 
