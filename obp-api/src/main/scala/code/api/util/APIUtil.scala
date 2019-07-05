@@ -2621,15 +2621,13 @@ Returns a string showed to the developer
     * @param accountId The ACCOUNT_ID
     * @return The phone number of a Customer
     */
-  def getPhoneNumbersForAccount(bankId: BankId, accountId: AccountId): String = {
-    AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList match {
-      case x :: _ =>
-        UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(x.userId) match {
-          case x :: _ =>
-            CustomerX.customerProvider.vend.getCustomerByCustomerId(x.customerId).map(_.mobileNumber).getOrElse("")
-          case _ => ""
+  def getPhoneNumbersForAccount(bankId: BankId, accountId: AccountId): List[(String, String)] = {
+    AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList flatMap {
+      holder =>
+        UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(holder.userId) flatMap {
+          userCustomerLink =>
+            CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId).map(c => (c.legalName, c.mobileNumber))
         }
-      case _ => ""
     }
   }
   
