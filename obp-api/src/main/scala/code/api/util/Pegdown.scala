@@ -19,7 +19,7 @@ object PegdownOptions {
     RENDERER.render(document)
   }
   def convertPegdownToHtmlTweaked(description: String): String = {
-    val document = PARSER.parse(description.stripMargin)
+    val document = PARSER.parse(convertImgTag(description.stripMargin))
     RENDERER.render(document)
       .replaceAll("&ldquo", "&quot")
       .replaceAll("&rdquo", "&quot")
@@ -29,7 +29,9 @@ object PegdownOptions {
       .replaceAll("&lsquo;", "'")
       .replaceAll("&hellip;", "...")
   }
-  
+  // convertPegdownToHtmlTweaked not support insert image, so here manual convert to html img tag
+  private def convertImgTag(markdown: String) = markdown.stripMargin.replaceAll("""!\[(.*)\]\((.*) =(.*?)x(.*?)\)""", """<img alt="$1" src="$2" width="$3" height="$4" />""")
+
   def convertMarkdownToHtml(description: String): String = {
     val options = new MutableDataSet()
     val parser = Parser.builder(options).build
