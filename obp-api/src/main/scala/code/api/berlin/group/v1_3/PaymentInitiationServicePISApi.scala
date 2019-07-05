@@ -12,6 +12,7 @@ import code.consent.ConsentStatus
 import code.database.authorisation.Authorisations
 import code.fx.fx
 import code.model._
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{TRANSFER_TO_ACCOUNT, TRANSFER_TO_ATM, TRANSFER_TO_PHONE}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -955,7 +956,7 @@ There are the following request types on this access path:
        case paymentService :: paymentProduct :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
              updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -971,6 +972,22 @@ There are the following request types on this access path:
              authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(paymentid,authorisationid, updatePaymentPsuDataJson.scaAuthenticationData))map {
                i => connectorEmptyResponse(i, callContext)
              }
+
+             //Map obp transacition request id with BerlinGroup PaymentId
+             transactionRequestId = TransactionRequestId(paymentid)
+             
+             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+             
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(
+               BankId(existingTransactionRequest.from.bank_id), 
+               AccountId(existingTransactionRequest.from.account_id), 
+               callContext
+             )
+              _ <- if(authorisation.scaStatus =="finalised") 
+                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+              else 
+                Future{true}
+             
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(authorisation), callContext)
            }
