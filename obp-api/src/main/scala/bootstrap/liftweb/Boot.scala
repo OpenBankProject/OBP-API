@@ -388,7 +388,8 @@ class Boot extends MdcLoggable {
 
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-          OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
+          OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
+          Menu.i("INTRODUCTION") / "introduction"
     ) ++ accountCreation ++ Admin.menus
 
     def sitemapMutators = AuthUser.sitemapMutator
