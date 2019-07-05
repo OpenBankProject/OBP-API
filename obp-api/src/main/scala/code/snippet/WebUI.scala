@@ -28,15 +28,14 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress}
-import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
+import code.api.util.{APIUtil, CustomJsonFormats, Glossary, PegdownOptions}
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Props}
 
 import scala.xml.{NodeSeq, XML}
-
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 
@@ -151,6 +150,20 @@ class WebUI extends MdcLoggable{
   // Social Finance (Sofi)
   def sofiLink: CssSel = {
     ".sofi-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sofi_url", ""))
+  }
+
+  def sandboxIntroductionLink: CssSel = {
+    "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(s"${getServerUrl}/introduction")
+  }
+
+  def apiDocumentation: CssSel = {
+    val title = "Sandbox Introduction"
+    val description = Glossary.glossaryItems
+      .find(_.title == title)
+      .map(_.description)
+      .getOrElse(sys.error(s"not found the title of $title in Glossary"))
+
+    "#api_documentation_content *" #> scala.xml.Unparsed(PegdownOptions.convertPegdownToHtmlTweaked(description()))
   }
 
   // CreateDirectLoginToken
