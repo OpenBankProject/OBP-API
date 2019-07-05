@@ -62,19 +62,16 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Payment Cancellation Request",
        s"""${mockedDataText(true)}
-This method initiates the cancellation of a payment. 
-Depending on the payment-service, the payment-product and the ASPSP's implementation, 
-this TPP call might be sufficient to cancel a payment. 
-If an authorisation of the payment cancellation is mandated by the ASPSP, 
-a corresponding hyperlink will be contained in the response message.
+            This method initiates the cancellation of a payment. Depending on the payment-service, the payment-product 
+            and the ASPSP's implementation, this TPP call might be sufficient to cancel a payment. If an authorisation 
+            of the payment cancellation is mandated by the ASPSP, a corresponding hyperlink will be contained in the 
+            response message. Cancels the addressed payment with resource identification paymentId if applicable to the 
+            payment-service, payment-product and received in product related timelines (e.g. before end of business day 
+            for scheduled payments of the last business day before the scheduled execution day). The response to this 
+            DELETE command will tell the TPP whether the * access method was rejected * access method was successful, 
+            or * access method is generally applicable, but further authorisation processes are needed.
 
-Cancels the addressed payment with resource identification paymentId if applicable to the payment-service, payment-product and received in product related timelines (e.g. before end of business day for scheduled payments of the last business day before the scheduled execution day). 
-
-The response to this DELETE command will tell the TPP whether the 
-  * access method was rejected
-  * access method was successful, or
-  * access method is generally applicable, but further authorisation processes are needed.
-""",
+            """,
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -83,7 +80,7 @@ The response to this DELETE command will tell the TPP whether the
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
     "otpFormat" : "characters",
-    "data" : "data"
+    "data" : [ "data", "data" ]
   },
   "scaMethods" : "",
   "_links" : {
