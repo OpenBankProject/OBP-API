@@ -3,6 +3,9 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+05/07/2019    7032ce3       Added props: webui_sandbox_introduction, To display the introduction page for sandbox.
+                            It supports the markdown format.It will show the introduction OBP-API home page `INTRODUCTION` 
+                            page and also for Glossary `Sandbox Introduction`. 
 14/06/2019    7a1c453       Added props: sca_phone_api_key and sca_phone_api_secret. We For now, OBP-API use `nexmo` server 
                             as the SMS provider. Please check `nexmo` website, and get the api key and value there.
 03/06/2019    5194b48       The table viewimpl is replaced with a table viewdefinition
