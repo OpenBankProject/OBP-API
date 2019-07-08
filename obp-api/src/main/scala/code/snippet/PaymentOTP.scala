@@ -47,6 +47,7 @@ import scala.util.Either
 import scala.xml.NodeSeq
 
 class PaymentOTP extends MdcLoggable {
+  private implicit val formats = code.api.util.CustomJsonFormats.formats
 
   private object otpVar extends RequestVar("")
   private object submitButtonDefenseFlag extends RequestVar("")
@@ -75,11 +76,16 @@ class PaymentOTP extends MdcLoggable {
           case _ =>  Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
         }
 
-        result match {
-          case Right(_)=> {
+        result.map(json.parse(_).extract[StartPaymentAuthorisationJson]) match {
+          case Right(v) if(v.scaStatus == "received")=> {
             "#form_otp" #> "" &
               "#otp-validate-success p *" #> "OTP validate success." &
               "#otp-validate-errors" #> ""
+          }
+          case Right(v) => {
+            form &
+              "#otp-validate-success" #> "" &
+              "#otp-validate-errors .errorContent *" #> s"Otp validate fail! ${v.psuMessage}"
           }
           case Left((msg, _)) => {
             form &
@@ -115,7 +121,6 @@ class PaymentOTP extends MdcLoggable {
       case left @Left((_, _)) => left
 
       case Right(v) => {
-        implicit val formats = code.api.util.CustomJsonFormats.formats
         val authorisationId = json.parse(v).extract[StartPaymentAuthorisationJson].authorisationId
         val requestBody = s"""{"scaAuthenticationData":"${otpVar.get}"}"""
 
@@ -141,10 +146,7 @@ class PaymentOTP extends MdcLoggable {
     val pathOrigin = req.path
     val forwardPath = pathOrigin.copy(partPath = endpointPartPath)
 
-    val body = StringUtils.isNotBlank(requestBody) match {
-      case true => Full(BodyOrInputStream(IOUtils.toInputStream(requestBody)))
-      case false => Empty
-    }
+    val body = Full(BodyOrInputStream(IOUtils.toInputStream(requestBody)))
 
     val paramCalcInfo = ParamCalcInfo(req.paramNames, req._params, Nil, body)
     val newRequest = new Req(forwardPath, req.contextPath, requestType, Full("application/json"), req.request, req.nanoStart, req.nanoEnd, false, () => paramCalcInfo, addlParams)
