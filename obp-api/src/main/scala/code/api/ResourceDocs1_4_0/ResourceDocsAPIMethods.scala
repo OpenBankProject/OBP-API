@@ -3,7 +3,6 @@ package code.api.ResourceDocs1_4_0
 import java.util.UUID.randomUUID
 
 import code.api.builder.OBP_APIBuilder
-
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
@@ -14,6 +13,7 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
+import code.api.v4_0_0.OBPAPI4_0_0
 import code.util.Helper.MdcLoggable
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, Full}
@@ -108,6 +108,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.allResourceDocs
+        case ApiVersion.v4_0_0 => OBPAPI4_0_0.allResourceDocs
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
@@ -124,6 +125,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`apiBuilder`     => OBP_APIBuilder.routes
+        case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
