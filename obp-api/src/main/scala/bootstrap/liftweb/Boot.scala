@@ -379,13 +379,7 @@ class Boot extends MdcLoggable {
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
 
-          // this url is: /payment_otp/bulk_payments/sepa_credit_transfers/paymentId/authorisations/authorisationId
-          // except the prefix, other parts are the same as APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuData endpoint url
-          Menu.params[(String, String, String, String)]("Send initiatedPayment OTP", "initiatedPayment OTP",
-            { case paymentService :: paymentProduct :: paymentId :: "authorisations" :: authorisationId :: Nil => Full(paymentService, paymentProduct, paymentId, authorisationId) },
-            { case (paymentService, paymentProduct, paymentId, authorisationId) => paymentService :: paymentProduct :: paymentId :: "authorisations" :: authorisationId :: Nil }
-          ) / "payment_otp" / * / * / * / * / * >> Loc.Template(() => Templates.apply(List("payment_otp")).orNull) >> AuthUser.loginFirst,
-
+          Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
