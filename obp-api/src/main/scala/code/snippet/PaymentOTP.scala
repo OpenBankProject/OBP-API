@@ -26,39 +26,30 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.snippet
 
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.StartPaymentAuthorisationJson
+import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.{startPaymentAuthorisation, updatePaymentPsuData}
+import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.CallContext
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
-import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.actor.LAFuture
-import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.http.{BodyOrInputStream, JsonResponse, LiftResponse, ParamCalcInfo, PutRequest, Req, RequestVar, S, SHtml}
+import net.liftweb.common.{Empty, Failure, Full}
+import net.liftweb.http.{BodyOrInputStream, JsonResponse, LiftResponse, ParamCalcInfo, PostRequest, PutRequest, Req, RequestType, RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import code.api.util.ErrorMessages.FutureTimeoutException
+import net.liftweb.json
+import net.liftweb.json.JsonAST.{JObject, JString}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 
-import scala.util.{Either}
+import scala.util.Either
 import scala.xml.NodeSeq
 
 class PaymentOTP extends MdcLoggable {
 
   private object otpVar extends RequestVar("")
   private object submitButtonDefenseFlag extends RequestVar("")
-
-
-
-
-  // Can be used to show link to an online form to collect more information about the App / Startup
-  val registrationMoreInfoUrl = getWebUiPropsValue("webui_post_consumer_registration_more_info_url", "")
-
-  val registrationMoreInfoText : String = registrationMoreInfoUrl match {
-    case "" => ""
-    case _  =>  getWebUiPropsValue("webui_post_consumer_registration_more_info_text", "Please tell us more your Application and / or Startup using this link.")
-  }
-
   
   def validateOTP(in: NodeSeq): NodeSeq = {
 
@@ -91,10 +82,9 @@ class PaymentOTP extends MdcLoggable {
               "#otp-validate-errors" #> ""
           }
           case Left((msg, _)) => {
-            val extractMsg = msg.replaceFirst(""".*(OBP-\d+: .+\.).*""", "$1")
             form &
               "#otp-validate-success" #> "" &
-              "#otp-validate-errors .errorContent *" #> s"Otp validate fail! $extractMsg"
+              "#otp-validate-errors .errorContent *" #> s"Otp validate fail! $msg"
           }
         }
         
@@ -110,41 +100,83 @@ class PaymentOTP extends MdcLoggable {
 
 
   private def processPaymentOTP: Either[(String, Int), String] = {
-    val requestParam = List(S.param("paymentService"), S.param("paymentProduct"), S.param("paymentId"), Full("authorisations"), S.param("authorisationId"))
+
+    val requestParam = List(S.param("paymentService"), S.param("paymentProduct"), S.param("paymentId"))
 
     if(requestParam.count(_.isDefined) < requestParam.size) {
-      return Left(("There are one or many mandatory request parameter not present, please check request parameter: paymentService, paymentProduct, paymentId, authorisationId", 500))
+      return Left(("There are one or many mandatory request parameter not present, please check request parameter: paymentService, paymentProduct, paymentId", 500))
     }
 
-    val newUrl = requestParam.map(_.openOr(""))
+    val pathOfEndpoint = requestParam.map(_.openOr("")) :+ "authorisations"
 
+    val authorisationsResult = callEndpoint(startPaymentAuthorisation, pathOfEndpoint, PostRequest)
+
+    authorisationsResult match {
+      case left @Left((_, _)) => left
+
+      case Right(v) => {
+        implicit val formats = code.api.util.CustomJsonFormats.formats
+        val authorisationId = json.parse(v).extract[StartPaymentAuthorisationJson].authorisationId
+        val requestBody = s"""{"scaAuthenticationData":"${otpVar.get}"}"""
+
+        callEndpoint(updatePaymentPsuData, pathOfEndpoint :+ authorisationId, PutRequest, requestBody)
+      }
+    }
+
+
+
+  }
+
+  /**
+    * call an endpoint method
+    * @param endpoint endpoint method
+    * @param endpointPartPath endpoint method url slices, it is for endpoint the first case expression
+    * @param requestType http request method
+    * @param requestBody http request body
+    * @param addlParams append request parameters
+    * @return result of call endpoint method
+    */
+  def callEndpoint(endpoint: OBPEndpoint, endpointPartPath: List[String], requestType: RequestType, requestBody: String = "", addlParams: Map[String, String] = Map.empty): Either[(String, Int), String] = {
     val req: Req = S.request.openOrThrowException("no request object can be extract.")
     val pathOrigin = req.path
-    val forwardPath = pathOrigin.copy(partPath = newUrl)
-    val json = s"""{"scaAuthenticationData":"${otpVar.get}"}"""
-    val inputStream = IOUtils.toInputStream(json)
-    val paramCalcInfo = ParamCalcInfo(Nil, Map.empty, Nil, Full(BodyOrInputStream(inputStream)))
-    val newRequest = new Req(forwardPath, req.contextPath, PutRequest, Full("application/json"), req.request, req.nanoStart, req.nanoEnd, false, () => paramCalcInfo , Map.empty)
+    val forwardPath = pathOrigin.copy(partPath = endpointPartPath)
 
-    val endpoint = APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuData
-    val user  = AuthUser.getCurrentUser
-    val result = tryo{ endpoint(newRequest)(CallContext(user = user)) }
+    val body = StringUtils.isNotBlank(requestBody) match {
+      case true => Full(BodyOrInputStream(IOUtils.toInputStream(requestBody)))
+      case false => Empty
+    }
+
+    val paramCalcInfo = ParamCalcInfo(req.paramNames, req._params, Nil, body)
+    val newRequest = new Req(forwardPath, req.contextPath, requestType, Full("application/json"), req.request, req.nanoStart, req.nanoEnd, false, () => paramCalcInfo, addlParams)
+
+    val user = AuthUser.getCurrentUser
+    val result = tryo {
+      endpoint(newRequest)(CallContext(user = user))
+    }
 
     val func: ((=> LiftResponse) => Unit) => Unit = result match {
       case Failure("Continuation", Full(continueException), _) => ReflectUtils.getCallByNameValue(continueException, "f").asInstanceOf[((=> LiftResponse) => Unit) => Unit]
       case _ => null
     }
-    val future = new LAFuture[LiftResponse]
-    val fb: (=> LiftResponse) => Unit = liftResponse => future.satisfy(liftResponse)
 
-    func(fb)
+    val future = new LAFuture[LiftResponse]
+    val satisfyFutureFunction: (=> LiftResponse) => Unit = liftResponse => future.satisfy(liftResponse)
+    func(satisfyFutureFunction)
+
     val timeoutOfEndpointMethod = 10 * 1000L // endpoint is async, but html template must not async, So here need wait for endpoint value.
 
     future.get(timeoutOfEndpointMethod) match {
-      case Full(JsonResponse(jsExp, _, _, code)) if(code.toString.startsWith("20")) => Right(jsExp.toJsCmd)
-      case Full(JsonResponse(jsExp, _, _, code)) => Left((jsExp.toJsCmd, code))
+      case Full(JsonResponse(jsExp, _, _, code)) if (code.toString.startsWith("20")) => Right(jsExp.toJsCmd)
+      case Full(JsonResponse(jsExp, _, _, code)) => {
+        val message = json.parse(jsExp.toJsCmd)
+          .asInstanceOf[JObject]
+          .obj
+          .find(_.name == "message")
+          .map(_.value.asInstanceOf[JString].s)
+          .getOrElse("")
+        Left((message, code))
+      }
       case Empty => Left((FutureTimeoutException, 500))
     }
   }
-
 }
