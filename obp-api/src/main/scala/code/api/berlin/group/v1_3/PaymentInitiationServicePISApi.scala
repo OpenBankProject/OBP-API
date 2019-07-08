@@ -937,7 +937,7 @@ There are the following request types on this access path:
 """,
        json.parse("""{"scaAuthenticationData":"12345"}"""),
        json.parse("""{
-                        "scaStatus": "received",
+                        "scaStatus": "finalised",
                         "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
                         "psuMessage": "Please check your SMS at a mobile device.",
                         "_links": {
@@ -982,7 +982,7 @@ There are the following request types on this access path:
              )
               _ <- if(authorisation.scaStatus =="finalised") 
                  NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
-              else 
+              else //If it is not `finalised`, just return the `authorisation` back, without any payments
                 Future{true}
              
            } yield {

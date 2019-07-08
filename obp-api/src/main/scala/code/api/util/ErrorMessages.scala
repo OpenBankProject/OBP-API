@@ -310,6 +310,7 @@ object ErrorMessages {
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
+  val InvalidAuthorisationStatus = "OBP-36002: Authorisation Status is Invalid"
   // General Resource related messages above here
 
 
