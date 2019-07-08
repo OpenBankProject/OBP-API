@@ -521,12 +521,12 @@ $additionalInstructions
                     },
                     "creditorName": "70charname"
                     }"""),
-       json.parse("""{
+       json.parse(s"""{
                       "transactionStatus": "RCVD",
                       "paymentId": "1234-wertiq-983",
                       "_links":
                         {
-                        "scaRedirect": {"href": "answer transaction request url"},
+                        "scaRedirect": {"href": "$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=b0472c21-6cea-4ee0-b036-3e253adb3b0b"},
                         "self": {"href": "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"},
                         "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
                         "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}

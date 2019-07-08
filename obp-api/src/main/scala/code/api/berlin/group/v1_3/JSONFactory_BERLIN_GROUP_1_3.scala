@@ -476,10 +476,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       },
       paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
-        scaRedirect = LinkHrefJson("answer transaction request url"),
+        scaRedirect = LinkHrefJson(s"$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=$paymentId"),
         self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId"),
         status = LinkHrefJson(s"/v1.3/payments/$paymentId/status"),
-        scaStatus = LinkHrefJson(s"/v1.3/payments/$paymentId/authorisations/${paymentId}xx")
+        scaStatus = LinkHrefJson(s"/v1.3/payments/$paymentId/authorisations/${paymentId}")
       )
     )
   }
