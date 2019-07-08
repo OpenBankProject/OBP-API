@@ -18,6 +18,7 @@ object ApiShortVersions extends Enumeration {
   val `v2.2.0` = Value("v2.2.0")
   val `v3.0.0` = Value("v3.0.0")
   val `v3.1.0` = Value("v3.1.0")
+  val `v4.0.0` = Value("v4.0.0")
   val b1 = Value
 }
 
@@ -65,6 +66,7 @@ object ApiVersion {
   val v2_2_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v2.2.0`.toString)
   val v3_0_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.0.0`.toString)
   val v3_1_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
+  val v4_0_0 = ScannedApiVersion(ApiPathZero,ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
 
   case class OpenIdConnect1() extends ApiVersion
   lazy val openIdConnect1 = OpenIdConnect1()
@@ -84,6 +86,7 @@ object ApiVersion {
       v2_2_0 ::
       v3_0_0 ::
       v3_1_0 ::
+      v4_0_0 ::
       importerApi ::
       accountsApi ::
       bankMockApi ::
@@ -106,6 +109,7 @@ object ApiVersion {
       case v2_2_0.fullyQualifiedVersion => v2_2_0.apiShortVersion
       case v3_0_0.fullyQualifiedVersion => v3_0_0.apiShortVersion
       case v3_1_0.fullyQualifiedVersion => v3_1_0.apiShortVersion
+      case v4_0_0.fullyQualifiedVersion => v4_0_0.apiShortVersion
       case apiBuilder.fullyQualifiedVersion => apiBuilder.apiShortVersion
       case version if(scannedApis.map(_.fullyQualifiedVersion).contains(version))
         =>scannedApis.filter(_.fullyQualifiedVersion==version).head.apiShortVersion

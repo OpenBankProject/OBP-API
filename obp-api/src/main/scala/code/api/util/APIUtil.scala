@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Date, UUID}
 
+import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.OBP_APIBuilder
@@ -50,6 +51,7 @@ import code.metrics._
 import code.model._
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
+import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.openbankproject.commons.model.{Customer, _}
@@ -1642,6 +1644,7 @@ Returns a string showed to the developer
         case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
+        case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
         case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")
@@ -2609,6 +2612,23 @@ Returns a string showed to the developer
   
   def getBicFromBankId(bankId: String)= {
     Connector.connector.vend.getBankLegacy(BankId(bankId), None).map(_._1.swiftBic).getOrElse("")
+  }
+
+  /**
+    * This function finds a phone number of an Customer in accordance to next rule:
+    * - account -> holders -> User -> User Customer Links -> Customer.phone_number
+    * @param bankId The BANK_ID
+    * @param accountId The ACCOUNT_ID
+    * @return The phone number of a Customer
+    */
+  def getPhoneNumbersForAccount(bankId: BankId, accountId: AccountId): List[(String, String)] = {
+    AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList flatMap {
+      holder =>
+        UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(holder.userId) flatMap {
+          userCustomerLink =>
+            CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId).map(c => (c.legalName, c.mobileNumber))
+        }
+    }
   }
   
 }
