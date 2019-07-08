@@ -8,8 +8,8 @@ object StrongCustomerAuthentication extends Enumeration {
 
 object PemCertificateRole extends Enumeration {
   type ROLE = Value
-  val psp_as = Value
-  val psp_ic = Value
-  val psp_ai = Value
-  val psp_pi = Value
+  val PSP_AS = Value
+  val PSP_IC = Value
+  val PSP_AI = Value
+  val PSP_PI = Value
 }

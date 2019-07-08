@@ -2554,9 +2554,11 @@ Returns a string showed to the developer
             val validatedPem = X509.validate(pem)
             validatedPem match {
               case Full(true) =>
-                Full(X509.getRoles(pem).contains(serviceProvider)) match {
+                val roles = X509.extractPsd2Roles(pem).map(_.exists(_ == serviceProvider))
+                roles match {
                   case Full(true) => Full(true)
                   case Full(false) => Failure(X509ActionIsNotAllowed)
+                  case _ => roles
                 }
               case _ =>
                 validatedPem
@@ -2566,7 +2568,7 @@ Returns a string showed to the developer
     }
     result
   }
-  
+
   def passesPsd2ServiceProvider(cc: Option[CallContext], serviceProvider: String): OBPReturnType[Box[Boolean]] = {
     val result = passesPsd2ServiceProviderCommon(cc, serviceProvider)
     Future(result) map {
@@ -2574,16 +2576,16 @@ Returns a string showed to the developer
     }
   }
   def passesPsd2Aisp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_ai.toString())
+    passesPsd2ServiceProvider(cc, PemCertificateRole.PSP_AI.toString())
   }
   def passesPsd2Pisp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_pi.toString())
+    passesPsd2ServiceProvider(cc, PemCertificateRole.PSP_PI.toString())
   }
   def passesPsd2Icsp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_ic.toString())
+    passesPsd2ServiceProvider(cc, PemCertificateRole.PSP_IC.toString())
   }
   def passesPsd2Assp(cc: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-    passesPsd2ServiceProvider(cc, PemCertificateRole.psp_as.toString())
+    passesPsd2ServiceProvider(cc, PemCertificateRole.PSP_AS.toString())
   }
 
 
@@ -2591,16 +2593,16 @@ Returns a string showed to the developer
     passesPsd2ServiceProviderCommon(cc, serviceProvider) ?~! X509GeneralError
   }
   def passesPsd2AispOldStyle(cc: Option[CallContext]): Box[Boolean] = {
-    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_ai.toString())
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.PSP_AI.toString())
   }
   def passesPsd2PispOldStyle(cc: Option[CallContext]): Box[Boolean] = {
-    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_pi.toString())
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.PSP_PI.toString())
   }
   def passesPsd2IcspOldStyle(cc: Option[CallContext]): Box[Boolean] = {
-    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_ic.toString())
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.PSP_IC.toString())
   }
   def passesPsd2AsspOldStyle(cc: Option[CallContext]): Box[Boolean] = {
-    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.psp_as.toString())
+    passesPsd2ServiceProviderOldStyle(cc, PemCertificateRole.PSP_AS.toString())
   }
   
   
