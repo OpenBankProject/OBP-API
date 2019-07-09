@@ -63,7 +63,7 @@ The resource identifications of these transactions are contained in the  payload
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
     "otpFormat" : "characters",
-    "data" : "data"
+    "data" : [ "data", "data" ]
   },
   "scaMethods" : "",
   "tppMessages" : [ {

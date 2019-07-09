@@ -63,10 +63,10 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedA
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
     APIMethods_AccountInformationServiceAISApi.resourceDocs ++
-      APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
-      APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
-      APIMethods_SigningBasketsApi.resourceDocs ++
-      APIMethods_CommonServicesApi.resourceDocs
+    APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
+    APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
+    APIMethods_SigningBasketsApi.resourceDocs ++
+    APIMethods_CommonServicesApi.resourceDocs
   
   private[this] def findResourceDoc(pf: OBPEndpoint): Option[ResourceDoc] = {
     allResourceDocs.find(_.partialFunction==pf)

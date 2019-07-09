@@ -20,13 +20,15 @@ case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 
-  trait links
-  case class Balances(balances: String) extends links
-  case class Transactions(trasactions: String) extends links
-  case class ViewAccount(viewAccount: String) extends links
-  case class AdditionalProp1(additionalProp1: String) extends links
-  case class AdditionalProp2(additionalProp2: String) extends links
-  case class AdditionalProp3(additionalProp3: String) extends links
+
+  case class LinkHrefJson(
+    href: String
+  )
+  
+  case class CoreAccountLinksJsonV13(
+    balances: LinkHrefJson //,
+//    trasactions: LinkHrefJson // These links are only supported, when the corresponding consent has been already granted.
+  )
   
   case class CoreAccountBalancesJson(
     balanceAmount:AmountOfMoneyV13 = AmountOfMoneyV13("EUR","123"),
@@ -49,7 +51,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 //                                 usage: String ="PRIV",
 //                                 details: String ="",
                                  balances: CoreAccountBalancesJson,
-                                 _links: List[links],
+                                 _links: CoreAccountLinksJsonV13,
   )
 
   case class CoreAccountsJsonV13(accounts: List[CoreAccountJsonV13])
@@ -67,13 +69,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     
   )
   case class FromAccount(
-    iban : String =  "FR7612345987650123456789014"
+    iban : String 
   )
   case class CardBalanceAccount(
     maskedPan: String,
   )
   case class AccountBalancesV13(
-                                 account:FromAccount= FromAccount(),
+                                 account:FromAccount,
                                  `balances`: List[AccountBalance] = AccountBalance() :: Nil
   )
   case class TransactionsLinksV13(
@@ -200,9 +202,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     _links: ScaStatusJsonV13
   )
 
-  case class LinkHrefJson(
-    href: String
-  )
   case class InitiatePaymentResponseLinks(
     scaRedirect: LinkHrefJson,
     self: LinkHrefJson,
@@ -253,14 +252,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           bban = bBan,
           currency = x.currency,
           name = x.label,
+          bic = getBicFromBankId(x.bankId.value),
           cashAccountType = x.accountType,
           product = x.accountType,
           balances = balance,
-          bic = getBicFromBankId(x.bankId.value),
-          _links = Balances(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances") 
-            :: Nil
+          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances")) 
         )
-    }
+     }
     )
   }
 
@@ -476,10 +474,10 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       },
       paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
-        scaRedirect = LinkHrefJson("answer transaction request url"),
+        scaRedirect = LinkHrefJson(s"$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=$paymentId"),
         self = LinkHrefJson(s"/v1.3/payments/sepa-credit-transfers/$paymentId"),
         status = LinkHrefJson(s"/v1.3/payments/$paymentId/status"),
-        scaStatus = LinkHrefJson(s"/v1.3/payments/$paymentId/authorisations/${paymentId}xx")
+        scaStatus = LinkHrefJson(s"/v1.3/payments/$paymentId/authorisations/${paymentId}")
       )
     )
   }

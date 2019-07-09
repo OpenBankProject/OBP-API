@@ -11,6 +11,7 @@ import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DateFormat, Formats}
 import net.liftweb.util.Helpers._
+import org.apache.commons.lang3.StringUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -201,11 +202,11 @@ object Helper{
     */
   def isValidInternalRedirectUrl(url: String) : Boolean = {
     //set the default value is "/" and "/oauth/authorize"
-    val validUrls = List("/","/oauth/authorize","/consumer-registration","/create-sandbox-account")
+    val validUrls = List("/","/oauth/authorize","/consumer-registration","/create-sandbox-account", "/otp")
 
     //case1: OBP-API login: url = "/"
     //case2: API-Explore oauth login: url = "/oauth/authorize?oauth_token=V0JTCDYXWUNTXDZ3VUDNM1HE3Q1PZR2WJ4PURXQA&logUserOut=false"
-    val extractCleanURL = url.split("\\?oauth_token")(0)
+    val extractCleanURL = StringUtils.substringBefore(url, "?")
 
     validUrls.contains(extractCleanURL)
   }
