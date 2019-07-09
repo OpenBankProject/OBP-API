@@ -1910,7 +1910,10 @@ Returns a string showed to the developer
         case _ =>
           Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
       }
-    } else {
+    } else if(Option(cc).flatMap(_.user).isDefined) {
+      Future{(cc.user, Some(cc))}
+    }
+    else {
       Future { (Empty, None) }
     }
     // Update Call Context

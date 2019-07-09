@@ -380,6 +380,8 @@ class Boot extends MdcLoggable {
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
+
+          Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect

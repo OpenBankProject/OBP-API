@@ -1,0 +1,82 @@
+<!--
+Open Bank Project - API
+Copyright (C) 2011-2017, TESOBE Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE Ltd
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Sebastian Henschel : sebastian AT tesobe DOT com
+-->
+
+<div data-lift="surround?with=default;at=content">
+    <div data-lift="PaymentOTP.validateOTP">
+        <h1> Please send your OTP</h1>
+
+        <div class="row">
+            <div class="col-xs-6 col-xs-offset-4">
+                <div class="row">
+                    <div class="col-xs-8">
+                        <div class="text-info">We send an OTP (One Time Password) to your mobile phone SMS, please check
+                            and send back it to do validate.
+                        </div>
+                    </div>
+                </div>
+
+                <br/>
+                <div id="otp-validate-errors" class="alert alert-danger">
+                    <div class="error">
+                        <span class="errorContent"></span>
+                    </div>
+                </div>
+
+                <form id="form_otp" method="post">
+                    <div class="row">
+                        <div class="col-xs-8">
+                            <div class="form-group">
+                                <input class="form-control" id="otp_input" type="text" placeholder="One Time Password"
+                                       name="otp"
+                                       tabindex="1" autofocus autocomplete="off"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-6">
+                            <input type="submit" value="send opt" class="btn btn-default" tabindex="2"/>
+                        </div>
+                        <div class="col-xs-6">
+                            <input type="reset" value="Reset" class="btn btn-default" tabindex="3"/>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="row">
+                    <div class="col-xs-8">
+                        <div id="otp-validate-success">
+                            <p class="bg-success text-success">OTP validate success.</p>
+                        </div><!-- success -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br/>
+</div>
