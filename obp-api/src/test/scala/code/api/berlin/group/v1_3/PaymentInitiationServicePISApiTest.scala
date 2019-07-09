@@ -1,7 +1,7 @@
 package code.api.berlin.group.v1_3
 
 import code.api.ErrorMessage
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.InitiatePaymentResponseJson
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{InvalidJsonFormat, NotPositiveAmount}
@@ -106,6 +106,38 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       payment._links.scaRedirect should not be null
       payment._links.self should not be null
       payment._links.status should not be null
+      payment._links.scaStatus should not be null
+    }
+  }
+  
+  feature("test the BG v1.3 startPaymentInitiationCancellationAuthorisation") {
+    scenario("Successful call endpoint startPaymentInitiationCancellationAuthorisation", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
+      When("Post empty to call initiatePayment")
+      val requestPost = (V1_3_BG / PaymentServiceTypes.bulk_payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, """""")
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      org.scalameta.logger.elem(response)
+      val payment = response.body.extract[StartPaymentAuthorisationJson]
+      payment.authorisationId should not be null
+      payment.psuMessage should not be null
+      payment.scaStatus should not be null
+      payment._links.scaStatus should not be null
+    }
+  }  
+  
+  feature("test the BG v1.3 startPaymentAuthorisation") {
+    scenario("Successful call endpoint startPaymentAuthorisation", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
+      When("Post empty to call initiatePayment")
+      val requestPost = (V1_3_BG / PaymentServiceTypes.bulk_payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, """""")
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      org.scalameta.logger.elem(response)
+      val payment = response.body.extract[StartPaymentAuthorisationJson]
+      payment.authorisationId should not be null
+      payment.psuMessage should not be null
+      payment.scaStatus should not be null
       payment._links.scaStatus should not be null
     }
   }
