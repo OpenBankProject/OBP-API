@@ -691,7 +691,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-                 i => connectorEmptyResponse(i, callContext)
+               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
                }
            } yield {
              (createGetConsentResponseJson(consent), HttpCode.`200`(callContext))
@@ -735,7 +735,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
              (_, callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-               unboxFullOrFail(_, callContext, ConsentNotFound)
+               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
              }
              authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
                authorisationId
@@ -788,16 +788,17 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        getTransactionDetails,
        apiVersion,
        nameOf(getTransactionDetails),
-       "GET",
-       "/accounts/ACCOUNT_ID/transactions/RESOURCEID",
+       "GET", 
+       "/accounts/ACCOUNT_ID/transactions/TRANSACTIONID", 
        "Read Transaction Details",
        s"""${mockedDataText(true)}
-Reads transaction details from a given transaction addressed by "resourceId" on a given account addressed by "account-id". 
-This call is only available on transactions as reported in a JSON format.
+            Reads transaction details from a given transaction addressed by "transactionId" on a given account addressed 
+            by "account-id". This call is only available on transactions as reported in a JSON format. 
+            
+            **Remark:** Please note that the PATH might be already given in detail by the corresponding entry of the response 
+            of the "Read Transaction List" call within the _links subfield.
 
-**Remark:** Please note that the PATH might be already given in detail by the corresponding entry of the response of the 
-"Read Transaction List" call within the _links subfield.
-""",
+            """,
        json.parse(""""""),
        json.parse("""{
   "debtorAccount" : {
@@ -819,8 +820,8 @@ This call is only available on transactions as reported in a JSON format.
   "valueDate" : "2000-01-23",
   "endToEndId" : "endToEndId",
   "transactionId" : "transactionId",
+  "currencyExchange" : "",
   "ultimateDebtor" : "Ultimate Debtor",
-  "exchangeRate" : "",
   "creditorAccount" : {
     "bban" : "BARC12345612345678",
     "maskedPan" : "123456xxxxxx1234",
@@ -837,7 +838,7 @@ This call is only available on transactions as reported in a JSON format.
   },
   "proprietaryBankTransactionCode" : { },
   "bookingDate" : { },
-  "remittanceInformationUnstructured" : "remittanceInformationUnstructured",
+  "remittanceInformationUnstructured" : "Ref Number Merchant",
   "checkId" : "checkId",
   "creditorId" : "creditorId",
   "entryReference" : "entryReference"
@@ -848,7 +849,7 @@ This call is only available on transactions as reported in a JSON format.
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
-       case "accounts" :: account_id:: "transactions" :: resourceid :: Nil JsonGet _ => {
+       case "accounts" :: account_id:: "transactions" :: transactionid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
@@ -873,8 +874,8 @@ This call is only available on transactions as reported in a JSON format.
   "valueDate" : "2000-01-23",
   "endToEndId" : "endToEndId",
   "transactionId" : "transactionId",
+  "currencyExchange" : "",
   "ultimateDebtor" : "Ultimate Debtor",
-  "exchangeRate" : "",
   "creditorAccount" : {
     "bban" : "BARC12345612345678",
     "maskedPan" : "123456xxxxxx1234",
@@ -891,7 +892,7 @@ This call is only available on transactions as reported in a JSON format.
   },
   "proprietaryBankTransactionCode" : { },
   "bookingDate" : { },
-  "remittanceInformationUnstructured" : "remittanceInformationUnstructured",
+  "remittanceInformationUnstructured" : "Ref Number Merchant",
   "checkId" : "checkId",
   "creditorId" : "creditorId",
   "entryReference" : "entryReference"
@@ -899,7 +900,7 @@ This call is only available on transactions as reported in a JSON format.
            }
          }
        }
-            
+
      resourceDocs += ResourceDoc(
        getTransactionList,
        apiVersion,
@@ -908,11 +909,12 @@ This call is only available on transactions as reported in a JSON format.
        "/accounts/ACCOUNT_ID/transactions",
        "Read transaction list of an account",
        s"""${mockedDataText(false)}
-Read transaction reports or transaction lists of a given account ddressed by "account-id", depending on the steering parameter "bookingStatus" together with balances.
+            Read transaction reports or transaction lists of a given account ddressed by "account-id", 
+            depending on the steering parameter "bookingStatus" together with balances. 
+            For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo". 
+            The ASPSP might add balance information, if transaction lists without balances are not supported.
 
-For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo". 
-The ASPSP might add balance information, if transaction lists without balances are not supported.
-""",
+            """,
        json.parse(""""""),
        json.parse("""{
                       "account": {
@@ -966,7 +968,7 @@ The ASPSP might add balance information, if transaction lists without balances a
                         ],
                         "_links": {
                           "account": {
-                            "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853- f5400a64e80f"
+                            "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f"
                           }
                         }
                       }
@@ -1020,19 +1022,14 @@ The ASPSP might add balance information, if transaction lists without balances a
        "/accounts/ACCOUNT_ID",
        "Read Account Details",
        s"""${mockedDataText(true)}
-Reads details about an account, with balances where required. 
-It is assumed that a consent of the PSU to 
-this access is already given and stored on the ASPSP system. 
-The addressed details of this account depends then on the stored consent addressed by consentId, 
-respectively the OAuth2 access token.
+            Reads details about an account, with balances where required. 
+            It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
+            The addressed details of this account depends then on the stored consent addressed by consentId, 
+            respectively the OAuth2 access token. **NOTE:** The account-id can represent a multicurrency account. 
+            In this case the currency code is set to "XXX". Give detailed information about the addressed account. 
+            Give detailed information about the addressed account together with balance information
 
-**NOTE:** The account-id can represent a multicurrency account. 
-In this case the currency code is set to "XXX".
-
-Give detailed information about the addressed account.
-
-Give detailed information about the addressed account together with balance information
-""",
+            """,
        json.parse(""""""),
        json.parse("""{
   "cashAccountType" : { },
@@ -1097,12 +1094,12 @@ Give detailed information about the addressed account together with balance info
        "/card-accounts/ACCOUNT_ID",
        "Reads details about a card account",
        s"""${mockedDataText(true)}
-Reads details about a card account. 
-It is assumed that a consent of the PSU to this access is already given 
-and stored on the ASPSP system. The addressed details of this account depends 
-then on the stored consent addressed by consentId, respectively the OAuth2 
-access token.
-""",
+            Reads details about a card account. 
+            It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
+            The addressed details of this account depends then on the stored consent addressed by consentId, 
+            respectively the OAuth2 access token.
+
+            """,
        json.parse(""""""),
        json.parse("""{
   "balances" : "",
@@ -1156,7 +1153,7 @@ access token.
            }
          }
        }
-            
+
      resourceDocs += ResourceDoc(
        startConsentAuthorisation,
        apiVersion,
@@ -1165,38 +1162,33 @@ access token.
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent",
        s"""${mockedDataText(false)}
-Create an authorisation sub-resource and start the authorisation process of a consent. 
-The message might in addition transmit authentication and authorisation related data.
+            Create an authorisation sub-resource and start the authorisation process of a consent. 
+            The message might in addition transmit authentication and authorisation related data. 
+            his method is iterated n times for a n times SCA authorisation in a corporate context, 
+            each creating an own authorisation sub-endpoint for the corresponding PSU authorising the consent. 
+            The ASPSP might make the usage of this access method unnecessary, since the related authorisation
+             resource will be automatically created by the ASPSP after the submission of the consent data with the 
+             first POST consents call. The start authorisation process is a process which is needed for creating 
+             a new authorisation or cancellation sub-resource. 
+             
+             This applies in the following scenarios: * The ASPSP has indicated with an 'startAuthorisation' hyperlink 
+             in the preceding Payment Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
+             The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by using 
+             the extended forms. 
+             * 'startAuthorisationWithPsuIdentfication', 
+             * 'startAuthorisationWithPsuAuthentication' 
+             * 'startAuthorisationWithEncryptedPsuAuthentication' 
+             * 'startAuthorisationWithAuthentciationMethodSelection' 
+             * The related payment initiation cannot yet be executed since a multilevel SCA is mandated. 
+             * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceding Payment Cancellation 
+             Response that an explicit start of the authorisation process is needed by the TPP. 
+             
+             The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded by 
+             using the extended forms as indicated above. 
+             * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for executing the cancellation. 
+             * The signing basket needs to be authorised yet.
 
-his method is iterated n times for a n times SCA authorisation in a 
-corporate context, each creating an own authorisation sub-endpoint for 
-the corresponding PSU authorising the consent.
-
-The ASPSP might make the usage of this access method unnecessary, 
-since the related authorisation resource will be automatically created by 
-the ASPSP after the submission of the consent data with the first POST consents call.
-
-The start authorisation process is a process which is needed for creating a new authorisation 
-or cancellation sub-resource. 
-
-This applies in the following scenarios:
-
-  * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding Payment 
-    Initiation Response that an explicit start of the authorisation process is needed by the TPP. 
-    The 'startAuthorisation' hyperlink can transport more information about data which needs to be 
-    uploaded by using the extended forms.
-    * 'startAuthorisationWithPsuIdentfication', 
-    * 'startAuthorisationWithPsuAuthentication' #TODO
-    * 'startAuthorisationWithAuthentciationMethodSelection' 
-  * The related payment initiation cannot yet be executed since a multilevel SCA is mandated.
-  * The ASPSP has indicated with an 'startAuthorisation' hyperlink in the preceeding 
-    Payment Cancellation Response that an explicit start of the authorisation process is needed by the TPP. 
-    The 'startAuthorisation' hyperlink can transport more information about data which needs to be uploaded 
-    by using the extended forms as indicated above.
-  * The related payment cancellation request cannot be applied yet since a multilevel SCA is mandate for 
-    executing the cancellation.
-  * The signing basket needs to be authorised yet.
-""",
+            """,
        json.parse(""""""),
        json.parse("""{
                        "scaStatus": "received",
@@ -1244,47 +1236,32 @@ This applies in the following scenarios:
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Update PSU Data for consents",
        s"""${mockedDataText(false)}
-This method update PSU data on the consents  resource if needed. 
-It may authorise a consent within the Embedded SCA Approach where needed.
+            This method update PSU data on the consents resource if needed. It may authorise a consent within the Embedded 
+            SCA Approach where needed. Independently from the SCA Approach it supports 
+            e.g. the selection of the authentication method and a non-SCA PSU authentication. 
+            This methods updates PSU data on the cancellation authorisation resource if needed. 
+            There are several possible Update PSU Data requests in the context of a consent request if needed, 
+            which depends on the SCA approach: * Redirect SCA Approach: A specific Update PSU Data Request is applicable 
+            for 
+            * the selection of authentication methods, before choosing the actual SCA approach. 
+            * Decoupled SCA Approach: A specific Update PSU Data Request is only applicable for 
+            * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, 
+            or if no OAuth2 access token is used, or 
+            * the selection of authentication methods. 
+            * Embedded SCA Approach: The Update PSU Data Request might be used 
+            * to add credentials as a first factor authentication data of the PSU and 
+            * to select the authentication method and 
+            * transaction authorisation. 
+            The SCA Approach might depend on the chosen SCA method. For that reason, 
+            the following possible Update PSU Data request can apply to all SCA approaches: 
+            * Select an SCA method in case of several SCA methods are available for the customer. There are the following request types on this access path: 
+            * Update PSU Identification * Update PSU Authentication 
+            * Select PSU Autorization Method WARNING: This method need a reduced header, therefore many optional elements are not present. 
+            Maybe in a later version the access path will change. 
+            * Transaction Authorisation WARNING: This method need a reduced header, therefore many optional elements are not present. 
+            Maybe in a later version the access path will change.
 
-Independently from the SCA Approach it supports e.g. the selection of 
-the authentication method and a non-SCA PSU authentication.
-
-This methods updates PSU data on the cancellation authorisation resource if needed. 
-
-There are several possible Update PSU Data requests in the context of a consent request if needed, 
-which depends on the SCA approach:
-
-* Redirect SCA Approach:
-  A specific Update PSU Data Request is applicable for 
-    * the selection of authentication methods, before choosing the actual SCA approach.
-* Decoupled SCA Approach:
-  A specific Update PSU Data Request is only applicable for
-  * adding the PSU Identification, if not provided yet in the Payment Initiation Request or the Account Information Consent Request, or if no OAuth2 access token is used, or
-  * the selection of authentication methods.
-* Embedded SCA Approach: 
-  The Update PSU Data Request might be used 
-  * to add credentials as a first factor authentication data of the PSU and
-  * to select the authentication method and
-  * transaction authorisation.
-
-The SCA Approach might depend on the chosen SCA method. 
-For that reason, the following possible Update PSU Data request can apply to all SCA approaches:
-
-* Select an SCA method in case of several SCA methods are available for the customer.
-
-There are the following request types on this access path:
-  * Update PSU Identification
-  * Update PSU Authentication
-  * Select PSU Autorization Method 
-    WARNING: This method need a reduced header, 
-    therefore many optional elements are not present. 
-    Maybe in a later version the access path will change.
-  * Transaction Authorisation
-    WARNING: This method need a reduced header, 
-    therefore many optional elements are not present. 
-    Maybe in a later version the access path will change.
-""",
+            """,
        json.parse("""{
                       "access": {"accounts": []},
                       "recurringIndicator": false,
@@ -1292,7 +1269,7 @@ There are the following request types on this access path:
                       "frequencyPerDay": 4,
                       "combinedServiceIndicator": false
                     }"""),
-       json.parse(""""""""),
+       json.parse(""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil

@@ -1086,6 +1086,29 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
         }yield{
           (transactionId,callContext)
         }
+        case sepa_credit_transfers => for{
+
+          toSepaCreditTransfers <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON ", 400, callContext){
+            body.to_sepa_credit_transfers.get
+          }
+          toAccountId = toSepaCreditTransfers.debtorAccount.iban
+          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountId, callContext)
+          (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
+            fromAccount,
+            toAccount,
+            TransactionRequestCommonBodyJSONCommons(
+              toSepaCreditTransfers.instructedAmount,
+              ""
+            ),
+            BigDecimal(toSepaCreditTransfers.instructedAmount.amount),
+            "", //This is empty for BerlinGroup sepa_credit_transfers type now.
+            TransactionRequestType(transactionRequestType),
+            transactionRequest.charge_policy,
+            callContext
+          )
+        }yield{
+          (createdTransactionId,callContext)
+        }
         case transactionRequestType => Future((throw new Exception(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")), callContext)
       }
 

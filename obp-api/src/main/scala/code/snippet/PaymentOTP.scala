@@ -77,7 +77,7 @@ class PaymentOTP extends MdcLoggable {
         }
 
         result.map(json.parse(_).extract[StartPaymentAuthorisationJson]) match {
-          case Right(v) if(v.scaStatus == "received")=> {
+          case Right(v) if(v.scaStatus == "finalised")=> {
             "#form_otp" #> "" &
               "#otp-validate-success p *" #> "OTP validate success." &
               "#otp-validate-errors" #> ""

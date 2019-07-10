@@ -12,6 +12,7 @@ import code.consent.ConsentStatus
 import code.database.authorisation.Authorisations
 import code.fx.fx
 import code.model._
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{TRANSFER_TO_ACCOUNT, TRANSFER_TO_ATM, TRANSFER_TO_PHONE}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -61,19 +62,16 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
        "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
        "Payment Cancellation Request",
        s"""${mockedDataText(true)}
-This method initiates the cancellation of a payment. 
-Depending on the payment-service, the payment-product and the ASPSP's implementation, 
-this TPP call might be sufficient to cancel a payment. 
-If an authorisation of the payment cancellation is mandated by the ASPSP, 
-a corresponding hyperlink will be contained in the response message.
+            This method initiates the cancellation of a payment. Depending on the payment-service, the payment-product 
+            and the ASPSP's implementation, this TPP call might be sufficient to cancel a payment. If an authorisation 
+            of the payment cancellation is mandated by the ASPSP, a corresponding hyperlink will be contained in the 
+            response message. Cancels the addressed payment with resource identification paymentId if applicable to the 
+            payment-service, payment-product and received in product related timelines (e.g. before end of business day 
+            for scheduled payments of the last business day before the scheduled execution day). The response to this 
+            DELETE command will tell the TPP whether the * access method was rejected * access method was successful, 
+            or * access method is generally applicable, but further authorisation processes are needed.
 
-Cancels the addressed payment with resource identification paymentId if applicable to the payment-service, payment-product and received in product related timelines (e.g. before end of business day for scheduled payments of the last business day before the scheduled execution day). 
-
-The response to this DELETE command will tell the TPP whether the 
-  * access method was rejected
-  * access method was successful, or
-  * access method is generally applicable, but further authorisation processes are needed.
-""",
+            """,
        json.parse(""""""),
        json.parse("""{
   "challengeData" : {
@@ -82,7 +80,7 @@ The response to this DELETE command will tell the TPP whether the
     "image" : "image",
     "imageLink" : "http://example.com/aeiou",
     "otpFormat" : "characters",
-    "data" : "data"
+    "data" : [ "data", "data" ]
   },
   "scaMethods" : "",
   "_links" : {
@@ -523,12 +521,12 @@ $additionalInstructions
                     },
                     "creditorName": "70charname"
                     }"""),
-       json.parse("""{
+       json.parse(s"""{
                       "transactionStatus": "RCVD",
                       "paymentId": "1234-wertiq-983",
                       "_links":
                         {
-                        "scaRedirect": {"href": "answer transaction request url"},
+                        "scaRedirect": {"href": "$getServerUrl/otp?flow=payment&paymentService=payments&paymentProduct=sepa_credit_transfers&paymentId=b0472c21-6cea-4ee0-b036-3e253adb3b0b"},
                         "self": {"href": "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"},
                         "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
                         "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
@@ -939,7 +937,7 @@ There are the following request types on this access path:
 """,
        json.parse("""{"scaAuthenticationData":"12345"}"""),
        json.parse("""{
-                        "scaStatus": "received",
+                        "scaStatus": "finalised",
                         "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
                         "psuMessage": "Please check your SMS at a mobile device.",
                         "_links": {
@@ -955,7 +953,7 @@ There are the following request types on this access path:
        case paymentService :: paymentProduct :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
          cc =>
            for {
-             (_, callContext) <- authorizedAccess(cc)
+             (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Pisp(callContext)
              failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
              updatePaymentPsuDataJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -971,6 +969,22 @@ There are the following request types on this access path:
              authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(paymentid,authorisationid, updatePaymentPsuDataJson.scaAuthenticationData))map {
                i => connectorEmptyResponse(i, callContext)
              }
+
+             //Map obp transacition request id with BerlinGroup PaymentId
+             transactionRequestId = TransactionRequestId(paymentid)
+             
+             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+             
+             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(
+               BankId(existingTransactionRequest.from.bank_id), 
+               AccountId(existingTransactionRequest.from.account_id), 
+               callContext
+             )
+              _ <- if(authorisation.scaStatus =="finalised") 
+                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+              else //If it is not `finalised`, just return the `authorisation` back, without any payments
+                Future{true}
+             
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(authorisation), callContext)
            }

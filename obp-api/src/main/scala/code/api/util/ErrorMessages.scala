@@ -152,6 +152,7 @@ object ErrorMessages {
   val X509CannotGetECPublicKey = "OBP-20305: EC public key cannot be found at PEM Encoded Certificate."
   val X509CannotGetCertificate = "OBP-20306: PEM Encoded Certificate cannot be found at request header."
   val X509ActionIsNotAllowed = "OBP-20307: PEM Encoded Certificate does not provide the proper role for the action has been taken."
+  val X509ThereAreNoPsd2Roles = "OBP-20308: PEM Encoded Certificate does not contain PSD2 roles."
 
   // Resource related messages (OBP-30XXX)
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -310,6 +311,7 @@ object ErrorMessages {
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
+  val InvalidAuthorisationStatus = "OBP-36002: Authorisation Status is Invalid"
   // General Resource related messages above here
 
 

@@ -313,6 +313,10 @@ webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
 # We currently use this to display example customer login in sandbox etc.
 webui_login_page_special_instructions=
 
+# To display the introduction page for sandbox.It supports the markdown format.It will show the introduction OBP-API home 
+# page `INTRODUCTION` page and also for Glossary `Sandbox Introduction`.  
+webui_sandbox_introduction=
+
 # Link for SDKs
 webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
 
