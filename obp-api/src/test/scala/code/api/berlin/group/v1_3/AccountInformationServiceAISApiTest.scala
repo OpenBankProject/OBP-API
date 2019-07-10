@@ -1,7 +1,7 @@
 package code.api.berlin.group.v1_3
 
 import code.api.ErrorMessage
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{AccountBalancesV13, CardTransactionsJsonV13, ConsentStatusJsonV13, CoreAccountsJsonV13, GetConsentResponseJson, PostConsentResponseJson, TransactionsJsonV13}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
@@ -30,11 +30,12 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   
   object startConsentAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisation))
 
+  object getConsentAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentAuthorisation))
+  
   object getConsentScaStatus extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentScaStatus))
   
   object updateConsentsPsuData extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData))
 
-  object getConsentAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentAuthorisation))
   
   feature(s"BG v1.3 - $getAccountList") {
     scenario("Not Authentication User, test failed ", BerlinGroupV1_3, getAccountList) {
@@ -174,5 +175,79 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       
     }
   }
+
+    feature(s"BG v1.3 - ${startConsentAuthorisation.name} ") {
+      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisation) {
+        val postJsonBody = APIMethods_AccountInformationServiceAISApi
+          .resourceDocs
+          .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
+          .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
+          .jvalueToCaseclass
+        val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
+        val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
+
+        Then("We should get a 201 ")
+        response.code should equal(201)
+        response.body.extract[PostConsentResponseJson].consentId should not be (empty)
+
+        val consentId =response.body.extract[PostConsentResponseJson].consentId
+
+        Then(s"We test the $startConsentAuthorisation")
+        val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
+        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation)
+        responseStartConsentAuthorisation.code should be (201)
+        responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].scaStatus should be ("received")
+      }
+    }
+
+
+    feature(s"BG v1.3 - ${startConsentAuthorisation.name} and ${getConsentAuthorisation.name} and ${getConsentScaStatus.name} and ${updateConsentsPsuData.name}") {
+      scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisation) {
+        val postJsonBody = APIMethods_AccountInformationServiceAISApi
+          .resourceDocs
+          .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
+          .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
+          .jvalueToCaseclass
+        val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
+        val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
+  
+        Then("We should get a 201 ")
+        response.code should equal(201)
+        response.body.extract[PostConsentResponseJson].consentId should not be (empty)
+  
+        val consentId =response.body.extract[PostConsentResponseJson].consentId
+  
+        Then(s"We test the $startConsentAuthorisation")
+        val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
+        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation)
+        responseStartConsentAuthorisation.code should be (201)
+        responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].scaStatus should be ("received")
+
+        Then(s"We test the $getConsentAuthorisation")
+        val requestGetConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
+        val responseGetConsentAuthorisation = makeGetRequest(requestGetConsentAuthorisation)
+        responseGetConsentAuthorisation.code should be (200)
+        responseGetConsentAuthorisation.body.extract[AuthorisationJsonV13].authorisationIds.length > 0 should be (true)
+
+        Then(s"We test the $getConsentScaStatus")
+        val authorisationId = responseGetConsentAuthorisation.body.extract[AuthorisationJsonV13].authorisationIds.head
+        val requestGetConsentScaStatus = (V1_3_BG / "consents"/consentId /"authorisations"/authorisationId ).POST <@ (user1)
+        val responseGetConsentScaStatus = makeGetRequest(requestGetConsentScaStatus)
+        responseGetConsentScaStatus.code should be (200)
+        responseGetConsentScaStatus.body.extract[ScaStatusJsonV13].scaStatus should be ("received")
+
+        Then(s"We test the $updateConsentsPsuData")
+        val updateConsentsPsuDataJsonBody = APIMethods_AccountInformationServiceAISApi
+          .resourceDocs
+          .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData)
+          .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
+          .jvalueToCaseclass
+        val requestUpdateConsentsPsuData = (V1_3_BG / "consents"/consentId /"authorisations"/ authorisationId).PUT <@ (user1)
+        val responseUpdateConsentsPsuData = makePutRequest(requestUpdateConsentsPsuData, write(updateConsentsPsuDataJsonBody))
+        responseUpdateConsentsPsuData.code should be (200)
+        responseUpdateConsentsPsuData.body.extract[PostConsentResponseJson].consentStatus should be ("received")
+        
+      }
+    }  
 
 }

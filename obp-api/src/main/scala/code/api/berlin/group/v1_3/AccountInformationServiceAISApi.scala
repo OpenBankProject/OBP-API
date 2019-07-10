@@ -908,7 +908,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "GET",
        "/accounts/ACCOUNT_ID/transactions",
        "Read transaction list of an account",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Read transaction reports or transaction lists of a given account ddressed by "account-id", 
             depending on the steering parameter "bookingStatus" together with balances. 
             For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo". 
@@ -1161,7 +1161,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "POST",
        "/consents/CONSENTID/authorisations",
        "Start the authorisation process for a consent",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Create an authorisation sub-resource and start the authorisation process of a consent. 
             The message might in addition transmit authentication and authorisation related data. 
             his method is iterated n times for a n times SCA authorisation in a corporate context, 
@@ -1235,7 +1235,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "PUT",
        "/consents/CONSENTID/authorisations/AUTHORISATIONID",
        "Update PSU Data for consents",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             This method update PSU data on the consents resource if needed. It may authorise a consent within the Embedded 
             SCA Approach where needed. Independently from the SCA Approach it supports 
             e.g. the selection of the authentication method and a non-SCA PSU authentication. 
@@ -1262,8 +1262,14 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
             Maybe in a later version the access path will change.
 
             """,
+       json.parse("""{
+                      "access": {"accounts": []},
+                      "recurringIndicator": false,
+                      "validUntil": "2020-12-31",
+                      "frequencyPerDay": 4,
+                      "combinedServiceIndicator": false
+                    }"""),
        json.parse(""""""),
-       json.parse(""""""""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
