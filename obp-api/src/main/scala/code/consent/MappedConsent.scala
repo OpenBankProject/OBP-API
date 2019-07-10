@@ -88,6 +88,8 @@ object MappedConsentProvider extends ConsentProvider {
   }  
   override def revoke(consentId: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
+      case Full(consent) if consent.status == ConsentStatus.REVOKED.toString =>
+        Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Full(consent) =>
         tryo(consent
           .mStatus(ConsentStatus.REVOKED.toString)
