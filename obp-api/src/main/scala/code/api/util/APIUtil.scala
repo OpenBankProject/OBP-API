@@ -2612,7 +2612,14 @@ Returns a string showed to the developer
   
   def getMaskedPrimaryAccountNumber(accountNumber: String): String = {
     val (first, second) = accountNumber.splitAt(accountNumber.size/2)
-    first.substring(0, first.size - 3) + "***" + "***" + second.substring(3)
+    if(first.length >=3 && second.length>=3)
+      first.substring(0, first.size - 3) + "***" + "***" + second.substring(3)
+    else if (first.length >=3 && second.length< 3)
+      first.substring(0, first.size - 3) + "***" + "***" + second
+    else if (first.length <3 && second.length>= 3)
+      first + "***" + "***" + second.substring(3)
+    else
+      first+ "***" + "***" + second
   }
   
   def getBicFromBankId(bankId: String)= {
