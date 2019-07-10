@@ -76,7 +76,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
   case class AccountBalancesV13(
                                  account:FromAccount,
-                                 `balances`: List[AccountBalance] = AccountBalance() :: Nil
+                                 `balances`: List[AccountBalance]
   )
   case class TransactionsLinksV13(
     account: String
@@ -88,18 +88,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     account: LinkHrefJson ,
    
   )
-  case class ExchangeRateJson(
-    sourceCurrency: String = "EUR",
-    rate: String = "string",
-    unitCurrency: String = "string",
-    targetCurrency: String = "EUR",
-    rateDate: String = "string",
-    rateContract: String = "string"    
-  )
   case class CreditorAccountJson(
     iban: String,
   )
-  
   case class TransactionJsonV13(
     transactionId: String,
     creditorName: String,

@@ -691,7 +691,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
              (Full(u), callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-                 i => connectorEmptyResponse(i, callContext)
+               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
                }
            } yield {
              (createGetConsentResponseJson(consent), HttpCode.`200`(callContext))
@@ -735,7 +735,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
              (_, callContext) <- authorizedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-               unboxFullOrFail(_, callContext, ConsentNotFound)
+               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
              }
              authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
                authorisationId
@@ -968,7 +968,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
                         ],
                         "_links": {
                           "account": {
-                            "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853- f5400a64e80f"
+                            "href": "/v1.3/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f"
                           }
                         }
                       }
