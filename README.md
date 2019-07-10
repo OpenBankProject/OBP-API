@@ -29,8 +29,8 @@ To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at th
 On the 8th of June 2017, [V2.0.0](https://apisandbox.openbankproject.com/obp/v2.0.0/root) was marked as stable.
 
 ## LICENSE
-
-This project is dual licensed under the AGPL V3 (see NOTICE) and commercial licenses from TESOBE Ltd.
+.
+This project is dual licensed under the AGPL V3 (see NOTICE) and commercial licenses from TESOBE GmbH.
 
 ## SETUP
 
