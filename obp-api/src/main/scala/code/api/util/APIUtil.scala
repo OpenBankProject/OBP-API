@@ -2621,9 +2621,23 @@ Returns a string showed to the developer
     else
       first+ "***" + "***" + second
   }
-  
+
+  /**
+    * This endpoint returns BIC on an bank according to next rules:
+    * 1st try - Inspect bank routing
+    * 2nd ry - get deprecated field "swiftBic"
+    * @param bankId The BANK_ID specified at an endpoint's path
+    * @return BIC of the Bank
+    */
   def getBicFromBankId(bankId: String)= {
-    Connector.connector.vend.getBankLegacy(BankId(bankId), None).map(_._1.swiftBic).getOrElse("")
+      Connector.connector.vend.getBankLegacy(BankId(bankId), None) match {
+      case Full((bank, _)) =>
+        bank.bankRoutingScheme match {
+          case "BIC" => bank.bankRoutingAddress
+          case _ => bank.swiftBic
+        }
+      case _ => ""
+    }
   }
 
   /**
