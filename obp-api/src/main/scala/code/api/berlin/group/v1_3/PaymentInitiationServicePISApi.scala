@@ -99,7 +99,7 @@ object APIMethods_PaymentInitiationServicePISApi extends RestHelper {
      )
 
      lazy val cancelPayment : OBPEndpoint = {
-       case payment_service :: payment_product :: paymentid :: Nil JsonDelete _ => {
+       case payment_service :: payment_product :: paymentId :: Nil JsonDelete _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
@@ -159,6 +159,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
+             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
                paymentId,
                cancellationId
@@ -200,7 +201,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
      )
 
      lazy val getPaymentInformation : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentid :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
@@ -211,7 +212,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
-             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
 
              transactionRequestBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ",400, callContext) {
                transactionRequest.body.to_sepa_credit_transfers.get
@@ -312,6 +313,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
+             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
                unboxFullOrFail(_, callContext, s"$UnknownError ")
              }
@@ -342,7 +344,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
      )
 
      lazy val getPaymentInitiationScaStatus : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentid:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
@@ -353,11 +355,12 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
+             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
-               paymentid,
+               paymentId,
                authorisationid
              )) map {
-               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current PAYMENT_ID($paymentid) and AUTHORISATION_ID($authorisationid)")
+               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current PAYMENT_ID($paymentId) and AUTHORISATION_ID($authorisationid)")
              }
              
            } yield {
@@ -388,7 +391,7 @@ Check the transaction status of a payment initiation.""",
      )
 
      lazy val getPaymentInitiationStatus : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentid:: "status" :: Nil JsonGet _ => {
+       case paymentService :: paymentProduct :: paymentId:: "status" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
@@ -399,7 +402,7 @@ Check the transaction status of a payment initiation.""",
              transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
-             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentid), callContext)
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
 
              transactionRequestStatus = transactionRequest.status match {
                case "COMPLETED" => "ACCP"
@@ -409,7 +412,7 @@ Check the transaction status of a payment initiation.""",
              transactionRequestAmount <- NewStyle.function.tryons(s"${UnknownError} transction request amount can not convert to a Decimal",400, callContext) {
                BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
              }
-             transactionRequestCurrency <- NewStyle.function.tryons(s"${UnknownError} can not get currency from this paymentId(${paymentid})",400, callContext) {
+             transactionRequestCurrency <- NewStyle.function.tryons(s"${UnknownError} can not get currency from this paymentId(${paymentId})",400, callContext) {
                transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.currency
              }
              
@@ -769,6 +772,7 @@ This applies in the following scenarios:
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
+             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisation <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
                paymentId,
                "",
@@ -870,6 +874,7 @@ There are the following request types on this access path:
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
+             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(
                paymentId,
                cancellationId, 
@@ -953,7 +958,7 @@ There are the following request types on this access path:
      )
 
      lazy val updatePaymentPsuData : OBPEndpoint = {
-       case paymentService :: paymentProduct :: paymentid:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
+       case paymentService :: paymentProduct :: paymentId:: "authorisations" :: authorisationid :: Nil JsonPut json -> _ =>  {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
@@ -969,12 +974,13 @@ There are the following request types on this access path:
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
-             authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(paymentid,authorisationid, updatePaymentPsuDataJson.scaAuthenticationData))map {
+             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+             authorisation <- Future(Authorisations.authorisationProvider.vend.checkAnswer(paymentId,authorisationid, updatePaymentPsuDataJson.scaAuthenticationData))map {
                i => connectorEmptyResponse(i, callContext)
              }
 
              //Map obp transacition request id with BerlinGroup PaymentId
-             transactionRequestId = TransactionRequestId(paymentid)
+             transactionRequestId = TransactionRequestId(paymentId)
              
              (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
              

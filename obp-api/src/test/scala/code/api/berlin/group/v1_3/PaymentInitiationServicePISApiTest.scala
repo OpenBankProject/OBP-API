@@ -3,7 +3,7 @@ package code.api.berlin.group.v1_3
 import code.api.BerlinGroup.ScaStatus
 import code.api.ErrorMessage
 import code.api.util.ErrorMessages._
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
@@ -243,21 +243,6 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       (responseGet.body \ "fundsAvailable").extract[Boolean] should be (true)
     }
   }
-  feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisation.name}") {
-    scenario("Successful call endpoint startPaymentInitiationCancellationAuthorisation", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
-
-      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost, """""")
-      Then("We should get a 200 ")
-      response.code should equal(200)
-      org.scalameta.logger.elem(response)
-      val payment = response.body.extract[StartPaymentAuthorisationJson]
-      payment.authorisationId should not be null
-      payment.psuMessage should not be null
-      payment.scaStatus should not be null
-      payment._links.scaStatus should not be null
-    }
-  }  
   feature(s"test the BG v1.3 ${startPaymentAuthorisation.name} and ${getPaymentInitiationAuthorisation.name} and ${getPaymentInitiationScaStatus.name} and ${updatePaymentPsuData.name}") {
     scenario(s"${startPaymentAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
      
@@ -352,5 +337,90 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     }
     
   }
-  
+  feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisation.name} " +
+    s"and ${getPaymentInitiationCancellationAuthorisationInformation.name} " +
+    s"and ${getPaymentCancellationScaStatus.name}" +
+    s"and ${updatePaymentCancellationPsuData.name}") {
+    scenario(s"${startPaymentInitiationCancellationAuthorisation.name} Failed Case - Wrong PaymentId", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
+
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, """""")
+      Then("We should get a 400 ")
+      response.code should equal(400)
+      response.body.extract[code.api.ErrorMessage].message should startWith (InvalidTransactionRequestId)
+    }
+    scenario(s"Successful Case ", BerlinGroupV1_3, PIS) {
+
+      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
+      val ibanFrom = accounts.head
+      val ibanTo = accounts.last
+
+      val initiatePaymentJson =
+        s"""{
+           | "debtorAccount": {
+           |   "iban": "${ibanFrom}"
+           | },
+           |"instructedAmount": {
+           |  "currency": "EUR",
+           |  "amount": "12355"
+           |},
+           |"creditorAccount": {
+           |  "iban": "${ibanTo}"
+           |},
+           |"creditorName": "70charname"
+            }""".stripMargin
+
+      val requestInitiatePaymentJson = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val responseInitiatePaymentJson: APIResponse = makePostRequest(requestInitiatePaymentJson, initiatePaymentJson)
+      Then("We should get a 201 ")
+      responseInitiatePaymentJson.code should equal(201)
+      val paymentResponseInitiatePaymentJson = responseInitiatePaymentJson.body.extract[InitiatePaymentResponseJson]
+      paymentResponseInitiatePaymentJson.transactionStatus should be ("RCVD")
+
+      val paymentId = paymentResponseInitiatePaymentJson.paymentId
+
+      Then(s"we test the ${startPaymentInitiationCancellationAuthorisation.name}")
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost)
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      org.scalameta.logger.elem(response)
+      val startPaymentAuthorisationResponse = response.body.extract[StartPaymentAuthorisationJson]
+      startPaymentAuthorisationResponse.authorisationId should not be null
+      startPaymentAuthorisationResponse.psuMessage should be ("Please check your SMS at a mobile device.")
+      startPaymentAuthorisationResponse.scaStatus should be (ScaStatus.received.toString)
+      startPaymentAuthorisationResponse._links.scaStatus should not be null
+
+      Then(s"We can test the ${getPaymentInitiationCancellationAuthorisationInformation.name}")
+      val requestGetPaymentInitiationAuthorisation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations").GET <@ (user1)
+      val responseGetPaymentInitiationAuthorisation: APIResponse = makeGetRequest(requestGetPaymentInitiationAuthorisation)
+      responseGetPaymentInitiationAuthorisation.code should be (200)
+      responseGetPaymentInitiationAuthorisation.body.extract[CancellationJsonV13].cancellationIds.length > 0 should be (true)
+      val paymentInitiationAuthorisation = responseGetPaymentInitiationAuthorisation.body.extract[CancellationJsonV13].cancellationIds
+      val cancelationId = paymentInitiationAuthorisation.head
+
+      Then(s"We can test the ${getPaymentCancellationScaStatus.name}")
+      val requestGetPaymentInitiationScaStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations" /cancelationId).GET <@ (user1)
+      val responseGetPaymentInitiationScaStatus: APIResponse = makeGetRequest(requestGetPaymentInitiationScaStatus)
+      responseGetPaymentInitiationScaStatus.code should be (200)
+      val paymentInitiationScaStatus = (responseGetPaymentInitiationScaStatus.body \ "scaStatus").extract[String]
+      paymentInitiationScaStatus should be (ScaStatus.received.toString)
+
+      Then(s"We can test the ${updatePaymentCancellationPsuData.name}")
+      val updatePaymentPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
+        .resourceDocs
+        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData)
+        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
+        .jvalueToCaseclass
+
+      val requestUpdatePaymentPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations"/cancelationId).PUT <@ (user1)
+      val responseUpdatePaymentPsuData: APIResponse = makePutRequest(requestUpdatePaymentPsuData, write(updatePaymentPsuDataJsonBody))
+      responseUpdatePaymentPsuData.code should be (200)
+      responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
+      responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(cancelationId)
+
+    }
+
+  }
+
 }
