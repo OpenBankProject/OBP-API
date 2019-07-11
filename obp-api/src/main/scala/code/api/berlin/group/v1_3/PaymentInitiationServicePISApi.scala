@@ -433,7 +433,7 @@ Check the transaction status of a payment initiation.""",
            } yield {
              (json.parse(s"""{
                            "transactionStatus": "$transactionRequestStatusChekedFunds"
-                           "fundsAvailable": "$fundsAvailable"
+                           "fundsAvailable": $fundsAvailable
                           }"""
              ), callContext)
            }

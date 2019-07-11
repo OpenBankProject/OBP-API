@@ -45,7 +45,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, wrongInitiatePaymentJson)
       Then("We should get a 400 ")
@@ -69,7 +69,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, wrongAmountInitiatePaymentJson)
       Then("We should get a 400 ")
@@ -100,7 +100,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
@@ -139,7 +139,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
@@ -177,7 +177,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
@@ -200,7 +200,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     }
   }
   feature(s"test the BG v1.3 -${getPaymentInitiationStatus.name}") {
-    scenario("Successful case - big amount -- do not change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
+    scenario("Successful case ", BerlinGroupV1_3, PIS, initiatePayment) {
       val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
       val ibanFrom = accounts.head
       val ibanTo = accounts.last
@@ -219,7 +219,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |},
            |"creditorName": "70charname"
             }""".stripMargin
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
       Then("We should get a 201 ")
@@ -240,7 +240,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   }
   feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisation.name}") {
     scenario("Successful call endpoint startPaymentInitiationCancellationAuthorisation", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "cancellation-authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 200 ")
@@ -255,7 +255,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   }  
   feature(s"test the BG v1.3 ${startPaymentAuthorisation}") {
     scenario("Successful call endpoint startPaymentAuthorisation", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
-      When("Post empty to call initiatePayment")
+     
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / "PAYMENT_ID" / "authorisations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, """""")
       Then("We should get a 200 ")
