@@ -58,6 +58,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     MappedBankAccount.create
       .bank(bankId.value)
+      .accountIban(randomString(20))//Added the Iban for test accounts
       .theAccountId(accountId.value)
       .accountCurrency(currency)
       .accountBalance(900000000)
