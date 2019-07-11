@@ -392,32 +392,32 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       startPaymentAuthorisationResponse._links.scaStatus should not be null
 
       Then(s"We can test the ${getPaymentInitiationCancellationAuthorisationInformation.name}")
-      val requestGetPaymentInitiationAuthorisation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations").GET <@ (user1)
-      val responseGetPaymentInitiationAuthorisation: APIResponse = makeGetRequest(requestGetPaymentInitiationAuthorisation)
-      responseGetPaymentInitiationAuthorisation.code should be (200)
-      responseGetPaymentInitiationAuthorisation.body.extract[CancellationJsonV13].cancellationIds.length > 0 should be (true)
-      val paymentInitiationAuthorisation = responseGetPaymentInitiationAuthorisation.body.extract[CancellationJsonV13].cancellationIds
-      val cancelationId = paymentInitiationAuthorisation.head
+      val requestGetPaymentInitiationCancellationAuthorisationInformation = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations").GET <@ (user1)
+      val responseGetPaymentInitiationCancellationAuthorisationInformation: APIResponse = makeGetRequest(requestGetPaymentInitiationCancellationAuthorisationInformation)
+      responseGetPaymentInitiationCancellationAuthorisationInformation.code should be (200)
+      responseGetPaymentInitiationCancellationAuthorisationInformation.body.extract[CancellationJsonV13].cancellationIds.length > 0 should be (true)
+      val cancellationJsonV13 = responseGetPaymentInitiationCancellationAuthorisationInformation.body.extract[CancellationJsonV13].cancellationIds
+      val cancelationId = cancellationJsonV13.head
 
       Then(s"We can test the ${getPaymentCancellationScaStatus.name}")
-      val requestGetPaymentInitiationScaStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations" /cancelationId).GET <@ (user1)
-      val responseGetPaymentInitiationScaStatus: APIResponse = makeGetRequest(requestGetPaymentInitiationScaStatus)
-      responseGetPaymentInitiationScaStatus.code should be (200)
-      val paymentInitiationScaStatus = (responseGetPaymentInitiationScaStatus.body \ "scaStatus").extract[String]
-      paymentInitiationScaStatus should be (ScaStatus.received.toString)
+      val requestGetPaymentCancellationScaStatus = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations" /cancelationId).GET <@ (user1)
+      val responseGetPaymentCancellationScaStatus: APIResponse = makeGetRequest(requestGetPaymentCancellationScaStatus)
+      responseGetPaymentCancellationScaStatus.code should be (200)
+      val cancellationScaStatus = (responseGetPaymentCancellationScaStatus.body \ "scaStatus").extract[String]
+      cancellationScaStatus should be (ScaStatus.received.toString)
 
       Then(s"We can test the ${updatePaymentCancellationPsuData.name}")
-      val updatePaymentPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
+      val updatePaymentCancellationPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
         .resourceDocs
         .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuData)
         .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
         .jvalueToCaseclass
 
-      val requestUpdatePaymentPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations"/cancelationId).PUT <@ (user1)
-      val responseUpdatePaymentPsuData: APIResponse = makePutRequest(requestUpdatePaymentPsuData, write(updatePaymentPsuDataJsonBody))
-      responseUpdatePaymentPsuData.code should be (200)
-      responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
-      responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(cancelationId)
+      val requestUpdatePaymentCancellationPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "cancellation-authorisations"/cancelationId).PUT <@ (user1)
+      val responseUpdatePaymentCancellationPsuData: APIResponse = makePutRequest(requestUpdatePaymentCancellationPsuData, write(updatePaymentCancellationPsuDataJsonBody))
+      responseUpdatePaymentCancellationPsuData.code should be (200)
+      responseUpdatePaymentCancellationPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
+      responseUpdatePaymentCancellationPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(cancelationId)
 
     }
 

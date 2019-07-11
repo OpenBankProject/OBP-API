@@ -66,7 +66,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       Then("We should get a 200 ")
       response.code should equal(200)
       response.body.extract[AccountBalancesV13].`balances`.length > 0 should be (true)
-      response.body.extract[AccountBalancesV13].account.iban should be ("")
+      response.body.extract[AccountBalancesV13].account.iban should not be ("")
     }
   }  
 
@@ -78,7 +78,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 200 ")
       response.code should equal(200)
-      response.body.extract[TransactionsJsonV13].account.iban should be ("")
+      response.body.extract[TransactionsJsonV13].account.iban should not be ("")
       response.body.extract[TransactionsJsonV13].transactions.booked.length >0 should be (true)
       response.body.extract[TransactionsJsonV13].transactions.pending.length >0 should be (true)
     }
