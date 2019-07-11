@@ -157,7 +157,87 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(0))
     }
   }
-  
+  feature(s"test the BG v1.3 -${getPaymentInformation.name}") {
+    scenario("Successful case ", BerlinGroupV1_3, PIS, initiatePayment) {
+      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
+      val ibanFrom = accounts.head
+      val ibanTo = accounts.last
+
+      val initiatePaymentJson =
+        s"""{
+           | "debtorAccount": {
+           |   "iban": "${ibanFrom}"
+           | },
+           |"instructedAmount": {
+           |  "currency": "EUR",
+           |  "amount": "123"
+           |},
+           |"creditorAccount": {
+           |  "iban": "${ibanTo}"
+           |},
+           |"creditorName": "70charname"
+            }""".stripMargin
+      When("Post empty to call initiatePayment")
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
+      Then("We should get a 201 ")
+      response.code should equal(201)
+      val payment = response.body.extract[InitiatePaymentResponseJson]
+      payment.transactionStatus should be ("ACCP")
+      payment.paymentId should not be null
+
+      Then(s"we test the ${getPaymentInformation.name}")
+      val paymentId = payment.paymentId
+      val requestGet = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId).GET <@ (user1)
+      val responseGet: APIResponse = makeGetRequest(requestGet)
+      responseGet.code should be (200)
+      responseGet.body.extract[SepaCreditTransfers].instructedAmount.currency should be ("EUR")
+      responseGet.body.extract[SepaCreditTransfers].instructedAmount.amount should be ("123")
+      responseGet.body.extract[SepaCreditTransfers].debtorAccount.iban should be (ibanFrom)
+      responseGet.body.extract[SepaCreditTransfers].creditorAccount.iban should be (ibanTo)
+
+
+    }
+  }
+  feature(s"test the BG v1.3 -${getPaymentInitiationStatus.name}") {
+    scenario("Successful case - big amount -- do not change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
+      val accounts = MappedBankAccount.findAll().map(_.accountIban.get).filter(_ != null)
+      val ibanFrom = accounts.head
+      val ibanTo = accounts.last
+
+      val initiatePaymentJson =
+        s"""{
+           | "debtorAccount": {
+           |   "iban": "${ibanFrom}"
+           | },
+           |"instructedAmount": {
+           |  "currency": "EUR",
+           |  "amount": "123324"
+           |},
+           |"creditorAccount": {
+           |  "iban": "${ibanTo}"
+           |},
+           |"creditorName": "70charname"
+            }""".stripMargin
+      When("Post empty to call initiatePayment")
+      val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString).POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, initiatePaymentJson)
+      Then("We should get a 201 ")
+      response.code should equal(201)
+      val payment = response.body.extract[InitiatePaymentResponseJson]
+      payment.transactionStatus should be ("RCVD")
+      payment.paymentId should not be null
+      payment._links.scaStatus should not be null
+
+      Then(s"we test the ${getPaymentInitiationStatus.name}")
+      val paymentId = payment.paymentId
+      val requestGet = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.sepa_credit_transfers.toString / paymentId / "status").GET <@ (user1)
+      val responseGet: APIResponse = makeGetRequest(requestGet)
+      responseGet.code should be (200)
+      (responseGet.body \ "transactionStatus").extract[String] should be ("RCVD")
+      (responseGet.body \ "fundsAvailable").extract[Boolean] should be (true)
+    }
+  }
   feature(s"test the BG v1.3 ${startPaymentInitiationCancellationAuthorisation.name}") {
     scenario("Successful call endpoint startPaymentInitiationCancellationAuthorisation", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
       When("Post empty to call initiatePayment")
@@ -173,7 +253,6 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       payment._links.scaStatus should not be null
     }
   }  
-
   feature(s"test the BG v1.3 ${startPaymentAuthorisation}") {
     scenario("Successful call endpoint startPaymentAuthorisation", BerlinGroupV1_3, PIS, startPaymentInitiationCancellationAuthorisation) {
       When("Post empty to call initiatePayment")
