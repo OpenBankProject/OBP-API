@@ -1,16 +1,18 @@
 package code.api.berlin.group.v1_3
 
 import code.api.ErrorMessage
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, NotPositiveAmount}
+import code.api.util.ErrorMessages.{AuthorisationNotFound, AuthorisationNotFoundByPaymentId, InvalidJsonFormat, NotPositiveAmount}
 import code.model.dataAccess.MappedBankAccount
 import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.SepaCreditTransfers
 import org.scalatest.Tag
+
+import scala.collection.immutable.List
 
 class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
 
@@ -139,6 +141,54 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       payment.psuMessage should not be null
       payment.scaStatus should not be null
       payment._links.scaStatus should not be null
+    }
+  }  
+  feature("test the BG v1.3 getPaymentCancellationScaStatus") {
+    scenario("Successful call endpoint getPaymentCancellationScaStatus", BerlinGroupV1_3, PIS, getPaymentCancellationScaStatus) {
+      When("Post empty to call initiatePayment")
+      val cancellationId = "NON_EXISTING_CANCELLATION_ID"
+      val requestGet = (V1_3_BG / 
+          PaymentServiceTypes.bulk_payments.toString / 
+          TransactionRequestTypes.sepa_credit_transfers.toString / 
+          "PAYMENT_ID" / 
+          "cancellation-authorisations" /
+        cancellationId).POST <@ (user1)
+      val response: APIResponse = makeGetRequest(requestGet)
+      Then("We should get a 400 ")
+      response.code should equal(400)
+      val error = s"$AuthorisationNotFound Current CANCELLATION_ID($cancellationId)"
+      And("error should be " + error)
+      response.body.extract[ErrorMessage].message should equal (error)
+    }
+  }  
+  feature("test the BG v1.3 getPaymentInitiationAuthorisation") {
+    scenario("Successful call endpoint getPaymentInitiationAuthorisation", BerlinGroupV1_3, PIS, getPaymentInitiationAuthorisation) {
+      When("Post empty to call initiatePayment")
+      val requestGet = (V1_3_BG / 
+          PaymentServiceTypes.bulk_payments.toString / 
+          TransactionRequestTypes.sepa_credit_transfers.toString / 
+          "NON_EXISTING_PAYMENT_ID" / 
+          "authorisations").POST <@ (user1)
+      val response: APIResponse = makeGetRequest(requestGet)
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      val payment = response.body.extract[List[StartPaymentAuthorisationJson]]
+      payment.size should be equals(0)
+    }
+  }  
+  feature("test the BG v1.3 getPaymentInitiationCancellationAuthorisationInformation") {
+    scenario("Successful call endpoint getPaymentInitiationCancellationAuthorisationInformation", BerlinGroupV1_3, PIS, getPaymentInitiationCancellationAuthorisationInformation) {
+      When("Post empty to call initiatePayment")
+      val requestGet = (V1_3_BG / 
+          PaymentServiceTypes.bulk_payments.toString / 
+          TransactionRequestTypes.sepa_credit_transfers.toString / 
+          "NON_EXISTING_PAYMENT_ID" / 
+          "cancellation-authorisations").POST <@ (user1)
+      val response: APIResponse = makeGetRequest(requestGet)
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      val payment = response.body.extract[CancellationJsonV13]
+      payment.cancellationIds should be equals(0)
     }
   }
   
