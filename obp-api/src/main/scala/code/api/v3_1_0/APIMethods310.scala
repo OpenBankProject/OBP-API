@@ -713,7 +713,7 @@ trait APIMethods310 {
         InvalidISOCurrencyCode,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: apiTagNewStyle :: Nil)
 
     lazy val checkFundsAvailable : OBPEndpoint = {
