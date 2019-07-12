@@ -1091,8 +1091,8 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
           toSepaCreditTransfers <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON ", 400, callContext){
             body.to_sepa_credit_transfers.get
           }
-          toAccountId = toSepaCreditTransfers.debtorAccount.iban
-          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountId, callContext)
+          toAccountIban = toSepaCreditTransfers.creditorAccount.iban
+          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,
