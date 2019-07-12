@@ -5205,7 +5205,7 @@ trait APIMethods310 {
         TransactionDisabled,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagTransactionRequest),
       Some(List(canCreateHistoricalTransaction))
     )
