@@ -1182,7 +1182,7 @@ trait APIMethods200 {
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
       Catalogs(Core, PSD2, notOBWG),
-      List(apiTagBank)
+      List(apiTagBank, apiTagPSD2AIS)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {

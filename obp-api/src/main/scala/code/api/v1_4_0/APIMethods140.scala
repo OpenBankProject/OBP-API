@@ -420,7 +420,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         TransactionRequestsNotEnabled,
         UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPSD2PIS))
 
     lazy val getTransactionRequestTypes: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
