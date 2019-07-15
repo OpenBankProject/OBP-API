@@ -3006,16 +3006,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val topConsumersJson = TopConsumersJson(List(topConsumerJson))
-  
-  val glossaryItem = GlossaryItem(
-    title = "Title ",
-    description =
-      """Description.
-        |
-        |Goes here..
-      """
-  )
-  
+
   val glossaryDescriptionJsonV300 =  GlossaryDescriptionJsonV300 (markdown= "String", html = "String")
 
   val glossaryItemJsonV300 = GlossaryItemJsonV300(

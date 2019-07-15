@@ -461,10 +461,11 @@ object SwaggerJSONFactory {
         case _ if(isOneOfType[List[Boolean], List[JBoolean]])                => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
         case _ if(isOneOfType[Option[List[Boolean]],Option[List[JBoolean]]]) => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
         //String
-        case _ if(isTypeOf[String])                   => s""""$paramName": {"type":"string","example":"$paramValue"}"""
-        case _ if(isTypeOf[Option[String]])           => s""""$paramName": {"type":"string","example":"$paramValue"}"""
-        case _ if(isTypeOf[List[String]])             => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
-        case _ if(isTypeOf[Option[List[String]]])     => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+        case _ if(isOneOfType[String, Enumeration])                                 => s""""$paramName": {"type":"string","example":"$paramValue"}"""
+        case _ if(isOneOfType[Option[String], Option[Enumeration]])                 => s""""$paramName": {"type":"string","example":"$paramValue"}"""
+        case _ if(isOneOfType[List[String], List[Enumeration]])                     => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+        case _ if(isOneOfType[Option[List[String]], Option[List[Enumeration]]])     => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+
         //Int
         case _ if(isOneOfType[Int, JInt])                             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
         case _ if(isOneOfType[Option[Int], Option[JInt]])             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
@@ -574,29 +575,36 @@ object SwaggerJSONFactory {
     * @return all nest swagger ref type object, include all deep nest ref object
     */
   private[this] def getNestRefEntities(obj: Any, excludeTypes: Seq[Type]): List[Any] = {
-    val entityType = ReflectUtils.getType(obj)
-    val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
-    // if exclude current obj, the result list tail will be Nil
-    val resultTail = if(excludeTypes.exists(entityType =:=)) Nil else List(obj)
+    obj.getClass.getName match {
+      case "scala.Enumeration$Val" => Nil      // there is no way to check an object is a Enumeration by call method
 
-    val refValues: List[Any] = constructorParamList
-      .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
-      .map(it => {
-        val paramName = it.name.toString
-        val value = ReflectUtils.invokeMethod(obj, paramName)
-        if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
-          throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
-        }
-        value match {
-          case Some(head::_) => head
-          case Some(v) => v
-          case Some(head)::_ => head
-          case head::_ => head
-          case other => other
-        }
-      }).filterNot(it => it == null || it == Nil || it == None)
+      case _ => {
+        val entityType = ReflectUtils.getType(obj)
+        val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
+        // if exclude current obj, the result list tail will be Nil
+        val resultTail = if(excludeTypes.exists(entityType =:=)) Nil else List(obj)
 
-    refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
+        val refValues: List[Any] = constructorParamList
+          .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
+          .map(it => {
+            val paramName = it.name.toString
+            val value = ReflectUtils.invokeMethod(obj, paramName)
+            if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
+              throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
+            }
+            value match {
+              case Some(head::_) => head
+              case Some(v) => v
+              case Some(head)::_ => head
+              case head::_ => head
+              case other => other
+            }
+          }).filterNot(it => it == null || it == Nil || it == None)
+
+        refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
+      }
+    }
+
   }
 
 
