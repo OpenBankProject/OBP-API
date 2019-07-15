@@ -432,7 +432,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makeGetRequest(requestGet)
       Then("We should get a 400 ")
       response.code should equal(400)
-      val error = s"$AuthorisationNotFound Current CANCELLATION_ID($cancellationId)"
+      val error = s"$InvalidTransactionRequestId Current TransactionRequestId(PAYMENT_ID) "
       And("error should be " + error)
       response.body.extract[code.api.ErrorMessage].message should equal (error)
     }
@@ -446,10 +446,11 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
         "NON_EXISTING_PAYMENT_ID" /
         "authorisations").POST <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
-      Then("We should get a 200 ")
-      response.code should equal(200)
-      val payment = response.body.extract[List[StartPaymentAuthorisationJson]]
-      payment.size should be equals(0)
+      Then("We should get a 400 ")
+      response.code should equal(400)
+      val error = s"$InvalidTransactionRequestId Current TransactionRequestId(NON_EXISTING_PAYMENT_ID) "
+      And("error should be " + error)
+      response.body.extract[code.api.ErrorMessage].message should equal (error)
     }
   }
   feature("test the BG v1.3 getPaymentInitiationCancellationAuthorisationInformation") {
