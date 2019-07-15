@@ -14,7 +14,7 @@ import code.api.util.ExampleValue._
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
-import code.api.v3_0_0.{LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
+import code.api.v3_0_0.{EmptyElasticSearch, LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
 import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
@@ -3445,6 +3445,11 @@ object SwaggerDefinitionsJSON {
     customer_id = customerIdExample.value,
     card_attributes = List(cardAttributeCommons)
   )
+  val emptyElasticSearch = EmptyElasticSearch(None)
+  
+  val elasticSearchQuery = ElasticSearchQuery(emptyElasticSearch)
+  
+  val elasticSearchJsonV300 = ElasticSearchJsonV300(elasticSearchQuery)
   
   //The common error or success format.
   //Just some helper format to use in Json 

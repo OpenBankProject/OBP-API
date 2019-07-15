@@ -731,7 +731,7 @@ trait APIMethods300 {
         |
         |
         """,
-      ElasticSearchJSON(ElasticSearchQuery(EmptyElasticSearch())),
+      elasticSearchJsonV300,
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),
@@ -799,7 +799,7 @@ trait APIMethods300 {
          |
          |
         """,
-      ElasticSearchJSON(ElasticSearchQuery(EmptyElasticSearch())),
+      elasticSearchJsonV300,
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       Catalogs(notCore, notPSD2, notOBWG),

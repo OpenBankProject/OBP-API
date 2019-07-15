@@ -300,7 +300,7 @@ case class ModeratedCoreAccountsJsonV300(
   accounts: List[ModeratedCoreAccountJsonV300]
 )
 
-case class ElasticSearchJSON(query: ElasticSearchQuery)
+case class ElasticSearchJsonV300(query: ElasticSearchQuery)
 case class ElasticSearchQuery(match_all: EmptyElasticSearch)
 case class EmptyElasticSearch(none:Option[String] = None)
 
