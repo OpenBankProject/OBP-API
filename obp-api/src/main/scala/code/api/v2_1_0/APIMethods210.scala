@@ -382,8 +382,8 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagTransactionRequest),
-      Some(List(canCreateAnyTransactionRequest, apiTagPSD2PIS)))
+      List(apiTagTransactionRequest, apiTagPSD2PIS),
+      Some(List(canCreateAnyTransactionRequest)))
 
 
 
