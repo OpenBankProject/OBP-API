@@ -412,17 +412,17 @@ object SwaggerJSONFactory {
     val requiredFieldsPart = if (required.isEmpty) "" else  required.mkString(""" "required": [""", ",", """], """)
 
     val paramNameToType: List[String] = constructorParamList.map(it => {
-      val paramName = convertParamName(it.name.toString)
+      val paramName = convertParamName(it.name.toString) //TODO, what does this `invokeMethod` return? 
       val typeAndValue: (universe.Type, Any) = (it.info, ReflectUtils.invokeMethod(entity, it.name.toString)) match {
-        case (info, v) if(v.isInstanceOf[() => _]) => (info.typeArgs.head, v.asInstanceOf[()=>_].apply())
+        case (info, v) if(v.isInstanceOf[() => _]) => (info.typeArgs.head, v.asInstanceOf[()=>_].apply())//TODO, what is this? why we use this here? 
         case (info, v) => (info, v)
       }
-      val paramType = typeAndValue._1
+      val paramType: universe.Type = typeAndValue._1
       val paramValue = typeAndValue._2
 
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
-
+      //TODO need some comments
       def getRefEntityName(tp: Type, value: Any, typeParamIndexes: Int*): String = {
 
         def isTypeParamAbstract: Boolean = {
@@ -457,49 +457,57 @@ object SwaggerJSONFactory {
 
         //Boolean - 4 kinds
         case _ if(isOneOfType[Boolean, JBoolean])                            => s""""$paramName": {"type":"boolean", "example": "$paramValue"}"""
-        case _ if(isOneOfType[Option[Boolean], Option[JBoolean]])            => s""""$paramName": {"type":"boolean", "example": "$paramValue"}"""
+        case _ if(isOneOfType[Option[Boolean], Option[JBoolean]])            => s""""$paramName": {"type":"boolean", "example": "${paramValue.asInstanceOf[Option[Boolean]].getOrElse(true)}"}"""
         case _ if(isOneOfType[List[Boolean], List[JBoolean]])                => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
         case _ if(isOneOfType[Option[List[Boolean]],Option[List[JBoolean]]]) => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
         //String
         case _ if(isOneOfType[String, Enumeration])                                 => s""""$paramName": {"type":"string","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[String], Option[Enumeration]])                 => s""""$paramName": {"type":"string","example":"$paramValue"}"""
+        case _ if(isOneOfType[Option[String], Option[Enumeration]])                 => s""""$paramName": {"type":"string","example":"${paramValue.asInstanceOf[Option[String]].getOrElse("")}"}"""
         case _ if(isOneOfType[List[String], List[Enumeration]])                     => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
         case _ if(isOneOfType[Option[List[String]], Option[List[Enumeration]]])     => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
 
         //Int
         case _ if(isOneOfType[Int, JInt])                             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Int], Option[JInt]])             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
+        case _ if(isTypeOf[Option[Int]])                              => s""""$paramName": {"type":"integer", "format":"int32","example":"${paramValue.asInstanceOf[Option[Int]].getOrElse("")}"}"""
+        case _ if(isTypeOf[Option[JInt]])                             => s""""$paramName": {"type":"integer", "format":"int32","example":"${paramValue.asInstanceOf[Option[JInt]].getOrElse("")}"}"""
         case _ if(isOneOfType[List[Int], List[JInt]])                 => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         case _ if(isOneOfType[Option[List[Int]], Option[List[JInt]]]) => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         //Long
         case _ if(isOneOfType[Long, JLong])                             => s""""$paramName": {"type":"integer", "format":"int64","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Long], Option[JLong]])             => s""""$paramName": {"type":"integer", "format":"int64","example":"$paramValue"}"""
+        case _ if(isTypeOf[Option[Long]])                               => s""""$paramName": {"type":"integer", "format":"int64","example""${paramValue.asInstanceOf[Option[Long]].getOrElse(1)}"}"""
+        case _ if(isTypeOf[Option[JLong]])                              => s""""$paramName": {"type":"integer", "format":"int64","example""${paramValue.asInstanceOf[Option[JLong]].getOrElse(1)}"}"""
         case _ if(isOneOfType[List[Long], List[JLong]])                 => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         case _ if(isOneOfType[Option[List[Long]], Option[List[JLong]]]) => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         //Float
         case _ if(isOneOfType[Float, JFloat])                             => s""""$paramName": {"type":"number", "format":"float","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Float], Option[JFloat]])             => s""""$paramName": {"type":"number", "format":"float","example":"$paramValue"}"""
+        case _ if(isTypeOf[Option[Float]])                                => s""""$paramName": {"type":"number", "format":"float","example":"${paramValue.asInstanceOf[Option[Float]].getOrElse(123.123)}"}"""
+        case _ if(isTypeOf[Option[JFloat]])                               => s""""$paramName": {"type":"number", "format":"float","example":"${paramValue.asInstanceOf[Option[JFloat]].getOrElse(123.123)}"}"""
         case _ if(isOneOfType[List[Float], List[JFloat]])                 => s""""$paramName": {"type":"array", "items":{"type": "float"}}"""
         case _ if(isOneOfType[Option[List[Float]], Option[List[JFloat]]]) => s""""$paramName": {"type":"array", "items":{"type": "float"}}"""
         //Double
         case _ if(isOneOfType[Double, JDouble])                             => s""""$paramName": {"type":"number", "format":"double","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Double], Option[JDouble]])             => s""""$paramName": {"type":"number", "format":"double","example":"$paramValue"}"""
+        case _ if(isTypeOf[Option[Double]])                                 => s""""$paramName": {"type":"number", "format":"double","example":"${paramValue.asInstanceOf[Option[Double]].getOrElse("")}"}"""
+        case _ if(isTypeOf[Option[JDouble]])                                => s""""$paramName": {"type":"number", "format":"double","example":"${paramValue.asInstanceOf[Option[JDouble]].getOrElse("")}"}"""
         case _ if(isOneOfType[List[Double], List[JDouble]])                 => s""""$paramName": {"type":"array", "items":{"type": "double"}}"""
         case _ if(isOneOfType[Option[List[Double]], Option[List[JDouble]]]) => s""""$paramName": {"type":"array", "items":{"type": "double"}}"""
         //BigDecimal
         case _ if(isOneOfType[BigDecimal, JBigDecimal])                             => s""""$paramName": {"type":"string", "format":"double","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[BigDecimal], Option[JBigDecimal]])             => s""""$paramName": {"type":"string", "format":"double","example":"$paramValue"}"""
+        case _ if(isTypeOf[Option[BigDecimal]])                                     => s""""$paramName": {"type":"string", "format":"double","example":"${paramValue.asInstanceOf[Option[BigDecimal]].getOrElse(BigDecimal(12321))}"}"""
+        case _ if(isTypeOf[Option[JBigDecimal]])                                    => s""""$paramName": {"type":"string", "format":"double","example":"${paramValue.asInstanceOf[Option[JBigDecimal]].getOrElse(BigDecimal(12312))}"}"""
         case _ if(isOneOfType[List[BigDecimal], List[JBigDecimal]])                 => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         case _ if(isOneOfType[Option[List[BigDecimal]], Option[List[JBigDecimal]]]) => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         //Date
-        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"$paramValue"}"""
-        case _ if(isOneOfType[List[Date], Option[List[Date]]])       => s""""$paramName": {"type":"array", "items":{"type":"string", "format":"date"}}"""
+        case _ if(isTypeOf[Date])                                  => s""""$paramName": {"type":"string", "format":"date","example":"$paramValue"}"""
+        case _ if(isTypeOf[Option[Date]])                          => s""""$paramName": {"type":"string", "format":"date","example":"${paramValue.asInstanceOf[Option[Date]].getOrElse("")}"}"""
+        case _ if(isOneOfType[List[Date], Option[List[Date]]])     => s""""$paramName": {"type":"array", "items":{"type":"string", "format":"date"}}"""
 
         //List case classes.
-        case t if(isOneOfType[List[Option[_]], Option[List[_]]])  => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0, 0)}"}}"""
-        case t if(isOneOfType[List[_], Option[_]])                => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0)}"}}"""
-        //Single object
-        case t                                                    => s""""$paramName": {"$$ref":"#/definitions/${getRefEntityName(t, paramValue)}"}"""
+        case t if(isTypeOf[List[Option[_]]])                       => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0, 0)}"}}"""
+        case t if(isTypeOf[Option[List[_]]])                       => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0, 0)}"}}"""
+        case t if(isOneOfType[List[_], Option[_]])                 => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0)}"}}"""
+        
+        //Single object                                            
+        case t                                                     => s""""$paramName": {"$$ref":"#/definitions/${getRefEntityName(t, paramValue)}"}"""
       }
     })
 
