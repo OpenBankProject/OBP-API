@@ -17,24 +17,22 @@ import code.api.util.CodeGenerateUtils.createDocExample
 
 object RestConnectorBuilder extends App {
 
-  val genMethodNames1 = List(
+  val genMethodNames = List(
     //    "getAdapterInfo",
-    "getAdapterInfo",
+//    "getAdapterInfo",
     //    "getUser", // have problem, return type not common
-    //    "getBanks",
-    "getBanksFuture",
-    //    "getBank",
-    "getBankFuture",
-    //    "getBankAccountsForUser",
-    "getBankAccountsForUserFuture",
-    "getCustomersByUserIdFuture",
-    //    "getBankAccount",
-    //    "checkBankAccountExists",
-    "checkBankAccountExistsFuture",
+    "getBanks",
+//    "getBanksLegacy",
+//    "getBank",
+//    "getBankLegacy",
+//    "getBankAccountsForUser",
+//    "getCustomersByUserIdFuture",
+//    "getBankAccount",
+//    "checkBankAccountExists",
     //    "getCoreBankAccounts",
-    "getCoreBankAccountsFuture",
+//    "getCoreBankAccountsFuture",
     //    "getTransactions",
-    "getTransactionsCore",
+//    "getTransactionsCore",
     //    "getTransaction",
     //    "getTransactionRequests210", //have problem params are not simple object
     //    "getCounterparties",
@@ -54,7 +52,7 @@ object RestConnectorBuilder extends App {
     //    "createCounterparty" // not support
   )
   //For vSept2018
-  val genMethodNames = List(
+  val genMethodNames2 = List(
     //    "createOrUpdateKycCheck",
     //    "createOrUpdateKycDocument",
     //    "createOrUpdateKycMedia",
@@ -64,7 +62,7 @@ object RestConnectorBuilder extends App {
     //    "getKycMedias",
     //    "getKycStatuses",
     //    "createBankAccount",
-    "createCustomer",
+//    "createCustomer",
     //    "createMeeting",
     //    "createMessage"
   )

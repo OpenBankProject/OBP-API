@@ -43,7 +43,7 @@ import code.util.AkkaHttpClient._
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
-import com.tesobe.CacheKeyFromArguments
+import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, _}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
@@ -54,9 +54,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
-
 import code.api.util.ExampleValue._
-
 import code.api.util.APIUtil._
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
@@ -166,16 +164,16 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Thu Jun 13 11:07:28 CST 2019
+// ---------- create on Tue Jul 16 14:30:25 CEST 2019
 
 messageDocs += MessageDoc(
-    process = "obp.createCustomer",
+    process = "obp.getBanks",
     messageFormat = messageFormat,
-    description = "Create Customer",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundCreateCustomer.getClass.getSimpleName).response),
+    description = "Get Banks",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBanks.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBanks.getClass.getSimpleName).response),
     exampleOutboundMessage = (
-     OutBoundCreateCustomer(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+          OutBoundGetBanks( OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       consumerId=Some(consumerIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
@@ -200,31 +198,10 @@ messageDocs += MessageDoc(
       dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
       userOwners=List( InternalBasicUser(userId=userIdExample.value,
       emailAddress=emailExample.value,
-      name=usernameExample.value))))))))),
-      bankId=BankId(bankIdExample.value),
-      legalName=legalNameExample.value,
-      mobileNumber=mobileNumberExample.value,
-      email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
-      url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
-      relationshipStatus=relationshipStatusExample.value,
-      dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
-      highestEducationAttained=highestEducationAttainedExample.value,
-      employmentStatus=employmentStatusExample.value,
-      kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(outBoundCreateCustomerLastOkDateExample.value).getOrElse(sys.error("outBoundCreateCustomerLastOkDateExample.value is not validate date format.")),
-      creditRating=Some( CreditRating(rating=ratingExample.value,
-      source=sourceExample.value)),
-      creditLimit=Some( AmountOfMoney(currency=currencyExample.value,
-      amount=creditLimitAmountExample.value)),
-      title=titleExample.value,
-      branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value)
+      name=usernameExample.value))))))))))
     ),
     exampleInboundMessage = (
-     InBoundCreateCustomer(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+     InBoundGetBanks(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
       value=valueExample.value)))),
@@ -233,50 +210,43 @@ messageDocs += MessageDoc(
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data= CustomerCommons(customerId=customerIdExample.value,
-      bankId=bankIdExample.value,
-      number=customerNumberExample.value,
-      legalName=legalNameExample.value,
-      mobileNumber=mobileNumberExample.value,
-      email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
-      url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
-      relationshipStatus=relationshipStatusExample.value,
-      dependents=dependentsExample.value.toInt,
-      dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
-      highestEducationAttained=highestEducationAttainedExample.value,
-      employmentStatus=employmentStatusExample.value,
-      creditRating= CreditRating(rating=ratingExample.value,
-      source=sourceExample.value),
-      creditLimit= CreditLimit(currency=currencyExample.value,
-      amount=creditLimitAmountExample.value),
-      kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
-      title=customerTitleExample.value,
-      branchId=branchIdExample.value,
-      nameSuffix=nameSuffixExample.value))
+      data=List( BankCommons(bankId=BankId(bankIdExample.value),
+      shortName=bankShortNameExample.value,
+      fullName=bankFullNameExample.value,
+      logoUrl=bankLogoUrlExample.value,
+      websiteUrl=bankWebsiteUrlExample.value,
+      bankRoutingScheme=bankRoutingSchemeExample.value,
+      bankRoutingAddress=bankRoutingAddressExample.value,
+      swiftBic=bankSwiftBicExample.value,
+      nationalIdentifier=bankNationalIdentifierExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  // url example: /createCustomer
-  override def createCustomer(bankId: BankId, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImageTrait, dateOfBirth: Date, relationshipStatus: String, dependents: Int, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: Option[CreditRatingTrait], creditLimit: Option[AmountOfMoneyTrait], title: String, branchId: String, nameSuffix: String, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-    import net.liftweb.json.Serialization.write
-
-    val url = getUrl("createCustomer")
-    val outboundAdapterCallContext = Box(callContext.map(_.toOutboundAdapterCallContext)).openOrThrowException(NoCallContext)
-    val jsonStr = write(OutBoundCreateCustomer(outboundAdapterCallContext , bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix))
-    sendPostRequest[InBoundCreateCustomer](url, callContext, jsonStr)
-      .map{ boxedResult =>
-      boxedResult match {
-        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
-        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
-      }
+  // url example: /getBanks
+  override def getBanks(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
+        val url = getUrl("getBanks" )
+        sendGetRequest[InBoundGetBanks](url, callContext)
+          .map { boxedResult =>
+                                 boxedResult.map { result =>
+                         (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
+                    }
     
+          }
+      }
     }
-  }
+  }("getBanks")
     
 //---------------- dynamic end ---------------------please don't modify this line
+    
     
     
     
