@@ -2,6 +2,7 @@ package com.openbankproject.commons.util
 
 import net.liftweb.common.Box
 
+import scala.annotation.tailrec
 import scala.collection.immutable.List
 import scala.language.postfixOps
 import scala.reflect.runtime.universe._
@@ -17,6 +18,53 @@ object ReflectUtils {
     true
   } catch {
     case _: Throwable => false
+  }
+
+  /**
+    * get a nest type parameter of given type, according the indexes, example:
+    *
+    * > val tp = typeOf[List[(Int, String)]]
+    * > getNestTypeArg(tp, 0, 1)
+    * > String
+    *
+    * > val tp = typeOf[List[(Optional[Int], String)]]
+    * > getNestTypeArg(tp, 0, 0, 0)
+    * > Int
+    *
+    * @param tp tp to do parsed type
+    * @param typeArgIndexes indexes of type arg
+    * @return the nest type parameter
+    */
+  @tailrec
+  def getNestTypeArg(tp: ru.Type, typeArgIndexes: Int*): ru.Type = {
+    (typeArgIndexes.toList, tp.typeArgs) match {
+      case (Nil, _) => tp
+      case (head :: tail, args) => {
+        assume(head < args.size, s"index $head is too big for $args")
+        getNestTypeArg(args(head), tail:_*)
+      }
+    }
+  }
+
+  /**
+    * get a nest type parameter of given type, only get the first one of every nest args, example:
+    * > val tp = typeOf[List[(Int, String)]]
+    * > getNestFirstTypeArg(tp)
+    * > Int
+    *
+    * > val tp = typeOf[List[(Optional[Int], String)]]
+    * > getNestFirstTypeArg(tp)
+    * > Int
+    *
+    * @param tp to do parsed type
+    * @return the nest type parameter
+    */
+  @tailrec
+  def getNestFirstTypeArg(tp: ru.Type): ru.Type = {
+    tp.typeArgs match {
+      case Nil => tp
+      case head :: _ => getNestFirstTypeArg(head)
+    }
   }
 
   /**
@@ -104,6 +152,23 @@ object ReflectUtils {
     val constructorParamNames = getPrimaryConstructor(obj).paramLists.headOption.getOrElse(Nil).map(_.name.toString)
     getCallByNameValues(obj, constructorParamNames :_*)
   }
+
+  /**
+    * extract object constructor param name and types
+    * for example:
+    * val obj: Any = Foo(name = "ken", age = 12, email = "abc@tesobe.com")
+    * getConstructValues(obj) == Map(("name", String), ("age", Int), ("email", String))
+    *
+    * @param obj
+    * @return constructor param name to type
+    */
+  def getConstructorArgTypes(obj: Any): Map[String, ru.Type] =
+     getPrimaryConstructor(obj)
+       .paramLists.headOption
+       .getOrElse(Nil)
+       .map(it => (it.name.toString, it.info))
+       .toMap
+
 
   def invokeConstructor(tp: ru.Type)(fn: (Seq[ru.Type]) => Seq[Any]): Any = {
     val classMirror = mirror.reflectClass(tp.typeSymbol.asClass)
