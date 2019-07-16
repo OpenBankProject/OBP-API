@@ -3238,7 +3238,7 @@ trait APIMethods310 {
         UnknownError
       ),
       Catalogs(Core, PSD2, notOBWG),
-      List(apiTagApi))
+      List(apiTagApi, apiTagPSD2AIS))
 
     lazy val getServerJWK: OBPEndpoint = {
       case "certs" :: Nil JsonGet _ => {

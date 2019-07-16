@@ -260,7 +260,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPSD2PIS))
 
     // COUNTERPARTY
     resourceDocs += ResourceDoc(
