@@ -37,29 +37,25 @@ import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{RateLimiting, UserJSONV121, ViewJSONV121}
 import code.api.v1_3_0.JSONFactory1_3_0._
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
-import com.openbankproject.commons.model.AmountOfMoneyJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
-import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
-import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140, TransactionRequestAccountJsonV140}
-import code.api.v2_0_0.{EntitlementJSONs, MeetingKeysJson, MeetingPresentJson}
+import code.api.v2_0_0.{MeetingKeysJson, MeetingPresentJson}
 import code.api.v2_1_0.JSONFactory210.createLicenseJson
 import code.api.v2_1_0.{CustomerCreditRatingJSON, ResourceUserJSON}
 import code.api.v2_2_0._
+import code.api.v3_0_0.AccountRuleJsonV300
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
-import code.api.v3_0_0.{AccountRuleJsonV300}
 import code.consent.MappedConsent
 import code.context.UserAuthContextUpdate
 import code.entitlement.Entitlement
 import code.loginattempts.BadLoginAttempt
 import code.metrics.{TopApi, TopConsumer}
 import code.model.{Consumer, ModeratedBankAccount, UserX}
-import com.openbankproject.commons.model.Product
 import code.webhook.AccountWebhook
-import com.openbankproject.commons.model.{AccountApplication, ProductCollection, ProductCollectionItem, TaxResidence, _}
+import com.openbankproject.commons.model.{AccountApplication, AmountOfMoneyJsonV121, Product, ProductCollection, ProductCollectionItem, TaxResidence, User, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
+import scala.reflect.runtime.universe._
 
 case class CreditCardOrderStatusResponseJson(
   cards: List[CardObjectJson] ,
@@ -277,7 +273,7 @@ case class UserAuthContextUpdateJson(
   user_id: String,
   key: String,
   value: String,
-  status: String                                   
+  status: String
 )
 case class PostUserAuthContextUpdateJsonV310(answer: String)
 
@@ -438,7 +434,7 @@ case class PutProductCollectionsV310(parent_product_code: String, children_produ
 
 
 case class ProductCollectionItemJsonV310(member_product_code: String)
-case class ProductCollectionJsonV310(collection_code: String, 
+case class ProductCollectionJsonV310(collection_code: String,
                                      product_code: String,
                                      items: List[ProductCollectionItemJsonV310])
 case class ProductCollectionsJsonV310(product_collection : List[ProductCollectionJsonV310])
@@ -487,7 +483,7 @@ trait PostConsentCommonBody{
 }
 
 case class PostConsentBodyCommonJson(
-  `for`: String, 
+  `for`: String,
   view: String
 ) extends PostConsentCommonBody
 
@@ -676,7 +672,11 @@ case class ModeratedAccountJSON(
   * @param results convert json single field value
   * @tparam T List type
   */
-case class ListResult[+T <: List[_]](name: String, results: T)
+case class ListResult[+T <: List[_] : TypeTag](name: String, results: T) {
+
+  def itemType: Type = implicitly[TypeTag[T]].tpe
+
+}
 
 case class PostHistoricalTransactionJson(
   from: TransactionRequestAccountJsonV140,

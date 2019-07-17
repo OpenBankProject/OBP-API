@@ -19,6 +19,7 @@ import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
+import code.api.v3_1_0.ListResult
 
 object SwaggerJSONFactory {
   //Info Object
@@ -392,8 +393,17 @@ object SwaggerJSONFactory {
   def translateEntity(entity: Any): String = {
     val entityType = ReflectUtils.getType(entity)
 
-    val nameToValue = ReflectUtils.getConstructorArgs(entity)
-    val nameToType = ReflectUtils.getConstructorArgTypes(entity)
+    val nameToValue: Map[String, Any] = entity match {
+      case  ListResult(name, results) => Map((name, results))
+      case _ => ReflectUtils.getConstructorArgs(entity)
+    }
+
+
+    val nameToType: Map[String, Type] = entity match {
+      case listResult: ListResult[_] => Map((listResult.name, listResult.itemType))
+      case _ => ReflectUtils.getConstructorArgTypes(entity)
+    }
+
 
     val convertParamName = (name: String) =>  entity match {
       case _ : JsonFieldReName => StringHelpers.snakify(name)

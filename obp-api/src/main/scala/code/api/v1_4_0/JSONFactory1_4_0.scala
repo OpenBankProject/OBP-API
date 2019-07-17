@@ -4,11 +4,10 @@ import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{ApiRole, PegdownOptions}
+import code.api.v3_1_0.ListResult
 import code.crm.CrmEvent.CrmEvent
-import com.openbankproject.commons.model.Product
 import code.transactionrequests.TransactionRequestTypeCharge
-import code.transactionrequests.TransactionRequests._
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{Product, _}
 import net.liftweb.common.Full
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
@@ -396,10 +395,17 @@ object JSONFactory1_4_0 {
   def translateEntity(entity: Any, isArray:Boolean): String = {
     
     val r = currentMirror.reflect(entity)
-    val mapOfFields = r.symbol.typeSignature.members.toStream
-      .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
-      .map(r => r.symbol.name.toString.trim -> r.get)
-      .toMap
+    val mapOfFields = entity match {
+
+      case ListResult(name, results) => Map((name, results))
+
+      case _ => r.symbol.typeSignature.members.toStream
+        .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
+        .map(r => r.symbol.name.toString.trim -> r.get)
+        .toMap
+    }
+
+
 
     val convertParamName = (name: String) =>  entity match {
       case _ : JsonFieldReName => StringHelpers.snakify(name)
