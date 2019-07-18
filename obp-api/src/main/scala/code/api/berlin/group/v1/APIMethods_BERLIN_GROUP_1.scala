@@ -2,8 +2,9 @@ package code.api.berlin.group.v1
 
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{Balances, CoreAccountJsonV1, CoreAccountsJsonV1, Transactions}
 import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiVersion, NewStyle}
+import code.api.util.{NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -44,7 +45,18 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
          |This endpoint is work in progress. Experimental!
          |""",
       emptyObjectJson,
-      SwaggerDefinitionsJSON.coreAccountsJsonV1,
+      CoreAccountsJsonV1(List(CoreAccountJsonV1(
+        id = "3dc3d5b3-7023-4848-9853-f5400a64e80f",
+        iban = "DE2310010010123456789",
+        currency = "EUR",
+        accountType = "Girokonto",
+        cashAccountType = "CurrentAccount",
+        _links = List(
+          Balances("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances"),
+          Transactions("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions")
+        ),
+        name = "Main Account"
+      ))),
       List(UserNotLoggedIn,UnknownError),
       Catalogs(Core, PSD2, OBWG),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData))

@@ -2609,29 +2609,6 @@ object SwaggerDefinitionsJSON {
   
   val coreAccountsJsonV300 = CoreAccountsJsonV300(accounts = List(coreAccountJson))
 
-  val balances = Balances("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances")
-  
-  val transactions  = Transactions("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions")
-
-  val linksDemo = {
-    import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.links
-    new links(balances.url)
-  }
-
-  val coreAccountJson_v1 = CoreAccountJsonV1(
-    id = "3dc3d5b3-7023-4848-9853-f5400a64e80f",
-    iban = "DE2310010010123456789",
-    currency = "EUR",
-    accountType = "Girokonto",
-    cashAccountType = "CurrentAccount",
-    _links = List(
-      balances,
-      transactions
-    ),
-    name = "Main Account"
-  )
-  val coreAccountsJsonV1 = CoreAccountsJsonV1(List(coreAccountJson_v1))
-  
   val amountOfMoneyV1 = AmountOfMoneyV1(
     currency = "String",
     content = "String"
