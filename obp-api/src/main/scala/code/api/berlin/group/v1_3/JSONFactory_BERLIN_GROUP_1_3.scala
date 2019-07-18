@@ -55,6 +55,23 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   )
 
   case class CoreAccountsJsonV13(accounts: List[CoreAccountJsonV13])
+
+  case class AccountDetailsLinksJsonV13(
+                                         balances: LinkHrefJson,
+                                         transactions: LinkHrefJson
+                                       )
+
+  case class AccountJsonV13(
+                             resourceId: String,
+                             iban: String,
+                             currency: String,
+                             product: String,
+                             cashAccountType: String,
+                             name: String,
+                             _links: AccountDetailsLinksJsonV13,
+                           )
+
+  case class AccountDetailsJsonV13(account: AccountJsonV13)
   
   case class AmountOfMoneyV13(
     currency : String,
@@ -251,6 +268,23 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         )
      }
     )
+  }
+  
+  def createAccountDetailsJson(bankAccount: BankAccount, user: User): AccountDetailsJsonV13 = {
+    val (iBan: String, bBan: String) = getIbanAndBban(bankAccount)
+    val account = AccountJsonV13(
+      resourceId = bankAccount.accountId.value,
+      iban = iBan,
+      currency = bankAccount.currency,
+      name = bankAccount.label,
+      cashAccountType = bankAccount.accountType,
+      product = bankAccount.accountType,
+      _links = AccountDetailsLinksJsonV13(
+        LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${bankAccount.accountId.value}/balances"),
+        LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${bankAccount.accountId.value}/transactions")
+      ) 
+    )
+    AccountDetailsJsonV13(account)
   }
 
   private def getIbanAndBban(x: BankAccount) = {

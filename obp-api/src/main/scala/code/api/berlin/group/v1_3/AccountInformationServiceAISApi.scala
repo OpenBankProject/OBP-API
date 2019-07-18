@@ -1021,7 +1021,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
        "GET",
        "/accounts/ACCOUNT_ID",
        "Read Account Details",
-       s"""${mockedDataText(true)}
+       s"""${mockedDataText(false)}
             Reads details about an account, with balances where required. 
             It is assumed that a consent of the PSU to this access is already given and stored on the ASPSP system. 
             The addressed details of this account depends then on the stored consent addressed by consentId, 
@@ -1053,35 +1053,19 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }"""),
        List(UserNotLoggedIn, UnknownError),
        Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val readAccountDetails : OBPEndpoint = {
-       case "accounts" :: account_id :: Nil JsonGet _ => {
+       case "accounts" :: accountId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authorizedAccess(cc)
-             } yield {
-             (json.parse("""{
-  "cashAccountType" : { },
-  "product" : "product",
-  "resourceId" : "resourceId",
-  "bban" : "BARC12345612345678",
-  "_links" : {
-    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "usage" : "PRIV",
-  "balances" : "",
-  "iban" : "FR7612345987650123456789014",
-  "linkedAccounts" : "linkedAccounts",
-  "name" : "name",
-  "currency" : "EUR",
-  "details" : "details",
-  "msisdn" : "+49 170 1234567",
-  "bic" : "AAAADEBBXXX",
-  "status" : { }
-}"""), callContext)
+             _ <- passesPsd2Aisp(callContext)
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+           } yield {
+             (JSONFactory_BERLIN_GROUP_1_3.createAccountDetailsJson(bankAccount, u), callContext)
            }
          }
        }
