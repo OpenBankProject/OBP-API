@@ -25,80 +25,80 @@ object SwaggerJSONFactory {
   //Info Object
   //link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#infoObject
   case class InfoJson(
-                       title: String,
-                       description: String,
-                       contact: InfoContactJson,
-                       version: String
-                     )
+    title: String,
+    description: String,
+    contact: InfoContactJson,
+    version: String
+  )
   //Contact Object
   //https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#contactObject
   case class InfoContactJson(
-                              name: String,
-                              url: String,
-                              email: String
-                            )
-
+    name: String,
+    url: String,
+    email: String
+  )
+  
   // Security Definitions Object
   // link->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#securityDefinitionsObject
   case class SecurityDefinitionsJson(
-                                      directLogin: DirectLoginJson ,
-                                      gatewayLogin: GatewayLoginJson
-                                    )
+    directLogin: DirectLoginJson ,
+    gatewayLogin: GatewayLoginJson
+  )
   case class DirectLoginJson(
-                              `type`: String = "apiKey",
-                              description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login", // TODO replace with Glossary link
-                              in: String = "header",
-                              name: String = "Authorization"
-                            )
-
+    `type`: String = "apiKey",
+    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login", // TODO replace with Glossary link
+    in: String = "header",
+    name: String = "Authorization"
+  )
+  
   case class GatewayLoginJson(
-                               `type`: String = "apiKey",
-                               description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Gateway-Login", // TODO replace with Glossary link
-                               in: String = "header",
-                               name: String = "Authorization"
-                             )
-
+    `type`: String = "apiKey",
+    description: String = "https://github.com/OpenBankProject/OBP-API/wiki/Gateway-Login", // TODO replace with Glossary link
+    in: String = "header",
+    name: String = "Authorization"
+  )
+  
   //Security Requirement Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#securityRequirementObject
   case class SecurityJson(
-                           directLogin: List[String] = Nil,
-                           gatewayLogin: List[String] = Nil
-                         )
-
+    directLogin: List[String] = Nil,
+    gatewayLogin: List[String] = Nil
+  )
+  
   case class ResponseObjectSchemaJson(
-                                       `$ref`: String
-                                     )
-  //Response Object
+    `$ref`: String
+  )
+  //Response Object 
   // links -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#responsesObject
   abstract class ResponseBaseObjectJson(
-                                         optionalFields: String*
-                                       ) {
+    optionalFields: String*
+  ) {
     def description: Option[String]
   }
-
+  
   case class ResponseObjectJson(
-                                 description: Option[String],
-                                 schema: Option[ResponseObjectSchemaJson]
-                               ) extends  ResponseBaseObjectJson
-
+    description: Option[String],
+    schema: Option[ResponseObjectSchemaJson]
+  ) extends  ResponseBaseObjectJson
+  
   case class ResponseNoContentObjectJson(
-                                          description: Option[String]
-                                        ) extends  ResponseBaseObjectJson
-
-  // Operation Object
+    description: Option[String]
+  ) extends  ResponseBaseObjectJson
+  
+  // Operation Object 
   // links -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#operation-object
   case class OperationObjectJson(
-                                  tags: List[String],
-                                  summary: String,
-                                  security: List[SecurityJson] = SecurityJson()::Nil,
-                                  description: String,
-                                  operationId: String,
-                                  parameters: List[OperationParameter],
-                                  responses: Map[String, ResponseBaseObjectJson]
-                                )
+    tags: List[String],
+    summary: String,
+    security: List[SecurityJson] = SecurityJson()::Nil,
+    description: String,
+    operationId: String,
+    parameters: List[OperationParameter],
+    responses: Map[String, ResponseBaseObjectJson]
+  )
   //Parameter Object
   //link -> https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#parameterObject
-
+  
   trait OperationParameter {
     def in: String
     def name: String
@@ -106,51 +106,51 @@ object SwaggerJSONFactory {
     def required: Boolean
   }
   case class OperationParameterPathJson (
-                                          in: String = "path",
-                                          name: String = "BANK_ID",
-                                          description: String = "BANK_ID",
-                                          required: Boolean = true,
-                                          `type`: String ="string"
-                                        )extends OperationParameter
-
+    in: String = "path",
+    name: String = "BANK_ID",
+    description: String = "BANK_ID",
+    required: Boolean = true,
+    `type`: String ="string"
+  )extends OperationParameter
+  
   case class OperationParameterBodyJson (
-                                          in: String = "body",
-                                          name: String = "body",
-                                          description: String = "BANK_BODY",
-                                          required: Boolean = true,
-                                          schema: ResponseObjectSchemaJson = ResponseObjectSchemaJson("#/definitions/BasicViewJSON")
-                                        )extends OperationParameter
-
+    in: String = "body",
+    name: String = "body",
+    description: String = "BANK_BODY",
+    required: Boolean = true,
+    schema: ResponseObjectSchemaJson = ResponseObjectSchemaJson("#/definitions/BasicViewJSON")
+  )extends OperationParameter
+  
   case class SwaggerResourceDoc(
-                                 swagger: String,
-                                 info: InfoJson,
-                                 host: String,
-                                 basePath: String,
-                                 schemes: List[String],
-                                 securityDefinitions: SecurityDefinitionsJson,
-                                 security: List[SecurityJson],
-                                 paths: Map[String, Map[String, OperationObjectJson]]
-                               )
-
+    swagger: String,
+    info: InfoJson,
+    host: String,
+    basePath: String,
+    schemes: List[String],
+    securityDefinitions: SecurityDefinitionsJson,
+    security: List[SecurityJson],
+    paths: Map[String, Map[String, OperationObjectJson]]
+  )
+  
   /**
     *Package the SwaggerResourceDoc with the ResourceDoc.
     * Note: the definitions of SwaggerResourceDoc only contains Error part,
     *       other specific OBP JSON part is filled by def "loadDefinitions(resourceDocList: List[ResourceDoc])"
     * case class ResourceDoc(
     *   partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
-    *   apiVersion: String,
-    *   apiFunction: String,
-    *   requestVerb: String,
-    *   requestUrl: String,
-    *   summary: String,
-    *   description: String,
-    *   exampleRequestBody: JValue,
-    *   successResponseBody: JValue,
-    *   errorResponseBodies: List[JValue],
+    *   apiVersion: String, 
+    *   apiFunction: String, 
+    *   requestVerb: String, 
+    *   requestUrl: String, 
+    *   summary: String, 
+    *   description: String, 
+    *   exampleRequestBody: JValue, 
+    *   successResponseBody: JValue, 
+    *   errorResponseBodies: List[JValue], 
     *   catalogs: Catalogs,
     *   tags: List[ResourceDocTag]
     * )
-    *
+    * 
     * -->
     * case class SwaggerResourceDoc(
     *   swagger: String,
@@ -168,10 +168,10 @@ object SwaggerJSONFactory {
     * @return
     */
   def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc], requestedApiVersion: ApiVersion): SwaggerResourceDoc = {
-
-    //reference to referenceObject: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#referenceObject
-    //according to the apiFunction name, prepare the reference
-    // eg: set the following "$ref" field:
+    
+    //reference to referenceObject: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#referenceObject  
+    //according to the apiFunction name, prepare the reference 
+    // eg: set the following "$ref" field: 
     //    "path": "/banks/BANK_ID": {
     //      "get": {
     //      "responses": {
@@ -216,38 +216,38 @@ object SwaggerJSONFactory {
     //          "description": "Error",
     //          "schema": {"$ref": "#/definitions/Error"
     val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.specifiedUrl.getOrElse(x.requestUrl)).toSeq.sortBy(x => x._1).map { mrd =>
-
-      //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID`
+      
+      //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
       val pathAddedObpandVersion = mrd._1
       //`/obp/v3.0.0/banks/BANK_ID` --> `/obp/v3.0.0/banks/{BANK_ID}`
       val path =
         pathAddedObpandVersion
-          .replaceAll("/BANK_ID", "/{BANK_ID}")
-          .replaceAll("/ACCOUNT_ID", "/{ACCOUNT_ID}")
-          .replaceAll("/VIEW_ID", "/{VIEW_ID}")
-          .replaceAll("/USER_ID", "/{USER_ID}")
-          .replaceAll("/TRANSACTION_ID", "/{TRANSACTION_ID}")
-          .replaceAll("/TRANSACTION_REQUEST_TYPE", "/{TRANSACTION_REQUEST_TYPE}")
-          .replaceAll("/TRANSACTION_REQUEST_ID", "/{TRANSACTION_REQUEST_ID}")
-          .replaceAll("/PROVIDER_ID", "/{PROVIDER_ID}")
-          .replaceAll("/OTHER_ACCOUNT_ID", "/{OTHER_ACCOUNT_ID}")
-          .replaceAll("/FROM_CURRENCY_CODE", "/{FROM_CURRENCY_CODE}")
-          .replaceAll("/TO_CURRENCY_CODE", "/{TO_CURRENCY_CODE}")
-          .replaceAll("/COMMENT_ID", "/{COMMENT_ID}")
-          .replaceAll("/TAG_ID", "/{TAG_ID}")
-          .replaceAll("/IMAGE_ID", "/{IMAGE_ID}")
-          .replaceAll("/CUSTOMER_ID", "/{CUSTOMER_ID}")
-          .replaceAll("/BRANCH_ID", "/{BRANCH_ID}")
-          .replaceAll("/NEW_ACCOUNT_ID", "/{NEW_ACCOUNT_ID}")
-          .replaceAll("/CONSUMER_ID", "/{CONSUMER_ID}")
-          .replaceAll("/USER_EMAIL", "/{USER_EMAIL}")
-          .replaceAll("/ENTITLEMENT_ID", "/{ENTITLEMENT_ID}")
-          .replaceAll("/KYC_CHECK_ID", "/{KYC_CHECK_ID}")
-          .replaceAll("/KYC_DOCUMENT_ID", "/{KYC_DOCUMENT_ID}")
-          .replaceAll("/KYC_MEDIA_ID", "/{KYC_MEDIA_ID}")
-          .replaceAll("/AMT_ID", "/{AMT_ID}")
-          .replaceAll("/API_VERSION", "/{API_VERSION}")
-
+        .replaceAll("/BANK_ID", "/{BANK_ID}")
+        .replaceAll("/ACCOUNT_ID", "/{ACCOUNT_ID}")
+        .replaceAll("/VIEW_ID", "/{VIEW_ID}")
+        .replaceAll("/USER_ID", "/{USER_ID}")
+        .replaceAll("/TRANSACTION_ID", "/{TRANSACTION_ID}")
+        .replaceAll("/TRANSACTION_REQUEST_TYPE", "/{TRANSACTION_REQUEST_TYPE}")
+        .replaceAll("/TRANSACTION_REQUEST_ID", "/{TRANSACTION_REQUEST_ID}")
+        .replaceAll("/PROVIDER_ID", "/{PROVIDER_ID}")
+        .replaceAll("/OTHER_ACCOUNT_ID", "/{OTHER_ACCOUNT_ID}")
+        .replaceAll("/FROM_CURRENCY_CODE", "/{FROM_CURRENCY_CODE}")
+        .replaceAll("/TO_CURRENCY_CODE", "/{TO_CURRENCY_CODE}")
+        .replaceAll("/COMMENT_ID", "/{COMMENT_ID}")
+        .replaceAll("/TAG_ID", "/{TAG_ID}")
+        .replaceAll("/IMAGE_ID", "/{IMAGE_ID}")
+        .replaceAll("/CUSTOMER_ID", "/{CUSTOMER_ID}")
+        .replaceAll("/BRANCH_ID", "/{BRANCH_ID}")
+        .replaceAll("/NEW_ACCOUNT_ID", "/{NEW_ACCOUNT_ID}")
+        .replaceAll("/CONSUMER_ID", "/{CONSUMER_ID}")
+        .replaceAll("/USER_EMAIL", "/{USER_EMAIL}")
+        .replaceAll("/ENTITLEMENT_ID", "/{ENTITLEMENT_ID}")
+        .replaceAll("/KYC_CHECK_ID", "/{KYC_CHECK_ID}")
+        .replaceAll("/KYC_DOCUMENT_ID", "/{KYC_DOCUMENT_ID}")
+        .replaceAll("/KYC_MEDIA_ID", "/{KYC_MEDIA_ID}")
+        .replaceAll("/AMT_ID", "/{AMT_ID}")
+        .replaceAll("/API_VERSION", "/{API_VERSION}")
+      
       var pathParameters = List.empty[OperationParameter]
       if(path.contains("/{BANK_ID}"))
         pathParameters = OperationParameterPathJson(name="BANK_ID", description="The bank id") :: pathParameters
@@ -299,7 +299,7 @@ object SwaggerJSONFactory {
         pathParameters = OperationParameterPathJson(name="AMT_ID", description="The kyc media id") :: pathParameters
       if(path.contains("/{API_VERSION}"))
         pathParameters = OperationParameterPathJson(name="API_VERSION", description="eg:v2.2.0, v3.0.0") :: pathParameters
-
+  
       val operationObjects: Map[String, OperationObjectJson] = mrd._2.map(rd =>
         (rd.requestVerb.toLowerCase,
           OperationObjectJson(
@@ -313,11 +313,11 @@ object SwaggerJSONFactory {
                 // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
                 case _ => s"${rd.implementedInApiVersion.fullyQualifiedVersion }-${rd.partialFunctionName.toString }"
               },
-            //TODO, this is for Post Body
+            //TODO, this is for Post Body 
             parameters =
               if (rd.requestVerb.toLowerCase == "get" || rd.requestVerb.toLowerCase == "delete"){
                 pathParameters
-              } else{
+               } else{
                 val caseClassName = rd.exampleRequestBody match {
                   case s:scala.Product => s.getClass.getSimpleName
                   case _ => "NoSupportYet"
@@ -326,12 +326,12 @@ object SwaggerJSONFactory {
               },
             responses =
               rd.requestVerb.toLowerCase match {
-                case "get" =>
+                case "get" => 
                   Map(
                     "200" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
                     "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
                   )
-                case "post" =>
+                case "post" =>  
                   Map(
                     "201" -> ResponseObjectJson(Some("Success"), setReferenceObject(rd)),
                     "400"-> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson(s"#/definitions/Error${getFildNameByValue(rd.errorResponseBodies.head)}")))
@@ -369,7 +369,7 @@ object SwaggerJSONFactory {
       paths = paths
     )
   }
-
+  
   /**
     * @param entity - Any, maybe a case class, maybe a list ,maybe a string
     *               ExampleJSON (
@@ -378,19 +378,20 @@ object SwaggerJSONFactory {
     *               bank = Bank("gh.29.uk")
     *               banks = List(Bank("gh.29.uk"))
     *               )
-    * @return - String, with Swagger format
+    * @return - String, with Swagger format  
     *         "ExampleJSON":
-    *         {
-    *           "required": ["id","name","bank","banks"],
+    *         { 
+    *           "required": ["id","name","bank","banks"],    
     *           "properties":
-    *           {
-    *             "id": {"type":"integer", "format":"int32"},
+    *           { 
+    *             "id": {"type":"integer", "format":"int32"}, 
     *             "Tesobe": {"type":"string"},
     *             "bank": {"$ref": "#/definitions/BankJSON"},
     *             "banks": {"type": "array", "items":{"$ref": "#/definitions/BanksJSON"}}
     *         }
     */
   def translateEntity(entity: Any): String = {
+
     val entityType = ReflectUtils.getType(entity)
 
     val nameToValue: Map[String, Any] = entity match {
@@ -497,7 +498,7 @@ object SwaggerJSONFactory {
 
     //Exclude all unrecognised fields and make part of fields definition
     // add comment
-    // fields --> "id" : {"type":"integer", "format":"int32"} ,"name" : {"type":"string"} ,"bank": {"$ref":"#/definitions/Bank"} ,"banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}
+    // fields --> "id" : {"type":"integer", "format":"int32"} ,"name" : {"type":"string"} ,"bank": {"$ref":"#/definitions/Bank"} ,"banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
     val fields: String = paramNameToType mkString (",")
     val definition = s""""${entityType.typeSymbol.name}":{$requiredFieldsPart "properties": {$fields}}"""
     definition
@@ -554,7 +555,7 @@ object SwaggerJSONFactory {
 
   /**
     * check whether given type is a swagger ref type in definitions
-    * @param tp
+     * @param tp
     * @return
     */
   private[this] def isSwaggerRefType(tp: Type): Boolean = ! noneRefTypes.exists(tp <:< _)
@@ -622,16 +623,16 @@ object SwaggerJSONFactory {
   }
 
   /**
-    * @param resourceDocList
+    * @param resourceDocList 
     * @return - JValue, with Swagger format, many following Strings
     *         {
     *         "definitions":{
     *           "ExampleJSON":
-    *           {
-    *             "required": ["id","name","bank","banks"],
+    *           { 
+    *             "required": ["id","name","bank","banks"],    
     *             "properties":
-    *             {
-    *               "id": {"type":"integer", "format":"int32"},
+    *             { 
+    *               "id": {"type":"integer", "format":"int32"}, 
     *               "Tesobe": {"type":"string"},
     *               "bank": {"$ref": "#/definitions/BankJSON"},
     *               "banks": {"type": "array", "items":{"$ref": "#/definitions/BanksJSON"}
@@ -641,17 +642,17 @@ object SwaggerJSONFactory {
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Array[AnyRef]): liftweb.json.JValue = {
-
+  
     implicit val formats = CustomJsonFormats.formats
-
+  
     //Translate every entity(JSON Case Class) in a list to appropriate swagger format
     val baseEntities = (resourceDocList.map(_.exampleRequestBody) ::: resourceDocList.map(_.successResponseBody) ::: allSwaggerDefinitionCaseClasses.toList)
-      .filterNot(Objects.isNull)
+        .filterNot(Objects.isNull)
     val existsEntityTypes = baseEntities.map(ReflectUtils.getType)
     val nestEntities = baseEntities.flatMap(getNestRefEntities(_, existsEntityTypes))
     val translatedEntities = (baseEntities ::: nestEntities)
-      .distinctBy(_.getClass)
-      .map(translateEntity)
+                              .distinctBy(_.getClass)
+                              .map(translateEntity)
 
     val errorMessageList = ErrorMessages.allFields.toList
     val listErrorDefinition =
@@ -666,13 +667,13 @@ object SwaggerJSONFactory {
                }
              }"""
         }
-
-    //Add a comma between elements of a list and make a string
+    
+    //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
-      listErrorDefinition
+      listErrorDefinition 
         :::translatedEntities
       ) mkString (",")
-
+  
     //Make a final string
     val definitions = "{\"definitions\":{" + particularDefinitionsPart + "}}"
     //Make a jsonAST from a string

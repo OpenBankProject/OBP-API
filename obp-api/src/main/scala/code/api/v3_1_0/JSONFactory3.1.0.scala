@@ -273,7 +273,7 @@ case class UserAuthContextUpdateJson(
   user_id: String,
   key: String,
   value: String,
-  status: String
+  status: String                                   
 )
 case class PostUserAuthContextUpdateJsonV310(answer: String)
 
@@ -434,7 +434,7 @@ case class PutProductCollectionsV310(parent_product_code: String, children_produ
 
 
 case class ProductCollectionItemJsonV310(member_product_code: String)
-case class ProductCollectionJsonV310(collection_code: String,
+case class ProductCollectionJsonV310(collection_code: String, 
                                      product_code: String,
                                      items: List[ProductCollectionItemJsonV310])
 case class ProductCollectionsJsonV310(product_collection : List[ProductCollectionJsonV310])
@@ -483,7 +483,7 @@ trait PostConsentCommonBody{
 }
 
 case class PostConsentBodyCommonJson(
-  `for`: String,
+  `for`: String, 
   view: String
 ) extends PostConsentCommonBody
 
