@@ -690,11 +690,16 @@ object SwaggerJSONFactory {
     * @return entity type name
     */
   private def getRefEntityName(tp: Type, value: Any): String = {
-
     val nestTypeArg = ReflectUtils.getNestFirstTypeArg(tp)
+
+    def isEntityAbstract = {
+      val typeSymbol = nestTypeArg.typeSymbol
+      typeSymbol.isAbstract || (typeSymbol.isClass && typeSymbol.asClass.isAbstract)
+    }
+
     // if tp is not generic type or tp is generic type but it's nest type argument is abstract, then get the nest type by value
-    val entityType = (tp.typeArgs, nestTypeArg) match {
-      case (args, cs: ClassSymbol) if(args.isEmpty || cs.isAbstract) => {
+    val entityType = tp.typeArgs match {
+      case args if(args.isEmpty || isEntityAbstract) => {
         val nestValue = value match {
           case Some(head::_) => head
           case Some(v) => v

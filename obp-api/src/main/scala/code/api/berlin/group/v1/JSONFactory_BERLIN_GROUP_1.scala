@@ -11,10 +11,16 @@ import scala.collection.immutable.List
 
 object JSONFactory_BERLIN_GROUP_1 extends CustomJsonFormats {
 
-  trait links
-  case class Balances(balances: String) extends links
-  case class Transactions(trasactions: String) extends links
-  case class ViewAccount(viewAccount: String) extends links
+  /**
+    * why links is class instead of trait?
+    * because when do swagger file generation, there is no way to define a type of links, because all the implementations
+    * have different structure. if it is abstract we have no way to define an doc example
+    * @param url
+    */
+  class links(val url: String)
+  case class Balances(balances: String) extends links(balances)
+  case class Transactions(transactions: String) extends links(transactions)
+  case class ViewAccount(viewAccount: String) extends links(viewAccount)
   case class CoreAccountJsonV1(
                                  id: String,
                                  iban: String,

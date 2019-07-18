@@ -367,6 +367,12 @@ object SwaggerDefinitionsJSON {
     to = toAccountTransferToAccount
   )
 
+    val sepaCreditTransfers = SepaCreditTransfers(
+      debtorAccount = PaymentAccount(iban = "12345"),
+      instructedAmount = amountOfMoneyJsonV121,
+      creditorAccount = PaymentAccount(iban = "54321"),
+      creditorName = "John Miles"
+    )
 
   val transactionRequestBodyAllTypes = TransactionRequestBodyAllTypes (
     to_sandbox_tan = Some(transactionRequestAccount),
@@ -375,6 +381,7 @@ object SwaggerDefinitionsJSON {
     to_transfer_to_phone = Some(transactionRequestTransferToPhone),
     to_transfer_to_atm = Some(transactionRequestTransferToAtm),
     to_transfer_to_account = Some(transactionRequestTransferToAccount),
+    to_sepa_credit_transfers = Some(sepaCreditTransfers),
     value = amountOfMoney,
     description = "String"
   )
@@ -1423,30 +1430,6 @@ object SwaggerDefinitionsJSON {
   )
   // Used to describe the OBP API calls for documentation and API discovery purposes
   val canCreateCustomerSwagger = CanCreateCustomer()
-  val resourceDocJson = ResourceDocJson(
-    operation_id = "String",
-    request_verb = "String",
-    request_url = "String",
-    summary = "String",
-    description = "HTML String",
-    description_markdown = "Mark_down String",
-    example_request_body = successMessage, //TODO maybe need fix
-    success_response_body = successMessage,
-    error_response_bodies = List("OBP-10001= Incorrect json format."),
-    implemented_by = implementedByJson,
-    is_core = true,
-    is_psd2 = true,
-    is_obwg = true,
-    tags = List("String"),
-    typed_request_body = json.parse("""{"request": { "type" :"string" }}"""),
-    typed_success_response_body = json.parse("""{"response": { "type" :"string" }}"""),
-    roles = Some(List(canCreateCustomerSwagger)),
-    is_featured = false,
-    special_instructions = "",
-    specified_url = ""
-  )
-
-  val resourceDocsJson = ResourceDocsJson(resource_docs = List(resourceDocJson))
 
   val transactionRequestBodyJsonV140 = TransactionRequestBodyJsonV140(
     to = transactionRequestAccountJsonV140,
@@ -2629,7 +2612,12 @@ object SwaggerDefinitionsJSON {
   val balances = Balances("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances")
   
   val transactions  = Transactions("/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions")
-  
+
+  val linksDemo = {
+    import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.links
+    new links(balances.url)
+  }
+
   val coreAccountJson_v1 = CoreAccountJsonV1(
     id = "3dc3d5b3-7023-4848-9853-f5400a64e80f",
     iban = "DE2310010010123456789",
