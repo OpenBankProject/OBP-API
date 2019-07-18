@@ -2,7 +2,7 @@ package code.api.UKOpenBanking.v3_1_0
 
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.APIUtil._
-import code.api.util.ApiTag
+import code.api.util.{ApiTag, NewStyle}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
@@ -110,9 +110,9 @@ object APIMethods_AccountsApi extends RestHelper {
            for {
             (Full(u), callContext) <- authorizedAccess(cc)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
+            (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           } yield {
-            (JSONFactory_UKOpenBanking_310.createAccountsListJSON(accounts.getOrElse(Nil)), callContext)
+            (JSONFactory_UKOpenBanking_310.createAccountsListJSON(accounts), callContext)
           }
            
          }
@@ -202,9 +202,9 @@ object APIMethods_AccountsApi extends RestHelper {
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
               _.filter(_.accountId.value == accountId.value)
             }
-            accounts <- {Connector.connector.vend.getBankAccounts(availablePrivateAccounts, callContext)}
+            (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           } yield {
-            (JSONFactory_UKOpenBanking_310.createAccountJSON(accounts.getOrElse(Nil)), callContext)
+            (JSONFactory_UKOpenBanking_310.createAccountJSON(accounts), callContext)
           }
          }
        }
