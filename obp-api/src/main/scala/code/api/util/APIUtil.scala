@@ -2648,12 +2648,12 @@ Returns a string showed to the developer
     * @return The phone number of a Customer
     */
   def getPhoneNumbersForAccount(bankId: BankId, accountId: AccountId): List[(String, String)] = {
-    AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList flatMap {
-      holder =>
-        UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(holder.userId) flatMap {
-          userCustomerLink =>
-            CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId).map(c => (c.legalName, c.mobileNumber))
-        }
+    for{
+      holder <- AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).toList
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(holder.userId)
+      customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(userCustomerLink.customerId)
+    } yield {
+      (customer.legalName, customer.mobileNumber)
     }
   }
   

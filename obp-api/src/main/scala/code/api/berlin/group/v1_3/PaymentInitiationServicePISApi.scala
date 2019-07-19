@@ -274,7 +274,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
              }
              (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError Can not find any authorisations for this paymentId($paymentId) ")
+               connectorEmptyResponse(_, callContext)
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationsJson(authorisations), callContext)
@@ -313,9 +313,8 @@ Retrieve a list of all created cancellation authorisation sub-resources.
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_"))
              }
-             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
              authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByPaymentId(paymentId)) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError ")
+               connectorEmptyResponse(_, callContext)
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.CancellationJsonV13(
