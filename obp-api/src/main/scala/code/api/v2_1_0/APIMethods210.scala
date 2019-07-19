@@ -260,7 +260,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPSD2PIS))
 
     // COUNTERPARTY
     resourceDocs += ResourceDoc(
@@ -301,7 +301,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPSD2PIS))
 
 
     val lowAmount  = AmountOfMoneyJsonV121("EUR", "12.50")
@@ -346,7 +346,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPSD2PIS))
 
 
     // FREE_FORM.
@@ -382,7 +382,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagPSD2PIS),
       Some(List(canCreateAnyTransactionRequest)))
 
 
@@ -594,7 +594,7 @@ trait APIMethods210 {
         UnknownError
       ),
       Catalogs(Core, PSD2, OBWG),
-      List(apiTagTransactionRequest))
+      List(apiTagTransactionRequest, apiTagPSD2PIS))
 
     lazy val answerTransactionRequestChallenge: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::

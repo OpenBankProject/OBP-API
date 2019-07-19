@@ -19,7 +19,7 @@ import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
-import scala.reflect.runtime.universe
+import code.api.v3_1_0.ListResult
 
 object SwaggerJSONFactory {
   //Info Object
@@ -393,7 +393,18 @@ object SwaggerJSONFactory {
   def translateEntity(entity: Any): String = {
 
     val entityType = ReflectUtils.getType(entity)
-    val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
+
+    val nameToValue: Map[String, Any] = entity match {
+      case  ListResult(name, results) => Map((name, results))
+      case _ => ReflectUtils.getConstructorArgs(entity)
+    }
+
+
+    val nameToType: Map[String, Type] = entity match {
+      case listResult: ListResult[_] => Map((listResult.name, listResult.itemType))
+      case _ => ReflectUtils.getConstructorArgTypes(entity)
+    }
+
 
     val convertParamName = (name: String) =>  entity match {
       case _ : JsonFieldReName => StringHelpers.snakify(name)
@@ -402,52 +413,33 @@ object SwaggerJSONFactory {
 
     //Collect all mandatory fields and make an appropriate string
     // eg return :  "required": ["id","name","bank","banks"],
-    val required = constructorParamList
-      .filterNot(_.info <:< typeOf[Option[_]])
-      .map(_.name.toString)
+    val required = nameToType
+      .filterNot(_._2 <:< typeOf[Option[_]])
+      .map(_._1)
       .map(convertParamName)
       .map(it => s""" "$it" """)
 
     //Make part of mandatory fields
     val requiredFieldsPart = if (required.isEmpty) "" else  required.mkString(""" "required": [""", ",", """], """)
 
-    val paramNameToType: List[String] = constructorParamList.map(it => {
-      val paramName = convertParamName(it.name.toString)
-      val typeAndValue: (universe.Type, Any) = (it.info, ReflectUtils.invokeMethod(entity, it.name.toString)) match {
-        case (info, v) if(v.isInstanceOf[() => _]) => (info.typeArgs.head, v.asInstanceOf[()=>_].apply())
-        case (info, v) => (info, v)
+
+
+    val paramNameToType: Iterable[String] = nameToValue.map(it => {
+      //TODO, what does this `invokeMethod` return?
+      val paramName = convertParamName(it._1)
+
+      val paramType = nameToType(it._1)
+      val paramValue = it._2
+
+      val exampleValue = paramValue match {
+        case Some(v) => v
+        case None => ""
+        case _ => paramValue
       }
-      val paramType = typeAndValue._1
-      val paramValue = typeAndValue._2
 
       def isTypeOf[T: TypeTag]: Boolean = paramType <:< typeTag[T].tpe
       def isOneOfType[T: TypeTag, D: TypeTag]: Boolean = isTypeOf[T] || isTypeOf[D]
 
-      def getRefEntityName(tp: Type, value: Any, typeParamIndexes: Int*): String = {
-
-        def isTypeParamAbstract: Boolean = {
-          val symbol = typeParamIndexes.foldLeft(tp){(t, index) => t.typeArgs(index)} .typeSymbol
-          Some(symbol).filter(it => it.isClass && it.asClass.isAbstract).isDefined
-        }
-        // if tp is wildcard type or extracted type parameter is abstract, analyse with value's nest value
-        if(tp.typeArgs.isEmpty || (typeParamIndexes.size > 0 && isTypeParamAbstract)) {
-          val nestValue = value match {
-              case Some(head::_) => head
-              case Some(v) => v
-              case Some(head)::_ => head
-              case head::_ => head
-              case other => other
-            }
-          ReflectUtils.getType(nestValue).typeSymbol.name.toString
-        } else if(typeParamIndexes.size == 1 && typeParamIndexes.head == 0 && value.isInstanceOf[List[_]] && value.asInstanceOf[List[_]].exists(_ != null)) {
-          val noNullValue = value.asInstanceOf[List[_]].find(_ != null).get
-          ReflectUtils.getType(noNullValue).typeSymbol.name.toString
-        } else if(typeParamIndexes.size == 1 && typeParamIndexes.head == 0 && value.isInstanceOf[Some[_]]) {
-          ReflectUtils.getType(value.asInstanceOf[Some[_]].get).typeSymbol.name.toString
-        } else {
-          value.getClass.getName
-        }
-      }
       paramType match {
         //TODO: this maybe wrong, JValue will have many types: JObject, JBool, JInt, JDouble , but here we just map one type `String`
         case _ if(isTypeOf[JValue])                   => s""""$paramName": {"type":"string","example":"This is a json String."}"""
@@ -456,47 +448,49 @@ object SwaggerJSONFactory {
         case _ if(isTypeOf[Option[List[JValue]]])     => s""""$paramName": {"type":"array", "items":{"type":"string","example":"This is a json String."}}"""
 
         //Boolean - 4 kinds
-        case _ if(isOneOfType[Boolean, JBoolean])                            => s""""$paramName": {"type":"boolean", "example": "$paramValue"}"""
-        case _ if(isOneOfType[Option[Boolean], Option[JBoolean]])            => s""""$paramName": {"type":"boolean", "example": "$paramValue"}"""
+        case _ if(isOneOfType[Boolean, JBoolean])                            => s""""$paramName": {"type":"boolean", "example": "$exampleValue"}"""
+        case _ if(isOneOfType[Option[Boolean], Option[JBoolean]])            => s""""$paramName": {"type":"boolean", "example": "$exampleValue"}"""
         case _ if(isOneOfType[List[Boolean], List[JBoolean]])                => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
         case _ if(isOneOfType[Option[List[Boolean]],Option[List[JBoolean]]]) => s""""$paramName": {"type":"array", "items":{"type": "boolean"}}"""
+
         //String
-        case _ if(isTypeOf[String])                   => s""""$paramName": {"type":"string","example":"$paramValue"}"""
-        case _ if(isTypeOf[Option[String]])           => s""""$paramName": {"type":"string","example":"$paramValue"}"""
-        case _ if(isTypeOf[List[String]])             => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
-        case _ if(isTypeOf[Option[List[String]]])     => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+        case t if(isTypeOf[String] || isEnumeration(t))                                         => s""""$paramName": {"type":"string","example":"$exampleValue"}"""
+        case t if(isTypeOf[List[String]] || isNestEnumeration[List[_]](t))                      => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+        case t if(isTypeOf[Option[List[String]]] || isNestEnumeration[Option[List[_]]](t))      => s""""$paramName": {"type":"array", "items":{"type": "string"}}"""
+        case t if(isTypeOf[Option[String]] || isNestEnumeration[Option[_]](t))                  => s""""$paramName": {"type":"string","example":"$exampleValue"}"""
+
         //Int
-        case _ if(isOneOfType[Int, JInt])                             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Int], Option[JInt]])             => s""""$paramName": {"type":"integer", "format":"int32","example":"$paramValue"}"""
+        case _ if(isOneOfType[Int, JInt])                             => s""""$paramName": {"type":"integer", "format":"int32","example":"$exampleValue"}"""
+        case _ if(isOneOfType[Option[Int], Option[JInt]])             => s""""$paramName": {"type":"integer", "format":"int32","example":"$exampleValue"}"""
         case _ if(isOneOfType[List[Int], List[JInt]])                 => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         case _ if(isOneOfType[Option[List[Int]], Option[List[JInt]]]) => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         //Long
-        case _ if(isOneOfType[Long, JLong])                             => s""""$paramName": {"type":"integer", "format":"int64","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Long], Option[JLong]])             => s""""$paramName": {"type":"integer", "format":"int64","example":"$paramValue"}"""
+        case _ if(isOneOfType[Long, JLong])                             => s""""$paramName": {"type":"integer", "format":"int64","example":"$exampleValue"}"""
+        case _ if(isOneOfType[Option[Long], Option[JLong]])             => s""""$paramName": {"type":"integer", "format":"int64","example":"$exampleValue"}"""
         case _ if(isOneOfType[List[Long], List[JLong]])                 => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         case _ if(isOneOfType[Option[List[Long]], Option[List[JLong]]]) => s""""$paramName": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         //Float
-        case _ if(isOneOfType[Float, JFloat])                             => s""""$paramName": {"type":"number", "format":"float","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Float], Option[JFloat]])             => s""""$paramName": {"type":"number", "format":"float","example":"$paramValue"}"""
+        case _ if(isOneOfType[Float, JFloat])                             => s""""$paramName": {"type":"number", "format":"float","example":"$exampleValue"}"""
+        case _ if(isOneOfType[Option[Float], Option[JFloat]])             => s""""$paramName": {"type":"number", "format":"float","example":"$exampleValue"}"""
         case _ if(isOneOfType[List[Float], List[JFloat]])                 => s""""$paramName": {"type":"array", "items":{"type": "float"}}"""
         case _ if(isOneOfType[Option[List[Float]], Option[List[JFloat]]]) => s""""$paramName": {"type":"array", "items":{"type": "float"}}"""
         //Double
-        case _ if(isOneOfType[Double, JDouble])                             => s""""$paramName": {"type":"number", "format":"double","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[Double], Option[JDouble]])             => s""""$paramName": {"type":"number", "format":"double","example":"$paramValue"}"""
+        case _ if(isOneOfType[Double, JDouble])                             => s""""$paramName": {"type":"number", "format":"double","example":"$exampleValue"}"""
+        case _ if(isOneOfType[Option[Double], Option[JDouble]])             => s""""$paramName": {"type":"number", "format":"double","example":"$exampleValue"}"""
         case _ if(isOneOfType[List[Double], List[JDouble]])                 => s""""$paramName": {"type":"array", "items":{"type": "double"}}"""
         case _ if(isOneOfType[Option[List[Double]], Option[List[JDouble]]]) => s""""$paramName": {"type":"array", "items":{"type": "double"}}"""
         //BigDecimal
-        case _ if(isOneOfType[BigDecimal, JBigDecimal])                             => s""""$paramName": {"type":"string", "format":"double","example":"$paramValue"}"""
-        case _ if(isOneOfType[Option[BigDecimal], Option[JBigDecimal]])             => s""""$paramName": {"type":"string", "format":"double","example":"$paramValue"}"""
+        case _ if(isOneOfType[BigDecimal, JBigDecimal])                             => s""""$paramName": {"type":"string", "format":"double","example":"$exampleValue"}"""
+        case _ if(isOneOfType[Option[BigDecimal], Option[JBigDecimal]])             => s""""$paramName": {"type":"string", "format":"double","example":"$exampleValue"}"""
         case _ if(isOneOfType[List[BigDecimal], List[JBigDecimal]])                 => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         case _ if(isOneOfType[Option[List[BigDecimal]], Option[List[JBigDecimal]]]) => s""""$paramName": {"type":"array", "items":{"type": "string", "format":"double","example":"123.321"}}"""
         //Date
-        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"$paramValue"}"""
+        case _ if(isOneOfType[Date, Option[Date]])                   => s""""$paramName": {"type":"string", "format":"date","example":"$exampleValue"}"""
         case _ if(isOneOfType[List[Date], Option[List[Date]]])       => s""""$paramName": {"type":"array", "items":{"type":"string", "format":"date"}}"""
 
         //List case classes.
-        case t if(isOneOfType[List[Option[_]], Option[List[_]]])  => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0, 0)}"}}"""
-        case t if(isOneOfType[List[_], Option[_]])                => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue, 0)}"}}"""
+        case t if(isOneOfType[List[Option[_]], Option[List[_]]])  => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue)}"}}"""
+        case t if(isOneOfType[List[_], Option[_]])                => s""""$paramName": {"type": "array", "items":{"$$ref": "#/definitions/${getRefEntityName(t, paramValue)}"}}"""
         //Single object
         case t                                                    => s""""$paramName": {"$$ref":"#/definitions/${getRefEntityName(t, paramValue)}"}"""
       }
@@ -574,29 +568,36 @@ object SwaggerJSONFactory {
     * @return all nest swagger ref type object, include all deep nest ref object
     */
   private[this] def getNestRefEntities(obj: Any, excludeTypes: Seq[Type]): List[Any] = {
-    val entityType = ReflectUtils.getType(obj)
-    val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
-    // if exclude current obj, the result list tail will be Nil
-    val resultTail = if(excludeTypes.exists(entityType =:=)) Nil else List(obj)
+    obj.getClass.getName match {
+      case "scala.Enumeration$Val" => Nil      // there is no way to check an object is a Enumeration by call method
 
-    val refValues: List[Any] = constructorParamList
-      .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
-      .map(it => {
-        val paramName = it.name.toString
-        val value = ReflectUtils.invokeMethod(obj, paramName)
-        if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
-          throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
-        }
-        value match {
-          case Some(head::_) => head
-          case Some(v) => v
-          case Some(head)::_ => head
-          case head::_ => head
-          case other => other
-        }
-      }).filterNot(it => it == null || it == Nil || it == None)
+      case _ => {
+        val entityType = ReflectUtils.getType(obj)
+        val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
+        // if exclude current obj, the result list tail will be Nil
+        val resultTail = if(excludeTypes.exists(entityType =:=)) Nil else List(obj)
 
-    refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
+        val refValues: List[Any] = constructorParamList
+          .filter(it => isSwaggerRefType(it.info) && !excludeTypes.exists(_ =:= it.info))
+          .map(it => {
+            val paramName = it.name.toString
+            val value = ReflectUtils.invokeMethod(obj, paramName)
+            if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
+              throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
+            }
+            value match {
+              case Some(head::_) => head
+              case Some(v) => v
+              case Some(head)::_ => head
+              case head::_ => head
+              case other => other
+            }
+          }).filterNot(it => it == null || it == Nil || it == None)
+
+        refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
+      }
+    }
+
   }
 
 
@@ -679,4 +680,49 @@ object SwaggerJSONFactory {
     parse(definitions)
   }
 
+
+  /**
+    * get entity type by type and value,
+    * if tp is not generic, extract entity type from value
+    * else if tp is generic but the nest type parameter is abstract, extract entity type from value
+    * else get the nest type argument from tp
+    * @param tp  type of to do extract entity type
+    * @param value the value of type tp
+    * @return entity type name
+    */
+  private def getRefEntityName(tp: Type, value: Any): String = {
+    val nestTypeArg = ReflectUtils.getNestFirstTypeArg(tp)
+
+    def isEntityAbstract = {
+      val typeSymbol = nestTypeArg.typeSymbol
+      typeSymbol.isAbstract || (typeSymbol.isClass && typeSymbol.asClass.isAbstract)
+    }
+
+    // if tp is not generic type or tp is generic type but it's nest type argument is abstract, then get the nest type by value
+    val entityType = tp.typeArgs match {
+      case args if(args.isEmpty || isEntityAbstract) => {
+        val nestValue = value match {
+          case Some(head::_) => head
+          case Some(v) => v
+          case Some(head)::_ => head
+          case head::_ => head
+          case other => other
+        }
+        ReflectUtils.getType(nestValue)
+      }
+      case _ => nestTypeArg
+    }
+
+    entityType.typeSymbol.name.toString
+  }
+
+  private def isEnumeration(tp: Type) = tp.typeSymbol.isClass && tp.typeSymbol.asClass.fullName == "scala.Enumeration.Value"
+
+  private def isNestEnumeration[T: TypeTag](tp: Type) = {
+    def isNestEnum = isEnumeration(ReflectUtils.getNestFirstTypeArg(tp))
+    implicitly[TypeTag[T]].tpe match {
+      case t if(tp <:< t && isNestEnum) => true
+      case _ => false
+    }
+  }
 }

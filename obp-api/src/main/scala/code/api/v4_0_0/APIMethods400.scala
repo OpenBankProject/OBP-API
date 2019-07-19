@@ -48,7 +48,7 @@ trait APIMethods400 {
       banksJSON,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagBank :: apiTagNewStyle :: Nil)
+      apiTagBank :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
     
     lazy val getBanks : OBPEndpoint = {
       case "banks" :: Nil JsonGet _ => {
