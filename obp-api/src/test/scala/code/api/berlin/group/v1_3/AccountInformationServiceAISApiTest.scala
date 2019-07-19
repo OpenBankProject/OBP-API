@@ -13,6 +13,8 @@ import org.scalatest.Tag
 class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
 
   object getAccountList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getAccountList))
+  
+  object readAccountDetails extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.readAccountDetails))
 
   object getBalances extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getBalances))
 
@@ -54,6 +56,30 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       Then("We should get a 200 ")
       response.code should equal(200)
       response.body.extract[CoreAccountsJsonV13].accounts.length > 1 should be (true)
+    }
+  }
+  
+  feature(s"BG v1.3 - $readAccountDetails") {
+    scenario("Not Authentication User, test failed ", BerlinGroupV1_3, readAccountDetails) {
+      val requestGet = (V1_3_BG / "accounts" / "accountId").GET
+      val response = makeGetRequest(requestGet)
+
+      Then("We should get a 400 ")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should startWith(UserNotLoggedIn)
+    }
+
+    scenario("Authentication User, test succeed", BerlinGroupV1_3, readAccountDetails) {
+      val requestGetAccounts = (V1_3_BG / "accounts").GET <@ (user1)
+      val responseGetAccounts = makeGetRequest(requestGetAccounts)
+      val accountId = responseGetAccounts.body.extract[CoreAccountsJsonV13].accounts.map(_.resourceId).headOption.getOrElse("")
+      
+      val requestGet = (V1_3_BG / "accounts" / accountId).GET <@ (user1)
+      val response = makeGetRequest(requestGet)
+
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      response.body.extract[AccountDetailsJsonV13].account.resourceId should be (accountId)
     }
   }
 
