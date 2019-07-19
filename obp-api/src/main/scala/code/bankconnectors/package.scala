@@ -91,7 +91,11 @@ package object bankconnectors {
       }
     }
 
-    connectorName.getOrElse("mapped") match {
+    // if connector name have append parameter, remove parameter:
+    // rest_vMar2019#http://somedomain/obp/xxxx --> rest_vMar2019
+    connectorName
+      .map(_.replaceFirst("#.*", ""))
+      .getOrElse("mapped") match {
       case "mapped" => LocalMappedConnector
       case "rest_vMar2019" => RestConnector_vMar2019
       case "kafka_vSept2018" => KafkaMappedConnector_vSept2018

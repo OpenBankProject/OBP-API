@@ -35,7 +35,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
-import code.api.util.{CallContext, OBPQueryParam}
+import code.api.util.{CallContext, NewStyle, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.kafka.{KafkaHelper, Topics}
@@ -77,6 +77,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   val authInfoExample = AuthInfo(userId = "userId", username = "username", cbsToken = "cbsToken")
   val errorCodeExample = "INTERNAL-OBP-ADAPTER-6001: ..."
 
+  val connectorName = "rest_vMar2019"
 
   /*
     All the following code is created automatclly. 
@@ -284,6 +285,17 @@ messageDocs += MessageDoc(
   private[this] val baseUrl = "http://localhost:8080/restConnector"
 
   private[this] def getUrl(methodName: String, variables: (String, Any)*): String = {
+    // rest connector can have url value in the value of MethodRouting#connectorName, this is the prefix of MethodRouting#connectorName
+    val methodNamePrefx = connectorName + "#"
+    val methodRouting = NewStyle.function.getMethodRoutings(Some(methodName))
+      .map(_.connectorName)
+      .filter(_.startsWith(methodNamePrefx))
+      .map(_.substring(methodNamePrefx.size))
+      .headOption
+    if(methodRouting.isDefined) {
+      return methodRouting.get
+    }
+
     // convert any type value to string, to fill in the url
     def urlValueConverter(obj: Any):String = {
       val value = obj match {
