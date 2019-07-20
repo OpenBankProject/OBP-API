@@ -53,7 +53,9 @@ trait APIMethods200 {
   self: RestHelper =>
 
   // helper methods begin here
-
+  private def privateBankAccountBasicListToJson(bankAccounts: List[BankAccount], privateViewsUserCanAccessAtOneBank : List[View]): JValue = {
+    Extraction.decompose(privateBasicBankAccountList(bankAccounts, privateViewsUserCanAccessAtOneBank))
+  }
   // shows a small representation of View
   private def publicBankAccountBasicListToJson(bankAccounts: List[BankAccount], publicViews : List[View]): JValue = {
     Extraction.decompose(publicBasicBankAccountList(bankAccounts, publicViews))
@@ -271,11 +273,11 @@ trait APIMethods200 {
         cc =>
           for{
             (Full(u), callContext) <- authorizedAccess(cc)
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            (coreAccounts, callContext) <- getFilteredCoreAccounts(availablePrivateAccounts, req, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
-            (createBasicAccountsJson(coreAccounts), HttpCode.`200`(callContext))
+            val privateViewsUserCanAccessAtOneBank = Views.views.vend.privateViewsUserCanAccess(u).filter(_.bankId == bankId)
+            val availablePrivateAccounts = bank.privateAccounts(privateViewsUserCanAccessAtOneBank)
+            (privateBankAccountBasicListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank), HttpCode.`200`(callContext))
           }
       }
     }
