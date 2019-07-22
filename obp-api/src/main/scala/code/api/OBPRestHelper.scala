@@ -30,20 +30,16 @@ package code.api
 import java.net.URLDecoder
 
 import code.api.Constant._
-import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.OAuthHandshake._
+import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.{NotImplemented, attemptedToOpenAnEmptyBox}
+import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util._
-import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.util.Helper.MdcLoggable
-import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
-import net.liftweb.json.{Extraction, parse}
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
 
@@ -167,6 +163,10 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
       case Some(e) if NewStyle.endpoints.exists(_ == (e.partialFunctionName, e.implementedInApiVersion.toString())) =>
+        true
+      case Some(e) if APIMethods_AccountInformationServiceAISApi.endpointsNewStyle.exists {
+        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      } =>
         true
       case _ =>
         false
