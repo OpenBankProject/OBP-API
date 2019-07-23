@@ -127,10 +127,10 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       
       val responseGet = makeGetRequest(requestGet)
       responseGet.code should equal(200)
-      responseGet.body.extract[AccountBalancesV310Json].accounts.size > 0 should be (true)
-      responseGet.body.extract[AccountBalancesV310Json].overall_balance.currency.nonEmpty should be (true) 
-      responseGet.body.extract[AccountBalancesV310Json].overall_balance.amount.nonEmpty should be (true)
-      responseGet.body.extract[AccountBalancesV310Json].overall_balance_date.getTime >0 should be (true) 
+      responseGet.body.extract[AccountsBalancesV310Json].accounts.size > 0 should be (true)
+      responseGet.body.extract[AccountsBalancesV310Json].overall_balance.currency.nonEmpty should be (true) 
+      responseGet.body.extract[AccountsBalancesV310Json].overall_balance.amount.nonEmpty should be (true)
+      responseGet.body.extract[AccountsBalancesV310Json].overall_balance_date.getTime >0 should be (true) 
 
     }
   }

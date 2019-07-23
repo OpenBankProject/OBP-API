@@ -701,7 +701,7 @@ case class PostHistoricalTransactionResponseJson(
   charge_policy: String
 )
 
-case class AccountBalancesV310Json(
+case class AccountsBalancesV310Json(
   accounts:List[AccountBalanceV310],
   overall_balance: AmountOfMoney,
   overall_balance_date: Date
@@ -1327,17 +1327,17 @@ object JSONFactory310{
     )
   }
 
-  def createBalancesJson(accountBalances: AccountsBalances) = {
-    AccountBalancesV310Json(
-      accounts = accountBalances.accounts.map(account => AccountBalanceV310(
+  def createBalancesJson(accountsBalances: AccountsBalances) = {
+    AccountsBalancesV310Json(
+      accounts = accountsBalances.accounts.map(account => AccountBalanceV310(
         account.id,
         account.label,
         account.bankId,
         account.accountRoutings, 
         account.balance)
       ),
-      overall_balance = accountBalances.overallBalance,
-      overall_balance_date = accountBalances.overallBalanceDate
+      overall_balance = accountsBalances.overallBalance,
+      overall_balance_date = accountsBalances.overallBalanceDate
     )
   }
 

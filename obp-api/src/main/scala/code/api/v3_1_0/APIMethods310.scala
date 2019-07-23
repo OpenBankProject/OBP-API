@@ -5477,9 +5477,9 @@ trait APIMethods310 {
             (Full(u), callContext) <- authorizedAccess(cc)
             (banks, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(availablePrivateAccounts, callContext)
+            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(availablePrivateAccounts, callContext)
           } yield{
-            (createBalancesJson(accountBalances), HttpCode.`200`(callContext))
+            (createBalancesJson(accountsBalances), HttpCode.`200`(callContext))
           }
       }
     }

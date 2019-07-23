@@ -15,7 +15,7 @@ import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{EmptyElasticSearch, LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
-import code.api.v3_1_0.{AccountBalanceV310, AccountBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
+import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -3424,7 +3424,7 @@ object SwaggerDefinitionsJSON {
     balance = amountOfMoney
   )
   
-  val accountBalancesV310Json = AccountBalancesV310Json(
+  val accountBalancesV310Json = AccountsBalancesV310Json(
     accounts = List(accountBalanceV310),
     overall_balance = amountOfMoney,
     overall_balance_date = DateWithMsExampleObject

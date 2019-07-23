@@ -303,8 +303,8 @@ object NewStyle {
       }
     }
 
-    def getBankAccountBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
-      Connector.connector.vend.getBankAccountBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
+    def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
+      Connector.connector.vend.getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
       }
     }

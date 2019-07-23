@@ -451,7 +451,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
   
-  override def getBankAccountBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) = 
+  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) = 
     Future {
       val accountsBalances = for{
         bankIdAccountId <- bankIdAccountIds
