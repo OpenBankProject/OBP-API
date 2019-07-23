@@ -204,7 +204,7 @@ object NewStyle {
     (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.saveHistoricalTransaction), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations3_1_0.getPrivateAccountByIdFull), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getBalances), ApiVersion.v3_1_0.toString),
+    (nameOf(Implementations3_1_0.getBankAccountsBalances), ApiVersion.v3_1_0.toString),
     (nameOf(Implementations4_0_0.getBanks), ApiVersion.v4_0_0.toString)
   )
 
@@ -299,6 +299,12 @@ object NewStyle {
     }
     def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[BankAccount]] = {
       Connector.connector.vend.getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
+      }
+    }
+
+    def getBankAccountBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
+      Connector.connector.vend.getBankAccountBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
       }
     }

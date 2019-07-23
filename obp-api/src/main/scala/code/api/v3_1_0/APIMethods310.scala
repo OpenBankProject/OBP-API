@@ -5456,29 +5456,30 @@ trait APIMethods310 {
     }
 
     resourceDocs += ResourceDoc(
-      getBalances,
+      getBankAccountsBalances,
       implementedInApiVersion,
-      nameOf(getBalances),
+      nameOf(getBankAccountsBalances),
       "GET",
       "/banks/BANK_ID/balances",
-      "Get Balances",
-      """Get Accounts held by the current User if even the User has not been assigned the owner View yet.""",
+      "Get Accounts Balances",
+      """Get the Balances for the Accounts of the current User at one bank.""",
       emptyObjectJson,
-      banksJSON,
+      accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagNewStyle :: Nil
+    )
 
-    lazy val getBalances : OBPEndpoint = {
+    lazy val getBankAccountsBalances : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "balances" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- authorizedAccess(cc)
             (banks, callContext) <- NewStyle.function.getBank(bankId, callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(availablePrivateAccounts, callContext)
           } yield{
-            (createBalancesJson(accounts), HttpCode.`200`(callContext))
+            (createBalancesJson(accountBalances), HttpCode.`200`(callContext))
           }
       }
     }

@@ -701,18 +701,23 @@ case class PostHistoricalTransactionResponseJson(
   charge_policy: String
 )
 
+case class AccountBalancesV310Json(
+  accounts:List[AccountBalanceV310],
+  overall_balance: AmountOfMoney,
+  overall_balance_date: Date
+)
 case class AccountBalanceV310(
   id: String,
   label: String,
   bank_id: String,
-  account_routings: List[AccountRoutingJsonV121],
-  balance: AmountOfMoneyJsonV121
+  account_routings: List[AccountRouting],
+  balance: AmountOfMoney
 )
 
-case class BalancesJson(
+case class AccountBalancesJson(
   accounts: List[AccountBalanceV310],
-  global_balance: AmountOfMoneyJsonV121,
-  global_balance_date: Date
+  overall_balance: AmountOfMoney,
+  overall_balance_date: Date
 )
 
 object JSONFactory310{
@@ -1322,19 +1327,17 @@ object JSONFactory310{
     )
   }
 
-  def createBalancesJson(
-    accounts: List[BankAccount]
-  ) = {
-    BalancesJson(
-      accounts = accounts.map(account => AccountBalanceV310(
-        account.accountId.value,
+  def createBalancesJson(accountBalances: AccountsBalances) = {
+    AccountBalancesV310Json(
+      accounts = accountBalances.accounts.map(account => AccountBalanceV310(
+        account.id,
         account.label,
-        account.bankId.value,
-        account.accountRoutings.map(accountRounting => AccountRoutingJsonV121(accountRounting.scheme, accountRounting.address)),
-        AmountOfMoneyJsonV121(account.currency, account.balance.toString())
-      )),
-      global_balance = AmountOfMoneyJsonV121("", ""),
-      global_balance_date = new Date()
+        account.bankId,
+        account.accountRoutings, 
+        account.balance)
+      ),
+      overall_balance = accountBalances.overallBalance,
+      overall_balance_date = accountBalances.overallBalanceDate
     )
   }
 

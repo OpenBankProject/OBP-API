@@ -376,7 +376,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations3_1_0.getWebUiProps ::
                           Implementations3_1_0.createWebUiProps ::
                           Implementations3_1_0.deleteWebUiProps ::
-                          Implementations3_1_0.getBalances ::
+                          Implementations3_1_0.getBankAccountsBalances ::
                           Nil
   
   val allResourceDocs = Implementations3_1_0.resourceDocs ++

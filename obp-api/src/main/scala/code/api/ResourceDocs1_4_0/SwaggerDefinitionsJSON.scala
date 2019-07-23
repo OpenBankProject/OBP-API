@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
-import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
+import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalanceV1, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.Glossary.GlossaryItem
@@ -15,7 +15,7 @@ import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{EmptyElasticSearch, LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
-import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
+import code.api.v3_1_0.{AccountBalanceV310, AccountBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -24,7 +24,7 @@ import code.consent.ConsentStatus
 import code.context.UserAuthContextUpdateStatus
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.{GeoTag, ViewBasic, _}
+import com.openbankproject.commons.model.{AccountBalance, GeoTag, ViewBasic, _}
 import net.liftweb.json
 
 import scala.collection.immutable.List
@@ -2652,13 +2652,13 @@ object SwaggerDefinitionsJSON {
     lastActionDateTime = DateWithDayExampleObject
   )
   
-  val accountBalance = AccountBalance(
+  val accountBalanceV1 = AccountBalanceV1(
     closingBooked = closingBookedBody,
     expected = expectedBody
   )
   
   val accountBalances = AccountBalances(
-    `balances` = List(accountBalance)
+    `balances` = List(accountBalanceV1)
   )
   
   val transactionJsonV1 = TransactionJsonV1(
@@ -3415,7 +3415,21 @@ object SwaggerDefinitionsJSON {
   val elasticSearchQuery = ElasticSearchQuery(emptyElasticSearch)
   
   val elasticSearchJsonV300 = ElasticSearchJsonV300(elasticSearchQuery)
+
+  val accountBalanceV310 = AccountBalanceV310(
+    id = accountIdExample.value,
+    label = labelExample.value,
+    bank_id = bankIdExample.value,
+    account_routings = List(accountRouting),
+    balance = amountOfMoney
+  )
   
+  val accountBalancesV310Json = AccountBalancesV310Json(
+    accounts = List(accountBalanceV310),
+    overall_balance = amountOfMoney,
+    overall_balance_date = DateWithMsExampleObject
+  )
+    
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NoSupportYet()
