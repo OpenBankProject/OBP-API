@@ -21,7 +21,6 @@ import net.liftweb.util.StringHelpers
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
 
-import scala.collection.immutable
 import scala.reflect.runtime.universe
 
 object SwaggerJSONFactory {
@@ -676,23 +675,27 @@ object SwaggerJSONFactory {
                               .distinctBy(_.getClass)
                               .map(translateEntity)
 
-    val errorMessageList = ErrorMessages.allFields.toList
-    val listErrorDefinition =
-      for (e <- errorMessageList if e != null)
-        yield {
-          s""""Error${e._1 }": {
-               "properties": {
-                 "message": {
-                    "type": "string",
-                    "example": "${e._2}"
-                 }
-               }
-             }"""
-        }
+    val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.errorResponseBodies).toSet
+
+    val errorDefinitions = ErrorMessages.allFields
+      .filterNot(null ==)
+      .filter(it => errorMessages.contains(it._2))
+      .toList
+      .map(it => {
+        val (errorName, errorMessage) = it
+        s""""Error$errorName": {
+        |  "properties": {
+        |    "message": {
+        |       "type": "string",
+        |       "example": "$errorMessage"
+        |    }
+        |  }
+         }""".stripMargin
+      })
     
     //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
-      //listErrorDefinition :::
+        errorDefinitions :::
         translatedEntities
       ) mkString (",")
   
