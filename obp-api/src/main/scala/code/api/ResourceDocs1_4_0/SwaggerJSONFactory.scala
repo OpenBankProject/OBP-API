@@ -21,6 +21,9 @@ import net.liftweb.util.StringHelpers
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
 
+import scala.collection.immutable
+import scala.reflect.runtime.universe
+
 object SwaggerJSONFactory {
   //Info Object
   //link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#infoObject
@@ -561,13 +564,24 @@ object SwaggerJSONFactory {
   private[this] def isSwaggerRefType(tp: Type): Boolean = ! noneRefTypes.exists(tp <:< _)
 
   /**
+    * get all nest swagger ref type objects
+    * @param entities to do extract objects list
+    * @return  a list of include original list and nest objects
+    */
+  private def getAllEntities(entities: List[AnyRef]) = {
+    val notNullEntities = entities.filter(null !=)
+    val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
+    notNullEntities ::: notNullEntities.flatMap(getNestRefEntities(_, existsEntityTypes)).distinctBy(_.getClass)
+  }
+
+  /**
     * extract all nest swagger ref type objects, exclude given types,
     * swagger ref type is this ref type in swagger definitions, for example : "$ref": "#/definitions/AccountId"
     * @param obj to do extract
     * @param excludeTypes exclude these types
     * @return all nest swagger ref type object, include all deep nest ref object
     */
-  private[this] def getNestRefEntities(obj: Any, excludeTypes: Seq[Type]): List[Any] = {
+  private[this] def getNestRefEntities(obj: Any, excludeTypes: Set[Type]): List[Any] = {
     obj.getClass.getName match {
       case "scala.Enumeration$Val" => Nil      // there is no way to check an object is a Enumeration by call method
 
@@ -644,13 +658,21 @@ object SwaggerJSONFactory {
   def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Array[AnyRef]): liftweb.json.JValue = {
   
     implicit val formats = CustomJsonFormats.formats
-  
-    //Translate every entity(JSON Case Class) in a list to appropriate swagger format
-    val baseEntities = (resourceDocList.map(_.exampleRequestBody) ::: resourceDocList.map(_.successResponseBody) ::: allSwaggerDefinitionCaseClasses.toList)
-        .filterNot(Objects.isNull)
-    val existsEntityTypes = baseEntities.map(ReflectUtils.getType)
-    val nestEntities = baseEntities.flatMap(getNestRefEntities(_, existsEntityTypes))
-    val translatedEntities = (baseEntities ::: nestEntities)
+
+    val docEntityExamples: List[AnyRef] = (resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
+                                           resourceDocList.map(_.successResponseBody.asInstanceOf[AnyRef])
+                                          ).filterNot(Objects.isNull)
+
+    val allDocExamples = getAllEntities(docEntityExamples)
+    val allDocExamplesClazz = allDocExamples.map(_.getClass)
+
+    val definitionExamples = getAllEntities(allSwaggerDefinitionCaseClasses.toList)
+    val definitionExamplesClazz = definitionExamples.map(_.getClass)
+
+    val examples = definitionExamples.filter(it => allDocExamplesClazz.contains(it.getClass)) :::
+      allDocExamples.filterNot(it => definitionExamplesClazz.contains(it.getClass))
+
+    val translatedEntities = examples
                               .distinctBy(_.getClass)
                               .map(translateEntity)
 
@@ -670,8 +692,8 @@ object SwaggerJSONFactory {
     
     //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
-      listErrorDefinition 
-        :::translatedEntities
+      //listErrorDefinition :::
+        translatedEntities
       ) mkString (",")
   
     //Make a final string
