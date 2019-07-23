@@ -165,16 +165,16 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- create on Tue Jul 16 14:30:25 CEST 2019
+// ---------- create on Tue Jul 23 18:38:46 CEST 2019
 
 messageDocs += MessageDoc(
-    process = "obp.getBanks",
+    process = "obp.getBankAccountsBalances",
     messageFormat = messageFormat,
-    description = "Get Banks",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBanks.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBanks.getClass.getSimpleName).response),
+    description = "Get Bank Accounts Balances",
+    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsBalances.getClass.getSimpleName).request),
+    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsBalances.getClass.getSimpleName).response),
     exampleOutboundMessage = (
-          OutBoundGetBanks( OutboundAdapterCallContext(correlationId=correlationIdExample.value,
+     OutBoundGetBankAccountsBalances(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       consumerId=Some(consumerIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
@@ -199,10 +199,12 @@ messageDocs += MessageDoc(
       dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))),
       userOwners=List( InternalBasicUser(userId=userIdExample.value,
       emailAddress=emailExample.value,
-      name=usernameExample.value))))))))))
+      name=usernameExample.value))))))))),
+      bankIdAccountIds=List( BankIdAccountId(bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value))))
     ),
     exampleInboundMessage = (
-     InBoundGetBanks(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
+     InBoundGetBankAccountsBalances(inboundAdapterCallContext= InboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
       generalContext=Some(List( BasicGeneralContext(key=keyExample.value,
       value=valueExample.value)))),
@@ -211,20 +213,21 @@ messageDocs += MessageDoc(
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
       text=inboundStatusMessageTextExample.value))),
-      data=List( BankCommons(bankId=BankId(bankIdExample.value),
-      shortName=bankShortNameExample.value,
-      fullName=bankFullNameExample.value,
-      logoUrl=bankLogoUrlExample.value,
-      websiteUrl=bankWebsiteUrlExample.value,
-      bankRoutingScheme=bankRoutingSchemeExample.value,
-      bankRoutingAddress=bankRoutingAddressExample.value,
-      swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value)))
+      data= AccountsBalances(accounts=List( AccountBalance(id=accountIdExample.value,
+      label=labelExample.value,
+      bankId=bankIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      balance= AmountOfMoney(currency=balanceCurrencyExample.value,
+      amount=balanceAmountExample.value))),
+      overallBalance= AmountOfMoney(currency=currencyExample.value,
+      amount="string"),
+      overallBalanceDate=new Date()))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
-  // url example: /getBanks
-  override def getBanks(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
+  // url example: /getBankAccountsBalances/bankIdAccountIds/{bankIdAccountIds}
+  override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -234,17 +237,18 @@ messageDocs += MessageDoc(
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(banksTTL second){
-        val url = getUrl("getBanks" )
-        sendGetRequest[InBoundGetBanks](url, callContext)
+        val url = getUrl("getBankAccountsBalances" , ("bankIdAccountIds", bankIdAccountIds))
+        sendGetRequest[InBoundGetBankAccountsBalances](url, callContext)
           .map { boxedResult =>
-                                 boxedResult.map { result =>
-                         (result.data, buildCallContext(result.inboundAdapterCallContext, callContext))
+                                 boxedResult match {
+                        case Full(result) => (Full(result.data), buildCallContext(result.inboundAdapterCallContext, callContext))
+                        case result: EmptyBox => (result, callContext) // Empty and Failure all match this case
                     }
     
           }
       }
     }
-  }("getBanks")
+  }("getBankAccountsBalances")
     
 //---------------- dynamic end ---------------------please don't modify this line
     

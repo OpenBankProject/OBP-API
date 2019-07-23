@@ -21,7 +21,7 @@ object RestConnectorBuilder extends App {
     //    "getAdapterInfo",
 //    "getAdapterInfo",
     //    "getUser", // have problem, return type not common
-    "getBanks",
+    "getBankAccountsBalances",
 //    "getBanksLegacy",
 //    "getBank",
 //    "getBankLegacy",
