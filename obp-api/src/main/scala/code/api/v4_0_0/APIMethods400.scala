@@ -69,8 +69,9 @@ trait APIMethods400 {
   }
 }
 
-
-
-object APIMethods400 {
+object APIMethods400 extends RestHelper with APIMethods400 {
+  lazy val endpointsNewStyle: List[(String, String)] = Implementations4_0_0.resourceDocs.map {
+    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
+  }.toList
 }
 

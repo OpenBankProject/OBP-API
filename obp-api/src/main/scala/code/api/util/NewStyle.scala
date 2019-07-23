@@ -1,18 +1,16 @@
 package code.api.util
 
 import java.util.Date
+import java.util.UUID.randomUUID
 
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
-import code.api.util.APIUtil.{DateWithMsExampleObject, OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, unboxFull, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
@@ -23,27 +21,21 @@ import code.fx.{FXRate, MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingProvider, MethodRoutingT}
 import code.model._
-import com.openbankproject.commons.model.Product
 import code.transactionChallenge.ExpectedChallengeAnswer
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
+import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
-import java.util.UUID.randomUUID
-
-import code.accountattribute.AccountAttributeX
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.amountOfMoneyJsonV121
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.TransactionRequestTypes
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -68,143 +60,7 @@ object NewStyle {
     (nameOf(Implementations2_2_0.getCurrentFxRate), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartiesForAccount), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getExplictCounterpartyById), ApiVersion.v2_2_0.toString),
-    (nameOf(Implementations2_2_0.createAccount), ApiVersion.v2_2_0.toString),
-    (nameOf(Implementations3_0_0.getUser), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getCurrentUser), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getUserByUserId), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getUserByUsername), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getUsers), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getUsers), ApiVersion.v2_1_0.toString),
-    (nameOf(Implementations3_0_0.getCustomersForUser), ApiVersion.v2_2_0.toString),
-    (nameOf(Implementations3_0_0.getCustomersForUser), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getCoreTransactionsForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getTransactionsForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.corePrivateAccountsAllBanks), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getViewsForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getPrivateAccountIdsbyBankId), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.privateAccountsAtOneBank), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getCoreAccountById), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getPrivateAccountById), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getAtm), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getAtms), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getBranch), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getBranches), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.addEntitlementRequest), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getAllEntitlementRequests), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getEntitlementRequests), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getEntitlementRequestsForCurrentUser), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getEntitlementsForCurrentUser), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.deleteEntitlementRequest), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.createViewForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.updateViewForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.dataWarehouseSearch), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.addScope), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.deleteScope), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getScopes), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.dataWarehouseStatistics), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getBanks), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.bankById), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getPermissionForUserForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getAdapterInfoForBank), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getOtherAccountByIdForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_0_0.getOtherAccountsForBankAccount), ApiVersion.v3_0_0.toString),
-    (nameOf(Implementations3_1_0.getCheckbookOrders), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getStatusOfCreditCardOrder), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createCreditLimitRequest), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCreditLimitRequests), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCreditLimitRequestByRequestId), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTopAPIs), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getMetricsTopConsumers), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getFirehoseCustomers), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getBadLoginStatus), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.unlockUser), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.callsLimit), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCallsLimit), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.checkFundsAvailable), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getConsumer), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getConsumersForCurrentUser), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getConsumers), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccountWebhook), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.enableDisableAccountWebhook), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAdapterInfo), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAccountWebhooks), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.config), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTransactionByIdForBankAccount), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTransactionRequests), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createCustomer), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getRateLimitingInfo), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCustomerByCustomerId), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCustomerByCustomerNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createTaxResidence), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getTaxResidence), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteTaxResidence), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createCustomerAddress), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCustomerAddresses), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteCustomerAddress), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createUserAuthContext), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getUserAuthContexts), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteUserAuthContextById), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteUserAuthContexts), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getObpApiLoopback), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.refreshUser), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAllEntitlements), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createProductAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProductAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateProductAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteProductAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccountApplication), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAccountApplications), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getAccountApplication), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateAccountApplicationStatus), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createProduct), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerAddress), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProduct), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProducts), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProductTree), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createProductCollection), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getProductCollection), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccountAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateAccountAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteBranch), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getServerJWK), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createConsent), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.answerConsentChallenge), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getConsents), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.revokeConsent), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createUserAuthContextUpdate), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.answerUserAuthContextUpdateChallenge), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateSystemView), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getOAuth2ServerJWKsURIs), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerEmail), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateAccount), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerMobileNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerIdentity), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerBranch), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerCreditLimit), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerCreditRatingAndSource), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerData), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getMethodRoutings), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createMethodRouting), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateMethodRouting), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteMethodRouting), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createCardAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCardAttribute), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.deleteCardForBank), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCardForBank), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getCardsForBank), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updatedCardForBank), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.addCardForBank), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.updateCustomerNumber), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.createAccount), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.saveHistoricalTransaction), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations3_1_0.getPrivateAccountByIdFull), ApiVersion.v3_1_0.toString),
-    (nameOf(Implementations4_0_0.getBanks), ApiVersion.v4_0_0.toString)
+    (nameOf(Implementations2_2_0.createAccount), ApiVersion.v2_2_0.toString)
   )
 
   object HttpCode {

@@ -35,6 +35,9 @@ import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInform
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util._
+import code.api.v3_0_0.APIMethods300
+import code.api.v3_1_0.APIMethods310
+import code.api.v4_0_0.APIMethods400
 import code.util.Helper.MdcLoggable
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
@@ -163,6 +166,18 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
       case Some(e) if NewStyle.endpoints.exists(_ == (e.partialFunctionName, e.implementedInApiVersion.toString())) =>
+        true
+      case Some(e) if APIMethods300.endpointsNewStyle.exists {
+        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      } =>
+        true
+      case Some(e) if APIMethods310.endpointsNewStyle.exists {
+        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      } =>
+        true
+      case Some(e) if APIMethods400.endpointsNewStyle.exists {
+        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      } =>
         true
       case Some(e) if APIMethods_AccountInformationServiceAISApi.endpointsNewStyle.exists {
         i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))

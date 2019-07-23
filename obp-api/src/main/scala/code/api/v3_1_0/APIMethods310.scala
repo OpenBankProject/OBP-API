@@ -1,11 +1,9 @@
 package code.api.v3_1_0
 
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.UUID
 import java.util.regex.Pattern
 
-import code.accountholders.AccountHolders
-import code.api.{APIFailureNewStyle, ChargePolicy}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil._
@@ -16,16 +14,13 @@ import code.api.util.ExampleValue._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_2_1.{JSONFactory, RateLimiting}
-import code.api.v1_3_0.{JSONFactory1_3_0, PostPhysicalCardJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.{createAdapterInfoJson, createCoreBankAccountJSON}
+import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.Connector
-import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.consent.{ConsentStatus, Consents}
 import code.consumer.Consumers
@@ -37,26 +32,22 @@ import code.methodrouting.MethodRoutingCommons
 import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{COUNTERPARTY, FREE_FORM, SANDBOX_TAN, SEPA}
-import com.openbankproject.commons.model.Product
 import code.users.Users
 import code.util.Helper
 import code.views.Views
 import code.webhook.AccountWebhook
-import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons, WebUiPropsProvider}
+import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
-import com.openbankproject.commons.model.{CreditLimit, _}
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import com.openbankproject.commons.model.{CreditLimit, Product, _}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Serialization.write
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
-import net.liftweb.util.{Helpers, Mailer, Props}
+import net.liftweb.util.{Helpers, Mailer}
 import org.apache.commons.lang3.Validate
 
 import scala.collection.immutable.{List, Nil}
@@ -5453,5 +5444,8 @@ trait APIMethods310 {
   }
 }
 
-object APIMethods310 {
+object APIMethods310 extends RestHelper with APIMethods310 {
+  lazy val endpointsNewStyle: List[(String, String)] = Implementations3_1_0.resourceDocs.map {
+    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
+  }.toList
 }
