@@ -15,7 +15,7 @@ import net.liftweb.mapper._
   */
 object MappedWebUiPropsProvider extends WebUiPropsProvider {
   // default webUiProps value cached seconds
-  private val webUiPropsTTL = APIUtil.getPropsAsIntValue("webui.props.cache.ttl.seconds", 20)
+  private val webUiPropsTTL = APIUtil.getPropsAsIntValue("webui.props.cache.ttl.seconds", 0)
 
   override def getAll(): List[WebUiPropsT] =  WebUiProps.findAll()
 
