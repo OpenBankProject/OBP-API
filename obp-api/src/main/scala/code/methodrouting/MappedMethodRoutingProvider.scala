@@ -48,6 +48,7 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider {
         .BankIdPattern(bankIdPattern.orNull)
         .IsBankIdExactMatch(isExactMatch)
         .ConnectorName(methodRouting.connectorName)
+        .Parameters(methodRouting.parameters.orNull)
         .saveMe()
     }
   }
