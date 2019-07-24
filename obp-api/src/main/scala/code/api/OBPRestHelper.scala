@@ -165,22 +165,31 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     */
   def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
+      // Versions that precede the 3.0.0 are mostly written as Old Style endpoint.
+      // In this case we assume all are written as Old Style and explicitly list NewStyle endpoints.
       case Some(e) if NewStyle.endpoints.exists(_ == (e.partialFunctionName, e.implementedInApiVersion.toString())) =>
         true
-      case Some(e) if APIMethods300.endpointsNewStyle.exists {
-        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      // Since the 3.0.0 we assume that endpoints are written in New Style.
+      // In this case we list all endpoints as New Style and explicitly exclude Old ones.
+      case Some(e) if APIMethods300.newStyleEndpoints.exists {
+        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
       } =>
         true
-      case Some(e) if APIMethods310.endpointsNewStyle.exists {
-        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      // Since the 3.0.0 we assume that endpoints are written in New Style.
+      // In this case we list all endpoints as New Style and explicitly exclude Old ones.
+      case Some(e) if APIMethods310.newStyleEndpoints.exists {
+        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
       } =>
         true
-      case Some(e) if APIMethods400.endpointsNewStyle.exists {
-        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      // Since the 3.0.0 we assume that endpoints are written in New Style.
+      // In this case we list all endpoints as New Style and explicitly exclude Old ones.
+      case Some(e) if APIMethods400.newStyleEndpoints.exists {
+        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
       } =>
         true
-      case Some(e) if APIMethods_AccountInformationServiceAISApi.endpointsNewStyle.exists {
-        i => (i == (e.partialFunctionName, e.implementedInApiVersion.toString()))
+      // Berlin Group endpoints are written in New Style
+      case Some(e) if APIMethods_AccountInformationServiceAISApi.newStyleEndpoints.exists {
+        (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
       } =>
         true
       case _ =>

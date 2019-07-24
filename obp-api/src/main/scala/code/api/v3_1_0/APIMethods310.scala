@@ -5445,7 +5445,7 @@ trait APIMethods310 {
 }
 
 object APIMethods310 extends RestHelper with APIMethods310 {
-  lazy val endpointsNewStyle: List[(String, String)] = Implementations3_1_0.resourceDocs.map {
+  lazy val newStyleEndpoints: List[(String, String)] = Implementations3_1_0.resourceDocs.map {
     rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
   }.toList
 }
