@@ -32,7 +32,7 @@ connector=mapped
 #connector.cache.ttl.seconds.getCounterpartiesFromTransaction=10
 #connector.cache.ttl.seconds.APIMethods121.getTransactions=10
 
-## MethodRouting cache time-to-live in seconds, caching defaults to 30 seconds
+## MethodRouting cache time-to-live in seconds, caching defaults to 0 seconds
 #methodRouting.cache.ttl.seconds=30
 ## webui props cache time-to-live in seconds, caching defaults to 20 seconds
 #webui.props.cache.ttl.seconds=20
