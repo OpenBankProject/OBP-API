@@ -6,7 +6,7 @@
 
 ### Base configuration
 
-## Which data connector to use, if config star as connector, should make sure other connector config appropriate and works
+## Which data connector to use, if config `star` as connector, please also check `starConnector_supported_types` 
 connector=mapped
 #connector=mongodb
 #connector=kafka
@@ -16,6 +16,9 @@ connector=mapped
 #connector=obpjvm
 #connector=star
 #connector=...
+
+## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka, kafka. If you set kafka, then you need to start the kafka server.
+#starConnector_supported_types=rest,akka,kafka 
 
 ## whether export LocalMappedConnector methods as endpoints, it is just for develop, default is false
 #connector.export.LocalMappedConnector=false
