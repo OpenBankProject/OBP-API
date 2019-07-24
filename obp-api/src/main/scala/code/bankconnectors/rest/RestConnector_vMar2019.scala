@@ -30,11 +30,9 @@ import java.util.Date
 import akka.http.scaladsl.model.{HttpProtocol, _}
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
-import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.inboundStatus
 import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric}
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue._
 import code.api.util.{CallContext, NewStyle, OBPQueryParam}
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
@@ -45,7 +43,6 @@ import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import net.liftweb.common.{Box, Empty, _}
-import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
@@ -56,6 +53,9 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import code.api.util.ExampleValue._
 import code.api.util.APIUtil._
+import code.methodrouting.MethodRoutingParam
+import org.apache.commons.lang3.StringUtils
+import net.liftweb.json._
 
 trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable {
   //this one import is for implicit convert, don't delete
@@ -289,15 +289,17 @@ messageDocs += MessageDoc(
   private[this] val baseUrl = "http://localhost:8080/restConnector"
 
   private[this] def getUrl(methodName: String, variables: (String, Any)*): String = {
-    // rest connector can have url value in the value of MethodRouting#connectorName, this is the prefix of MethodRouting#connectorName
-    val methodNamePrefx = connectorName + "#"
-    val methodRouting = NewStyle.function.getMethodRoutings(Some(methodName))
-      .map(_.connectorName)
-      .filter(_.startsWith(methodNamePrefx))
-      .map(_.substring(methodNamePrefx.size))
-      .headOption
-    if(methodRouting.isDefined) {
-      return methodRouting.get
+    // rest connector can have url value in the parameters, key is url
+     val urlInMethodRouting = NewStyle.function.getMethodRoutings(Some(methodName))
+       .flatMap(_.parameters)
+       .filter(StringUtils.isNotBlank)
+       .flatMap(parse(_).extract[List[MethodRoutingParam]])
+       .find(_.key == "url")
+       .map(_.value)
+
+
+    if(urlInMethodRouting.isDefined) {
+      return urlInMethodRouting.get
     }
 
     // convert any type value to string, to fill in the url

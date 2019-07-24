@@ -70,12 +70,15 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
   }
   object IsBankIdExactMatch extends MappedBoolean(this)
   object ConnectorName extends MappedString(this, 255)
+  object Parameters extends MappedString(this, 5000)
 
   override def methodRoutingId: Option[String] = Option(MethodRoutingId.get)
   override def methodName: String = MethodName.get
   override def bankIdPattern: Option[String] = Option(BankIdPattern.get)
   override def isBankIdExactMatch: Boolean = IsBankIdExactMatch.get
   override def connectorName: String = ConnectorName.get
+
+  override def parameters: Option[String] = Option(Parameters.get)
 }
 
 object MethodRouting extends MethodRouting with LongKeyedMetaMapper[MethodRouting] {
