@@ -5467,7 +5467,7 @@ trait APIMethods310 {
       accountBalancesV310Json,
       List(UnknownError),
       Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {
