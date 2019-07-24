@@ -26,18 +26,17 @@ Berlin 13359, Germany
  */
 package code.api.v3_0_0.custom
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.amountOfMoneyJsonV121
-import code.api.util.APIUtil
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.util.ReflectUtils
 
-object JSONFactoryCustom300{
-  val allFields =
-    for (
-      v <- this.getClass.getDeclaredFields
-      //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
-      if (APIUtil.notExstingBaseClass(v.getName()))
-    )
-      yield {
-        v.setAccessible(true)
-        v.get(this)
-      }
+import scala.collection.immutable.List
+
+object JSONFactoryCustom300 {
+
+  lazy val allFields: Seq[AnyRef] =
+    ReflectUtils.getValues(this, List(nameOf(allFields)))
+    .values
+    .filter(it => it != null && it.isInstanceOf[AnyRef])
+    .map(_.asInstanceOf[AnyRef])
+    .toList
 }

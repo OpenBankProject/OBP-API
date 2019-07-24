@@ -16,9 +16,13 @@ import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{Bank, _}
+import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common._
 import net.liftweb.util.SimpleInjector
+
+import scala.collection.immutable.List
 
 object OBPDataImport extends SimpleInjector {
 
@@ -836,14 +840,10 @@ object SandboxData{
       standardCrmEvent1 :: standardCrmEvent2 :: Nil
     )
 
-    val allFields =
-      for (
-        v <- this.getClass.getDeclaredFields
-        //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
-        if (APIUtil.notExstingBaseClass(v.getName()))
-      )
-        yield {
-          v.setAccessible(true)
-          v.get(this)
-        }
+    lazy val allFields: Seq[AnyRef] =
+                  ReflectUtils.getValues(this, List(nameOf(allFields)))
+                  .values
+                  .filter(it => it != null && it.isInstanceOf[AnyRef])
+                  .map(_.asInstanceOf[AnyRef])
+                  .toList
   }

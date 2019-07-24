@@ -67,13 +67,9 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
             SwaggerJSONFactory.translateEntity(e.successResponseBody)
           }
 
-      val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
-
-      val listNestingMissDefinition: List[String] =
-        for (e <- allSwaggerDefinitionCaseClasses.toList if e != null)
-          yield {
-            SwaggerJSONFactory.translateEntity(e)
-          }
+      val listNestingMissDefinition: List[String] = SwaggerDefinitionsJSON.allFields
+        .map(SwaggerJSONFactory.translateEntity)
+        .toList
 
       val allStrings = listOfExampleRequestBodyDefinition ++ listOfSuccessRequestBodyDefinition ++ listNestingMissDefinition
       //All of the following are invalid value in Swagger, if any of them exist, 
