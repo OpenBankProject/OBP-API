@@ -4046,8 +4046,8 @@ trait APIMethods310 {
         |* connectorName value can add append a parameter, for example add url to rest_vMar2019: connectorName="rest_vMar2019#http://somedomain/obp/xxx"
         |
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None, None),
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), None, Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("""[{"key": "url", "value": "https://mydomain.com/xxx"}]"""), None),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("""[{"key": "url", "value": "https://mydomain.com/xxx"}]"""), Some("this-method-routing-Id")),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
