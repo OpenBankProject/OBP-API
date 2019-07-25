@@ -57,7 +57,6 @@ trait APIMethods400 {
             (_, callContext) <- anonymousAccess(cc)
             (banks, callContext) <- NewStyle.function.getBanks(callContext)
           } yield{
-            org.scalameta.logger.elem(banks)
             (JSONFactory400.createBanksJson(banks), HttpCode.`200`(callContext))
           }
           

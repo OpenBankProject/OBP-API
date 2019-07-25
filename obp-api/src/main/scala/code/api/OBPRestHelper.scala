@@ -192,8 +192,17 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         (_ == (e.partialFunctionName, e.implementedInApiVersion.toString()))
       } =>
         true
-      case _ =>
+      case Some(e) if List(
+        ApiVersion.v1_2_1.toString, 
+        ApiVersion.v1_3_0.toString, 
+        ApiVersion.v1_4_0.toString, 
+        ApiVersion.v2_0_0.toString, 
+        ApiVersion.v2_1_0.toString, 
+        ApiVersion.v2_2_0.toString
+      ).exists(_ == e.implementedInApiVersion.toString()) =>
         false
+      case _ =>
+        true
     }
   }
 
