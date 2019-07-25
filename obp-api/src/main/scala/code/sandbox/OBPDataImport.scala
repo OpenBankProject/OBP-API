@@ -832,8 +832,8 @@ object SandboxData{
     val importJson = SandboxDataImport(
       bank1 :: bank2 :: Nil, 
       user1 :: user2 :: Nil, 
-      account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil, 
-      anotherTransaction :: blankCounterpartyNameTransaction :: blankCounterpartyAccountNumberTransaction :: transactionWithCounterparty :: transactionWithoutCounterparty :: Nil, 
+      account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil,
+      anotherTransaction :: blankCounterpartyNameTransaction :: blankCounterpartyAccountNumberTransaction :: transactionWithCounterparty :: transactionWithoutCounterparty :: Nil,
       branch1AtBank1 :: branch2AtBank1 :: Nil, 
       atm1AtBank1 :: atm2AtBank1 :: Nil, 
       product1AtBank1 :: product2AtBank1 :: Nil, 
@@ -842,8 +842,6 @@ object SandboxData{
 
     lazy val allFields: Seq[AnyRef] =
                   ReflectUtils.getValues(this, List(nameOf(allFields)))
-                  .values
                   .filter(it => it != null && it.isInstanceOf[AnyRef])
                   .map(_.asInstanceOf[AnyRef])
-                  .toList
   }

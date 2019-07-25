@@ -200,8 +200,6 @@ object MessageDocsSwaggerDefinitions
   
   val allFields: List[AnyRef] =
     ReflectUtils.getValues(this, List(nameOf(allFields)))
-      .values
       .filter(it => it != null && it.isInstanceOf[AnyRef])
       .map(_.asInstanceOf[AnyRef])
-      .toList
 }

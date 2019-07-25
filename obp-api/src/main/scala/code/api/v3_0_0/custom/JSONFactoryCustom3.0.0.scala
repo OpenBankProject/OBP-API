@@ -35,8 +35,6 @@ object JSONFactoryCustom300 {
 
   lazy val allFields: Seq[AnyRef] =
     ReflectUtils.getValues(this, List(nameOf(allFields)))
-    .values
     .filter(it => it != null && it.isInstanceOf[AnyRef])
     .map(_.asInstanceOf[AnyRef])
-    .toList
 }

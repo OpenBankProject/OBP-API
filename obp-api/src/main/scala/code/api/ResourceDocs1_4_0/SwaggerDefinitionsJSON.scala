@@ -3423,10 +3423,8 @@ object SwaggerDefinitionsJSON {
 
   lazy val allFields: Seq[AnyRef] ={
     val allFieldsThisFile = ReflectUtils.getValues(this, List(nameOf(allFields)))
-                            .values
                             .filter(it => it != null && it.isInstanceOf[AnyRef])
                             .map(_.asInstanceOf[AnyRef])
-                            .toList
     allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields //++ JsonFactory_APIBuilder.allFields
   }
 

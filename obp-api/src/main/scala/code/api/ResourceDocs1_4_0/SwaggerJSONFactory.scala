@@ -20,6 +20,7 @@ import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
+import net.liftweb.common.{EmptyBox, Full}
 
 import scala.reflect.runtime.universe
 
@@ -570,7 +571,9 @@ object SwaggerJSONFactory {
   private def getAllEntities(entities: List[AnyRef]) = {
     val notNullEntities = entities.filter(null !=)
     val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
-    notNullEntities ::: notNullEntities.flatMap(getNestRefEntities(_, existsEntityTypes)).distinctBy(_.getClass)
+
+    (notNullEntities ::: notNullEntities.flatMap(getNestRefEntities(_, existsEntityTypes)))
+      .distinctBy(_.getClass)
   }
 
   /**
@@ -581,9 +584,16 @@ object SwaggerJSONFactory {
     * @return all nest swagger ref type object, include all deep nest ref object
     */
   private[this] def getNestRefEntities(obj: Any, excludeTypes: Set[Type]): List[Any] = {
-    obj.getClass.getName match {
-      case "scala.Enumeration$Val" => Nil      // there is no way to check an object is a Enumeration by call method
 
+    obj match {
+      case (Nil  | None | null) => Nil
+      case v if(v.getClass.getName == "scala.Enumeration$Val") => Nil // there is no way to check an object is a Enumeration by call method, so here use ugly way
+      case _: EmptyBox => Nil
+      case seq: Seq[_] if(seq.isEmpty) => Nil
+      case Some(v) => getNestRefEntities(v, excludeTypes)
+      case Full(v) => getNestRefEntities(v, excludeTypes)
+      case seq: Seq[_] => seq.toList.flatMap(getNestRefEntities(_, excludeTypes))
+      case v if(! ReflectUtils.isObpObject(v)) => Nil
       case _ => {
         val entityType = ReflectUtils.getType(obj)
         val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
@@ -598,21 +608,14 @@ object SwaggerJSONFactory {
             if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
               throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
             }
-            value match {
-              case Some(head::_) => head
-              case Some(v) => v
-              case Some(head)::_ => head
-              case head::_ => head
-              case other => other
-            }
-          }).filterNot(it => it == null || it == Nil || it == None)
+            value
+          }).filterNot(it => it == null || it == Nil || it == None || it.isInstanceOf[EmptyBox])
 
         refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
       }
     }
 
   }
-
 
   /**
     * exclude duplicate items for a list, if found duplicate items, previous will be kept
@@ -655,7 +658,7 @@ object SwaggerJSONFactory {
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
   def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): liftweb.json.JValue = {
-  
+
     implicit val formats = CustomJsonFormats.formats
 
     val docEntityExamples: List[AnyRef] = (resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
