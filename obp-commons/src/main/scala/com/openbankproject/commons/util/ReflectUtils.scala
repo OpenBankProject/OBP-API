@@ -11,6 +11,40 @@ import scala.reflect.runtime.{universe => ru}
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
 
+  private val OBP_TYPE_REGEX = """^(com\.openbankproject\.commons\.|code\.).+""".r
+
+  def isObpObject(any: Any): Boolean = any != null && OBP_TYPE_REGEX.findFirstIn(any.getClass.getName).isDefined
+
+  def isObpType(tp: Type): Boolean = tp != null && OBP_TYPE_REGEX.findFirstIn(tp.typeSymbol.fullName).isDefined
+
+  /**
+    * get all val and var name to values of given object
+    * @param obj to do extract object
+    * @param excludes excluded var or val names
+    * @param includeVar whether include var values
+    * @return map of val or var name to value
+    */
+  def getNameToValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true) = {
+    obj match {
+      case null => Map.empty[String, Any]
+      case _ => getType(obj).decls
+        .filter(_.isTerm)
+        .map(_.asTerm)
+        .filterNot(it => excludes.contains(it.name.toString))
+        .filter(it => it.isVal || (includeVar && it.isVar))
+        .map(it => (it.name.toString, invokeMethod(obj, it.getter.asMethod)))
+        .toMap
+    }
+  }
+  /**
+    * get all val and var values of given object
+    * @param obj to do extract object
+    * @param excludes excluded var or val names
+    * @param includeVar whether include var values
+    * @return List of val or var values
+    */
+  def getValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true): List[Any] = getNameToValues(obj, excludes, includeVar).values.toList
+
   def getTypeByName(typeName: String, mirror: ru.Mirror = this.mirror): ru.Type = mirror.staticClass(typeName).asType.toType
 
   def isTypeExists(typeName: String): Boolean = try {

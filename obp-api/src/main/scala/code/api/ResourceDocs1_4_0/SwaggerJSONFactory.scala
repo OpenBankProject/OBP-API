@@ -20,6 +20,9 @@ import net.liftweb.util.StringHelpers
 
 import scala.collection.mutable.ListBuffer
 import code.api.v3_1_0.ListResult
+import net.liftweb.common.{EmptyBox, Full}
+
+import scala.reflect.runtime.universe
 
 object SwaggerJSONFactory {
   //Info Object
@@ -561,16 +564,36 @@ object SwaggerJSONFactory {
   private[this] def isSwaggerRefType(tp: Type): Boolean = ! noneRefTypes.exists(tp <:< _)
 
   /**
+    * get all nest swagger ref type objects
+    * @param entities to do extract objects list
+    * @return  a list of include original list and nest objects
+    */
+  private def getAllEntities(entities: List[AnyRef]) = {
+    val notNullEntities = entities.filter(null !=)
+    val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
+
+    (notNullEntities ::: notNullEntities.flatMap(getNestRefEntities(_, existsEntityTypes)))
+      .distinctBy(_.getClass)
+  }
+
+  /**
     * extract all nest swagger ref type objects, exclude given types,
     * swagger ref type is this ref type in swagger definitions, for example : "$ref": "#/definitions/AccountId"
     * @param obj to do extract
     * @param excludeTypes exclude these types
     * @return all nest swagger ref type object, include all deep nest ref object
     */
-  private[this] def getNestRefEntities(obj: Any, excludeTypes: Seq[Type]): List[Any] = {
-    obj.getClass.getName match {
-      case "scala.Enumeration$Val" => Nil      // there is no way to check an object is a Enumeration by call method
+  private[this] def getNestRefEntities(obj: Any, excludeTypes: Set[Type]): List[Any] = {
 
+    obj match {
+      case (Nil  | None | null) => Nil
+      case v if(v.getClass.getName == "scala.Enumeration$Val") => Nil // there is no way to check an object is a Enumeration by call method, so here use ugly way
+      case _: EmptyBox => Nil
+      case seq: Seq[_] if(seq.isEmpty) => Nil
+      case Some(v) => getNestRefEntities(v, excludeTypes)
+      case Full(v) => getNestRefEntities(v, excludeTypes)
+      case seq: Seq[_] => seq.toList.flatMap(getNestRefEntities(_, excludeTypes))
+      case v if(! ReflectUtils.isObpObject(v)) => Nil
       case _ => {
         val entityType = ReflectUtils.getType(obj)
         val constructorParamList = ReflectUtils.getPrimaryConstructor(entityType).paramLists.headOption.getOrElse(Nil)
@@ -585,21 +608,14 @@ object SwaggerJSONFactory {
             if(Objects.isNull(value) && isSwaggerRefType(it.info)) {
               throw new IllegalStateException(s"object ${obj} field $paramName should not be null.")
             }
-            value match {
-              case Some(head::_) => head
-              case Some(v) => v
-              case Some(head)::_ => head
-              case head::_ => head
-              case other => other
-            }
-          }).filterNot(it => it == null || it == Nil || it == None)
+            value
+          }).filterNot(it => it == null || it == Nil || it == None || it.isInstanceOf[EmptyBox])
 
         refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
       }
     }
 
   }
-
 
   /**
     * exclude duplicate items for a list, if found duplicate items, previous will be kept
@@ -641,37 +657,49 @@ object SwaggerJSONFactory {
     *         } ...
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-  def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Array[AnyRef]): liftweb.json.JValue = {
-  
+  def loadDefinitions(resourceDocList: List[ResourceDoc], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): liftweb.json.JValue = {
+
     implicit val formats = CustomJsonFormats.formats
-  
-    //Translate every entity(JSON Case Class) in a list to appropriate swagger format
-    val baseEntities = (resourceDocList.map(_.exampleRequestBody) ::: resourceDocList.map(_.successResponseBody) ::: allSwaggerDefinitionCaseClasses.toList)
-        .filterNot(Objects.isNull)
-    val existsEntityTypes = baseEntities.map(ReflectUtils.getType)
-    val nestEntities = baseEntities.flatMap(getNestRefEntities(_, existsEntityTypes))
-    val translatedEntities = (baseEntities ::: nestEntities)
+
+    val docEntityExamples: List[AnyRef] = (resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
+                                           resourceDocList.map(_.successResponseBody.asInstanceOf[AnyRef])
+                                          ).filterNot(Objects.isNull)
+
+    val allDocExamples = getAllEntities(docEntityExamples)
+    val allDocExamplesClazz = allDocExamples.map(_.getClass)
+
+    val definitionExamples = getAllEntities(allSwaggerDefinitionCaseClasses.toList)
+    val definitionExamplesClazz = definitionExamples.map(_.getClass)
+
+    val examples = definitionExamples.filter(it => allDocExamplesClazz.contains(it.getClass)) :::
+      allDocExamples.filterNot(it => definitionExamplesClazz.contains(it.getClass))
+
+    val translatedEntities = examples
                               .distinctBy(_.getClass)
                               .map(translateEntity)
 
-    val errorMessageList = ErrorMessages.allFields.toList
-    val listErrorDefinition =
-      for (e <- errorMessageList if e != null)
-        yield {
-          s""""Error${e._1 }": {
-               "properties": {
-                 "message": {
-                    "type": "string",
-                    "example": "${e._2}"
-                 }
-               }
-             }"""
-        }
+    val errorMessages: Set[AnyRef] = resourceDocList.flatMap(_.errorResponseBodies).toSet
+
+    val errorDefinitions = ErrorMessages.allFields
+      .filterNot(null ==)
+      .filter(it => errorMessages.contains(it._2))
+      .toList
+      .map(it => {
+        val (errorName, errorMessage) = it
+        s""""Error$errorName": {
+        |  "properties": {
+        |    "message": {
+        |       "type": "string",
+        |       "example": "$errorMessage"
+        |    }
+        |  }
+         }""".stripMargin
+      })
     
     //Add a comma between elements of a list and make a string 
     val particularDefinitionsPart = (
-      listErrorDefinition 
-        :::translatedEntities
+        errorDefinitions :::
+        translatedEntities
       ) mkString (",")
   
     //Make a final string
