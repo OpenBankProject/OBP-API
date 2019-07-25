@@ -3969,12 +3969,11 @@ trait APIMethods310 {
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
+        |* parameters is optional array of key value pairs. You can set some paremeters for this method
         |
         |note:
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
-        |* connectorName value can add append a parameter, for example add url to rest_vMar2019: connectorName="rest_vMar2019#http://somedomain/obp/xxx"
-        |
         |""",
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("""[{"key": "url", "value": "http://mydomain.com/xxx"}]""")),
       MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("""[{"key": "url", "value": "http://mydomain.com/xxx"}]"""), Some("this-method-routing-Id")),
@@ -4039,12 +4038,10 @@ trait APIMethods310 {
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
-        |
+        |* parameters is optional array of key value pairs. You can set some paremeters for this method
         |note:
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
-        |* connectorName value can add append a parameter, for example add url to rest_vMar2019: connectorName="rest_vMar2019#http://somedomain/obp/xxx"
-        |
         |""",
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("""[{"key": "url", "value": "https://mydomain.com/xxx"}]""")),
       MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("""[{"key": "url", "value": "https://mydomain.com/xxx"}]"""), Some("this-method-routing-Id")),
