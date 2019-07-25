@@ -602,7 +602,7 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
 
 
 
-    private def getResourceDocsSwaggerCached(@CacheKeyOmit showCore: Option[Boolean],@CacheKeyOmit showPSD2: Option[Boolean],@CacheKeyOmit showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+    private def getResourceDocsSwaggerCached(showCore: Option[Boolean],showPSD2: Option[Boolean],showOBWG: Option[Boolean], requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
       // cache this function with the parameters of the function
       /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
