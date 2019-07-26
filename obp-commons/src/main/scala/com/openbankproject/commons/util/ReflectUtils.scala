@@ -24,7 +24,7 @@ object ReflectUtils {
     * @param includeVar whether include var values
     * @return map of val or var name to value
     */
-  def getNameToValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true) = {
+  def getNameToValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true): Map[String, Any] = {
     obj match {
       case null => Map.empty[String, Any]
       case _ => getType(obj).decls
@@ -399,17 +399,17 @@ object ReflectUtils {
   def toOthers[T: TypeTag](items: List[_]): List[T] = items.map(toOther[T](_))
 
   // the follow four currying function is for implicit usage, to convert trait type to commons case class
-  def toSibling[T, D <% T: TypeTag] = (t: T) => toOther[D](t)
+  def toSibling[T, D <% T: TypeTag]: T => D = (t: T) => toOther[D](t)
 
 
-  def toSiblings[T, D <% T: TypeTag] = (items: List[T]) => toOthers[D](items)
+  def toSiblings[T, D <% T: TypeTag]: List[T] => List[D] = (items: List[T]) => toOthers[D](items)
 
 
-  def toSiblingBox[T, D <% T: TypeTag] = (box: Box[T]) => box.map(toOther[D](_))
+  def toSiblingBox[T, D <% T: TypeTag]: Box[T] => Box[D] = (box: Box[T]) => box.map(toOther[D](_))
 
-  def toSiblingsBox[T, D <% T: TypeTag] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
+  def toSiblingsBox[T, D <% T: TypeTag]: Box[List[T]] => Box[List[D]] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
 
-  def toSiblingOption[T, D <% T: TypeTag] = (option: Option[T]) => option.map(toOther[D](_))
+  def toSiblingOption[T, D <% T: TypeTag]: Option[T] => Option[D] = (option: Option[T]) => option.map(toOther[D](_))
 
-  def toSiblingsOption[T, D <% T: TypeTag] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
+  def toSiblingsOption[T, D <% T: TypeTag]: Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
 }

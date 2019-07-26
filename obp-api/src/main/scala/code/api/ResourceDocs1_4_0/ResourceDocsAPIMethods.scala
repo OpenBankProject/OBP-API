@@ -6,7 +6,6 @@ import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.ApiRole._
 import code.api.util.ApiStandards._
 import code.api.util._
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -501,7 +500,16 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
     }
 
     val filteredResources2 : List[ResourceDoc] = showPSD2 match {
-      case Some(true) => filteredResources1.filter(x => x.catalogs.psd2 == true)
+      case Some(true) => filteredResources1
+        .filter(x => x.catalogs.psd2 == true)
+        .map(it => {
+          val psd2Tags = Set(apiTagPSD2AIS, apiTagPSD2PIIS, apiTagPSD2PIS)
+          // if the tags contains psd2 tag, just only keep psd2 tags, or don't change ResourceDoc tags
+          it.tags.filter(psd2Tags.contains(_)) match {
+            case Nil => it
+            case newTags => it.copy(tags = newTags)
+          }
+        })
       case Some(false) => filteredResources1.filter(x => x.catalogs.psd2 == false)
       case _ => filteredResources1
     }
