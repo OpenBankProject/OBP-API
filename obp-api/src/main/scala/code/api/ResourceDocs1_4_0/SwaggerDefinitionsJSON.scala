@@ -5,27 +5,26 @@ import java.util.Date
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
-import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, Balances, ClosingBookedBody, CoreAccountJsonV1, CoreAccountsJsonV1, ExpectedBody, TransactionJsonV1, Transactions, TransactionsJsonV1, ViewAccount}
+import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalance, AccountBalances, AmountOfMoneyV1, ClosingBookedBody, ExpectedBody, TransactionJsonV1, TransactionsJsonV1, ViewAccount}
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
-import code.api.util.Glossary.GlossaryItem
-import code.api.util.{APIUtil, ApiTrigger, ExampleValue}
+import code.api.util.{ApiTrigger, ExampleValue}
 import code.api.util.ExampleValue._
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
-import code.api.v3_0_0.{EmptyElasticSearch, LobbyJsonV330, NewModeratedCoreAccountJsonV300, _}
+import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.api.builder.JsonFactory_APIBuilder
 import code.consent.ConsentStatus
 import code.context.UserAuthContextUpdateStatus
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.{GeoTag, ViewBasic, _}
-import net.liftweb.json
+import com.openbankproject.commons.model.{ViewBasic, _}
+import com.openbankproject.commons.util.ReflectUtils
 
 import scala.collection.immutable.List
 
@@ -3421,18 +3420,11 @@ object SwaggerDefinitionsJSON {
   case class NoSupportYet()
   
   val noSupportYet = NoSupportYet()
-  
-  val allFields ={
-    val allFieldsThisFile = for (
-      v <- this.getClass.getDeclaredFields
-      //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
-      if (APIUtil.notExstingBaseClass(v.getName()))
-    )
-      yield {
-        v.setAccessible(true)
-        v.get(this)
-      }
 
+  lazy val allFields: Seq[AnyRef] ={
+    val allFieldsThisFile = ReflectUtils.getValues(this, List(nameOf(allFields)))
+                            .filter(it => it != null && it.isInstanceOf[AnyRef])
+                            .map(_.asInstanceOf[AnyRef])
     allFieldsThisFile ++ JSONFactoryCustom300.allFields ++ SandboxData.allFields //++ JsonFactory_APIBuilder.allFields
   }
 

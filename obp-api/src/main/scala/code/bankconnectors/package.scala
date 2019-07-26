@@ -115,7 +115,7 @@ package object bankconnectors {
     }
   }
   /**
-    * find nest bankId value in the object, For example:
+    * find nested bankId value in the object, For example:
     * BankAccount(BankId("bkId"), AccountId("aId")) ---> Some(BankId("bkId"))
     * List(BankId("bkId"), BankId("bkId2")) ---> Some(BankId("bkId"))
     * Array(BankId("bkId"), BankId("bkId2")) ---> Some(BankId("bkId"))
@@ -134,7 +134,7 @@ package object bankconnectors {
       case map: Map[_, _] => map.headOption.map(_._2)
       case other => {
         val typeName = other.getClass.getName
-        // only obp project defined type will do nest search
+        // only obp project defined type will do nested search
         if(typeName.startsWith("code.") || typeName.startsWith("com.openbankproject.commons.")) {
           Some(other)
         } else {

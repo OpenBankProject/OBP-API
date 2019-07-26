@@ -69,7 +69,7 @@ object reflectionUtils {
   }
 
   /**
-    * get all nest type, e.g:
+    * get all nested type, e.g:
     *     Future[Box[(CheckbookOrdersJson, Option[CallContext])]] -> List(CheckbookOrdersJson)
     *     OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] -> List(ProductCollectionItem, Product, List[ProductAttribute])
     * @param tp a Type do check deep generic types
