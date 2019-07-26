@@ -55,7 +55,7 @@ object ReflectUtils {
   }
 
   /**
-    * get a nest type parameter of given type, according the indexes, example:
+    * get a nested type parameter of given type, according the indexes, example:
     *
     * > val tp = typeOf[List[(Int, String)]]
     * > getNestTypeArg(tp, 0, 1)
@@ -67,7 +67,7 @@ object ReflectUtils {
     *
     * @param tp tp to do parsed type
     * @param typeArgIndexes indexes of type arg
-    * @return the nest type parameter
+    * @return the nested type parameter
     */
   @tailrec
   def getNestTypeArg(tp: ru.Type, typeArgIndexes: Int*): ru.Type = {
@@ -81,7 +81,7 @@ object ReflectUtils {
   }
 
   /**
-    * get a nest type parameter of given type, only get the first one of every nest args, example:
+    * get a nested type parameter of given type, only get the first one of every nested args, example:
     * > val tp = typeOf[List[(Int, String)]]
     * > getNestFirstTypeArg(tp)
     * > Int
@@ -91,7 +91,7 @@ object ReflectUtils {
     * > Int
     *
     * @param tp to do parsed type
-    * @return the nest type parameter
+    * @return the nested type parameter
     */
   @tailrec
   def getNestFirstTypeArg(tp: ru.Type): ru.Type = {
@@ -102,7 +102,7 @@ object ReflectUtils {
   }
 
   /**
-    * get all nest type, e.g:
+    * get all nested type, e.g:
     *     Future[Box[(CheckbookOrdersJson, Option[CallContext])]] -> List(CheckbookOrdersJson)
     *     OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] -> List(ProductCollectionItem, Product, List[ProductAttribute])
     * @param tp a Type do check deep generic types
