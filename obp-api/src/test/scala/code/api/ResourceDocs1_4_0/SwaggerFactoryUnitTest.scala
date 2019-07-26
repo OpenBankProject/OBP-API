@@ -67,15 +67,11 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
             SwaggerJSONFactory.translateEntity(e.successResponseBody)
           }
 
-      val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
+      val listNestedMissingDefinition: List[String] = SwaggerDefinitionsJSON.allFields
+        .map(SwaggerJSONFactory.translateEntity)
+        .toList
 
-      val listNestingMissDefinition: List[String] =
-        for (e <- allSwaggerDefinitionCaseClasses.toList if e != null)
-          yield {
-            SwaggerJSONFactory.translateEntity(e)
-          }
-
-      val allStrings = listOfExampleRequestBodyDefinition ++ listOfSuccessRequestBodyDefinition ++ listNestingMissDefinition
+      val allStrings = listOfExampleRequestBodyDefinition ++ listOfSuccessRequestBodyDefinition ++ listNestedMissingDefinition
       //All of the following are invalid value in Swagger, if any of them exist, 
       //need check how you create the case class object in SwaggerDefinitionsJSON.json. 
       allStrings.toString() should not include ("$colon") // This happened when use the primitive types. eg: val b = List("tesobe"), the List can not be find for now. 

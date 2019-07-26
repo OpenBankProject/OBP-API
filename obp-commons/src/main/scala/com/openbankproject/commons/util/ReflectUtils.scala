@@ -11,6 +11,40 @@ import scala.reflect.runtime.{universe => ru}
 object ReflectUtils {
   private[this] val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)
 
+  private val OBP_TYPE_REGEX = """^(com\.openbankproject\.commons\.|code\.).+""".r
+
+  def isObpObject(any: Any): Boolean = any != null && OBP_TYPE_REGEX.findFirstIn(any.getClass.getName).isDefined
+
+  def isObpType(tp: Type): Boolean = tp != null && OBP_TYPE_REGEX.findFirstIn(tp.typeSymbol.fullName).isDefined
+
+  /**
+    * get all val and var name to values of given object
+    * @param obj to do extract object
+    * @param excludes excluded var or val names
+    * @param includeVar whether include var values
+    * @return map of val or var name to value
+    */
+  def getNameToValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true) = {
+    obj match {
+      case null => Map.empty[String, Any]
+      case _ => getType(obj).decls
+        .filter(_.isTerm)
+        .map(_.asTerm)
+        .filterNot(it => excludes.contains(it.name.toString))
+        .filter(it => it.isVal || (includeVar && it.isVar))
+        .map(it => (it.name.toString, invokeMethod(obj, it.getter.asMethod)))
+        .toMap
+    }
+  }
+  /**
+    * get all val and var values of given object
+    * @param obj to do extract object
+    * @param excludes excluded var or val names
+    * @param includeVar whether include var values
+    * @return List of val or var values
+    */
+  def getValues(obj: AnyRef, excludes: Seq[String] = Nil, includeVar: Boolean = true): List[Any] = getNameToValues(obj, excludes, includeVar).values.toList
+
   def getTypeByName(typeName: String, mirror: ru.Mirror = this.mirror): ru.Type = mirror.staticClass(typeName).asType.toType
 
   def isTypeExists(typeName: String): Boolean = try {
@@ -21,7 +55,7 @@ object ReflectUtils {
   }
 
   /**
-    * get a nest type parameter of given type, according the indexes, example:
+    * get a nested type parameter of given type, according the indexes, example:
     *
     * > val tp = typeOf[List[(Int, String)]]
     * > getNestTypeArg(tp, 0, 1)
@@ -33,7 +67,7 @@ object ReflectUtils {
     *
     * @param tp tp to do parsed type
     * @param typeArgIndexes indexes of type arg
-    * @return the nest type parameter
+    * @return the nested type parameter
     */
   @tailrec
   def getNestTypeArg(tp: ru.Type, typeArgIndexes: Int*): ru.Type = {
@@ -47,7 +81,7 @@ object ReflectUtils {
   }
 
   /**
-    * get a nest type parameter of given type, only get the first one of every nest args, example:
+    * get a nested type parameter of given type, only get the first one of every nested args, example:
     * > val tp = typeOf[List[(Int, String)]]
     * > getNestFirstTypeArg(tp)
     * > Int
@@ -57,7 +91,7 @@ object ReflectUtils {
     * > Int
     *
     * @param tp to do parsed type
-    * @return the nest type parameter
+    * @return the nested type parameter
     */
   @tailrec
   def getNestFirstTypeArg(tp: ru.Type): ru.Type = {
@@ -68,7 +102,7 @@ object ReflectUtils {
   }
 
   /**
-    * get all nest type, e.g:
+    * get all nested type, e.g:
     *     Future[Box[(CheckbookOrdersJson, Option[CallContext])]] -> List(CheckbookOrdersJson)
     *     OBPReturnType[Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]] -> List(ProductCollectionItem, Product, List[ProductAttribute])
     * @param tp a Type do check deep generic types

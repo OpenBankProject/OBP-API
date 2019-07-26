@@ -2,10 +2,11 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.Date
 
-import code.api.util.APIUtil
 import code.api.util.APIUtil._
 import code.api.util.ExampleValue._
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{BankAccountCommons, CustomerCommons, InboundAdapterCallContext, InboundAdapterInfoInternal, InboundStatusMessage, _}
+import com.openbankproject.commons.util.ReflectUtils
 
 import scala.collection.immutable.{List, Nil}
 
@@ -197,15 +198,8 @@ object MessageDocsSwaggerDefinitions
   
   val adapterImplementation = AdapterImplementation("- Core", 2)
   
-  val allFields ={
-      val allFieldsThisFile = for (
-        v <- this.getClass.getDeclaredFields
-        //add guard, ignore the SwaggerJSONsV220.this and allFieldsAndValues fields
-        if (APIUtil.notExstingBaseClass(v.getName()))
-      ) yield {
-          v.setAccessible(true)
-          v.get(this)
-        }
-    allFieldsThisFile
-  }
+  val allFields: List[AnyRef] =
+    ReflectUtils.getValues(this, List(nameOf(allFields)))
+      .filter(it => it != null && it.isInstanceOf[AnyRef])
+      .map(_.asInstanceOf[AnyRef])
 }
