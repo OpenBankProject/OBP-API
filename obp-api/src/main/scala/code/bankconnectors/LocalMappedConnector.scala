@@ -468,7 +468,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       
       val allCurrencies = accountsBalances.map(_.balance.currency)
-      val mostCommonCurrency = allCurrencies.groupBy(identity).mapValues(_.size).maxBy(_._2)._1
+      val mostCommonCurrency = if (allCurrencies.isEmpty) "EUR" else allCurrencies.groupBy(identity).mapValues(_.size).maxBy(_._2)._1
       
       val allCommonCurrencyBalances = for {
         accountBalance <- accountsBalances
