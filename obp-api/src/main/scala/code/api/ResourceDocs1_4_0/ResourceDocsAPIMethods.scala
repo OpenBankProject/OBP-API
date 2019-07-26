@@ -504,11 +504,9 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
         .filter(x => x.catalogs.psd2 == true)
         .map(it => {
           val psd2Tags = Set(apiTagPSD2AIS, apiTagPSD2PIIS, apiTagPSD2PIS)
-          // if the tags contains psd2 tag, just only keep psd2 tags, or don't change ResourceDoc tags
-          it.tags.filter(psd2Tags.contains(_)) match {
-            case Nil => it
-            case newTags => it.copy(tags = newTags)
-          }
+          // if the tags contains psd2 tag, just only keep one psd2 tag
+          val psd2Tag = it.tags.find(psd2Tags.contains(_)).toList
+          it.copy(tags = psd2Tag)
         })
       case Some(false) => filteredResources1.filter(x => x.catalogs.psd2 == false)
       case _ => filteredResources1
@@ -574,11 +572,13 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
     logger.info("tags filter reduced the list of resource docs to zero")
   }
 
-
-
-
-
-  resourcesToUse
+  //only keep one tag
+  resourcesToUse.map(it => {
+    it.tags match {
+      case Nil => it
+      case head :: _ => it.copy(tags = List(head))
+    }
+  })
 }
 
 
