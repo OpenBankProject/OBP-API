@@ -172,8 +172,8 @@ messageDocs += MessageDoc(
     process = "obp.getBankAccountsBalances",
     messageFormat = messageFormat,
     description = "Get Bank Accounts Balances",
-    outboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsBalances.getClass.getSimpleName).request),
-    inboundTopic = Some(Topics.createTopicByClassName(OutBoundGetBankAccountsBalances.getClass.getSimpleName).response),
+    outboundTopic = None,
+    inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetBankAccountsBalances(outboundAdapterCallContext= OutboundAdapterCallContext(correlationId=correlationIdExample.value,
       sessionId=Some(sessionIdExample.value),
