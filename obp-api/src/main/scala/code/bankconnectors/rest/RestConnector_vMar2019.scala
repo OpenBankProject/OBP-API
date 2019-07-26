@@ -28,6 +28,7 @@ import java.util.UUID.randomUUID
 import java.util.Date
 
 import akka.http.scaladsl.model.{HttpProtocol, _}
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.util.ByteString
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
@@ -271,8 +272,12 @@ messageDocs += MessageDoc(
   private[this] def sendDelteRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext]) =
     sendRequest[T](url, callContext, HttpMethods.DELETE)
 
-  //TODO every connector should implement this method to build authorization headers with callContext
-  private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = Nil
+  //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
+  //We can set them from UserOauthContext or the http request headers.
+  private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = {
+    val basicUserAuthContexts: List[BasicUserAuthContext] = callContext.flatMap(_.toOutboundAdapterCallContext.outboundAdapterAuthInfo.flatMap(_.userAuthContext)).getOrElse(List.empty[BasicUserAuthContext])
+    basicUserAuthContexts.map(userAuthContext => RawHeader(userAuthContext.key,userAuthContext.value))
+  }
 
   private[this] def buildAdapterCallContext(callContext: Option[CallContext]): OutboundAdapterCallContext = callContext.map(_.toOutboundAdapterCallContext).orNull
 
@@ -329,6 +334,7 @@ messageDocs += MessageDoc(
 
   private[this] def sendRequest[T: TypeTag : Manifest](url: String, callContext: Option[CallContext], method: HttpMethod, entityJsonString: String = ""): Future[Box[T]] = {
     val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), entityJsonString).withHeaders(callContext)
+    logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
     val jsonType = typeOf[T]
     responseFuture.map {

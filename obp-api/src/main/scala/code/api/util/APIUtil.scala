@@ -2496,6 +2496,17 @@ Returns a string showed to the developer
   def createBasicUserAuthContextJson(userAuthContexts : List[UserAuthContext]) : List[BasicUserAuthContext] = {
     userAuthContexts.map(createBasicUserAuthContext)
   }
+
+  def createBasicUserAuthContextJsonFromCallContext(callContext : CallContext) : List[BasicUserAuthContext] = {
+    val requestHeaders: List[HTTPParam] = callContext.requestHeaders
+    
+    //remove the OBP side Authorization headers, there is no need to propagate to Adapter. 
+    val passByHeaders: List[HTTPParam] = requestHeaders.filter(requestHeader => requestHeader.name != "Authorization")
+
+    passByHeaders.map(header => BasicUserAuthContext(
+      key = header.name,
+      value = if (header.values.isEmpty) "" else header.values.head))
+  }
   
   def createAuthInfoCustomerJson(customer : Customer) : InternalBasicCustomer = {
     InternalBasicCustomer(

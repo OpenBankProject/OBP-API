@@ -57,8 +57,10 @@ case class CallContext(
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
-      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId) 
-      basicUserAuthContexts = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+      basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
+      userAuthContextsFromHeaders = createBasicUserAuthContextJsonFromCallContext(this)
+      basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]) ::: userAuthContextsFromHeaders)
       authViews<- tryo(
         for{
           view <- views   
