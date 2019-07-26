@@ -564,35 +564,35 @@ object SwaggerJSONFactory {
   private[this] def isSwaggerRefType(tp: Type): Boolean = ! noneRefTypes.exists(tp <:< _)
 
   /**
-    * get all nest swagger ref type objects
+    * get all nested swagger ref type objects
     * @param entities to do extract objects list
-    * @return  a list of include original list and nest objects
+    * @return  a list of include original list and nested objects
     */
   private def getAllEntities(entities: List[AnyRef]) = {
     val notNullEntities = entities.filter(null !=)
     val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
 
-    (notNullEntities ::: notNullEntities.flatMap(getNestRefEntities(_, existsEntityTypes)))
+    (notNullEntities ::: notNullEntities.flatMap(getNestedRefEntities(_, existsEntityTypes)))
       .distinctBy(_.getClass)
   }
 
   /**
-    * extract all nest swagger ref type objects, exclude given types,
+    * extract all nested swagger ref type objects, exclude given types,
     * swagger ref type is this ref type in swagger definitions, for example : "$ref": "#/definitions/AccountId"
     * @param obj to do extract
     * @param excludeTypes exclude these types
-    * @return all nest swagger ref type object, include all deep nest ref object
+    * @return all nested swagger ref type object, include all deep nested ref object
     */
-  private[this] def getNestRefEntities(obj: Any, excludeTypes: Set[Type]): List[Any] = {
+  private[this] def getNestedRefEntities(obj: Any, excludeTypes: Set[Type]): List[Any] = {
 
     obj match {
       case (Nil  | None | null) => Nil
       case v if(v.getClass.getName == "scala.Enumeration$Val") => Nil // there is no way to check an object is a Enumeration by call method, so here use ugly way
       case _: EmptyBox => Nil
       case seq: Seq[_] if(seq.isEmpty) => Nil
-      case Some(v) => getNestRefEntities(v, excludeTypes)
-      case Full(v) => getNestRefEntities(v, excludeTypes)
-      case seq: Seq[_] => seq.toList.flatMap(getNestRefEntities(_, excludeTypes))
+      case Some(v) => getNestedRefEntities(v, excludeTypes)
+      case Full(v) => getNestedRefEntities(v, excludeTypes)
+      case seq: Seq[_] => seq.toList.flatMap(getNestedRefEntities(_, excludeTypes))
       case v if(! ReflectUtils.isObpObject(v)) => Nil
       case _ => {
         val entityType = ReflectUtils.getType(obj)
@@ -611,7 +611,7 @@ object SwaggerJSONFactory {
             value
           }).filterNot(it => it == null || it == Nil || it == None || it.isInstanceOf[EmptyBox])
 
-        refValues.flatMap(getNestRefEntities(_, excludeTypes)) ::: resultTail
+        refValues.flatMap(getNestedRefEntities(_, excludeTypes)) ::: resultTail
       }
     }
 
@@ -712,8 +712,8 @@ object SwaggerJSONFactory {
   /**
     * get entity type by type and value,
     * if tp is not generic, extract entity type from value
-    * else if tp is generic but the nest type parameter is abstract, extract entity type from value
-    * else get the nest type argument from tp
+    * else if tp is generic but the nested type parameter is abstract, extract entity type from value
+    * else get the nested type argument from tp
     * @param tp  type of to do extract entity type
     * @param value the value of type tp
     * @return entity type name
@@ -726,7 +726,7 @@ object SwaggerJSONFactory {
       typeSymbol.isAbstract || (typeSymbol.isClass && typeSymbol.asClass.isAbstract)
     }
 
-    // if tp is not generic type or tp is generic type but it's nest type argument is abstract, then get the nest type by value
+    // if tp is not generic type or tp is generic type but it's nested type argument is abstract, then get the nested type by value
     val entityType = tp.typeArgs match {
       case args if(args.isEmpty || isEntityAbstract) => {
         val nestValue = value match {
