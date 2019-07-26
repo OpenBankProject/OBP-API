@@ -1523,7 +1523,7 @@ object NewStyle {
       }
     }
 
-    private[this] val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "0").toInt // default 30 seconds
+    private[this] val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "0").toInt 
 
     def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
       import scala.concurrent.duration._
