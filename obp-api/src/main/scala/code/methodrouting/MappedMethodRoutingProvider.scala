@@ -1,12 +1,15 @@
 package code.methodrouting
 
+import code.api.util.CustomJsonFormats
 import code.util.MappedUUID
 import net.liftweb.common.{Box, Empty, EmptyBox, Full}
+import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.Serialization.write
 
-object MappedMethodRoutingProvider extends MethodRoutingProvider {
+object MappedMethodRoutingProvider extends MethodRoutingProvider with CustomJsonFormats{
 
   override def getById(methodRoutingId: String): Box[MethodRoutingT] =  MethodRouting.find(
     By(MethodRouting.MethodRoutingId, methodRoutingId)
@@ -48,7 +51,7 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider {
         .BankIdPattern(bankIdPattern.orNull)
         .IsBankIdExactMatch(isExactMatch)
         .ConnectorName(methodRouting.connectorName)
-        .Parameters(methodRouting.parameters.orNull)
+        .Parameters(write(methodRouting.parameters))
         .saveMe()
     }
   }
@@ -60,7 +63,7 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider {
 
 }
 
-class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] with IdPK {
+class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] with IdPK with CustomJsonFormats{
 
   override def getSingleton = MethodRouting
 
@@ -79,7 +82,8 @@ class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] w
   override def isBankIdExactMatch: Boolean = IsBankIdExactMatch.get
   override def connectorName: String = ConnectorName.get
 
-  override def parameters: Option[String] = Option(Parameters.get)
+  //Here we store all the key-value paris in one big String filed in database. 
+  override def parameters: Option[List[MethodRoutingParam]] = Option(json.parse(Parameters.get).extract[List[MethodRoutingParam]])
 }
 
 object MethodRouting extends MethodRouting with LongKeyedMetaMapper[MethodRouting] {

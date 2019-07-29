@@ -3923,7 +3923,7 @@ trait APIMethods310 {
       emptyObjectJson,
       ListResult(
         "method_routings",
-        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some("""[{"key": "url", "value": "http://mydomain.com/xxx"}]"""), Some("method-routing-id"))))
+        (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("method-routing-id"))))
       )
     ,
       List(
@@ -3975,8 +3975,11 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("""[{"key": "url", "value": "http://mydomain.com/xxx"}]""")),
-      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some("""[{"key": "url", "value": "http://mydomain.com/xxx"}]"""), Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", false, Some("some_bankId_.*"), 
+        Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), 
+        Some("this-method-routing-Id")
+      ),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -3996,13 +3999,6 @@ trait APIMethods310 {
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[MethodRoutingCommons]
-            }
-            parseParamsFailMsg = s"$InvalidJsonFormat The parameters values should be list of ${classOf[MethodRoutingParam]} "
-            _ <- NewStyle.function.tryons(parseParamsFailMsg, 400, callContext) {
-              postedData.parameters
-                .filter(StringUtils.isNotBlank)
-                .map(net.liftweb.json.parse(_))
-                .map(_.extract[List[MethodRoutingParam]])
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4043,8 +4039,8 @@ trait APIMethods310 {
         |
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |""",
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("""[{"key": "url", "value": "https://mydomain.com/xxx"}]""")),
-      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some("""[{"key": "url", "value": "https://mydomain.com/xxx"}]"""), Some("this-method-routing-Id")),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"), Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx")))),
+      MethodRoutingCommons("getBank", "rest_vMar2019", true, Some("some_bankId"),Some(List(MethodRoutingParam("url", "http://mydomain.com/xxx"))), Some("this-method-routing-Id")),
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -4065,14 +4061,6 @@ trait APIMethods310 {
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[MethodRoutingCommons]} "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[MethodRoutingCommons].copy(methodRoutingId = Some(methodRoutingId))
-            }
-
-            parseParamsFailMsg = s"$InvalidJsonFormat The parameters values should be list of ${classOf[MethodRoutingParam]} "
-            _ <- NewStyle.function.tryons(parseParamsFailMsg, 400, callContext) {
-              putData.parameters
-                .filter(StringUtils.isNotBlank)
-                .map(net.liftweb.json.parse(_))
-                .map(_.extract[List[MethodRoutingParam]])
             }
 
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)

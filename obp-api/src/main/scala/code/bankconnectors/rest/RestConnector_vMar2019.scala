@@ -296,9 +296,7 @@ messageDocs += MessageDoc(
   private[this] def getUrl(methodName: String, variables: (String, Any)*): String = {
     // rest connector can have url value in the parameters, key is url
      val urlInMethodRouting = NewStyle.function.getMethodRoutings(Some(methodName))
-       .flatMap(_.parameters)
-       .filter(StringUtils.isNotBlank)
-       .flatMap(parse(_).extract[List[MethodRoutingParam]])
+       .flatMap(_.parameters).flatten
        .find(_.key == "url")
        .map(_.value)
 

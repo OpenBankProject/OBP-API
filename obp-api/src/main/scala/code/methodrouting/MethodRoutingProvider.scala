@@ -24,14 +24,14 @@ trait MethodRoutingT {
     */
   def isBankIdExactMatch: Boolean
   def connectorName: String
-  def parameters: Option[String]
+  def parameters: Option[List[MethodRoutingParam]]
 }
 
 case class MethodRoutingCommons(methodName: String,
                                 connectorName: String,
                                 isBankIdExactMatch: Boolean,
                                 bankIdPattern: Option[String],
-                                parameters: Option[String] = None,
+                                parameters: Option[List[MethodRoutingParam]] = None,
                                 methodRoutingId: Option[String] = None,
                                ) extends MethodRoutingT with JsonFieldReName
 
