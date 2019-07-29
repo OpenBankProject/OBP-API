@@ -374,8 +374,12 @@ class Boot extends MdcLoggable {
 
 
     // Build SiteMap
-    val sitemap = List(
-          Menu.i("Home") / "index",
+    val indexPage = APIUtil.getPropsValue("app_mode", "multi") match {
+      case mode if mode == "portal" => List(Menu.i("Home") / "index")
+      case mode if mode == "backend" => List()
+      case _ => List(Menu.i("Home") / "index")
+    }
+    val sitemap = indexPage ::: List(
           Menu.i("Plain") / "plain",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
