@@ -1611,9 +1611,7 @@ Returns a string showed to the developer
     Note we use "v" and "_" in the name to match the ApiVersions enumeration in ApiUtil.scala
    */
   def versionIsAllowed(version: ApiVersion) : Boolean = {
-    if(APIUtil.getPropsAsBoolValue("app_mode", false)) {
-      false
-    } else {
+    def checkVersion: Boolean = {
       val disabledVersions: List[String] = getDisabledVersions()
       val enabledVersions: List[String] = getEnabledVersions()
       if (
@@ -1623,6 +1621,11 @@ Returns a string showed to the developer
       ) true
       else
         false
+    }
+    APIUtil.getPropsValue("app_mode", "multi") match {
+      case mode if mode == "portal" => false
+      case mode if mode == "backend" => checkVersion
+      case _ => checkVersion
     }
   }
 
