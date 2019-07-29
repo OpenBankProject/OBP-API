@@ -6,7 +6,6 @@ import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.ApiRole._
 import code.api.util.ApiStandards._
 import code.api.util._
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -384,7 +383,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "GET",
       "/resource-docs/API_VERSION/obp",
       "Get Resource Docs.",
-      """Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
+      s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
         |
         |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
         |
@@ -399,6 +398,17 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
         |
         | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
+        |
+        |You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
+        |
+        |See the Resource Doc endpoint for more information.
+        |
+        |Following are more examples:
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?psd2=true&tags=Account,Bank&functions=getBanks,bankById
         |
         |<ul>
         |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -443,7 +453,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "GET",
       "/resource-docs/API_VERSION/swagger",
       "Get Swagger documentation",
-      """Returns documentation about the RESTful resources on this server in Swagger format.
+      s"""Returns documentation about the RESTful resources on this server in Swagger format.
         |
         |API_VERSION is the version you want documentation about e.g. v3.0.0
         |
@@ -451,11 +461,20 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         |
         |(All endpoints are given one or more tags which for used in grouping)
         |
-        |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+        |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=getBanks,bankById
         |
         |(Each endpoint is implemented in the OBP Scala code by a 'function')
         |
+        |You may filter this endpoint using the 'Catalogs' url parameter e.g. ?core=&psd2=true&obwg=
+        |
         |See the Resource Doc endpoint for more information.
+        |
+        |Following are more examples:
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?functions=getBanks,bankById
+        |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?psd2=true&tags=Account,Bank&functions=getBanks,bankById
         |
       """,
       emptyObjectJson,
@@ -500,10 +519,20 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
       case _ => allResources
     }
 
-    val filteredResources2 : List[ResourceDoc] = showPSD2 match {
-      case Some(true) => filteredResources1.filter(x => x.catalogs.psd2 == true)
-      case Some(false) => filteredResources1.filter(x => x.catalogs.psd2 == false)
-      case _ => filteredResources1
+  // Check if we have partialFunctionNames as the paramters, and if so filter by them
+    val filteredResources2 : List[ResourceDoc] = partialFunctionNames match {
+      case Some(pfNames) => {
+        // This can create duplicates to use toSet below
+        for {
+          rd <- filteredResources1
+          partialFunctionName <- pfNames
+          if rd.partialFunctionName.contains(partialFunctionName)
+        } yield {
+          rd
+        }
+      }
+      // tags param was not mentioned in url or was empty, so return all
+      case None => filteredResources1
     }
 
     val filteredResources3 : List[ResourceDoc] = showOBWG match {
@@ -531,21 +560,18 @@ def filterResourceDocs(allResources: List[ResourceDoc], showCore: Option[Boolean
   }
 
 
-  // Check if we have tags, and if so filter by them
-  val filteredResources5: List[ResourceDoc] = partialFunctionNames match {
-    // We have tags
-    case Some(pfNames) => {
-      // This can create duplicates to use toSet below
-      for {
-        rd <- filteredResources4
-        partialFunctionName <- pfNames
-        if rd.partialFunctionName.contains(partialFunctionName)
-      } yield {
-        rd
-      }
-    }
-    // tags param was not mentioned in url or was empty, so return all
-    case None => filteredResources4
+  //Because the PDS2 will only use one Tag, so it should be the last tag ifwe support the multiple filter parameters.
+  val filteredResources5: List[ResourceDoc] = showPSD2 match {
+    case Some(true) => filteredResources4
+      .filter(x => x.catalogs.psd2 == true)
+      .map(it => {
+        val psd2Tags = Set(apiTagPSD2AIS, apiTagPSD2PIIS, apiTagPSD2PIS)
+        // if the tags contains psd2 tag, just only keep one psd2 tag
+        val psd2Tag = it.tags.find(psd2Tags.contains(_)).toList
+        it.copy(tags = psd2Tag)
+      })
+    case Some(false) => filteredResources4.filter(x => x.catalogs.psd2 == false)
+    case _ => filteredResources4
   }
 
 
