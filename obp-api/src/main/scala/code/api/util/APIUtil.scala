@@ -2501,7 +2501,9 @@ Returns a string showed to the developer
     val requestHeaders: List[HTTPParam] = callContext.requestHeaders
     
     //remove the OBP side Authorization headers, there is no need to propagate to Adapter. 
-    val passByHeaders: List[HTTPParam] = requestHeaders.filter(requestHeader => requestHeader.name != "Authorization")
+    val passByHeaders: List[HTTPParam] = requestHeaders
+      .filter(requestHeader => requestHeader.name.startsWith("pass-through"))
+      .filter(requestHeader => requestHeader.name != "Authorization")
 
     passByHeaders.map(header => BasicUserAuthContext(
       key = header.name,

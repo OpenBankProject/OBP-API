@@ -481,13 +481,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         requestChangedCurrencyAmount 
       }
 
-      val globalBalance = allCommonCurrencyBalances.sum
+      val overallBalance = allCommonCurrencyBalances.sum
 
       (Full(AccountsBalances(
         accounts = accountsBalances,
         overallBalance = AmountOfMoney(
           mostCommonCurrency,
-          globalBalance.toString
+          overallBalance.toString
         ),
         overallBalanceDate = now
       )), callContext)
