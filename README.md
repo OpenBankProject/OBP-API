@@ -372,6 +372,18 @@ We use jetty8 to run the API in production mode.
 
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
+## Using OBP-API in different app modes
+
+1) `portal` => OBP-API as a portal i.e. without REST API 
+2) `backend` => OBP-API as a back-end app i.e. only REST API 
+3)  `multi`=> OBP-API as portal and back-end i.e. REST API and web portal
+
+* Edit your props file(s) to contain one of the next cases:
+        
+        1) app_mode=portal
+        2) app_mode=backend
+        3) app_mode=multi
+        In case is not defined default case is the 3rd one i.e. app_mode=multi
 
 ## Using Akka remote storage
 
