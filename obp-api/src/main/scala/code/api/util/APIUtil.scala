@@ -2497,14 +2497,14 @@ Returns a string showed to the developer
     userAuthContexts.map(createBasicUserAuthContext)
   }
 
-  def createBasicUserAuthContextJsonFromCallContext(callContext : CallContext) : List[BasicUserAuthContext] = {
+  def createBasicUserAuthContextJsonFromCallContext(callContext : CallContext) : List[BasicGeneralContext] = {
     val requestHeaders: List[HTTPParam] = callContext.requestHeaders
     
-    //remove the OBP side Authorization headers, there is no need to propagate to Adapter. 
-    val passThroughHeader: List[HTTPParam] = requestHeaders
-      .filter(requestHeader => "Pass-Through".equals(requestHeader.name))
+    //Only these Pass-Through headers can be propagated to Adapter side. 
+    val passThroughHeaders: List[HTTPParam] = requestHeaders
+      .filter(requestHeader => requestHeader.name.startsWith("Pass-Through"))
 
-    passThroughHeader.map(header => BasicUserAuthContext(
+    passThroughHeaders.map(header => BasicGeneralContext(
       key = header.name,
       value = if (header.values.isEmpty) "" else header.values.head))
   }

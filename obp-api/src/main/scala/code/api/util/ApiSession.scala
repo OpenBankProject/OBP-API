@@ -59,8 +59,8 @@ case class CallContext(
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
       basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
-      userAuthContextsFromHeaders = createBasicUserAuthContextJsonFromCallContext(this)
-      basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]) ::: userAuthContextsFromHeaders)
+      generalContextFromPassThroughHeaders = createBasicUserAuthContextJsonFromCallContext(this)
+      basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))
       authViews<- tryo(
         for{
           view <- views   
@@ -81,7 +81,7 @@ case class CallContext(
         correlationId = this.correlationId,
         sessionId = this.sessionId,
         consumerId = Some(consumerId),
-        generalContext = None,
+        generalContext = Some(generalContextFromPassThroughHeaders),
         outboundAdapterAuthInfo = Some(OutboundAdapterAuthInfo(
           userId = currentResourceUserId,
           username = username,
