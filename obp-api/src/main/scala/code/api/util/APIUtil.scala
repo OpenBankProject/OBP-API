@@ -1622,7 +1622,7 @@ Returns a string showed to the developer
       else
         false
     }
-    APIUtil.getPropsValue("app_mode", "multi") match {
+    APIUtil.getPropsValue("server_mode", "multi") match {
       case mode if mode == "portal" => false
       case mode if mode == "backend" => checkVersion
       case _ => checkVersion

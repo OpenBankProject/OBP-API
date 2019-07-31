@@ -374,7 +374,7 @@ class Boot extends MdcLoggable {
 
 
     // Build SiteMap
-    val indexPage = APIUtil.getPropsValue("app_mode", "multi") match {
+    val indexPage = APIUtil.getPropsValue("server_mode", "multi") match {
       case mode if mode == "portal" => List(Menu.i("Home") / "index")
       case mode if mode == "backend" => List()
       case _ => List(Menu.i("Home") / "index")

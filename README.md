@@ -380,10 +380,10 @@ We use jetty8 to run the API in production mode.
 
 * Edit your props file(s) to contain one of the next cases:
         
-        1) app_mode=portal
-        2) app_mode=backend
-        3) app_mode=multi
-        In case is not defined default case is the 3rd one i.e. app_mode=multi
+        1) server_mode=portal
+        2) server_mode=backend
+        3) server_mode=multi
+        In case is not defined default case is the 3rd one i.e. server_mode=multi
 
 ## Using Akka remote storage
 
