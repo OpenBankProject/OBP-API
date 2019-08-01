@@ -27,7 +27,7 @@ object TransactionRequests extends SimpleInjector {
   
   object TransactionRequestTypes extends Enumeration {
     type TransactionRequestTypes = Value
-    val SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT,
+    val SANDBOX_TAN, ACCOUNT, COUNTERPARTY, SEPA, FREE_FORM, TRANSFER_TO_PHONE, TRANSFER_TO_ATM, TRANSFER_TO_ACCOUNT, TRANSFER_TO_REFERENCE_ACCOUNT,
     //The following are BerlinGroup Standard 
     sepa_credit_transfers, instant_sepa_credit_transfers, target_2_payments, cross_border_credit_transfers= Value
   }
