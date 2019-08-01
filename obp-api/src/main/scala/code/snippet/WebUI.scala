@@ -151,6 +151,11 @@ class WebUI extends MdcLoggable{
   def sofiLink: CssSel = {
     ".sofi-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sofi_url", ""))
   }
+  
+  // Terms&Conditions
+  def termsAndConditions: CssSel = {
+    ".termsAndConditions-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_agree_terms_url", ""))
+  }
 
   def sandboxIntroductionLink: CssSel = {
     "#sandbox-introduction-link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction"))
