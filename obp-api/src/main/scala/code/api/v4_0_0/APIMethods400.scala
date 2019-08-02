@@ -1,7 +1,7 @@
 package code.api.v4_0_0
 
 import code.api.ChargePolicy
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{banksJSON, transactionRequestBodyCounterpartyJSON, transactionRequestBodyFreeFormJSON, transactionRequestBodyJsonV200, transactionRequestBodySEPAJSON, transactionRequestWithChargeJSON210}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ApiTag._
@@ -9,11 +9,11 @@ import code.api.util.ErrorMessages.{AccountNotFound, BankNotFound, CounterpartyB
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
-import code.api.v2_1_0.{JSONFactory210, TransactionRequestBodyCommonJSON, TransactionRequestBodyCounterpartyJSON, TransactionRequestBodyFreeFormJSON, TransactionRequestBodySEPAJSON, TransactionRequestBodySandBoxTanJSON}
+import code.api.v2_1_0._
 import code.fx.fx
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{ACCOUNT, COUNTERPARTY, FREE_FORM, SEPA}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
@@ -353,11 +353,8 @@ trait APIMethods400 {
               transDetailsJson.value.currency == fromAccount.currency
             }
 
-
-            amountOfMoneyJSON = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
-
             (createdTransactionRequest,callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-              case ACCOUNT => {
+              case ACCOUNT | ACCOUNT_OTP | SANDBOX_TAN => {
                 for {
                   transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
                     json.extract[TransactionRequestBodySandBoxTanJSON]
@@ -460,7 +457,7 @@ trait APIMethods400 {
               }
             }
           } yield {
-            (JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest), HttpCode.`201`(callContext))
+            (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest), HttpCode.`201`(callContext))
           }
       }
     } 
