@@ -29,7 +29,7 @@ package code.snippet
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.StartPaymentAuthorisationJson
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.{startPaymentAuthorisation, updatePaymentPsuData}
 import code.api.util.APIUtil.OBPEndpoint
-import code.api.util.CallContext
+import code.api.util.{CallContext, CustomJsonFormats}
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ReflectUtils
@@ -38,7 +38,10 @@ import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.{BodyOrInputStream, JsonResponse, LiftResponse, ParamCalcInfo, PostRequest, PutRequest, Req, RequestType, RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import code.api.util.ErrorMessages.FutureTimeoutException
+import code.api.v2_1_0.{APIMethods210, TransactionRequestWithChargeJSON210}
+import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
+import net.liftweb.json.Formats
 import net.liftweb.json.JsonAST.{JObject, JString}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
@@ -46,8 +49,8 @@ import org.apache.commons.lang3.StringUtils
 import scala.util.Either
 import scala.xml.NodeSeq
 
-class PaymentOTP extends MdcLoggable {
-  private implicit val formats = code.api.util.CustomJsonFormats.formats
+class PaymentOTP extends MdcLoggable with RestHelper with APIMethods210 {
+  protected implicit override def formats: Formats = CustomJsonFormats.formats
 
   private object otpVar extends RequestVar("")
   private object submitButtonDefenseFlag extends RequestVar("")
@@ -62,38 +65,64 @@ class PaymentOTP extends MdcLoggable {
       "#otp_input" #> SHtml.textElem(otpVar) &
         "type=submit" #> SHtml.submit("Send OTP", () => submitButtonDefense)
     }
-    val page = if(S.post_?) {
 
+    def PaymentOTP = {
+      val result = S.param("flow") match {
+        case Full("payment") => processPaymentOTP
+        case Full(notSupportFlow) => Left((s"flow $notSupportFlow is not correct.", 500))
+        case _ => Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
+      }
+
+      result.map(json.parse(_).extract[StartPaymentAuthorisationJson]) match {
+        case Right(v) if (v.scaStatus == "finalised") => {
+          "#form_otp" #> "" &
+            "#otp-validate-success p *" #> "OTP validate success." &
+            "#otp-validate-errors" #> ""
+        }
+        case Right(v) => {
+          form &
+            "#otp-validate-success" #> "" &
+            "#otp-validate-errors .errorContent *" #> s"Otp validate fail! ${v.psuMessage}"
+        }
+        case Left((msg, _)) => {
+          form &
+            "#otp-validate-success" #> "" &
+            "#otp-validate-errors .errorContent *" #> s"Otp validate fail! $msg"
+        }
+      }
+    }
+    def transactionRequestOTP = {
+      val result = S.param("flow") match {
+        case Full("transaction_request") => processTransactionRequestOTP
+        case Full(notSupportFlow) => Left((s"flow $notSupportFlow is not correct.", 500))
+        case _ => Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
+      }
+
+      result.map(json.parse(_).extract[TransactionRequestWithChargeJSON210]) match {
+        case Right(v) => {
+          "#form_otp" #> "" &
+            "#otp-validate-success p *" #> "OTP validate success." &
+            "#otp-validate-errors" #> ""
+        }
+        case Left((msg, _)) => {
+          form &
+            "#otp-validate-success" #> "" &
+            "#otp-validate-errors .errorContent *" #> s"Otp validate fail! $msg"
+        }
+      }
+    }
+
+    val page = if(S.post_?) {
       if(StringUtils.isBlank(otpVar.get)) {
         form &
           "#otp-validate-success" #> "" &
           "#otp-validate-errors .errorContent *" #> "please input OTP value"
       } else {
-
-        val result = S.param("flow") match {
-          case Full("payment") => processPaymentOTP
-          case Full(notSupportFlow) =>  Left((s"flow $notSupportFlow is not correct.", 500))
-          case _ =>  Left(("request parameter [flow] is mandatory, please add this parameter in url.", 500))
+        S.param("flow") match {
+          case Full("payment") => PaymentOTP
+          case Full("transaction_request") => transactionRequestOTP
+          case _ => transactionRequestOTP
         }
-
-        result.map(json.parse(_).extract[StartPaymentAuthorisationJson]) match {
-          case Right(v) if(v.scaStatus == "finalised")=> {
-            "#form_otp" #> "" &
-              "#otp-validate-success p *" #> "OTP validate success." &
-              "#otp-validate-errors" #> ""
-          }
-          case Right(v) => {
-            form &
-              "#otp-validate-success" #> "" &
-              "#otp-validate-errors .errorContent *" #> s"Otp validate fail! ${v.psuMessage}"
-          }
-          case Left((msg, _)) => {
-            form &
-              "#otp-validate-success" #> "" &
-              "#otp-validate-errors .errorContent *" #> s"Otp validate fail! $msg"
-          }
-        }
-        
       }
     }
     else {
@@ -129,6 +158,43 @@ class PaymentOTP extends MdcLoggable {
     }
 
 
+
+  }
+  
+  
+  private def processTransactionRequestOTP: Either[(String, Int), String] = {
+
+    val requestParam = List(
+      S.param("id"),
+      S.param("bankId"),
+      S.param("accountId"),
+      S.param("viewId"),
+      S.param("transactionRequestType"),
+      S.param("transactionRequestId")
+    )
+
+    if(requestParam.count(_.isDefined) < requestParam.size) {
+      return Left(("There are one or many mandatory request parameter not present, please check request parameter: bankId, accountId, viewId, transactionRequestType, transactionRequestId", 500))
+    }
+
+    val pathOfEndpoint = List(
+      "banks",
+      S.param("bankId")openOr(""),
+      "accounts",
+      S.param("accountId")openOr(""),
+      S.param("viewId")openOr(""),
+      "transaction-request-types",
+      S.param("transactionRequestType")openOr(""),
+      "transaction-requests",
+      S.param("transactionRequestId")openOr(""),
+      "challenge"
+    )
+
+    val requestBody = s"""{"id":"${S.param("id").getOrElse("")}","answer":"${otpVar.get}"}"""
+
+    val authorisationsResult = callEndpoint(Implementations2_1_0.answerTransactionRequestChallenge, pathOfEndpoint, PostRequest, requestBody)
+
+    authorisationsResult
 
   }
 
