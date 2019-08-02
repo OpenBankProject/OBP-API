@@ -28,6 +28,7 @@ package code.api.v4_0_0
 
 import java.util.Date
 
+import code.api.util.APIUtil
 import code.api.util.APIUtil.stringOrNull
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
@@ -50,10 +51,10 @@ case class BanksJson400(banks: List[BankJson400])
 
 
 case class ChallengeJsonV400(
-                               id: String,
-                               allowed_attempts : Int,
-                               challenge_type: String,
-                               link: Option[String]
+                              id: String,
+                              allowed_attempts : Int,
+                              challenge_type: String,
+                              otp_link: Option[String]
                              )
 
 case class TransactionRequestWithChargeJSON400(
@@ -108,20 +109,21 @@ object JSONFactory400 {
       // Some (mapped) data might not have the challenge. TODO Make this nicer
       challenge = {
         try {
-          val pathOfEndpoint = List(
-            "banks",
+          val pathOfEndpoint = APIUtil.getPropsValue("hostname", "") + List(
+            "/otp?flow=transaction_request&bankId=",
             stringOrNull(tr.from.bank_id),
-            "accounts",
+            "&accountId=",
             stringOrNull(tr.from.account_id),
-            "owner",
-            "transaction-request-types",
+            "&viewId=owner",
+            "&transactionRequestType=",
             stringOrNull(tr.`type`),
-            "transaction-requests",
+            "&transactionRequestId=",
             stringOrNull(tr.id.value),
-            "challenge"
-          ).mkString("/")
+            "&id=",
+            stringOrNull(tr.challenge.id)
+          ).mkString("")
           val link = if(tr.`type` == ACCOUNT_OTP.toString) Some(pathOfEndpoint) else None
-          ChallengeJsonV400(id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+          ChallengeJsonV400(id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), otp_link = link)
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}

@@ -985,7 +985,7 @@ trait Connector extends MdcLoggable with CustomJsonFormats{
       transactionRequestType = transactionRequest.`type`
       transactionRequestId=transactionRequest.id
       (transactionId, callContext) <- TransactionRequestTypes.withName(transactionRequestType) match {
-        case SANDBOX_TAN | ACCOUNT =>
+        case SANDBOX_TAN | ACCOUNT | ACCOUNT_OTP =>
           for{
             toSandboxTan <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodySandBoxTanJSON ", 400, callContext){
               body.to_sandbox_tan.get
