@@ -5,6 +5,7 @@ import java.io.File
 import com.openbankproject.commons.model.Bank
 import org.apache.commons.lang3.StringUtils
 import org.clapper.classutil.{ClassFinder, ClassInfo}
+import com.openbankproject.commons.util.ReflectUtils
 
 import scala.reflect.runtime.universe.TypeTag
 
@@ -29,11 +30,11 @@ object ClassScanUtils {
 
   /**
     * scan classpath to get all companion objects or singleton objects those implements given trait
-    * @param clazz a trait type for filter object
     * @tparam T the trait type parameter
     * @return all companion objects or singleton object those implements given clazz
     */
-  def getSubTypeObjects[T:TypeTag](clazz: Class[T]) = {
+  def getSubTypeObjects[T:TypeTag]: List[T] = {
+    val clazz = ReflectUtils.typeTagToClass[T]
     finder.getClasses().filter(_.implements(clazz.getName)).map(_.name).map(companion[T](_)).toList
   }
 

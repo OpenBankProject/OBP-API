@@ -33,8 +33,7 @@ import net.liftweb.json.{JArray, JValue}
 
 import scala.meta._
 
-object APIBuilderSwagger
-{
+object APIBuilderSwagger {
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
   val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json")
 

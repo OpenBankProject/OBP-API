@@ -26,7 +26,6 @@ TESOBE (http://www.tesobe.com/)
   */
 
 import code.api.util.APIUtil
-import net.liftweb.util.Props
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
