@@ -54,7 +54,7 @@ case class ChallengeJsonV400(
                               id: String,
                               allowed_attempts : Int,
                               challenge_type: String,
-                              otp_link: Option[String]
+                              link: Option[String]
                              )
 
 case class TransactionRequestWithChargeJSON400(
@@ -123,7 +123,7 @@ object JSONFactory400 {
             stringOrNull(tr.challenge.id)
           ).mkString("")
           val link = if(tr.`type` == ACCOUNT_OTP.toString) Some(pathOfEndpoint) else None
-          ChallengeJsonV400(id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), otp_link = link)
+          ChallengeJsonV400(id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}
