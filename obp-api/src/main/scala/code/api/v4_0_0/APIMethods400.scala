@@ -5,14 +5,14 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{AccountNotFound, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, UnknownError, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
+import code.api.util.ErrorMessages.{AccountNotFound, AllowedAttemptsUsedUp, BankNotFound, CounterpartyBeneficiaryPermit, InsufficientAuthorisationToCreateTransactionRequest, InvalidAccountIdFormat, InvalidBankIdFormat, InvalidChallengeAnswer, InvalidChallengeType, InvalidChargePolicy, InvalidISOCurrencyCode, InvalidJsonFormat, InvalidNumber, InvalidTransactionRequesChallengeId, InvalidTransactionRequestCurrency, InvalidTransactionRequestType, NotPositiveAmount, TransactionDisabled, TransactionRequestStatusNotInitiated, TransactionRequestTypeHasChanged, UnknownError, UserNoPermissionAccessView, UserNotLoggedIn, ViewNotFound}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
-import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_1_0._
 import code.fx.fx
 import code.model.toUserExtended
-import code.transactionrequests.TransactionRequests.TransactionRequestTypes
+import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -374,6 +374,7 @@ trait APIMethods400 {
                     transactionRequestBodySandboxTan,
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
+                    Some(transactionRequestType.value),
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -403,6 +404,7 @@ trait APIMethods400 {
                     transactionRequestBodyCounterparty,
                     transDetailsSerialized,
                     chargePolicy,
+                    Some(transactionRequestType.value),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -432,6 +434,7 @@ trait APIMethods400 {
                     transDetailsSEPAJson,
                     transDetailsSerialized,
                     chargePolicy,
+                    Some(transactionRequestType.value),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -451,6 +454,7 @@ trait APIMethods400 {
                     transactionRequestBodyFreeForm,
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
+                    Some(transactionRequestType.value),
                     callContext)
                 } yield
                   (createdTransactionRequest, callContext)
@@ -460,8 +464,133 @@ trait APIMethods400 {
             (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest), HttpCode.`201`(callContext))
           }
       }
-    } 
+    }
 
+
+    resourceDocs += ResourceDoc(
+      answerTransactionRequestChallenge,
+      implementedInApiVersion,
+      "answerTransactionRequestChallenge",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+      "Answer Transaction Request Challenge.",
+      """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
+        |
+        |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
+        |
+        |1)`TRANSACTION_REQUEST_TYPE` : is the same as createTransactionRequest request URL . 
+        |
+        |2)`TRANSACTION_REQUEST_ID` : is the `id` field in createTransactionRequest response body.
+        |
+        |3) `id` :  is `challenge.id` field in createTransactionRequest response body. 
+        |
+        |4) `answer` : must be `123`. if it is in sandbox mode. If it kafka mode, the answer can be got by phone message or other security ways.
+        |
+      """.stripMargin,
+      challengeAnswerJSON,
+      transactionRequestWithChargeJson,
+      List(
+        UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        UserNoPermissionAccessView,
+        TransactionRequestStatusNotInitiated,
+        TransactionRequestTypeHasChanged,
+        InvalidTransactionRequesChallengeId,
+        AllowedAttemptsUsedUp,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest, apiTagPSD2PIS))
+
+    lazy val answerTransactionRequestChallenge: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            // Check we have a User
+            (Full(u), callContext) <- authorizedAccess(cc)
+            _ <- NewStyle.function.isEnabledTransactionRequests()
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+            challengeAnswerJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChallengeAnswerJSON ", 400, callContext) {
+              json.extract[ChallengeAnswerJSON]
+            }
+
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            _ <- NewStyle.function.view(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext)
+
+            _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
+              u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
+                hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
+            }
+
+            // Check transReqId is valid
+            (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, callContext)
+
+            // Check the Transaction Request is still INITIATED
+            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated) {
+              existingTransactionRequest.status.equals("INITIATED")
+            }
+
+            // Check the input transactionRequestType is the same as when the user created the TransactionRequest
+            existingTransactionRequestType = existingTransactionRequest.`type`
+            _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${existingTransactionRequest.`type`}) ") {
+              existingTransactionRequestType.equals(transactionRequestType.value)
+            }
+
+            // Check the challengeId is valid for this existingTransactionRequest
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequesChallengeId}") {
+              existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
+            }
+
+            //Check the allowed attemps, Note: not support yet, the default value is 3
+            _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
+              existingTransactionRequest.challenge.allowed_attempts > 0
+            }
+
+            //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
+            _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
+              List(
+                TransactionChallengeTypes.SANDBOX_TAN.toString,
+                TransactionChallengeTypes.ACCOUNT.toString,
+                TransactionChallengeTypes.ACCOUNT_OTP.toString,
+                TransactionChallengeTypes.COUNTERPARTY.toString,
+                TransactionChallengeTypes.SEPA.toString,
+                TransactionChallengeTypes.FREE_FORM.toString
+              ).exists(_ == existingTransactionRequest.challenge.challenge_type)       
+            }
+
+            challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+
+            _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer") {
+              challengeAnswerOBP == true
+            }
+
+            (challengeAnswerKafka, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
+
+            _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
+              (challengeAnswerKafka == true)
+            }
+
+            // All Good, proceed with the Transaction creation...
+            (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+              case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT=>
+                NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
+              case _ =>
+                NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext)
+            }
+          } yield {
+
+            (JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest), HttpCode.`202`(callContext))
+          }
+      }
+    }
+    
   }
 }
 

@@ -478,6 +478,7 @@ object NewStyle {
       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
       detailsPlain: String,
       chargePolicy: String,
+      challengeType: Option[String],
       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv210(
@@ -489,6 +490,7 @@ object NewStyle {
         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
         detailsPlain: String,
         chargePolicy: String,
+        challengeType: Option[String],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)

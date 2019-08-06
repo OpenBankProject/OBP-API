@@ -29,27 +29,28 @@ package code.snippet
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.StartPaymentAuthorisationJson
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.{startPaymentAuthorisation, updatePaymentPsuData}
 import code.api.util.APIUtil.OBPEndpoint
+import code.api.util.ErrorMessages.FutureTimeoutException
 import code.api.util.{CallContext, CustomJsonFormats}
+import code.api.v2_1_0.TransactionRequestWithChargeJSON210
+import code.api.v4_0_0.APIMethods400
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, Failure, Full}
-import net.liftweb.http.{BodyOrInputStream, JsonResponse, LiftResponse, ParamCalcInfo, PostRequest, PutRequest, Req, RequestType, RequestVar, S, SHtml}
-import net.liftweb.util.Helpers._
-import code.api.util.ErrorMessages.FutureTimeoutException
-import code.api.v2_1_0.{APIMethods210, TransactionRequestWithChargeJSON210}
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.http.{BodyOrInputStream, JsonResponse, LiftResponse, ParamCalcInfo, PostRequest, PutRequest, Req, RequestType, RequestVar, S, SHtml}
 import net.liftweb.json
 import net.liftweb.json.Formats
 import net.liftweb.json.JsonAST.{JObject, JString}
+import net.liftweb.util.Helpers._
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.util.Either
 import scala.xml.NodeSeq
 
-class PaymentOTP extends MdcLoggable with RestHelper with APIMethods210 {
+class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
   protected implicit override def formats: Formats = CustomJsonFormats.formats
 
   private object otpVar extends RequestVar("")
@@ -192,7 +193,7 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods210 {
 
     val requestBody = s"""{"id":"${S.param("id").getOrElse("")}","answer":"${otpVar.get}"}"""
 
-    val authorisationsResult = callEndpoint(Implementations2_1_0.answerTransactionRequestChallenge, pathOfEndpoint, PostRequest, requestBody)
+    val authorisationsResult = callEndpoint(Implementations4_0_0.answerTransactionRequestChallenge, pathOfEndpoint, PostRequest, requestBody)
 
     authorisationsResult
 

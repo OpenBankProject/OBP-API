@@ -468,6 +468,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodySandboxTan,
                                                                                                      transDetailsSerialized,
                                                                                                      sharedChargePolicy.toString,
+                                                                                                     None,
                                                                                                      callContext) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -497,6 +498,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodyCounterparty,
                                                                                                      transDetailsSerialized,
                                                                                                      chargePolicy,
+                                                                                                     None,
                                                                                                      callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -526,6 +528,7 @@ trait APIMethods210 {
                                                                                                      transDetailsSEPAJson,
                                                                                                      transDetailsSerialized,
                                                                                                      chargePolicy,
+                                                                                                     None,
                                                                                                      callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -545,6 +548,7 @@ trait APIMethods210 {
                                                                                                      transactionRequestBodyFreeForm,
                                                                                                      transDetailsSerialized,
                                                                                                      sharedChargePolicy.toString,
+                                                                                                     None,
                                                                                                      callContext)
                 } yield
                   (createdTransactionRequest, callContext)

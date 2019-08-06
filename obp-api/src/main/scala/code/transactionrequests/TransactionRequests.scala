@@ -22,7 +22,7 @@ object TransactionRequests extends SimpleInjector {
   
   object TransactionChallengeTypes extends Enumeration {
     type TransactionChallengeTypes = Value
-    val SANDBOX_TAN = Value
+    val SANDBOX_TAN, ACCOUNT, ACCOUNT_OTP, COUNTERPARTY, SEPA, FREE_FORM = Value
   }
   
   object TransactionRequestTypes extends Enumeration {
