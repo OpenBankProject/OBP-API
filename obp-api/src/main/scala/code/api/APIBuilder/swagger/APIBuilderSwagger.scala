@@ -36,7 +36,7 @@ import scala.meta._
 object APIBuilderSwagger
 {
   def main(args: Array[String]): Unit = overwriteApiCode(apiSource,jsonFactorySource)
-  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json")
+  val jsonJValueFromFile: JValue = APIUtil.getJValueFromFile("obp-api/src/main/scala/code/api/APIBuilder/swagger/swaggerResource.json")
 
   val getSingleApiResponseBody: JValue = jsonJValueFromFile \\("foo")\"foo"\"value"
   //"template"
@@ -329,7 +329,7 @@ trait APIMethods_APIBuilder
   
   val ImplementationsBuilderAPI = new Object()
   {
-    val apiVersion: ApiVersion = ApiVersion.apiBuilder
+    val apiVersion = ApiVersion.apiBuilder
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)
