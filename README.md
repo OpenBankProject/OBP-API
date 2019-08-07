@@ -375,15 +375,15 @@ We use jetty8 to run the API in production mode.
 ## Using OBP-API in different app modes
 
 1) `portal` => OBP-API as a portal i.e. without REST API 
-2) `backend` => OBP-API as a back-end app i.e. only REST API 
-3)  `multi`=> OBP-API as portal and back-end i.e. REST API and web portal
+2) `apis` => OBP-API as a apis app i.e. only REST APIs
+3) `apis,portal`=> OBP-API as portal and apis i.e. REST APIs and web portal
 
 * Edit your props file(s) to contain one of the next cases:
         
         1) server_mode=portal
-        2) server_mode=backend
-        3) server_mode=multi
-        In case is not defined default case is the 3rd one i.e. server_mode=multi
+        2) server_mode=apis
+        3) server_mode=apis,portal
+        In case is not defined default case is the 3rd one i.e. server_mode=apis,portal
 
 ## Using Akka remote storage
 

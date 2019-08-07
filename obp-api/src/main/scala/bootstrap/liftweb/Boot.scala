@@ -303,9 +303,10 @@ class Boot extends MdcLoggable {
       LiftRules.statelessDispatch.append(ImporterAPI)
     }
 
-    APIUtil.getPropsValue("server_mode", "multi") match {
+    APIUtil.getPropsValue("server_mode", "apis,portal") match {
       case mode if mode == "portal" => 
-      case mode if mode == "backend" => enableAPIs
+      case mode if mode == "apis" => enableAPIs
+      case mode if mode.contains("apis") && mode.contains("portal") => enableAPIs
       case _ => enableAPIs
     }
     
@@ -389,9 +390,10 @@ class Boot extends MdcLoggable {
 
 
     // Build SiteMap
-    val indexPage = APIUtil.getPropsValue("server_mode", "multi") match {
+    val indexPage = APIUtil.getPropsValue("server_mode", "apis,portal") match {
       case mode if mode == "portal" => List(Menu.i("Home") / "index")
-      case mode if mode == "backend" => List()
+      case mode if mode == "apis" => List()
+      case mode if mode.contains("apis") && mode.contains("portal") => List(Menu.i("Home") / "index")
       case _ => List(Menu.i("Home") / "index")
     }
     val sitemap = indexPage ::: List(

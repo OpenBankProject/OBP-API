@@ -1623,9 +1623,10 @@ Returns a string showed to the developer
       else
         false
     }
-    APIUtil.getPropsValue("server_mode", "multi") match {
+    APIUtil.getPropsValue("server_mode", "apis,portal") match {
       case mode if mode == "portal" => false
-      case mode if mode == "backend" => checkVersion
+      case mode if mode == "apis" => checkVersion
+      case mode if mode.contains("apis") && mode.contains("portal") => checkVersion
       case _ => checkVersion
     }
   }
