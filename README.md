@@ -560,7 +560,21 @@ allow_oauth2_login=true
 oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs
 ```
 ---
-   
+
+## Frozen APIs
+API versions may be marked as "STABLE", if changes are made to an API which has been marked as "STABLE", then unit test `FrozenClassTest`  will fail.
+### Changes to "STABLE" api cause the tests fail: 
+* modify request or response body structure of apis
+* add or delete apis
+* change the apis versionStatus from or to "STABLE"
+
+If is is required for a "STABLE" api to be changed, then the class metadata must be regenerated using the FrozenClassUtil (see how to freeze an api)
+### Steps to freeze an api
+* Run the FrozenClassUtil to regenerate persist file of frozen apis information, the file is `PROJECT_ROOT_PATH/obp-api/src/test/resources/frozen_type_meta_data`
+* push the file `frozen_type_meta_data` to github
+
+There is a video about the detail: [demonstrate the detail of the feature](https://www.youtube.com/watch?v=m9iYCSM0bKA)
+
 ## Scala / Lift
 
 * We use scala and liftweb http://www.liftweb.net/
