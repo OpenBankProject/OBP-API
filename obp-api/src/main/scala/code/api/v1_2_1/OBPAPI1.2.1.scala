@@ -28,12 +28,12 @@ package code.api.v1_2_1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{ApiVersion, VersionedOBPApis}
 import code.util.Helper.MdcLoggable
 
 // Added so we can add resource docs for this version of the API
 
-object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable {
+object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable with VersionedOBPApis{
 
 
   val version : ApiVersion = ApiVersion.v1_2_1  //    "1.2.1"

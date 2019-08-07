@@ -21,5 +21,8 @@ object ScannedApis {
   /**
     * this map value are all scanned objects those extends ScannedApiVersion, the key is it apiVersion field
     */
-  lazy val versionMapScannedApis: Map[ScannedApiVersion, ScannedApis] = ClassScanUtils.getSubTypeObjects(classOf[ScannedApis]).map(it=> (it.apiVersion, it)).toMap
+  lazy val versionMapScannedApis: Map[ScannedApiVersion, ScannedApis] =
+    ClassScanUtils.getSubTypeObjects[ScannedApis]
+    .map(it=> (it.apiVersion, it))
+    .toMap
 }

@@ -2,7 +2,7 @@ package code.api.v1_3_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{ApiVersion, VersionedOBPApis}
 import code.api.v1_2_1.APIMethods121
 import code.util.Helper.MdcLoggable
 
@@ -11,7 +11,7 @@ import code.util.Helper.MdcLoggable
 
 //has APIMethods121 as all api calls that went unchanged from 1.2.1 to 1.3.0 will use the old
 //implementation
-object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 with MdcLoggable {
+object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 with MdcLoggable with VersionedOBPApis{
 
   val version : ApiVersion = ApiVersion.v1_3_0 //  "1.3.0"
   val versionStatus = "STABLE"
