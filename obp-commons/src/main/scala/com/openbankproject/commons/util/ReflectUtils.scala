@@ -15,7 +15,7 @@ object ReflectUtils {
 
   def isObpObject(any: Any): Boolean = any != null && OBP_TYPE_REGEX.findFirstIn(any.getClass.getName).isDefined
 
-  def isObpType(tp: Type): Boolean = tp != null && OBP_TYPE_REGEX.findFirstIn(tp.typeSymbol.fullName).isDefined
+  def isObpType(tp: Type): Boolean = tp != null && tp.typeSymbol.isClass && OBP_TYPE_REGEX.findFirstIn(tp.typeSymbol.fullName).isDefined
 
   /**
     * get all val and var name to values of given object
@@ -278,6 +278,11 @@ object ReflectUtils {
     })
   }
 
+  def typeTagToClass[T: TypeTag]: Class[_] = {
+    val tt = implicitly[TypeTag[T]]
+    tt.mirror.runtimeClass(tt.tpe.typeSymbol.asClass)
+  }
+
   def classToSymbol(clazz: Class[_]): ru.ClassSymbol = ru.runtimeMirror(clazz.getClassLoader).classSymbol(clazz)
 
   /**
@@ -285,10 +290,16 @@ object ReflectUtils {
     * @param tp to do extract type
     * @return a map of constructor parameter name to type, if tp is abstract, return empty amp
     */
-  def getConstructorParamInfo(tp: ru.Type): Map[String, ru.Type] = tp.typeSymbol.isClass match {
+  def getConstructorParamInfo(tp: ru.Type): Map[String, ru.Type] =
+    tp.typeSymbol.isClass && !tp.typeSymbol.asClass.isTrait match {
     case false => Map.empty[String, ru.Type]
     case true => {
-      ReflectUtils.getPrimaryConstructor(tp).paramLists.headOption.getOrElse(Nil).map(it => (it.name.toString, it.info)).toMap
+      ReflectUtils.getPrimaryConstructor(tp)
+        .paramLists
+        .headOption
+        .getOrElse(Nil)
+        .map(it => (it.name.toString, it.info))
+        .toMap
     }
   }
   /**

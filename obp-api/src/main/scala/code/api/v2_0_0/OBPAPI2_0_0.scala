@@ -28,12 +28,12 @@ package code.api.v2_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.ApiVersion
+import code.api.util.{ApiVersion, VersionedOBPApis}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.util.Helper.MdcLoggable
 
-object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with MdcLoggable {
+object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with MdcLoggable with VersionedOBPApis{
 
 
   val version : ApiVersion = ApiVersion.v2_0_0 // "2.0.0"

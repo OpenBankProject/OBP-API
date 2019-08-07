@@ -28,7 +28,7 @@ package code.api.v2_1_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
-import code.api.util.{APIUtil, ApiVersion}
+import code.api.util.{APIUtil, ApiVersion, VersionedOBPApis}
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
@@ -36,7 +36,7 @@ import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.Nil
 
-object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with MdcLoggable {
+object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with MdcLoggable with VersionedOBPApis{
 
 
 
