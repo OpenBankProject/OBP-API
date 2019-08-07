@@ -136,10 +136,49 @@ trait APIMethods400 {
     resourceDocs += ResourceDoc(
       createTransactionRequestAccount,
       implementedInApiVersion,
-      "createTransactionRequestSandboxTan",
+      "createTransactionRequestAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ACCOUNT/transaction-requests",
       "Create Transaction Request (ACCOUNT)",
+      s"""When using ACCOUNT, the payee is set in the request body.
+         |
+         |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+         |
+         |$transactionRequestGeneralText
+         |
+       """.stripMargin,
+      transactionRequestBodyJsonV200,
+      transactionRequestWithChargeJSON210,
+      List(
+        UserNotLoggedIn,
+        UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        ViewNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        UserNoPermissionAccessView,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
+    
+    // ACCOUNT_OTP. (we no longer create a resource doc for the general case)
+    resourceDocs += ResourceDoc(
+      createTransactionRequestAccountOtp,
+      implementedInApiVersion,
+      "createTransactionRequestAccountOtp",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ACCOUNT_OTP/transaction-requests",
+      "Create Transaction Request (ACCOUNT_OTP)",
       s"""When using ACCOUNT, the payee is set in the request body.
          |
          |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
@@ -299,6 +338,7 @@ trait APIMethods400 {
 
     // Different Transaction Request approaches:
     lazy val createTransactionRequestAccount = createTransactionRequest
+    lazy val createTransactionRequestAccountOtp = createTransactionRequest
     lazy val createTransactionRequestSepa = createTransactionRequest
     lazy val createTransactionRequestCounterparty = createTransactionRequest
     lazy val createTransactionRequestFreeForm = createTransactionRequest
