@@ -33,6 +33,7 @@ import code.api.util.APIUtil.stringOrNull
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
+import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.ACCOUNT_OTP
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, Bank, TransactionRequest, TransactionRequestBodyAllTypes}
 
@@ -54,7 +55,7 @@ case class ChallengeJsonV400(
                               id: String,
                               allowed_attempts : Int,
                               challenge_type: String,
-                              link: Option[String]
+                              link: String
                              )
 
 case class TransactionRequestWithChargeJSON400(
@@ -109,7 +110,7 @@ object JSONFactory400 {
       // Some (mapped) data might not have the challenge. TODO Make this nicer
       challenge = {
         try {
-          val pathOfEndpoint = APIUtil.getPropsValue("hostname", "") + List(
+          val otpViaWebFormPath = APIUtil.getPropsValue("hostname", "") + List(
             "/otp?flow=transaction_request&bankId=",
             stringOrNull(tr.from.bank_id),
             "&accountId=",
@@ -122,7 +123,21 @@ object JSONFactory400 {
             "&id=",
             stringOrNull(tr.challenge.id)
           ).mkString("")
-          val link = if(tr.`type` == ACCOUNT_OTP.toString) Some(pathOfEndpoint) else None
+          
+          val otpViaApiPath = APIUtil.getPropsValue("hostname", "") + List(
+            "/obp/v4.0.0/banks/",
+            stringOrNull(tr.from.bank_id),
+            "/accounts/",
+            stringOrNull(tr.from.account_id),
+            "/owner",
+            "/transaction-request-types/",
+            stringOrNull(tr.`type`),
+            "/transaction-requests/challenge").mkString("")
+          val link = tr.challenge.challenge_type match  {
+            case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_WEB_FORM.toString => otpViaWebFormPath
+            case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_API.toString => otpViaApiPath
+            case _ => ""
+          }  
           ChallengeJsonV400(id = stringOrNull(tr.challenge.id), allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}

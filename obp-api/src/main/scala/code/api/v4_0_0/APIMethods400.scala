@@ -13,6 +13,7 @@ import code.api.v2_1_0._
 import code.fx.fx
 import code.model.toUserExtended
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
+import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -394,7 +395,7 @@ trait APIMethods400 {
             }
 
             (createdTransactionRequest,callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
-              case ACCOUNT | ACCOUNT_OTP | SANDBOX_TAN => {
+              case ACCOUNT | SANDBOX_TAN => {
                 for {
                   transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
                     json.extract[TransactionRequestBodySandBoxTanJSON]
@@ -414,7 +415,31 @@ trait APIMethods400 {
                     transactionRequestBodySandboxTan,
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
-                    Some(transactionRequestType.value),
+                    Some(OTP_VIA_API.toString),
+                    callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
+                } yield (createdTransactionRequest, callContext)
+              }
+              case ACCOUNT_OTP => {
+                for {
+                  transactionRequestBodySandboxTan <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
+                    json.extract[TransactionRequestBodySandBoxTanJSON]
+                  }
+
+                  toBankId = BankId(transactionRequestBodySandboxTan.to.bank_id)
+                  toAccountId = AccountId(transactionRequestBodySandboxTan.to.account_id)
+                  (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, callContext)
+
+                  transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
+
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv210(u,
+                    viewId,
+                    fromAccount,
+                    toAccount,
+                    transactionRequestType,
+                    transactionRequestBodySandboxTan,
+                    transDetailsSerialized,
+                    sharedChargePolicy.toString,
+                    Some(OTP_VIA_WEB_FORM.toString),
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -444,7 +469,7 @@ trait APIMethods400 {
                     transactionRequestBodyCounterparty,
                     transDetailsSerialized,
                     chargePolicy,
-                    Some(transactionRequestType.value),
+                    Some(OTP_VIA_API.toString),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -474,7 +499,7 @@ trait APIMethods400 {
                     transDetailsSEPAJson,
                     transDetailsSerialized,
                     chargePolicy,
-                    Some(transactionRequestType.value),
+                    Some(OTP_VIA_API.toString),
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -494,7 +519,7 @@ trait APIMethods400 {
                     transactionRequestBodyFreeForm,
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
-                    Some(transactionRequestType.value),
+                    Some(OTP_VIA_API.toString),
                     callContext)
                 } yield
                   (createdTransactionRequest, callContext)
@@ -596,12 +621,8 @@ trait APIMethods400 {
             //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
             _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
               List(
-                TransactionChallengeTypes.SANDBOX_TAN.toString,
-                TransactionChallengeTypes.ACCOUNT.toString,
-                TransactionChallengeTypes.ACCOUNT_OTP.toString,
-                TransactionChallengeTypes.COUNTERPARTY.toString,
-                TransactionChallengeTypes.SEPA.toString,
-                TransactionChallengeTypes.FREE_FORM.toString
+                OTP_VIA_API.toString,
+                OTP_VIA_WEB_FORM.toString
               ).exists(_ == existingTransactionRequest.challenge.challenge_type)       
             }
 

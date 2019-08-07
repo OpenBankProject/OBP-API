@@ -649,7 +649,7 @@ trait APIMethods210 {
 
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
               _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
-                existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.SANDBOX_TAN.toString
+                existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString
               }
             
               challengeAnswerOBP <- NewStyle.function.validateChallengeAnswerInOBPSide(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
