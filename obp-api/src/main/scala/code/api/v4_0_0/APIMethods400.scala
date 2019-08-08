@@ -10,10 +10,9 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJsonV140}
 import code.api.v2_1_0._
-import code.fx.fx
 import code.model.toUserExtended
-import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -74,10 +73,10 @@ trait APIMethods400 {
           
       }
     }
-
-    import net.liftweb.json.Extraction._
-    import net.liftweb.json.JsonAST._
-    val exchangeRates = prettyRender(decompose(fx.fallbackExchangeRates))
+    
+    val exchangeRates = 
+      APIUtil.getPropsValue("webui_api_explorer_url", "") +
+      "/more?version=OBPv4.0.0&list-all-banks=false&core=&psd2=&obwg=#OBPv2_2_0-getCurrentFxRate"
 
 
     // This text is used in the various Create Transaction Request resource docs
