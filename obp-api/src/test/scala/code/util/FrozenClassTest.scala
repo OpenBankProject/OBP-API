@@ -64,13 +64,13 @@ class FrozenClassTest extends ServerSetup {
             (typeName, fields) <- typeNameToTypeValFields.toList
             if(pTypeName == typeName && pFields != fields)
           } yield {
-            val expectStructure = pFields.map(pair => s"${pair._1}:${pair._2}").mkString("(", ", ", ")")
+            val expectedStructure = pFields.map(pair => s"${pair._1}:${pair._2}").mkString("(", ", ", ")")
             val actualStructure = fields.map(pair => s"${pair._1}:${pair._2}").mkString("(", ", ", ")")
 
             s"""
                |{
                | typeName: $typeName
-               | expectStructure: $expectStructure
+               | expectedStructure: $expectedStructure
                | actualStructure: $actualStructure
                |}
                |""".stripMargin
