@@ -604,7 +604,7 @@ trait APIMethods400 {
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
             existingTransactionRequestType = existingTransactionRequest.`type`
-            _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${existingTransactionRequest.`type`}) ") {
+            _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ") {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
 
